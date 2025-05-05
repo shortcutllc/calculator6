@@ -1,0 +1,2942 @@
+@ -1,2941 +0,0 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shortcut Event Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <style>
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: #175071;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Site Header */
+        .site-header {
+            background: white;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 32px;
+        }
+
+        .site-logo {
+            font-size: 24px;
+            font-weight: 600;
+            color: #175071;
+            text-decoration: none;
+        }
+
+        .site-nav {
+            display: flex;
+            gap: 12px;
+        }
+
+        .site-nav .btn {
+            width: auto;
+            min-width: 100px;
+            padding: 12px 24px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Welcome Screen Styles */
+        .welcome-screen {
+            background: white;
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 32px;
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(23, 80, 113, 0.02);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .logo svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .logo-container:hover svg {
+            transform: scale(1.02);
+            transition: transform 0.3s ease;
+        }
+
+        .welcome-screen h2 {
+            font-size: 2rem;
+            margin-bottom: 32px;
+            color: #175071;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            margin: 24px 0;
+            color: #175071;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .client-input {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .client-input label {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #333;
+            margin-left: 4px;
+        }
+
+        .client-input input,
+        .location-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .client-input input:hover,
+        .location-input:hover {
+            border-color: #175071;
+        }
+
+        .client-input input:focus,
+        .location-input:focus {
+            outline: none;
+            border-color: #175071;
+            box-shadow: 0 0 0 4px rgba(23, 80, 113, 0.1);
+        }
+
+        #locationsInput {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .location-input-group {
+            width: 100%;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: #175071;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background-color: #134660;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(23, 80, 113, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: #FFEB69;
+            color: #175071;
+            width: 100%;
+        }
+
+        .btn-secondary:hover {
+            background-color: #FFE54F;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 235, 105, 0.2);
+        }
+
+        .btn-danger {
+            background-color: #FF5050;
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-danger:hover {
+            background-color: #E64646;
+            transform: translateY(-1px);
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        /* Client Dashboard */
+        .client-dashboard {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .client-header {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .client-name {
+            font-size: 1.8rem;
+            color: #175071;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .navigation-buttons .btn {
+            width: auto;
+            min-width: 100px;
+        }
+
+        .location-section {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.1);
+        }
+
+        .location-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .location-name {
+            font-size: 1.5rem;
+            color: #175071;
+            font-weight: 600;
+        }
+
+        .add-event-btn {
+            background-color: #175071;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-event-btn:hover {
+            background-color: #134660;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(23, 80, 113, 0.2);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(23, 80, 113, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 20px auto;
+            padding: 32px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #175071;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .close-modal:hover {
+            background-color: rgba(23, 80, 113, 0.1);
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #175071;
+            box-shadow: 0 0 0 4px rgba(23, 80, 113, 0.1);
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 0 20px;
+        }
+
+        .results-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .event-details-card,
+        .location-section,
+        .summary-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.1);
+        }
+
+        .event-details-card h3,
+        .location-header h3,
+        .summary-header {
+            font-size: 1.5rem;
+            color: #175071;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: 500;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .result-value {
+            font-weight: 600;
+            color: #175071;
+            font-size: 1.2rem;
+        }
+
+        .client-perspective {
+            background: rgba(23, 80, 113, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+        }
+
+        .shortcut-perspective {
+            background: rgba(255, 235, 105, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+        }
+
+        .service-title {
+            font-size: 1.2rem;
+            color: #175071;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .date-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+            box-shadow: 0 4px 12px rgba(23, 80, 113, 0.05);
+        }
+
+        .date-header {
+            font-size: 1.3rem;
+            color: #175071;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #E5E7EB;
+        }
+
+        .location-totals {
+            background: rgba(23, 80, 113, 0.02);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+
+        .location-totals .service-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            margin-top: 32px;
+        }
+
+        .summary-card .result-item {
+            padding: 20px 0;
+        }
+
+        .summary-card .result-value {
+            font-size: 1.4rem;
+        }
+
+        .shortcut-summary {
+            background: #FFF8E1;
+        }
+
+        .shortcut-summary .result-value {
+            color: #175071;
+        }
+
+        /* Service Cards */
+        .service-card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.1);
+        }
+
+        .service-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .service-card-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #175071;
+        }
+
+        .remove-service {
+            background: none;
+            border: none;
+            color: #FF5050;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .remove-service:hover {
+            background-color: rgba(255, 80, 80, 0.1);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .welcome-screen {
+                padding: 32px;
+                margin: 20px;
+            }
+
+            .modal-content {
+                padding: 24px;
+                margin: 20px;
+            }
+
+            .service-card {
+                padding: 24px;
+            }
+
+            .results-section {
+                padding: 0 16px;
+            }
+
+            .event-details-card,
+            .location-section,
+            .summary-card {
+                padding: 24px;
+            }
+
+            .result-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .result-value {
+                font-size: 1.1rem;
+            }
+        }
+
+        /* Add new styles for proposal options */
+        .proposal-options {
+            max-width: 500px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.2);
+        }
+
+        .proposal-option {
+            margin-bottom: 24px;
+            padding: 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .proposal-option:hover {
+            border-color: #175071;
+            transform: translateY(-2px);
+        }
+
+        .proposal-option.selected {
+            border-color: #175071;
+            background: rgba(23, 80, 113, 0.05);
+        }
+
+        .proposal-option h3 {
+            color: #175071;
+            margin-bottom: 8px;
+        }
+
+        .proposal-option p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .proposal-password {
+            margin-top: 24px;
+            padding: 16px;
+            background: rgba(23, 80, 113, 0.05);
+            border-radius: 12px;
+        }
+
+        .proposal-password input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .proposal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .proposal-actions .btn,
+        .event-summary-actions .btn {
+            flex: 1;
+        }
+
+        .event-summary-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+
+        /* History Page Styles */
+        .history-page {
+            display: none;
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            margin: 20px auto;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.1);
+            max-width: 1200px;
+        }
+
+        .history-header {
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .history-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-header-content h2 {
+            margin: 0;
+            color: #175071;
+        }
+
+        .history-header-content .btn {
+            width: auto;
+            min-width: 120px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .history-item {
+            padding: 24px;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            border-color: #175071;
+            box-shadow: 0 4px 12px rgba(23, 80, 113, 0.1);
+        }
+
+        .history-item h3 {
+            color: #175071;
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+        }
+
+        .history-item p {
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 48px 0;
+            color: #666;
+        }
+
+        /* History Item Styles */
+        .history-item {
+            padding: 24px;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .history-item:hover {
+            border-color: #175071;
+            box-shadow: 0 4px 12px rgba(23, 80, 113, 0.1);
+        }
+
+        .history-item h3 {
+            color: #175071;
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+        }
+
+        .history-meta {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+
+        .history-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .history-detail-item {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .history-detail-item h4 {
+            color: #175071;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .history-detail-item p {
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            background-color: #4CAF50;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .history-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .history-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .history-meta h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .history-details {
+            display: grid;
+            gap: 8px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .label {
+            color: #175071;
+            font-weight: 500;
+            margin-right: 4px;
+        }
+
+        .value {
+            color: #212529;
+        }
+
+        #noHistoryMessage {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        /* Add styles for the details modal */
+        .details-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(23, 80, 113, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        /* Update modal styles to match results section */
+        .details-modal-content {
+            background: white;
+            margin: 20px auto;
+            padding: 32px;
+            width: 90%;
+            max-width: 1200px;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.2);
+        }
+
+        .details-section {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.1);
+        }
+
+        .date-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+            box-shadow: 0 4px 12px rgba(23, 80, 113, 0.05);
+        }
+
+        .date-header {
+            font-size: 1.3rem;
+            color: #175071;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #E5E7EB;
+        }
+
+        .client-perspective {
+            background: rgba(23, 80, 113, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+        }
+
+        .shortcut-perspective {
+            background: rgba(255, 235, 105, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+        }
+
+        .service-title {
+            font-size: 1.2rem;
+            color: #175071;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .close-details {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .close-details:hover {
+            background-color: rgba(23, 80, 113, 0.1);
+        }
+
+        .view-details-btn {
+            background-color: #175071;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            margin-top: 12px;
+        }
+
+        .view-details-btn:hover {
+            background-color: #134660;
+            transform: translateY(-1px);
+        }
+
+        /* Add styles for delete button and confirmation dialog */
+        .delete-btn {
+            background-color: #FF5050;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            margin-left: 12px;
+            width: auto;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-btn:hover {
+            background-color: #E64646;
+            transform: translateY(-1px);
+        }
+
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(23, 80, 113, 0.8);
+            z-index: 1000;
+        }
+
+        .confirmation-content {
+            background: white;
+            margin: 20% auto;
+            padding: 32px;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(23, 80, 113, 0.2);
+            text-align: center;
+        }
+
+        .confirmation-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+
+        .confirmation-actions button {
+            min-width: 100px;
+        }
+
+        .view-details-btn {
+            background-color: #175071;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            min-width: 100px;
+            flex: 1;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .view-details-btn,
+        .delete-btn {
+            background-color: #175071;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .delete-btn {
+            background-color: #FF5050;
+        }
+
+        .view-details-btn:hover {
+            background-color: #134660;
+            transform: translateY(-1px);
+        }
+
+        .delete-btn:hover {
+            background-color: #E64646;
+            transform: translateY(-1px);
+        }
+
+        /* Add styles for sorting and filtering controls */
+        .controls-container {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 4px rgba(23, 80, 113, 0.1);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 200px;
+        }
+
+        .control-group label {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .control-group select,
+        .control-group input {
+            padding: 8px;
+            border: 1px solid #E5E7EB;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            border-color: #175071;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(23, 80, 113, 0.1);
+        }
+
+        .active-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .filter-tag {
+            background: rgba(23, 80, 113, 0.1);
+            color: #175071;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .filter-tag button {
+            background: none;
+            border: none;
+            color: #175071;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.2em;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Add this right after the opening body tag -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Site Header -->
+    <header class="site-header">
+        <a href="#" class="site-logo">Shortcut Event Calculator</a>
+        <nav class="site-nav">
+            <button class="btn btn-secondary" id="homeButton">Home</button>
+            <button class="btn btn-primary" id="historyButton">History</button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="logo-container">
+                    <img src="/assets/logo-redandblue-new.svg" alt="Shortcut Logo" class="logo" onerror="this.style.display='none'">
+                </div>
+                <h2 class="welcome-title">Welcome to the Shortcut Event Calculator</h2>
+                <div class="form-container">
+                    <div class="client-input">
+                        <label for="clientName">Client Name:</label>
+                        <input type="text" id="clientName" placeholder="Enter client name" autocomplete="off" required>
+                    </div>
+                    <div id="locationsInput">
+                        <div class="location-input-group">
+                            <input type="text" class="location-input" placeholder="Enter location name" autocomplete="off" required>
+                            <button type="button" class="btn btn-secondary" onclick="addLocationInput()">Add Another Location</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="startClientDashboard()">Start</button>
+                </div>
+            </div>
+
+            <!-- Client Dashboard -->
+            <div class="client-dashboard" id="clientDashboard">
+                <div class="client-header">
+                    <h2 class="client-name" id="displayClientName"></h2>
+                </div>
+                <div id="locationsContainer">
+                    <!-- Location sections will be added here -->
+                </div>
+            </div>
+
+            <!-- Event Configuration Modal -->
+            <div class="modal" id="eventModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Configure Event</h3>
+                        <button class="close-modal" onclick="closeEventModal()">&times;</button>
+                    </div>
+                    <form id="eventForm">
+                        <div class="form-group">
+                            <label for="eventClientName">Client Name:</label>
+                            <input type="text" id="eventClientName" name="clientName" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventDate">Event Date:</label>
+                            <input type="date" id="eventDate" name="eventDate" required>
+                        </div>
+                        
+                        <div id="servicesContainer">
+                            <!-- Service cards will be added here -->
+                        </div>
+
+                        <div class="button-group">
+                            <button type="button" class="btn btn-secondary" onclick="addService('same-day')">Add Another Service (Same Day)</button>
+                            <button type="button" class="btn btn-secondary" onclick="addService('new-day')">Add Another Service (New Day)</button>
+                            <button type="submit" class="btn btn-primary">Save Event</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection">
+                <div class="results-grid" id="resultsGrid">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+
+            <!-- History Page -->
+            <div class="history-page" id="historyPage">
+                <div class="history-header">
+                    <div class="history-header-content">
+                        <h2>Calculation History</h2>
+                        <button class="btn btn-secondary" onclick="addDummyData()">Add Test Data</button>
+                    </div>
+                    <div class="controls-container">
+                        <div class="controls-row">
+                            <div class="control-group">
+                                <label for="sortBy">Sort By</label>
+                                <select id="sortBy" onchange="applySortAndFilters()">
+                                    <option value="date-desc">Date (Newest First)</option>
+                                    <option value="date-asc">Date (Oldest First)</option>
+                                    <option value="name-asc">Client Name (A-Z)</option>
+                                    <option value="name-desc">Client Name (Z-A)</option>
+                                    <option value="cost-desc">Total Cost (High-Low)</option>
+                                    <option value="cost-asc">Total Cost (Low-High)</option>
+                                    <option value="events-desc">Events (Most-Least)</option>
+                                    <option value="events-asc">Events (Least-Most)</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label for="filterLocation">Filter by Location</label>
+                                <select id="filterLocation" onchange="applySortAndFilters()">
+                                    <option value="">All Locations</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>Date Range</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="date" id="startDate" onchange="applySortAndFilters()">
+                                    <input type="date" id="endDate" onchange="applySortAndFilters()">
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label>Cost Range</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="number" id="minCost" placeholder="Min" onchange="applySortAndFilters()">
+                                    <input type="number" id="maxCost" placeholder="Max" onchange="applySortAndFilters()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="active-filters" id="activeFilters"></div>
+                    </div>
+                </div>
+                <div id="noHistoryMessage" style="display: none;">
+                    <h3>No calculations saved yet</h3>
+                    <p>Your saved calculations will appear here</p>
+                </div>
+                <div class="history-list" id="historyList">
+                    <!-- History items will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Proposal Options Modal -->
+    <div class="modal" id="proposalModal">
+        <div class="proposal-options">
+            <h2>Generate Proposal</h2>
+            <div class="proposal-customization">
+                <h3>Customization Options</h3>
+                <div class="form-group">
+                    <label for="clientLogo">Client Logo</label>
+                    <input type="file" id="clientLogo" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label for="contactFirstName">Contact First Name</label>
+                    <input type="text" id="contactFirstName" placeholder="Enter first name">
+                </div>
+                <div class="form-group">
+                    <label for="contactLastName">Contact Last Name</label>
+                    <input type="text" id="contactLastName" placeholder="Enter last name">
+                </div>
+                <div class="form-group">
+                    <label for="customNote">Custom Note</label>
+                    <textarea id="customNote" placeholder="Enter a custom note for the proposal"></textarea>
+                </div>
+            </div>
+            <div class="proposal-content">
+                <h3>Proposal Content</h3>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="includeSummary" checked>
+                        Include Summary of Results
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="includeCalculations" checked>
+                        Include Detailed Calculations
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="includeCalculator" checked>
+                        Include Interactive Calculator
+                    </label>
+                </div>
+            </div>
+            <div class="proposal-type">
+                <h3>Proposal Type</h3>
+                <div class="proposal-option" onclick="selectProposalOption('public')">
+                    <h4>Public Link</h4>
+                    <p>Anyone with the link can view the proposal</p>
+                </div>
+                <div class="proposal-option" onclick="selectProposalOption('password')">
+                    <h4>Password Protected</h4>
+                    <p>Only those with the password can view the proposal</p>
+                </div>
+            </div>
+            <div id="passwordSection" style="display: none;">
+                <div class="form-group">
+                    <label for="proposalPassword">Password</label>
+                    <input type="password" id="proposalPassword" placeholder="Enter password">
+                </div>
+            </div>
+            <div class="proposal-actions">
+                <button class="btn btn-secondary" onclick="closeProposalModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="generateProposal()">Generate Proposal</button>
+                <button class="btn btn-secondary" onclick="saveCurrentCalculation()">Save to History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add the details modal -->
+    <div id="detailsModal" class="details-modal">
+        <div class="details-modal-content">
+            <div class="details-header">
+                <h2>Calculation Details</h2>
+                <button class="close-details" onclick="closeDetailsModal()">&times;</button>
+            </div>
+            <div id="detailsContent">
+                <!-- Details will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add confirmation modal -->
+    <div id="confirmationModal" class="confirmation-modal">
+        <div class="confirmation-content">
+            <h3>Delete Calculation</h3>
+            <p>Are you sure you want to delete this calculation? This action cannot be undone.</p>
+            <div class="confirmation-actions">
+                <button class="btn btn-secondary" onclick="closeConfirmationModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let currentClient = {
+            name: '',
+            locations: [],
+            events: {}  // Store events by location
+        };
+
+        // DOM Elements
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const clientDashboard = document.getElementById('clientDashboard');
+        const historyPage = document.getElementById('historyPage');
+        const homeButton = document.getElementById('homeButton');
+        const historyButton = document.getElementById('historyButton');
+        const clientNameInput = document.getElementById('clientName');
+        const locationsInput = document.getElementById('locationsInput');
+        const displayClientName = document.getElementById('displayClientName');
+        const locationsContainer = document.getElementById('locationsContainer');
+        const eventModal = document.getElementById('eventModal');
+        const eventForm = document.getElementById('eventForm');
+        const resultsSection = document.getElementById('resultsSection');
+        const servicesContainer = document.getElementById('servicesContainer');
+        const eventClientName = document.getElementById('eventClientName');
+
+        // Navigation Functions
+        function showPage(pageToShow) {
+            // Hide all pages first
+            welcomeScreen.style.display = 'none';
+            clientDashboard.style.display = 'none';
+            historyPage.style.display = 'none';
+            resultsSection.style.display = 'none';  // Also hide results section
+
+            // Show the requested page
+            if (pageToShow) {
+                pageToShow.style.display = 'block';
+                
+                // If showing history page, refresh the history display
+                if (pageToShow === historyPage) {
+                    displayHistory();
+                }
+            }
+        }
+
+        // Event Listeners
+        homeButton.addEventListener('click', () => {
+            showPage(welcomeScreen);
+        });
+
+        historyButton.addEventListener('click', () => {
+            showPage(historyPage);
+            displayHistory();
+        });
+
+        // Initialize page
+        window.addEventListener('load', () => {
+            showPage(welcomeScreen);
+        });
+
+        eventForm.addEventListener('submit', handleEventSubmit);
+
+        function addLocationInput() {
+            const newLocationGroup = document.createElement('div');
+            newLocationGroup.className = 'location-input-group';
+            newLocationGroup.innerHTML = `
+                <input type="text" class="location-input" placeholder="Enter location name" autocomplete="off" required>
+                <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+            `;
+            locationsInput.appendChild(newLocationGroup);
+        }
+
+        function startClientDashboard() {
+            const name = clientNameInput.value.trim();
+            const locationInputs = document.querySelectorAll('.location-input');
+            const locations = Array.from(locationInputs)
+                .map(input => input.value.trim())
+                .filter(location => location !== '');
+            
+            if (!name) {
+                alert('Please enter client name');
+                return;
+            }
+
+            if (locations.length === 0) {
+                alert('Please enter at least one location');
+                return;
+            }
+
+            currentClient.name = name;
+            currentClient.locations = locations;
+            currentClient.events = {};  // Reset events when starting new client
+            displayClientName.textContent = name;
+            
+            welcomeScreen.style.display = 'none';
+            clientDashboard.style.display = 'block';
+            updateLocationsDisplay();
+        }
+
+        function updateLocationsDisplay() {
+            locationsContainer.innerHTML = currentClient.locations.map(location => `
+                <div class="location-section">
+                    <div class="location-header">
+                        <h3 class="location-name">${location}</h3>
+                    </div>
+                    <div class="location-events" id="events-${location}">
+                        ${currentClient.events[location] ? currentClient.events[location].map((event, index) => `
+                            <div class="event-card">
+                                <h4>Event ${index + 1}</h4>
+                                <p>Date: ${event.date}</p>
+                                <p>Services: ${event.services.length}</p>
+                            </div>
+                        `).join('') : ''}
+                    </div>
+                    <button class="btn btn-primary add-event-btn" onclick="showEventModal('${location}')">Add New Event</button>
+                </div>
+            `).join('');
+        }
+
+        function showEventModal(location) {
+            eventClientName.value = currentClient.name;
+            eventModal.style.display = 'block';
+            
+            // Clear existing services
+            servicesContainer.innerHTML = '';
+            
+            // Add first service with pre-populated location
+            addService('initial', location);
+        }
+
+        function closeEventModal() {
+            eventModal.style.display = 'none';
+        }
+
+        function addService(option = 'initial', location = null) {
+            const serviceId = Date.now();
+            const serviceCard = document.createElement('div');
+            serviceCard.className = 'service-card';
+            serviceCard.id = `service-${serviceId}`;
+            
+            // Get the current date for the first service or new day
+            const currentDate = document.getElementById('eventDate').value;
+            const isNewDay = option === 'new-day';
+            
+            // If this is a new service, get the location from the previous service
+            if (!location && servicesContainer.children.length > 0) {
+                const previousService = servicesContainer.lastElementChild;
+                const previousLocation = previousService.querySelector('select[name="serviceLocation"]').value;
+                location = previousLocation;
+            }
+            
+            serviceCard.innerHTML = `
+                <div class="service-card-header">
+                    <h3>Service ${servicesContainer.children.length + 1}</h3>
+                    <button type="button" class="remove-service" onclick="removeService('${serviceId}')">&times;</button>
+                </div>
+                ${isNewDay ? `
+                    <div class="form-group">
+                        <label for="serviceDate-${serviceId}">Service Date:</label>
+                        <input type="date" id="serviceDate-${serviceId}" name="serviceDate" required>
+                    </div>
+                ` : ''}
+                <div class="form-group">
+                    <label for="serviceLocation-${serviceId}">Location:</label>
+                    <select id="serviceLocation-${serviceId}" name="serviceLocation" required>
+                        ${currentClient.locations.map(loc => 
+                            `<option value="${loc}" ${loc === location ? 'selected' : ''}>${loc}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="serviceType-${serviceId}">Service Type:</label>
+                    <select id="serviceType-${serviceId}" name="serviceType" required onchange="updateServiceDefaults('${serviceId}')">
+                        <option value="massage">Massage</option>
+                        <option value="facial">Facial</option>
+                        <option value="hair">Hair</option>
+                        <option value="nails">Nails</option>
+                        <option value="headshot">Headshots</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="totalHours-${serviceId}">Total Hours:</label>
+                    <input type="number" id="totalHours-${serviceId}" name="totalHours" min="1" step="0.5" value="4" required onchange="updateAppointmentPreview('${serviceId}')">
+                </div>
+                <div class="form-group">
+                    <label for="appTime-${serviceId}">Appointment Time (minutes):</label>
+                    <input type="number" id="appTime-${serviceId}" name="appTime" min="1" value="20" required onchange="updateAppointmentPreview('${serviceId}')">
+                </div>
+                <div class="form-group">
+                    <label for="numPros-${serviceId}">Number of Professionals:</label>
+                    <input type="number" id="numPros-${serviceId}" name="numPros" min="1" value="2" required onchange="updateAppointmentPreview('${serviceId}')">
+                </div>
+                <div class="form-group">
+                    <label for="proHourly-${serviceId}">Professional Hourly Rate ($):</label>
+                    <input type="number" id="proHourly-${serviceId}" name="proHourly" min="0" step="0.01" value="50" required>
+                </div>
+                <div class="form-group">
+                    <label for="hourlyRate-${serviceId}">Hourly Rate ($):</label>
+                    <input type="number" id="hourlyRate-${serviceId}" name="hourlyRate" min="0" step="0.01" value="135" required>
+                </div>
+                <div class="form-group">
+                    <label for="earlyArrival-${serviceId}">Early Arrival Bonus ($):</label>
+                    <input type="number" id="earlyArrival-${serviceId}" name="earlyArrival" min="0" step="0.01" value="25" required>
+                </div>
+                <div class="form-group retouching-group-${serviceId}" style="display: none;">
+                    <label for="retouchingCost-${serviceId}">Retouching Cost ($):</label>
+                    <input type="number" id="retouchingCost-${serviceId}" name="retouchingCost" min="0" step="0.01" value="40">
+                </div>
+                <div class="form-group">
+                    <label for="discountPercent-${serviceId}">Discount Percent (%):</label>
+                    <input type="number" id="discountPercent-${serviceId}" name="discountPercent" min="0" max="100" value="0">
+                </div>
+                <div class="form-group">
+                    <div class="result-item">
+                        <span class="result-label">Estimated Total Appointments:</span>
+                        <span class="result-value" id="appointmentPreview-${serviceId}">24</span>
+                    </div>
+                </div>
+            `;
+
+            servicesContainer.appendChild(serviceCard);
+            updateServiceDefaults(serviceId);
+        }
+
+        function removeService(serviceId) {
+            const serviceCard = document.getElementById(`service-${serviceId}`);
+            if (serviceCard) {
+                serviceCard.remove();
+                updateServiceNumbers();
+            }
+        }
+
+        function updateServiceNumbers() {
+            const serviceCards = servicesContainer.getElementsByClassName('service-card');
+            Array.from(serviceCards).forEach((card, index) => {
+                const header = card.querySelector('.service-card-header h3');
+                if (header) {
+                    header.textContent = `Service ${index + 1}`;
+                }
+            });
+        }
+
+        function updateServiceDefaults(serviceId) {
+            const serviceType = document.getElementById(`serviceType-${serviceId}`).value;
+            const totalHoursInput = document.getElementById(`totalHours-${serviceId}`);
+            const appTimeInput = document.getElementById(`appTime-${serviceId}`);
+            const numProsInput = document.getElementById(`numPros-${serviceId}`);
+            const proHourlyInput = document.getElementById(`proHourly-${serviceId}`);
+            const hourlyRateInput = document.getElementById(`hourlyRate-${serviceId}`);
+            const earlyArrivalInput = document.getElementById(`earlyArrival-${serviceId}`);
+            const retouchingCostInput = document.getElementById(`retouchingCost-${serviceId}`);
+            const discountPercentInput = document.getElementById(`discountPercent-${serviceId}`);
+            const retouchingGroup = document.querySelector(`.retouching-group-${serviceId}`);
+
+            // Show/hide retouching cost based on service type
+            retouchingGroup.style.display = serviceType === 'headshot' ? 'block' : 'none';
+
+            // Update service defaults based on selected service type
+            switch (serviceType) {
+                case 'massage':
+                case 'facial':
+                    totalHoursInput.value = '4';
+                    appTimeInput.value = '20';
+                    numProsInput.value = '2';
+                    proHourlyInput.value = '50';
+                    hourlyRateInput.value = '135';
+                    earlyArrivalInput.value = '25';
+                    retouchingCostInput.value = '0';
+                    discountPercentInput.value = '0';
+                    break;
+                case 'hair':
+                case 'nails':
+                    totalHoursInput.value = '6';
+                    appTimeInput.value = '30';
+                    numProsInput.value = '2';
+                    proHourlyInput.value = '50';
+                    hourlyRateInput.value = '135';
+                    earlyArrivalInput.value = '25';
+                    retouchingCostInput.value = '0';
+                    discountPercentInput.value = '0';
+                    break;
+                case 'headshot':
+                    totalHoursInput.value = '5';
+                    appTimeInput.value = '12';
+                    numProsInput.value = '1';
+                    proHourlyInput.value = '400';
+                    hourlyRateInput.value = '0';
+                    earlyArrivalInput.value = '0';
+                    retouchingCostInput.value = '40';
+                    discountPercentInput.value = '0';
+                    break;
+            }
+
+            updateAppointmentPreview(serviceId);
+        }
+
+        function updateAppointmentPreview(serviceId) {
+            const totalHours = parseFloat(document.getElementById(`totalHours-${serviceId}`).value);
+            const appTime = parseFloat(document.getElementById(`appTime-${serviceId}`).value);
+            const numPros = parseInt(document.getElementById(`numPros-${serviceId}`).value);
+
+            const apptsPerHourPerPro = 60 / appTime;
+            const totalApptsPerHour = apptsPerHourPerPro * numPros;
+            const totalAppts = Math.floor(totalHours * totalApptsPerHour);
+
+            document.getElementById(`appointmentPreview-${serviceId}`).textContent = totalAppts;
+        }
+
+        function handleEventSubmit(event) {
+            event.preventDefault();
+            
+            try {
+                // Get basic form values
+                const eventData = {
+                    clientName: currentClient.name,
+                    date: document.getElementById('eventDate').value,
+                    services: []
+                };
+
+                // Get service data
+                const serviceCards = servicesContainer.getElementsByClassName('service-card');
+                Array.from(serviceCards).forEach(card => {
+                    const serviceId = card.id.split('-')[1];
+                    const serviceDateInput = document.getElementById(`serviceDate-${serviceId}`);
+                    
+                    const serviceData = {
+                        location: document.getElementById(`serviceLocation-${serviceId}`).value,
+                        serviceType: document.getElementById(`serviceType-${serviceId}`).value,
+                        totalHours: parseFloat(document.getElementById(`totalHours-${serviceId}`).value),
+                        appTime: parseFloat(document.getElementById(`appTime-${serviceId}`).value),
+                        numPros: parseInt(document.getElementById(`numPros-${serviceId}`).value),
+                        proHourly: parseFloat(document.getElementById(`proHourly-${serviceId}`).value),
+                        hourlyRate: parseFloat(document.getElementById(`hourlyRate-${serviceId}`).value),
+                        earlyArrival: parseFloat(document.getElementById(`earlyArrival-${serviceId}`).value),
+                        retouchingCost: parseFloat(document.getElementById(`retouchingCost-${serviceId}`)?.value || '0'),
+                        discountPercent: parseFloat(document.getElementById(`discountPercent-${serviceId}`).value),
+                        date: serviceDateInput ? serviceDateInput.value : eventData.date
+                    };
+                    eventData.services.push(serviceData);
+                });
+
+                // Get the location for this event
+                const location = eventData.services[0].location;
+                
+                // Update events for this location
+                if (!currentClient.events[location]) {
+                    currentClient.events[location] = [];
+                }
+                currentClient.events[location].push(eventData);
+
+                // Close modal
+                closeEventModal();
+
+                // Show results section
+                resultsSection.style.display = 'block';
+
+                // Update results
+                updateResults();
+                
+                // Update locations display
+                updateLocationsDisplay();
+            } catch (error) {
+                console.error('Error in form submission:', error);
+                alert('There was an error processing your request. Please try again.');
+            }
+        }
+
+        function calculateService(serviceData) {
+            try {
+                const { serviceType, totalHours, appTime, numPros, proHourly, hourlyRate, earlyArrival, discountPercent, retouchingCost } = serviceData;
+
+                // Calculate appointments
+                const apptsPerHourPerPro = 60 / appTime;
+                const totalApptsPerHour = apptsPerHourPerPro * numPros;
+                const totalAppts = Math.floor(totalHours * totalApptsPerHour);
+
+                // Calculate costs
+                let totalCostValue = 0;
+                let totalProRevValue = 0;
+
+                if (serviceType === 'headshot') {
+                    totalProRevValue = totalHours * numPros * proHourly;
+                    totalCostValue = totalProRevValue + (totalAppts * retouchingCost);
+                } else {
+                    const totalEarlyArrival = earlyArrival * numPros;
+                    totalProRevValue = (totalHours * numPros * proHourly) + totalEarlyArrival;
+                    totalCostValue = totalHours * hourlyRate * numPros;
+                }
+
+                // Apply discount
+                if (discountPercent > 0) {
+                    totalCostValue = totalCostValue * (1 - (discountPercent / 100));
+                }
+
+                return {
+                    totalAppointments: totalAppts,
+                    totalCost: totalCostValue,
+                    totalProRev: totalProRevValue
+                };
+            } catch (error) {
+                console.error('Error in service calculation:', error);
+                return {
+                    totalAppointments: 0,
+                    totalCost: 0,
+                    totalProRev: 0
+                };
+            }
+        }
+
+        function updateResults() {
+            try {
+                const resultsGrid = document.getElementById('resultsGrid');
+                
+                // Build event details card
+                let eventDetailsHtml = `
+                    <div class="event-details-card">
+                        <h3>Event Details</h3>
+                        <div class="result-item">
+                            <span class="result-label">Client Name:</span>
+                            <span class="result-value">${currentClient.name}</span>
+                        </div>
+                `;
+
+                // Get all dates across all locations
+                const allDates = new Set();
+                Object.values(currentClient.events).forEach(locationEvents => {
+                    locationEvents.forEach(event => {
+                        event.services.forEach(service => {
+                            allDates.add(service.date);
+                        });
+                    });
+                });
+                const sortedDates = Array.from(allDates).sort();
+                
+                eventDetailsHtml += `
+                    <div class="result-item">
+                        <span class="result-label">Event Dates:</span>
+                        <span class="result-value">${sortedDates.join(', ')}</span>
+                    </div>
+                `;
+
+                eventDetailsHtml += '</div>';
+
+                // Build location sections with date cards
+                let locationSectionsHtml = '';
+                let totalEventCost = 0;
+                let totalProRevenue = 0;
+                let totalAppointments = 0;
+
+                Object.entries(currentClient.events).forEach(([location, locationEvents]) => {
+                    // Group services by date for this location
+                    const dateGroups = {};
+                    let locationTotalCost = 0;
+                    let locationTotalAppointments = 0;
+
+                    locationEvents.forEach(event => {
+                        event.services.forEach(service => {
+                            const date = service.date;
+                            if (!dateGroups[date]) {
+                                dateGroups[date] = {
+                                    services: [],
+                                    totalCost: 0,
+                                    totalAppointments: 0
+                                };
+                            }
+                            dateGroups[date].services.push(service);
+                            
+                            const calculations = calculateService(service);
+                            dateGroups[date].totalCost += calculations.totalCost;
+                            dateGroups[date].totalAppointments += calculations.totalAppointments;
+                            locationTotalCost += calculations.totalCost;
+                            locationTotalAppointments += calculations.totalAppointments;
+                            totalEventCost += calculations.totalCost;
+                            totalProRevenue += calculations.totalProRev;
+                            totalAppointments += calculations.totalAppointments;
+                        });
+                    });
+
+                    locationSectionsHtml += `
+                        <div class="location-section">
+                            <div class="location-header">
+                                <h3 class="location-name">${location}</h3>
+                            </div>
+                    `;
+
+                    // Sort dates and create date cards
+                    Object.keys(dateGroups).sort().forEach((date, dateIndex) => {
+                        const dateData = dateGroups[date];
+                        locationSectionsHtml += `
+                            <div class="date-card">
+                                <div class="date-header">Day ${dateIndex + 1} - ${date}</div>
+                        `;
+
+                        // Add services for this date
+                        dateData.services.forEach((service, serviceIndex) => {
+                            const calculations = calculateService(service);
+                            locationSectionsHtml += `
+                                <div class="service-group client-perspective">
+                                    <div class="service-title">Service ${serviceIndex + 1}: ${service.serviceType}</div>
+                                    <div class="result-item">
+                                        <span class="result-label">Total Hours:</span>
+                                        <span class="result-value">${service.totalHours} hours</span>
+                                    </div>
+                                    <div class="result-item">
+                                        <span class="result-label">Number of Professionals:</span>
+                                        <span class="result-value">${service.numPros}</span>
+                                    </div>
+                                    <div class="result-item">
+                                        <span class="result-label">Total Appointments:</span>
+                                        <span class="result-value">${calculations.totalAppointments}</span>
+                                    </div>
+                                    <div class="result-item">
+                                        <span class="result-label">Service Cost:</span>
+                                        <span class="result-value">$${calculations.totalCost.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        // Add date totals
+                        locationSectionsHtml += `
+                            <div class="service-group shortcut-perspective">
+                                <div class="service-title">Day ${dateIndex + 1} Totals</div>
+                                <div class="result-item">
+                                    <span class="result-label">Total Appointments:</span>
+                                    <span class="result-value">${dateData.totalAppointments}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-label">Total Service Cost:</span>
+                                    <span class="result-value">$${dateData.totalCost.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Add location totals
+                locationSectionsHtml += `
+                    <div class="location-totals">
+                        <div class="service-title">${location} Totals</div>
+                        <div class="result-item">
+                            <span class="result-label">Total Appointments:</span>
+                            <span class="result-value">${locationTotalAppointments}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Total Service Cost:</span>
+                            <span class="result-value">$${locationTotalCost.toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+
+                locationSectionsHtml += '</div>';
+            });
+
+            // Build event summary card
+            const eventSummaryHtml = `
+                <div class="summary-card event-summary">
+                    <div class="summary-header">Event Summary</div>
+                    <div class="result-item">
+                        <span class="result-label">Total Appointments:</span>
+                        <span class="result-value">${totalAppointments}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Total Event Cost:</span>
+                        <span class="result-value">$${totalEventCost.toFixed(2)}</span>
+                    </div>
+                    <div class="proposal-actions">
+                        <button class="btn btn-primary" onclick="showProposalOptions()">Generate Proposal</button>
+                    </div>
+                </div>
+            `;
+
+            // Build Shortcut financial details card
+            const shortcutNet = totalEventCost - totalProRevenue;
+            const shortcutMargin = (shortcutNet / totalEventCost) * 100;
+            
+            const shortcutDetailsHtml = `
+                <div class="summary-card shortcut-summary">
+                    <div class="summary-header">Shortcut Financial Details</div>
+                    <div class="result-item">
+                        <span class="result-label">Gross Revenue:</span>
+                        <span class="result-value">$${totalEventCost.toFixed(2)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Professional Revenue:</span>
+                        <span class="result-value">$${totalProRevenue.toFixed(2)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Net Profit:</span>
+                        <span class="result-value">$${shortcutNet.toFixed(2)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Profit Margin:</span>
+                        <span class="result-value">${shortcutMargin.toFixed(1)}%</span>
+                    </div>
+                </div>
+            `;
+
+            // Combine all sections
+            resultsGrid.innerHTML = eventDetailsHtml + locationSectionsHtml + eventSummaryHtml + shortcutDetailsHtml;
+        } catch (error) {
+            console.error('Error updating results:', error);
+            alert('There was an error displaying the results. Please try again.');
+        }
+    }
+
+    // Initialize with one service
+    addService();
+
+    // Add to script section
+    let selectedProposalType = null;
+
+    function showProposalOptions() {
+        const modal = document.getElementById('proposalModal');
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="proposal-options">
+                <h2>Generate Proposal</h2>
+                <div class="proposal-customization">
+                    <h3>Customization Options</h3>
+                    <div class="form-group">
+                        <label for="clientLogo">Client Logo</label>
+                        <input type="file" id="clientLogo" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label for="contactFirstName">Contact First Name</label>
+                        <input type="text" id="contactFirstName" placeholder="Enter first name">
+                    </div>
+                    <div class="form-group">
+                        <label for="contactLastName">Contact Last Name</label>
+                        <input type="text" id="contactLastName" placeholder="Enter last name">
+                    </div>
+                    <div class="form-group">
+                        <label for="customNote">Custom Note</label>
+                        <textarea id="customNote" placeholder="Enter a custom note for the proposal"></textarea>
+                    </div>
+                </div>
+                <div class="proposal-content">
+                    <h3>Proposal Content</h3>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeSummary" checked>
+                            Include Summary of Results
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeCalculations" checked>
+                            Include Detailed Calculations
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeCalculator" checked>
+                            Include Interactive Calculator
+                        </label>
+                    </div>
+                </div>
+                <div class="proposal-type">
+                    <h3>Proposal Type</h3>
+                    <div class="proposal-option" onclick="selectProposalOption('public')">
+                        <h4>Public Link</h4>
+                        <p>Anyone with the link can view the proposal</p>
+                    </div>
+                    <div class="proposal-option" onclick="selectProposalOption('password')">
+                        <h4>Password Protected</h4>
+                        <p>Only those with the password can view the proposal</p>
+                    </div>
+                </div>
+                <div id="passwordSection" style="display: none;">
+                    <div class="form-group">
+                        <label for="proposalPassword">Password</label>
+                        <input type="password" id="proposalPassword" placeholder="Enter password">
+                    </div>
+                </div>
+                <div class="proposal-actions">
+                    <button class="btn btn-secondary" onclick="closeProposalModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="generateProposal()">Generate Proposal</button>
+                    <button class="btn btn-secondary" onclick="saveCurrentCalculation()">Save to History</button>
+                </div>
+            </div>
+        `;
+        selectedProposalType = null;
+        document.getElementById('passwordSection').style.display = 'none';
+    }
+
+    function closeProposalModal() {
+        const modal = document.getElementById('proposalModal');
+        modal.style.display = 'none';
+    }
+
+    function selectProposalOption(type) {
+        selectedProposalType = type;
+        
+        // Update UI
+        document.querySelectorAll('.proposal-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        event.currentTarget.classList.add('selected');
+        
+        // Show/hide password section
+        document.getElementById('passwordSection').style.display = 
+            type === 'password' ? 'block' : 'none';
+    }
+
+    function generateProposal() {
+        if (!selectedProposalType) {
+            alert('Please select a proposal type');
+            return;
+        }
+
+        if (selectedProposalType === 'password' && 
+            !document.getElementById('proposalPassword').value) {
+            alert('Please enter a password');
+            return;
+        }
+
+        // Get customization options
+        const customization = {
+            clientLogo: document.getElementById('clientLogo').files[0],
+            contactFirstName: document.getElementById('contactFirstName').value,
+            contactLastName: document.getElementById('contactLastName').value,
+            customNote: document.getElementById('customNote').value,
+            includeSummary: document.getElementById('includeSummary').checked,
+            includeCalculations: document.getElementById('includeCalculations').checked,
+            includeCalculator: document.getElementById('includeCalculator').checked
+        };
+
+        // Get client-facing proposal data
+        const proposalData = {
+            clientName: currentClient.name,
+            eventDates: Array.from(new Set(Object.values(currentClient.events).flatMap(events => 
+                events.flatMap(event => event.services.map(service => service.date))
+            ))).sort(),
+            locations: currentClient.locations,
+            services: {},
+            summary: {
+                totalAppointments: 0,
+                totalEventCost: 0
+            }
+        };
+
+        // Process each location's services
+        Object.entries(currentClient.events).forEach(([location, locationEvents]) => {
+            proposalData.services[location] = {};
+            let locationTotalAppointments = 0;
+            let locationTotalCost = 0;
+
+            locationEvents.forEach(event => {
+                event.services.forEach(service => {
+                    const date = service.date;
+                    if (!proposalData.services[location][date]) {
+                        proposalData.services[location][date] = {
+                            services: [],
+                            totalCost: 0,
+                            totalAppointments: 0
+                        };
+                    }
+
+                    const calculations = calculateService(service);
+                    const clientService = {
+                        serviceType: service.serviceType,
+                        totalHours: service.totalHours,
+                        numPros: service.numPros,
+                        totalAppointments: calculations.totalAppointments,
+                        serviceCost: calculations.totalCost,
+                        retouchingCost: service.retouchingCost || 0,
+                        discountPercent: service.discountPercent
+                    };
+
+                    proposalData.services[location][date].services.push(clientService);
+                    proposalData.services[location][date].totalCost += calculations.totalCost;
+                    proposalData.services[location][date].totalAppointments += calculations.totalAppointments;
+                    
+                    locationTotalAppointments += calculations.totalAppointments;
+                    locationTotalCost += calculations.totalCost;
+                });
+            });
+
+            proposalData.summary.totalAppointments += locationTotalAppointments;
+            proposalData.summary.totalEventCost += locationTotalCost;
+        });
+
+        // For now, just show a success message
+        // This will be replaced with actual Firebase implementation
+        const password = selectedProposalType === 'password' ? 
+            document.getElementById('proposalPassword').value : null;
+        
+        showProposalSuccess({
+            url: 'https://example.com/proposal/123',
+            password: password,
+            customization: customization,
+            proposalData: proposalData
+        });
+    }
+
+    function showProposalSuccess(details) {
+        const modal = document.getElementById('proposalModal');
+        modal.innerHTML = `
+            <div class="proposal-options">
+                <h2>Proposal Generated!</h2>
+                <div class="proposal-details">
+                    <p>Your proposal has been generated successfully.</p>
+                    <div class="result-item">
+                        <span class="result-label">Proposal URL:</span>
+                        <span class="result-value">${details.url}</span>
+                    </div>
+                    ${details.password ? `
+                        <div class="result-item">
+                            <span class="result-label">Password:</span>
+                            <span class="result-value">${details.password}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="proposal-preview">
+                    <h3>Proposal Preview</h3>
+                    <div class="event-details-card">
+                        <h3>Event Details</h3>
+                        <div class="result-item">
+                            <span class="result-label">Client Name:</span>
+                            <span class="result-value">${details.proposalData.clientName}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Event Dates:</span>
+                            <span class="result-value">${details.proposalData.eventDates.join(', ')}</span>
+                        </div>
+                    </div>
+                    ${Object.entries(details.proposalData.services).map(([location, locationData]) => `
+                        <div class="location-section">
+                            <div class="location-header">
+                                <h3 class="location-name">${location}</h3>
+                            </div>
+                            ${Object.entries(locationData).map(([date, dateData], dateIndex) => `
+                                <div class="date-card">
+                                    <div class="date-header">Day ${dateIndex + 1} - ${date}</div>
+                                    ${dateData.services.map((service, serviceIndex) => `
+                                        <div class="service-group">
+                                            <div class="service-title">Service ${serviceIndex + 1}: ${service.serviceType}</div>
+                                            <div class="result-item">
+                                                <span class="result-label">Total Hours:</span>
+                                                <span class="result-value">${service.totalHours} hours</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Number of Professionals:</span>
+                                                <span class="result-value">${service.numPros}</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Total Appointments:</span>
+                                                <span class="result-value">${service.totalAppointments}</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Service Cost:</span>
+                                                <span class="result-value">$${service.serviceCost.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                    <div class="service-group">
+                                        <div class="service-title">Day ${dateIndex + 1} Totals</div>
+                                        <div class="result-item">
+                                            <span class="result-label">Total Appointments:</span>
+                                            <span class="result-value">${dateData.totalAppointments}</span>
+                                        </div>
+                                        <div class="result-item">
+                                            <span class="result-label">Total Service Cost:</span>
+                                            <span class="result-value">$${dateData.totalCost.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `).join('')}
+                    <div class="summary-card">
+                        <div class="summary-header">Event Summary</div>
+                        <div class="result-item">
+                            <span class="result-label">Total Appointments:</span>
+                            <span class="result-value">${details.proposalData.summary.totalAppointments}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Total Event Cost:</span>
+                            <span class="result-value">$${details.proposalData.summary.totalEventCost.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="proposal-actions">
+                    <button class="btn btn-secondary" onclick="closeProposalModal()">Close</button>
+                    <button class="btn btn-primary" onclick="copyProposalDetails()">Copy Details</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function copyProposalDetails() {
+        // This will be implemented when we add actual proposal generation
+        alert('Copy functionality will be implemented with Firebase');
+    }
+
+    // Storage Manager
+    class StorageManager {
+        constructor() {
+            this.storage = window.localStorage;
+            this.STORAGE_KEY = 'calculatorHistory';
+            this.initializeStorage();
+        }
+
+        initializeStorage() {
+            if (!this.storage.getItem(this.STORAGE_KEY)) {
+                this.storage.setItem(this.STORAGE_KEY, JSON.stringify([]));
+            }
+            console.log('Storage initialized:', this.getHistory());
+        }
+
+        saveCalculation(data) {
+            try {
+                console.log('Saving calculation data:', data);
+                let history = this.getHistory();
+                history.push(data);
+                this.storage.setItem(this.STORAGE_KEY, JSON.stringify(history));
+                console.log('Updated history:', this.getHistory());
+                return true;
+            } catch (error) {
+                console.error('Error saving to storage:', error);
+                return false;
+            }
+        }
+
+        getHistory() {
+            try {
+                const data = this.storage.getItem(this.STORAGE_KEY);
+                return data ? JSON.parse(data) : [];
+            } catch (error) {
+                console.error('Error reading from storage:', error);
+                return [];
+            }
+        }
+
+        deleteCalculation(index) {
+            try {
+                let history = this.getHistory();
+                if (index >= 0 && index < history.length) {
+                    history.splice(index, 1);
+                    this.storage.setItem(this.STORAGE_KEY, JSON.stringify(history));
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error deleting calculation:', error);
+                return false;
+            }
+        }
+
+        clearHistory() {
+            this.storage.setItem(this.STORAGE_KEY, JSON.stringify([]));
+        }
+    }
+
+    // Initialize StorageManager
+    const storageManager = new StorageManager();
+
+    // Test function to add dummy data
+    function addDummyData() {
+        const dummyData = {
+            clientName: "Test Client",
+            timestamp: new Date().toISOString(),
+            events: {
+                "New York": [{
+                    services: [{
+                        serviceType: "massage",
+                        totalHours: 4,
+                        appTime: 20,
+                        numPros: 2,
+                        proHourly: 50,
+                        hourlyRate: 135,
+                        earlyArrival: 25,
+                        discountPercent: 0,
+                        date: "2024-04-21"
+                    }]
+                }],
+                "Los Angeles": [{
+                    services: [{
+                        serviceType: "facial",
+                        totalHours: 6,
+                        appTime: 30,
+                        numPros: 3,
+                        proHourly: 60,
+                        hourlyRate: 150,
+                        earlyArrival: 25,
+                        discountPercent: 0,
+                        date: "2024-04-22"
+                    }]
+                }]
+            }
+        };
+
+        try {
+            storageManager.saveCalculation(dummyData);
+            showNotification('Test data added successfully!', 'success');
+            displayHistory();
+        } catch (error) {
+            console.error('Error adding test data:', error);
+            showNotification('Failed to add test data', 'error');
+        }
+    }
+
+    // Function to display history
+    function displayHistory() {
+        updateLocationOptions();
+        applySortAndFilters();
+    }
+
+    function showDetailsModal(index) {
+        const entry = window.currentSortedHistory[index];
+        if (!entry) {
+            console.error('No entry found at index:', index);
+            return;
+        }
+
+        const modal = document.getElementById('detailsModal');
+        const content = document.getElementById('detailsContent');
+        
+        let detailsHtml = `
+            <div class="details-section">
+                <h3>Event Details</h3>
+                <div class="result-item">
+                    <span class="result-label">Client Name:</span>
+                    <span class="result-value">${entry.clientName || 'Unnamed Client'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Date:</span>
+                    <span class="result-value">${new Date(entry.timestamp).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })}</span>
+                </div>
+            </div>
+        `;
+
+        // Add location breakdown
+        Object.entries(entry.events || {}).forEach(([location, events]) => {
+            detailsHtml += `
+                <div class="details-section">
+                    <div class="location-header">
+                        <h3 class="location-name">${location}</h3>
+                    </div>
+            `;
+
+            // Group services by date
+            const dateGroups = {};
+            events.forEach(event => {
+                event.services.forEach(service => {
+                    if (!dateGroups[service.date]) {
+                        dateGroups[service.date] = [];
+                    }
+                    dateGroups[service.date].push(service);
+                });
+            });
+
+            // Sort dates and create date cards
+            Object.keys(dateGroups).sort().forEach((date, dateIndex) => {
+                const services = dateGroups[date];
+                let dateTotalCost = 0;
+                let dateTotalAppointments = 0;
+
+                detailsHtml += `
+                    <div class="date-card">
+                        <div class="date-header">Day ${dateIndex + 1} - ${date}</div>
+                `;
+
+                // Add services for this date
+                services.forEach((service, serviceIndex) => {
+                    const calculations = calculateService(service);
+                    dateTotalCost += calculations.totalCost;
+                    dateTotalAppointments += calculations.totalAppointments;
+
+                    detailsHtml += `
+                        <div class="client-perspective">
+                            <div class="service-title">Service ${serviceIndex + 1}: ${service.serviceType}</div>
+                            <div class="result-item">
+                                <span class="result-label">Total Hours:</span>
+                                <span class="result-value">${service.totalHours} hours</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Number of Professionals:</span>
+                                <span class="result-value">${service.numPros}</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Total Appointments:</span>
+                                <span class="result-value">${calculations.totalAppointments}</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Service Cost:</span>
+                                <span class="result-value">$${calculations.totalCost.toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                })}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Add date totals
+                detailsHtml += `
+                    <div class="shortcut-perspective">
+                        <div class="service-title">Day ${dateIndex + 1} Totals</div>
+                        <div class="result-item">
+                            <span class="result-label">Total Appointments:</span>
+                            <span class="result-value">${dateTotalAppointments}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Total Service Cost:</span>
+                            <span class="result-value">$${dateTotalCost.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            })}</span>
+                        </div>
+                    </div>
+                    </div>
+                `;
+            });
+
+            detailsHtml += `</div>`;
+        });
+
+        // Add event summary card
+        let totalCost = 0;
+        let totalAppointments = 0;
+        Object.values(entry.events || {}).forEach(events => {
+            events.forEach(event => {
+                event.services.forEach(service => {
+                    const calculations = calculateService(service);
+                    totalCost += calculations.totalCost;
+                    totalAppointments += calculations.totalAppointments;
+                });
+            });
+        });
+
+        detailsHtml += `
+            <div class="summary-card event-summary">
+                <div class="summary-header">Event Summary</div>
+                <div class="result-item">
+                    <span class="result-label">Total Appointments:</span>
+                    <span class="result-value">${totalAppointments}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Total Event Cost:</span>
+                    <span class="result-value">$${totalCost.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })}</span>
+                </div>
+            </div>
+        `;
+
+        content.innerHTML = detailsHtml;
+        modal.style.display = 'block';
+    }
+
+    // Add click outside to close functionality
+    window.onclick = function(event) {
+        const modal = document.getElementById('detailsModal');
+        if (event.target === modal) {
+            closeDetailsModal();
+        }
+    };
+
+    // Update event listeners
+    historyButton.addEventListener('click', () => {
+        showPage(historyPage);
+        displayHistory(); // Refresh history when showing the page
+    });
+
+    // Function to save current calculation
+    function saveCurrentCalculation() {
+        console.log('Current client state:', currentClient);
+        
+        // Check if we have valid calculation data
+        if (!currentClient || !currentClient.events || Object.keys(currentClient.events).length === 0) {
+            showNotification('No calculation data to save', 'error');
+            return;
+        }
+
+        // Calculate totals for the history entry
+        let totalCost = 0;
+        let totalEvents = 0;
+        const locationBreakdown = {};
+
+        Object.entries(currentClient.events).forEach(([location, events]) => {
+            locationBreakdown[location] = 0;
+            events.forEach(event => {
+                event.services.forEach(service => {
+                    totalEvents++;
+                    const calculations = calculateService(service);
+                    totalCost += calculations.totalCost;
+                    locationBreakdown[location] += calculations.totalCost;
+                });
+            });
+        });
+
+        const historyEntry = {
+            clientName: currentClient.name,
+            timestamp: new Date().toISOString(),
+            events: currentClient.events,
+            calculations: {
+                total: totalCost,
+                totalEvents: totalEvents,
+                locationBreakdown: locationBreakdown
+            }
+        };
+
+        try {
+            storageManager.saveCalculation(historyEntry);
+            showNotification('Calculation saved successfully!', 'success');
+            displayHistory(); // Refresh the display
+            closeProposalModal(); // Close the modal after saving
+        } catch (error) {
+            console.error('Error saving calculation:', error);
+            showNotification('Failed to save calculation', 'error');
+        }
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize storage
+        storageManager.initializeStorage();
+        
+        // Display initial history
+        displayHistory();
+    });
+
+    // Function to show notification
+    function showNotification(message, type = 'success') {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.style.backgroundColor = type === 'success' ? '#4CAF50' : '#f44336';
+        notification.style.display = 'block';
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 3000);
+    }
+
+    function closeDetailsModal() {
+        document.getElementById('detailsModal').style.display = 'none';
+    }
+
+    // Add these new functions for delete functionality
+    let deleteIndex = -1;
+
+    function showDeleteConfirmation(index) {
+        deleteIndex = index;
+        document.getElementById('confirmationModal').style.display = 'block';
+    }
+
+    function closeConfirmationModal() {
+        document.getElementById('confirmationModal').style.display = 'none';
+        deleteIndex = -1;
+    }
+
+    function confirmDelete() {
+        if (deleteIndex !== -1) {
+            if (storageManager.deleteCalculation(deleteIndex)) {
+                showNotification('Calculation deleted successfully', 'success');
+                displayHistory();
+            } else {
+                showNotification('Failed to delete calculation', 'error');
+            }
+            closeConfirmationModal();
+        }
+    }
+
+    // Add click outside to close for confirmation modal
+    window.onclick = function(event) {
+        const detailsModal = document.getElementById('detailsModal');
+        const confirmationModal = document.getElementById('confirmationModal');
+        if (event.target === detailsModal) {
+            closeDetailsModal();
+        }
+        if (event.target === confirmationModal) {
+            closeConfirmationModal();
+        }
+    };
+
+    // Add these new functions for sorting and filtering
+    function applySortAndFilters() {
+        const sortBy = document.getElementById('sortBy').value;
+        const filterLocation = document.getElementById('filterLocation').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const minCost = document.getElementById('minCost').value;
+        const maxCost = document.getElementById('maxCost').value;
+
+        let history = storageManager.getHistory();
+        
+        // Apply filters
+        history = history.filter(entry => {
+            let matchesFilters = true;
+
+            // Location filter
+            if (filterLocation) {
+                const locations = Object.keys(entry.events || {});
+                matchesFilters = matchesFilters && locations.includes(filterLocation);
+            }
+
+            // Date range filter
+            if (startDate || endDate) {
+                const entryDate = new Date(entry.timestamp);
+                if (startDate && new Date(startDate) > entryDate) matchesFilters = false;
+                if (endDate && new Date(endDate) < entryDate) matchesFilters = false;
+            }
+
+            // Cost range filter
+            let totalCost = 0;
+            Object.values(entry.events || {}).forEach(locationEvents => {
+                locationEvents.forEach(event => {
+                    event.services.forEach(service => {
+                        const calculations = calculateService(service);
+                        totalCost += calculations.totalCost;
+                    });
+                });
+            });
+
+            if (minCost && totalCost < parseFloat(minCost)) matchesFilters = false;
+            if (maxCost && totalCost > parseFloat(maxCost)) matchesFilters = false;
+
+            return matchesFilters;
+        });
+
+        // Apply sorting
+        history.sort((a, b) => {
+            switch (sortBy) {
+                case 'date-desc':
+                    return new Date(b.timestamp) - new Date(a.timestamp);
+                case 'date-asc':
+                    return new Date(a.timestamp) - new Date(b.timestamp);
+                case 'name-asc':
+                    return (a.clientName || '').localeCompare(b.clientName || '');
+                case 'name-desc':
+                    return (b.clientName || '').localeCompare(a.clientName || '');
+                case 'cost-desc':
+                case 'cost-asc': {
+                    const getCost = entry => {
+                        let total = 0;
+                        Object.values(entry.events || {}).forEach(locationEvents => {
+                            locationEvents.forEach(event => {
+                                event.services.forEach(service => {
+                                    const calculations = calculateService(service);
+                                    total += calculations.totalCost;
+                                });
+                            });
+                        });
+                        return total;
+                    };
+                    const costA = getCost(a);
+                    const costB = getCost(b);
+                    return sortBy === 'cost-desc' ? costB - costA : costA - costB;
+                }
+                case 'events-desc':
+                case 'events-asc': {
+                    const getEventCount = entry => {
+                        let total = 0;
+                        Object.values(entry.events || {}).forEach(locationEvents => {
+                            locationEvents.forEach(event => {
+                                total += event.services.length;
+                            });
+                        });
+                        return total;
+                    };
+                    const eventsA = getEventCount(a);
+                    const eventsB = getEventCount(b);
+                    return sortBy === 'events-desc' ? eventsB - eventsA : eventsA - eventsB;
+                }
+                default:
+                    return 0;
+            }
+        });
+
+        // Update the display
+        displayFilteredHistory(history);
+        updateActiveFilters();
+        updateLocationOptions();
+    }
+
+    function displayFilteredHistory(history) {
+        window.currentSortedHistory = history;
+        const historyList = document.getElementById('historyList');
+        const noHistoryMessage = document.getElementById('noHistoryMessage');
+        
+        historyList.innerHTML = '';
+        
+        if (!history || history.length === 0) {
+            noHistoryMessage.style.display = 'block';
+            historyList.style.display = 'none';
+            return;
+        }
+        
+        noHistoryMessage.style.display = 'none';
+        historyList.style.display = 'block';
+        
+        history.forEach((entry, index) => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            const date = new Date(entry.timestamp);
+            const formattedDate = date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            let totalEvents = 0;
+            let totalCost = 0;
+            
+            Object.values(entry.events || {}).forEach(locationEvents => {
+                locationEvents.forEach(event => {
+                    event.services.forEach(service => {
+                        totalEvents++;
+                        const calculations = calculateService(service);
+                        totalCost += calculations.totalCost;
+                    });
+                });
+            });
+            
+            const locations = Object.keys(entry.events || {}).join(', ');
+            
+            historyItem.innerHTML = `
+                <div class="history-meta">
+                    <h3>${entry.clientName || 'Unnamed Client'}</h3>
+                    <span class="timestamp">${formattedDate}</span>
+                </div>
+                <div class="history-details">
+                    <div class="detail-row">
+                        <span class="label">Locations:</span>
+                        <span class="value">${locations}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Events:</span>
+                        <span class="value">${totalEvents} ${totalEvents === 1 ? 'event' : 'events'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Total Cost:</span>
+                        <span class="value">$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                </div>
+                <div class="button-container">
+                    <button class="view-details-btn" onclick="showDetailsModal(${index})">View Details</button>
+                    <button class="delete-btn" onclick="showDeleteConfirmation(${index})">Delete</button>
+                </div>
+            `;
+            
+            historyList.appendChild(historyItem);
+        });
+    }
+
+    function updateActiveFilters() {
+        const activeFilters = document.getElementById('activeFilters');
+        activeFilters.innerHTML = '';
+
+        const filterLocation = document.getElementById('filterLocation').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const minCost = document.getElementById('minCost').value;
+        const maxCost = document.getElementById('maxCost').value;
+
+        if (filterLocation) {
+            addFilterTag('Location: ' + filterLocation, () => {
+                document.getElementById('filterLocation').value = '';
+                applySortAndFilters();
+            });
+        }
+
+        if (startDate || endDate) {
+            const dateRange = [];
+            if (startDate) dateRange.push('From: ' + startDate);
+            if (endDate) dateRange.push('To: ' + endDate);
+            addFilterTag(dateRange.join(' '), () => {
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+                applySortAndFilters();
+            });
+        }
+
+        if (minCost || maxCost) {
+            const costRange = [];
+            if (minCost) costRange.push('Min: $' + minCost);
+            if (maxCost) costRange.push('Max: $' + maxCost);
+            addFilterTag(costRange.join(' '), () => {
+                document.getElementById('minCost').value = '';
+                document.getElementById('maxCost').value = '';
+                applySortAndFilters();
+            });
+        }
+    }
+
+    function addFilterTag(text, onRemove) {
+        const activeFilters = document.getElementById('activeFilters');
+        const tag = document.createElement('div');
+        tag.className = 'filter-tag';
+        tag.innerHTML = `
+            ${text}
+            <button onclick="event.stopPropagation(); ${onRemove.toString()}()">×</button>
+        `;
+        activeFilters.appendChild(tag);
+    }
+
+    function updateLocationOptions() {
+        const filterLocation = document.getElementById('filterLocation');
+        const currentValue = filterLocation.value;
+        
+        // Get all unique locations from history
+        const locations = new Set();
+        storageManager.getHistory().forEach(entry => {
+            Object.keys(entry.events || {}).forEach(location => {
+                locations.add(location);
+            });
+        });
+
+        // Update options
+        filterLocation.innerHTML = '<option value="">All Locations</option>';
+        Array.from(locations).sort().forEach(location => {
+            const option = document.createElement('option');
+            option.value = location;
+            option.textContent = location;
+            if (location === currentValue) option.selected = true;
+            filterLocation.appendChild(option);
+        });
+    }
+    </script>
+</body>
+</html>
