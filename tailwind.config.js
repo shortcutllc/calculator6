@@ -9,6 +9,8 @@ export default {
           blue: '#003C5E',    // navigation, headings, dark backgrounds
           coral: '#FF5050',   // logo, accents, highlights
           teal: '#9EFAFF',    // buttons, accents, highlights
+          'service-yellow': '#FEDC64', // hair services
+          pink: '#F7BBFF',    // nails & facial services
         },
         // Secondary Colors
         'accent': {

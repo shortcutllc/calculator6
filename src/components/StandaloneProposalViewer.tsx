@@ -6,6 +6,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { config } from '../config';
 import { recalculateServiceTotals } from '../utils/proposalGenerator';
+import { getServiceBorderClass } from '../utils/styleHelpers';
 import EditableField from './EditableField';
 import { format } from 'date-fns';
 import { generatePDF } from '../utils/pdf';
@@ -373,7 +374,10 @@ export const StandaloneProposalViewer: React.FC = () => {
                           {expandedDates[date] && (
                             <div className="p-8">
                               {dateData.services.map((service: any, serviceIndex: number) => (
-                                <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-6">
+                                <div 
+                                  key={serviceIndex} 
+                                  className={`bg-gray-50 rounded-lg p-6 mb-6 ${getServiceBorderClass(service.serviceType)}`}
+                                >
                                   <h4 className="text-xl font-bold text-shortcut-blue mb-4">
                                     Service {serviceIndex + 1}: {service.serviceType}
                                   </h4>
