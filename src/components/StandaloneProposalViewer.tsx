@@ -15,7 +15,7 @@ const formatCurrency = (value: number): string => {
   return value.toFixed(2);
 };
 
-const StandaloneProposalViewer: React.FC = () => {
+export const StandaloneProposalViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -178,7 +178,8 @@ const StandaloneProposalViewer: React.FC = () => {
         })
         .eq('id', id);
 
-      if (error) throw error;
+      if (error)
+        throw error;
 
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 3000);
@@ -245,7 +246,7 @@ const StandaloneProposalViewer: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <img 
@@ -261,7 +262,7 @@ const StandaloneProposalViewer: React.FC = () => {
                   <span>Changes saved!</span>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-4">
                 <Button
                   onClick={handleDownload}
                   variant="secondary"
@@ -342,7 +343,7 @@ const StandaloneProposalViewer: React.FC = () => {
               <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <button
                   onClick={() => toggleLocation(location)}
-                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
                 >
                   <h2 className="text-2xl font-bold text-shortcut-blue">
                     {location}
@@ -355,10 +356,10 @@ const StandaloneProposalViewer: React.FC = () => {
                     {Object.entries(locationData)
                       .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
                       .map(([date, dateData]: [string, any], dateIndex: number) => (
-                        <div key={date} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div key={date} className="border border-gray-300 rounded-xl overflow-hidden">
                           <button
                             onClick={() => toggleDate(date)}
-                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
                           >
                             <h3 className="text-xl font-bold text-shortcut-blue">
                               Day {dateIndex + 1} - {formatDate(date)}
@@ -367,39 +368,43 @@ const StandaloneProposalViewer: React.FC = () => {
                           </button>
 
                           {expandedDates[date] && (
-                            <div className="p-4">
+                            <div className="p-8">
                               {dateData.services.map((service: any, serviceIndex: number) => (
-                                <div key={serviceIndex} className="bg-gray-50 rounded-lg p-8 mb-6">
-                                  <h4 className="text-lg font-bold text-shortcut-blue mb-3">
+                                <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-6">
+                                  <h4 className="text-xl font-bold text-shortcut-blue mb-4">
                                     Service {serviceIndex + 1}: {service.serviceType}
                                   </h4>
-                                  <div className="grid gap-2">
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Total Hours:</span>
-                                      <EditableField
-                                        value={service.totalHours}
-                                        onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
-                                        isEditing={isEditing}
-                                        type="number"
-                                        suffix=" hours"
-                                      />
+                                  <div className="grid gap-0">
+                                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                      <span className="text-base text-gray-700">Total Hours:</span>
+                                      <div className="font-semibold">
+                                        <EditableField
+                                          value={service.totalHours}
+                                          onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
+                                          isEditing={isEditing}
+                                          type="number"
+                                          suffix=" hours"
+                                        />
+                                      </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Number of Professionals:</span>
-                                      <EditableField
-                                        value={service.numPros}
-                                        onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
-                                        isEditing={isEditing}
-                                        type="number"
-                                      />
+                                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                      <span className="text-base text-gray-700">Number of Professionals:</span>
+                                      <div className="font-semibold">
+                                        <EditableField
+                                          value={service.numPros}
+                                          onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
+                                          isEditing={isEditing}
+                                          type="number"
+                                        />
+                                      </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Total Appointments:</span>
-                                      <span>{service.totalAppointments}</span>
+                                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                      <span className="text-base text-gray-700">Total Appointments:</span>
+                                      <span className="font-semibold">{service.totalAppointments}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Service Cost:</span>
-                                      <span>${formatCurrency(service.serviceCost)}</span>
+                                    <div className="flex justify-between items-center py-3">
+                                      <span className="text-base text-gray-700">Service Cost:</span>
+                                      <span className="font-semibold">${formatCurrency(service.serviceCost)}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -482,5 +487,3 @@ const StandaloneProposalViewer: React.FC = () => {
 };
 
 export default StandaloneProposalViewer;
-
-export { StandaloneProposalViewer };

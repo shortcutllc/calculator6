@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import EditableField from './EditableField';
 import { supabase } from '../lib/supabaseClient';
 import { format } from 'date-fns';
@@ -260,7 +260,7 @@ const ProposalViewer: React.FC = () => {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#175071]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shortcut-blue"></div>
       </div>
     );
   }
@@ -294,7 +294,7 @@ const ProposalViewer: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm py-4 px-8 sticky top-0 z-50">
+      <header className="bg-white shadow-sm py-4 px-4 sm:px-8 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             {!isSharedView && (
@@ -312,7 +312,7 @@ const ProposalViewer: React.FC = () => {
               className="h-8 w-auto"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-4">
             <Button
               onClick={handleDownload}
               variant="secondary"
@@ -413,7 +413,7 @@ const ProposalViewer: React.FC = () => {
               <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <button
                   onClick={() => toggleLocation(location)}
-                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
                 >
                   <h2 className="text-2xl font-bold text-shortcut-blue">
                     {location}
@@ -426,10 +426,10 @@ const ProposalViewer: React.FC = () => {
                     {Object.entries(locationData)
                       .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
                       .map(([date, dateData]: [string, any], dateIndex: number) => (
-                        <div key={date} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div key={date} className="border border-gray-300 rounded-xl overflow-hidden">
                           <button
                             onClick={() => toggleDate(date)}
-                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
                           >
                             <h3 className="text-xl font-bold text-shortcut-blue">
                               Day {dateIndex + 1} - {formatDate(date)}
@@ -443,48 +443,54 @@ const ProposalViewer: React.FC = () => {
                                 const originalService = originalData?.services?.[location]?.[date]?.services?.[serviceIndex];
                                 
                                 return (
-                                  <div key={serviceIndex} className="bg-gray-50 rounded-lg p-8 mb-6">
-                                    <h4 className="text-lg font-bold text-shortcut-blue mb-3">
+                                  <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-6">
+                                    <h4 className="text-xl font-bold text-shortcut-blue mb-4">
                                       Service {serviceIndex + 1}: {service.serviceType}
                                     </h4>
-                                    <div className="grid gap-2">
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-600">Total Hours:</span>
-                                        <EditableField
-                                          value={service.totalHours}
-                                          onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
-                                          isEditing={isEditing && !showingOriginal}
-                                          type="number"
-                                          suffix=" hours"
-                                          originalValue={originalService?.totalHours}
-                                          showChange={false}
-                                        />
+                                    <div className="grid gap-0">
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Total Hours:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={service.totalHours}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
+                                            isEditing={isEditing && !showingOriginal}
+                                            type="number"
+                                            suffix=" hours"
+                                            originalValue={originalService?.totalHours}
+                                            showChange={false}
+                                          />
+                                        </div>
                                       </div>
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-600">Number of Professionals:</span>
-                                        <EditableField
-                                          value={service.numPros}
-                                          onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
-                                          isEditing={isEditing && !showingOriginal}
-                                          type="number"
-                                          originalValue={originalService?.numPros}
-                                          showChange={false}
-                                        />
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Number of Professionals:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={service.numPros}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
+                                            isEditing={isEditing && !showingOriginal}
+                                            type="number"
+                                            originalValue={originalService?.numPros}
+                                            showChange={false}
+                                          />
+                                        </div>
                                       </div>
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-600">Total Appointments:</span>
-                                        <span>{service.totalAppointments}</span>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Total Appointments:</span>
+                                        <span className="font-semibold">{service.totalAppointments}</span>
                                       </div>
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-600">Service Cost:</span>
-                                        <EditableField
-                                          value={service.serviceCost}
-                                          isEditing={false}
-                                          type="number"
-                                          prefix="$"
-                                          originalValue={originalService?.serviceCost}
-                                          showChange={false}
-                                        />
+                                      <div className="flex justify-between items-center py-3">
+                                        <span className="text-base text-gray-700">Service Cost:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={service.serviceCost}
+                                            isEditing={false}
+                                            type="number"
+                                            prefix="$"
+                                            originalValue={originalService?.serviceCost}
+                                            showChange={false}
+                                          />
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
