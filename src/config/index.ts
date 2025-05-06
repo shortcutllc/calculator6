@@ -29,16 +29,19 @@ function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.errors
-        .map(e => e.path.join('.'))
-        .join(', ');
-      throw new Error(`Missing or invalid environment variables: ${missingVars}`);
+        .map(e => `${e.path.join('.')}: ${e.message}`)
+        .join('\n');
+      throw new Error(`Environment validation failed:\n${missingVars}`);
     }
     throw error;
   }
 }
 
+// Validate environment variables immediately
+const env = validateEnv();
+
 export const config = {
-  env: validateEnv(),
+  env,
   app: {
     name: 'Shortcut Calculator',
     version: '1.0.0',
@@ -67,7 +70,7 @@ export const config = {
     }
   },
   supabase: {
-    url: validateEnv().VITE_SUPABASE_URL,
-    anonKey: validateEnv().VITE_SUPABASE_ANON_KEY
+    url: env.VITE_SUPABASE_URL.replace(/\/$/, ''), // Remove trailing slash if present
+    anonKey: env.VITE_SUPABASE_ANON_KEY
   }
 } as const;

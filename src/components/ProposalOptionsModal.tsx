@@ -15,10 +15,6 @@ interface ProposalOptions {
     includeCalculations: boolean;
     includeCalculator: boolean;
   };
-  type?: 'password';
-  password?: string;
-  expiresAt?: string;
-  maxViews?: number;
 }
 
 interface ValidationErrors {
@@ -173,13 +169,13 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Custom Note</label>
+              <label className="block text-sm font-medium text-gray-700">Note from Shortcut</label>
               <textarea
                 value={options.customization.customNote}
                 onChange={(e) => handleFieldChange('customization.customNote', e.target.value)}
                 rows={3}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071]"
-                placeholder="Add a custom note to your proposal..."
+                placeholder="We are so excited to service your incredible staff! Our team is looking forward to providing an exceptional experience..."
                 disabled={loading}
               />
             </div>

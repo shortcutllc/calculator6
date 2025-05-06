@@ -402,7 +402,7 @@ const ProposalViewer: React.FC = () => {
 
             {displayData.customization?.customNote && (
               <div className="bg-white rounded-2xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-shortcut-blue mb-4">Custom Note</h2>
+                <h2 className="text-2xl font-bold text-shortcut-blue mb-4">Note from Shortcut</h2>
                 <p className="text-gray-600 whitespace-pre-wrap">
                   {displayData.customization.customNote}
                 </p>

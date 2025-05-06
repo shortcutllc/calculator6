@@ -254,6 +254,10 @@ const Home: React.FC = () => {
         throw new Error('Client name is required');
       }
 
+      if (!options.customization.customNote?.trim()) {
+        options.customization.customNote = `We are so excited to service the incredible staff at ${clientData.name}! Our team is looking forward to providing an exceptional experience for everyone involved. Please review the details above and let us know if you need any adjustments.`;
+      }
+
       const proposalData = {
         clientName: clientData.name.trim(),
         eventDates: Array.from(new Set(Object.values(clientData.events)
@@ -782,8 +786,6 @@ const Home: React.FC = () => {
                         />
                       </div>
                     )}
-
-                    
 
                     {service.serviceType === 'headshot' && (
                       <div>
