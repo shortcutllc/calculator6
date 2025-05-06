@@ -272,16 +272,7 @@ const Home: React.FC = () => {
         }
       };
 
-      const proposalId = await createProposal(
-        proposalData,
-        options.customization,
-        options.type === 'password',
-        options.password,
-        true,
-        options.expiresAt,
-        options.maxViews
-      );
-
+      const proposalId = await createProposal(proposalData, options.customization);
       if (!proposalId) {
         throw new Error('Failed to create proposal');
       }
@@ -791,6 +782,8 @@ const Home: React.FC = () => {
                         />
                       </div>
                     )}
+
+                    
 
                     {service.serviceType === 'headshot' && (
                       <div>

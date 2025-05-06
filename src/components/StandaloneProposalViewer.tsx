@@ -10,6 +10,7 @@ import EditableField from './EditableField';
 import { format } from 'date-fns';
 import { generatePDF } from '../utils/pdf';
 import { Button } from './Button';
+import InstructionalScroller from './InstructionalScroller';
 
 const formatCurrency = (value: number): string => {
   return value.toFixed(2);
@@ -329,6 +330,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            <InstructionalScroller />
 
             {displayData.customization?.customNote && (
               <div className="bg-white rounded-2xl shadow-lg p-8">
