@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -33,8 +33,38 @@ const StandaloneProposalViewer: React.FC = () => {
   const [isSavingChanges, setIsSavingChanges] = useState(false);
   const [showChangesSaved, setShowChangesSaved] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [expandedLocations, setExpandedLocations] = useState<{[key: string]: boolean}>({});
+  const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
 
   usePageTitle('View Proposal');
+
+  const toggleVersion = () => {
+    if (showingOriginal) {
+      setDisplayData({ ...editedData, customization: proposal?.customization });
+    } else {
+      const originalCalculated = recalculateServiceTotals(originalData);
+      setDisplayData({ ...originalCalculated, customization: proposal?.customization });
+    }
+    setShowingOriginal(!showingOriginal);
+    setIsEditing(false);
+  };
+
+  useEffect(() => {
+    if (displayData?.services) {
+      const initialLocations: {[key: string]: boolean} = {};
+      const initialDates: {[key: string]: boolean} = {};
+      
+      Object.keys(displayData.services).forEach(location => {
+        initialLocations[location] = true;
+        Object.keys(displayData.services[location]).forEach(date => {
+          initialDates[date] = true;
+        });
+      });
+      
+      setExpandedLocations(initialLocations);
+      setExpandedDates(initialDates);
+    }
+  }, [displayData]);
 
   const formatDate = (dateString: string): string => {
     try {
@@ -85,19 +115,25 @@ const StandaloneProposalViewer: React.FC = () => {
     fetchProposal();
   }, [id]);
 
-  const toggleVersion = () => {
-    if (showingOriginal) {
-      setDisplayData({ ...editedData, customization: proposal?.customization });
-    } else {
-      const originalCalculated = recalculateServiceTotals(originalData);
-      setDisplayData({ ...originalCalculated, customization: proposal?.customization });
+  const handleFieldChange = (path: string[], value: any) => {
+    if (!editedData || !isEditing) return;
+    
+    let updatedData = { ...editedData };
+    let target = updatedData;
+    
+    for (let i = 0; i < path.length - 1; i++) {
+      target = target[path[i]];
     }
-    setShowingOriginal(!showingOriginal);
+    
+    target[path[path.length - 1]] = value;
+    const recalculatedData = recalculateServiceTotals(updatedData);
+    setEditedData({ ...recalculatedData, customization: proposal?.customization });
+    setDisplayData({ ...recalculatedData, customization: proposal?.customization });
   };
 
   const handleSaveChanges = async () => {
     if (!id || !editedData) return;
-
+    
     try {
       setIsSavingChanges(true);
       
@@ -154,22 +190,6 @@ const StandaloneProposalViewer: React.FC = () => {
     }
   };
 
-  const handleFieldChange = (path: string[], value: any) => {
-    if (!editedData || !isEditing) return;
-    
-    let updatedData = { ...editedData };
-    let target = updatedData;
-    
-    for (let i = 0; i < path.length - 1; i++) {
-      target = target[path[i]];
-    }
-    
-    target[path[path.length - 1]] = value;
-    const recalculatedData = recalculateServiceTotals(updatedData);
-    setEditedData({ ...recalculatedData, customization: proposal.customization });
-    setDisplayData({ ...recalculatedData, customization: proposal.customization });
-  };
-
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
@@ -181,6 +201,20 @@ const StandaloneProposalViewer: React.FC = () => {
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const toggleLocation = (location: string) => {
+    setExpandedLocations(prev => ({
+      ...prev,
+      [location]: !prev[location]
+    }));
+  };
+
+  const toggleDate = (date: string) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [date]: !prev[date]
+    }));
   };
 
   if (loading) {
@@ -210,283 +244,236 @@ const StandaloneProposalViewer: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm sticky top-0 z-10">
+      <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-[#175071] line-clamp-1">
-              {displayData.clientName}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                onClick={handleDownload}
-                variant="secondary"
-                icon={<Download size={18} />}
-                loading={isDownloading}
-              >
-                {isDownloading ? 'Downloading...' : 'Download PDF'}
-              </Button>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <img 
+                src="/shortcut-logo blue.svg" 
+                alt="Shortcut Logo" 
+                className="h-8 w-auto"
+              />
+            </div>
+            <div className="flex items-center gap-4">
               {showChangesSaved && (
                 <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
                   <CheckCircle2 size={18} className="mr-2" />
                   <span>Changes saved!</span>
                 </div>
               )}
-              {originalData && (
-                <button 
-                  onClick={toggleVersion}
-                  className={`px-4 py-2 ${
-                    showingOriginal ? 'bg-blue-600' : 'bg-gray-600'
-                  } text-white rounded-full font-medium flex items-center gap-2 transition-colors`}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleDownload}
+                  variant="secondary"
+                  icon={<Download size={18} />}
+                  loading={isDownloading}
                 >
-                  <HistoryIcon size={18} />
-                  <span className="hidden sm:inline">{showingOriginal ? 'View Current' : 'View Original'}</span>
-                </button>
-              )}
-              {proposal?.is_editable && !showingOriginal && (
-                isEditing ? (
-                  <button
-                    onClick={handleSaveChanges}
-                    disabled={isSavingChanges}
-                    className="px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
+                  {isDownloading ? 'Downloading...' : 'Download PDF'}
+                </Button>
+                {originalData && (
+                  <button 
+                    onClick={toggleVersion}
+                    className={`px-4 py-2 ${
+                      showingOriginal ? 'bg-blue-600' : 'bg-gray-600'
+                    } text-white rounded-md font-medium flex items-center gap-2`}
                   >
-                    {isSavingChanges ? (
-                      <>
-                        <LoadingSpinner size="small" className="mr-2" />
-                        <span className="hidden sm:inline">Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} />
-                        <span className="hidden sm:inline">Save Changes</span>
-                      </>
-                    )}
+                    <HistoryIcon size={18} />
+                    {showingOriginal ? 'View Current' : 'View Original'}
                   </button>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="px-4 py-2 bg-[#175071] text-white rounded-full hover:bg-[#134660] flex items-center gap-2 transition-colors"
-                  >
-                    <Edit size={18} />
-                    <span className="hidden sm:inline">Edit</span>
-                  </button>
-                )
-              )}
+                )}
+                {proposal?.is_editable && !showingOriginal && (
+                  isEditing ? (
+                    <Button
+                      onClick={handleSaveChanges}
+                      variant="primary"
+                      icon={<Save size={18} />}
+                      loading={isSavingChanges}
+                    >
+                      {isSavingChanges ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      variant="primary"
+                      icon={<Edit size={18} />}
+                    >
+                      Edit
+                    </Button>
+                  )
+                )}
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8" id="proposal-content">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="grid sm:grid-cols-2 gap-6">
-              <div>
-                <h2 className="text-lg font-medium text-gray-700 mb-2">Event Details</h2>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Event Dates</p>
-                    <p className="text-lg">
-                      {Array.isArray(displayData.eventDates) 
-                        ? displayData.eventDates
-                            .map((date: string) => formatDate(date))
-                            .join(', ')
-                        : 'No dates available'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Locations</p>
-                    <p className="text-lg">{displayData.locations?.join(', ') || 'No locations available'}</p>
-                  </div>
+      <main className="max-w-7xl mx-auto py-8 px-4" id="proposal-content">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
+              <h2 className="text-2xl font-semibold text-shortcut-blue mb-4">
+                {displayData.clientName}
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm text-gray-500">Event Dates</p>
+                  <p className="text-lg">
+                    {Array.isArray(displayData.eventDates) ? 
+                      displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
+                      'No dates available'
+                    }
+                  </p>
                 </div>
-              </div>
-              <div>
-                <h2 className="text-lg font-medium text-gray-700 mb-2">Summary</h2>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Total Appointments</p>
-                    <p className="text-lg">{displayData.summary?.totalAppointments}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Total Cost</p>
-                    <p className="text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</p>
-                  </div>
+                <div>
+                  <p className="text-sm text-gray-500">Locations</p>
+                  <p className="text-lg">{displayData.locations?.join(', ') || 'No locations available'}</p>
                 </div>
               </div>
             </div>
+
+            {displayData.customization?.customNote && (
+              <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
+                <h2 className="text-xl font-semibold mb-4">Custom Note</h2>
+                <p className="text-gray-600 whitespace-pre-wrap">
+                  {displayData.customization.customNote}
+                </p>
+              </div>
+            )}
+
+            {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
+              <div key={location} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-shortcut-teal">
+                <button
+                  onClick={() => toggleLocation(location)}
+                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <h2 className="text-xl font-semibold text-shortcut-blue">
+                    {location}
+                  </h2>
+                  {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+                
+                {expandedLocations[location] && (
+                  <div className="p-6 space-y-6">
+                    {Object.entries(locationData)
+                      .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                      .map(([date, dateData]: [string, any], dateIndex: number) => (
+                        <div key={date} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => toggleDate(date)}
+                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <h3 className="text-lg font-medium">
+                              Day {dateIndex + 1} - {formatDate(date)}
+                            </h3>
+                            {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+
+                          {expandedDates[date] && (
+                            <div className="p-4">
+                              {dateData.services.map((service: any, serviceIndex: number) => (
+                                <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-4">
+                                  <h4 className="font-semibold mb-3">Service {serviceIndex + 1}: {service.serviceType}</h4>
+                                  <div className="grid gap-2">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Total Hours:</span>
+                                      <EditableField
+                                        value={service.totalHours}
+                                        onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
+                                        isEditing={isEditing}
+                                        type="number"
+                                        suffix=" hours"
+                                      />
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Number of Professionals:</span>
+                                      <EditableField
+                                        value={service.numPros}
+                                        onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
+                                        isEditing={isEditing}
+                                        type="number"
+                                      />
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Total Appointments:</span>
+                                      <span>{service.totalAppointments}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Service Cost:</span>
+                                      <span>${formatCurrency(service.serviceCost)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+
+                              <div className="bg-blue-50 rounded-lg p-6">
+                                <h4 className="font-semibold mb-3">Day {dateIndex + 1} Summary</h4>
+                                <div className="grid gap-2">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Total Appointments:</span>
+                                    <span>{dateData.totalAppointments || 0}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Total Cost:</span>
+                                    <span>${formatCurrency(dateData.totalCost || 0)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
-          {displayData.customization?.customNote && (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Custom Note</h2>
-              <p className="text-gray-600 whitespace-pre-wrap">
-                {displayData.customization.customNote}
-              </p>
-            </div>
-          )}
-
-          {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-            <div key={location} className="space-y-6">
-              <h2 className="text-2xl font-semibold bg-white rounded-lg shadow-md p-6">
-                {location}
-              </h2>
-              
-              {Object.entries(locationData)
-                .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                .map(([date, dateData]: [string, any], dateIndex: number) => (
-                <div key={date} className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-xl font-semibold mb-4">
-                    Day {dateIndex + 1} - {formatDate(date)}
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    {dateData.services.map((service: any, serviceIndex: number) => {
-                      const originalService = originalData?.services?.[location]?.[date]?.services?.[serviceIndex];
-                      
-                      return (
-                        <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6">
-                          <h4 className="font-semibold mb-4">Service {serviceIndex + 1}: {service.serviceType}</h4>
-                          <div className="grid gap-4">
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-600">Total Hours:</span>
-                              <EditableField
-                                value={service.totalHours}
-                                onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
-                                isEditing={isEditing && !showingOriginal}
-                                type="number"
-                                suffix=" hours"
-                                originalValue={originalService?.totalHours}
-                                showChange={false}
-                              />
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-600">Number of Professionals:</span>
-                              <EditableField
-                                value={service.numPros}
-                                onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
-                                isEditing={isEditing && !showingOriginal}
-                                type="number"
-                                originalValue={originalService?.numPros}
-                                showChange={false}
-                              />
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-600">Total Appointments:</span>
-                              <span>{service.totalAppointments}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-600">Service Cost:</span>
-                              <EditableField
-                                value={service.serviceCost}
-                                isEditing={false}
-                                type="number"
-                                prefix="$"
-                                originalValue={originalService?.serviceCost}
-                                showChange={false}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    <div className="bg-blue-50 rounded-lg p-6">
-                      <h4 className="font-semibold mb-4">Day {dateIndex + 1} Summary</h4>
-                      <div className="grid gap-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Total Appointments:</span>
-                          <span>{dateData.totalAppointments || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Total Cost:</span>
-                          <span>${formatCurrency(dateData.totalCost || 0)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h4 className="font-semibold mb-4">{location} Summary</h4>
-                <div className="grid gap-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total Appointments:</span>
-                    <span>{Object.values(locationData).reduce((sum: number, day: any) => sum + day.totalAppointments, 0)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total Cost:</span>
-                    <span>${formatCurrency(Object.values(locationData).reduce((sum: number, day: any) => sum + day.totalCost, 0))}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <div className="bg-shortcut-blue text-white rounded-lg shadow-md overflow-hidden">
-            <div className="p-6 sm:p-8">
-              <h2 className="text-2xl font-semibold mb-6">Event Summary</h2>
-              <div className="grid gap-4">
+          <div className="lg:sticky lg:top-24 space-y-6 self-start">
+            <div className="bg-shortcut-blue text-white rounded-xl shadow-md p-6">
+              <h2 className="text-2xl font-semibold mb-6 text-white">Event Summary</h2>
+              <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-white/20">
                   <span>Total Appointments:</span>
                   <span className="font-semibold">{displayData.summary?.totalAppointments}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                <div className="flex justify-between items-center py-2">
                   <span>Total Event Cost:</span>
                   <span className="font-semibold">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Professional Revenue:</span>
-                  <span className="font-semibold">${formatCurrency(displayData.summary?.totalProRevenue || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Net Profit:</span>
-                  <span className="font-semibold">${formatCurrency(displayData.summary?.netProfit || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span>Profit Margin:</span>
-                  <span className="font-semibold">{(displayData.summary?.profitMargin || 0).toFixed(1)}%</span>
-                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-              <h2 className="text-2xl font-semibold text-[#175071]">Notes</h2>
-              <div className="flex items-center gap-4">
-                {showSaveSuccess && (
-                  <div className="flex items-center text-green-600">
-                    <CheckCircle2 size={18} className="mr-2" />
-                    <span>Notes saved!</span>
+            <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-shortcut-blue">Notes</h2>
+                {proposal?.is_editable && notes && (
+                  <div className="flex items-center gap-2">
+                    {showSaveSuccess && (
+                      <span className="text-green-600 text-sm flex items-center">
+                        <CheckCircle2 size={14} className="mr-1" />
+                        Saved
+                      </span>
+                    )}
+                    <Button
+                      onClick={handleSaveNotes}
+                      disabled={isSavingNotes}
+                      variant="primary"
+                      size="sm"
+                      icon={<Save size={14} />}
+                    >
+                      {isSavingNotes ? 'Saving...' : 'Save'}
+                    </Button>
                   </div>
                 )}
-                {notes && (
-                  <button
-                    onClick={handleSaveNotes}
-                    disabled={isSavingNotes}
-                    className="px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
-                  >
-                    {isSavingNotes ? (
-                      <>
-                        <LoadingSpinner size="small" className="mr-2" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} />
-                        Save Notes
-                      </>
-                    )}
-                  </button>
-                )}
               </div>
+              <textarea
+                value={notes}
+                onChange={proposal?.is_editable ? (e) => setNotes(e.target.value) : undefined}
+                className="w-full h-32 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+                readOnly={!proposal?.is_editable}
+                placeholder={proposal?.is_editable ? "Add any notes or comments about the proposal here..." : "No notes available"}
+              />
             </div>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes or comments about the proposal here..."
-              className="w-full h-32 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#175071] focus:border-transparent transition-shadow"
-            />
           </div>
         </div>
       </main>

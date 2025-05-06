@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useAuth } from '../hooks/useAuth';
 import EditableField from './EditableField';
@@ -35,6 +35,25 @@ const ProposalViewer: React.FC = () => {
   const [isShared, setIsShared] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedLocations, setExpandedLocations] = useState<{[key: string]: boolean}>({});
+  const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
+
+  useEffect(() => {
+    if (displayData?.services) {
+      const initialLocations: {[key: string]: boolean} = {};
+      const initialDates: {[key: string]: boolean} = {};
+      
+      Object.keys(displayData.services).forEach(location => {
+        initialLocations[location] = true;
+        Object.keys(displayData.services[location]).forEach(date => {
+          initialDates[date] = true;
+        });
+      });
+      
+      setExpandedLocations(initialLocations);
+      setExpandedDates(initialDates);
+    }
+  }, [displayData]);
 
   const formatDate = (dateString: string): string => {
     try {
@@ -224,6 +243,20 @@ const ProposalViewer: React.FC = () => {
     }
   };
 
+  const toggleLocation = (location: string) => {
+    setExpandedLocations(prev => ({
+      ...prev,
+      [location]: !prev[location]
+    }));
+  };
+
+  const toggleDate = (date: string) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [date]: !prev[date]
+    }));
+  };
+
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -261,20 +294,22 @@ const ProposalViewer: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm py-4 px-8">
+      <header className="bg-white shadow-sm py-4 px-8 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
             {!isSharedView && (
               <button 
                 onClick={() => navigate('/history')}
-                className="mr-4 text-gray-600 hover:text-gray-900"
+                className="text-gray-600 hover:text-gray-900"
               >
                 <ArrowLeft size={20} />
               </button>
             )}
-            <h1 className="text-2xl font-semibold text-[#175071]">
-              {displayData.clientName}
-            </h1>
+            <img 
+              src="/shortcut-logo blue.svg" 
+              alt="Shortcut Logo" 
+              className="h-8 w-auto"
+            />
           </div>
           <div className="flex gap-2">
             <Button
@@ -351,183 +386,190 @@ const ProposalViewer: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h2 className="text-lg font-medium text-gray-700 mb-2">Event Details</h2>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Event Dates</p>
-                    <p className="text-lg">
-                      {Array.isArray(displayData.eventDates) ? 
-                        displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
-                        'No dates available'
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Locations</p>
-                    <p className="text-lg">{displayData.locations?.join(', ') || 'No locations available'}</p>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h2 className="text-lg font-medium text-gray-700 mb-2">Summary</h2>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Total Appointments</p>
-                    <p className="text-lg">{displayData.summary?.totalAppointments}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Total Cost</p>
-                    <p className="text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {displayData.customization?.customNote && (
-            <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-              <h2 className="text-xl font-semibold mb-4">Custom Note</h2>
-              <p className="text-gray-600 whitespace-pre-wrap">
-                {displayData.customization.customNote}
-              </p>
-            </div>
-          )}
-
-          {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-            <div key={location} className="mb-8">
-              <h2 className="text-2xl font-semibold mb-6 bg-white rounded-lg shadow-md p-6">
-                {location}
+      <main className="max-w-7xl mx-auto py-8 px-4" id="proposal-content">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
+              <h2 className="text-2xl font-semibold text-shortcut-blue mb-4">
+                {displayData.clientName}
               </h2>
-              
-              {Object.entries(locationData)
-                .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                .map(([date, dateData]: [string, any], dateIndex: number) => (
-                <div key={date} className="bg-white rounded-lg shadow-md p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">
-                    Day {dateIndex + 1} - {formatDate(date)}
-                  </h3>
-                  
-                  {dateData.services.map((service: any, serviceIndex: number) => {
-                    const originalService = originalData?.services?.[location]?.[date]?.services?.[serviceIndex];
-                    
-                    return (
-                      <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-4">
-                        <h4 className="font-semibold mb-3">Service {serviceIndex + 1}: {service.serviceType}</h4>
-                        <div className="grid gap-2">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Total Hours:</span>
-                            <EditableField
-                              value={service.totalHours}
-                              onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
-                              isEditing={isEditing && !showingOriginal}
-                              type="number"
-                              suffix=" hours"
-                              originalValue={originalService?.totalHours}
-                              showChange={false}
-                            />
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Number of Professionals:</span>
-                            <EditableField
-                              value={service.numPros}
-                              onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
-                              isEditing={isEditing && !showingOriginal}
-                              type="number"
-                              originalValue={originalService?.numPros}
-                              showChange={false}
-                            />
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Total Appointments:</span>
-                            <span>{service.totalAppointments}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Service Cost:</span>
-                            <EditableField
-                              value={service.serviceCost}
-                              isEditing={false}
-                              type="number"
-                              prefix="$"
-                              originalValue={originalService?.serviceCost}
-                              showChange={false}
-                            />
-                          </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm text-gray-500">Event Dates</p>
+                  <p className="text-lg">
+                    {Array.isArray(displayData.eventDates) ? 
+                      displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
+                      'No dates available'
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Locations</p>
+                  <p className="text-lg">{displayData.locations?.join(', ') || 'No locations available'}</p>
+                </div>
+              </div>
+            </div>
+
+            {displayData.customization?.customNote && (
+              <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
+                <h2 className="text-xl font-semibold mb-4">Custom Note</h2>
+                <p className="text-gray-600 whitespace-pre-wrap">
+                  {displayData.customization.customNote}
+                </p>
+              </div>
+            )}
+
+            {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
+              <div key={location} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-shortcut-teal">
+                <button
+                  onClick={() => toggleLocation(location)}
+                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <h2 className="text-xl font-semibold text-shortcut-blue">
+                    {location}
+                  </h2>
+                  {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+                
+                {expandedLocations[location] && (
+                  <div className="p-6 space-y-6">
+                    {Object.entries(locationData)
+                      .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                      .map(([date, dateData]: [string, any], dateIndex: number) => (
+                        <div key={date} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => toggleDate(date)}
+                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <h3 className="text-lg font-medium">
+                              Day {dateIndex + 1} - {formatDate(date)}
+                            </h3>
+                            {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+
+                          {expandedDates[date] && (
+                            <div className="p-4">
+                              {dateData.services.map((service: any, serviceIndex: number) => {
+                                const originalService = originalData?.services?.[location]?.[date]?.services?.[serviceIndex];
+                                
+                                return (
+                                  <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-4">
+                                    <h4 className="font-semibold mb-3">Service {serviceIndex + 1}: {service.serviceType}</h4>
+                                    <div className="grid gap-2">
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">Total Hours:</span>
+                                        <EditableField
+                                          value={service.totalHours}
+                                          onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
+                                          isEditing={isEditing && !showingOriginal}
+                                          type="number"
+                                          suffix=" hours"
+                                          originalValue={originalService?.totalHours}
+                                          showChange={false}
+                                        />
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">Number of Professionals:</span>
+                                        <EditableField
+                                          value={service.numPros}
+                                          onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
+                                          isEditing={isEditing && !showingOriginal}
+                                          type="number"
+                                          originalValue={originalService?.numPros}
+                                          showChange={false}
+                                        />
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">Total Appointments:</span>
+                                        <span>{service.totalAppointments}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">Service Cost:</span>
+                                        <EditableField
+                                          value={service.serviceCost}
+                                          isEditing={false}
+                                          type="number"
+                                          prefix="$"
+                                          originalValue={originalService?.serviceCost}
+                                          showChange={false}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+
+                              <div className="bg-blue-50 rounded-lg p-6">
+                                <h4 className="font-semibold mb-3">Day {dateIndex + 1} Totals</h4>
+                                <div className="grid gap-2">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Total Appointments:</span>
+                                    <span>{dateData.totalAppointments || 0}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Total Cost:</span>
+                                    <span>${formatCurrency(dateData.totalCost || 0)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    );
-                  })}
-
-                  <div className="bg-blue-50 rounded-lg p-6">
-                    <h4 className="font-semibold mb-3">Day {dateIndex + 1} Totals</h4>
-                    <div className="grid gap-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Appointments:</span>
-                        <span>{dateData.totalAppointments || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Cost:</span>
-                        <span>${formatCurrency(dateData.totalCost || 0)}</span>
-                      </div>
-                    </div>
+                      ))}
                   </div>
-                </div>
-              ))}
-
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h4 className="font-semibold mb-3">{location} Totals</h4>
-                <div className="grid gap-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Appointments:</span>
-                    <span>{Object.values(locationData).reduce((sum: number, day: any) => sum + day.totalAppointments, 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Cost:</span>
-                    <span>${formatCurrency(Object.values(locationData).reduce((sum: number, day: any) => sum + day.totalCost, 0))}</span>
-                  </div>
-                </div>
+                )}
               </div>
-            </div>
-          ))}
-
-          <div className="bg-shortcut-blue text-white rounded-lg shadow-md p-8">
-            <h2 className="text-2xl font-semibold mb-6 text-white">Event Summary</h2>
-            <div className="grid gap-4 text-white">
-              <div className="flex justify-between items-center py-2 border-b border-white/20">
-                <span>Total Appointments:</span>
-                <span className="font-semibold">{displayData.summary?.totalAppointments}</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span>Total Event Cost:</span>
-                <span className="font-semibold">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
-              </div>
-            </div>
+            ))}
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-8 mt-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold text-[#175071]">Notes</h2>
-              {notes && (
-                <button
-                  onClick={handleSaveNotes}
-                  disabled={isSavingNotes}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  <Save size={18} />
-                  {isSavingNotes ? 'Saving...' : 'Save Notes'}
-                </button>
-              )}
+          <div className="lg:sticky lg:top-24 space-y-6 self-start">
+            <div className="bg-shortcut-blue text-white rounded-xl shadow-md p-6">
+              <h2 className="text-2xl font-semibold mb-6 text-white">Event Summary</h2>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Total Appointments:</span>
+                  <span className="font-semibold">{displayData.summary?.totalAppointments}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Total Event Cost:</span>
+                  <span className="font-semibold">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Professional Revenue:</span>
+                  <span className="font-semibold">${formatCurrency(displayData.summary?.totalProRevenue || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Net Profit:</span>
+                  <span className="font-semibold">${formatCurrency(displayData.summary?.netProfit || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span>Profit Margin:</span>
+                  <span className="font-semibold">{displayData.summary?.profitMargin.toFixed(1)}%</span>
+                </div>
+              </div>
             </div>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes or comments about the proposal here..."
-              className="w-full h-32 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#175071]"
-            />
+
+            <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-shortcut-blue">Notes</h2>
+                {notes && (
+                  <Button
+                    onClick={handleSaveNotes}
+                    disabled={isSavingNotes}
+                    variant="primary"
+                    icon={<Save size={18} />}
+                  >
+                    {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                  </Button>
+                )}
+              </div>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any notes or comments about the proposal here..."
+                className="w-full h-32 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+              />
+            </div>
           </div>
         </div>
       </main>
