@@ -91,18 +91,6 @@ const Login: React.FC = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Button
-              onClick={() => navigate('/register')}
-              variant="secondary"
-            >
-              Create Account
-            </Button>
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -3,17 +3,6 @@ import type { Database } from '../types/database';
 import { config } from '../config';
 import { getSecurityHeaders } from '../utils/security';
 
-// Log configuration on initialization
-console.log('Initializing Supabase client with:', {
-  url: config.supabase.url,
-  hasAnonKey: !!config.supabase.anonKey,
-  env: {
-    MODE: config.env.MODE,
-    PROD: config.env.PROD,
-    DEV: config.env.DEV
-  }
-});
-
 if (!config.supabase.url || !config.supabase.anonKey) {
   console.error('Missing Supabase configuration:', {
     url: config.supabase.url,
@@ -22,7 +11,6 @@ if (!config.supabase.url || !config.supabase.anonKey) {
   throw new Error('Missing Supabase configuration');
 }
 
-// Enhanced client configuration with explicit session handling
 export const supabase = createClient<Database>(
   config.supabase.url,
   config.supabase.anonKey,
@@ -32,9 +20,9 @@ export const supabase = createClient<Database>(
       persistSession: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      storage: window.localStorage, // Explicitly use window.localStorage
-      storageKey: 'supabase.auth.token', // Explicit storage key
-      debug: config.env.DEV // Enable debug logs in development
+      storage: window.localStorage,
+      storageKey: 'supabase.auth.token',
+      debug: config.env.DEV
     },
     global: {
       headers: {
@@ -44,9 +32,17 @@ export const supabase = createClient<Database>(
     },
     db: {
       schema: 'public'
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
     }
   }
 );
+
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -56,7 +52,6 @@ export const testSupabaseConnection = async (retries = 3, backoffMs = 1000) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`Testing Supabase connection (attempt ${attempt}/${retries})...`);
-      console.log('Using URL:', config.supabase.url);
       
       const { data, error } = await supabase
         .from('proposals')
@@ -65,6 +60,11 @@ export const testSupabaseConnection = async (retries = 3, backoffMs = 1000) => {
         .single();
         
       if (error) {
+        if (error.message?.includes('Failed to fetch')) {
+          console.warn('Network connectivity issue detected');
+          throw new Error('Unable to connect to the database. Please check your internet connection.');
+        }
+        
         console.warn(`Attempt ${attempt}: Supabase query error:`, error);
         lastError = error;
         
@@ -77,7 +77,9 @@ export const testSupabaseConnection = async (retries = 3, backoffMs = 1000) => {
         throw error;
       }
 
-      console.log('Supabase connection successful:', data);
+      console.log('Supabase connection successful');
+      connectionStatus.connected = true;
+      connectionStatus.lastError = null;
       return true;
     } catch (err) {
       lastError = err;
@@ -93,5 +95,34 @@ export const testSupabaseConnection = async (retries = 3, backoffMs = 1000) => {
   }
 
   console.error('Failed to connect to Supabase after', retries, 'attempts. Last error:', lastError);
+  connectionStatus.connected = false;
+  connectionStatus.lastError = lastError;
   return false;
 };
+
+// Connection status tracking
+export const connectionStatus = {
+  connected: false,
+  lastError: null as Error | null,
+  isOffline: false
+};
+
+// Network status monitoring
+window.addEventListener('online', () => {
+  console.log('Connection restored');
+  connectionStatus.isOffline = false;
+  testSupabaseConnection();
+});
+
+window.addEventListener('offline', () => {
+  console.log('Connection lost');
+  connectionStatus.isOffline = true;
+  connectionStatus.connected = false;
+});
+
+// Export connection status checker
+export const checkConnection = () => ({
+  isConnected: connectionStatus.connected,
+  isOffline: connectionStatus.isOffline,
+  lastError: connectionStatus.lastError
+});

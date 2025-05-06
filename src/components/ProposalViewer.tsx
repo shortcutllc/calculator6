@@ -37,6 +37,8 @@ const ProposalViewer: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedLocations, setExpandedLocations] = useState<{[key: string]: boolean}>({});
   const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSavingChanges, setIsSavingChanges] = useState(false);
 
   useEffect(() => {
     if (displayData?.services) {
@@ -57,14 +59,9 @@ const ProposalViewer: React.FC = () => {
 
   const formatDate = (dateString: string): string => {
     try {
-      console.log('Formatting date:', dateString);
       if (!dateString) return 'No Date';
       const date = new Date(dateString);
-      console.log('Parsed date:', date);
-      if (isNaN(date.getTime())) {
-        console.error('Invalid date detected:', dateString);
-        return 'Invalid Date';
-      }
+      if (isNaN(date.getTime())) return 'Invalid Date';
       return format(date, 'MMMM d, yyyy');
     } catch (err) {
       console.error('Error formatting date:', err);
@@ -91,9 +88,7 @@ const ProposalViewer: React.FC = () => {
         throw new Error('Proposal not found');
       }
       
-      console.log('Raw proposal data:', proposal);
       const calculatedData = recalculateServiceTotals(proposal.data);
-      console.log('Calculated data:', calculatedData);
       
       setEditedData({ ...calculatedData, customization: proposal.customization });
       setDisplayData({ ...calculatedData, customization: proposal.customization });
@@ -158,6 +153,7 @@ const ProposalViewer: React.FC = () => {
     if (!id || !editedData) return;
     
     try {
+      setIsSavingChanges(true);
       const recalculatedData = recalculateServiceTotals(editedData);
       const success = await updateProposal(id, {
         ...recalculatedData,
@@ -169,7 +165,6 @@ const ProposalViewer: React.FC = () => {
         setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
         setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
         setHasChanges(true);
-        alert('Changes saved successfully');
       } else {
         setLoadError('Failed to save changes');
       }
@@ -177,6 +172,8 @@ const ProposalViewer: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save changes';
       setLoadError(errorMessage);
       console.error(error);
+    } finally {
+      setIsSavingChanges(false);
     }
   };
 
@@ -235,11 +232,14 @@ const ProposalViewer: React.FC = () => {
 
   const handleDownload = async () => {
     try {
+      setIsDownloading(true);
       const filename = `${displayData.clientName.replace(/\s+/g, '-').toLowerCase()}-proposal.pdf`;
       await generatePDF('proposal-content', filename);
     } catch (error) {
       console.error('Error downloading PDF:', error);
       alert('Failed to download PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -273,12 +273,12 @@ const ProposalViewer: React.FC = () => {
             <X size={48} className="mx-auto" />
           </div>
           <p className="text-xl text-red-500 mb-4">{loadError || error}</p>
-          <button 
+          <Button 
             onClick={() => navigate('/')}
-            className="px-4 py-2 bg-[#175071] text-white rounded-md hover:bg-[#134660]"
+            variant="primary"
           >
             Return Home
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -298,12 +298,13 @@ const ProposalViewer: React.FC = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             {!isSharedView && (
-              <button 
+              <Button 
                 onClick={() => navigate('/history')}
-                className="text-gray-600 hover:text-gray-900"
+                variant="secondary"
+                icon={<ArrowLeft size={20} />}
               >
-                <ArrowLeft size={20} />
-              </button>
+                Back
+              </Button>
             )}
             <img 
               src="/shortcut-logo blue.svg" 
@@ -316,68 +317,57 @@ const ProposalViewer: React.FC = () => {
               onClick={handleDownload}
               variant="secondary"
               icon={<Download size={18} />}
+              loading={isDownloading}
             >
-              Download PDF
+              {isDownloading ? 'Downloading...' : 'Download PDF'}
             </Button>
             {originalData && (
-              <button 
+              <Button
                 onClick={toggleVersion}
-                className={`px-4 py-2 ${
-                  showingOriginal ? 'bg-blue-600' : 'bg-gray-600'
-                } text-white rounded-md font-medium flex items-center`}
+                variant="secondary"
+                icon={<HistoryIcon size={18} />}
               >
-                <HistoryIcon size={18} className="mr-2" />
                 {showingOriginal ? 'View Current' : 'View Original'}
-              </button>
+              </Button>
             )}
             {!isSharedView && (
               <>
                 {!showingOriginal && (
                   isEditing ? (
-                    <button
+                    <Button
                       onClick={handleSaveChanges}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+                      variant="primary"
+                      icon={<Save size={18} />}
+                      loading={isSavingChanges}
                     >
-                      <Save size={18} className="mr-2" />
-                      Save Changes
-                    </button>
+                      {isSavingChanges ? 'Saving...' : 'Save Changes'}
+                    </Button>
                   ) : (
-                    <button
+                    <Button
                       onClick={toggleEditMode}
-                      className="px-4 py-2 bg-[#175071] text-white rounded-md hover:bg-[#134660] flex items-center"
+                      variant="primary"
+                      icon={<Edit size={18} />}
                     >
-                      <Edit size={18} className="mr-2" />
                       Edit
-                    </button>
+                    </Button>
                   )
                 )}
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     onClick={toggleShared}
-                    className={`px-4 py-2 ${
-                      isShared ? 'bg-green-600' : 'bg-gray-600'
-                    } text-white rounded-md hover:opacity-90 flex items-center`}
+                    variant={isShared ? 'primary' : 'secondary'}
+                    icon={<Globe size={18} />}
                   >
-                    <Globe size={18} className="mr-2" />
                     {isShared ? 'Public' : 'Private'}
-                  </button>
+                  </Button>
                   {isShared && (
-                    <button
+                    <Button
                       onClick={copyShareLink}
-                      className="px-4 py-2 bg-[#175071] text-white rounded-md hover:bg-[#134660] flex items-center"
+                      variant="secondary"
+                      icon={showCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
                     >
-                      {showCopied ? (
-                        <>
-                          <Check size={18} className="mr-2" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={18} className="mr-2" />
-                          Copy Link
-                        </>
-                      )}
-                    </button>
+                      {showCopied ? 'Copied!' : 'Copy Link'}
+                    </Button>
                   )}
                 </div>
               </>
@@ -386,16 +376,16 @@ const ProposalViewer: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-8 px-4" id="proposal-content">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
-              <h2 className="text-2xl font-semibold text-shortcut-blue mb-4">
+      <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-bold text-shortcut-blue mb-4">
                 {displayData.clientName}
               </h2>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-gray-500">Event Dates</p>
+                  <p className="text-sm font-medium text-gray-500">Event Dates</p>
                   <p className="text-lg">
                     {Array.isArray(displayData.eventDates) ? 
                       displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
@@ -404,15 +394,15 @@ const ProposalViewer: React.FC = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Locations</p>
+                  <p className="text-sm font-medium text-gray-500">Locations</p>
                   <p className="text-lg">{displayData.locations?.join(', ') || 'No locations available'}</p>
                 </div>
               </div>
             </div>
 
             {displayData.customization?.customNote && (
-              <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
-                <h2 className="text-xl font-semibold mb-4">Custom Note</h2>
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <h2 className="text-2xl font-bold text-shortcut-blue mb-4">Custom Note</h2>
                 <p className="text-gray-600 whitespace-pre-wrap">
                   {displayData.customization.customNote}
                 </p>
@@ -420,19 +410,19 @@ const ProposalViewer: React.FC = () => {
             )}
 
             {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-              <div key={location} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-shortcut-teal">
+              <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <button
                   onClick={() => toggleLocation(location)}
                   className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
-                  <h2 className="text-xl font-semibold text-shortcut-blue">
+                  <h2 className="text-2xl font-bold text-shortcut-blue">
                     {location}
                   </h2>
                   {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </button>
                 
                 {expandedLocations[location] && (
-                  <div className="p-6 space-y-6">
+                  <div className="p-8 space-y-8">
                     {Object.entries(locationData)
                       .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
                       .map(([date, dateData]: [string, any], dateIndex: number) => (
@@ -441,20 +431,22 @@ const ProposalViewer: React.FC = () => {
                             onClick={() => toggleDate(date)}
                             className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
                           >
-                            <h3 className="text-lg font-medium">
+                            <h3 className="text-xl font-bold text-shortcut-blue">
                               Day {dateIndex + 1} - {formatDate(date)}
                             </h3>
                             {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
 
                           {expandedDates[date] && (
-                            <div className="p-4">
+                            <div className="p-8">
                               {dateData.services.map((service: any, serviceIndex: number) => {
                                 const originalService = originalData?.services?.[location]?.[date]?.services?.[serviceIndex];
                                 
                                 return (
-                                  <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-4">
-                                    <h4 className="font-semibold mb-3">Service {serviceIndex + 1}: {service.serviceType}</h4>
+                                  <div key={serviceIndex} className="bg-gray-50 rounded-lg p-8 mb-6">
+                                    <h4 className="text-lg font-bold text-shortcut-blue mb-3">
+                                      Service {serviceIndex + 1}: {service.serviceType}
+                                    </h4>
                                     <div className="grid gap-2">
                                       <div className="flex justify-between">
                                         <span className="text-gray-600">Total Hours:</span>
@@ -499,8 +491,10 @@ const ProposalViewer: React.FC = () => {
                                 );
                               })}
 
-                              <div className="bg-blue-50 rounded-lg p-6">
-                                <h4 className="font-semibold mb-3">Day {dateIndex + 1} Totals</h4>
+                              <div className="bg-blue-50 rounded-lg p-8">
+                                <h4 className="text-lg font-bold text-shortcut-blue mb-3">
+                                  Day {dateIndex + 1} Summary
+                                </h4>
                                 <div className="grid gap-2">
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">Total Appointments:</span>
@@ -522,9 +516,9 @@ const ProposalViewer: React.FC = () => {
             ))}
           </div>
 
-          <div className="lg:sticky lg:top-24 space-y-6 self-start">
-            <div className="bg-shortcut-blue text-white rounded-xl shadow-md p-6">
-              <h2 className="text-2xl font-semibold mb-6 text-white">Event Summary</h2>
+          <div className="lg:sticky lg:top-24 space-y-8 self-start">
+            <div className="bg-shortcut-blue text-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-bold mb-6 text-white">Event Summary</h2>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-white/20">
                   <span>Total Appointments:</span>
@@ -549,9 +543,9 @@ const ProposalViewer: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
+            <div className="bg-white rounded-2xl shadow-lg p-8">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-shortcut-blue">Notes</h2>
+                <h2 className="text-2xl font-bold text-shortcut-blue">Notes</h2>
                 {notes && (
                   <Button
                     onClick={handleSaveNotes}

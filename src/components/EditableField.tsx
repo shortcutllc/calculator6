@@ -57,7 +57,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
     const Icon = isIncrease ? TrendingUp : TrendingDown;
 
     return (
-      <div className={`inline-flex items-center gap-1 ml-2 text-sm ${isIncrease ? 'text-green-600' : 'text-red-600'}`}>
+      <div className={`inline-flex items-center gap-1 ml-2 text-sm ${isIncrease ? 'text-green-500' : 'text-red-500'}`}>
         <Icon className="w-4 h-4" />
         <span>
           {isIncrease ? '+' : ''}
@@ -84,7 +84,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
         value={fieldValue}
         onChange={handleChange}
         onBlur={handleBlur}
-        className={`w-full min-h-[100px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#175071] focus:border-transparent ${className}`}
+        className={`w-full min-h-[100px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
         rows={3}
       />
     );
@@ -98,7 +98,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
         value={fieldValue}
         onChange={handleChange}
         onBlur={handleBlur}
-        className={`w-32 px-4 py-2 text-right border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#175071] focus:border-transparent ${className}`}
+        className={`w-32 px-4 py-2 text-right border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
         min={type === 'number' ? 0 : undefined}
         step={type === 'number' ? 'any' : undefined}
       />

@@ -231,12 +231,12 @@ const StandaloneProposalViewer: React.FC = () => {
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
           <h2 className="text-2xl font-semibold text-gray-900 mb-4">Error Loading Proposal</h2>
           <p className="text-gray-600 mb-6">{error || 'No proposal data available'}</p>
-          <button
+          <Button
             onClick={() => navigate(config.app.routes.home)}
-            className="px-4 py-2 bg-[#175071] text-white rounded-md hover:bg-[#134660]"
+            variant="primary"
           >
             Return Home
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -271,15 +271,13 @@ const StandaloneProposalViewer: React.FC = () => {
                   {isDownloading ? 'Downloading...' : 'Download PDF'}
                 </Button>
                 {originalData && (
-                  <button 
+                  <Button
                     onClick={toggleVersion}
-                    className={`px-4 py-2 ${
-                      showingOriginal ? 'bg-blue-600' : 'bg-gray-600'
-                    } text-white rounded-md font-medium flex items-center gap-2`}
+                    variant="secondary"
+                    icon={<HistoryIcon size={18} />}
                   >
-                    <HistoryIcon size={18} />
                     {showingOriginal ? 'View Current' : 'View Original'}
-                  </button>
+                  </Button>
                 )}
                 {proposal?.is_editable && !showingOriginal && (
                   isEditing ? (
@@ -307,16 +305,16 @@ const StandaloneProposalViewer: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-8 px-4" id="proposal-content">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
-              <h2 className="text-2xl font-semibold text-shortcut-blue mb-4">
+      <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-bold text-shortcut-blue mb-4">
                 {displayData.clientName}
               </h2>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-gray-500">Event Dates</p>
+                  <p className="text-sm font-medium text-gray-500">Event Dates</p>
                   <p className="text-lg">
                     {Array.isArray(displayData.eventDates) ? 
                       displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
@@ -325,15 +323,15 @@ const StandaloneProposalViewer: React.FC = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Locations</p>
+                  <p className="text-sm font-medium text-gray-500">Locations</p>
                   <p className="text-lg">{displayData.locations?.join(', ') || 'No locations available'}</p>
                 </div>
               </div>
             </div>
 
             {displayData.customization?.customNote && (
-              <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
-                <h2 className="text-xl font-semibold mb-4">Custom Note</h2>
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <h2 className="text-2xl font-bold text-shortcut-blue mb-4">Custom Note</h2>
                 <p className="text-gray-600 whitespace-pre-wrap">
                   {displayData.customization.customNote}
                 </p>
@@ -341,19 +339,19 @@ const StandaloneProposalViewer: React.FC = () => {
             )}
 
             {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-              <div key={location} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-shortcut-teal">
+              <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <button
                   onClick={() => toggleLocation(location)}
                   className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
-                  <h2 className="text-xl font-semibold text-shortcut-blue">
+                  <h2 className="text-2xl font-bold text-shortcut-blue">
                     {location}
                   </h2>
                   {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </button>
                 
                 {expandedLocations[location] && (
-                  <div className="p-6 space-y-6">
+                  <div className="p-8 space-y-8">
                     {Object.entries(locationData)
                       .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
                       .map(([date, dateData]: [string, any], dateIndex: number) => (
@@ -362,7 +360,7 @@ const StandaloneProposalViewer: React.FC = () => {
                             onClick={() => toggleDate(date)}
                             className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
                           >
-                            <h3 className="text-lg font-medium">
+                            <h3 className="text-xl font-bold text-shortcut-blue">
                               Day {dateIndex + 1} - {formatDate(date)}
                             </h3>
                             {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -371,8 +369,10 @@ const StandaloneProposalViewer: React.FC = () => {
                           {expandedDates[date] && (
                             <div className="p-4">
                               {dateData.services.map((service: any, serviceIndex: number) => (
-                                <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-4">
-                                  <h4 className="font-semibold mb-3">Service {serviceIndex + 1}: {service.serviceType}</h4>
+                                <div key={serviceIndex} className="bg-gray-50 rounded-lg p-8 mb-6">
+                                  <h4 className="text-lg font-bold text-shortcut-blue mb-3">
+                                    Service {serviceIndex + 1}: {service.serviceType}
+                                  </h4>
                                   <div className="grid gap-2">
                                     <div className="flex justify-between">
                                       <span className="text-gray-600">Total Hours:</span>
@@ -405,8 +405,8 @@ const StandaloneProposalViewer: React.FC = () => {
                                 </div>
                               ))}
 
-                              <div className="bg-blue-50 rounded-lg p-6">
-                                <h4 className="font-semibold mb-3">Day {dateIndex + 1} Summary</h4>
+                              <div className="bg-blue-50 rounded-lg p-8">
+                                <h4 className="text-lg font-bold text-shortcut-blue mb-3">Day {dateIndex + 1} Summary</h4>
                                 <div className="grid gap-2">
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">Total Appointments:</span>
@@ -428,9 +428,9 @@ const StandaloneProposalViewer: React.FC = () => {
             ))}
           </div>
 
-          <div className="lg:sticky lg:top-24 space-y-6 self-start">
-            <div className="bg-shortcut-blue text-white rounded-xl shadow-md p-6">
-              <h2 className="text-2xl font-semibold mb-6 text-white">Event Summary</h2>
+          <div className="lg:sticky lg:top-24 space-y-8 self-start">
+            <div className="bg-shortcut-blue text-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-bold mb-6 text-white">Event Summary</h2>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-white/20">
                   <span>Total Appointments:</span>
@@ -443,9 +443,9 @@ const StandaloneProposalViewer: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md p-6 border-2 border-shortcut-teal">
+            <div className="bg-white rounded-2xl shadow-lg p-8">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-shortcut-blue">Notes</h2>
+                <h2 className="text-2xl font-bold text-shortcut-blue">Notes</h2>
                 {proposal?.is_editable && notes && (
                   <div className="flex items-center gap-2">
                     {showSaveSuccess && (
