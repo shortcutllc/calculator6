@@ -38,7 +38,32 @@ export default {
       borderRadius: {
         'full': '9999px',
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            color: '#333333',
+            h1: {
+              color: '#003C5E',
+            },
+            h2: {
+              color: '#003C5E',
+            },
+            h3: {
+              color: '#003C5E',
+            },
+            h4: {
+              color: '#003C5E',
+            },
+            strong: {
+              color: '#003C5E',
+            },
+          },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 };

@@ -10,6 +10,8 @@ import { recalculateServiceTotals } from '../utils/proposalGenerator';
 import { getProposalUrl } from '../utils/url';
 import { generatePDF } from '../utils/pdf';
 import { Button } from './Button';
+import ServiceAgreement from './ServiceAgreement';
+import LocationSummary from './LocationSummary';
 
 const formatCurrency = (value: number): string => {
   return value.toFixed(2);
@@ -547,9 +549,19 @@ const ProposalViewer: React.FC = () => {
                 )}
               </div>
             ))}
+
+            <ServiceAgreement />
           </div>
 
           <div className="lg:sticky lg:top-24 space-y-8 self-start">
+            {Object.entries(displayData.services || {}).map(([location, locationData]) => (
+              <LocationSummary 
+                key={location}
+                location={location}
+                services={locationData}
+              />
+            ))}
+
             <div className="bg-shortcut-blue text-white rounded-2xl shadow-lg p-8">
               <h2 className="text-3xl font-bold mb-6 text-white">Event Summary</h2>
               <div className="space-y-4">
