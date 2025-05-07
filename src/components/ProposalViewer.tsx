@@ -119,6 +119,7 @@ const ProposalViewer: React.FC = () => {
       setDisplayData({ ...originalCalculated, customization: currentProposal?.customization });
     }
     setShowingOriginal(!showingOriginal);
+    setIsEditing(false);
   };
 
   const toggleEditMode = () => {
@@ -411,15 +412,41 @@ const ProposalViewer: React.FC = () => {
 
             {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
               <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <button
-                  onClick={() => toggleLocation(location)}
-                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
-                >
-                  <h2 className="text-2xl font-bold text-shortcut-blue">
-                    {location}
-                  </h2>
-                  {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </button>
+                <div className="px-6 py-4 flex justify-between items-center bg-gray-50">
+                  <button
+                    onClick={() => toggleLocation(location)}
+                    className="flex-1 flex items-center justify-between hover:bg-shortcut-teal/20 transition-colors"
+                  >
+                    <h2 className="text-2xl font-bold text-shortcut-blue">
+                      {location}
+                    </h2>
+                    {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
+                  {!showingOriginal && !isSharedView && (
+                    <div className="ml-4">
+                      {isEditing ? (
+                        <Button
+                          onClick={handleSaveChanges}
+                          variant="primary"
+                          size="sm"
+                          icon={<Save size={16} />}
+                          loading={isSavingChanges}
+                        >
+                          {isSavingChanges ? 'Saving...' : 'Save'}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={toggleEditMode}
+                          variant="secondary"
+                          size="sm"
+                          icon={<Edit size={16} />}
+                        >
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 
                 {expandedLocations[location] && (
                   <div className="p-8 space-y-8">

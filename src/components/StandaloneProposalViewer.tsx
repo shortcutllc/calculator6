@@ -37,6 +37,7 @@ export const StandaloneProposalViewer: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [expandedLocations, setExpandedLocations] = useState<{[key: string]: boolean}>({});
   const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
+  const [isCustomNoteExpanded, setIsCustomNoteExpanded] = useState(false);
 
   usePageTitle('View Proposal');
 
@@ -335,25 +336,61 @@ export const StandaloneProposalViewer: React.FC = () => {
             <InstructionalScroller />
 
             {displayData.customization?.customNote && (
-              <div className="bg-white rounded-2xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-shortcut-blue mb-4">Note from Shortcut</h2>
-                <p className="text-gray-600 whitespace-pre-wrap">
-                  {displayData.customization.customNote}
-                </p>
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <button
+                  onClick={() => setIsCustomNoteExpanded(!isCustomNoteExpanded)}
+                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+                >
+                  <h2 className="text-2xl font-bold text-shortcut-blue">Note from Shortcut</h2>
+                  {isCustomNoteExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+                {isCustomNoteExpanded && (
+                  <div className="p-8">
+                    <p className="text-gray-600 whitespace-pre-wrap">
+                      {displayData.customization.customNote.replace('above', 'below')}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
             {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
               <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <button
-                  onClick={() => toggleLocation(location)}
-                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
-                >
-                  <h2 className="text-2xl font-bold text-shortcut-blue">
-                    {location}
-                  </h2>
-                  {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </button>
+                <div className="px-6 py-4 flex justify-between items-center bg-gray-50">
+                  <button
+                    onClick={() => toggleLocation(location)}
+                    className="flex-1 flex items-center justify-between hover:bg-shortcut-teal/20 transition-colors"
+                  >
+                    <h2 className="text-2xl font-bold text-shortcut-blue">
+                      {location}
+                    </h2>
+                    {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
+                  {proposal?.is_editable && !showingOriginal && (
+                    <div className="ml-4">
+                      {isEditing ? (
+                        <Button
+                          onClick={handleSaveChanges}
+                          variant="primary"
+                          size="sm"
+                          icon={<Save size={16} />}
+                          loading={isSavingChanges}
+                        >
+                          {isSavingChanges ? 'Saving...' : 'Save'}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => setIsEditing(true)}
+                          variant="secondary"
+                          size="sm"
+                          icon={<Edit size={16} />}
+                        >
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 
                 {expandedLocations[location] && (
                   <div className="p-8 space-y-8">
