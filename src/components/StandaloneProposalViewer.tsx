@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -479,6 +479,96 @@ export const StandaloneProposalViewer: React.FC = () => {
             ))}
 
             <ServiceAgreement />
+
+            <div className="mt-16">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-3xl font-bold text-shortcut-blue">
+                  The Shortcut Difference
+                </h2>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => {
+                      const container = document.getElementById('carousel');
+                      if (container) {
+                        container.scrollBy({ left: -400, behavior: 'smooth' });
+                      }
+                    }}
+                    className="p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+                    aria-label="Scroll left"
+                  >
+                    <ChevronLeft size={24} className="text-shortcut-blue" />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const container = document.getElementById('carousel');
+                      if (container) {
+                        container.scrollBy({ left: 400, behavior: 'smooth' });
+                      }
+                    }}
+                    className="p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+                    aria-label="Scroll right"
+                  >
+                    <ChevronRight size={24} className="text-shortcut-blue" />
+                  </button>
+                </div>
+              </div>
+              
+              <div id="carousel" className="flex overflow-x-auto pb-6 gap-8 hide-scrollbar">
+                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col">
+                  <div className="w-full h-64">
+                    <img 
+                      src="/Seamless Experience.png"
+                      alt="Seamless wellness experiences by Shortcut"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-6 flex-grow flex flex-col">
+                    <h3 className="text-xl font-bold text-shortcut-blue mb-3">
+                      Seamless Experiences
+                    </h3>
+                    <p className="text-base text-gray-700 leading-relaxed flex-grow">
+                      We make wellness effortless. Easily integrate our services and create experiences your team will love.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col">
+                  <div className="w-full h-64">
+                    <img 
+                      src="/Revitalizing Impact.png"
+                      alt="Revitalizing impact of Shortcut's wellness services"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-6 flex-grow flex flex-col">
+                    <h3 className="text-xl font-bold text-shortcut-blue mb-3">
+                      Revitalizing Impact
+                    </h3>
+                    <p className="text-base text-gray-700 leading-relaxed flex-grow">
+                      Transform office days into feel-good moments. Boost engagement and watch your team thrive with our revitalizing services.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col">
+                  <div className="w-full h-64">
+                    <img 
+                      src="/All-in-One Wellness.png"
+                      alt="All-in-one corporate wellness solutions by Shortcut"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-6 flex-grow flex flex-col">
+                    <h3 className="text-xl font-bold text-shortcut-blue mb-3">
+                      All-in-One Wellness
+                    </h3>
+                    <p className="text-base text-gray-700 leading-relaxed flex-grow">
+                      All your corporate wellness needs, simplified. Discover inspiring services that energize your team, all in one place.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="lg:sticky lg:top-24 space-y-8 self-start">
