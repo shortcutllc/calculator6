@@ -335,26 +335,31 @@ export const StandaloneProposalViewer: React.FC = () => {
               </div>
             </div>
 
-            <InstructionalScroller />
+            <div className="space-y-6">
+              <InstructionalScroller />
 
-            {displayData.customization?.customNote && (
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <button
-                  onClick={() => setIsCustomNoteExpanded(!isCustomNoteExpanded)}
-                  className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
-                >
-                  <h2 className="text-2xl font-bold text-shortcut-blue">Note from Shortcut</h2>
-                  {isCustomNoteExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </button>
-                {isCustomNoteExpanded && (
-                  <div className="p-8">
-                    <p className="text-gray-600 whitespace-pre-wrap">
-                      {displayData.customization.customNote.replace('above', 'below')}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+              {displayData.customization?.customNote && (
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                  <button
+                    onClick={() => setIsCustomNoteExpanded(!isCustomNoteExpanded)}
+                    className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+                  >
+                    <h2 className="text-2xl font-bold text-shortcut-blue">
+                      Note from Shortcut
+                    </h2>
+                    {isCustomNoteExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
+                  
+                  {isCustomNoteExpanded && (
+                    <div className="p-8">
+                      <p className="text-gray-600 whitespace-pre-wrap">
+                        {displayData.customization.customNote.replace('above', 'below')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
               <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -587,9 +592,21 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span>Total Appointments:</span>
                   <span className="font-semibold">{displayData.summary?.totalAppointments}</span>
                 </div>
-                <div className="flex justify-between items-center py-2">
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
                   <span>Total Event Cost:</span>
                   <span className="font-semibold">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Professional Revenue:</span>
+                  <span className="font-semibold">${formatCurrency(displayData.summary?.totalProRevenue || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Net Profit:</span>
+                  <span className="font-semibold">${formatCurrency(displayData.summary?.netProfit || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span>Profit Margin:</span>
+                  <span className="font-semibold">{displayData.summary?.profitMargin.toFixed(1)}%</span>
                 </div>
               </div>
             </div>
@@ -597,32 +614,22 @@ export const StandaloneProposalViewer: React.FC = () => {
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-shortcut-blue">Notes</h2>
-                {proposal?.is_editable && notes && (
-                  <div className="flex items-center gap-2">
-                    {showSaveSuccess && (
-                      <span className="text-green-600 text-sm flex items-center">
-                        <CheckCircle2 size={14} className="mr-1" />
-                        Saved
-                      </span>
-                    )}
-                    <Button
-                      onClick={handleSaveNotes}
-                      disabled={isSavingNotes}
-                      variant="primary"
-                      size="sm"
-                      icon={<Save size={14} />}
-                    >
-                      {isSavingNotes ? 'Saving...' : 'Save'}
-                    </Button>
-                  </div>
+                {notes && (
+                  <Button
+                    onClick={handleSaveNotes}
+                    disabled={isSavingNotes}
+                    variant="primary"
+                    icon={<Save size={18} />}
+                  >
+                    {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                  </Button>
                 )}
               </div>
               <textarea
                 value={notes}
-                onChange={proposal?.is_editable ? (e) => setNotes(e.target.value) : undefined}
-                className="w-full h-32 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
-                readOnly={!proposal?.is_editable}
-                placeholder={proposal?.is_editable ? "Add any notes or comments about the proposal here..." : "No notes available"}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any notes or comments about the proposal here..."
+                className="w-full min-h-[120px] p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue resize-y"
               />
             </div>
           </div>
