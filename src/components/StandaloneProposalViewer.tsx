@@ -313,7 +313,7 @@ export const StandaloneProposalViewer: React.FC = () => {
 
       <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-12">
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-3xl font-bold text-shortcut-blue mb-4">
                 {displayData.clientName}
@@ -335,7 +335,7 @@ export const StandaloneProposalViewer: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               <InstructionalScroller />
 
               {displayData.customization?.customNote && (
@@ -361,127 +361,129 @@ export const StandaloneProposalViewer: React.FC = () => {
               )}
             </div>
 
-            {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-              <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="px-6 py-4 flex justify-between items-center bg-gray-50">
-                  <button
-                    onClick={() => toggleLocation(location)}
-                    className="flex-1 flex items-center justify-between hover:bg-shortcut-teal/20 transition-colors"
-                  >
-                    <h2 className="text-2xl font-bold text-shortcut-blue">
-                      {location}
-                    </h2>
-                    {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  </button>
-                  {proposal?.is_editable && !showingOriginal && (
-                    <div className="ml-4">
-                      {isEditing ? (
-                        <Button
-                          onClick={handleSaveChanges}
-                          variant="primary"
-                          size="sm"
-                          icon={<Save size={16} />}
-                          loading={isSavingChanges}
-                        >
-                          {isSavingChanges ? 'Saving...' : 'Save'}
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => setIsEditing(true)}
-                          variant="secondary"
-                          size="sm"
-                          icon={<Edit size={16} />}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                {expandedLocations[location] && (
-                  <div className="p-8 space-y-8">
-                    {Object.entries(locationData)
-                      .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                      .map(([date, dateData]: [string, any], dateIndex: number) => (
-                        <div key={date} className="border border-gray-300 rounded-xl overflow-hidden">
-                          <button
-                            onClick={() => toggleDate(date)}
-                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+            <div className="space-y-8">
+              {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
+                <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                  <div className="px-6 py-4 flex justify-between items-center bg-gray-50">
+                    <button
+                      onClick={() => toggleLocation(location)}
+                      className="flex-1 flex items-center justify-between hover:bg-shortcut-teal/20 transition-colors"
+                    >
+                      <h2 className="text-2xl font-bold text-shortcut-blue">
+                        {location}
+                      </h2>
+                      {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
+                    {proposal?.is_editable && !showingOriginal && (
+                      <div className="ml-4">
+                        {isEditing ? (
+                          <Button
+                            onClick={handleSaveChanges}
+                            variant="primary"
+                            size="sm"
+                            icon={<Save size={16} />}
+                            loading={isSavingChanges}
                           >
-                            <h3 className="text-xl font-bold text-shortcut-blue">
-                              Day {dateIndex + 1} - {formatDate(date)}
-                            </h3>
-                            {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
+                            {isSavingChanges ? 'Saving...' : 'Save'}
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => setIsEditing(true)}
+                            variant="secondary"
+                            size="sm"
+                            icon={<Edit size={16} />}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {expandedLocations[location] && (
+                    <div className="p-8 space-y-8">
+                      {Object.entries(locationData)
+                        .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                        .map(([date, dateData]: [string, any], dateIndex: number) => (
+                          <div key={date} className="border border-gray-300 rounded-xl overflow-hidden">
+                            <button
+                              onClick={() => toggleDate(date)}
+                              className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+                            >
+                              <h3 className="text-xl font-bold text-shortcut-blue">
+                                Day {dateIndex + 1} - {formatDate(date)}
+                              </h3>
+                              {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
 
-                          {expandedDates[date] && (
-                            <div className="p-8">
-                              {dateData.services.map((service: any, serviceIndex: number) => (
-                                <div 
-                                  key={serviceIndex} 
-                                  className={`bg-gray-50 rounded-lg p-6 mb-6 ${getServiceBorderClass(service.serviceType)}`}
-                                >
-                                  <h4 className="text-xl font-bold text-shortcut-blue mb-4">
-                                    Service {serviceIndex + 1}: {service.serviceType}
-                                  </h4>
-                                  <div className="grid gap-0">
-                                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                      <span className="text-base text-gray-700">Total Hours:</span>
-                                      <div className="font-semibold">
-                                        <EditableField
-                                          value={service.totalHours}
-                                          onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
-                                          isEditing={isEditing}
-                                          type="number"
-                                          suffix=" hours"
-                                        />
+                            {expandedDates[date] && (
+                              <div className="p-8">
+                                {dateData.services.map((service: any, serviceIndex: number) => (
+                                  <div 
+                                    key={serviceIndex} 
+                                    className={`bg-gray-50 rounded-lg p-6 mb-6 ${getServiceBorderClass(service.serviceType)}`}
+                                  >
+                                    <h4 className="text-xl font-bold text-shortcut-blue mb-4">
+                                      Service {serviceIndex + 1}: {service.serviceType}
+                                    </h4>
+                                    <div className="grid gap-0">
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Total Hours:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={service.totalHours}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
+                                            isEditing={isEditing}
+                                            type="number"
+                                            suffix=" hours"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Number of Professionals:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={service.numPros}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
+                                            isEditing={isEditing}
+                                            type="number"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Total Appointments:</span>
+                                        <span className="font-semibold">{service.totalAppointments}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3">
+                                        <span className="text-base text-gray-700">Service Cost:</span>
+                                        <span className="font-semibold">${formatCurrency(service.serviceCost)}</span>
                                       </div>
                                     </div>
-                                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                      <span className="text-base text-gray-700">Number of Professionals:</span>
-                                      <div className="font-semibold">
-                                        <EditableField
-                                          value={service.numPros}
-                                          onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
-                                          isEditing={isEditing}
-                                          type="number"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                      <span className="text-base text-gray-700">Total Appointments:</span>
-                                      <span className="font-semibold">{service.totalAppointments}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center py-3">
-                                      <span className="text-base text-gray-700">Service Cost:</span>
-                                      <span className="font-semibold">${formatCurrency(service.serviceCost)}</span>
-                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
 
-                              <div className="bg-blue-50 rounded-lg p-8">
-                                <h4 className="text-lg font-bold text-shortcut-blue mb-3">Day {dateIndex + 1} Summary</h4>
-                                <div className="grid gap-2">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600">Total Appointments:</span>
-                                    <span>{dateData.totalAppointments || 0}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600">Total Cost:</span>
-                                    <span>${formatCurrency(dateData.totalCost || 0)}</span>
+                                <div className="bg-blue-50 rounded-lg p-8">
+                                  <h4 className="text-lg font-bold text-shortcut-blue mb-3">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid gap-2">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Total Appointments:</span>
+                                      <span>{dateData.totalAppointments || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Total Cost:</span>
+                                      <span>${formatCurrency(dateData.totalCost || 0)}</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <ServiceAgreement />
 
