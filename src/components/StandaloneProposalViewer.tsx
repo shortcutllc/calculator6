@@ -594,21 +594,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span>Total Appointments:</span>
                   <span className="font-semibold">{displayData.summary?.totalAppointments}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                <div className="flex justify-between items-center py-2">
                   <span>Total Event Cost:</span>
                   <span className="font-semibold">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Professional Revenue:</span>
-                  <span className="font-semibold">${formatCurrency(displayData.summary?.totalProRevenue || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Net Profit:</span>
-                  <span className="font-semibold">${formatCurrency(displayData.summary?.netProfit || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span>Profit Margin:</span>
-                  <span className="font-semibold">{displayData.summary?.profitMargin.toFixed(1)}%</span>
                 </div>
               </div>
             </div>
