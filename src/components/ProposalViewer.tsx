@@ -12,6 +12,7 @@ import { generatePDF } from '../utils/pdf';
 import { Button } from './Button';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
+import { StripeInvoiceButton } from './StripeInvoiceButton';
 
 const formatCurrency = (value: number): string => {
   return value.toFixed(2);
@@ -324,6 +325,7 @@ const ProposalViewer: React.FC = () => {
             >
               {isDownloading ? 'Downloading...' : 'Download PDF'}
             </Button>
+            {!isSharedView && <StripeInvoiceButton proposalData={displayData} />}
             {originalData && (
               <Button
                 onClick={toggleVersion}
