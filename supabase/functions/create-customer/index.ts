@@ -1,3 +1,10 @@
+/// <reference no-default-lib="true" />
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+/// <reference lib="dom.asynciterable" />
+/// <reference lib="deno.ns" />
+
+// @deno-types="npm:@types/stripe@13.7.0"
 import Stripe from "npm:stripe@13.7.0";
 
 const corsHeaders = {
@@ -36,7 +43,10 @@ async function retryWithBackoff<T>(
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -57,7 +67,7 @@ Deno.serve(async (req) => {
 
     const { proposalData } = requestData;
     
-    if (!proposalData || !proposalData.client_name) {
+    if (!proposalData || !proposalData.clientName) {
       console.error('Invalid request data:', requestData);
       throw new Error('Invalid proposal data: client name is required');
     }
@@ -66,17 +76,17 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
-      maxNetworkRetries: 5, // Increased from 3 to 5
-      timeout: 30000, // 30 second timeout
+      maxNetworkRetries: 5,
+      timeout: 30000,
     });
 
-    console.log('Creating customer for:', proposalData.client_name);
+    console.log('Creating customer for:', proposalData.clientName);
 
     // Create customer with retry logic
     const customer = await retryWithBackoff(async () => {
       try {
         const result = await stripe.customers.create({
-          name: proposalData.client_name,
+          name: proposalData.clientName,
           metadata: {
             proposalId: proposalData.id
           }

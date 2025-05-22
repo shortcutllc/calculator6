@@ -1,3 +1,10 @@
+/// <reference no-default-lib="true" />
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+/// <reference lib="dom.asynciterable" />
+/// <reference lib="deno.ns" />
+
+// @deno-types="npm:@types/stripe@13.7.0"
 import Stripe from "npm:stripe@13.7.0";
 
 const corsHeaders = {
@@ -18,8 +25,11 @@ async function retryWithBackoff<T>(
   try {
     return await operation();
   } catch (error) {
+    console.error(`Operation failed (${MAX_RETRIES - retries + 1}/${MAX_RETRIES} attempts):`, error);
+    
     if (retries === 0) throw error;
     
+    console.log(`Retrying in ${backoff}ms...`);
     await new Promise(resolve => setTimeout(resolve, backoff));
     
     return retryWithBackoff(
@@ -33,23 +43,29 @@ async function retryWithBackoff<T>(
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
   }
 
   try {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) {
-      throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+      console.error('Missing STRIPE_SECRET_KEY environment variable');
+      throw new Error('Server configuration error: Missing Stripe key');
     }
 
-    // Initialize Stripe with explicit fetch configuration
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: '2023-10-16',
-      httpClient: Stripe.createFetchHttpClient(),
-      maxNetworkRetries: 3,
+    // Log request information
+    console.log('Received request:', {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries()),
     });
 
-    const { proposalData, customerId } = await req.json();
+    const requestData = await req.json();
+    console.log('Request data:', JSON.stringify(requestData, null, 2));
+
+    const { proposalData, customerId } = requestData;
 
     if (!customerId) {
       throw new Error('Customer ID is required');
@@ -58,6 +74,14 @@ Deno.serve(async (req) => {
     if (!proposalData || !proposalData.services) {
       throw new Error('Invalid proposal data: services are required');
     }
+
+    // Initialize Stripe with explicit fetch configuration and increased retries
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+      maxNetworkRetries: 5,
+      timeout: 30000,
+    });
 
     // Create line items from proposal data
     const lineItems = [];
@@ -79,9 +103,12 @@ Deno.serve(async (req) => {
       throw new Error('No services found in proposal data');
     }
 
+    console.log('Creating invoice with line items:', lineItems);
+
     // Create and finalize invoice with retry logic
     const invoice = await retryWithBackoff(async () => {
       try {
+        console.log('Creating invoice for customer:', customerId);
         const inv = await stripe.invoices.create({
           customer: customerId,
           collection_method: 'send_invoice',
@@ -92,6 +119,7 @@ Deno.serve(async (req) => {
         });
 
         // Add line items to the invoice
+        console.log('Adding line items to invoice:', inv.id);
         for (const item of lineItems) {
           await stripe.invoiceItems.create({
             customer: inv.customer,
@@ -103,18 +131,28 @@ Deno.serve(async (req) => {
         }
 
         // Send the invoice
+        console.log('Sending invoice:', inv.id);
         return await stripe.invoices.sendInvoice(inv.id);
       } catch (stripeError) {
-        console.error('Stripe API Error:', stripeError);
+        console.error('Stripe API Error:', {
+          type: stripeError.type,
+          message: stripeError.message,
+          code: stripeError.code,
+          decline_code: stripeError.decline_code,
+        });
         throw new Error(`Stripe operation failed: ${stripeError.message}`);
       }
     });
 
+    const response = {
+      invoiceId: invoice.id,
+      invoiceUrl: invoice.hosted_invoice_url
+    };
+
+    console.log('Invoice created successfully:', response);
+
     return new Response(
-      JSON.stringify({ 
-        invoiceId: invoice.id,
-        invoiceUrl: invoice.hosted_invoice_url
-      }),
+      JSON.stringify(response),
       {
         headers: { 
           ...corsHeaders, 
@@ -124,17 +162,24 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in create-invoice function:', error);
+    console.error('Error in create-invoice function:', {
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause,
+    });
     
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'An unexpected error occurred while creating the invoice';
 
+    const errorResponse = {
+      error: errorMessage,
+      details: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    };
+
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined
-      }),
+      JSON.stringify(errorResponse),
       {
         headers: { 
           ...corsHeaders, 

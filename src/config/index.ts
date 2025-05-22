@@ -43,13 +43,13 @@ const env = validateEnv();
 export const config = {
   env,
   app: {
-    name: 'Shortcut Calculator',
+    name: 'Shortcut Proposals',
     version: '1.0.0',
-    baseUrl: 'https://calculator.getshortcut.co',
+    baseUrl: 'https://proposals.getshortcut.co',
     apiTimeout: 30000,
     maxRequestsPerMinute: 100,
     allowedOrigins: [
-      'https://calculator.getshortcut.co',
+      'https://proposals.getshortcut.co',
       'http://localhost:5173',
       'http://localhost:4173'
     ],

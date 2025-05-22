@@ -9,3 +9,7 @@ Professional event and service calculator for Shortcut LLC. This application hel
 - Proposal generation
 - Client management
 - Password-protected sharing
+
+## Production URL
+
+The application is deployed at: https://proposals.getshortcut.co

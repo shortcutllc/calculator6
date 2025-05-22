@@ -10,7 +10,6 @@ interface StripeInvoiceButtonProps {
 export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ proposalData }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isDevelopment = process.env.NODE_ENV === 'development';
 
   const handleCreateInvoice = async () => {
     try {
@@ -21,13 +20,8 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ propos
         throw new Error('Invalid proposal data: Missing client information');
       }
 
-      // For development environment, simulate success
-      if (isDevelopment) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-        window.alert('Development mode: Invoice creation simulated. This feature will work in production.');
-        return;
-      }
-
+      console.log('Creating customer for proposal:', proposalData.id);
+      
       // First create or get customer
       const { data: customerData, error: customerError } = await supabase
         .functions
@@ -37,14 +31,14 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ propos
 
       if (customerError) {
         console.error('Customer creation error:', customerError);
-        throw new Error(
-          customerError.message || 'Failed to create customer. Please try again.'
-        );
+        throw new Error('Failed to create customer');
       }
 
       if (!customerData?.customerId) {
         throw new Error('Customer creation failed: No customer ID returned');
       }
+
+      console.log('Customer created successfully:', customerData.customerId);
 
       // Then create invoice with customer ID
       const { data: invoiceData, error: invoiceError } = await supabase
@@ -58,14 +52,14 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ propos
 
       if (invoiceError) {
         console.error('Invoice creation error:', invoiceError);
-        throw new Error(
-          invoiceError.message || 'Failed to create invoice. Please try again.'
-        );
+        throw new Error('Failed to create invoice');
       }
 
       if (!invoiceData?.invoiceUrl) {
         throw new Error('Invoice creation failed: No invoice URL returned');
       }
+
+      console.log('Invoice created successfully:', invoiceData.invoiceId);
 
       // Open invoice in new tab
       window.open(invoiceData.invoiceUrl, '_blank');
@@ -86,16 +80,11 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ propos
         loading={loading}
         disabled={loading}
       >
-        {isDevelopment ? 'Create Invoice (Dev Mode)' : 'Create Invoice'}
+        {loading ? 'Creating Invoice...' : 'Create Invoice'}
       </Button>
       {error && (
         <p className="text-red-600 text-sm mt-2">
           {error}
-        </p>
-      )}
-      {isDevelopment && !loading && !error && (
-        <p className="text-gray-500 text-xs mt-1">
-          Note: Invoice creation is simulated in development mode
         </p>
       )}
     </div>
