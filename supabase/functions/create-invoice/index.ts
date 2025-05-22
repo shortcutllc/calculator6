@@ -7,6 +7,29 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+const MAX_RETRIES = 3;
+const INITIAL_BACKOFF = 1000; // 1 second
+
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  retries = MAX_RETRIES,
+  backoff = INITIAL_BACKOFF
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries === 0) throw error;
+    
+    await new Promise(resolve => setTimeout(resolve, backoff));
+    
+    return retryWithBackoff(
+      operation,
+      retries - 1,
+      backoff * 2
+    );
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -23,7 +46,7 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
-      maxNetworkRetries: 3, // Add retries for network resilience
+      maxNetworkRetries: 3,
     });
 
     const { proposalData, customerId } = await req.json();
@@ -56,51 +79,41 @@ Deno.serve(async (req) => {
       throw new Error('No services found in proposal data');
     }
 
-    // Create invoice with error handling
-    let invoice;
-    try {
-      invoice = await stripe.invoices.create({
-        customer: customerId,
-        collection_method: 'send_invoice',
-        days_until_due: 30,
-        metadata: {
-          proposalId: proposalData.id,
-        },
-      });
-    } catch (stripeError) {
-      console.error('Stripe Invoice Creation Error:', stripeError);
-      throw new Error(`Failed to create invoice: ${stripeError.message}`);
-    }
-
-    // Add line items to the invoice with error handling
-    try {
-      for (const item of lineItems) {
-        await stripe.invoiceItems.create({
-          customer: invoice.customer,
-          invoice: invoice.id,
-          description: item.description,
-          amount: item.amount,
-          currency: 'usd',
+    // Create and finalize invoice with retry logic
+    const invoice = await retryWithBackoff(async () => {
+      try {
+        const inv = await stripe.invoices.create({
+          customer: customerId,
+          collection_method: 'send_invoice',
+          days_until_due: 30,
+          metadata: {
+            proposalId: proposalData.id,
+          },
         });
-      }
-    } catch (stripeError) {
-      console.error('Stripe Invoice Items Error:', stripeError);
-      throw new Error(`Failed to add items to invoice: ${stripeError.message}`);
-    }
 
-    // Send the invoice with error handling
-    let finalizedInvoice;
-    try {
-      finalizedInvoice = await stripe.invoices.sendInvoice(invoice.id);
-    } catch (stripeError) {
-      console.error('Stripe Send Invoice Error:', stripeError);
-      throw new Error(`Failed to send invoice: ${stripeError.message}`);
-    }
+        // Add line items to the invoice
+        for (const item of lineItems) {
+          await stripe.invoiceItems.create({
+            customer: inv.customer,
+            invoice: inv.id,
+            description: item.description,
+            amount: item.amount,
+            currency: 'usd',
+          });
+        }
+
+        // Send the invoice
+        return await stripe.invoices.sendInvoice(inv.id);
+      } catch (stripeError) {
+        console.error('Stripe API Error:', stripeError);
+        throw new Error(`Stripe operation failed: ${stripeError.message}`);
+      }
+    });
 
     return new Response(
       JSON.stringify({ 
-        invoiceId: finalizedInvoice.id,
-        invoiceUrl: finalizedInvoice.hosted_invoice_url
+        invoiceId: invoice.id,
+        invoiceUrl: invoice.hosted_invoice_url
       }),
       {
         headers: { 

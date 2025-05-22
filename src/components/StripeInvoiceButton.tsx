@@ -10,6 +10,7 @@ interface StripeInvoiceButtonProps {
 export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ proposalData }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   const handleCreateInvoice = async () => {
     try {
@@ -18,6 +19,13 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ propos
 
       if (!proposalData || !proposalData.clientName) {
         throw new Error('Invalid proposal data: Missing client information');
+      }
+
+      // For development environment, simulate success
+      if (isDevelopment) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+        window.alert('Development mode: Invoice creation simulated. This feature will work in production.');
+        return;
       }
 
       // First create or get customer
@@ -78,11 +86,16 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ propos
         loading={loading}
         disabled={loading}
       >
-        {loading ? 'Creating Invoice...' : 'Create Invoice'}
+        {isDevelopment ? 'Create Invoice (Dev Mode)' : 'Create Invoice'}
       </Button>
       {error && (
         <p className="text-red-600 text-sm mt-2">
           {error}
+        </p>
+      )}
+      {isDevelopment && !loading && !error && (
+        <p className="text-gray-500 text-xs mt-1">
+          Note: Invoice creation is simulated in development mode
         </p>
       )}
     </div>

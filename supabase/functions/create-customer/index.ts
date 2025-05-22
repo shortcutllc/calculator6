@@ -7,6 +7,32 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+const MAX_RETRIES = 3;
+const INITIAL_BACKOFF = 1000; // 1 second
+
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  retries = MAX_RETRIES,
+  backoff = INITIAL_BACKOFF
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    console.error(`Operation failed (${MAX_RETRIES - retries + 1}/${MAX_RETRIES} attempts):`, error);
+    
+    if (retries === 0) throw error;
+    
+    console.log(`Retrying in ${backoff}ms...`);
+    await new Promise(resolve => setTimeout(resolve, backoff));
+    
+    return retryWithBackoff(
+      operation,
+      retries - 1,
+      backoff * 2
+    );
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -16,45 +42,72 @@ Deno.serve(async (req) => {
   try {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) {
-      throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+      console.error('Missing STRIPE_SECRET_KEY environment variable');
+      throw new Error('Server configuration error: Missing Stripe key');
     }
 
-    // Initialize Stripe with explicit fetch configuration
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: '2023-10-16',
-      httpClient: Stripe.createFetchHttpClient(),
-      maxNetworkRetries: 3, // Add retries for network resilience
+    // Log request information
+    console.log('Received request:', {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries()),
     });
 
-    const { proposalData } = await req.json();
+    const requestData = await req.json();
+    console.log('Request data:', JSON.stringify(requestData, null, 2));
+
+    const { proposalData } = requestData;
     
     if (!proposalData || !proposalData.client_name) {
+      console.error('Invalid request data:', requestData);
       throw new Error('Invalid proposal data: client name is required');
     }
 
-    // Create customer with error handling
-    let customer;
-    try {
-      customer = await stripe.customers.create({
-        name: proposalData.client_name,
-        metadata: {
-          proposalId: proposalData.id
-        }
-      });
-    } catch (stripeError) {
-      console.error('Stripe API Error:', stripeError);
-      throw new Error(`Stripe customer creation failed: ${stripeError.message}`);
-    }
+    // Initialize Stripe with explicit fetch configuration and increased retries
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+      maxNetworkRetries: 5, // Increased from 3 to 5
+      timeout: 30000, // 30 second timeout
+    });
+
+    console.log('Creating customer for:', proposalData.client_name);
+
+    // Create customer with retry logic
+    const customer = await retryWithBackoff(async () => {
+      try {
+        const result = await stripe.customers.create({
+          name: proposalData.client_name,
+          metadata: {
+            proposalId: proposalData.id
+          }
+        });
+        console.log('Customer created successfully:', result.id);
+        return result;
+      } catch (stripeError) {
+        console.error('Stripe API Error:', {
+          type: stripeError.type,
+          message: stripeError.message,
+          code: stripeError.code,
+          decline_code: stripeError.decline_code,
+        });
+        throw new Error(`Stripe customer creation failed: ${stripeError.message}`);
+      }
+    });
 
     if (!customer || !customer.id) {
+      console.error('Invalid customer response:', customer);
       throw new Error('Failed to create Stripe customer: Invalid response');
     }
 
+    const response = {
+      customerId: customer.id,
+      customerName: customer.name
+    };
+    
+    console.log('Sending successful response:', response);
+
     return new Response(
-      JSON.stringify({ 
-        customerId: customer.id,
-        customerName: customer.name 
-      }),
+      JSON.stringify(response),
       {
         headers: { 
           ...corsHeaders, 
@@ -64,17 +117,24 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in create-customer function:', error);
+    console.error('Error in create-customer function:', {
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause,
+    });
     
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'An unexpected error occurred while creating the customer';
 
+    const errorResponse = {
+      error: errorMessage,
+      details: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    };
+
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined
-      }),
+      JSON.stringify(errorResponse),
       {
         headers: { 
           ...corsHeaders, 
