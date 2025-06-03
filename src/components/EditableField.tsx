@@ -5,7 +5,7 @@ interface EditableFieldProps {
   value: string | number;
   onChange: (value: string | number) => void;
   isEditing: boolean;
-  type?: 'text' | 'number';
+  type?: 'text' | 'number' | 'date';
   prefix?: string;
   suffix?: string;
   multiline?: boolean;
@@ -35,15 +35,22 @@ const EditableField: React.FC<EditableFieldProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setFieldValue(newValue);
-  };
-  
-  const handleBlur = () => {
-    onChange(type === 'number' ? Number(fieldValue) : fieldValue);
+    onChange(type === 'number' ? Number(newValue) : newValue);
   };
 
   const formatValue = (val: string | number): string => {
     if (type === 'number' && typeof val === 'number') {
       return val.toFixed(2);
+    }
+    if (type === 'date' && typeof val === 'string') {
+      try {
+        const date = new Date(val);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString();
+        }
+      } catch (err) {
+        console.error('Error formatting date:', err);
+      }
     }
     return String(val);
   };
@@ -71,7 +78,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
     return (
       <div className={`flex items-center justify-end ${className}`}>
         <span className="whitespace-nowrap">
-          {prefix}{formatValue(value)}
+          {prefix}{formatValue(value)}{suffix}
         </span>
         {renderChangeIndicator()}
       </div>
@@ -83,9 +90,19 @@ const EditableField: React.FC<EditableFieldProps> = ({
       <textarea
         value={fieldValue}
         onChange={handleChange}
-        onBlur={handleBlur}
         className={`w-full min-h-[100px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
         rows={3}
+      />
+    );
+  }
+
+  if (type === 'date') {
+    return (
+      <input
+        type="date"
+        value={typeof fieldValue === 'string' ? fieldValue : ''}
+        onChange={handleChange}
+        className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
       />
     );
   }
@@ -97,11 +114,11 @@ const EditableField: React.FC<EditableFieldProps> = ({
         type={type}
         value={fieldValue}
         onChange={handleChange}
-        onBlur={handleBlur}
         className={`w-32 px-4 py-2 text-right border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
         min={type === 'number' ? 0 : undefined}
         step={type === 'number' ? 'any' : undefined}
       />
+      {suffix && <span className="ml-1">{suffix}</span>}
       {renderChangeIndicator()}
     </div>
   );

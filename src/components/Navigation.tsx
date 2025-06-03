@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogIn, LogOut, UserPlus } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, UserPlus, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';
 
@@ -47,6 +47,14 @@ export const Navigation: React.FC = () => {
           >
             History
           </Button>
+          <Button 
+            onClick={() => navigate('/brochure')} 
+            variant="secondary"
+            icon={<FileText size={18} />}
+            className="hidden sm:flex"
+          >
+            Brochures
+          </Button>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="p-2 hover:bg-gray-100 rounded-md"
@@ -88,6 +96,17 @@ export const Navigation: React.FC = () => {
                   className="w-full"
                 >
                   History
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigate('/brochure');
+                    setIsMenuOpen(false);
+                  }}
+                  variant="secondary"
+                  icon={<FileText size={18} />}
+                  className="w-full"
+                >
+                  Brochures
                 </Button>
               </div>
               

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useAuth } from '../contexts/AuthContext';
 import EditableField from './EditableField';
@@ -42,6 +42,58 @@ const ProposalViewer: React.FC = () => {
   const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSavingChanges, setIsSavingChanges] = useState(false);
+
+  const handleDateChange = (path: string[], newDate: string) => {
+    if (!editedData || !isEditing) return;
+    
+    let updatedData = { ...editedData };
+    
+    // If updating a service date
+    if (path.includes('services')) {
+      const [_, location, oldDate, serviceIndex] = path;
+      
+      // Create new date entry if it doesn't exist
+      if (!updatedData.services[location][newDate]) {
+        updatedData.services[location][newDate] = {
+          services: [],
+          totalCost: 0,
+          totalAppointments: 0
+        };
+      }
+
+      // Move the service to the new date
+      const serviceToMove = updatedData.services[location][oldDate].services[serviceIndex];
+      updatedData.services[location][newDate].services.push({
+        ...serviceToMove,
+        date: newDate
+      });
+
+      // Remove service from old date
+      updatedData.services[location][oldDate].services.splice(serviceIndex, 1);
+
+      // Clean up old date if no services remain
+      if (updatedData.services[location][oldDate].services.length === 0) {
+        delete updatedData.services[location][oldDate];
+      }
+    } 
+    // If updating event dates directly
+    else if (path[0] === 'eventDates') {
+      const index = parseInt(path[1]);
+      updatedData.eventDates[index] = newDate;
+    }
+
+    // Update eventDates array to match all service dates
+    const allDates = new Set<string>();
+    Object.values(updatedData.services || {}).forEach((locationData: any) => {
+      Object.keys(locationData).forEach(date => allDates.add(date));
+    });
+    updatedData.eventDates = Array.from(allDates).sort();
+
+    // Recalculate totals and update state
+    const recalculatedData = recalculateServiceTotals(updatedData);
+    setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+    setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+  };
 
   useEffect(() => {
     if (displayData?.services) {
@@ -391,12 +443,29 @@ const ProposalViewer: React.FC = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Event Dates</p>
-                  <p className="text-lg">
-                    {Array.isArray(displayData.eventDates) ? 
-                      displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
-                      'No dates available'
-                    }
-                  </p>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      {Array.isArray(displayData.eventDates) ? 
+                        displayData.eventDates.map((date: string, index: number) => (
+                          <input
+                            key={index}
+                            type="date"
+                            value={date}
+                            onChange={(e) => handleDateChange(['eventDates', index], e.target.value)}
+                            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+                          />
+                        )) :
+                        <p className="text-lg">No dates available</p>
+                      }
+                    </div>
+                  ) : (
+                    <p className="text-lg">
+                      {Array.isArray(displayData.eventDates) ? 
+                        displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
+                        'No dates available'
+                      }
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Locations</p>
@@ -405,91 +474,96 @@ const ProposalViewer: React.FC = () => {
               </div>
             </div>
 
-            {displayData.customization?.customNote && (
-              <div className="bg-white rounded-2xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-shortcut-blue mb-4">Note from Shortcut</h2>
-                <p className="text-gray-600 whitespace-pre-wrap">
-                  {displayData.customization.customNote}
-                </p>
-              </div>
-            )}
-
-            {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-              <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="px-6 py-4 flex justify-between items-center bg-gray-50">
-                  <button
-                    onClick={() => toggleLocation(location)}
-                    className="flex-1 flex items-center justify-between hover:bg-shortcut-teal/20 transition-colors"
-                  >
-                    <h2 className="text-2xl font-bold text-shortcut-blue">
-                      {location}
-                    </h2>
-                    {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  </button>
-                  {!showingOriginal && !isSharedView && (
-                    <div className="ml-4">
-                      {isEditing ? (
-                        <Button
-                          onClick={handleSaveChanges}
-                          variant="primary"
-                          size="sm"
-                          icon={<Save size={16} />}
-                          loading={isSavingChanges}
-                        >
-                          {isSavingChanges ? 'Saving...' : 'Save'}
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={toggleEditMode}
-                          variant="secondary"
-                          size="sm"
-                          icon={<Edit size={16} />}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                {expandedLocations[location] && (
-                  <div className="p-8 space-y-8">
-                    {Object.entries(locationData)
-                      .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                      .map(([date, dateData]: [string, any], dateIndex: number) => (
-                        <div key={date} className="border border-gray-300 rounded-xl overflow-hidden">
-                          <button
-                            onClick={() => toggleDate(date)}
-                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+            <div className="space-y-8">
+              {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
+                <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                  <div className="px-6 py-4 flex justify-between items-center bg-gray-50">
+                    <button
+                      onClick={() => toggleLocation(location)}
+                      className="flex-1 flex items-center justify-between hover:bg-shortcut-teal/20 transition-colors"
+                    >
+                      <h2 className="text-2xl font-bold text-shortcut-blue">
+                        {location}
+                      </h2>
+                      {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
+                    {!showingOriginal && !isSharedView && (
+                      <div className="ml-4">
+                        {isEditing ? (
+                          <Button
+                            onClick={handleSaveChanges}
+                            variant="primary"
+                            size="sm"
+                            icon={<Save size={16} />}
+                            loading={isSavingChanges}
                           >
-                            <h3 className="text-xl font-bold text-shortcut-blue">
-                              Day {dateIndex + 1} - {formatDate(date)}
-                            </h3>
-                            {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
+                            {isSavingChanges ? 'Saving...' : 'Save'}
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={toggleEditMode}
+                            variant="secondary"
+                            size="sm"
+                            icon={<Edit size={16} />}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {expandedLocations[location] && (
+                    <div className="p-8 space-y-8">
+                      {Object.entries(locationData)
+                        .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                        .map(([date, dateData]: [string, any], dateIndex: number) => (
+                          <div key={date} className="border border-gray-300 rounded-xl overflow-hidden">
+                            <button
+                              onClick={() => toggleDate(date)}
+                              className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+                            >
+                              <h3 className="text-xl font-bold text-shortcut-blue">
+                                Day {dateIndex + 1} - {formatDate(date)}
+                              </h3>
+                              {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
 
-                          {expandedDates[date] && (
-                            <div className="p-8">
-                              {dateData.services.map((service: any, serviceIndex: number) => {
-                                const originalService = originalData?.services?.[location]?.[date]?.services?.[serviceIndex];
-                                
-                                return (
-                                  <div key={serviceIndex} className="bg-gray-50 rounded-lg p-6 mb-6">
+                            {expandedDates[date] && (
+                              <div className="p-8">
+                                {dateData.services.map((service: any, serviceIndex: number) => (
+                                  <div 
+                                    key={serviceIndex} 
+                                    className="bg-gray-50 rounded-lg p-6 mb-6"
+                                  >
                                     <h4 className="text-xl font-bold text-shortcut-blue mb-4">
                                       Service {serviceIndex + 1}: {service.serviceType}
                                     </h4>
                                     <div className="grid gap-0">
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Service Date:</span>
+                                        <div className="font-semibold">
+                                          {isEditing ? (
+                                            <input
+                                              type="date"
+                                              value={date}
+                                              onChange={(e) => handleDateChange(['services', location, date, serviceIndex], e.target.value)}
+                                              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+                                            />
+                                          ) : (
+                                            formatDate(date)
+                                          )}
+                                        </div>
+                                      </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base text-gray-700">Total Hours:</span>
                                         <div className="font-semibold">
                                           <EditableField
                                             value={service.totalHours}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
-                                            isEditing={isEditing && !showingOriginal}
+                                            isEditing={isEditing}
                                             type="number"
                                             suffix=" hours"
-                                            originalValue={originalService?.totalHours}
-                                            showChange={false}
                                           />
                                         </div>
                                       </div>
@@ -499,10 +573,8 @@ const ProposalViewer: React.FC = () => {
                                           <EditableField
                                             value={service.numPros}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
-                                            isEditing={isEditing && !showingOriginal}
+                                            isEditing={isEditing}
                                             type="number"
-                                            originalValue={originalService?.numPros}
-                                            showChange={false}
                                           />
                                         </div>
                                       </div>
@@ -512,45 +584,34 @@ const ProposalViewer: React.FC = () => {
                                       </div>
                                       <div className="flex justify-between items-center py-3">
                                         <span className="text-base text-gray-700">Service Cost:</span>
-                                        <div className="font-semibold">
-                                          <EditableField
-                                            value={service.serviceCost}
-                                            isEditing={false}
-                                            type="number"
-                                            prefix="$"
-                                            originalValue={originalService?.serviceCost}
-                                            showChange={false}
-                                          />
-                                        </div>
+                                        <span className="font-semibold">${formatCurrency(service.serviceCost)}</span>
                                       </div>
                                     </div>
                                   </div>
-                                );
-                              })}
+                                ))}
 
-                              <div className="bg-blue-50 rounded-lg p-8">
-                                <h4 className="text-lg font-bold text-shortcut-blue mb-3">
-                                  Day {dateIndex + 1} Summary
-                                </h4>
-                                <div className="grid gap-2">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600">Total Appointments:</span>
-                                    <span>{dateData.totalAppointments || 0}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600">Total Cost:</span>
-                                    <span>${formatCurrency(dateData.totalCost || 0)}</span>
+                                <div className="bg-blue-50 rounded-lg p-8">
+                                  <h4 className="text-lg font-bold text-shortcut-blue mb-3">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid gap-2">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Total Appointments:</span>
+                                      <span>{dateData.totalAppointments || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Total Cost:</span>
+                                      <span>${formatCurrency(dateData.totalCost || 0)}</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <ServiceAgreement />
           </div>
