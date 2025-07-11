@@ -35,6 +35,38 @@ export const calculateServiceResults = (service: any) => {
   };
 };
 
+// Helper function to normalize date to YYYY-MM-DD format without timezone issues
+const normalizeDate = (dateInput: string | Date): string => {
+  if (!dateInput) return '';
+  
+  let date: Date;
+  
+  if (typeof dateInput === 'string') {
+    // If it's already in YYYY-MM-DD format, use it directly
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+      return dateInput;
+    }
+    
+    // Parse the date string
+    date = new Date(dateInput);
+  } else {
+    date = dateInput;
+  }
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    console.warn('Invalid date:', dateInput);
+    return '';
+  }
+  
+  // Get the date components in local timezone to avoid UTC conversion issues
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+};
+
 export const prepareProposalFromCalculation = (currentClient: any): ProposalData => {
   console.log('Original client data:', currentClient);
   
@@ -62,16 +94,15 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
       console.log('Processing event:', event);
       
       event.services.forEach((service: any) => {
-        console.log('Service date:', service.date);
+        console.log('Service date before normalization:', service.date);
         
         if (service.date) {
-          const date = new Date(service.date);
-          if (!isNaN(date.getTime())) {
-            // Store ISO date string for consistency
-            const isoDate = date.toISOString().split('T')[0];
-            allDates.add(isoDate);
+          const normalizedDate = normalizeDate(service.date);
+          if (normalizedDate) {
+            allDates.add(normalizedDate);
+            console.log('Normalized date:', normalizedDate);
           } else {
-            console.warn('Invalid date detected:', service.date);
+            console.warn('Failed to normalize date:', service.date);
           }
         }
       });
@@ -93,15 +124,14 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
     locationEvents.forEach((event: any) => {
       event.services.forEach((service: any) => {
         if (service.date) {
-          const date = new Date(service.date);
-          if (!isNaN(date.getTime())) {
-            const isoDate = date.toISOString().split('T')[0];
-            
+          const normalizedDate = normalizeDate(service.date);
+          
+          if (normalizedDate) {
             // Push each service individually with normalized date
             allLocationServices.push({
               ...service,
               location,
-              date: isoDate,
+              date: normalizedDate,
               totalHours: Number(service.totalHours),
               numPros: Number(service.numPros),
               proHourly: Number(service.proHourly),
@@ -193,31 +223,41 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
                 return;
               }
 
-              const date = new Date(service.date);
-              if (isNaN(date.getTime())) {
-                console.error('Invalid date in service:', service.date);
+              const normalizedDate = normalizeDate(service.date);
+              if (!normalizedDate) {
+                console.error('Failed to normalize date in service:', service.date);
                 return;
               }
-
-              const isoDate = date.toISOString().split('T')[0];
               
-              if (!transformedServices[location][isoDate]) {
-                transformedServices[location][isoDate] = {
+              if (!transformedServices[location][normalizedDate]) {
+                transformedServices[location][normalizedDate] = {
                   services: [],
                   totalCost: 0,
                   totalAppointments: 0
                 };
               }
               
-              transformedServices[location][isoDate].services.push({
+              transformedServices[location][normalizedDate].services.push({
                 ...service,
-                date: isoDate
+                date: normalizedDate
               });
             });
           }
         });
       } else {
-        transformedServices[location] = locationData;
+        // Normalize dates in existing structure
+        Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+          const normalizedDate = normalizeDate(date);
+          if (normalizedDate) {
+            transformedServices[location][normalizedDate] = {
+              ...dateData,
+              services: dateData.services.map((service: any) => ({
+                ...service,
+                date: normalizedDate
+              }))
+            };
+          }
+        });
       }
     });
     
@@ -265,6 +305,13 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
       updatedData.summary.totalProRevenue += dayTotalProRevenue;
     });
   });
+
+  // Update eventDates array to match all service dates
+  const allDates = new Set<string>();
+  Object.values(updatedData.services || {}).forEach((locationData: any) => {
+    Object.keys(locationData).forEach(date => allDates.add(date));
+  });
+  updatedData.eventDates = Array.from(allDates).sort();
 
   updatedData.summary.netProfit = Number((updatedData.summary.totalEventCost - updatedData.summary.totalProRevenue).toFixed(2));
   updatedData.summary.profitMargin = updatedData.summary.totalEventCost > 0 

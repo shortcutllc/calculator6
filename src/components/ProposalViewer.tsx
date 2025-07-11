@@ -18,6 +18,57 @@ const formatCurrency = (value: number): string => {
   return value.toFixed(2);
 };
 
+// Helper function to capitalize service type
+const capitalizeServiceType = (serviceType: string): string => {
+  if (!serviceType) return '';
+  return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
+};
+
+// Helper function to format date for display
+const formatDate = (dateString: string): string => {
+  try {
+    if (!dateString) return 'No Date';
+    
+    // If it's already in YYYY-MM-DD format, parse it directly
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [year, month, day] = dateString.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return format(date, 'MMMM d, yyyy');
+    }
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return format(date, 'MMMM d, yyyy');
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return 'Invalid Date';
+  }
+};
+
+// Helper function to format date for input (YYYY-MM-DD)
+const formatDateForInput = (dateString: string): string => {
+  try {
+    if (!dateString) return '';
+    
+    // If it's already in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  } catch (err) {
+    console.error('Error formatting date for input:', err);
+    return '';
+  }
+};
+
 const ProposalViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -111,18 +162,6 @@ const ProposalViewer: React.FC = () => {
       setExpandedDates(initialDates);
     }
   }, [displayData]);
-
-  const formatDate = (dateString: string): string => {
-    try {
-      if (!dateString) return 'No Date';
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return format(date, 'MMMM d, yyyy');
-    } catch (err) {
-      console.error('Error formatting date:', err);
-      return 'Invalid Date';
-    }
-  };
 
   useEffect(() => {
     if (!id) {
@@ -450,7 +489,7 @@ const ProposalViewer: React.FC = () => {
                           <input
                             key={index}
                             type="date"
-                            value={date}
+                            value={formatDateForInput(date)}
                             onChange={(e) => handleDateChange(['eventDates', index], e.target.value)}
                             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
                           />
@@ -537,7 +576,7 @@ const ProposalViewer: React.FC = () => {
                                     className="bg-gray-50 rounded-lg p-6 mb-6"
                                   >
                                     <h4 className="text-xl font-bold text-shortcut-blue mb-4">
-                                      Service {serviceIndex + 1}: {service.serviceType}
+                                      Service Type: {capitalizeServiceType(service.serviceType)}
                                     </h4>
                                     <div className="grid gap-0">
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
@@ -546,7 +585,7 @@ const ProposalViewer: React.FC = () => {
                                           {isEditing ? (
                                             <input
                                               type="date"
-                                              value={date}
+                                              value={formatDateForInput(date)}
                                               onChange={(e) => handleDateChange(['services', location, date, serviceIndex], e.target.value)}
                                               className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
                                             />

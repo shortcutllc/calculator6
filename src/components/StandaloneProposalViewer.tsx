@@ -19,6 +19,33 @@ const formatCurrency = (value: number): string => {
   return value.toFixed(2);
 };
 
+// Helper function to capitalize service type
+const capitalizeServiceType = (serviceType: string): string => {
+  if (!serviceType) return '';
+  return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
+};
+
+// Helper function to format date for display
+const formatDate = (dateString: string): string => {
+  try {
+    if (!dateString) return 'No Date';
+    
+    // If it's already in YYYY-MM-DD format, parse it directly
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [year, month, day] = dateString.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return format(date, 'MMMM d, yyyy');
+    }
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return format(date, 'MMMM d, yyyy');
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return 'Invalid Date';
+  }
+};
+
 export const StandaloneProposalViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -70,18 +97,6 @@ export const StandaloneProposalViewer: React.FC = () => {
       setExpandedDates(initialDates);
     }
   }, [displayData]);
-
-  const formatDate = (dateString: string): string => {
-    try {
-      if (!dateString) return 'No Date';
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return format(date, 'MMMM d, yyyy');
-    } catch (err) {
-      console.error('Error formatting date:', err);
-      return 'Invalid Date';
-    }
-  };
 
   useEffect(() => {
     const fetchProposal = async () => {
@@ -424,7 +439,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     className={`bg-gray-50 rounded-lg p-6 mb-6 ${getServiceBorderClass(service.serviceType)}`}
                                   >
                                     <h4 className="text-xl font-bold text-shortcut-blue mb-4">
-                                      Service {serviceIndex + 1}: {service.serviceType}
+                                      Service Type: {capitalizeServiceType(service.serviceType)}
                                     </h4>
                                     <div className="grid gap-0">
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">

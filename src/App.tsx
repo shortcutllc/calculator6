@@ -23,7 +23,7 @@ function App() {
   const isSharedView = location.pathname.startsWith('/shared/') || 
     (location.pathname.startsWith('/proposal/') && location.search.includes('shared=true')) ||
     location.pathname === '/brochure' ||
-    location.pathname.startsWith('/brochures/');
+    (location.pathname.startsWith('/brochures/') && location.search.includes('shared=true'));
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -84,25 +84,39 @@ function App() {
               <Route
                 path="/brochure"
                 element={
-                  <Suspense fallback={
-                    <div className="min-h-screen flex items-center justify-center">
-                      <LoadingSpinner size="large" />
-                    </div>
-                  }>
-                    <BrochurePage />
-                  </Suspense>
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <BrochurePage />
+                    </Suspense>
+                  </PrivateRoute>
                 }
               />
               <Route
                 path="/brochures/:name"
                 element={
-                  <Suspense fallback={
-                    <div className="min-h-screen flex items-center justify-center">
-                      <LoadingSpinner size="large" />
-                    </div>
-                  }>
-                    <PDFViewer />
-                  </Suspense>
+                  location.search.includes('shared=true') ? (
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <PDFViewer />
+                    </Suspense>
+                  ) : (
+                    <PrivateRoute>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <PDFViewer />
+                      </Suspense>
+                    </PrivateRoute>
+                  )
                 }
               />
               <Route path="*" element={<Navigate to={config.app.routes.home} replace />} />

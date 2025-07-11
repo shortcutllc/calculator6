@@ -6,6 +6,27 @@ interface LocationSummaryProps {
   services: any;
 }
 
+// Helper function to format date for display
+const formatDate = (dateString: string): string => {
+  try {
+    if (!dateString) return 'No Date';
+    
+    // If it's already in YYYY-MM-DD format, parse it directly
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [year, month, day] = dateString.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return format(date, 'MMM d, yyyy');
+    }
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return format(date, 'MMM d, yyyy');
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return 'Invalid Date';
+  }
+};
+
 const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services }) => {
   const dates = Object.keys(services).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   
@@ -31,7 +52,7 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services })
         <div className="flex justify-between items-center py-2 border-b border-shortcut-blue/20">
           <span className="text-shortcut-blue">Date(s):</span>
           <span className="text-shortcut-blue font-semibold">
-            {dates.map(date => format(new Date(date), 'MMM d, yyyy')).join(', ')}
+            {dates.map(date => formatDate(date)).join(', ')}
           </span>
         </div>
         <div className="flex justify-between items-center py-2 border-b border-shortcut-blue/20">

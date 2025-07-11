@@ -66,7 +66,7 @@ const PDFViewer: React.FC = () => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.clientWidth - 32;
       const newScale = containerWidth / width;
-      setScale(Math.min(newScale, 1));
+      setScale(Math.min(newScale, 1.5)); // Increased max scale to 1.5
     }
   };
 
@@ -112,7 +112,7 @@ const PDFViewer: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-4 sm:py-8 px-4">
+      <main className="max-w-[90rem] mx-auto py-4 sm:py-8 px-4">
         <div 
           ref={containerRef}
           className={`bg-white rounded-lg shadow-lg p-4 sm:p-6 ${isFullscreen ? 'h-screen' : ''}`}
@@ -162,7 +162,7 @@ const PDFViewer: React.FC = () => {
 
               <div 
                 className={`flex flex-col items-center overflow-auto ${
-                  isFullscreen ? 'h-[calc(100vh-200px)]' : 'max-h-[calc(100vh-300px)]'
+                  isFullscreen ? 'h-[calc(100vh-200px)]' : 'max-h-[calc(100vh-200px)]'
                 }`}
               >
                 <Document

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { FileText, Trash2, Share2, Copy, CheckCircle2 } from 'lucide-react';
+import { FileText, Trash2, Share2, Copy, CheckCircle2, Upload } from 'lucide-react';
 import { Button } from './Button';
 import { format } from 'date-fns';
 import { config } from '../config';
@@ -18,6 +18,8 @@ const BrochureList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchBrochures();
@@ -39,7 +41,7 @@ const BrochureList: React.FC = () => {
           name: file.name,
           created_at: file.created_at,
           url: supabase.storage.from('brochures').getPublicUrl(file.name).data.publicUrl,
-          shareUrl: `${config.app.baseUrl}/brochures/${name}`
+          shareUrl: `${config.app.baseUrl}/brochures/${name}?shared=true`
         };
       });
 
@@ -69,6 +71,36 @@ const BrochureList: React.FC = () => {
     }
   };
 
+  const handleUpdate = async (name: string, file: File) => {
+    try {
+      setUpdating(name);
+
+      if (file.type !== 'application/pdf') {
+        throw new Error('Please upload a PDF file');
+      }
+
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error('File size must be less than 50MB');
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from('brochures')
+        .update(name, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      await fetchBrochures();
+    } catch (err) {
+      console.error('Error updating brochure:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update brochure');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
   const copyToClipboard = async (url: string, id: string) => {
     try {
       await navigator.clipboard.writeText(url);
@@ -78,6 +110,21 @@ const BrochureList: React.FC = () => {
       console.error('Failed to copy:', err);
       setError('Failed to copy link to clipboard');
     }
+  };
+
+  const triggerFileInput = (name: string) => {
+    if (fileInputRef.current) {
+      fileInputRef.current.dataset.brochureName = name;
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const brochureName = event.target.dataset.brochureName;
+    
+    if (!file || !brochureName) return;
+    handleUpdate(brochureName, file);
   };
 
   if (loading) {
@@ -90,6 +137,14 @@ const BrochureList: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept="application/pdf"
+        className="hidden"
+      />
+
       {brochures.length === 0 ? (
         <div className="text-center py-8 sm:py-12">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
@@ -116,6 +171,15 @@ const BrochureList: React.FC = () => {
                   className="flex-1 sm:flex-none"
                 >
                   {copiedId === brochure.id ? 'Copied!' : 'Share'}
+                </Button>
+                <Button
+                  onClick={() => triggerFileInput(brochure.name)}
+                  variant="secondary"
+                  icon={<Upload size={18} />}
+                  loading={updating === brochure.name}
+                  className="flex-1 sm:flex-none"
+                >
+                  {updating === brochure.name ? 'Updating...' : 'Update'}
                 </Button>
                 <Button
                   onClick={() => handleDelete(brochure.name)}
