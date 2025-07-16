@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -15,8 +15,12 @@ import InstructionalScroller from './InstructionalScroller';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
 
-const formatCurrency = (value: number): string => {
-  return value.toFixed(2);
+
+
+
+const formatCurrency = (value: number | string): string => {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
 };
 
 // Helper function to capitalize service type
@@ -67,6 +71,11 @@ export const StandaloneProposalViewer: React.FC = () => {
   const [expandedLocations, setExpandedLocations] = useState<{[key: string]: boolean}>({});
   const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
   const [isCustomNoteExpanded, setIsCustomNoteExpanded] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
+  const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
+
+
 
   usePageTitle('View Proposal');
 
@@ -135,7 +144,7 @@ export const StandaloneProposalViewer: React.FC = () => {
     fetchProposal();
   }, [id]);
 
-  const handleFieldChange = (path: string[], value: any) => {
+  const handleFieldChange = (path: string[], value: string | number | undefined) => {
     if (!editedData || !isEditing) return;
     
     let updatedData = { ...editedData };
@@ -224,6 +233,57 @@ export const StandaloneProposalViewer: React.FC = () => {
     }
   };
 
+  const handleApproval = async () => {
+    if (!id || !displayData) return;
+    
+    try {
+      setIsApproving(true);
+      
+      // First, update the proposal status in the database
+      const { error: updateError } = await supabase
+        .from('proposals')
+        .update({
+          status: 'approved',
+          pending_review: false,
+          has_changes: false
+        })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      // Then, send the approval notification
+      const response = await fetch(`${config.supabase.url}/functions/v1/proposal-approval`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.supabase.anonKey}`,
+        },
+        body: JSON.stringify({
+          proposalId: id,
+          clientName: displayData.clientName,
+          totalCost: displayData.summary?.totalEventCost || 0,
+          eventDates: displayData.eventDates,
+          locations: displayData.locations
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send approval notification');
+      }
+
+      setShowApprovalSuccess(true);
+      setTimeout(() => setShowApprovalSuccess(false), 5000);
+    } catch (err) {
+      console.error('Error approving proposal:', err);
+      alert('Failed to approve proposal. Please try again.');
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+
+
   const toggleLocation = (location: string) => {
     setExpandedLocations(prev => ({
       ...prev,
@@ -282,7 +342,23 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span>Changes saved!</span>
                 </div>
               )}
+              {showApprovalSuccess && (
+                <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                  <CheckCircle2 size={18} className="mr-2" />
+                  <span>Proposal approved! Team notified.</span>
+                </div>
+              )}
+
               <div className="flex gap-4">
+                <Button
+                  onClick={() => setShowApprovalConfirm(true)}
+                  variant="primary"
+                  icon={<Check size={18} />}
+                  loading={isApproving}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isApproving ? 'Approving...' : 'Approve Proposal'}
+                </Button>
                 <Button
                   onClick={handleDownload}
                   variant="secondary"
@@ -291,6 +367,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 >
                   {isDownloading ? 'Downloading...' : 'Download PDF'}
                 </Button>
+
                 {originalData && (
                   <Button
                     onClick={toggleVersion}
@@ -329,6 +406,7 @@ export const StandaloneProposalViewer: React.FC = () => {
       <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-12">
+
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-3xl font-bold text-shortcut-blue mb-4">
                 {displayData.clientName}
@@ -447,7 +525,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         <div className="font-semibold">
                                           <EditableField
                                             value={service.totalHours}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], value)}
                                             isEditing={isEditing}
                                             type="number"
                                             suffix=" hours"
@@ -459,7 +537,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         <div className="font-semibold">
                                           <EditableField
                                             value={service.numPros}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], value)}
                                             isEditing={isEditing}
                                             type="number"
                                           />
@@ -542,6 +620,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                       src="/Seamless Experience.png"
                       alt="Seamless wellness experiences by Shortcut"
                       className="w-full h-full object-cover"
+                      onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
                     />
                   </div>
                   <div className="p-6 flex-grow flex flex-col">
@@ -560,6 +639,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                       src="/Revitalizing Impact.png"
                       alt="Revitalizing impact of Shortcut's wellness services"
                       className="w-full h-full object-cover"
+                      onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
                     />
                   </div>
                   <div className="p-6 flex-grow flex flex-col">
@@ -578,6 +658,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                       src="/All-in-One Wellness.png"
                       alt="All-in-one corporate wellness solutions by Shortcut"
                       className="w-full h-full object-cover"
+                      onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
                     />
                   </div>
                   <div className="p-6 flex-grow flex flex-col">
@@ -640,6 +721,42 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Approval Confirmation Modal */}
+      {showApprovalConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Approve Proposal
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to approve this proposal? This will notify our team and mark the proposal as approved.
+            </p>
+            <div className="flex gap-4">
+              <Button
+                onClick={() => setShowApprovalConfirm(false)}
+                variant="secondary"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowApprovalConfirm(false);
+                  handleApproval();
+                }}
+                variant="primary"
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                loading={isApproving}
+              >
+                {isApproving ? 'Approving...' : 'Yes, Approve'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 };
