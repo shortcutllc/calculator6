@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogIn, LogOut, UserPlus, FileText } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, UserPlus, FileText, Calculator } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';
 
@@ -55,6 +55,14 @@ export const Navigation: React.FC = () => {
           >
             Brochures
           </Button>
+          <Button 
+            onClick={() => navigate('/calculator')} 
+            variant="secondary"
+            icon={<Calculator size={18} />}
+            className="hidden sm:flex"
+          >
+            Calculator
+          </Button>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="p-2 hover:bg-gray-100 rounded-md"
@@ -107,6 +115,17 @@ export const Navigation: React.FC = () => {
                   className="w-full"
                 >
                   Brochures
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigate('/calculator');
+                    setIsMenuOpen(false);
+                  }}
+                  variant="secondary"
+                  icon={<Calculator size={18} />}
+                  className="w-full"
+                >
+                  Calculator
                 </Button>
               </div>
               

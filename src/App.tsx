@@ -4,6 +4,7 @@ import Home from './components/Home';
 import History from './components/History';
 import ProposalViewer from './components/ProposalViewer';
 import { StandaloneProposalViewer } from './components/StandaloneProposalViewer';
+import Calculator from './components/Calculator';
 import Login from './components/Login';
 import Register from './components/Register';
 import { ProposalProvider } from './contexts/ProposalContext';
@@ -62,6 +63,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <History />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/calculator"
+                element={
+                  <PrivateRoute>
+                    <Calculator />
                   </PrivateRoute>
                 } 
               />
