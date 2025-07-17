@@ -767,7 +767,7 @@ export const StandaloneProposalViewer: React.FC = () => {
             {uniqueServiceTypes.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
                 <div className="relative">
-                  <div className="aspect-[4/3] relative overflow-hidden">
+                  <div className="aspect-[4/3] relative overflow-hidden rounded-t-2xl">
                     <img
                       src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
                       alt={`${capitalizeServiceType(uniqueServiceTypes[currentServiceImageIndex])} service`}

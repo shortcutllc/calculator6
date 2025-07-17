@@ -170,44 +170,44 @@ const Calculator: React.FC = () => {
   const results = calculateResults(config);
 
   return (
-    <div className="min-h-screen bg-neutral-gray">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Button
-              onClick={() => navigate('/')}
-              variant="secondary"
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Dashboard</span>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-shortcut-blue flex items-center">
-                <CalculatorIcon className="w-8 h-8 mr-3 text-shortcut-coral" />
-                Wellness Calculator
-              </h1>
-              <p className="text-neutral-dark mt-1">Play with numbers and see real-time calculations</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between mb-12">
+          <Button
+            onClick={() => navigate('/')}
+            variant="secondary"
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Centered Title Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-bold text-shortcut-blue flex items-center justify-center mb-2">
+            <CalculatorIcon className="w-8 h-8 mr-3 text-red-500" />
+            Wellness Calculator
+          </h1>
+          <p className="text-gray-600">Play with numbers and see real-time calculations</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Input Panel */}
-          <div className="bg-neutral-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-6 text-shortcut-blue">Service Configuration</h2>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+            <h2 className="text-2xl font-bold mb-8 text-shortcut-blue">Service Configuration</h2>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Service Type */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-2">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Service Type
                 </label>
                 <select
                   value={config.serviceType}
                   onChange={(e) => applyServiceDefaults(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                 >
                   <option value="massage">Massage</option>
                   <option value="facial">Facial</option>
@@ -219,15 +219,16 @@ const Calculator: React.FC = () => {
 
               {/* Headshot Presets */}
               {config.serviceType === 'headshot' && (
-                <div>
-                  <label className="block text-sm font-medium text-neutral-dark mb-2">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <label className="block text-sm font-semibold text-gray-600 mb-3">
                     Headshot Presets
                   </label>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-3">
                     <Button
                       onClick={() => applyHeadshotPreset('basic')}
                       variant="secondary"
                       size="sm"
+                      className="bg-white hover:bg-gray-50 border border-gray-300"
                     >
                       Basic
                     </Button>
@@ -235,6 +236,7 @@ const Calculator: React.FC = () => {
                       onClick={() => applyHeadshotPreset('premium')}
                       variant="secondary"
                       size="sm"
+                      className="bg-white hover:bg-gray-50 border border-gray-300"
                     >
                       Premium
                     </Button>
@@ -242,6 +244,7 @@ const Calculator: React.FC = () => {
                       onClick={() => applyHeadshotPreset('executive')}
                       variant="secondary"
                       size="sm"
+                      className="bg-white hover:bg-gray-50 border border-gray-300"
                     >
                       Executive
                     </Button>
@@ -250,88 +253,88 @@ const Calculator: React.FC = () => {
               )}
 
               {/* Total Hours */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-2">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Total Hours
                 </label>
                 <input
                   type="number"
                   value={config.totalHours}
                   onChange={(e) => updateConfig({ totalHours: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                   min="0"
                   step="0.5"
                 />
               </div>
 
               {/* Appointment Time */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-2">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Appointment Time (minutes)
                 </label>
                 <input
                   type="number"
                   value={config.appTime}
                   onChange={(e) => updateConfig({ appTime: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                   min="1"
                 />
               </div>
 
               {/* Number of Professionals */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-2">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Number of Professionals
                 </label>
                 <input
                   type="number"
                   value={config.numPros}
                   onChange={(e) => updateConfig({ numPros: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                   min="1"
                 />
               </div>
 
               {/* Professional Hourly Rate */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-2">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Professional Hourly Rate
                 </label>
                 <input
                   type="number"
                   value={config.proHourly}
                   onChange={(e) => updateConfig({ proHourly: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                   min="0"
                   step="0.01"
                 />
               </div>
 
               {/* Service Hourly Rate */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-2">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Service Hourly Rate
                 </label>
                 <input
                   type="number"
                   value={config.hourlyRate}
                   onChange={(e) => updateConfig({ hourlyRate: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                   min="0"
                   step="0.01"
                 />
               </div>
 
               {/* Early Arrival Fee */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-2">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Early Arrival Fee
                 </label>
                 <input
                   type="number"
                   value={config.earlyArrival}
                   onChange={(e) => updateConfig({ earlyArrival: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                   min="0"
                   step="0.01"
                 />
@@ -339,15 +342,15 @@ const Calculator: React.FC = () => {
 
               {/* Retouching Cost (Headshot only) */}
               {config.serviceType === 'headshot' && (
-                <div>
-                  <label className="block text-sm font-medium text-neutral-dark mb-2">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
                     Retouching Cost per Photo
                   </label>
                   <input
                     type="number"
                     value={config.retouchingCost || 0}
                     onChange={(e) => updateConfig({ retouchingCost: Number(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                     min="0"
                     step="0.01"
                   />
@@ -355,15 +358,15 @@ const Calculator: React.FC = () => {
               )}
 
               {/* Discount Percentage */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-2">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Discount Percentage
                 </label>
                 <input
                   type="number"
                   value={config.discountPercent}
                   onChange={(e) => updateConfig({ discountPercent: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-coral focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
                   min="0"
                   max="100"
                   step="0.1"
@@ -373,81 +376,77 @@ const Calculator: React.FC = () => {
           </div>
 
           {/* Results Panel */}
-          <div className="space-y-6">
-            {/* Main Results */}
-            <div className="bg-neutral-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-6 text-shortcut-blue">Calculation Results</h2>
+          <div className="space-y-8">
+            {/* Main Results - Matching ProposalViewer Event Summary styling */}
+            <div className="bg-shortcut-blue text-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-bold mb-6 text-white">Calculation Results</h2>
               
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                  <span className="text-neutral-dark">Total Appointments:</span>
-                  <span className="text-2xl font-bold text-shortcut-blue">{results.totalAppointments}</span>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Total Appointments:</span>
+                  <span className="font-semibold">{results.totalAppointments}</span>
                 </div>
                 
-                <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                  <span className="text-neutral-dark">Service Cost:</span>
-                  <span className="text-2xl font-bold text-shortcut-coral">${results.serviceCost}</span>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Service Cost:</span>
+                  <span className="font-semibold">${results.serviceCost}</span>
                 </div>
                 
-                <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                  <span className="text-neutral-dark">Professional Revenue:</span>
-                  <span className="text-2xl font-bold text-shortcut-teal">${results.proRevenue}</span>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Professional Revenue:</span>
+                  <span className="font-semibold">${results.proRevenue}</span>
                 </div>
                 
-                <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                  <span className="text-neutral-dark">Net Profit:</span>
-                  <span className={`text-2xl font-bold ${results.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${results.netProfit}
-                  </span>
+                <div className="flex justify-between items-center py-2 border-b border-white/20">
+                  <span>Net Profit:</span>
+                  <span className="font-semibold">${results.netProfit}</span>
                 </div>
                 
-                <div className="flex justify-between items-center py-3">
-                  <span className="text-neutral-dark">Profit Margin:</span>
-                  <span className={`text-2xl font-bold ${results.profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {results.profitMargin}%
-                  </span>
+                <div className="flex justify-between items-center py-2">
+                  <span>Profit Margin:</span>
+                  <span className="font-semibold">{results.profitMargin}%</span>
                 </div>
               </div>
             </div>
 
-            {/* Calculation Details */}
-            <div className="bg-neutral-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold mb-4 text-shortcut-blue">Calculation Details</h3>
+            {/* Calculation Details - Matching ProposalViewer Notes styling */}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h3 className="text-2xl font-bold mb-6 text-shortcut-blue">Calculation Details</h3>
               
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-neutral-dark">Appointments per hour per pro:</span>
-                  <span className="font-medium text-shortcut-blue">{Math.round(60 / config.appTime * 100) / 100}</span>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-base text-gray-700">Appointments per hour per pro:</span>
+                  <span className="font-semibold text-gray-900">{Math.round(60 / config.appTime * 100) / 100}</span>
                 </div>
                 
-                <div className="flex justify-between">
-                  <span className="text-neutral-dark">Total appointments per hour:</span>
-                  <span className="font-medium text-shortcut-blue">{Math.round((60 / config.appTime) * config.numPros * 100) / 100}</span>
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-base text-gray-700">Total appointments per hour:</span>
+                  <span className="font-semibold text-gray-900">{Math.round((60 / config.appTime) * config.numPros * 100) / 100}</span>
                 </div>
                 
-                <div className="flex justify-between">
-                  <span className="text-neutral-dark">Professional cost per hour:</span>
-                  <span className="font-medium text-shortcut-blue">${config.proHourly * config.numPros}</span>
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-base text-gray-700">Professional cost per hour:</span>
+                  <span className="font-semibold text-gray-900">${config.proHourly * config.numPros}</span>
                 </div>
                 
                 {config.serviceType !== 'headshot' && (
-                  <div className="flex justify-between">
-                    <span className="text-neutral-dark">Early arrival total:</span>
-                    <span className="font-medium text-shortcut-blue">${config.earlyArrival * config.numPros}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span className="text-base text-gray-700">Early arrival total:</span>
+                    <span className="font-semibold text-gray-900">${config.earlyArrival * config.numPros}</span>
                   </div>
                 )}
                 
                 {config.serviceType === 'headshot' && (
-                  <div className="flex justify-between">
-                    <span className="text-neutral-dark">Retouching total:</span>
-                    <span className="font-medium text-shortcut-blue">${(config.retouchingCost || 0) * results.totalAppointments}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span className="text-base text-gray-700">Retouching total:</span>
+                    <span className="font-semibold text-gray-900">${(config.retouchingCost || 0) * results.totalAppointments}</span>
                   </div>
                 )}
                 
                 {config.discountPercent > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-neutral-dark">Discount applied:</span>
-                    <span className="font-medium text-green-600">-{config.discountPercent}%</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-base text-gray-700">Discount applied:</span>
+                    <span className="font-semibold text-green-600">-{config.discountPercent}%</span>
                   </div>
                 )}
               </div>

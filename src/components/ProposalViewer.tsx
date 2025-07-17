@@ -25,6 +25,46 @@ const capitalizeServiceType = (serviceType: string): string => {
   return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
 };
 
+// Helper function to get unique service types from proposal data
+const getUniqueServiceTypes = (displayData: any): string[] => {
+  const serviceTypes = new Set<string>();
+  
+  if (displayData?.services) {
+    Object.values(displayData.services).forEach((locationData: any) => {
+      Object.values(locationData).forEach((dateData: any) => {
+        dateData.services?.forEach((service: any) => {
+          serviceTypes.add(service.serviceType);
+        });
+      });
+    });
+  }
+  
+  return Array.from(serviceTypes);
+};
+
+// Helper function to get service image path
+const getServiceImagePath = (serviceType: string): string => {
+  const type = serviceType?.toLowerCase() || '';
+  switch (type) {
+    case 'massage':
+      return '/Massage Slider.png';
+    case 'facial':
+    case 'facials':
+      return '/Facials Slider.png';
+    case 'hair':
+      return '/Hair Slider.png';
+    case 'nails':
+      return '/Nails Slider.png';
+    case 'headshot':
+    case 'headshots':
+      return '/Headshot Slider.png';
+    case 'mindfulness':
+      return '/Mindfulness Slider.png';
+    default:
+      return '/Massage Slider.png'; // fallback
+  }
+};
+
 // Helper function to format date for display
 const formatDate = (dateString: string): string => {
   try {
@@ -104,6 +144,7 @@ const ProposalViewer: React.FC = () => {
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [currentServiceImageIndex, setCurrentServiceImageIndex] = useState(0);
 
   useEffect(() => {
     if (displayData?.clientLogoUrl) {
@@ -112,6 +153,19 @@ const ProposalViewer: React.FC = () => {
       setLogoUrl('');
     }
   }, [displayData?.clientLogoUrl]);
+
+  // Auto-rotate service images
+  useEffect(() => {
+    const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+    if (uniqueServiceTypes.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentServiceImageIndex(prev => 
+          prev < uniqueServiceTypes.length - 1 ? prev + 1 : 0
+        );
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [displayData]);
 
   const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -684,13 +738,36 @@ The Shortcut Team`);
       <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-3xl font-bold text-shortcut-blue mb-4">
-                {displayData.clientName}
-              </h2>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+              {displayData.clientLogoUrl ? (
+                <div className="flex justify-start mb-6">
+                  <img
+                    src={displayData.clientLogoUrl}
+                    alt={`${displayData.clientName} Logo`}
+                    className="max-h-24 max-w-full object-contain rounded shadow-sm"
+                    style={{ maxWidth: '300px' }}
+                    onError={(e) => {
+                      console.error('Logo failed to load:', displayData.clientLogoUrl);
+                      // Fallback to client name if logo fails to load
+                      e.currentTarget.style.display = 'none';
+                      const fallbackElement = e.currentTarget.nextElementSibling;
+                      if (fallbackElement) {
+                        (fallbackElement as HTMLElement).style.display = 'block';
+                      }
+                    }}
+                  />
+                  <h2 className="text-3xl font-bold text-shortcut-blue mb-4 hidden">
+                    {displayData.clientName}
+                  </h2>
+                </div>
+              ) : (
+                <h2 className="text-3xl font-bold text-shortcut-blue mb-6">
+                  {displayData.clientName}
+                </h2>
+              )}
               <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Event Dates</p>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-600 mb-2">Event Dates</p>
                   {isEditing ? (
                     <div className="space-y-2">
                       {Array.isArray(displayData.eventDates) ? 
@@ -703,11 +780,11 @@ The Shortcut Team`);
                             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
                           />
                         )) :
-                        <p className="text-lg">No dates available</p>
+                        <p className="text-lg font-medium text-gray-900">No dates available</p>
                       }
                     </div>
                   ) : (
-                    <p className="text-lg">
+                    <p className="text-lg font-medium text-gray-900">
                       {Array.isArray(displayData.eventDates) ? 
                         displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
                         'No dates available'
@@ -715,9 +792,9 @@ The Shortcut Team`);
                     </p>
                   )}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Locations</p>
-                  <p className="text-lg">{displayData.locations?.join(', ') || 'No locations available'}</p>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-600 mb-2">Locations</p>
+                  <p className="text-lg font-medium text-gray-900">{displayData.locations?.join(', ') || 'No locations available'}</p>
                 </div>
               </div>
             </div>
@@ -725,10 +802,10 @@ The Shortcut Team`);
             <div className="space-y-8">
               {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
                 <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                  <div className="px-6 py-4 flex justify-between items-center bg-gray-50">
+                  <div className="px-6 py-4 flex justify-between items-center bg-gray-50 border-b border-gray-200">
                     <button
                       onClick={() => toggleLocation(location)}
-                      className="flex-1 flex items-center justify-between hover:bg-shortcut-teal/20 transition-colors"
+                      className="flex-1 flex items-center justify-between hover:bg-gray-200/50 transition-colors rounded-lg px-2 py-1"
                     >
                       <h2 className="text-2xl font-bold text-shortcut-blue">
                         {location}
@@ -766,10 +843,10 @@ The Shortcut Team`);
                       {Object.entries(locationData)
                         .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
                         .map(([date, dateData]: [string, any], dateIndex: number) => (
-                          <div key={date} className="border border-gray-300 rounded-xl overflow-hidden">
+                          <div key={date} className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-sm">
                             <button
                               onClick={() => toggleDate(date)}
-                              className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+                              className="w-full px-6 py-4 flex justify-between items-center bg-shortcut-blue/10 hover:bg-shortcut-blue/20 transition-colors border-b border-gray-200"
                             >
                               <h3 className="text-xl font-bold text-shortcut-blue">
                                 Day {dateIndex + 1} - {formatDate(date)}
@@ -778,13 +855,14 @@ The Shortcut Team`);
                             </button>
 
                             {expandedDates[date] && (
-                              <div className="p-8">
+                              <div className="p-8 bg-gray-50">
                                 {dateData.services.map((service: any, serviceIndex: number) => (
                                   <div 
                                     key={serviceIndex} 
-                                    className="bg-gray-50 rounded-lg p-6 mb-6"
+                                    className="bg-white rounded-xl p-6 mb-6 shadow-sm border-2 border-gray-200"
                                   >
-                                    <h4 className="text-xl font-bold text-shortcut-blue mb-4">
+                                    <h4 className="text-xl font-bold text-shortcut-blue mb-4 flex items-center">
+                                      <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
                                       Service Type: {capitalizeServiceType(service.serviceType)}
                                     </h4>
                                     <div className="grid gap-0">
@@ -912,16 +990,16 @@ The Shortcut Team`);
                                   </div>
                                 ))}
 
-                                <div className="bg-blue-50 rounded-lg p-8">
-                                  <h4 className="text-lg font-bold text-shortcut-blue mb-3">Day {dateIndex + 1} Summary</h4>
-                                  <div className="grid gap-2">
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Total Appointments:</span>
-                                      <span>{dateData.totalAppointments || 0}</span>
+                                <div className="bg-shortcut-blue rounded-xl p-6 text-white">
+                                  <h4 className="text-lg font-bold mb-3">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid gap-3">
+                                    <div className="flex justify-between items-center py-2 border-b border-white/20">
+                                      <span className="font-semibold">Total Appointments:</span>
+                                      <span className="font-bold text-lg">{dateData.totalAppointments || 0}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Total Cost:</span>
-                                      <span>${formatCurrency(dateData.totalCost || 0)}</span>
+                                    <div className="flex justify-between items-center py-2">
+                                      <span className="font-semibold">Total Cost:</span>
+                                      <span className="font-bold text-lg">${formatCurrency(dateData.totalCost || 0)}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -939,6 +1017,56 @@ The Shortcut Team`);
           </div>
 
           <div className="lg:sticky lg:top-24 space-y-8 self-start">
+            {/* Service Image Slider */}
+            {(() => {
+              const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+              return uniqueServiceTypes.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                  <div className="relative">
+                                      <div className="aspect-[4/3] relative overflow-hidden rounded-t-2xl">
+                    <img
+                      src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
+                      alt={`${capitalizeServiceType(uniqueServiceTypes[currentServiceImageIndex])} service`}
+                      className="w-full h-full object-cover transition-opacity duration-500"
+                      onError={(e) => {
+                        console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                      {uniqueServiceTypes.length > 1 && (
+                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                          {uniqueServiceTypes.map((_, index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentServiceImageIndex(index)}
+                              className={`w-2 h-2 rounded-full transition-colors ${
+                                index === currentServiceImageIndex 
+                                  ? 'bg-white' 
+                                  : 'bg-white/50 hover:bg-white/75'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 bg-shortcut-blue">
+                      <h3 className="text-lg font-bold text-white text-center">
+                        {uniqueServiceTypes.length === 1 
+                          ? capitalizeServiceType(uniqueServiceTypes[0])
+                          : `${uniqueServiceTypes.length} Services`
+                        }
+                      </h3>
+                      {uniqueServiceTypes.length > 1 && (
+                        <p className="text-white/90 text-sm text-center mt-1">
+                          {uniqueServiceTypes.map(type => capitalizeServiceType(type)).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {Object.entries(displayData.services || {}).map(([location, locationData]) => (
               <LocationSummary 
                 key={location}
