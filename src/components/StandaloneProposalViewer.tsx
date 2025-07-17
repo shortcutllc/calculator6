@@ -15,9 +15,6 @@ import InstructionalScroller from './InstructionalScroller';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
 
-
-
-
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
@@ -29,24 +26,47 @@ const capitalizeServiceType = (serviceType: string): string => {
   return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
 };
 
-// Helper function to format date for display
 const formatDate = (dateString: string): string => {
-  try {
-    if (!dateString) return 'No Date';
-    
-    // If it's already in YYYY-MM-DD format, parse it directly
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      const [year, month, day] = dateString.split('-');
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      return format(date, 'MMMM d, yyyy');
-    }
-    
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-    return format(date, 'MMMM d, yyyy');
-  } catch (err) {
-    console.error('Error formatting date:', err);
-    return 'Invalid Date';
+  return format(new Date(dateString), 'MMM dd, yyyy');
+};
+
+// Helper function to get unique service types from proposal data
+const getUniqueServiceTypes = (displayData: any): string[] => {
+  const serviceTypes = new Set<string>();
+  
+  if (displayData?.services) {
+    Object.values(displayData.services).forEach((locationData: any) => {
+      Object.values(locationData).forEach((dateData: any) => {
+        dateData.services?.forEach((service: any) => {
+          serviceTypes.add(service.serviceType);
+        });
+      });
+    });
+  }
+  
+  return Array.from(serviceTypes);
+};
+
+// Helper function to get service image path
+const getServiceImagePath = (serviceType: string): string => {
+  const type = serviceType?.toLowerCase() || '';
+  switch (type) {
+    case 'massage':
+      return '/Massage Slider.png';
+    case 'facial':
+    case 'facials':
+      return '/Facials Slider.png';
+    case 'hair':
+      return '/Hair Slider.png';
+    case 'nails':
+      return '/Nails Slider.png';
+    case 'headshot':
+    case 'headshots':
+      return '/Headshot Slider.png';
+    case 'mindfulness':
+      return '/Mindfulness Slider.png';
+    default:
+      return '/Massage Slider.png'; // fallback
   }
 };
 
@@ -76,8 +96,7 @@ export const StandaloneProposalViewer: React.FC = () => {
   const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [showUpdateIndicator, setShowUpdateIndicator] = useState(false);
-
-
+  const [currentServiceImageIndex, setCurrentServiceImageIndex] = useState(0);
 
   usePageTitle('View Proposal');
 
@@ -318,8 +337,6 @@ export const StandaloneProposalViewer: React.FC = () => {
     }
   };
 
-
-
   const toggleLocation = (location: string) => {
     setExpandedLocations(prev => ({
       ...prev,
@@ -333,6 +350,20 @@ export const StandaloneProposalViewer: React.FC = () => {
       [date]: !prev[date]
     }));
   };
+
+  // Auto-rotate service images
+  useEffect(() => {
+    const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+    if (uniqueServiceTypes.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentServiceImageIndex(prev => 
+          prev < uniqueServiceTypes.length - 1 ? prev + 1 : 0
+        );
+      }, 3000); // Change every 3 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [displayData]);
 
   if (loading) {
     return (
@@ -358,6 +389,8 @@ export const StandaloneProposalViewer: React.FC = () => {
       </div>
     );
   }
+
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -462,7 +495,7 @@ export const StandaloneProposalViewer: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-12">
 
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
               {displayData.clientLogoUrl ? (
                 <div className="flex justify-start mb-6">
                   <img
@@ -485,23 +518,23 @@ export const StandaloneProposalViewer: React.FC = () => {
                   </h2>
                 </div>
               ) : (
-                <h2 className="text-3xl font-bold text-shortcut-blue mb-4">
+                <h2 className="text-3xl font-bold text-shortcut-blue mb-6">
                   {displayData.clientName}
                 </h2>
               )}
               <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Event Dates</p>
-                  <p className="text-lg">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-600 mb-2">Event Dates</p>
+                  <p className="text-lg font-medium text-gray-900">
                     {Array.isArray(displayData.eventDates) ? 
                       displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
                       'No dates available'
                     }
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Locations</p>
-                  <p className="text-lg">{displayData.locations?.join(', ') || 'No locations available'}</p>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-600 mb-2">Locations</p>
+                  <p className="text-lg font-medium text-gray-900">{displayData.locations?.join(', ') || 'No locations available'}</p>
                 </div>
               </div>
             </div>
@@ -510,20 +543,20 @@ export const StandaloneProposalViewer: React.FC = () => {
               <InstructionalScroller />
 
               {displayData.customization?.customNote && (
-                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
                   <button
                     onClick={() => setIsCustomNoteExpanded(!isCustomNoteExpanded)}
-                    className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+                    className="w-full px-6 py-4 flex justify-between items-center bg-shortcut-blue hover:bg-shortcut-blue/90 transition-colors"
                   >
-                    <h2 className="text-2xl font-bold text-shortcut-blue">
+                    <h2 className="text-2xl font-bold text-white">
                       Note from Shortcut
                     </h2>
-                    {isCustomNoteExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {isCustomNoteExpanded ? <ChevronUp size={20} className="text-white" /> : <ChevronDown size={20} className="text-white" />}
                   </button>
                   
                   {isCustomNoteExpanded && (
-                    <div className="p-8">
-                      <p className="text-gray-600 whitespace-pre-wrap">
+                    <div className="p-8 bg-gray-50">
+                      <p className="text-gray-700 whitespace-pre-wrap font-medium">
                         {displayData.customization.customNote.replace('above', 'below')}
                       </p>
                     </div>
@@ -534,11 +567,11 @@ export const StandaloneProposalViewer: React.FC = () => {
 
             <div className="space-y-8">
               {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-                <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                  <div className="px-6 py-4 flex justify-between items-center bg-gray-50">
+                <div key={location} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 flex justify-between items-center bg-gray-50 border-b border-gray-200">
                     <button
                       onClick={() => toggleLocation(location)}
-                      className="flex-1 flex items-center justify-between hover:bg-shortcut-teal/20 transition-colors"
+                      className="flex-1 flex items-center justify-between hover:bg-gray-200/50 transition-colors rounded-lg px-2 py-1"
                     >
                       <h2 className="text-2xl font-bold text-shortcut-blue">
                         {location}
@@ -552,10 +585,10 @@ export const StandaloneProposalViewer: React.FC = () => {
                       {Object.entries(locationData)
                         .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
                         .map(([date, dateData]: [string, any], dateIndex: number) => (
-                          <div key={date} className="border border-gray-300 rounded-xl overflow-hidden">
+                          <div key={date} className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-sm">
                             <button
                               onClick={() => toggleDate(date)}
-                              className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+                              className="w-full px-6 py-4 flex justify-between items-center bg-shortcut-blue/10 hover:bg-shortcut-blue/20 transition-colors border-b border-gray-200"
                             >
                               <h3 className="text-xl font-bold text-shortcut-blue">
                                 Day {dateIndex + 1} - {formatDate(date)}
@@ -564,21 +597,22 @@ export const StandaloneProposalViewer: React.FC = () => {
                             </button>
 
                             {expandedDates[date] && (
-                              <div className="p-8">
+                              <div className="p-8 bg-gray-50">
                                 {dateData.services.map((service: any, serviceIndex: number) => (
                                   <div 
                                     key={serviceIndex} 
-                                    className={`bg-gray-50 rounded-lg p-6 mb-6 ${getServiceBorderClass(service.serviceType)}`}
+                                    className={`bg-white rounded-xl p-6 mb-6 shadow-sm border-2 ${getServiceBorderClass(service.serviceType)}`}
                                   >
-                                    <h4 className="text-xl font-bold text-shortcut-blue mb-4">
+                                    <h4 className="text-xl font-bold text-shortcut-blue mb-4 flex items-center">
+                                      <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
                                       Service Type: {capitalizeServiceType(service.serviceType)}
                                     </h4>
                                     <div className="grid gap-0">
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Total Hours:</span>
-                                        <div className="font-semibold">
+                                        <span className="text-base font-semibold text-gray-700">Total Hours:</span>
+                                        <div className="font-bold text-gray-900">
                                           <EditableField
-                                            value={service.totalHours}
+                                            value={String(service.totalHours || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], value)}
                                             isEditing={isEditing}
                                             type="number"
@@ -587,10 +621,10 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Number of Professionals:</span>
-                                        <div className="font-semibold">
+                                        <span className="text-base font-semibold text-gray-700">Number of Professionals:</span>
+                                        <div className="font-bold text-gray-900">
                                           <EditableField
-                                            value={service.numPros}
+                                            value={String(service.numPros || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], value)}
                                             isEditing={isEditing}
                                             type="number"
@@ -598,27 +632,27 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Total Appointments:</span>
-                                        <span className="font-semibold">{service.totalAppointments}</span>
+                                        <span className="text-base font-semibold text-gray-700">Total Appointments:</span>
+                                        <span className="font-bold text-gray-900">{service.totalAppointments}</span>
                                       </div>
                                       <div className="flex justify-between items-center py-3">
-                                        <span className="text-base text-gray-700">Service Cost:</span>
-                                        <span className="font-semibold">${formatCurrency(service.serviceCost)}</span>
+                                        <span className="text-base font-semibold text-gray-700">Service Cost:</span>
+                                        <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
                                       </div>
                                     </div>
                                   </div>
                                 ))}
 
-                                <div className="bg-blue-50 rounded-lg p-8">
-                                  <h4 className="text-lg font-bold text-shortcut-blue mb-3">Day {dateIndex + 1} Summary</h4>
-                                  <div className="grid gap-2">
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Total Appointments:</span>
-                                      <span>{dateData.totalAppointments || 0}</span>
+                                <div className="bg-shortcut-blue rounded-xl p-6 text-white">
+                                  <h4 className="text-lg font-bold mb-3">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid gap-3">
+                                    <div className="flex justify-between items-center py-2 border-b border-white/20">
+                                      <span className="font-semibold">Total Appointments:</span>
+                                      <span className="font-bold text-lg">{dateData.totalAppointments || 0}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Total Cost:</span>
-                                      <span>${formatCurrency(dateData.totalCost || 0)}</span>
+                                    <div className="flex justify-between items-center py-2">
+                                      <span className="font-semibold">Total Cost:</span>
+                                      <span className="font-bold text-lg">${formatCurrency(dateData.totalCost || 0)}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -647,7 +681,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                         container.scrollBy({ left: -400, behavior: 'smooth' });
                       }
                     }}
-                    className="p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+                    className="p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors border border-gray-200"
                     aria-label="Scroll left"
                   >
                     <ChevronLeft size={24} className="text-shortcut-blue" />
@@ -659,7 +693,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                         container.scrollBy({ left: 400, behavior: 'smooth' });
                       }
                     }}
-                    className="p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+                    className="p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors border border-gray-200"
                     aria-label="Scroll right"
                   >
                     <ChevronRight size={24} className="text-shortcut-blue" />
@@ -668,7 +702,7 @@ export const StandaloneProposalViewer: React.FC = () => {
               </div>
               
               <div id="carousel" className="flex overflow-x-auto pb-6 gap-8 hide-scrollbar">
-                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col">
+                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col border border-gray-200">
                   <div className="w-full h-64">
                     <img 
                       src="/Seamless Experience.png"
@@ -687,7 +721,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col">
+                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col border border-gray-200">
                   <div className="w-full h-64">
                     <img 
                       src="/Revitalizing Impact.png"
@@ -706,7 +740,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col">
+                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col border border-gray-200">
                   <div className="w-full h-64">
                     <img 
                       src="/All-in-One Wellness.png"
@@ -729,6 +763,53 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
 
           <div className="lg:sticky lg:top-24 space-y-8 self-start">
+            {/* Service Image Slider */}
+            {uniqueServiceTypes.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                <div className="relative">
+                  <div className="aspect-[4/3] relative overflow-hidden">
+                    <img
+                      src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
+                      alt={`${capitalizeServiceType(uniqueServiceTypes[currentServiceImageIndex])} service`}
+                      className="w-full h-full object-cover transition-opacity duration-500"
+                      onError={(e) => {
+                        console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    {uniqueServiceTypes.length > 1 && (
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                        {uniqueServiceTypes.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setCurrentServiceImageIndex(index)}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                              index === currentServiceImageIndex 
+                                ? 'bg-white' 
+                                : 'bg-white/50 hover:bg-white/75'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 bg-shortcut-blue">
+                    <h3 className="text-lg font-bold text-white text-center">
+                      {uniqueServiceTypes.length === 1 
+                        ? capitalizeServiceType(uniqueServiceTypes[0])
+                        : `${uniqueServiceTypes.length} Services`
+                      }
+                    </h3>
+                    {uniqueServiceTypes.length > 1 && (
+                      <p className="text-white/90 text-sm text-center mt-1">
+                        {uniqueServiceTypes.map(type => capitalizeServiceType(type)).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {Object.entries(displayData.services || {}).map(([location, locationData]) => (
               <LocationSummary 
                 key={location}
@@ -737,21 +818,21 @@ export const StandaloneProposalViewer: React.FC = () => {
               />
             ))}
 
-            <div className="bg-shortcut-blue text-white rounded-2xl shadow-lg p-8">
+            <div className="bg-shortcut-blue text-white rounded-2xl shadow-lg border border-shortcut-blue/20 p-8">
               <h2 className="text-3xl font-bold mb-6 text-white">Event Summary</h2>
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Total Appointments:</span>
-                  <span className="font-semibold">{displayData.summary?.totalAppointments}</span>
+                <div className="flex justify-between items-center py-3 border-b border-white/20">
+                  <span className="font-semibold">Total Appointments:</span>
+                  <span className="font-bold text-lg">{displayData.summary?.totalAppointments}</span>
                 </div>
-                <div className="flex justify-between items-center py-2">
-                  <span>Total Event Cost:</span>
-                  <span className="font-semibold">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                <div className="flex justify-between items-center py-3">
+                  <span className="font-semibold">Total Event Cost:</span>
+                  <span className="font-bold text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-shortcut-blue">Notes</h2>
                 {notes && (
@@ -769,7 +850,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any notes or comments about the proposal here..."
-                className="w-full min-h-[120px] p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue resize-y"
+                className="w-full min-h-[120px] p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent resize-y font-medium"
               />
             </div>
           </div>
@@ -779,7 +860,7 @@ export const StandaloneProposalViewer: React.FC = () => {
       {/* Approval Confirmation Modal */}
       {showApprovalConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 border border-gray-200 shadow-xl">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               Approve Proposal
             </h3>
