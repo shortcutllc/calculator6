@@ -30,6 +30,8 @@ export interface ProposalSummary {
 
 export interface ProposalData {
   clientName: string;
+  clientEmail?: string;
+  clientLogoUrl?: string;
   eventDates: string[];
   locations: string[];
   services: {
@@ -61,6 +63,8 @@ export interface Proposal {
   originalData?: ProposalData;
   notes?: string;
   isShared?: boolean;
+  clientEmail?: string;
+  clientLogoUrl?: string;
 }
 
 export type ProposalRow = Database['public']['Tables']['proposals']['Row'];

@@ -74,6 +74,8 @@ export const StandaloneProposalViewer: React.FC = () => {
   const [isApproving, setIsApproving] = useState(false);
   const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
   const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [showUpdateIndicator, setShowUpdateIndicator] = useState(false);
 
 
 
@@ -124,14 +126,21 @@ export const StandaloneProposalViewer: React.FC = () => {
         if (!data) throw new Error('Proposal not found');
 
         const calculatedData = recalculateServiceTotals(data.data);
+        // Check if this is an update (not initial load)
+        const isUpdate = proposal !== null;
         setProposal(data);
         setDisplayData({ ...calculatedData, customization: data.customization });
         setEditedData({ ...calculatedData, customization: data.customization });
         setNotes(data.notes || '');
-        
         if (data.original_data) {
           const originalCalculated = recalculateServiceTotals(data.original_data);
           setOriginalData({ ...originalCalculated, customization: data.customization });
+        }
+        // Show update indicator if this was a refresh
+        if (isUpdate) {
+          setLastUpdated(new Date());
+          setShowUpdateIndicator(true);
+          setTimeout(() => setShowUpdateIndicator(false), 3000);
         }
       } catch (err) {
         console.error('Error fetching proposal:', err);
@@ -142,6 +151,21 @@ export const StandaloneProposalViewer: React.FC = () => {
     };
 
     fetchProposal();
+
+    // Set up periodic refresh every 30s to catch updates
+    const refreshInterval = setInterval(fetchProposal, 120000); // Changed from 30000 to 120000 (2 minutes)
+
+    // Refresh when window regains focus (in case user switches tabs)
+    const handleFocus = () => {
+      fetchProposal();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(refreshInterval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [id]);
 
   const handleFieldChange = (path: string[], value: string | number | undefined) => {
@@ -272,6 +296,9 @@ export const StandaloneProposalViewer: React.FC = () => {
         throw new Error(errorData.error || 'Failed to send approval notification');
       }
 
+      // Update local proposal state to reflect approval
+      setProposal((prev: typeof proposal) => prev ? { ...prev, status: 'approved' } : null);
+
       setShowApprovalSuccess(true);
       setTimeout(() => setShowApprovalSuccess(false), 5000);
     } catch (err) {
@@ -325,6 +352,13 @@ export const StandaloneProposalViewer: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {showUpdateIndicator && (
+        <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
+          <div className="bg-green-500 text-white px-4 py-2 rounded-b-lg shadow-md mt-0 text-center text-sm">
+            Proposal updated{lastUpdated ? ` (${lastUpdated.toLocaleTimeString()})` : ''}
+          </div>
+        </div>
+      )}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-8">
           <div className="flex justify-between items-center">
@@ -342,7 +376,12 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span>Changes saved!</span>
                 </div>
               )}
-              {showApprovalSuccess && (
+              {showApprovalSuccess ? (
+                <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                  <CheckCircle2 size={18} className="mr-2" />
+                  <span>Proposal approved! Team notified.</span>
+                </div>
+              ) : proposal?.status === 'approved' && (
                 <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
                   <CheckCircle2 size={18} className="mr-2" />
                   <span>Proposal approved! Team notified.</span>
@@ -350,15 +389,42 @@ export const StandaloneProposalViewer: React.FC = () => {
               )}
 
               <div className="flex gap-4">
-                <Button
-                  onClick={() => setShowApprovalConfirm(true)}
-                  variant="primary"
-                  icon={<Check size={18} />}
-                  loading={isApproving}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {isApproving ? 'Approving...' : 'Approve Proposal'}
-                </Button>
+                {proposal?.status === 'approved' ? (
+                  <div className="flex items-center text-green-600 bg-green-50 px-4 rounded-lg border border-green-200">
+                    <CheckCircle2 size={18} className="mr-2" />
+                    <span className="font-semibold">Proposal Approved</span>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setShowApprovalConfirm(true)}
+                    variant="primary"
+                    icon={<Check size={18} />}
+                    loading={isApproving}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {isApproving ? 'Approving...' : 'Approve Proposal'}
+                  </Button>
+                )}
+                {proposal?.is_editable && !showingOriginal && (
+                  isEditing ? (
+                    <Button
+                      onClick={handleSaveChanges}
+                      variant="primary"
+                      icon={<Save size={18} />}
+                      loading={isSavingChanges}
+                    >
+                      {isSavingChanges ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      variant="secondary"
+                      icon={<Edit size={18} />}
+                    >
+                      Edit Proposal
+                    </Button>
+                  )
+                )}
                 <Button
                   onClick={handleDownload}
                   variant="secondary"
@@ -377,26 +443,6 @@ export const StandaloneProposalViewer: React.FC = () => {
                     {showingOriginal ? 'View Current' : 'View Original'}
                   </Button>
                 )}
-                {proposal?.is_editable && !showingOriginal && (
-                  isEditing ? (
-                    <Button
-                      onClick={handleSaveChanges}
-                      variant="primary"
-                      icon={<Save size={18} />}
-                      loading={isSavingChanges}
-                    >
-                      {isSavingChanges ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => setIsEditing(true)}
-                      variant="primary"
-                      icon={<Edit size={18} />}
-                    >
-                      Edit
-                    </Button>
-                  )
-                )}
               </div>
             </div>
           </div>
@@ -408,9 +454,32 @@ export const StandaloneProposalViewer: React.FC = () => {
           <div className="lg:col-span-2 space-y-12">
 
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-3xl font-bold text-shortcut-blue mb-4">
-                {displayData.clientName}
-              </h2>
+              {displayData.clientLogoUrl ? (
+                <div className="flex justify-start mb-6">
+                  <img
+                    src={displayData.clientLogoUrl}
+                    alt={`${displayData.clientName} Logo`}
+                    className="max-h-24 max-w-full object-contain rounded shadow-sm"
+                    style={{ maxWidth: '300px' }}
+                    onError={(e) => {
+                      console.error('Logo failed to load:', displayData.clientLogoUrl);
+                      // Fallback to client name if logo fails to load
+                      e.currentTarget.style.display = 'none';
+                      const fallbackElement = e.currentTarget.nextElementSibling;
+                      if (fallbackElement) {
+                        (fallbackElement as HTMLElement).style.display = 'block';
+                      }
+                    }}
+                  />
+                  <h2 className="text-3xl font-bold text-shortcut-blue mb-4 hidden">
+                    {displayData.clientName}
+                  </h2>
+                </div>
+              ) : (
+                <h2 className="text-3xl font-bold text-shortcut-blue mb-4">
+                  {displayData.clientName}
+                </h2>
+              )}
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Event Dates</p>
@@ -467,30 +536,6 @@ export const StandaloneProposalViewer: React.FC = () => {
                       </h2>
                       {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
-                    {proposal?.is_editable && !showingOriginal && (
-                      <div className="ml-4">
-                        {isEditing ? (
-                          <Button
-                            onClick={handleSaveChanges}
-                            variant="primary"
-                            size="sm"
-                            icon={<Save size={16} />}
-                            loading={isSavingChanges}
-                          >
-                            {isSavingChanges ? 'Saving...' : 'Save'}
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => setIsEditing(true)}
-                            variant="secondary"
-                            size="sm"
-                            icon={<Edit size={16} />}
-                          >
-                            Edit
-                          </Button>
-                        )}
-                      </div>
-                    )}
                   </div>
                   
                   {expandedLocations[location] && (

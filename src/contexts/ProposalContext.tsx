@@ -7,7 +7,7 @@ interface ProposalContextType {
   error: string | null;
   proposals: Proposal[];
   currentProposal: Proposal | null;
-  createProposal: (data: ProposalData, customization: ProposalCustomization) => Promise<string>;
+  createProposal: (data: ProposalData, customization: ProposalCustomization, clientEmail?: string) => Promise<string>;
   getProposal: (id: string) => Promise<Proposal | null>;
   updateProposal: (id: string, updates: Partial<Proposal>) => Promise<boolean>;
   deleteProposal: (id: string) => Promise<boolean>;
@@ -42,7 +42,8 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     hasChanges: dbProposal.has_changes,
     userId: dbProposal.user_id,
     originalData: dbProposal.original_data,
-    notes: dbProposal.notes
+    notes: dbProposal.notes,
+    clientEmail: dbProposal.client_email
   });
 
   const fetchProposals = async () => {
@@ -104,7 +105,8 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const createProposal = async (
     data: ProposalData,
-    customization: ProposalCustomization
+    customization: ProposalCustomization,
+    clientEmail?: string
   ): Promise<string> => {
     try {
       if (!data.clientName) throw new Error('Client name is required');

@@ -92,11 +92,51 @@ const HEADSHOT_PRESETS = {
 };
 
 const SERVICE_DEFAULTS = {
-  massage: { appTime: 20 },
-  facial: { appTime: 20 },
-  hair: { appTime: 30 },
-  nails: { appTime: 30 },
-  headshot: { appTime: 12 }
+  massage: {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  facial: {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  hair: {
+    appTime: 30,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  nails: {
+    appTime: 30,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  headshot: {
+    appTime: 12,
+    totalHours: 5,
+    numPros: 1,
+    proHourly: 400,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 40
+  }
 };
 
 const DEFAULT_SERVICE: Service = {
@@ -260,6 +300,7 @@ const Home: React.FC = () => {
 
       const proposalData = {
         clientName: clientData.name.trim(),
+        clientEmail: options.clientEmail,
         eventDates: Array.from(new Set(Object.values(clientData.events)
           .flatMap(events => events.flatMap(event => 
             event.services.map(service => service.date)
@@ -276,7 +317,7 @@ const Home: React.FC = () => {
         }
       };
 
-      const proposalId = await createProposal(proposalData, options.customization);
+      const proposalId = await createProposal(proposalData, options.customization, options.clientEmail);
       if (!proposalId) {
         throw new Error('Failed to create proposal');
       }
@@ -363,10 +404,14 @@ const Home: React.FC = () => {
           location: updatedServices[index].location
         };
       } else {
+        // Reset all fields to proper defaults for non-headshot services
         updatedServices[index] = {
           ...updatedServices[index],
-          ...updates,
-          appTime: serviceDefaults.appTime
+          ...serviceDefaults,
+          serviceType: updates.serviceType,
+          date: updatedServices[index].date,
+          location: updatedServices[index].location,
+          discountPercent: updatedServices[index].discountPercent || 0
         };
       }
     } else {

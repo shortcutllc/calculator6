@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useAuth } from '../contexts/AuthContext';
 import EditableField from './EditableField';
 import { supabase } from '../lib/supabaseClient';
+import { config } from '../config';
 import { format } from 'date-fns';
 import { recalculateServiceTotals } from '../utils/proposalGenerator';
 import { getProposalUrl } from '../utils/url';
@@ -12,7 +13,7 @@ import { generatePDF } from '../utils/pdf';
 import { Button } from './Button';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
-import { StripeInvoiceButton } from './StripeInvoiceButton';
+import ShareProposalModal from './ShareProposalModal';
 
 const formatCurrency = (value: number): string => {
   return value.toFixed(2);
@@ -93,6 +94,91 @@ const ProposalViewer: React.FC = () => {
   const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSavingChanges, setIsSavingChanges] = useState(false);
+  const [showSendToClientModal, setShowSendToClientModal] = useState(false);
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [shareNote, setShareNote] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+  const [showShareSuccess, setShowShareSuccess] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string>('');
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+
+  useEffect(() => {
+    if (displayData?.clientLogoUrl) {
+      setLogoUrl(displayData.clientLogoUrl);
+    } else {
+      setLogoUrl('');
+    }
+  }, [displayData?.clientLogoUrl]);
+
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setLogoUploadError('Please upload an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoUploadError('Logo file must be less than 5MB');
+      return;
+    }
+    
+    // Check if user is authenticated
+    if (!user) {
+      setLogoUploadError('You must be logged in to upload files. Please log in and try again.');
+      return;
+    }
+    
+    setLogoUploadError(null);
+    setLogoUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${id}-${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from('client-logos')
+        .upload(fileName, file, { upsert: true });
+      if (error) {
+        console.error('Storage upload error:', error);
+        if (error.message.includes('bucket')) {
+          throw new Error('Storage bucket not found. Please contact support.');
+        } else if (error.message.includes('policy')) {
+          throw new Error('Upload permission denied. Please contact support.');
+        } else {
+          throw error;
+        }
+      }
+      const { data: publicUrlData } = supabase.storage
+        .from('client-logos')
+        .getPublicUrl(fileName);
+      setLogoUrl(publicUrlData.publicUrl);
+      setLogoFile(file);
+      setHasChanges(true);
+      setEditedData((prev: any) => ({ ...prev, clientLogoUrl: publicUrlData.publicUrl }));
+    } catch (err: any) {
+      console.error('Logo upload error:', err);
+      setLogoUploadError(err.message || 'Failed to upload logo. Please try again.');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoUrl(e.target.value);
+    setLogoFile(null);
+    setLogoUploadError(null);
+    setHasChanges(true);
+    setEditedData((prev: any) => ({ ...prev, clientLogoUrl: e.target.value }));
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl('');
+    setLogoFile(null);
+    setLogoUploadError(null);
+    setHasChanges(true);
+    setEditedData((prev: any) => ({ ...prev, clientLogoUrl: '' }));
+  };
 
   const handleDateChange = (path: string[], newDate: string) => {
     if (!editedData || !isEditing) return;
@@ -187,7 +273,7 @@ const ProposalViewer: React.FC = () => {
       setEditedData({ ...calculatedData, customization: proposal.customization });
       setDisplayData({ ...calculatedData, customization: proposal.customization });
       setNotes(proposal.notes || '');
-      setIsShared(proposal.is_shared || false);
+      setIsShared(proposal.isShared || false);
       
       if (proposal.originalData) {
         const originalCalculated = recalculateServiceTotals(proposal.originalData);
@@ -251,7 +337,7 @@ const ProposalViewer: React.FC = () => {
       setIsSavingChanges(true);
       const recalculatedData = recalculateServiceTotals(editedData);
       const success = await updateProposal(id, {
-        ...recalculatedData,
+        data: recalculatedData,
         customization: currentProposal?.customization
       });
       
@@ -352,6 +438,75 @@ const ProposalViewer: React.FC = () => {
     }));
   };
 
+  const handleSendToClient = async () => {
+    if (!id || !clientEmail.trim()) {
+      alert('Please enter a valid client email address.');
+      return;
+    }
+    
+    try {
+      setIsSharing(true);
+      
+      // First, update the proposal with the client email if it's different
+      if (clientEmail !== currentProposal?.clientEmail) {
+        const { error: updateError } = await supabase
+          .from('proposals')
+          .update({ client_email: clientEmail })
+          .eq('id', id);
+
+        if (updateError) throw updateError;
+        
+        // Update local state
+        if (currentProposal) {
+          currentProposal.clientEmail = clientEmail;
+        }
+      }
+      
+      // Send the proposal email
+      const response = await fetch(`${config.supabase.url}/functions/v1/proposal-share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.supabase.anonKey}`,
+        },
+        body: JSON.stringify({
+          proposalId: id,
+          clientEmail: clientEmail,
+          clientName: clientName.trim() || displayData.clientName,
+          shareNote: shareNote.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send proposal');
+      }
+
+      setShowSendToClientModal(false);
+      setShowShareSuccess(true);
+      setTimeout(() => setShowShareSuccess(false), 5000);
+    } catch (err) {
+      console.error('Error sending proposal:', err);
+      alert('Failed to send proposal. Please try again.');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const openSendToClientModal = () => {
+    setClientName(displayData.clientName || '');
+    setClientEmail(currentProposal?.clientEmail || '');
+    setShareNote(`Hi ${displayData.clientName || 'there'},
+
+I'm excited to share your custom wellness proposal with you! This proposal has been carefully crafted based on your specific needs and requirements.
+
+Please review the proposal and let me know if you have any questions or would like to make any adjustments.
+
+Best regards,
+The Shortcut Team`);
+    setShowSendToClientModal(true);
+  };
+
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -401,11 +556,20 @@ const ProposalViewer: React.FC = () => {
                 Back
               </Button>
             )}
-            <img 
-              src="/shortcut-logo blue.svg" 
-              alt="Shortcut Logo" 
-              className="h-8 w-auto"
-            />
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Client Logo"
+                className="h-10 w-auto rounded shadow border"
+                style={{ maxWidth: 120, maxHeight: 48 }}
+              />
+            ) : (
+              <img
+                src="/shortcut-logo blue.svg"
+                alt="Shortcut Logo"
+                className="h-8 w-auto"
+              />
+            )}
           </div>
           <div className="flex gap-4">
             <Button
@@ -416,7 +580,16 @@ const ProposalViewer: React.FC = () => {
             >
               {isDownloading ? 'Downloading...' : 'Download PDF'}
             </Button>
-            {!isSharedView && <StripeInvoiceButton proposalData={displayData} />}
+            {!isSharedView && (
+              <Button
+                onClick={openSendToClientModal}
+                variant="secondary"
+                icon={<Send size={18} />}
+                loading={isSharing}
+              >
+                {isSharing ? 'Sending...' : 'Send to Client'}
+              </Button>
+            )}
             {originalData && (
               <Button
                 onClick={toggleVersion}
@@ -450,27 +623,55 @@ const ProposalViewer: React.FC = () => {
                 )}
                 <div className="flex items-center gap-2">
                   <Button
-                    onClick={toggleShared}
-                    variant={isShared ? 'primary' : 'secondary'}
-                    icon={<Globe size={18} />}
+                    onClick={copyShareLink}
+                    variant="secondary"
+                    icon={showCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
                   >
-                    {isShared ? 'Public' : 'Private'}
+                    {showCopied ? 'Copied!' : 'Copy Link'}
                   </Button>
-                  {isShared && (
-                    <Button
-                      onClick={copyShareLink}
-                      variant="secondary"
-                      icon={showCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
-                    >
-                      {showCopied ? 'Copied!' : 'Copy Link'}
-                    </Button>
-                  )}
                 </div>
               </>
             )}
           </div>
         </div>
       </header>
+      {/* Logo editing controls (edit mode only, not shared view) */}
+      {isEditing && !isSharedView && (
+        <div className="max-w-7xl mx-auto mt-4 flex flex-col sm:flex-row items-center gap-4 px-2">
+          <div className="flex flex-col gap-2 w-full sm:w-auto">
+            <label className="block text-sm font-medium text-gray-700">Client Logo</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLogoFileChange}
+              disabled={logoUploading}
+            />
+            <span className="text-xs text-gray-500">Max 5MB. PNG, JPG, SVG, etc.</span>
+            <input
+              type="url"
+              placeholder="Paste image URL (https://...)"
+              value={logoUrl}
+              onChange={handleLogoUrlChange}
+              className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] border-gray-300"
+              disabled={logoUploading}
+            />
+            {logoUrl && (
+              <img src={logoUrl} alt="Client Logo Preview" className="h-16 mt-2 rounded shadow border" />
+            )}
+            {logoUploadError && <p className="text-xs text-red-600">{logoUploadError}</p>}
+            {logoUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveLogo}
+                className="text-xs text-red-600 underline mt-1 self-start"
+                disabled={logoUploading}
+              >
+                Remove Logo
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -598,7 +799,7 @@ const ProposalViewer: React.FC = () => {
                                         <span className="text-base text-gray-700">Total Hours:</span>
                                         <div className="font-semibold">
                                           <EditableField
-                                            value={service.totalHours}
+                                            value={String(service.totalHours ?? 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
                                             isEditing={isEditing}
                                             type="number"
@@ -607,13 +808,87 @@ const ProposalViewer: React.FC = () => {
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Appointment Time:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={String(service.appTime ?? 20)}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'appTime'], Number(value))}
+                                            isEditing={isEditing}
+                                            type="number"
+                                            suffix=" min"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base text-gray-700">Number of Professionals:</span>
                                         <div className="font-semibold">
                                           <EditableField
-                                            value={service.numPros}
+                                            value={String(service.numPros ?? 1)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
                                             isEditing={isEditing}
                                             type="number"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Professional Hourly Rate:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={String(service.proHourly ?? 0)}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'proHourly'], Number(value))}
+                                            isEditing={isEditing}
+                                            type="number"
+                                            prefix="$"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Service Hourly Rate:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={String(service.hourlyRate ?? 0)}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'hourlyRate'], Number(value))}
+                                            isEditing={isEditing}
+                                            type="number"
+                                            prefix="$"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Early Arrival Fee:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={String(service.earlyArrival ?? 0)}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'earlyArrival'], Number(value))}
+                                            isEditing={isEditing}
+                                            type="number"
+                                            prefix="$"
+                                          />
+                                        </div>
+                                      </div>
+                                      {service.serviceType === 'headshot' && (
+                                        <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                          <span className="text-base text-gray-700">Retouching Cost per Photo:</span>
+                                          <div className="font-semibold">
+                                            <EditableField
+                                              value={String(service.retouchingCost ?? 0)}
+                                              onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'retouchingCost'], Number(value))}
+                                              isEditing={isEditing}
+                                              type="number"
+                                              prefix="$"
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base text-gray-700">Discount Percentage:</span>
+                                        <div className="font-semibold">
+                                          <EditableField
+                                            value={String(service.discountPercent ?? 0)}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'discountPercent'], Number(value))}
+                                            isEditing={isEditing}
+                                            type="number"
+                                            suffix="%"
                                           />
                                         </div>
                                       </div>
@@ -714,6 +989,80 @@ const ProposalViewer: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Send to Client Modal */}
+      {showSendToClientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Send Proposal to Client
+            </h3>
+            <div className="mb-4">
+              <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-1">
+                Client Name
+              </label>
+              <input
+                type="text"
+                id="clientName"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#175071]"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                Client Email
+              </label>
+              <input
+                type="email"
+                id="clientEmail"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#175071]"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="shareNote" className="block text-sm font-medium text-gray-700 mb-1">
+                Custom Message (Optional)
+              </label>
+              <textarea
+                id="shareNote"
+                value={shareNote}
+                onChange={(e) => setShareNote(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#175071]"
+              />
+            </div>
+            <div className="flex gap-4">
+              <Button
+                onClick={() => setShowSendToClientModal(false)}
+                variant="secondary"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSendToClient}
+                variant="primary"
+                className="flex-1 bg-shortcut-blue hover:bg-shortcut-dark-blue text-white"
+                loading={isSharing}
+              >
+                {isSharing ? 'Sending...' : 'Send Proposal'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {showShareSuccess && (
+        <div className="fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-2 rounded-md shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={18} />
+            <span>Proposal sent to client successfully!</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

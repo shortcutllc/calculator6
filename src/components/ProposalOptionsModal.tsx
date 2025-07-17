@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 interface ProposalOptionsModalProps {
   onClose: () => void;
@@ -15,11 +16,14 @@ interface ProposalOptions {
     includeCalculations: boolean;
     includeCalculator: boolean;
   };
+  clientEmail: string;
+  clientLogoUrl?: string;
 }
 
 interface ValidationErrors {
   contactFirstName?: string;
   contactLastName?: string;
+  clientEmail?: string;
 }
 
 const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, onGenerate }) => {
@@ -31,12 +35,18 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
       includeSummary: true,
       includeCalculations: true,
       includeCalculator: true
-    }
+    },
+    clientEmail: '',
+    clientLogoUrl: ''
   });
   
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -47,6 +57,10 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
 
     if (!options.customization.contactLastName) {
       newErrors.contactLastName = 'Last name is required';
+    }
+
+    if (options.clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(options.clientEmail)) {
+      newErrors.clientEmail = 'Please enter a valid email address';
     }
 
     setErrors(newErrors);
@@ -110,6 +124,66 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
     validateForm();
   };
 
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setLogoUploadError('Please upload an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoUploadError('Logo file must be less than 5MB');
+      return;
+    }
+    
+    // Check if user is authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setLogoUploadError('You must be logged in to upload files. Please log in and try again.');
+      return;
+    }
+    
+    setLogoUploadError(null);
+    setLogoUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from('client-logos')
+        .upload(fileName, file, { upsert: true });
+      if (error) {
+        console.error('Storage upload error:', error);
+        if (error.message.includes('bucket')) {
+          throw new Error('Storage bucket not found. Please contact support.');
+        } else if (error.message.includes('policy')) {
+          throw new Error('Upload permission denied. Please contact support.');
+        } else {
+          throw error;
+        }
+      }
+      const { data: publicUrlData } = supabase.storage
+        .from('client-logos')
+        .getPublicUrl(fileName);
+      setLogoUrl(publicUrlData.publicUrl);
+      setLogoFile(file);
+      // @ts-expect-error: prev is always ProposalOptions object
+      setOptions((prev: ProposalOptions) => (prev && typeof prev === 'object' ? { ...prev, clientLogoUrl: publicUrlData.publicUrl } : { clientLogoUrl: publicUrlData.publicUrl, customization: { contactFirstName: '', contactLastName: '', customNote: '', includeSummary: true, includeCalculations: true, includeCalculator: true }, clientEmail: '' }));
+    } catch (err: any) {
+      console.error('Logo upload error:', err);
+      setLogoUploadError(err.message || 'Failed to upload logo. Please try again.');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoUrl(e.target.value);
+    setLogoFile(null);
+    setLogoUploadError(null);
+    // @ts-expect-error: prev is always ProposalOptions object
+    setOptions((prev: ProposalOptions) => (prev && typeof prev === 'object' ? { ...prev, clientLogoUrl: e.target.value } : { clientLogoUrl: e.target.value, customization: { contactFirstName: '', contactLastName: '', customNote: '', includeSummary: true, includeCalculations: true, includeCalculator: true }, clientEmail: '' }));
+  };
+
   const getFieldError = (field: string): string | undefined => {
     return touched[field] ? errors[field as keyof ValidationErrors] : undefined;
   };
@@ -165,6 +239,49 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
                     <p className="mt-1 text-sm text-red-600">{getFieldError('contactLastName')}</p>
                   )}
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Client Email (Optional)</label>
+              <input
+                type="email"
+                value={options.clientEmail}
+                onChange={(e) => handleFieldChange('clientEmail', e.target.value)}
+                onBlur={() => handleBlur('clientEmail')}
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] ${
+                  getFieldError('clientEmail') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter client email to share proposal later"
+                disabled={loading}
+              />
+              {getFieldError('clientEmail') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('clientEmail')}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Client Logo (Optional)</label>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFileChange}
+                  disabled={logoUploading || loading}
+                />
+                <span className="text-xs text-gray-500">Max 5MB. PNG, JPG, SVG, etc.</span>
+                <input
+                  type="url"
+                  placeholder="Paste image URL (https://...)"
+                  value={logoUrl}
+                  onChange={handleLogoUrlChange}
+                  className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] border-gray-300"
+                  disabled={logoUploading || loading}
+                />
+                {logoUrl && (
+                  <img src={logoUrl} alt="Client Logo Preview" className="h-16 mt-2 rounded shadow border" />
+                )}
+                {logoUploadError && <p className="text-xs text-red-600">{logoUploadError}</p>}
               </div>
             </div>
 

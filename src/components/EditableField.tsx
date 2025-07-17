@@ -112,7 +112,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
       {prefix && <span className="mr-1">{prefix}</span>}
       <input
         type={type}
-        value={fieldValue}
+        value={typeof fieldValue === 'number' ? String(fieldValue) : fieldValue}
         onChange={handleChange}
         className={`w-32 px-4 py-2 text-right border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
         min={type === 'number' ? 0 : undefined}
