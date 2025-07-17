@@ -43,7 +43,8 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     userId: dbProposal.user_id,
     originalData: dbProposal.original_data,
     notes: dbProposal.notes,
-    clientEmail: dbProposal.client_email
+    clientEmail: dbProposal.client_email,
+    changeSource: dbProposal.change_source
   });
 
   const fetchProposals = async () => {
@@ -163,7 +164,8 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const updateData: any = {
         updated_at: new Date().toISOString(),
         has_changes: true,
-        pending_review: true
+        pending_review: true,
+        change_source: 'staff'
       };
 
       if (updates.data) {

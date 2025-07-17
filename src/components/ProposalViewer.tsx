@@ -293,10 +293,18 @@ const ProposalViewer: React.FC = () => {
 
   const toggleVersion = () => {
     if (showingOriginal) {
+      // Going back to current view
       setDisplayData({ ...editedData, customization: currentProposal?.customization });
     } else {
-      const originalCalculated = recalculateServiceTotals(originalData);
-      setDisplayData({ ...originalCalculated, customization: currentProposal?.customization });
+      // Check if there are user edits to show
+      if (currentProposal?.hasChanges && originalData) {
+        // Show user's edits (the original data that was saved when user made changes)
+        const originalCalculated = recalculateServiceTotals(originalData);
+        setDisplayData({ ...originalCalculated, customization: currentProposal?.customization });
+      } else {
+        // No user edits exist, stay on current view
+        return; // Don't toggle the state
+      }
     }
     setShowingOriginal(!showingOriginal);
     setIsEditing(false);
@@ -590,13 +598,13 @@ The Shortcut Team`);
                 {isSharing ? 'Sending...' : 'Send to Client'}
               </Button>
             )}
-            {originalData && (
+            {originalData && currentProposal?.hasChanges && currentProposal?.changeSource === 'staff' && (
               <Button
                 onClick={toggleVersion}
                 variant="secondary"
                 icon={<HistoryIcon size={18} />}
               >
-                {showingOriginal ? 'View Current' : 'View Original'}
+                {showingOriginal ? 'View Current' : 'View Your Changes'}
               </Button>
             )}
             {!isSharedView && (

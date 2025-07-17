@@ -65,6 +65,7 @@ export interface Proposal {
   isShared?: boolean;
   clientEmail?: string;
   clientLogoUrl?: string;
+  changeSource?: string;
 }
 
 export type ProposalRow = Database['public']['Tables']['proposals']['Row'];

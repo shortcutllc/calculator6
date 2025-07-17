@@ -83,10 +83,18 @@ export const StandaloneProposalViewer: React.FC = () => {
 
   const toggleVersion = () => {
     if (showingOriginal) {
+      // Going back to current view
       setDisplayData({ ...editedData, customization: proposal?.customization });
     } else {
-      const originalCalculated = recalculateServiceTotals(originalData);
-      setDisplayData({ ...originalCalculated, customization: proposal?.customization });
+      // Check if there are user edits to show
+      if (proposal?.has_changes && originalData) {
+        // Show user's edits (the original data that was saved when user made changes)
+        const originalCalculated = recalculateServiceTotals(originalData);
+        setDisplayData({ ...originalCalculated, customization: proposal?.customization });
+      } else {
+        // No user edits exist, stay on current view
+        return; // Don't toggle the state
+      }
     }
     setShowingOriginal(!showingOriginal);
     setIsEditing(false);
@@ -197,7 +205,8 @@ export const StandaloneProposalViewer: React.FC = () => {
           has_changes: true,
           pending_review: true,
           original_data: originalData || proposal.data,
-          customization: proposal.customization
+          customization: proposal.customization,
+          change_source: 'client'
         })
         .eq('id', id);
 
@@ -434,13 +443,13 @@ export const StandaloneProposalViewer: React.FC = () => {
                   {isDownloading ? 'Downloading...' : 'Download PDF'}
                 </Button>
 
-                {originalData && (
+                {originalData && proposal?.has_changes && proposal?.change_source === 'client' && (
                   <Button
                     onClick={toggleVersion}
                     variant="secondary"
                     icon={<HistoryIcon size={18} />}
                   >
-                    {showingOriginal ? 'View Current' : 'View Original'}
+                    {showingOriginal ? 'View Current' : 'View Your Changes'}
                   </Button>
                 )}
               </div>

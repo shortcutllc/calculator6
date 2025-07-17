@@ -23,6 +23,7 @@ export interface Database {
           pending_review: boolean
           has_changes: boolean
           original_data: Json | null
+          change_source: string
         }
         Insert: {
           id?: string
@@ -37,6 +38,7 @@ export interface Database {
           pending_review?: boolean
           has_changes?: boolean
           original_data?: Json | null
+          change_source?: string
         }
         Update: {
           id?: string
@@ -51,6 +53,7 @@ export interface Database {
           pending_review?: boolean
           has_changes?: boolean
           original_data?: Json | null
+          change_source?: string
         }
       }
     }
