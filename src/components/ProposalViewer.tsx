@@ -7,7 +7,7 @@ import EditableField from './EditableField';
 import { supabase } from '../lib/supabaseClient';
 import { config } from '../config';
 import { format } from 'date-fns';
-import { recalculateServiceTotals } from '../utils/proposalGenerator';
+import { recalculateServiceTotals, generatePricingOptionsForService, calculateServiceResults } from '../utils/proposalGenerator';
 import { getProposalUrl } from '../utils/url';
 import { generatePDF } from '../utils/pdf';
 import { Button } from './Button';
@@ -69,6 +69,7 @@ const getServiceImagePath = (serviceType: string): string => {
 const formatDate = (dateString: string): string => {
   try {
     if (!dateString) return 'No Date';
+    if (dateString === 'TBD') return 'TBD';
     
     // If it's already in YYYY-MM-DD format, parse it directly
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
@@ -90,6 +91,7 @@ const formatDate = (dateString: string): string => {
 const formatDateForInput = (dateString: string): string => {
   try {
     if (!dateString) return '';
+    if (dateString === 'TBD') return '';
     
     // If it's already in YYYY-MM-DD format, return as is
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
@@ -145,6 +147,7 @@ const ProposalViewer: React.FC = () => {
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [currentServiceImageIndex, setCurrentServiceImageIndex] = useState(0);
+  const [updateCounter, setUpdateCounter] = useState(0);
 
   useEffect(() => {
     if (displayData?.clientLogoUrl) {
@@ -243,28 +246,59 @@ const ProposalViewer: React.FC = () => {
     if (path.includes('services')) {
       const [_, location, oldDate, serviceIndex] = path;
       
-      // Create new date entry if it doesn't exist
-      if (!updatedData.services[location][newDate]) {
-        updatedData.services[location][newDate] = {
-          services: [],
-          totalCost: 0,
-          totalAppointments: 0
-        };
-      }
+      // If the new date is TBD, just update the service's date property
+      if (newDate === 'TBD') {
+        // Move the service to TBD key
+        const serviceToMove = updatedData.services[location][oldDate].services[serviceIndex];
+        
+        // Create TBD entry if it doesn't exist
+        if (!updatedData.services[location]['TBD']) {
+          updatedData.services[location]['TBD'] = {
+            services: [],
+            totalCost: 0,
+            totalAppointments: 0
+          };
+        }
 
-      // Move the service to the new date
-      const serviceToMove = updatedData.services[location][oldDate].services[serviceIndex];
-      updatedData.services[location][newDate].services.push({
-        ...serviceToMove,
-        date: newDate
-      });
+        // Move the service to TBD
+        updatedData.services[location]['TBD'].services.push({
+          ...serviceToMove,
+          date: 'TBD'
+        });
 
-      // Remove service from old date
-      updatedData.services[location][oldDate].services.splice(serviceIndex, 1);
+        // Remove service from old date
+        updatedData.services[location][oldDate].services.splice(serviceIndex, 1);
 
-      // Clean up old date if no services remain
-      if (updatedData.services[location][oldDate].services.length === 0) {
-        delete updatedData.services[location][oldDate];
+        // Clean up old date if no services remain
+        if (updatedData.services[location][oldDate].services.length === 0) {
+          delete updatedData.services[location][oldDate];
+        }
+      } else {
+        // If we're changing from TBD to a real date, or between real dates
+        const serviceToMove = updatedData.services[location][oldDate].services[serviceIndex];
+        
+        // Create new date entry if it doesn't exist
+        if (!updatedData.services[location][newDate]) {
+          updatedData.services[location][newDate] = {
+            services: [],
+            totalCost: 0,
+            totalAppointments: 0
+          };
+        }
+
+        // Move the service to the new date
+        updatedData.services[location][newDate].services.push({
+          ...serviceToMove,
+          date: newDate
+        });
+
+        // Remove service from old date
+        updatedData.services[location][oldDate].services.splice(serviceIndex, 1);
+
+        // Clean up old date if no services remain
+        if (updatedData.services[location][oldDate].services.length === 0) {
+          delete updatedData.services[location][oldDate];
+        }
       }
     } 
     // If updating event dates directly
@@ -278,7 +312,15 @@ const ProposalViewer: React.FC = () => {
     Object.values(updatedData.services || {}).forEach((locationData: any) => {
       Object.keys(locationData).forEach(date => allDates.add(date));
     });
-    updatedData.eventDates = Array.from(allDates).sort();
+    updatedData.eventDates = Array.from(allDates).sort((a, b) => {
+      // Handle TBD dates - put them at the end
+      if (a === 'TBD' && b === 'TBD') return 0;
+      if (a === 'TBD') return 1;
+      if (b === 'TBD') return -1;
+      
+      // Sort actual dates normally
+      return new Date(a).getTime() - new Date(b).getTime();
+    });
 
     // Recalculate totals and update state
     const recalculatedData = recalculateServiceTotals(updatedData);
@@ -323,6 +365,22 @@ const ProposalViewer: React.FC = () => {
       }
       
       const calculatedData = recalculateServiceTotals(proposal.data);
+      
+      // Load pricing options from the database
+      if (proposal.pricingOptions && proposal.selectedOptions) {
+        Object.entries(calculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+          Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+            dateData.services?.forEach((service: any, serviceIndex: number) => {
+              const key = `${location}-${date}-${serviceIndex}`;
+              if (proposal.pricingOptions?.[key]) {
+                service.pricingOptions = proposal.pricingOptions[key];
+                service.selectedOption = proposal.selectedOptions?.[key] || 0;
+              }
+            });
+          });
+        });
+        calculatedData.hasPricingOptions = proposal.hasPricingOptions || false;
+      }
       
       setEditedData({ ...calculatedData, customization: proposal.customization });
       setDisplayData({ ...calculatedData, customization: proposal.customization });
@@ -387,9 +445,74 @@ const ProposalViewer: React.FC = () => {
     }
     
     target[path[path.length - 1]] = value;
+    
+    // If we're changing a service parameter, recalculate service totals
+    if (path.length >= 5 && path[0] === 'services' && path[3] === 'services') {
+      const service = target;
+      
+      if (service.pricingOptions && service.pricingOptions.length > 0) {
+        // If we're editing a specific pricing option parameter
+        if (path.includes('pricingOptions') && path.length >= 7) {
+          const optionIndex = parseInt(path[path.length - 3]);
+          const option = service.pricingOptions[optionIndex];
+          if (option) {
+            // Update the specific option parameter
+            const paramName = path[path.length - 1];
+            option[paramName] = value;
+            
+            // Recalculate this specific option
+            const optionService = { ...service };
+            optionService.totalHours = option.totalHours || service.totalHours;
+            optionService.hourlyRate = option.hourlyRate || service.hourlyRate;
+            optionService.numPros = option.numPros || service.numPros;
+            const { totalAppointments, serviceCost } = calculateServiceResults(optionService);
+            option.totalAppointments = totalAppointments;
+            option.serviceCost = serviceCost;
+          }
+        } else if (path.includes('selectedOption')) {
+          // We're just changing the selected option
+          const selectedOption = service.pricingOptions[service.selectedOption || 0];
+          if (selectedOption) {
+            service.totalAppointments = selectedOption.totalAppointments;
+            service.serviceCost = selectedOption.serviceCost;
+          }
+        } else {
+          // We're editing a base service parameter (totalHours, numPros, etc.)
+          // Update all pricing options with the new base parameters
+          service.pricingOptions = service.pricingOptions.map((option: any) => {
+            const optionService = { ...service };
+            // Preserve option-specific values if they exist
+            if (option.totalHours !== undefined) optionService.totalHours = option.totalHours;
+            if (option.hourlyRate !== undefined) optionService.hourlyRate = option.hourlyRate;
+            if (option.numPros !== undefined) optionService.numPros = option.numPros;
+            
+            const { totalAppointments, serviceCost } = calculateServiceResults(optionService);
+            return {
+              ...option,
+              totalAppointments,
+              serviceCost
+            };
+          });
+          
+          // Update the service totals based on the selected option
+          const selectedOption = service.pricingOptions[service.selectedOption || 0];
+          if (selectedOption) {
+            service.totalAppointments = selectedOption.totalAppointments;
+            service.serviceCost = selectedOption.serviceCost;
+          }
+        }
+      } else {
+        // No pricing options, recalculate normally
+        const { totalAppointments, serviceCost } = calculateServiceResults(service);
+        service.totalAppointments = totalAppointments;
+        service.serviceCost = serviceCost;
+      }
+    }
+    
     const recalculatedData = recalculateServiceTotals(updatedData);
     setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
     setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+    setUpdateCounter(prev => prev + 1);
   };
 
   const handleSaveChanges = async () => {
@@ -398,19 +521,35 @@ const ProposalViewer: React.FC = () => {
     try {
       setIsSavingChanges(true);
       const recalculatedData = recalculateServiceTotals(editedData);
-      const success = await updateProposal(id, {
-        data: recalculatedData,
-        customization: currentProposal?.customization
+      
+      // Extract pricing options and selected options from the data
+      const pricingOptions: any = {};
+      const selectedOptions: any = {};
+      
+      Object.entries(recalculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+        Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+          dateData.services?.forEach((service: any, serviceIndex: number) => {
+            if (service.pricingOptions && service.pricingOptions.length > 0) {
+              const key = `${location}-${date}-${serviceIndex}`;
+              pricingOptions[key] = service.pricingOptions;
+              selectedOptions[key] = service.selectedOption || 0;
+            }
+          });
+        });
       });
       
-      if (success) {
-        setIsEditing(false);
-        setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
-        setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
-        setHasChanges(true);
-      } else {
-        setLoadError('Failed to save changes');
-      }
+      await updateProposal(id, {
+        data: recalculatedData,
+        customization: currentProposal?.customization,
+        pricingOptions,
+        selectedOptions,
+        hasPricingOptions: recalculatedData.hasPricingOptions || false
+      });
+      
+      setIsEditing(false);
+      setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+      setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+      setHasChanges(true);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save changes';
       setLoadError(errorMessage);
@@ -768,29 +907,12 @@ The Shortcut Team`);
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                   <p className="text-sm font-semibold text-gray-600 mb-2">Event Dates</p>
-                  {isEditing ? (
-                    <div className="space-y-2">
-                      {Array.isArray(displayData.eventDates) ? 
-                        displayData.eventDates.map((date: string, index: number) => (
-                          <input
-                            key={index}
-                            type="date"
-                            value={formatDateForInput(date)}
-                            onChange={(e) => handleDateChange(['eventDates', index], e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
-                          />
-                        )) :
-                        <p className="text-lg font-medium text-gray-900">No dates available</p>
-                      }
-                    </div>
-                  ) : (
-                    <p className="text-lg font-medium text-gray-900">
-                      {Array.isArray(displayData.eventDates) ? 
-                        displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
-                        'No dates available'
-                      }
-                    </p>
-                  )}
+                  <p className="text-lg font-medium text-gray-900">
+                    {Array.isArray(displayData.eventDates) ? 
+                      displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
+                      'No dates available'
+                    }
+                  </p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                   <p className="text-sm font-semibold text-gray-600 mb-2">Locations</p>
@@ -841,7 +963,15 @@ The Shortcut Team`);
                   {expandedLocations[location] && (
                     <div className="p-8 space-y-8">
                       {Object.entries(locationData)
-                        .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                        .sort(([dateA], [dateB]) => {
+                          // Handle TBD dates - put them at the end
+                          if (dateA === 'TBD' && dateB === 'TBD') return 0;
+                          if (dateA === 'TBD') return 1;
+                          if (dateB === 'TBD') return -1;
+                          
+                          // Sort actual dates normally
+                          return new Date(dateA).getTime() - new Date(dateB).getTime();
+                        })
                         .map(([date, dateData]: [string, any], dateIndex: number) => (
                           <div key={date} className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-sm">
                             <button
@@ -870,12 +1000,58 @@ The Shortcut Team`);
                                         <span className="text-base text-gray-700">Service Date:</span>
                                         <div className="font-semibold">
                                           {isEditing ? (
-                                            <input
-                                              type="date"
-                                              value={formatDateForInput(date)}
-                                              onChange={(e) => handleDateChange(['services', location, date, serviceIndex], e.target.value)}
-                                              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
-                                            />
+                                            <div className="flex items-center gap-3">
+                                              <input
+                                                type="date"
+                                                value={formatDateForInput(date)}
+                                                onChange={(e) => {
+                                                  // Prevent clearing the date - if empty, keep the current date
+                                                  if (!e.target.value) {
+                                                    return;
+                                                  }
+                                                  handleDateChange(['services', location, date, serviceIndex], e.target.value);
+                                                }}
+                                                disabled={date === 'TBD'}
+                                                className={`px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue ${
+                                                  date === 'TBD' ? 'bg-gray-100 text-gray-500' : ''
+                                                }`}
+                                              />
+                                              <label className="flex items-center gap-2 text-sm text-gray-700">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={date === 'TBD'}
+                                                  onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                      handleDateChange(['services', location, date, serviceIndex], 'TBD');
+                                                    } else {
+                                                      // When unchecking TBD, set to today's date as default
+                                                      const today = new Date().toISOString().split('T')[0];
+                                                      handleDateChange(['services', location, date, serviceIndex], today);
+                                                    }
+                                                  }}
+                                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                />
+                                                TBD
+                                              </label>
+                                              {date !== 'TBD' && (
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleDateChange(['services', location, date, serviceIndex], 'TBD');
+                                                  }}
+                                                  className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors z-50 relative cursor-pointer"
+                                                  style={{ 
+                                                    pointerEvents: 'auto',
+                                                    position: 'relative',
+                                                    zIndex: 9999
+                                                  }}
+                                                >
+                                                  Set TBD
+                                                </button>
+                                              )}
+                                            </div>
                                           ) : (
                                             formatDate(date)
                                           )}
@@ -886,7 +1062,7 @@ The Shortcut Team`);
                                         <div className="font-semibold">
                                           <EditableField
                                             value={String(service.totalHours ?? 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                             suffix=" hours"
@@ -898,7 +1074,7 @@ The Shortcut Team`);
                                         <div className="font-semibold">
                                           <EditableField
                                             value={String(service.appTime ?? 20)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'appTime'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'appTime'], typeof value === 'string' ? parseFloat(value) || 20 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                             suffix=" min"
@@ -910,7 +1086,7 @@ The Shortcut Team`);
                                         <div className="font-semibold">
                                           <EditableField
                                             value={String(service.numPros ?? 1)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 1 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                           />
@@ -921,7 +1097,7 @@ The Shortcut Team`);
                                         <div className="font-semibold">
                                           <EditableField
                                             value={String(service.proHourly ?? 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'proHourly'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'proHourly'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                             prefix="$"
@@ -933,7 +1109,7 @@ The Shortcut Team`);
                                         <div className="font-semibold">
                                           <EditableField
                                             value={String(service.hourlyRate ?? 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'hourlyRate'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'hourlyRate'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                             prefix="$"
@@ -945,7 +1121,7 @@ The Shortcut Team`);
                                         <div className="font-semibold">
                                           <EditableField
                                             value={String(service.earlyArrival ?? 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'earlyArrival'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'earlyArrival'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                             prefix="$"
@@ -958,7 +1134,7 @@ The Shortcut Team`);
                                           <div className="font-semibold">
                                             <EditableField
                                               value={String(service.retouchingCost ?? 0)}
-                                              onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'retouchingCost'], Number(value))}
+                                              onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'retouchingCost'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                               isEditing={isEditing}
                                               type="number"
                                               prefix="$"
@@ -971,7 +1147,7 @@ The Shortcut Team`);
                                         <div className="font-semibold">
                                           <EditableField
                                             value={String(service.discountPercent ?? 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'discountPercent'], Number(value))}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'discountPercent'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                             suffix="%"
@@ -982,10 +1158,188 @@ The Shortcut Team`);
                                         <span className="text-base text-gray-700">Total Appointments:</span>
                                         <span className="font-semibold">{service.totalAppointments}</span>
                                       </div>
-                                      <div className="flex justify-between items-center py-3">
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base text-gray-700">Service Cost:</span>
                                         <span className="font-semibold">${formatCurrency(service.serviceCost)}</span>
                                       </div>
+                                      
+                                      {/* Add Options Button */}
+                                      {isEditing && !isSharedView && (!service.pricingOptions || service.pricingOptions.length === 0) && (
+                                        <div className="mt-4 pt-4 border-t-2 border-gray-200">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-base text-gray-700">Pricing Options:</span>
+                                            <button
+                                              onClick={() => {
+                                                const pricingOptions = generatePricingOptionsForService(service);
+                                                handleFieldChange(['services', location, date, 'services', serviceIndex, 'pricingOptions'], pricingOptions);
+                                                handleFieldChange(['services', location, date, 'services', serviceIndex, 'selectedOption'], 0);
+                                                handleFieldChange(['hasPricingOptions'], true);
+                                              }}
+                                              className="px-4 py-2 bg-shortcut-blue text-white hover:bg-shortcut-dark-blue rounded-md font-medium transition-colors"
+                                            >
+                                              Add Options
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Pricing Options Section */}
+                                      {displayData.hasPricingOptions && service.pricingOptions && service.pricingOptions.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t-2 border-shortcut-blue/20">
+                                          <h5 className="text-lg font-bold text-shortcut-blue mb-3 flex items-center">
+                                            <span className="w-2 h-2 rounded-full bg-shortcut-teal mr-2"></span>
+                                            Pricing Options
+                                          </h5>
+                                          <div className="space-y-3">
+                                            {service.pricingOptions.map((option: any, optionIndex: number) => (
+                                              <div 
+                                                key={optionIndex}
+                                                className={`p-4 rounded-lg border-2 transition-all ${
+                                                  service.selectedOption === optionIndex
+                                                    ? 'border-shortcut-blue bg-shortcut-blue/5'
+                                                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                                }`}
+                                              >
+                                                <div className="flex justify-between items-start mb-2">
+                                                  <div className="flex-1">
+                                                    <h6 className="font-semibold text-gray-900">
+                                                      Option {optionIndex + 1}
+                                                    </h6>
+                                                    <p className="text-sm text-gray-600">
+                                                      {option.totalAppointments} appointments × ${formatCurrency(option.hourlyRate)}/hour
+                                                    </p>
+                                                  </div>
+                                                  <div className="text-right">
+                                                    <div className="text-lg font-bold text-shortcut-blue">
+                                                      ${formatCurrency(option.serviceCost)}
+                                                    </div>
+                                                    {service.selectedOption === optionIndex && (
+                                                      <div className="text-xs text-shortcut-teal font-semibold">
+                                                        SELECTED
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                
+                                                {/* Editable fields for each option */}
+                                                {isEditing && !isSharedView && (
+                                                  <div className="mt-3 space-y-2 border-t pt-3">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                      <div>
+                                                        <label className="text-xs text-gray-600">Total Hours:</label>
+                                                        <EditableField
+                                                          value={String(option.totalHours || service.totalHours)}
+                                                          onChange={(value) => handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'totalHours'], 
+                                                            parseFloat(value) || service.totalHours
+                                                          )}
+                                                          isEditing={isEditing}
+                                                          type="number"
+                                                        />
+                                                      </div>
+                                                      <div>
+                                                        <label className="text-xs text-gray-600">Hourly Rate:</label>
+                                                        <EditableField
+                                                          value={String(option.hourlyRate || service.hourlyRate)}
+                                                          onChange={(value) => handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'hourlyRate'], 
+                                                            parseFloat(value) || service.hourlyRate
+                                                          )}
+                                                          isEditing={isEditing}
+                                                          type="number"
+                                                          prefix="$"
+                                                        />
+                                                      </div>
+                                                    </div>
+                                                    <div>
+                                                      <label className="text-xs text-gray-600">Number of Pros:</label>
+                                                      <EditableField
+                                                        value={String(option.numPros || service.numPros || 1)}
+                                                        onChange={(value) => handleFieldChange(
+                                                          ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'numPros'], 
+                                                          parseFloat(value) || 1
+                                                        )}
+                                                        isEditing={isEditing}
+                                                        type="number"
+                                                      />
+                                                    </div>
+                                                  </div>
+                                                )}
+                                                
+                                                {isEditing && !isSharedView && (
+                                                  <div className="flex gap-2 mt-3">
+                                                    <button
+                                                      onClick={() => {
+                                                        // Update the selected option
+                                                        handleFieldChange(
+                                                          ['services', location, date, 'services', serviceIndex, 'selectedOption'], 
+                                                          optionIndex
+                                                        );
+                                                      }}
+                                                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                                                        service.selectedOption === optionIndex
+                                                          ? 'bg-shortcut-blue text-white'
+                                                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                      }`}
+                                                    >
+                                                      {service.selectedOption === optionIndex ? 'Selected' : 'Select'}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => {
+                                                        // Remove this option
+                                                        const newPricingOptions = [...service.pricingOptions];
+                                                        newPricingOptions.splice(optionIndex, 1);
+                                                        handleFieldChange(
+                                                          ['services', location, date, 'services', serviceIndex, 'pricingOptions'],
+                                                          newPricingOptions
+                                                        );
+                                                        // Adjust selected option if needed
+                                                        if (service.selectedOption >= optionIndex && service.selectedOption > 0) {
+                                                          handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'selectedOption'],
+                                                            service.selectedOption - 1
+                                                          );
+                                                        } else if (service.selectedOption === optionIndex && newPricingOptions.length > 0) {
+                                                          handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'selectedOption'],
+                                                            0
+                                                          );
+                                                        }
+                                                      }}
+                                                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                                                    >
+                                                      Remove
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                                                                     {isEditing && !isSharedView && (
+                                             <button
+                                               onClick={() => {
+                                                 // Add new pricing option with current service values
+                                                 const newOption = {
+                                                   name: `Option ${service.pricingOptions.length + 1}`,
+                                                   totalHours: service.totalHours,
+                                                   hourlyRate: service.hourlyRate,
+                                                   numPros: service.numPros,
+                                                   totalAppointments: service.totalAppointments,
+                                                   serviceCost: service.serviceCost
+                                                 };
+                                                 const newPricingOptions = [...service.pricingOptions, newOption];
+                                                 handleFieldChange(
+                                                   ['services', location, date, 'services', serviceIndex, 'pricingOptions'],
+                                                   newPricingOptions
+                                                 );
+                                               }}
+                                               className="mt-3 w-full px-4 py-2 bg-shortcut-blue/10 text-shortcut-blue border border-shortcut-blue/20 rounded-md hover:bg-shortcut-blue/20 transition-colors font-medium"
+                                             >
+                                               + Add New Option
+                                             </button>
+                                           )}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 ))}
@@ -1069,7 +1423,7 @@ The Shortcut Team`);
 
             {Object.entries(displayData.services || {}).map(([location, locationData]) => (
               <LocationSummary 
-                key={location}
+                key={`${location}-${updateCounter}`}
                 location={location}
                 services={locationData}
               />

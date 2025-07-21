@@ -24,6 +24,13 @@ export interface Database {
           has_changes: boolean
           original_data: Json | null
           change_source: string
+          client_email: string | null
+          client_logo_url: string | null
+          notes: string | null
+          // New pricing options fields
+          pricing_options: Json
+          selected_options: Json
+          has_pricing_options: boolean
         }
         Insert: {
           id?: string
@@ -39,6 +46,13 @@ export interface Database {
           has_changes?: boolean
           original_data?: Json | null
           change_source?: string
+          client_email?: string | null
+          client_logo_url?: string | null
+          notes?: string | null
+          // New pricing options fields
+          pricing_options?: Json
+          selected_options?: Json
+          has_pricing_options?: boolean
         }
         Update: {
           id?: string
@@ -54,6 +68,13 @@ export interface Database {
           has_changes?: boolean
           original_data?: Json | null
           change_source?: string
+          client_email?: string | null
+          client_logo_url?: string | null
+          notes?: string | null
+          // New pricing options fields
+          pricing_options?: Json
+          selected_options?: Json
+          has_pricing_options?: boolean
         }
       }
     }

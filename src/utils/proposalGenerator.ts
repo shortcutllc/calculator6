@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Proposal, ProposalData, ProposalCustomization } from '../types/proposal';
+import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions } from '../types/proposal';
 import { getProposalUrl } from './url';
 
 export const calculateServiceResults = (service: any) => {
@@ -35,9 +35,148 @@ export const calculateServiceResults = (service: any) => {
   };
 };
 
+// New function to create pricing options from a base service
+export const createPricingOptions = (
+  baseService: any, 
+  optionConfigs: Array<{ name: string; description?: string; multiplier: number }>
+): PricingOption[] => {
+  return optionConfigs.map((config, index) => {
+    // Create a copy of the base service with adjusted quantities
+    const optionService = {
+      ...baseService,
+      totalHours: baseService.totalHours * config.multiplier,
+      // Adjust other quantities proportionally if needed
+    };
+
+    const { totalAppointments, serviceCost, proRevenue: optionProRevenue } = calculateServiceResults(optionService);
+
+    return {
+      id: `option-${index + 1}`,
+      name: config.name,
+      description: config.description,
+      services: [{
+        ...optionService,
+        totalAppointments,
+        serviceCost
+      }],
+      totalCost: serviceCost,
+      totalAppointments,
+      isSelected: index === 0 // First option is selected by default
+    };
+  });
+};
+
+// Function to calculate totals for pricing options
+export const calculatePricingOptionsTotals = (options: PricingOption[]) => {
+  return options.reduce((totals, option) => ({
+    totalAppointments: totals.totalAppointments + option.totalAppointments,
+    totalCost: totals.totalCost + option.totalCost,
+    totalProRevenue: totals.totalProRevenue + (option.services[0]?.proRevenue || 0)
+  }), {
+    totalAppointments: 0,
+    totalCost: 0,
+    totalProRevenue: 0
+  });
+};
+
+// Function to generate pricing options for a service
+export const generatePricingOptionsForService = (service: any): any[] => {
+  const baseService = { ...service };
+  const { totalAppointments, serviceCost } = calculateServiceResults(baseService);
+  
+  // Create different pricing options based on service type and quantities
+  const options = [];
+  
+  // Option 1: Standard (current configuration)
+  options.push({
+    name: 'Option 1',
+    totalAppointments: totalAppointments,
+    hourlyRate: baseService.hourlyRate,
+    serviceCost: serviceCost
+  });
+  
+  // Option 2: Extended (25% more appointments)
+  const extendedAppointments = Math.floor(totalAppointments * 1.25);
+  const extendedService = {
+    ...baseService,
+    totalHours: baseService.totalHours * 1.25
+  };
+  const { serviceCost: extendedCost } = calculateServiceResults(extendedService);
+  options.push({
+    name: 'Option 2',
+    totalAppointments: extendedAppointments,
+    hourlyRate: baseService.hourlyRate,
+    serviceCost: extendedCost
+  });
+  
+  // Option 3: Premium (50% more appointments)
+  const premiumAppointments = Math.floor(totalAppointments * 1.5);
+  const premiumService = {
+    ...baseService,
+    totalHours: baseService.totalHours * 1.5
+  };
+  const { serviceCost: premiumCost } = calculateServiceResults(premiumService);
+  options.push({
+    name: 'Option 3',
+    totalAppointments: premiumAppointments,
+    hourlyRate: baseService.hourlyRate,
+    serviceCost: premiumCost
+  });
+  
+  return options;
+};
+
+
+
+// Function to transform legacy proposal data to include pricing options
+export const transformToPricingOptions = (proposalData: ProposalData): ProposalData => {
+  const transformedData = { ...proposalData };
+  
+  Object.entries(proposalData.services).forEach(([location, locationData]) => {
+    Object.entries(locationData).forEach(([date, dateData]) => {
+      // Create pricing options from existing services
+      const options: PricingOption[] = dateData.services.map((service, index) => {
+        const { totalAppointments, serviceCost, proRevenue: serviceProRevenue } = calculateServiceResults(service);
+        
+        return {
+          id: `option-${index + 1}`,
+          name: `${service.serviceType} - ${totalAppointments} appointments`,
+          description: `${service.totalHours} hours with ${service.numPros} professionals`,
+          services: [{
+            ...service,
+            totalAppointments,
+            serviceCost,
+            proRevenue: serviceProRevenue
+          }],
+          totalCost: serviceCost,
+          totalAppointments,
+          isSelected: index === 0
+        };
+      });
+
+      // Replace the date data with options structure
+      (transformedData.services as any)[location][date] = {
+        options,
+        selectedOptionId: options[0]?.id,
+        totalCost: dateData.totalCost,
+        totalAppointments: dateData.totalAppointments,
+        services: dateData.services // Keep for backward compatibility
+      };
+    });
+  });
+
+  transformedData.hasPricingOptions = true;
+  return transformedData;
+};
+
 // Helper function to normalize date to YYYY-MM-DD format without timezone issues
 const normalizeDate = (dateInput: string | Date): string => {
   if (!dateInput) return '';
+  
+  // Handle TBD dates
+  if (dateInput === 'TBD') {
+    return 'TBD';
+  }
   
   let date: Date;
   
@@ -110,7 +249,15 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
   });
   
   proposalData.eventDates = Array.from(allDates)
-    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    .sort((a, b) => {
+      // Handle TBD dates - put them at the end
+      if (a === 'TBD' && b === 'TBD') return 0;
+      if (a === 'TBD') return 1;
+      if (b === 'TBD') return -1;
+      
+      // Sort actual dates normally
+      return new Date(a).getTime() - new Date(b).getTime();
+    });
   
   console.log('All unique event dates:', proposalData.eventDates);
 
@@ -159,15 +306,23 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
 
     // Sort dates and create day data
     Object.keys(servicesByDate)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+      .sort((a, b) => {
+        // Handle TBD dates - put them at the end
+        if (a === 'TBD' && b === 'TBD') return 0;
+        if (a === 'TBD') return 1;
+        if (b === 'TBD') return -1;
+        
+        // Sort actual dates normally
+        return new Date(a).getTime() - new Date(b).getTime();
+      })
       .forEach(date => {
         const services = servicesByDate[date].map(service => {
-          const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(service);
+          const { totalAppointments, serviceCost, proRevenue: serviceProRevenue } = calculateServiceResults(service);
           return {
             ...service,
             totalAppointments,
             serviceCost,
-            proRevenue
+            proRevenue: serviceProRevenue
           };
         });
 
@@ -268,7 +423,15 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
   Object.entries(updatedData.services || {}).forEach(([location, dates]) => {
     // Sort dates within each location
     const sortedDates = Object.entries(dates)
-      .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+      .sort(([dateA], [dateB]) => {
+        // Handle TBD dates - put them at the end
+        if (dateA === 'TBD' && dateB === 'TBD') return 0;
+        if (dateA === 'TBD') return 1;
+        if (dateB === 'TBD') return -1;
+        
+        // Sort actual dates normally
+        return new Date(dateA).getTime() - new Date(dateB).getTime();
+      })
       .reduce((acc, [date, data]) => ({
         ...acc,
         [date]: {
@@ -285,16 +448,50 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
       let dayTotalAppointments = 0;
       let dayTotalProRevenue = 0;
 
-      dayData.services.forEach((service: any) => {
-        const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(service);
+      (dayData as any).services.forEach((service: any) => {
+        let { totalAppointments, serviceCost, proRevenue: baseProRevenue } = calculateServiceResults(service);
         
-        service.totalAppointments = totalAppointments;
-        service.serviceCost = serviceCost;
-        service.date = date;
+        (service as any).totalAppointments = totalAppointments;
+        (service as any).serviceCost = serviceCost;
+        (service as any).date = date;
         
-        dayTotalCost += serviceCost;
-        dayTotalAppointments += totalAppointments;
-        dayTotalProRevenue += proRevenue;
+        // Handle pricing options if they exist
+        if (service.pricingOptions && service.pricingOptions.length > 0) {
+          // Recalculate each pricing option to ensure they're up to date
+          service.pricingOptions = service.pricingOptions.map((option: any) => {
+            const optionService = { ...service };
+            // Use option-specific values if they exist, otherwise use service values
+            if (option.totalHours !== undefined) optionService.totalHours = option.totalHours;
+            if (option.hourlyRate !== undefined) optionService.hourlyRate = option.hourlyRate;
+            if (option.numPros !== undefined) optionService.numPros = option.numPros;
+            
+            const { totalAppointments, serviceCost, proRevenue: optionProRevenue } = calculateServiceResults(optionService);
+            return {
+              ...option,
+              totalAppointments,
+              serviceCost,
+              proRevenue: optionProRevenue
+            };
+          });
+          
+          // Use selected option's cost if available
+          const selectedOption = service.pricingOptions[service.selectedOption || 0];
+          if (selectedOption) {
+            (service as any).serviceCost = selectedOption.serviceCost;
+            (service as any).totalAppointments = selectedOption.totalAppointments;
+            // Use the selected option's proRevenue
+            dayTotalProRevenue += selectedOption.proRevenue || baseProRevenue;
+          } else {
+            dayTotalProRevenue += baseProRevenue;
+          }
+        } else {
+          // No pricing options, use the calculated proRevenue
+          dayTotalProRevenue += baseProRevenue;
+        }
+        
+        dayTotalCost += (service as any).serviceCost;
+        dayTotalAppointments += (service as any).totalAppointments;
+        // proRevenue is already added in the pricing options logic above
       });
 
       updatedData.services[location][date].totalCost = Number(dayTotalCost.toFixed(2));
@@ -311,7 +508,15 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
   Object.values(updatedData.services || {}).forEach((locationData: any) => {
     Object.keys(locationData).forEach(date => allDates.add(date));
   });
-  updatedData.eventDates = Array.from(allDates).sort();
+  updatedData.eventDates = Array.from(allDates).sort((a, b) => {
+    // Handle TBD dates - put them at the end
+    if (a === 'TBD' && b === 'TBD') return 0;
+    if (a === 'TBD') return 1;
+    if (b === 'TBD') return -1;
+    
+    // Sort actual dates normally
+    return new Date(a).getTime() - new Date(b).getTime();
+  });
 
   updatedData.summary.netProfit = Number((updatedData.summary.totalEventCost - updatedData.summary.totalProRevenue).toFixed(2));
   updatedData.summary.profitMargin = updatedData.summary.totalEventCost > 0 

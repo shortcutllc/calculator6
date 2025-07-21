@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { config } from '../config';
-import { recalculateServiceTotals } from '../utils/proposalGenerator';
+import { recalculateServiceTotals, calculateServiceResults } from '../utils/proposalGenerator';
 import { getServiceBorderClass } from '../utils/styleHelpers';
 import EditableField from './EditableField';
 import { format } from 'date-fns';
@@ -27,6 +27,7 @@ const capitalizeServiceType = (serviceType: string): string => {
 };
 
 const formatDate = (dateString: string): string => {
+  if (dateString === 'TBD') return 'TBD';
   return format(new Date(dateString), 'MMM dd, yyyy');
 };
 
@@ -153,6 +154,23 @@ export const StandaloneProposalViewer: React.FC = () => {
         if (!data) throw new Error('Proposal not found');
 
         const calculatedData = recalculateServiceTotals(data.data);
+        
+        // Load pricing options from the database
+        if (data.pricing_options && data.selected_options) {
+          Object.entries(calculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+            Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+              dateData.services?.forEach((service: any, serviceIndex: number) => {
+                const key = `${location}-${date}-${serviceIndex}`;
+                if (data.pricing_options[key]) {
+                  service.pricingOptions = data.pricing_options[key];
+                  service.selectedOption = data.selected_options[key] || 0;
+                }
+              });
+            });
+          });
+          calculatedData.hasPricingOptions = data.has_pricing_options || false;
+        }
+        
         // Check if this is an update (not initial load)
         const isUpdate = proposal !== null;
         setProposal(data);
@@ -196,7 +214,7 @@ export const StandaloneProposalViewer: React.FC = () => {
   }, [id]);
 
   const handleFieldChange = (path: string[], value: string | number | undefined) => {
-    if (!editedData || !isEditing) return;
+    if (!editedData) return;
     
     let updatedData = { ...editedData };
     let target = updatedData;
@@ -206,6 +224,70 @@ export const StandaloneProposalViewer: React.FC = () => {
     }
     
     target[path[path.length - 1]] = value;
+    
+    // If we're changing a service parameter, recalculate service totals
+    if (path.length >= 5 && path[0] === 'services' && path[3] === 'services') {
+      const service = target;
+      
+      if (service.pricingOptions && service.pricingOptions.length > 0) {
+        // If we're editing a specific pricing option parameter
+        if (path.includes('pricingOptions') && path.length >= 7) {
+          const optionIndex = parseInt(path[path.length - 3]);
+          const option = service.pricingOptions[optionIndex];
+          if (option) {
+            // Update the specific option parameter
+            const paramName = path[path.length - 1];
+            option[paramName] = value;
+            
+            // Recalculate this specific option
+            const optionService = { ...service };
+            optionService.totalHours = option.totalHours || service.totalHours;
+            optionService.hourlyRate = option.hourlyRate || service.hourlyRate;
+            optionService.numPros = option.numPros || service.numPros;
+            const { totalAppointments, serviceCost } = calculateServiceResults(optionService);
+            option.totalAppointments = totalAppointments;
+            option.serviceCost = serviceCost;
+          }
+        } else if (path.includes('selectedOption')) {
+          // We're just changing the selected option
+          const selectedOption = service.pricingOptions[service.selectedOption || 0];
+          if (selectedOption) {
+            service.totalAppointments = selectedOption.totalAppointments;
+            service.serviceCost = selectedOption.serviceCost;
+          }
+        } else {
+          // We're editing a base service parameter (totalHours, numPros, etc.)
+          // Update all pricing options with the new base parameters
+          service.pricingOptions = service.pricingOptions.map((option: any) => {
+            const optionService = { ...service };
+            // Preserve option-specific values if they exist
+            if (option.totalHours !== undefined) optionService.totalHours = option.totalHours;
+            if (option.hourlyRate !== undefined) optionService.hourlyRate = option.hourlyRate;
+            if (option.numPros !== undefined) optionService.numPros = option.numPros;
+            
+            const { totalAppointments, serviceCost } = calculateServiceResults(optionService);
+            return {
+              ...option,
+              totalAppointments,
+              serviceCost
+            };
+          });
+          
+          // Update the service totals based on the selected option
+          const selectedOption = service.pricingOptions[service.selectedOption || 0];
+          if (selectedOption) {
+            service.totalAppointments = selectedOption.totalAppointments;
+            service.serviceCost = selectedOption.serviceCost;
+          }
+        }
+      } else {
+        // No pricing options, recalculate normally
+        const { totalAppointments, serviceCost } = calculateServiceResults(service);
+        service.totalAppointments = totalAppointments;
+        service.serviceCost = serviceCost;
+      }
+    }
+    
     const recalculatedData = recalculateServiceTotals(updatedData);
     setEditedData({ ...recalculatedData, customization: proposal?.customization });
     setDisplayData({ ...recalculatedData, customization: proposal?.customization });
@@ -583,7 +665,15 @@ export const StandaloneProposalViewer: React.FC = () => {
                   {expandedLocations[location] && (
                     <div className="p-8 space-y-8">
                       {Object.entries(locationData)
-                        .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                        .sort(([dateA], [dateB]) => {
+                          // Handle TBD dates - put them at the end
+                          if (dateA === 'TBD' && dateB === 'TBD') return 0;
+                          if (dateA === 'TBD') return 1;
+                          if (dateB === 'TBD') return -1;
+                          
+                          // Sort actual dates normally
+                          return new Date(dateA).getTime() - new Date(dateB).getTime();
+                        })
                         .map(([date, dateData]: [string, any], dateIndex: number) => (
                           <div key={date} className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-sm">
                             <button
@@ -613,7 +703,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         <div className="font-bold text-gray-900">
                                           <EditableField
                                             value={String(service.totalHours || 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], value)}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                             suffix=" hours"
@@ -625,7 +715,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         <div className="font-bold text-gray-900">
                                           <EditableField
                                             value={String(service.numPros || 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], value)}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
                                           />
@@ -635,10 +725,163 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         <span className="text-base font-semibold text-gray-700">Total Appointments:</span>
                                         <span className="font-bold text-gray-900">{service.totalAppointments}</span>
                                       </div>
-                                      <div className="flex justify-between items-center py-3">
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-semibold text-gray-700">Service Cost:</span>
                                         <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
                                       </div>
+                                      
+                                      {/* Pricing Options Section */}
+                                      {displayData.hasPricingOptions && service.pricingOptions && service.pricingOptions.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t-2 border-shortcut-blue/20">
+                                          <h5 className="text-lg font-bold text-shortcut-blue mb-3 flex items-center">
+                                            <span className="w-2 h-2 rounded-full bg-shortcut-teal mr-2"></span>
+                                            Pricing Options
+                                          </h5>
+                                          <div className="space-y-3">
+                                            {service.pricingOptions.map((option: any, optionIndex: number) => (
+                                              <div 
+                                                key={optionIndex}
+                                                className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                                                  service.selectedOption === optionIndex
+                                                    ? 'border-shortcut-blue bg-shortcut-blue/5'
+                                                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                                }`}
+                                                onClick={() => {
+                                                  // Update the selected option
+                                                  handleFieldChange(
+                                                    ['services', location, date, 'services', serviceIndex, 'selectedOption'], 
+                                                    optionIndex
+                                                  );
+                                                  
+                                                  // Update service totals based on the selected option
+                                                  const selectedOption = service.pricingOptions[optionIndex];
+                                                  if (selectedOption) {
+                                                    service.totalAppointments = selectedOption.totalAppointments;
+                                                    service.serviceCost = selectedOption.serviceCost;
+                                                  }
+                                                }}
+                                              >
+                                                <div className="flex justify-between items-start mb-2">
+                                                  <div className="flex-1">
+                                                    <h6 className="font-semibold text-gray-900">
+                                                      Option {optionIndex + 1}
+                                                    </h6>
+                                                    <p className="text-sm text-gray-600">
+                                                      {option.totalAppointments} appointments × ${formatCurrency(option.hourlyRate)}/hour
+                                                    </p>
+                                                  </div>
+                                                  <div className="text-right">
+                                                    <div className="text-lg font-bold text-shortcut-blue">
+                                                      ${formatCurrency(option.serviceCost)}
+                                                    </div>
+                                                    {service.selectedOption === optionIndex && (
+                                                      <div className="text-xs text-shortcut-teal font-semibold">
+                                                        SELECTED
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                
+                                                {/* Editable fields for each option */}
+                                                {isEditing && (
+                                                  <div className="mt-3 space-y-2 border-t pt-3">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                      <div>
+                                                        <label className="text-xs text-gray-600">Total Hours:</label>
+                                                        <EditableField
+                                                          value={String(option.totalHours || service.totalHours)}
+                                                          onChange={(value) => handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'totalHours'], 
+                                                            parseFloat(value) || service.totalHours
+                                                          )}
+                                                          isEditing={isEditing}
+                                                          type="number"
+                                                        />
+                                                      </div>
+                                                      <div>
+                                                        <label className="text-xs text-gray-600">Hourly Rate:</label>
+                                                        <EditableField
+                                                          value={String(option.hourlyRate || service.hourlyRate)}
+                                                          onChange={(value) => handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'hourlyRate'], 
+                                                            parseFloat(value) || service.hourlyRate
+                                                          )}
+                                                          isEditing={isEditing}
+                                                          type="number"
+                                                          prefix="$"
+                                                        />
+                                                      </div>
+                                                    </div>
+                                                    <div>
+                                                      <label className="text-xs text-gray-600">Number of Pros:</label>
+                                                      <EditableField
+                                                        value={String(option.numPros || service.numPros || 1)}
+                                                        onChange={(value) => handleFieldChange(
+                                                          ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'numPros'], 
+                                                          parseFloat(value) || 1
+                                                        )}
+                                                        isEditing={isEditing}
+                                                        type="number"
+                                                      />
+                                                    </div>
+                                                  </div>
+                                                )}
+                                                
+                                                {isEditing && (
+                                                  <div className="mt-3">
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleFieldChange(
+                                                          ['services', location, date, 'services', serviceIndex, 'selectedOption'], 
+                                                          optionIndex
+                                                        );
+                                                      }}
+                                                      className={`w-full px-3 py-2 text-sm rounded-md transition-colors ${
+                                                        service.selectedOption === optionIndex
+                                                          ? 'bg-shortcut-blue text-white'
+                                                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                      }`}
+                                                    >
+                                                      {service.selectedOption === optionIndex ? 'Selected' : 'Select This Option'}
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                          {isEditing && (
+                                            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                              <p className="text-sm text-blue-800">
+                                                💡 <strong>Tip:</strong> Click on any option above to select it. The selected option will be used for cost calculations.
+                                              </p>
+                                            </div>
+                                          )}
+                                          {isEditing && (
+                                            <button
+                                              onClick={() => {
+                                                // Add new pricing option with current service values
+                                                const newOption = {
+                                                  name: `Option ${service.pricingOptions.length + 1}`,
+                                                  totalHours: service.totalHours,
+                                                  hourlyRate: service.hourlyRate,
+                                                  numPros: service.numPros,
+                                                  totalAppointments: service.totalAppointments,
+                                                  serviceCost: service.serviceCost
+                                                };
+                                                const newPricingOptions = [...service.pricingOptions, newOption];
+                                                handleFieldChange(
+                                                  ['services', location, date, 'services', serviceIndex, 'pricingOptions'],
+                                                  newPricingOptions
+                                                );
+                                              }}
+                                              className="mt-3 w-full px-4 py-2 bg-shortcut-blue/10 text-shortcut-blue border border-shortcut-blue/20 rounded-md hover:bg-shortcut-blue/20 transition-colors font-medium"
+                                            >
+                                              + Add New Option
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 ))}

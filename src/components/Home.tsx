@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useProposal } from '../contexts/ProposalContext';
 import ProposalOptionsModal from './ProposalOptionsModal';
 import { Button } from './Button';
+import { prepareProposalFromCalculation } from '../utils/proposalGenerator';
 
 interface Service {
   serviceType: string;
@@ -298,24 +299,23 @@ const Home: React.FC = () => {
         options.customization.customNote = `We are so excited to service the incredible staff at ${clientData.name}! Our team is looking forward to providing an exceptional experience for everyone involved. Please review the details above and let us know if you need any adjustments.`;
       }
 
-      const proposalData = {
-        clientName: clientData.name.trim(),
-        clientEmail: options.clientEmail,
-        eventDates: Array.from(new Set(Object.values(clientData.events)
-          .flatMap(events => events.flatMap(event => 
-            event.services.map(service => service.date)
-          ))
-        )).sort(),
+      // Create the client data structure expected by prepareProposalFromCalculation
+      const currentClient = {
+        name: clientData.name.trim(),
         locations: clientData.locations,
-        services: clientData.events,
-        summary: {
-          totalAppointments: calculationResults?.totalAppointments || 0,
-          totalEventCost: calculationResults?.totalCost || 0,
-          totalProRevenue: calculationResults?.totalProRevenue || 0,
-          netProfit: calculationResults?.netProfit || 0,
-          profitMargin: calculationResults?.profitMargin || 0
-        }
+        events: clientData.events
       };
+
+      // Use the proper proposal generation function
+      const proposalData = prepareProposalFromCalculation(currentClient);
+      
+      // Add client email and logo if provided
+      if (options.clientEmail) {
+        proposalData.clientEmail = options.clientEmail;
+      }
+      if (options.clientLogoUrl) {
+        proposalData.clientLogoUrl = options.clientLogoUrl;
+      }
 
       const proposalId = await createProposal(proposalData, options.customization, options.clientEmail);
       if (!proposalId) {
@@ -706,14 +706,40 @@ const Home: React.FC = () => {
                     <label className="block text-gray-700 text-sm font-bold mb-2">
                       Service Date
                     </label>
-                    <input
-                      type="date"
-                      value={service.date}
-                      onChange={(e) =>
-                        updateService(index, { date: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="date"
+                        value={service.date === 'TBD' ? '' : service.date}
+                        onChange={(e) => {
+                          // Prevent clearing the date - if empty, keep the current date
+                          if (!e.target.value) {
+                            return;
+                          }
+                          updateService(index, { date: e.target.value });
+                        }}
+                        disabled={service.date === 'TBD'}
+                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          service.date === 'TBD' ? 'bg-gray-100 text-gray-500' : ''
+                        }`}
+                      />
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={service.date === 'TBD'}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              updateService(index, { date: 'TBD' });
+                            } else {
+                              // When unchecking TBD, set to today's date as default
+                              const today = new Date().toISOString().split('T')[0];
+                              updateService(index, { date: today });
+                            }
+                          }}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        TBD
+                      </label>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

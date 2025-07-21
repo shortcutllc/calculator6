@@ -3,15 +3,15 @@ import { supabase } from '../lib/supabaseClient';
 import { Proposal, ProposalData, ProposalCustomization } from '../types/proposal';
 
 interface ProposalContextType {
-  loading: boolean;
-  error: string | null;
   proposals: Proposal[];
   currentProposal: Proposal | null;
-  createProposal: (data: ProposalData, customization: ProposalCustomization, clientEmail?: string) => Promise<string>;
-  getProposal: (id: string) => Promise<Proposal | null>;
-  updateProposal: (id: string, updates: Partial<Proposal>) => Promise<boolean>;
-  deleteProposal: (id: string) => Promise<boolean>;
+  loading: boolean;
+  error: string | null;
   fetchProposals: () => Promise<void>;
+  getProposal: (id: string) => Promise<Proposal | null>;
+  createProposal: (data: ProposalData, customization: ProposalCustomization, clientEmail?: string) => Promise<string>;
+  updateProposal: (id: string, updates: Partial<Proposal>) => Promise<void>;
+  deleteProposal: (id: string) => Promise<void>;
 }
 
 const ProposalContext = createContext<ProposalContextType | undefined>(undefined);
@@ -44,7 +44,12 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     originalData: dbProposal.original_data,
     notes: dbProposal.notes,
     clientEmail: dbProposal.client_email,
-    changeSource: dbProposal.change_source
+    clientLogoUrl: dbProposal.client_logo_url,
+    changeSource: dbProposal.change_source,
+    // New pricing options fields
+    pricingOptions: dbProposal.pricing_options,
+    selectedOptions: dbProposal.selected_options,
+    hasPricingOptions: dbProposal.has_pricing_options
   });
 
   const fetchProposals = async () => {
@@ -146,36 +151,31 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const updateProposal = async (id: string, updates: Partial<Proposal>): Promise<boolean> => {
+  const updateProposal = async (id: string, updates: Partial<Proposal>) => {
     try {
-      const proposal = await getProposal(id);
-      if (!proposal) throw new Error('Proposal not found');
-
-      const { data: currentData, error: fetchError } = await supabase
-        .from('proposals')
-        .select('data, original_data, has_changes')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const originalData = currentData.has_changes ? currentData.original_data : currentData.data;
+      setLoading(true);
+      setError(null);
 
       const updateData: any = {
-        updated_at: new Date().toISOString(),
-        has_changes: true,
-        pending_review: true,
-        change_source: 'staff'
+        updated_at: new Date().toISOString()
       };
 
-      if (updates.data) {
-        updateData.data = updates.data;
-        updateData.original_data = originalData;
-      }
-
-      if (updates.notes !== undefined) {
-        updateData.notes = updates.notes;
-      }
+      // Map frontend fields to database fields
+      if (updates.data) updateData.data = updates.data;
+      if (updates.customization) updateData.customization = updates.customization;
+      if (updates.isEditable !== undefined) updateData.is_editable = updates.isEditable;
+      if (updates.status) updateData.status = updates.status;
+      if (updates.pendingReview !== undefined) updateData.pending_review = updates.pendingReview;
+      if (updates.hasChanges !== undefined) updateData.has_changes = updates.hasChanges;
+      if (updates.originalData) updateData.original_data = updates.originalData;
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.clientEmail !== undefined) updateData.client_email = updates.clientEmail;
+      if (updates.clientLogoUrl !== undefined) updateData.client_logo_url = updates.clientLogoUrl;
+      if (updates.changeSource) updateData.change_source = updates.changeSource;
+      // New pricing options fields
+      if (updates.pricingOptions) updateData.pricing_options = updates.pricingOptions;
+      if (updates.selectedOptions) updateData.selected_options = updates.selectedOptions;
+      if (updates.hasPricingOptions !== undefined) updateData.has_pricing_options = updates.hasPricingOptions;
 
       const { error } = await supabase
         .from('proposals')
@@ -184,17 +184,30 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (error) throw error;
 
+      // Update local state
+      setProposals(prev => prev.map(p => 
+        p.id === id ? { ...p, ...updates } : p
+      ));
+      
+      if (currentProposal?.id === id) {
+        setCurrentProposal(prev => prev ? { ...prev, ...updates } : null);
+      }
+
       await fetchProposals();
-      return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update proposal';
       setError(errorMessage);
-      throw err;
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const deleteProposal = async (id: string): Promise<boolean> => {
+  const deleteProposal = async (id: string) => {
     try {
+      setLoading(true);
+      setError(null);
+
       const { error } = await supabase
         .from('proposals')
         .delete()
@@ -202,32 +215,33 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (error) throw error;
 
+      setProposals(prev => prev.filter(p => p.id !== id));
       if (currentProposal?.id === id) {
         setCurrentProposal(null);
       }
-      
-      await fetchProposals();
-      return true;
     } catch (err) {
-      setError('Failed to delete proposal');
-      return false;
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete proposal';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const value: ProposalContextType = {
+    proposals,
+    currentProposal,
+    loading,
+    error,
+    fetchProposals,
+    getProposal,
+    createProposal,
+    updateProposal,
+    deleteProposal
+  };
+
   return (
-    <ProposalContext.Provider
-      value={{
-        loading,
-        error,
-        proposals,
-        currentProposal,
-        createProposal,
-        getProposal,
-        updateProposal,
-        deleteProposal,
-        fetchProposals
-      }}
-    >
+    <ProposalContext.Provider value={value}>
       {children}
     </ProposalContext.Provider>
   );
