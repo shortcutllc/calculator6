@@ -65,6 +65,22 @@ const getServiceImagePath = (serviceType: string): string => {
   }
 };
 
+// Helper function to get mindfulness service description
+const getMindfulnessDescription = (service: any): string => {
+  if (service.serviceType !== 'mindfulness') return '';
+  
+  const classLength = service.classLength || 60;
+  const participants = service.participants || 'unlimited';
+  
+  if (classLength === 60) {
+    return "In just one 60 minute workshop your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.";
+  } else if (classLength === 30) {
+    return "Our 30-minute drop-in sessions offer a quick and easy way to step out of the \"doing mode\" and into a space of rest and rejuvenation.";
+  }
+  
+  return "Mindfulness meditation session to help your team reduce stress and improve focus.";
+};
+
 // Helper function to format date for display
 const formatDate = (dateString: string): string => {
   try {
@@ -156,6 +172,55 @@ const ProposalViewer: React.FC = () => {
       setLogoUrl('');
     }
   }, [displayData?.clientLogoUrl]);
+
+  // Initialize Google Maps autocomplete for edit mode
+  useEffect(() => {
+    if (isEditing) {
+      const initializeGoogleMaps = () => {
+        const input = document.getElementById('office-location-edit-input') as HTMLInputElement;
+        if (input && window.google && window.google.maps && window.google.maps.places) {
+          try {
+            // Initialize Places Autocomplete
+            const autocomplete = new window.google.maps.places.Autocomplete(input, {
+              types: ['address'],
+              componentRestrictions: { country: 'us' }
+            });
+
+            // Handle place selection
+            autocomplete.addListener('place_changed', () => {
+              const place = autocomplete.getPlace();
+              if (place.formatted_address) {
+                handleFieldChange(['officeLocation'], place.formatted_address);
+              }
+            });
+
+            console.log('Google Maps Places Autocomplete initialized successfully for edit mode');
+          } catch (error) {
+            console.error('Error initializing Google Maps Places Autocomplete for edit mode:', error);
+          }
+        }
+      };
+
+      // Initialize Google Maps if not loaded
+      if (!window.google || !window.google.maps) {
+        if (window.initGoogleMaps) {
+          window.initGoogleMaps();
+        }
+      }
+
+      // Check for Google Maps availability and initialize
+      const checkGoogleMaps = setInterval(() => {
+        if (window.google && window.google.maps && window.google.maps.places) {
+          initializeGoogleMaps();
+          clearInterval(checkGoogleMaps);
+        }
+      }, 100);
+
+      return () => {
+        clearInterval(checkGoogleMaps);
+      };
+    }
+  }, [isEditing]);
 
   // Auto-rotate service images
   useEffect(() => {
@@ -871,6 +936,67 @@ The Shortcut Team`);
               </button>
             )}
           </div>
+          
+          <div className="flex flex-col gap-2 w-full sm:w-auto">
+            <label className="block text-sm font-medium text-gray-700">Office Location</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={displayData.officeLocation || ''}
+                onChange={(e) => handleFieldChange(['officeLocation'], e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] pr-10"
+                placeholder="Enter office address..."
+                id="office-location-edit-input"
+                data-autocomplete="true"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById('office-location-edit-input') as HTMLInputElement;
+                    if (input && 'geolocation' in navigator) {
+                      navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                          const { latitude, longitude } = position.coords;
+                          const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                          
+                                                      if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                              // Use reverse geocoding to get address
+                              fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                  if (data.status === 'OK' && data.results && data.results[0]) {
+                                    handleFieldChange(['officeLocation'], data.results[0].formatted_address);
+                                  } else {
+                                    alert('Could not find address for your location. Please enter manually.');
+                                  }
+                                })
+                                .catch(() => {
+                                  alert('Error getting address. Please enter manually.');
+                                });
+                            } else {
+                              alert('Google Maps API key not configured. Please enter the address manually.');
+                            }
+                        },
+                        () => {
+                          alert('Unable to get your location. Please enter the address manually.');
+                        }
+                      );
+                    } else {
+                      alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                    }
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                  title="Use current location"
+                >
+                  📍
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Enter the office address or click the location icon to use your current location
+            </p>
+          </div>
         </div>
       )}
 
@@ -918,6 +1044,12 @@ The Shortcut Team`);
                   <p className="text-sm font-semibold text-gray-600 mb-2">Locations</p>
                   <p className="text-lg font-medium text-gray-900">{displayData.locations?.join(', ') || 'No locations available'}</p>
                 </div>
+                {displayData.officeLocation && (
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 md:col-span-2">
+                    <p className="text-sm font-semibold text-gray-600 mb-2">Office Location</p>
+                    <p className="text-lg font-medium text-gray-900">{displayData.officeLocation}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -995,6 +1127,28 @@ The Shortcut Team`);
                                       <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
                                       Service Type: {capitalizeServiceType(service.serviceType)}
                                     </h4>
+                                    
+                                    {/* Mindfulness Service Description */}
+                                    {service.serviceType === 'mindfulness' && (
+                                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                        <p className="text-gray-700 text-sm leading-relaxed">
+                                          {getMindfulnessDescription(service)}
+                                        </p>
+                                        <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+                                          <div>
+                                            <span className="font-semibold text-gray-700">Event Time:</span>
+                                            <span className="ml-2 text-gray-600">{service.classLength || 60} Min</span>
+                                          </div>
+                                          <div>
+                                            <span className="font-semibold text-gray-700">Participants:</span>
+                                            <span className="ml-2 text-gray-600">
+                                              {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                    
                                     <div className="grid gap-0">
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base text-gray-700">Service Date:</span>

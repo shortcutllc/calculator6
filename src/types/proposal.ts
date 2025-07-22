@@ -15,6 +15,10 @@ export interface Service {
   date?: string;
   location?: string;
   proRevenue?: number;
+  // Mindfulness-specific fields
+  classLength?: number;
+  participants?: string | number;
+  fixedPrice?: number;
 }
 
 export interface DateData {
@@ -63,6 +67,7 @@ export interface ProposalData {
   clientName: string;
   clientEmail?: string;
   clientLogoUrl?: string;
+  officeLocation?: string;
   eventDates: string[];
   locations: string[];
   services: {

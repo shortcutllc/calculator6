@@ -71,6 +71,22 @@ const getServiceImagePath = (serviceType: string): string => {
   }
 };
 
+// Helper function to get mindfulness service description
+const getMindfulnessDescription = (service: any): string => {
+  if (service.serviceType !== 'mindfulness') return '';
+  
+  const classLength = service.classLength || 60;
+  const participants = service.participants || 'unlimited';
+  
+  if (classLength === 60) {
+    return "In just one 60 minute workshop your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.";
+  } else if (classLength === 30) {
+    return "Our 30-minute drop-in sessions offer a quick and easy way to step out of the \"doing mode\" and into a space of rest and rejuvenation.";
+  }
+  
+  return "Mindfulness meditation session to help your team reduce stress and improve focus.";
+};
+
 export const StandaloneProposalViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -618,6 +634,12 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <p className="text-sm font-semibold text-gray-600 mb-2">Locations</p>
                   <p className="text-lg font-medium text-gray-900">{displayData.locations?.join(', ') || 'No locations available'}</p>
                 </div>
+                {displayData.officeLocation && (
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 md:col-span-2">
+                    <p className="text-sm font-semibold text-gray-600 mb-2">Office Location</p>
+                    <p className="text-lg font-medium text-gray-900">{displayData.officeLocation}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -697,6 +719,28 @@ export const StandaloneProposalViewer: React.FC = () => {
                                       <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
                                       Service Type: {capitalizeServiceType(service.serviceType)}
                                     </h4>
+                                    
+                                    {/* Mindfulness Service Description */}
+                                    {service.serviceType === 'mindfulness' && (
+                                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                        <p className="text-gray-700 text-sm leading-relaxed">
+                                          {getMindfulnessDescription(service)}
+                                        </p>
+                                        <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+                                          <div>
+                                            <span className="font-semibold text-gray-700">Event Time:</span>
+                                            <span className="ml-2 text-gray-600">{service.classLength || 60} Min</span>
+                                          </div>
+                                          <div>
+                                            <span className="font-semibold text-gray-700">Participants:</span>
+                                            <span className="ml-2 text-gray-600">
+                                              {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                    
                                     <div className="grid gap-0">
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-semibold text-gray-700">Total Hours:</span>

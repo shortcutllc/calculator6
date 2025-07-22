@@ -18,6 +18,10 @@ interface Service {
   discountPercent: number;
   date: string;
   location: string;
+  // Mindfulness-specific fields
+  classLength?: number;
+  participants?: string | number;
+  fixedPrice?: number;
 }
 
 interface Event {
@@ -137,6 +141,18 @@ const SERVICE_DEFAULTS = {
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 40
+  },
+  mindfulness: {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1350
   }
 };
 
@@ -170,6 +186,16 @@ const Home: React.FC = () => {
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null);
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewResults, setPreviewResults] = useState<CalculationResults | null>(null);
+
+  // Clear preview when services or client data changes
+  useEffect(() => {
+    if (showPreview) {
+      setShowPreview(false);
+      setPreviewResults(null);
+    }
+  }, [clientData.events, clientData.name, clientData.locations]);
 
   const calculateServiceResults = (service: Service) => {
     const apptsPerHourPerPro = 60 / service.appTime;
@@ -183,6 +209,10 @@ const Home: React.FC = () => {
       proRevenue = service.totalHours * service.numPros * service.proHourly;
       const retouchingTotal = totalAppts * (service.retouchingCost || 0);
       serviceCost = proRevenue + retouchingTotal;
+    } else if (service.serviceType === 'mindfulness') {
+      // Mindfulness services use fixed pricing
+      serviceCost = service.fixedPrice || 1350;
+      proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
     } else {
       const totalEarlyArrival = service.earlyArrival * service.numPros;
       proRevenue = (service.totalHours * service.numPros * service.proHourly) + totalEarlyArrival;
@@ -201,58 +231,117 @@ const Home: React.FC = () => {
   };
 
   const calculateResults = () => {
-    const results: CalculationResults = {
-      totalAppointments: 0,
-      totalCost: 0,
-      totalProRevenue: 0,
-      netProfit: 0,
-      profitMargin: 0,
-      locationBreakdown: {}
-    };
+    if (!clientData.name || clientData.locations.length === 0) {
+      alert('Please enter a client name and at least one location.');
+      return;
+    }
 
-    Object.entries(clientData.events).forEach(([location, events]) => {
-      results.locationBreakdown[location] = {
+    // If we have preview results, use them and sync the clientData
+    if (previewResults) {
+      // Update clientData.events to match the preview modifications
+      const updatedClientData = { ...clientData };
+      updatedClientData.events = {};
+      
+      // Rebuild events from preview results
+      Object.entries(previewResults.locationBreakdown).forEach(([location, locationData]) => {
+        updatedClientData.events[location] = [];
+        
+        Object.entries(locationData.dateBreakdown).forEach(([date, dateData]) => {
+          // Find the original event for this date/location
+          const originalEvent = clientData.events[location]?.find(event => event.date === date);
+          
+          if (originalEvent) {
+            // Create a new event with only the services that remain in the preview
+            const remainingServices: Service[] = [];
+            
+            dateData.services.forEach((serviceData) => {
+              // Find the original service with all its data
+              const originalService = originalEvent.services.find(service => 
+                service.serviceType === serviceData.serviceType &&
+                service.totalHours === serviceData.totalHours &&
+                service.numPros === serviceData.numPros
+              );
+              
+              if (originalService) {
+                remainingServices.push(originalService);
+              }
+            });
+            
+            if (remainingServices.length > 0) {
+              updatedClientData.events[location].push({
+                clientName: clientData.name,
+                date: date,
+                services: remainingServices
+              });
+            }
+          }
+        });
+      });
+      
+      setClientData(updatedClientData);
+      setCalculationResults(previewResults);
+      setShowResults(true);
+      setShowPreview(false);
+      setPreviewResults(null);
+      return;
+    }
+
+    const performCalculation = () => {
+      const results: CalculationResults = {
         totalAppointments: 0,
         totalCost: 0,
-        dateBreakdown: {}
+        totalProRevenue: 0,
+        netProfit: 0,
+        profitMargin: 0,
+        locationBreakdown: {}
       };
 
-      events.forEach(event => {
-        event.services.forEach(service => {
-          const serviceResults = calculateServiceResults(service);
-          
-          if (!results.locationBreakdown[location].dateBreakdown[service.date]) {
-            results.locationBreakdown[location].dateBreakdown[service.date] = {
+      Object.entries(clientData.events).forEach(([location, events]) => {
+        results.locationBreakdown[location] = {
+          totalAppointments: 0,
+          totalCost: 0,
+          dateBreakdown: {}
+        };
+
+        events.forEach((event) => {
+          const dateKey = event.date || 'TBD';
+          if (!results.locationBreakdown[location].dateBreakdown[dateKey]) {
+            results.locationBreakdown[location].dateBreakdown[dateKey] = {
               totalAppointments: 0,
               totalCost: 0,
               services: []
             };
           }
 
-          results.locationBreakdown[location].dateBreakdown[service.date].services.push({
-            serviceType: service.serviceType,
-            totalHours: service.totalHours,
-            numPros: service.numPros,
-            totalAppointments: serviceResults.totalAppointments,
-            serviceCost: serviceResults.serviceCost
-          });
+          event.services.forEach((service) => {
+            const serviceResults = calculateServiceResults(service);
+            results.totalAppointments += serviceResults.totalAppointments;
+            results.totalCost += serviceResults.serviceCost;
+            results.totalProRevenue += serviceResults.proRevenue;
 
-          results.locationBreakdown[location].dateBreakdown[service.date].totalAppointments += serviceResults.totalAppointments;
-          results.locationBreakdown[location].dateBreakdown[service.date].totalCost += serviceResults.serviceCost;
-          
-          results.locationBreakdown[location].totalAppointments += serviceResults.totalAppointments;
-          results.locationBreakdown[location].totalCost += serviceResults.serviceCost;
-          
-          results.totalAppointments += serviceResults.totalAppointments;
-          results.totalCost += serviceResults.serviceCost;
-          results.totalProRevenue += serviceResults.proRevenue;
+            results.locationBreakdown[location].totalAppointments += serviceResults.totalAppointments;
+            results.locationBreakdown[location].totalCost += serviceResults.serviceCost;
+
+            results.locationBreakdown[location].dateBreakdown[dateKey].totalAppointments += serviceResults.totalAppointments;
+            results.locationBreakdown[location].dateBreakdown[dateKey].totalCost += serviceResults.serviceCost;
+            results.locationBreakdown[location].dateBreakdown[dateKey].services.push({
+              serviceType: service.serviceType,
+              totalHours: service.totalHours,
+              numPros: service.numPros,
+              totalAppointments: serviceResults.totalAppointments,
+              serviceCost: serviceResults.serviceCost
+            });
+          });
         });
       });
-    });
 
-    results.netProfit = results.totalCost - results.totalProRevenue;
-    results.profitMargin = results.totalCost > 0 ? ((results.totalCost - results.totalProRevenue) / results.totalCost) * 100 : 0;
+      results.netProfit = results.totalCost - results.totalProRevenue;
+      results.profitMargin = results.totalCost > 0 ? ((results.totalCost - results.totalProRevenue) / results.totalCost) * 100 : 0;
 
+      return results;
+    };
+
+    const results = performCalculation();
     setCalculationResults(results);
     setShowResults(true);
   };
@@ -283,6 +372,11 @@ const Home: React.FC = () => {
     updatedClientData.events[currentLocation].push(event);
     setClientData(updatedClientData);
     setShowEventModal(false);
+    
+    // Automatically generate preview after saving event
+    setTimeout(() => {
+      generatePreview();
+    }, 100); // Small delay to ensure state is updated
   };
 
   const handleGenerateProposal = async (options: any) => {
@@ -315,6 +409,9 @@ const Home: React.FC = () => {
       }
       if (options.clientLogoUrl) {
         proposalData.clientLogoUrl = options.clientLogoUrl;
+      }
+      if (options.officeLocation) {
+        proposalData.officeLocation = options.officeLocation;
       }
 
       const proposalId = await createProposal(proposalData, options.customization, options.clientEmail);
@@ -403,6 +500,16 @@ const Home: React.FC = () => {
           date: updatedServices[index].date,
           location: updatedServices[index].location
         };
+      } else if (updates.serviceType === 'mindfulness') {
+        // Set mindfulness defaults
+        updatedServices[index] = {
+          ...updatedServices[index],
+          ...serviceDefaults,
+          serviceType: 'mindfulness',
+          date: updatedServices[index].date,
+          location: updatedServices[index].location,
+          discountPercent: updatedServices[index].discountPercent || 0
+        };
       } else {
         // Reset all fields to proper defaults for non-headshot services
         updatedServices[index] = {
@@ -431,6 +538,151 @@ const Home: React.FC = () => {
       location: updatedServices[index].location
     };
     setServices(updatedServices);
+  };
+
+  const generatePreview = () => {
+    if (!clientData.name || clientData.locations.length === 0) {
+      alert('Please enter a client name and at least one location.');
+      return;
+    }
+
+    const performCalculation = () => {
+      const results: CalculationResults = {
+        totalAppointments: 0,
+        totalCost: 0,
+        totalProRevenue: 0,
+        netProfit: 0,
+        profitMargin: 0,
+        locationBreakdown: {}
+      };
+
+      Object.entries(clientData.events).forEach(([location, events]) => {
+        results.locationBreakdown[location] = {
+          totalAppointments: 0,
+          totalCost: 0,
+          dateBreakdown: {}
+        };
+
+        events.forEach((event) => {
+          const dateKey = event.date || 'TBD';
+          if (!results.locationBreakdown[location].dateBreakdown[dateKey]) {
+            results.locationBreakdown[location].dateBreakdown[dateKey] = {
+              totalAppointments: 0,
+              totalCost: 0,
+              services: []
+            };
+          }
+
+          event.services.forEach((service) => {
+            const serviceResults = calculateServiceResults(service);
+            results.totalAppointments += serviceResults.totalAppointments;
+            results.totalCost += serviceResults.serviceCost;
+            results.totalProRevenue += serviceResults.proRevenue;
+
+            results.locationBreakdown[location].totalAppointments += serviceResults.totalAppointments;
+            results.locationBreakdown[location].totalCost += serviceResults.serviceCost;
+
+            results.locationBreakdown[location].dateBreakdown[dateKey].totalAppointments += serviceResults.totalAppointments;
+            results.locationBreakdown[location].dateBreakdown[dateKey].totalCost += serviceResults.serviceCost;
+            results.locationBreakdown[location].dateBreakdown[dateKey].services.push({
+              serviceType: service.serviceType,
+              totalHours: service.totalHours,
+              numPros: service.numPros,
+              totalAppointments: serviceResults.totalAppointments,
+              serviceCost: serviceResults.serviceCost
+            });
+          });
+        });
+      });
+
+      results.netProfit = results.totalCost - results.totalProRevenue;
+      results.profitMargin = results.totalCost > 0 ? ((results.totalCost - results.totalProRevenue) / results.totalCost) * 100 : 0;
+
+      return results;
+    };
+
+    const results = performCalculation();
+    setPreviewResults(results);
+    setShowPreview(true);
+  };
+
+  const clearPreview = () => {
+    setShowPreview(false);
+    setPreviewResults(null);
+  };
+
+  const removeServiceFromPreview = (location: string, date: string, serviceIndex: number) => {
+    if (!previewResults) return;
+    
+    console.log('Removing service from preview:', { location, date, serviceIndex });
+    console.log('Before removal:', previewResults);
+    
+    const updatedResults = { ...previewResults };
+    if (updatedResults.locationBreakdown) {
+      const locationData = updatedResults.locationBreakdown[location];
+      if (locationData?.dateBreakdown) {
+        const dateData = locationData.dateBreakdown[date];
+        if (dateData?.services) {
+          dateData.services.splice(serviceIndex, 1);
+          
+          // If no services left, remove the entire date
+          if (dateData.services.length === 0) {
+            delete locationData.dateBreakdown[date];
+          } else {
+            // Recalculate totals for the date
+            dateData.totalAppointments = dateData.services.reduce((sum, s) => sum + s.totalAppointments, 0);
+            dateData.totalCost = dateData.services.reduce((sum, s) => sum + s.serviceCost, 0);
+          }
+        }
+      }
+      
+      // If no dates left, remove the entire location
+      if (Object.keys(locationData.dateBreakdown).length === 0) {
+        delete updatedResults.locationBreakdown[location];
+      } else {
+        // Recalculate totals for the location
+        locationData.totalAppointments = Object.values(locationData.dateBreakdown).reduce((sum, d) => sum + d.totalAppointments, 0);
+        locationData.totalCost = Object.values(locationData.dateBreakdown).reduce((sum, d) => sum + d.totalCost, 0);
+      }
+    }
+    
+    // Recalculate overall totals
+    updatedResults.totalAppointments = Object.values(updatedResults.locationBreakdown).reduce((sum, l) => sum + l.totalAppointments, 0);
+    updatedResults.totalCost = Object.values(updatedResults.locationBreakdown).reduce((sum, l) => sum + l.totalCost, 0);
+    updatedResults.netProfit = updatedResults.totalCost - updatedResults.totalProRevenue;
+    updatedResults.profitMargin = updatedResults.totalCost > 0 ? ((updatedResults.totalCost - updatedResults.totalProRevenue) / updatedResults.totalCost) * 100 : 0;
+    
+    console.log('After removal:', updatedResults);
+    setPreviewResults(updatedResults);
+  };
+
+  const removeEventFromPreview = (location: string, date: string) => {
+    if (!previewResults) return;
+    
+    const updatedResults = { ...previewResults };
+    if (updatedResults.locationBreakdown) {
+      const locationData = updatedResults.locationBreakdown[location];
+      if (locationData?.dateBreakdown) {
+        delete locationData.dateBreakdown[date];
+        
+        // If no dates left, remove the entire location
+        if (Object.keys(locationData.dateBreakdown).length === 0) {
+          delete updatedResults.locationBreakdown[location];
+        } else {
+          // Recalculate totals for the location
+          locationData.totalAppointments = Object.values(locationData.dateBreakdown).reduce((sum, d) => sum + d.totalAppointments, 0);
+          locationData.totalCost = Object.values(locationData.dateBreakdown).reduce((sum, d) => sum + d.totalCost, 0);
+        }
+      }
+    }
+    
+    // Recalculate overall totals
+    updatedResults.totalAppointments = Object.values(updatedResults.locationBreakdown).reduce((sum, l) => sum + l.totalAppointments, 0);
+    updatedResults.totalCost = Object.values(updatedResults.locationBreakdown).reduce((sum, l) => sum + l.totalCost, 0);
+    updatedResults.netProfit = updatedResults.totalCost - updatedResults.totalProRevenue;
+    updatedResults.profitMargin = updatedResults.totalCost > 0 ? ((updatedResults.totalCost - updatedResults.totalProRevenue) / updatedResults.totalCost) * 100 : 0;
+    
+    setPreviewResults(updatedResults);
   };
 
   return (
@@ -498,6 +750,28 @@ const Home: React.FC = () => {
         </div>
       ) : showResults ? (
         <div className="max-w-4xl mx-auto p-4">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={() => setShowResults(false)}
+                variant="secondary"
+              >
+                Back to Calculator
+              </Button>
+              <h1 className="text-2xl sm:text-3xl font-bold text-shortcut-blue">
+                {clientData.name}'s Calculation
+              </h1>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowProposalModal(true)}
+                variant="primary"
+              >
+                Generate Proposal
+              </Button>
+            </div>
+          </div>
+
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-8 mb-8">
             <h2 className="text-xl sm:text-2xl font-bold mb-6 text-gray-800">Event Details</h2>
             <div className="grid gap-4">
@@ -606,20 +880,6 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex justify-center mt-8 gap-4">
-            <Button
-              onClick={() => setShowResults(false)}
-              variant="secondary"
-            >
-              Back to Calculator
-            </Button>
-            <Button
-              onClick={() => setShowProposalModal(true)}
-              variant="primary"
-            >
-              Generate Proposal
-            </Button>
-          </div>
         </div>
       ) : (
         <div className="max-w-4xl mx-auto p-4">
@@ -627,14 +887,117 @@ const Home: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-shortcut-blue">
               {clientData.name}'s Calculation
             </h1>
-            <Button
-              onClick={calculateResults}
-              variant="primary"
-              icon={<Calculator size={20} />}
-            >
-              Calculate
-            </Button>
+            <div className="flex gap-3">
+              {showPreview ? (
+                <>
+                  <Button
+                    onClick={clearPreview}
+                    variant="secondary"
+                  >
+                    Clear Preview
+                  </Button>
+                  <Button
+                    onClick={calculateResults}
+                    variant="primary"
+                    icon={<Calculator size={20} />}
+                  >
+                    Use This Calculation
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={calculateResults}
+                  variant="primary"
+                  icon={<Calculator size={20} />}
+                >
+                  Calculate
+                </Button>
+              )}
+            </div>
           </div>
+
+          {showPreview && previewResults && (
+            <div key={`preview-${JSON.stringify(previewResults)}`} className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Calculator size={20} className="text-shortcut-blue" />
+                <h3 className="text-xl font-semibold text-shortcut-blue">Calculation Preview</h3>
+              </div>
+              <p className="text-gray-600 text-sm mb-4">
+                Your calculation preview appears automatically after adding events. You can remove specific services or events, then click "Use This Calculation" to proceed or "Clear Preview" to start over.
+              </p>
+              
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-gray-800 mb-3">Quick Summary</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Total Appointments:</span>
+                    <div className="font-semibold text-gray-800">{previewResults.totalAppointments}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Total Cost:</span>
+                    <div className="font-semibold text-gray-800">${previewResults.totalCost.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Net Profit:</span>
+                    <div className="font-semibold text-gray-800">${previewResults.netProfit.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Profit Margin:</span>
+                    <div className="font-semibold text-gray-800">{previewResults.profitMargin.toFixed(1)}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {Object.entries(previewResults.locationBreakdown).map(([location, locationData]) => (
+                  <div key={location} className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3">{location}</h4>
+                    <div className="space-y-2">
+                      {Object.entries(locationData.dateBreakdown).map(([date, dateData]) => (
+                        <div key={date} className="bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <span className="font-medium text-gray-800">{date === 'TBD' ? 'TBD' : date}:</span>
+                              <span className="ml-2 text-gray-600">
+                                {dateData.services.length} service{dateData.services.length !== 1 ? 's' : ''} • 
+                                {dateData.totalAppointments} appointments • 
+                                ${dateData.totalCost.toFixed(2)}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => removeEventFromPreview(location, date)}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              title="Remove this event"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                          {dateData.services.length > 0 && (
+                            <div className="ml-4 space-y-1">
+                              {dateData.services.map((service, serviceIndex) => (
+                                <div key={serviceIndex} className="flex justify-between items-center text-sm py-1">
+                                  <span className="text-gray-700">
+                                    {service.serviceType} • {service.totalHours}h • {service.numPros} pros • ${service.serviceCost.toFixed(2)}
+                                  </span>
+                                  <button
+                                    onClick={() => removeServiceFromPreview(location, date, serviceIndex)}
+                                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                    title="Remove this service"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {clientData.locations.map((location) => (
@@ -759,6 +1122,7 @@ const Home: React.FC = () => {
                         <option value="hair">Hair</option>
                         <option value="nails">Nails</option>
                         <option value="headshot">Headshots</option>
+                        <option value="mindfulness">Mindfulness</option>
                       </select>
                     </div>
 
@@ -927,6 +1291,97 @@ const Home: React.FC = () => {
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+
+                    {/* Mindfulness-specific fields */}
+                    {service.serviceType === 'mindfulness' && (
+                      <>
+                        <div>
+                          <label className="block text-gray-700 text-sm font-bold mb-2">
+                            Class Length (minutes)
+                          </label>
+                          <select
+                            value={service.classLength || 60}
+                            onChange={(e) =>
+                              updateService(index, {
+                                classLength: parseInt(e.target.value) || 60,
+                                fixedPrice: e.target.value === '60' ? 1350 : 1125
+                              })
+                            }
+                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value={60}>60 minutes - Intro to Mindfulness ($1,350)</option>
+                            <option value={30}>30 minutes - Drop-in Session ($1,125)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-gray-700 text-sm font-bold mb-2">
+                            Participants
+                          </label>
+                          <div className="flex gap-2">
+                            <label className="flex items-center">
+                              <input
+                                type="radio"
+                                name={`participants-${index}`}
+                                value="unlimited"
+                                checked={service.participants === 'unlimited'}
+                                onChange={(e) =>
+                                  updateService(index, {
+                                    participants: e.target.value
+                                  })
+                                }
+                                className="mr-2"
+                              />
+                              Unlimited
+                            </label>
+                            <label className="flex items-center">
+                              <input
+                                type="radio"
+                                name={`participants-${index}`}
+                                value="custom"
+                                checked={service.participants !== 'unlimited'}
+                                onChange={(e) =>
+                                  updateService(index, {
+                                    participants: 50
+                                  })
+                                }
+                                className="mr-2"
+                              />
+                              Custom
+                            </label>
+                          </div>
+                          {service.participants !== 'unlimited' && (
+                            <input
+                              type="number"
+                              value={typeof service.participants === 'number' ? service.participants : 50}
+                              onChange={(e) =>
+                                updateService(index, {
+                                  participants: parseInt(e.target.value) || 50
+                                })
+                              }
+                              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
+                              placeholder="Number of participants"
+                            />
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-gray-700 text-sm font-bold mb-2">
+                            Fixed Price ($)
+                          </label>
+                          <input
+                            type="number"
+                            value={service.fixedPrice || 1350}
+                            onChange={(e) =>
+                              updateService(index, {
+                                fixedPrice: parseInt(e.target.value) || 1350
+                              })
+                            }
+                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               );

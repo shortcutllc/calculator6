@@ -27,6 +27,38 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="/env-config.js"></script>
+    <script>
+      // Initialize Google Maps when needed - prevent multiple loads
+      let googleMapsLoading = false;
+      let googleMapsLoaded = false;
+      
+      window.initGoogleMaps = function() {
+        if (googleMapsLoaded) {
+          console.log('Google Maps already loaded');
+          return;
+        }
+        
+        if (googleMapsLoading) {
+          console.log('Google Maps already loading');
+          return;
+        }
+        
+        googleMapsLoading = true;
+        const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY || '';
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMapsCallback&loading=async`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      };
+      
+      window.initGoogleMapsCallback = function() {
+        // Google Maps is loaded
+        googleMapsLoaded = true;
+        googleMapsLoading = false;
+        console.log('Google Maps loaded successfully');
+      };
+    </script>
     <title>Shortcut Proposals</title>
   </head>
   <body>

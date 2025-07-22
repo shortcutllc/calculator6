@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -18,6 +18,7 @@ interface ProposalOptions {
   };
   clientEmail: string;
   clientLogoUrl?: string;
+  officeLocation?: string;
 }
 
 interface ValidationErrors {
@@ -47,6 +48,53 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
   const [logoUrl, setLogoUrl] = useState('');
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+
+  // Initialize Google Maps autocomplete
+  useEffect(() => {
+    const initializeGoogleMaps = () => {
+      const input = document.getElementById('office-location-input') as HTMLInputElement;
+      if (input && window.google && window.google.maps && window.google.maps.places) {
+        try {
+          // Initialize Places Autocomplete
+          const autocomplete = new window.google.maps.places.Autocomplete(input, {
+            types: ['address'],
+            componentRestrictions: { country: 'us' }
+          });
+
+          // Handle place selection
+          autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (place.formatted_address) {
+              handleFieldChange('officeLocation', place.formatted_address);
+            }
+          });
+
+          console.log('Google Maps Places Autocomplete initialized successfully');
+        } catch (error) {
+          console.error('Error initializing Google Maps Places Autocomplete:', error);
+        }
+      }
+    };
+
+    // Initialize Google Maps if not loaded
+    if (!window.google || !window.google.maps) {
+      if (window.initGoogleMaps) {
+        window.initGoogleMaps();
+      }
+    }
+
+    // Check for Google Maps availability and initialize
+    const checkGoogleMaps = setInterval(() => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        initializeGoogleMaps();
+        clearInterval(checkGoogleMaps);
+      }
+    }, 100);
+
+    return () => {
+      clearInterval(checkGoogleMaps);
+    };
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -258,6 +306,68 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
               {getFieldError('clientEmail') && (
                 <p className="mt-1 text-sm text-red-600">{getFieldError('clientEmail')}</p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Office Location (Optional)</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={options.officeLocation || ''}
+                  onChange={(e) => handleFieldChange('officeLocation', e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] pr-10"
+                  placeholder="Search for office address..."
+                  disabled={loading}
+                  id="office-location-input"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById('office-location-input') as HTMLInputElement;
+                      if (input && 'geolocation' in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            const { latitude, longitude } = position.coords;
+                            const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                            
+                            if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                              // Use reverse geocoding to get address
+                              fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                  if (data.status === 'OK' && data.results && data.results[0]) {
+                                    handleFieldChange('officeLocation', data.results[0].formatted_address);
+                                  } else {
+                                    alert('Could not find address for your location. Please enter manually.');
+                                  }
+                                })
+                                .catch(() => {
+                                  alert('Error getting address. Please enter manually.');
+                                });
+                            } else {
+                              alert('Google Maps API key not configured. Please enter the address manually.');
+                            }
+                          },
+                          () => {
+                            alert('Unable to get your location. Please enter the address manually.');
+                          }
+                        );
+                      } else {
+                        alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                      }
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                    title="Use current location"
+                    disabled={loading}
+                  >
+                    📍
+                  </button>
+                </div>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Enter the office address or click the location icon to use your current location
+              </p>
             </div>
 
             <div>

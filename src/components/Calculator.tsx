@@ -13,6 +13,10 @@ interface ServiceConfig {
   earlyArrival: number;
   retouchingCost?: number;
   discountPercent: number;
+  // Mindfulness-specific fields
+  classLength?: number;
+  participants?: string | number;
+  fixedPrice?: number;
 }
 
 const SERVICE_DEFAULTS = {
@@ -60,6 +64,18 @@ const SERVICE_DEFAULTS = {
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 40
+  },
+  mindfulness: {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1350
   }
 };
 
@@ -121,6 +137,10 @@ const Calculator: React.FC = () => {
       proRevenue = service.totalHours * service.numPros * service.proHourly;
       const retouchingTotal = totalAppts * (service.retouchingCost || 0);
       serviceCost = proRevenue + retouchingTotal;
+    } else if (service.serviceType === 'mindfulness') {
+      // Mindfulness services use fixed pricing
+      serviceCost = service.fixedPrice || 1350;
+      proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
     } else {
       const totalEarlyArrival = service.earlyArrival * service.numPros;
       proRevenue = (service.totalHours * service.numPros * service.proHourly) + totalEarlyArrival;
@@ -214,6 +234,7 @@ const Calculator: React.FC = () => {
                   <option value="hair">Hair</option>
                   <option value="nails">Nails</option>
                   <option value="headshot">Headshot</option>
+                  <option value="mindfulness">Mindfulness Meditation</option>
                 </select>
               </div>
 
