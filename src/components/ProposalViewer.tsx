@@ -81,6 +81,36 @@ const getMindfulnessDescription = (service: any): string => {
   return "Mindfulness meditation session to help your team reduce stress and improve focus.";
 };
 
+// Helper function to get service descriptions
+const getServiceDescription = (service: any): string => {
+  const serviceType = service.serviceType?.toLowerCase();
+  
+  switch (serviceType) {
+    case 'massage':
+      const massageType = service.massageType || 'massage';
+      if (massageType === 'chair') {
+        return "Treat your team to rejuvenating chair massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.";
+      } else if (massageType === 'table') {
+        return "Treat your team to rejuvenating table massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.";
+      } else {
+        return "Treat your team to rejuvenating chair or table massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.";
+      }
+    case 'nails':
+      return "Experience manicures and pedicures that blend relaxation with elegance, offering a pampered escape that leaves employees refreshed and polished.";
+    case 'hair':
+      return "Our office hair services menu offers precision cuts, professional styling, and grooming essentials, designed to keep employees looking sharp and feeling confident right at the workplace.";
+    case 'headshot':
+    case 'headshots':
+      return "Our in-office headshot experience, complete with hair and makeup touch-ups, helps employees present themselves confidently and creates a consistent, professional appearance for your company.";
+    case 'facial':
+      return "Professional facial treatments that provide deep cleansing, hydration, and relaxation, helping employees feel refreshed and rejuvenated during their workday.";
+    case 'mindfulness':
+      return getMindfulnessDescription(service);
+    default:
+      return "";
+  }
+};
+
 // Helper function to format date for display
 const formatDate = (dateString: string): string => {
   try {
@@ -1128,24 +1158,44 @@ The Shortcut Team`);
                                       Service Type: {capitalizeServiceType(service.serviceType)}
                                     </h4>
                                     
-                                    {/* Mindfulness Service Description */}
-                                    {service.serviceType === 'mindfulness' && (
+                                    {/* Service Description */}
+                                    {getServiceDescription(service) && (
                                       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                         <p className="text-gray-700 text-sm leading-relaxed">
-                                          {getMindfulnessDescription(service)}
+                                          {getServiceDescription(service)}
                                         </p>
-                                        <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
-                                          <div>
-                                            <span className="font-semibold text-gray-700">Event Time:</span>
-                                            <span className="ml-2 text-gray-600">{service.classLength || 60} Min</span>
+                                        {service.serviceType === 'mindfulness' && (
+                                          <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                              <span className="font-semibold text-gray-700">Event Time:</span>
+                                              <span className="ml-2 text-gray-600">{service.classLength || 60} Min</span>
+                                            </div>
+                                            <div>
+                                              <span className="font-semibold text-gray-700">Participants:</span>
+                                              <span className="ml-2 text-gray-600">
+                                                {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
+                                              </span>
+                                            </div>
                                           </div>
-                                          <div>
-                                            <span className="font-semibold text-gray-700">Participants:</span>
-                                            <span className="ml-2 text-gray-600">
-                                              {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
-                                            </span>
+                                        )}
+                                        {service.serviceType === 'massage' && service.massageType && (
+                                          <div className="mt-3 text-sm">
+                                            <span className="font-semibold text-gray-700">Massage Type:</span>
+                                            {isEditing ? (
+                                              <select
+                                                value={service.massageType}
+                                                onChange={(e) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'massageType'], e.target.value)}
+                                                className="ml-2 px-2 py-1 border border-gray-300 rounded text-sm"
+                                              >
+                                                <option value="massage">General Massage</option>
+                                                <option value="chair">Chair Massage</option>
+                                                <option value="table">Table Massage</option>
+                                              </select>
+                                            ) : (
+                                              <span className="ml-2 text-gray-600 capitalize">{service.massageType}</span>
+                                            )}
                                           </div>
-                                        </div>
+                                        )}
                                       </div>
                                     )}
                                     

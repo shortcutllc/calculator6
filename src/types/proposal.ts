@@ -19,6 +19,8 @@ export interface Service {
   classLength?: number;
   participants?: string | number;
   fixedPrice?: number;
+  // Massage-specific fields
+  massageType?: 'chair' | 'table' | 'massage';
 }
 
 export interface DateData {

@@ -17,6 +17,8 @@ interface ServiceConfig {
   classLength?: number;
   participants?: string | number;
   fixedPrice?: number;
+  // Massage-specific fields
+  massageType?: 'chair' | 'table' | 'massage';
 }
 
 const SERVICE_DEFAULTS = {
@@ -270,6 +272,24 @@ const Calculator: React.FC = () => {
                       Executive
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {/* Massage Type */}
+              {config.serviceType === 'massage' && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    Massage Type
+                  </label>
+                  <select
+                    value={config.massageType || 'massage'}
+                    onChange={(e) => updateConfig({ massageType: e.target.value as 'chair' | 'table' | 'massage' })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
+                  >
+                    <option value="massage">General Massage</option>
+                    <option value="chair">Chair Massage</option>
+                    <option value="table">Table Massage</option>
+                  </select>
                 </div>
               )}
 

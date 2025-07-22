@@ -22,6 +22,8 @@ interface Service {
   classLength?: number;
   participants?: string | number;
   fixedPrice?: number;
+  // Massage-specific fields
+  massageType?: 'chair' | 'table' | 'massage';
 }
 
 interface Event {
@@ -166,7 +168,8 @@ const DEFAULT_SERVICE: Service = {
   earlyArrival: 25,
   discountPercent: 0,
   date: '',
-  location: ''
+  location: '',
+  massageType: 'massage'
 };
 
 const Home: React.FC = () => {
@@ -518,7 +521,9 @@ const Home: React.FC = () => {
           serviceType: updates.serviceType,
           date: updatedServices[index].date,
           location: updatedServices[index].location,
-          discountPercent: updatedServices[index].discountPercent || 0
+          discountPercent: updatedServices[index].discountPercent || 0,
+          // Preserve massageType if switching to massage, otherwise clear it
+          massageType: updates.serviceType === 'massage' ? (updatedServices[index].massageType || 'massage') : undefined
         };
       }
     } else {
@@ -690,7 +695,7 @@ const Home: React.FC = () => {
       {!showDashboard ? (
         <div className="max-w-2xl mx-auto p-4 sm:p-8">
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-8">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-shortcut-blue">Create New Calculation</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-shortcut-blue">Create New Proposal</h1>
             <form onSubmit={handleStartCalculation}>
               <div className="mb-6">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -1153,6 +1158,25 @@ const Home: React.FC = () => {
                             </button>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {service.serviceType === 'massage' && (
+                      <div>
+                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                          Massage Type
+                        </label>
+                        <select
+                          value={service.massageType || 'massage'}
+                          onChange={(e) =>
+                            updateService(index, { massageType: e.target.value as 'chair' | 'table' | 'massage' })
+                          }
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="massage">General Massage</option>
+                          <option value="chair">Chair Massage</option>
+                          <option value="table">Table Massage</option>
+                        </select>
                       </div>
                     )}
 
