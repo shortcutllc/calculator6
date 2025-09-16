@@ -1584,6 +1584,8 @@
                         <option value="hair">Hair</option>
                         <option value="nails">Nails</option>
                         <option value="headshot">Headshots</option>
+                        <option value="hair-makeup">Hair + Makeup</option>
+                        <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1695,6 +1697,17 @@
                     hourlyRateInput.value = '0';
                     earlyArrivalInput.value = '0';
                     retouchingCostInput.value = '40';
+                    discountPercentInput.value = '0';
+                    break;
+                case 'hair-makeup':
+                case 'headshot-hair-makeup':
+                    totalHoursInput.value = '4';
+                    appTimeInput.value = '20';
+                    numProsInput.value = '2';
+                    proHourlyInput.value = '50';
+                    hourlyRateInput.value = '135';
+                    earlyArrivalInput.value = '25';
+                    retouchingCostInput.value = '0';
                     discountPercentInput.value = '0';
                     break;
             }

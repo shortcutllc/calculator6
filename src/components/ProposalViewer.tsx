@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useAuth } from '../contexts/AuthContext';
 import EditableField from './EditableField';
@@ -14,15 +14,30 @@ import { Button } from './Button';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
 import ShareProposalModal from './ShareProposalModal';
+import { ProposalChangeSet } from '../types/proposal';
 
 const formatCurrency = (value: number): string => {
   return value.toFixed(2);
 };
 
-// Helper function to capitalize service type
-const capitalizeServiceType = (serviceType: string): string => {
+// Helper function to get display name for service type
+const getServiceDisplayName = (serviceType: string): string => {
   if (!serviceType) return '';
-  return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
+  
+  switch (serviceType.toLowerCase()) {
+    case 'hair-makeup':
+      return 'Hair + Makeup';
+    case 'headshot-hair-makeup':
+      return 'Hair + Makeup for Headshots';
+    case 'headshot':
+    case 'headshots':
+      return 'Headshot';
+    case 'mindfulness':
+      return 'Mindfulness';
+    default:
+      // For other services, capitalize first letter and make rest lowercase
+      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
+  }
 };
 
 // Helper function to get unique service types from proposal data
@@ -60,6 +75,10 @@ const getServiceImagePath = (serviceType: string): string => {
       return '/Headshot Slider.png';
     case 'mindfulness':
       return '/Mindfulness Slider.png';
+    case 'hair-makeup':
+      return '/Hair Slider.png';
+    case 'headshot-hair-makeup':
+      return '/Headshot Slider.png';
     default:
       return '/Massage Slider.png'; // fallback
   }
@@ -106,6 +125,10 @@ const getServiceDescription = (service: any): string => {
       return "Professional facial treatments that provide deep cleansing, hydration, and relaxation, helping employees feel refreshed and rejuvenated during their workday.";
     case 'mindfulness':
       return getMindfulnessDescription(service);
+    case 'hair-makeup':
+      return "Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.";
+    case 'headshot-hair-makeup':
+      return "Capture your best self with our professional headshots, complemented by flawless hair styling and makeup application, ensuring you leave with a photo that speaks volumes.";
     default:
       return "";
   }
@@ -115,7 +138,7 @@ const getServiceDescription = (service: any): string => {
 const formatDate = (dateString: string): string => {
   try {
     if (!dateString) return 'No Date';
-    if (dateString === 'TBD') return 'TBD';
+    if (dateString === 'TBD') return 'Date TBD';
     
     // If it's already in YYYY-MM-DD format, parse it directly
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
@@ -179,6 +202,10 @@ const ProposalViewer: React.FC = () => {
   const [showCopied, setShowCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedLocations, setExpandedLocations] = useState<{[key: string]: boolean}>({});
+  
+  // Change tracking state
+  const [changeSets, setChangeSets] = useState<ProposalChangeSet[]>([]);
+  const [showChangeHistory, setShowChangeHistory] = useState(false);
   const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSavingChanges, setIsSavingChanges] = useState(false);
@@ -447,7 +474,48 @@ const ProposalViewer: React.FC = () => {
     }
     
     initializeProposal();
+    fetchChangeSets();
   }, [id]);
+
+  // Function to fetch change sets for this proposal
+  const fetchChangeSets = async () => {
+    if (!id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('*')
+        .eq('id', id)
+        .eq('pending_review', true)
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching change sets:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Convert proposal data to change sets
+        const changeSets: ProposalChangeSet[] = data.map(proposal => ({
+          id: proposal.id,
+          proposalId: proposal.id,
+          changes: [], // We'll populate this with actual changes if needed
+          clientEmail: proposal.client_email,
+          clientName: proposal.client_name,
+          clientComment: proposal.client_comment || '',
+          status: 'pending' as const,
+          submittedAt: proposal.updated_at,
+          reviewedBy: proposal.reviewed_by,
+          reviewedAt: proposal.reviewed_at,
+          adminComment: proposal.admin_comment
+        }));
+        
+        setChangeSets(changeSets);
+      }
+    } catch (error) {
+      console.error('Error fetching change sets:', error);
+    }
+  };
 
   const initializeProposal = async () => {
     try {
@@ -886,7 +954,7 @@ The Shortcut Team`);
                 {isSharing ? 'Sending...' : 'Send to Client'}
               </Button>
             )}
-            {originalData && currentProposal?.hasChanges && currentProposal?.changeSource === 'staff' && (
+            {originalData && currentProposal?.hasChanges && (
               <Button
                 onClick={toggleVersion}
                 variant="secondary"
@@ -1155,7 +1223,7 @@ The Shortcut Team`);
                                   >
                                     <h4 className="text-xl font-bold text-shortcut-blue mb-4 flex items-center">
                                       <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
-                                      Service Type: {capitalizeServiceType(service.serviceType)}
+                                      Service Type: {getServiceDisplayName(service.serviceType)}
                                     </h4>
                                     
                                     {/* Service Description */}
@@ -1584,7 +1652,7 @@ The Shortcut Team`);
                                       <div className="aspect-[4/3] relative overflow-hidden rounded-t-2xl">
                     <img
                       src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
-                      alt={`${capitalizeServiceType(uniqueServiceTypes[currentServiceImageIndex])} service`}
+                      alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
                       className="w-full h-full object-cover transition-opacity duration-500"
                       onError={(e) => {
                         console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
@@ -1610,13 +1678,13 @@ The Shortcut Team`);
                     <div className="p-4 bg-shortcut-blue">
                       <h3 className="text-lg font-bold text-white text-center">
                         {uniqueServiceTypes.length === 1 
-                          ? capitalizeServiceType(uniqueServiceTypes[0])
+                          ? getServiceDisplayName(uniqueServiceTypes[0])
                           : `${uniqueServiceTypes.length} Services`
                         }
                       </h3>
                       {uniqueServiceTypes.length > 1 && (
                         <p className="text-white/90 text-sm text-center mt-1">
-                          {uniqueServiceTypes.map(type => capitalizeServiceType(type)).join(', ')}
+                          {uniqueServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
                         </p>
                       )}
                     </div>
@@ -1682,6 +1750,82 @@ The Shortcut Team`);
             </div>
           </div>
         </div>
+
+        {/* Change History Section */}
+        {changeSets.length > 0 && (
+          <div className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                <HistoryIcon size={24} className="mr-3 text-shortcut-blue" />
+                Change History
+              </h2>
+              <Button
+                onClick={() => setShowChangeHistory(!showChangeHistory)}
+                variant="secondary"
+                size="sm"
+              >
+                {showChangeHistory ? 'Hide' : 'Show'} Changes
+              </Button>
+            </div>
+
+            {showChangeHistory && (
+              <div className="space-y-4">
+                {changeSets.map((changeSet, index) => (
+                  <div key={changeSet.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
+                          <User size={16} className="text-gray-500" />
+                          <span className="font-medium">{changeSet.clientName || 'Unknown Client'}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Mail size={16} className="text-gray-500" />
+                          <span className="text-sm text-gray-600">{changeSet.clientEmail || 'No email'}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Calendar size={16} className="text-gray-500" />
+                          <span className="text-sm text-gray-600">
+                            {new Date(changeSet.submittedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          changeSet.status === 'pending' ? 'bg-orange-100 text-orange-800' :
+                          changeSet.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {changeSet.status === 'pending' ? 'Pending' :
+                           changeSet.status === 'approved' ? 'Approved' : 'Rejected'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {changeSet.clientComment && (
+                      <div className="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                        <p className="text-sm text-blue-800">
+                          <strong>Client Comment:</strong> {changeSet.clientComment}
+                        </p>
+                      </div>
+                    )}
+
+                    {changeSet.adminComment && (
+                      <div className="mb-3 p-3 bg-gray-50 rounded border-l-4 border-gray-400">
+                        <p className="text-sm text-gray-800">
+                          <strong>Admin Comment:</strong> {changeSet.adminComment}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="text-sm text-gray-600">
+                      <strong>Changes:</strong> {changeSet.changes.length} modification(s) submitted
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Send to Client Modal */}

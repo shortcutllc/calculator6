@@ -14,6 +14,10 @@ export const getServiceBorderClass = (serviceType: string): string => {
       return 'border-l-[5px] border-l-shortcut-coral';
     case 'mindfulness':
       return 'border-l-[5px] border-l-shortcut-blue';
+    case 'hair-makeup':
+      return 'border-l-[5px] border-l-shortcut-service-yellow';
+    case 'headshot-hair-makeup':
+      return 'border-l-[5px] border-l-shortcut-coral';
     case 'nutrition':
       return 'border-l-[5px] border-l-shortcut-teal';
     default:

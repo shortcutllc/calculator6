@@ -125,4 +125,41 @@ export interface Proposal {
   hasPricingOptions?: boolean;
 }
 
+// Change tracking interfaces
+export interface ProposalChange {
+  id: string;
+  proposalId: string;
+  field: string;
+  oldValue: any;
+  newValue: any;
+  changeType: 'add' | 'update' | 'remove';
+  timestamp: string;
+  clientEmail?: string;
+  clientName?: string;
+  adminComment?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedAt?: string;
+}
+
+export interface ProposalChangeSet {
+  id: string;
+  proposalId: string;
+  changes: ProposalChange[];
+  clientEmail?: string;
+  clientName?: string;
+  clientComment?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  adminComment?: string;
+}
+
+export interface ChangeReviewData {
+  originalData: ProposalData;
+  proposedData: ProposalData;
+  changeSet: ProposalChangeSet;
+}
+
 export type ProposalRow = Database['public']['Tables']['proposals']['Row'];

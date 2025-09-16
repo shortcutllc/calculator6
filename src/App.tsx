@@ -7,6 +7,7 @@ import { StandaloneProposalViewer } from './components/StandaloneProposalViewer'
 import Calculator from './components/Calculator';
 import Login from './components/Login';
 import Register from './components/Register';
+import AdminDashboard from './components/AdminDashboard';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -71,6 +72,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <Calculator />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/admin"
+                element={
+                  <PrivateRoute>
+                    <AdminDashboard />
                   </PrivateRoute>
                 } 
               />

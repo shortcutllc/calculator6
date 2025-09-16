@@ -78,6 +78,24 @@ const SERVICE_DEFAULTS = {
     classLength: 60,
     participants: 'unlimited',
     fixedPrice: 1350
+  },
+  'hair-makeup': {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  'headshot-hair-makeup': {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
   }
 };
 
@@ -237,6 +255,8 @@ const Calculator: React.FC = () => {
                   <option value="nails">Nails</option>
                   <option value="headshot">Headshot</option>
                   <option value="mindfulness">Mindfulness Meditation</option>
+                  <option value="hair-makeup">Hair + Makeup</option>
+                  <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                 </select>
               </div>
 

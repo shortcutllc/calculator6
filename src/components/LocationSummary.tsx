@@ -11,6 +11,9 @@ const formatDate = (dateString: string): string => {
   try {
     if (!dateString) return 'No Date';
     
+    // Handle TBD case
+    if (dateString === 'TBD') return 'Date TBD';
+    
     // If it's already in YYYY-MM-DD format, parse it directly
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
       const [year, month, day] = dateString.split('-');
