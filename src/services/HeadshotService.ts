@@ -228,6 +228,58 @@ export class HeadshotService {
     return photo;
   }
 
+  static async updateEmployeeGallery(
+    galleryId: string, 
+    updates: { employee_name?: string; email?: string; phone?: string }
+  ): Promise<EmployeeGallery> {
+    const { data, error } = await supabase
+      .from('employee_galleries')
+      .update(updates)
+      .eq('id', galleryId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async deleteEmployeeGallery(galleryId: string): Promise<void> {
+    // First, get all photos for this gallery
+    const { data: photos, error: photosError } = await supabase
+      .from('gallery_photos')
+      .select('photo_url')
+      .eq('gallery_id', galleryId);
+
+    if (photosError) throw photosError;
+
+    // Delete all photos from storage
+    if (photos && photos.length > 0) {
+      const fileNames = photos
+        .map(photo => photo.photo_url.split('/').pop())
+        .filter(Boolean);
+      
+      if (fileNames.length > 0) {
+        await supabase.storage
+          .from('headshot-photos')
+          .remove(fileNames);
+      }
+    }
+
+    // Delete all photos from database
+    await supabase
+      .from('gallery_photos')
+      .delete()
+      .eq('gallery_id', galleryId);
+
+    // Delete the gallery
+    const { error } = await supabase
+      .from('employee_galleries')
+      .delete()
+      .eq('id', galleryId);
+
+    if (error) throw error;
+  }
+
   static async deletePhoto(photoId: string): Promise<void> {
     // Get photo info first
     const { data: photo, error: fetchError } = await supabase

@@ -23,6 +23,7 @@ import { HeadshotEventModal } from './HeadshotEventModal';
 import { CSVUploader } from './CSVUploader';
 import { PhotoUploader } from './PhotoUploader';
 import { EmployeeLinksModal } from './EmployeeLinksModal';
+import { EmployeeManager } from './EmployeeManager';
 
 export const HeadshotEventManager: React.FC = () => {
   const [events, setEvents] = useState<HeadshotEvent[]>([]);
@@ -34,6 +35,7 @@ export const HeadshotEventManager: React.FC = () => {
   const [showEmployeeLinks, setShowEmployeeLinks] = useState(false);
   const [eventStats, setEventStats] = useState<HeadshotEventStats | null>(null);
   const [sendingNotifications, setSendingNotifications] = useState(false);
+  const [activeTab, setActiveTab] = useState<'employees' | 'photos' | 'links'>('employees');
 
   useEffect(() => {
     fetchEvents();
@@ -255,66 +257,125 @@ export const HeadshotEventManager: React.FC = () => {
         ))}
       </div>
 
-      {/* Selected Event Actions */}
+      {/* Selected Event Content */}
       {selectedEvent && (
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Event: {selectedEvent.event_name}
-          </h2>
-          
-          <div className="flex flex-wrap gap-4">
-            <Button
-              onClick={() => setShowCSVUploader(true)}
-              variant="secondary"
-              className="flex items-center space-x-2"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Import Employees (CSV)</span>
-            </Button>
+        <div className="bg-white rounded-2xl shadow-lg">
+          {/* Event Header */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Event: {selectedEvent.event_name}
+            </h2>
             
-            <Button
-              onClick={() => setShowPhotoUploader(true)}
-              variant="secondary"
-              className="flex items-center space-x-2"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Upload Photos</span>
-            </Button>
-            
-            <Button
-              onClick={() => setShowEmployeeLinks(true)}
-              variant="secondary"
-              className="flex items-center space-x-2"
-            >
-              <Link className="w-4 h-4" />
-              <span>View Employee Links</span>
-            </Button>
-            
-            <Button
-              onClick={handleSendNotifications}
-              disabled={sendingNotifications || !eventStats?.total_employees}
-              className="flex items-center space-x-2"
-            >
-              {sendingNotifications ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Sending...</span>
-                </>
-              ) : (
-                <>
-                  <Mail className="w-4 h-4" />
-                  <span>Send Notifications</span>
-                </>
-              )}
-            </Button>
-            
-            <Button
-              onClick={() => setShowPhotoUploader(true)}
-              className="flex items-center space-x-2"
-            >
-              <Eye className="w-4 h-4" />
-              <span>View Galleries</span>
-            </Button>
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                {[
+                  { key: 'employees', label: 'Employees', icon: Users },
+                  { key: 'photos', label: 'Photos', icon: Camera },
+                  { key: 'links', label: 'Links', icon: Link }
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as 'employees' | 'photos' | 'links')}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                      activeTab === tab.key
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <tab.icon className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === 'employees' && (
+              <div className="space-y-6">
+                <div className="flex flex-wrap gap-4">
+                  <Button
+                    onClick={() => setShowCSVUploader(true)}
+                    variant="secondary"
+                    className="flex items-center space-x-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Import Employees (CSV)</span>
+                  </Button>
+                  
+                  <Button
+                    onClick={handleSendNotifications}
+                    disabled={sendingNotifications || !eventStats?.total_employees}
+                    className="flex items-center space-x-2"
+                  >
+                    {sendingNotifications ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4" />
+                        <span>Send Notifications</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <EmployeeManager
+                  eventId={selectedEvent.id}
+                  onEmployeeUpdate={() => fetchEventStats(selectedEvent.id)}
+                />
+              </div>
+            )}
+
+            {activeTab === 'photos' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">Photo Management</h3>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => setShowPhotoUploader(true)}
+                      className="flex items-center space-x-2"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>Upload Photos</span>
+                    </Button>
+                    <Button
+                      onClick={() => setShowPhotoUploader(true)}
+                      variant="secondary"
+                      className="flex items-center space-x-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>View Galleries</span>
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-gray-600">
+                  Use the buttons above to manage photos for employees in this event.
+                </p>
+              </div>
+            )}
+
+            {activeTab === 'links' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">Employee Links</h3>
+                  <Button
+                    onClick={() => setShowEmployeeLinks(true)}
+                    className="flex items-center space-x-2"
+                  >
+                    <Link className="w-4 h-4" />
+                    <span>View Employee Links</span>
+                  </Button>
+                </div>
+                <p className="text-gray-600">
+                  View and copy employee gallery links for this event.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
