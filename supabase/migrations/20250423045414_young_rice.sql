@@ -5,6 +5,9 @@
   2. Sets up initial auth configuration
 */
 
+-- Enable pgcrypto extension for password hashing
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Create the user with proper auth schema handling
 DO $$
 BEGIN

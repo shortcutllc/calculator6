@@ -11,6 +11,7 @@
     "generate": "node scripts/generate-proposals.js"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.5",
     "@stripe/stripe-js": "^2.3.0",
     "@supabase/supabase-js": "^2.26.0",
     "date-fns": "^3.3.1",

@@ -1043,7 +1043,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                       Option {optionIndex + 1}
                                                     </h6>
                                                     <p className="text-sm text-gray-600">
-                                                      {option.totalAppointments} appointments × ${formatCurrency(option.hourlyRate)}/hour
+                                                      {option.totalAppointments} appointments
                                                     </p>
                                                   </div>
                                                   <div className="text-right">

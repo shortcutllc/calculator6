@@ -1,5 +1,5 @@
-import React, { useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { useEffect, lazy, Suspense } from 'react';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Home from './components/Home';
 import History from './components/History';
 import ProposalViewer from './components/ProposalViewer';
@@ -8,6 +8,8 @@ import Calculator from './components/Calculator';
 import Login from './components/Login';
 import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
+import EmployeeGallery from './components/EmployeeGallery';
+import { HeadshotsPage } from './components/HeadshotsPage';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -25,7 +27,8 @@ function App() {
   const isSharedView = location.pathname.startsWith('/shared/') || 
     (location.pathname.startsWith('/proposal/') && location.search.includes('shared=true')) ||
     location.pathname === '/brochure' ||
-    (location.pathname.startsWith('/brochures/') && location.search.includes('shared=true'));
+    (location.pathname.startsWith('/brochures/') && location.search.includes('shared=true')) ||
+    location.pathname.startsWith('/gallery/');
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -76,6 +79,14 @@ function App() {
                 } 
               />
               <Route 
+                path="/headshots"
+                element={
+                  <PrivateRoute>
+                    <HeadshotsPage />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
                 path="/admin"
                 element={
                   <PrivateRoute>
@@ -98,6 +109,10 @@ function App() {
               <Route 
                 path="/shared/:id"
                 element={<StandaloneProposalViewer />}
+              />
+              <Route 
+                path="/gallery/:token"
+                element={<EmployeeGallery />}
               />
               <Route
                 path="/brochure"
