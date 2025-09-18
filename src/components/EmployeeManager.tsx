@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Save, User, Mail, Phone } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, Edit, Trash2, X, Save, User, Mail, Phone, Camera, Link, Copy, CheckCircle, Clock, AlertCircle, Search, Filter } from 'lucide-react';
 import { Button } from './Button';
 import { HeadshotService } from '../services/HeadshotService';
 import { EmployeeGallery } from '../types/headshot';
@@ -7,6 +7,8 @@ import { EmployeeGallery } from '../types/headshot';
 interface EmployeeManagerProps {
   eventId: string;
   onEmployeeUpdate: () => void;
+  onUploadPhotos: (employeeId: string, employeeName: string) => void;
+  onUploadFinal: (employeeId: string, employeeName: string) => void;
 }
 
 interface EmployeeFormData {
@@ -17,7 +19,9 @@ interface EmployeeFormData {
 
 export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   eventId,
-  onEmployeeUpdate
+  onEmployeeUpdate,
+  onUploadPhotos,
+  onUploadFinal
 }) => {
   const [employees, setEmployees] = useState<EmployeeGallery[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +34,9 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [copiedLinks, setCopiedLinks] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'no_photos' | 'photos_uploaded' | 'photo_selected' | 'final_ready'>('all');
 
   useEffect(() => {
     fetchEmployees();
@@ -46,6 +53,98 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
       setLoading(false);
     }
   };
+
+  const getStatusBadge = (employee: EmployeeGallery) => {
+    const hasPhotos = employee.photos && employee.photos.length > 0;
+    const hasSelection = employee.selected_photo_id;
+    const hasFinal = employee.photos?.some(p => p.is_final);
+
+    if (hasFinal) {
+      return {
+        text: 'Final Photo Ready',
+        color: 'bg-purple-100 text-purple-800 border-purple-200',
+        icon: CheckCircle
+      };
+    } else if (hasSelection) {
+      return {
+        text: 'Photo Selected',
+        color: 'bg-green-100 text-green-800 border-green-200',
+        icon: CheckCircle
+      };
+    } else if (hasPhotos) {
+      return {
+        text: 'Photos Added',
+        color: 'bg-blue-100 text-blue-800 border-blue-200',
+        icon: Camera
+      };
+    } else {
+      return {
+        text: 'No Photos',
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        icon: AlertCircle
+      };
+    }
+  };
+
+  const copyGalleryLink = async (employee: EmployeeGallery) => {
+    const galleryUrl = `${window.location.origin}/gallery/${employee.unique_token}`;
+    try {
+      await navigator.clipboard.writeText(galleryUrl);
+      setCopiedLinks(prev => new Set(prev).add(employee.id));
+      setTimeout(() => {
+        setCopiedLinks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(employee.id);
+          return newSet;
+        });
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = galleryUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+  };
+
+  // Filter and search employees
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(employee => {
+      // Search filter
+      const matchesSearch = searchTerm === '' || 
+        employee.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (employee.phone && employee.phone.includes(searchTerm));
+
+      // Status filter
+      let matchesStatus = true;
+      if (statusFilter !== 'all') {
+        const hasPhotos = employee.photos && employee.photos.length > 0;
+        const hasSelection = employee.selected_photo_id;
+        const hasFinal = employee.photos?.some(p => p.is_final);
+
+        switch (statusFilter) {
+          case 'no_photos':
+            matchesStatus = !hasPhotos;
+            break;
+          case 'photos_uploaded':
+            matchesStatus = hasPhotos && !hasSelection;
+            break;
+          case 'photo_selected':
+            matchesStatus = hasSelection && !hasFinal;
+            break;
+          case 'final_ready':
+            matchesStatus = hasFinal;
+            break;
+        }
+      }
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [employees, searchTerm, statusFilter]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -171,7 +270,9 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Employees ({employees.length})</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Employees ({filteredEmployees.length} of {employees.length})
+        </h3>
         <Button
           onClick={() => setShowAddForm(true)}
           className="flex items-center space-x-2"
@@ -179,6 +280,39 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
           <Plus className="w-4 h-4" />
           <span>Add Employee</span>
         </Button>
+      </div>
+
+      {/* Search and Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Search Bar */}
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search employees by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center space-x-2">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="no_photos">No Photos</option>
+            <option value="photos_uploaded">Photos Uploaded</option>
+            <option value="photo_selected">Photo Selected</option>
+            <option value="final_ready">Final Photo Ready</option>
+          </select>
+        </div>
       </div>
 
       {/* Add Employee Form */}
@@ -373,64 +507,130 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
             <p>No employees added yet</p>
             <p className="text-sm">Click "Add Employee" to get started</p>
           </div>
+        ) : filteredEmployees.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No employees match your search criteria</p>
+            <p className="text-sm">Try adjusting your search or filter</p>
+          </div>
         ) : (
-          employees.map((employee) => (
-            <div
-              key={employee.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium text-gray-900">{employee.employee_name}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3 text-sm text-gray-600">
-                    <div className="flex items-center space-x-1">
-                      <Mail className="w-3 h-3" />
-                      <span>{employee.email}</span>
+          filteredEmployees.map((employee) => {
+            const statusBadge = getStatusBadge(employee);
+            const isLinkCopied = copiedLinks.has(employee.id);
+            
+            return (
+              <div
+                key={employee.id}
+                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    {/* Employee Info */}
+                    <div className="flex items-center space-x-3 mb-3">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span className="font-medium text-gray-900">{employee.employee_name}</span>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusBadge.color}`}>
+                        <statusBadge.icon className="w-3 h-3 mr-1" />
+                        {statusBadge.text}
+                      </span>
                     </div>
-                    {employee.phone && (
+                    
+                    {/* Contact Info */}
+                    <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                       <div className="flex items-center space-x-1">
-                        <Phone className="w-3 h-3" />
-                        <span>{employee.phone}</span>
+                        <Mail className="w-3 h-3" />
+                        <span>{employee.email}</span>
+                      </div>
+                      {employee.phone && (
+                        <div className="flex items-center space-x-1">
+                          <Phone className="w-3 h-3" />
+                          <span>{employee.phone}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Photo Count */}
+                    {employee.photos && employee.photos.length > 0 && (
+                      <div className="text-xs text-gray-500 mb-3">
+                        {employee.photos.length} photo{employee.photos.length !== 1 ? 's' : ''} uploaded
                       </div>
                     )}
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      {/* Upload Photos Button - only show if no photos or photos but no selection */}
+                      {(!employee.photos || employee.photos.length === 0 || !employee.selected_photo_id) && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onUploadPhotos(employee.id, employee.employee_name);
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+                          title="Upload photos for this employee"
+                        >
+                          <Camera className="w-3 h-3 mr-1" />
+                          {!employee.photos || employee.photos.length === 0 ? 'Upload Photos' : 'Add More Photos'}
+                        </button>
+                      )}
+                      
+                      {/* Upload Final Button - only show if photo is selected but no final photo */}
+                      {employee.selected_photo_id && !employee.photos?.some(p => p.is_final) && (
+                        <button
+                          onClick={() => onUploadFinal(employee.id, employee.employee_name)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
+                          title="Upload final retouched photo"
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Upload Final
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={() => copyGalleryLink(employee)}
+                        className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                          isLinkCopied 
+                            ? 'text-green-700 bg-green-100' 
+                            : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                        }`}
+                        title="Copy gallery link"
+                      >
+                        {isLinkCopied ? (
+                          <>
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Link className="w-3 h-3 mr-1" />
+                            Copy Link
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
-                  {employee.photos && employee.photos.length > 0 && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      {employee.photos.length} photo{employee.photos.length !== 1 ? 's' : ''}
-                      {employee.selected_photo_id && (
-                        <span className="text-green-600 ml-2">✓ Selected</span>
-                      )}
-                      {employee.photos.some(p => p.is_final) && (
-                        <span className="text-purple-600 ml-2">🎉 Final ready</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => startEdit(employee)}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                    title="Edit employee"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteEmployee(employee.id, employee.employee_name)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                    title="Delete employee"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Edit/Delete Actions */}
+                  <div className="flex items-center space-x-1 ml-4">
+                    <button
+                      onClick={() => startEdit(employee)}
+                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      title="Edit employee"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEmployee(employee.id, employee.employee_name)}
+                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      title="Delete employee"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

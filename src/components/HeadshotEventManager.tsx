@@ -36,6 +36,8 @@ export const HeadshotEventManager: React.FC = () => {
   const [eventStats, setEventStats] = useState<HeadshotEventStats | null>(null);
   const [sendingNotifications, setSendingNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState<'employees' | 'photos' | 'links'>('employees');
+  const [uploadingForEmployee, setUploadingForEmployee] = useState<{id: string, name: string} | null>(null);
+  const [uploadMode, setUploadMode] = useState<'photos' | 'final'>('photos');
 
   useEffect(() => {
     fetchEvents();
@@ -126,6 +128,18 @@ export const HeadshotEventManager: React.FC = () => {
     } finally {
       setSendingNotifications(false);
     }
+  };
+
+  const handleUploadPhotosForEmployee = (employeeId: string, employeeName: string) => {
+    setUploadingForEmployee({ id: employeeId, name: employeeName });
+    setUploadMode('photos');
+    setShowPhotoUploader(true);
+  };
+
+  const handleUploadFinalForEmployee = (employeeId: string, employeeName: string) => {
+    setUploadingForEmployee({ id: employeeId, name: employeeName });
+    setUploadMode('final');
+    setShowPhotoUploader(true);
   };
 
   const getStatusIcon = (status: HeadshotEvent['status']) => {
@@ -327,6 +341,8 @@ export const HeadshotEventManager: React.FC = () => {
                 <EmployeeManager
                   eventId={selectedEvent.id}
                   onEmployeeUpdate={() => fetchEventStats(selectedEvent.id)}
+                  onUploadPhotos={handleUploadPhotosForEmployee}
+                  onUploadFinal={handleUploadFinalForEmployee}
                 />
               </div>
             )}
@@ -398,11 +414,19 @@ export const HeadshotEventManager: React.FC = () => {
       {showPhotoUploader && selectedEvent && (
         <PhotoUploader
           eventId={selectedEvent.id}
-          onClose={() => setShowPhotoUploader(false)}
+          onClose={() => {
+            setShowPhotoUploader(false);
+            setUploadingForEmployee(null);
+            setUploadMode('photos');
+          }}
           onUploadComplete={() => {
             fetchEventStats(selectedEvent.id);
             setShowPhotoUploader(false);
+            setUploadingForEmployee(null);
+            setUploadMode('photos');
           }}
+          specificEmployee={uploadingForEmployee}
+          uploadMode={uploadMode}
         />
       )}
 

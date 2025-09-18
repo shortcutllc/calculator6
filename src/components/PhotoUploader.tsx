@@ -10,12 +10,16 @@ interface PhotoUploaderProps {
   eventId: string;
   onClose: () => void;
   onUploadComplete: () => void;
+  specificEmployee?: { id: string; name: string } | null;
+  uploadMode?: 'photos' | 'final';
 }
 
 export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   eventId,
   onClose,
-  onUploadComplete
+  onUploadComplete,
+  specificEmployee,
+  uploadMode = 'photos'
 }) => {
   const [galleries, setGalleries] = useState<EmployeeGallery[]>([]);
   const [selectedGallery, setSelectedGallery] = useState<EmployeeGallery | null>(null);
@@ -31,7 +35,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
   useEffect(() => {
     fetchGalleries();
-  }, [eventId]);
+  }, [eventId, specificEmployee, uploadMode]);
 
   const fetchGalleries = async () => {
     try {
@@ -40,6 +44,19 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       const data = await HeadshotService.getGalleriesByEvent(eventId);
       console.log('Fetched galleries:', data);
       setGalleries(data);
+      
+      // Auto-select specific employee if provided
+      if (specificEmployee) {
+        const targetGallery = data.find(gallery => gallery.id === specificEmployee.id);
+        if (targetGallery) {
+          setSelectedGallery(targetGallery);
+          
+          // If in final upload mode, automatically trigger final photo upload
+          if (uploadMode === 'final') {
+            setUploadingFinalFor(targetGallery);
+          }
+        }
+      }
     } catch (err) {
       console.error('Error fetching galleries:', err);
       setError('Failed to load employee galleries');
