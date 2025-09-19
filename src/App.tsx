@@ -9,6 +9,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
 import EmployeeGallery from './components/EmployeeGallery';
+import ManagerGallery from './components/ManagerGallery';
 import { HeadshotsPage } from './components/HeadshotsPage';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -28,7 +29,8 @@ function App() {
     (location.pathname.startsWith('/proposal/') && location.search.includes('shared=true')) ||
     location.pathname === '/brochure' ||
     (location.pathname.startsWith('/brochures/') && location.search.includes('shared=true')) ||
-    location.pathname.startsWith('/gallery/');
+    location.pathname.startsWith('/gallery/') ||
+    location.pathname.startsWith('/manager/');
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -113,6 +115,10 @@ function App() {
               <Route 
                 path="/gallery/:token"
                 element={<EmployeeGallery />}
+              />
+              <Route 
+                path="/manager/:token"
+                element={<ManagerGallery />}
               />
               <Route
                 path="/brochure"

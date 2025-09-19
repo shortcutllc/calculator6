@@ -1,41 +1,34 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Eye, CheckCircle, XCircle, Calendar, MapPin, User, Mail } from 'lucide-react';
-import { ProposalChangeSet, ProposalData } from '../types/proposal';
-import { getChangeDisplayInfo } from '../utils/changeTracker';
+import { X, ExternalLink, Eye, CheckCircle, XCircle, Calendar, MapPin, User, Mail, DollarSign, AlertCircle, ArrowRight } from 'lucide-react';
+import { Proposal, ProposalData } from '../types/proposal';
+import { format, parseISO } from 'date-fns';
+import { trackProposalChanges, getChangeDisplayInfo } from '../utils/changeTracker';
 
 interface ChangeReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  changeSet: ProposalChangeSet | null;
-  proposalId?: string;
+  proposalId: string;
+  proposalData: Proposal;
 }
 
 const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
   isOpen,
   onClose,
-  changeSet,
-  proposalId
+  proposalId,
+  proposalData
 }) => {
-  if (!isOpen || !changeSet) return null;
+  if (!isOpen || !proposalData) return null;
 
   const getProposalViewerUrl = () => {
-    if (!proposalId) {
-      console.log('No proposalId provided to ChangeReviewModal');
-      return '#';
-    }
-    const url = `/proposal/${proposalId}`;
-    console.log('Proposal Viewer URL:', url);
-    return url;
+    return `/proposal/${proposalId}`;
   };
 
   const getStandaloneViewerUrl = () => {
-    if (!proposalId) {
-      console.log('No proposalId provided to ChangeReviewModal');
-      return '#';
-    }
-    const url = `/proposal/${proposalId}?shared=true`;
-    console.log('Standalone Viewer URL:', url);
-    return url;
+    return `/proposal/${proposalId}?shared=true`;
+  };
+
+  const calculateTotalCost = () => {
+    return proposalData.data.summary?.totalEventCost || 0;
   };
 
   return (
@@ -44,9 +37,9 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Change Review</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Proposal Details</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Review changes submitted by {changeSet.clientName || 'Client'}
+              Review proposal for {proposalData.data.clientName || 'Client'}
             </p>
           </div>
           <button
@@ -68,98 +61,171 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
         >
           {/* Client Info */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <User size={16} className="text-gray-500" />
-                <span className="font-medium">{changeSet.clientName || 'Unknown Client'}</span>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Client Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3">
+                <User className="w-5 h-5 text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Client Name</p>
+                  <p className="text-sm text-gray-600">{proposalData.data.clientName || 'Not provided'}</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Mail size={16} className="text-gray-500" />
-                <span className="text-sm text-gray-600">{changeSet.clientEmail || 'No email'}</span>
+              
+              <div className="flex items-center space-x-3">
+                <Mail className="w-5 h-5 text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Email</p>
+                  <p className="text-sm text-gray-600">{proposalData.data.clientEmail || 'Not provided'}</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Calendar size={16} className="text-gray-500" />
-                <span className="text-sm text-gray-600">
-                  {new Date(changeSet.submittedAt).toLocaleDateString()}
-                </span>
+              
+              <div className="flex items-center space-x-3">
+                <Calendar className="w-5 h-5 text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Created</p>
+                  <p className="text-sm text-gray-600">{format(parseISO(proposalData.createdAt), 'MMM d, yyyy h:mm a')}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <MapPin className="w-5 h-5 text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Location</p>
+                  <p className="text-sm text-gray-600">{proposalData.data.officeLocation || proposalData.data.locations?.[0] || 'Not specified'}</p>
+                </div>
               </div>
             </div>
-            {changeSet.clientComment && (
-              <div className="mt-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
-                <p className="text-sm text-blue-800">
-                  <strong>Client Comment:</strong> {changeSet.clientComment}
-                </p>
-              </div>
-            )}
           </div>
 
-          {/* Changes Summary */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              Changes Summary ({changeSet.changes.length} changes)
-            </h3>
-            <div className="space-y-3">
-              {changeSet.changes.map((change, index) => {
-                const { fieldName, oldValueDisplay, newValueDisplay, changeType } = getChangeDisplayInfo(change);
-                return (
-                  <div key={change.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-gray-900">{fieldName}</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          changeType === 'add' ? 'bg-green-100 text-green-800' :
-                          changeType === 'remove' ? 'bg-red-100 text-red-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {changeType === 'add' ? 'Added' : changeType === 'remove' ? 'Removed' : 'Updated'}
-                        </span>
+          {/* Event Details */}
+          {proposalData.data.eventDates && proposalData.data.eventDates.length > 0 && (
+            <div className="bg-blue-50 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Event Details</h3>
+              <p className="text-gray-700">Event Dates: {proposalData.data.eventDates.join(', ')}</p>
+            </div>
+          )}
+
+          {/* Changes Section */}
+          {proposalData.hasChanges && proposalData.originalData && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <AlertCircle className="w-5 h-5 text-orange-600" />
+                <h3 className="text-lg font-semibold text-orange-900">Changes Submitted</h3>
+              </div>
+              
+              <div className="space-y-3">
+                {(() => {
+                  const changes = trackProposalChanges(
+                    proposalData.originalData, 
+                    proposalData.data, 
+                    proposalData.clientEmail, 
+                    proposalData.clientName
+                  );
+                  
+                  if (changes.length === 0) {
+                    return (
+                      <p className="text-orange-700 text-sm">
+                        Changes detected but no specific field changes found. This may be due to service modifications or other complex changes.
+                      </p>
+                    );
+                  }
+                  
+                  return changes.map((change, index) => {
+                    const displayInfo = getChangeDisplayInfo(change);
+                    return (
+                      <div key={index} className="bg-white rounded border p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-gray-900">{displayInfo.fieldName}</span>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            displayInfo.changeType === 'add' ? 'bg-green-100 text-green-800' :
+                            displayInfo.changeType === 'remove' ? 'bg-red-100 text-red-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {displayInfo.changeType === 'add' ? 'Added' :
+                             displayInfo.changeType === 'remove' ? 'Removed' : 'Updated'}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <span className="text-gray-500 line-through">{displayInfo.oldValueDisplay}</span>
+                          <ArrowRight className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-900 font-medium">{displayInfo.newValueDisplay}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {changeType === 'add' && (
-                        <span className="text-green-700">Added: {newValueDisplay}</span>
-                      )}
-                      {changeType === 'remove' && (
-                        <span className="text-red-700">Removed: {oldValueDisplay}</span>
-                      )}
-                      {changeType === 'update' && (
-                        <span>
-                          <span className="text-red-600 line-through">{oldValueDisplay}</span>
-                          <span className="mx-2">→</span>
-                          <span className="text-green-600 font-medium">{newValueDisplay}</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  });
+                })()}
+              </div>
+              
+              {proposalData.clientComment && (
+                <div className="mt-4 p-3 bg-white rounded border">
+                  <h4 className="font-medium text-gray-900 mb-1">Client Comment:</h4>
+                  <p className="text-gray-700 text-sm">{proposalData.clientComment}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Proposal Summary */}
+          <div className="bg-green-50 rounded-lg p-4 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Proposal Summary</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center space-x-3">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Total Cost</p>
+                  <p className="text-lg font-semibold text-green-600">${calculateTotalCost().toLocaleString()}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Status</p>
+                  <p className="text-sm text-gray-600">
+                    {proposalData.pendingReview ? 'Pending Review' : 
+                     proposalData.status === 'approved' ? 'Approved' : 'Draft'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <Eye className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Changes</p>
+                  <p className="text-sm text-gray-600">
+                    {proposalData.hasChanges ? 'Has Changes' : 'No Changes'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Quick Actions</h3>
-            <div className="flex flex-wrap gap-3">
-              <a
-                href={getProposalViewerUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Eye size={16} className="mr-2" />
-                View in Proposal Viewer
-              </a>
-              <a
-                href={getStandaloneViewerUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <ExternalLink size={16} className="mr-2" />
-                View Standalone Proposal
-              </a>
+          {/* Services */}
+          {proposalData.data.services && Object.keys(proposalData.data.services).length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Services</h3>
+              <div className="space-y-3">
+                {Object.entries(proposalData.data.services).map(([location, locationData]: [string, any]) => (
+                  <div key={location} className="border-l-4 border-blue-500 pl-4">
+                    <h4 className="font-medium text-gray-900">{location}</h4>
+                    {locationData.services && Object.entries(locationData.services).map(([service, serviceData]: [string, any]) => (
+                      <div key={service} className="ml-4 mt-2 text-sm text-gray-600">
+                        <span className="font-medium">{service}:</span> {serviceData.quantity || 0} units
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Notes */}
+          {proposalData.notes && (
+            <div className="bg-yellow-50 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Notes</h3>
+              <p className="text-gray-700">{proposalData.notes}</p>
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}
@@ -170,6 +236,26 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
           >
             Close
           </button>
+          
+          <a
+            href={getProposalViewerUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Eye className="w-4 h-4" />
+            <span>View Proposal</span>
+          </a>
+          
+          <a
+            href={getStandaloneViewerUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span>View Standalone</span>
+          </a>
         </div>
       </div>
     </div>

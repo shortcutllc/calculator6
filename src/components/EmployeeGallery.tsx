@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, Check, AlertCircle, Download, ArrowLeft } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Camera, Check, AlertCircle, Download, Mail } from 'lucide-react';
 import { HeadshotService } from '../services/HeadshotService';
 import { EmployeeGallery as EmployeeGalleryType, GalleryPhoto } from '../types/headshot';
+import { supabase } from '../lib/supabaseClient';
 
 const EmployeeGallery: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  const navigate = useNavigate();
   
   const [gallery, setGallery] = useState<EmployeeGalleryType | null>(null);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
@@ -16,6 +16,7 @@ const EmployeeGallery: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [canChangeSelection, setCanChangeSelection] = useState(false);
+  const [eventData, setEventData] = useState<{ event_name: string; client_logo_url?: string } | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -44,6 +45,22 @@ const EmployeeGallery: React.FC = () => {
                                galleryData.status === 'retouching' || 
                                galleryData.status === 'completed';
         setCanChangeSelection(!isSelectionMade);
+
+        // Fetch event data for client logo
+        try {
+          const { data: event, error } = await supabase
+            .from('headshot_events')
+            .select('event_name, client_logo_url')
+            .eq('id', galleryData.event_id)
+            .single();
+
+          if (!error && event) {
+            setEventData(event);
+          }
+        } catch (eventErr) {
+          console.error('Error fetching event data:', eventErr);
+          // Don't fail the whole operation if event data fails
+        }
       } else {
         setError('Gallery not found. Please check your link or contact support.');
       }
@@ -87,13 +104,28 @@ const EmployeeGallery: React.FC = () => {
     }
   };
 
-  const handleDownload = (photoUrl: string, photoName: string) => {
-    const link = document.createElement('a');
-    link.href = photoUrl;
-    link.download = photoName || 'headshot.jpg';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async (photoUrl: string, photoName: string) => {
+    try {
+      // Fetch the image as a blob
+      const response = await fetch(photoUrl);
+      const blob = await response.blob();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = photoName || 'headshot.jpg';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading photo:', error);
+      // Fallback to opening in new tab
+      window.open(photoUrl, '_blank');
+    }
   };
 
   if (isLoading) {
@@ -114,12 +146,9 @@ const EmployeeGallery: React.FC = () => {
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Error</h1>
           <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go Home
-          </button>
+          <p className="text-sm text-gray-500">
+            If you have any questions, please contact hello@getshortcut.co
+          </p>
         </div>
       </div>
     );
@@ -132,12 +161,9 @@ const EmployeeGallery: React.FC = () => {
           <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Gallery Not Found</h1>
           <p className="text-gray-600 mb-6">The gallery you're looking for doesn't exist or has expired.</p>
-          <button
-            onClick={() => navigate('/')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go Home
-          </button>
+          <p className="text-sm text-gray-500">
+            If you have any questions, please contact hello@getshortcut.co
+          </p>
         </div>
       </div>
     );
@@ -148,21 +174,58 @@ const EmployeeGallery: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Your Headshot Gallery</h1>
-              <p className="text-gray-600">Hello {gallery.employee_name}</p>
+      {/* Client Logo Header */}
+      {eventData?.client_logo_url && (
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex justify-center">
+              <img 
+                src={eventData.client_logo_url} 
+                alt="Client Logo" 
+                className="h-12 w-auto object-contain"
+              />
             </div>
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">Your Headshot Gallery</h1>
+              <p className="text-lg text-gray-600">Welcome back, {gallery.employee_name}</p>
+              {eventData?.event_name && (
+                <p className="text-sm text-gray-500">{eventData.event_name}</p>
+              )}
+            </div>
+            
+            {/* Status Badge */}
+            <div className="flex-shrink-0">
+              {hasFinalPhoto ? (
+                <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-full text-sm font-medium border border-purple-200">
+                  <div className="flex items-center space-x-2">
+                    <Check className="w-4 h-4" />
+                    <span>Final Photo Ready</span>
+                  </div>
+                </div>
+              ) : isSelectionMade ? (
+                <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium border border-blue-200">
+                  <div className="flex items-center space-x-2">
+                    <Check className="w-4 h-4" />
+                    <span>Selection Confirmed</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm font-medium border border-amber-200">
+                  <div className="flex items-center space-x-2">
+                    <Camera className="w-4 h-4" />
+                    <span>Awaiting Selection</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -227,80 +290,122 @@ const EmployeeGallery: React.FC = () => {
 
         {/* Photos Grid */}
         {photos.length > 0 ? (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {hasFinalPhoto ? 'Your Final Photo' : 'Select Your Photo'}
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {photos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className={`relative group bg-white rounded-lg shadow-sm border-2 transition-all duration-200 ${
-                    selectedPhoto === photo.id
-                      ? canChangeSelection 
-                        ? 'border-blue-500 ring-2 ring-blue-200' 
-                        : 'border-green-500 ring-2 ring-green-200'
-                      : 'border-gray-200 hover:border-gray-300'
-                  } ${photo.is_final ? 'ring-2 ring-green-200 border-green-500' : ''}`}
-                >
-                  {/* Photo */}
-                  <div className="aspect-square overflow-hidden rounded-t-lg">
-                    <img
-                      src={photo.photo_url}
-                      alt={photo.photo_name || 'Headshot photo'}
-                      className="w-full h-full object-cover cursor-pointer"
-                      onClick={() => !hasFinalPhoto && handlePhotoSelect(photo.id)}
-                    />
-                  </div>
+          <div className="space-y-8">
+            {/* Final Photo Section */}
+            {hasFinalPhoto && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-900">Your Final Photo</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {photos.filter(photo => photo.is_final).map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="relative group bg-white rounded-lg shadow-lg border-2 border-purple-500 ring-2 ring-purple-200 transition-all duration-200"
+                    >
+                      {/* Photo */}
+                      <div className="aspect-square overflow-hidden rounded-t-lg">
+                        <img
+                          src={photo.photo_url}
+                          alt={photo.photo_name || 'Final headshot photo'}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
 
-                  {/* Overlay for selection */}
-                  {!hasFinalPhoto && selectedPhoto === photo.id && (
-                    <div className={`absolute inset-0 flex items-center justify-center ${
-                      canChangeSelection ? 'bg-blue-500 bg-opacity-20' : 'bg-green-500 bg-opacity-20'
-                    }`}>
-                      <div className={`text-white rounded-full p-2 ${
-                        canChangeSelection ? 'bg-blue-600' : 'bg-green-600'
-                      }`}>
-                        <Check className="w-6 h-6" />
+                      {/* Final photo indicator */}
+                      <div className="absolute top-2 right-2 bg-purple-600 text-white rounded-full p-1">
+                        <Check className="w-4 h-4" />
+                      </div>
+
+                      {/* Photo info */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {photo.photo_name || 'Final Headshot'}
+                            </p>
+                            <p className="text-xs text-purple-600 font-medium">Final Retouched Photo</p>
+                          </div>
+                          
+                          {/* Download button for final photos */}
+                          <button
+                            onClick={() => handleDownload(photo.photo_url, photo.photo_name || 'final-headshot.jpg')}
+                            className="flex items-center text-purple-600 hover:text-purple-800 transition-colors"
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            <span className="text-sm">Download</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* Final photo indicator */}
-                  {photo.is_final && (
-                    <div className="absolute top-2 right-2 bg-green-600 text-white rounded-full p-1">
-                      <Check className="w-4 h-4" />
-                    </div>
-                  )}
-
-                  {/* Photo info */}
-                  <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {photo.photo_name || 'Headshot'}
-                        </p>
-                        {photo.is_final && (
-                          <p className="text-xs text-green-600 font-medium">Final Photo</p>
-                        )}
-                      </div>
-                      
-                      {/* Download button for final photos */}
-                      {photo.is_final && (
-                        <button
-                          onClick={() => handleDownload(photo.photo_url, photo.photo_name || 'headshot.jpg')}
-                          className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          <span className="text-sm">Download</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {/* Selection Photos Section */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {hasFinalPhoto ? 'Your Original Photos' : 'Select Your Photo'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {photos.filter(photo => !photo.is_final).map((photo) => (
+                    <div
+                      key={photo.id}
+                      className={`relative group bg-white rounded-lg shadow-sm border-2 transition-all duration-200 ${
+                        selectedPhoto === photo.id
+                          ? canChangeSelection 
+                            ? 'border-blue-500 ring-2 ring-blue-200' 
+                            : hasFinalPhoto
+                            ? 'border-purple-500 ring-2 ring-purple-200'
+                            : 'border-green-500 ring-2 ring-green-200'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {/* Photo */}
+                      <div className="aspect-square overflow-hidden rounded-t-lg">
+                        <img
+                          src={photo.photo_url}
+                          alt={photo.photo_name || 'Headshot photo'}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => handlePhotoSelect(photo.id)}
+                        />
+                      </div>
+
+                      {/* Overlay for selection */}
+                      {selectedPhoto === photo.id && (
+                        <div className={`absolute inset-0 flex items-center justify-center ${
+                          canChangeSelection ? 'bg-blue-500 bg-opacity-20' : 
+                          hasFinalPhoto ? 'bg-purple-500 bg-opacity-20' : 'bg-green-500 bg-opacity-20'
+                        }`}>
+                          <div className={`text-white rounded-full p-2 ${
+                            canChangeSelection ? 'bg-blue-600' : 
+                            hasFinalPhoto ? 'bg-purple-600' : 'bg-green-600'
+                          }`}>
+                            <Check className="w-6 h-6" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Selected indicator for final photo context */}
+                      {hasFinalPhoto && selectedPhoto === photo.id && (
+                        <div className="absolute top-2 left-2 bg-purple-600 text-white rounded-full px-2 py-1 text-xs font-medium">
+                          Selected for Retouching
+                        </div>
+                      )}
+
+                      {/* Photo info */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {photo.photo_name || 'Headshot'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
             {/* Submit button */}
             {canChangeSelection && !hasFinalPhoto && selectedPhoto && (
@@ -334,6 +439,32 @@ const EmployeeGallery: React.FC = () => {
             </p>
           </div>
         )}
+
+        {/* Contact Information */}
+        <div className="mt-16 pt-8 border-t border-gray-200">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-3">
+                <span className="text-gray-600 font-medium">Powered by</span>
+                <img 
+                  src="/shortcut-logo blue.svg" 
+                  alt="Shortcut" 
+                  className="h-6 w-auto ml-1"
+                />
+              </div>
+              <p className="text-gray-600 mb-2">
+                Need help or have questions about your headshots?
+              </p>
+              <a 
+                href="mailto:hello@getshortcut.co" 
+                className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                hello@getshortcut.co
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

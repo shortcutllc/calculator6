@@ -6,6 +6,8 @@ export interface HeadshotEvent {
   event_date: string;
   total_employees: number;
   status: 'draft' | 'active' | 'completed' | 'archived';
+  client_logo_url?: string;
+  manager_token?: string;
   created_at: string;
   updated_at: string;
 }

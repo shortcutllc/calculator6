@@ -13,7 +13,9 @@ import {
   Clock,
   AlertCircle,
   Link,
-  Mail
+  Mail,
+  Image as ImageIcon,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from './Button';
 import { HeadshotService } from '../services/HeadshotService';
@@ -30,6 +32,7 @@ export const HeadshotEventManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<HeadshotEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<HeadshotEvent | null>(null);
   const [showCSVUploader, setShowCSVUploader] = useState(false);
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
   const [showEmployeeLinks, setShowEmployeeLinks] = useState(false);
@@ -72,6 +75,26 @@ export const HeadshotEventManager: React.FC = () => {
     } catch (error) {
       console.error('Error creating event:', error);
       alert('Failed to create event. Please try again.');
+    }
+  };
+
+  const handleEditEvent = (event: HeadshotEvent) => {
+    setEditingEvent(event);
+    setShowEventModal(true);
+  };
+
+  const handleUpdateEvent = async (eventData: Omit<HeadshotEvent, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!editingEvent) return;
+    
+    try {
+      const updatedEvent = await HeadshotService.updateEvent(editingEvent.id, eventData);
+      setEvents(events.map(e => e.id === editingEvent.id ? updatedEvent : e));
+      setShowEventModal(false);
+      setEditingEvent(null);
+      alert('Event updated successfully!');
+    } catch (error) {
+      console.error('Error updating event:', error);
+      alert('Failed to update event. Please try again.');
     }
   };
 
@@ -223,9 +246,20 @@ export const HeadshotEventManager: React.FC = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    handleEditEvent(event);
+                  }}
+                  className="text-blue-500 hover:text-blue-700 p-1"
+                  title="Edit event"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleDeleteEvent(event.id);
                   }}
                   className="text-red-500 hover:text-red-700 p-1"
+                  title="Delete event"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -243,6 +277,29 @@ export const HeadshotEventManager: React.FC = () => {
                 <Users className="w-4 h-4" />
                 <span>{event.total_employees} employees</span>
               </div>
+              {event.client_logo_url && (
+                <div className="flex items-center space-x-2">
+                  <ImageIcon className="w-4 h-4 text-blue-500" />
+                  <span className="text-blue-600 font-medium">Client logo added</span>
+                </div>
+              )}
+              {event.manager_token && (
+                <div className="flex items-center space-x-2">
+                  <ExternalLink className="w-4 h-4 text-green-500" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const managerUrl = `${window.location.origin}/manager/${event.manager_token}`;
+                      navigator.clipboard.writeText(managerUrl);
+                      // You could add a toast notification here
+                    }}
+                    className="text-green-600 hover:text-green-800 font-medium text-xs"
+                    title="Click to copy manager link"
+                  >
+                    Copy Manager Link
+                  </button>
+                </div>
+              )}
             </div>
 
             {selectedEvent?.id === event.id && eventStats && (
@@ -399,8 +456,12 @@ export const HeadshotEventManager: React.FC = () => {
       {/* Modals */}
       {showEventModal && (
         <HeadshotEventModal
-          onClose={() => setShowEventModal(false)}
-          onSubmit={handleCreateEvent}
+          onClose={() => {
+            setShowEventModal(false);
+            setEditingEvent(null);
+          }}
+          onSubmit={editingEvent ? handleUpdateEvent : handleCreateEvent}
+          editingEvent={editingEvent}
         />
       )}
 

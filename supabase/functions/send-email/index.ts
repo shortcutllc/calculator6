@@ -12,6 +12,7 @@ interface EmailRequest {
   employeeEmail: string
   galleryUrl: string
   eventName: string
+  clientLogoUrl?: string
 }
 
 serve(async (req) => {
@@ -21,7 +22,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, employeeName, employeeEmail, galleryUrl, eventName }: EmailRequest = await req.json()
+    const { type, employeeName, employeeEmail, galleryUrl, eventName, clientLogoUrl }: EmailRequest = await req.json()
 
     // Validate required fields
     if (!type || !employeeName || !employeeEmail || !galleryUrl || !eventName) {
@@ -50,11 +51,11 @@ serve(async (req) => {
 
     if (type === 'gallery_ready') {
       subject = `Your headshot photos are ready for selection - ${eventName}`
-      html = getGalleryReadyHtml(employeeName, galleryUrl, eventName)
+      html = getGalleryReadyHtml(employeeName, galleryUrl, eventName, clientLogoUrl)
       text = getGalleryReadyText(employeeName, galleryUrl, eventName)
     } else {
       subject = `Your retouched headshot is ready for download - ${eventName}`
-      html = getFinalPhotoReadyHtml(employeeName, galleryUrl, eventName)
+      html = getFinalPhotoReadyHtml(employeeName, galleryUrl, eventName, clientLogoUrl)
       text = getFinalPhotoReadyText(employeeName, galleryUrl, eventName)
     }
 
@@ -147,7 +148,7 @@ serve(async (req) => {
   }
 })
 
-function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName: string): string {
+function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName: string, clientLogoUrl?: string): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -167,6 +168,11 @@ function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName
     </head>
     <body>
       <div class="container">
+        ${clientLogoUrl ? `
+        <div style="background: white; padding: 20px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+          <img src="${clientLogoUrl}" alt="Client Logo" style="height: 50px; width: auto; object-fit: contain;">
+        </div>
+        ` : ''}
         <div class="header">
           <h1>📸 Your Headshot Photos Are Ready!</h1>
           <p>Event: ${eventName}</p>
@@ -224,7 +230,7 @@ function getGalleryReadyText(employeeName: string, galleryUrl: string, eventName
   `
 }
 
-function getFinalPhotoReadyHtml(employeeName: string, galleryUrl: string, eventName: string): string {
+function getFinalPhotoReadyHtml(employeeName: string, galleryUrl: string, eventName: string, clientLogoUrl?: string): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -245,6 +251,11 @@ function getFinalPhotoReadyHtml(employeeName: string, galleryUrl: string, eventN
     </head>
     <body>
       <div class="container">
+        ${clientLogoUrl ? `
+        <div style="background: white; padding: 20px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+          <img src="${clientLogoUrl}" alt="Client Logo" style="height: 50px; width: auto; object-fit: contain;">
+        </div>
+        ` : ''}
         <div class="header">
           <h1>🎉 Your Retouched Headshot Is Ready!</h1>
           <p>Event: ${eventName}</p>

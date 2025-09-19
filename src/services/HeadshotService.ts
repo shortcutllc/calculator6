@@ -11,10 +11,18 @@ import {
 
 export class HeadshotService {
   // Headshot Events
-  static async createEvent(eventData: Omit<HeadshotEvent, 'id' | 'created_at' | 'updated_at'>): Promise<HeadshotEvent> {
+  static async createEvent(eventData: Omit<HeadshotEvent, 'id' | 'created_at' | 'updated_at' | 'manager_token'>): Promise<HeadshotEvent> {
+    // Generate a unique manager token
+    const managerToken = 'mg_' + Math.random().toString(36).substr(2, 20);
+    
+    const eventWithToken = {
+      ...eventData,
+      manager_token: managerToken
+    };
+
     const { data, error } = await supabase
       .from('headshot_events')
-      .insert(eventData)
+      .insert(eventWithToken)
       .select()
       .single();
 
@@ -37,6 +45,17 @@ export class HeadshotService {
       .from('headshot_events')
       .select('*')
       .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getEventByManagerToken(managerToken: string): Promise<HeadshotEvent> {
+    const { data, error } = await supabase
+      .from('headshot_events')
+      .select('*')
+      .eq('manager_token', managerToken)
       .single();
 
     if (error) throw error;

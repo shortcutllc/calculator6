@@ -7,6 +7,7 @@ export interface EmailNotificationRequest {
   employeeEmail: string;
   galleryUrl: string;
   eventName: string;
+  clientLogoUrl?: string;
 }
 
 export class NotificationService {
@@ -61,12 +62,43 @@ export class NotificationService {
       throw new Error(`Invalid email address: ${employeeEmail}`);
     }
 
+    // Get event data (name and client logo) if galleryId is provided
+    let actualEventName = eventName; // fallback to passed eventName
+    let clientLogoUrl: string | undefined;
+    
+    if (galleryId) {
+      try {
+        const { data: gallery, error } = await supabase
+          .from('employee_galleries')
+          .select('event_id')
+          .eq('id', galleryId)
+          .single();
+
+        if (!error && gallery) {
+          const { data: event, error: eventError } = await supabase
+            .from('headshot_events')
+            .select('event_name, client_logo_url')
+            .eq('id', gallery.event_id)
+            .single();
+
+          if (!eventError && event) {
+            actualEventName = event.event_name; // Use the actual event name from database
+            clientLogoUrl = event.client_logo_url;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching event data:', error);
+        // Continue with fallback values
+      }
+    }
+
     const request: EmailNotificationRequest = {
       type: 'gallery_ready',
       employeeName,
       employeeEmail,
       galleryUrl,
-      eventName
+      eventName: actualEventName,
+      clientLogoUrl
     };
 
     await this.sendEmailNotification(request);
@@ -88,12 +120,43 @@ export class NotificationService {
       }
     }
 
+    // Get event data (name and client logo) if galleryId is provided
+    let actualEventName = eventName; // fallback to passed eventName
+    let clientLogoUrl: string | undefined;
+    
+    if (galleryId) {
+      try {
+        const { data: gallery, error } = await supabase
+          .from('employee_galleries')
+          .select('event_id')
+          .eq('id', galleryId)
+          .single();
+
+        if (!error && gallery) {
+          const { data: event, error: eventError } = await supabase
+            .from('headshot_events')
+            .select('event_name, client_logo_url')
+            .eq('id', gallery.event_id)
+            .single();
+
+          if (!eventError && event) {
+            actualEventName = event.event_name; // Use the actual event name from database
+            clientLogoUrl = event.client_logo_url;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching event data:', error);
+        // Continue with fallback values
+      }
+    }
+
     const request: EmailNotificationRequest = {
       type: 'final_photo_ready',
       employeeName,
       employeeEmail,
       galleryUrl,
-      eventName
+      eventName: actualEventName,
+      clientLogoUrl
     };
 
     await this.sendEmailNotification(request);

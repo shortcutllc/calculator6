@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit, Trash2, X, Save, User, Mail, Phone, Camera, Link, Copy, CheckCircle, Clock, AlertCircle, Search, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Save, User, Mail, Phone, Camera, Link, Copy, CheckCircle, Clock, AlertCircle, Search, Filter, Send } from 'lucide-react';
 import { Button } from './Button';
 import { HeadshotService } from '../services/HeadshotService';
+import { NotificationService } from '../services/NotificationService';
 import { EmployeeGallery } from '../types/headshot';
+import { supabase } from '../lib/supabaseClient';
 
 interface EmployeeManagerProps {
   eventId: string;
@@ -27,6 +29,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeGallery | null>(null);
+  const [eventName, setEventName] = useState<string>('Headshot Event');
   const [formData, setFormData] = useState<EmployeeFormData>({
     name: '',
     email: '',
@@ -37,10 +40,29 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   const [copiedLinks, setCopiedLinks] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'no_photos' | 'photos_uploaded' | 'photo_selected' | 'final_ready'>('all');
+  const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    fetchEventName();
     fetchEmployees();
   }, [eventId]);
+
+  const fetchEventName = async () => {
+    try {
+      const { data: event, error } = await supabase
+        .from('headshot_events')
+        .select('event_name')
+        .eq('id', eventId)
+        .single();
+
+      if (!error && event) {
+        setEventName(event.event_name);
+      }
+    } catch (err) {
+      console.error('Error fetching event name:', err);
+      // Keep default 'Headshot Event' if fetch fails
+    }
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -107,6 +129,75 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
+    }
+  };
+
+  const handleSendGalleryReadyEmail = async (employee: EmployeeGallery) => {
+    if (!employee.photos || employee.photos.length === 0) {
+      alert('This employee has no photos uploaded yet. Please upload photos first.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Send gallery ready notification to ${employee.employee_name} (${employee.email})?`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setSendingEmails(prev => new Set(prev).add(employee.id));
+      
+      const galleryUrl = `${window.location.origin}/gallery/${employee.unique_token}`;
+      
+      await NotificationService.sendGalleryReadyNotification(
+        employee.employee_name,
+        employee.email,
+        galleryUrl,
+        eventName,
+        employee.id
+      );
+      
+      alert(`Gallery ready notification sent to ${employee.employee_name}!`);
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      alert(`Failed to send notification to ${employee.employee_name}. Please try again.`);
+    } finally {
+      setSendingEmails(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(employee.id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleSendFinalPhotoEmail = async (employee: EmployeeGallery) => {
+    const hasFinalPhoto = employee.photos?.some(p => p.is_final);
+    if (!hasFinalPhoto) {
+      alert('This employee does not have a final photo uploaded yet.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Send final photo ready notification to ${employee.employee_name} (${employee.email})?`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setSendingEmails(prev => new Set(prev).add(employee.id));
+      
+      await NotificationService.sendFinalPhotoNotification(employee.id);
+      
+      alert(`Final photo notification sent to ${employee.employee_name}!`);
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      alert(`Failed to send notification to ${employee.employee_name}. Please try again.`);
+    } finally {
+      setSendingEmails(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(employee.id);
+        return newSet;
+      });
     }
   };
 
@@ -607,6 +698,49 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
                           </>
                         )}
                       </button>
+
+                      {/* Email Buttons */}
+                      {employee.photos && employee.photos.length > 0 && !employee.photos.some(p => p.is_final) && (
+                        <button
+                          onClick={() => handleSendGalleryReadyEmail(employee)}
+                          disabled={sendingEmails.has(employee.id)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                          title="Send gallery ready notification"
+                        >
+                          {sendingEmails.has(employee.id) ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600 mr-1"></div>
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3 h-3 mr-1" />
+                              Send Gallery Email
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {employee.photos?.some(p => p.is_final) && (
+                        <button
+                          onClick={() => handleSendFinalPhotoEmail(employee)}
+                          disabled={sendingEmails.has(employee.id)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-pink-700 bg-pink-100 hover:bg-pink-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                          title="Send final photo ready notification"
+                        >
+                          {sendingEmails.has(employee.id) ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-600 mr-1"></div>
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3 h-3 mr-1" />
+                              Send Final Email
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
 

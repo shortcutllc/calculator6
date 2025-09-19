@@ -28,14 +28,33 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string>('');
   const [viewingPhotos, setViewingPhotos] = useState<EmployeeGallery | null>(null);
+  const [eventName, setEventName] = useState<string>('Headshot Event');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [uploadingFinalFor, setUploadingFinalFor] = useState<EmployeeGallery | null>(null);
   const [finalPhotoFile, setFinalPhotoFile] = useState<File | null>(null);
   const [uploadingFinal, setUploadingFinal] = useState(false);
 
   useEffect(() => {
+    fetchEventName();
     fetchGalleries();
   }, [eventId, specificEmployee, uploadMode]);
+
+  const fetchEventName = async () => {
+    try {
+      const { data: event, error } = await supabase
+        .from('headshot_events')
+        .select('event_name')
+        .eq('id', eventId)
+        .single();
+
+      if (!error && event) {
+        setEventName(event.event_name);
+      }
+    } catch (err) {
+      console.error('Error fetching event name:', err);
+      // Keep default 'Headshot Event' if fetch fails
+    }
+  };
 
   const fetchGalleries = async () => {
     try {
@@ -247,6 +266,24 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       // Update gallery status
       await HeadshotService.updateGalleryStatus(selectedGallery.id, 'photos_uploaded');
+      
+      // Send gallery ready notification automatically
+      try {
+        const galleryUrl = `${window.location.origin}/gallery/${selectedGallery.unique_token}`;
+        
+        await NotificationService.sendGalleryReadyNotification(
+          selectedGallery.employee_name,
+          selectedGallery.email,
+          galleryUrl,
+          eventName,
+          selectedGallery.id
+        );
+        
+        console.log('Gallery ready notification sent automatically');
+      } catch (error) {
+        console.error('Failed to send automatic gallery ready notification:', error);
+        // Don't fail the upload if notification fails
+      }
       
       // Refresh galleries
       await fetchGalleries();

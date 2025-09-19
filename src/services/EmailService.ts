@@ -15,9 +15,10 @@ export class EmailService {
     employeeName: string,
     employeeEmail: string,
     galleryUrl: string,
-    eventName: string
+    eventName: string,
+    clientLogoUrl?: string
   ): Promise<void> {
-    const template = this.getGalleryReadyTemplate(employeeName, galleryUrl, eventName);
+    const template = this.getGalleryReadyTemplate(employeeName, galleryUrl, eventName, clientLogoUrl);
     
     try {
       await sgMail.send({
@@ -40,9 +41,10 @@ export class EmailService {
     employeeName: string,
     employeeEmail: string,
     galleryUrl: string,
-    eventName: string
+    eventName: string,
+    clientLogoUrl?: string
   ): Promise<void> {
-    const template = this.getFinalPhotoReadyTemplate(employeeName, galleryUrl, eventName);
+    const template = this.getFinalPhotoReadyTemplate(employeeName, galleryUrl, eventName, clientLogoUrl);
     
     try {
       await sgMail.send({
@@ -64,7 +66,8 @@ export class EmailService {
   private static getGalleryReadyTemplate(
     employeeName: string,
     galleryUrl: string,
-    eventName: string
+    eventName: string,
+    clientLogoUrl?: string
   ): EmailTemplate {
     const subject = `Your headshot photos are ready for selection - ${eventName}`;
     
@@ -87,6 +90,11 @@ export class EmailService {
       </head>
       <body>
         <div class="container">
+          ${clientLogoUrl ? `
+          <div style="background: white; padding: 20px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+            <img src="${clientLogoUrl}" alt="Client Logo" style="height: 50px; width: auto; object-fit: contain;">
+          </div>
+          ` : ''}
           <div class="header">
             <h1>📸 Your Headshot Photos Are Ready!</h1>
             <p>Event: ${eventName}</p>
@@ -147,7 +155,8 @@ export class EmailService {
   private static getFinalPhotoReadyTemplate(
     employeeName: string,
     galleryUrl: string,
-    eventName: string
+    eventName: string,
+    clientLogoUrl?: string
   ): EmailTemplate {
     const subject = `Your retouched headshot is ready for download - ${eventName}`;
     
@@ -171,6 +180,11 @@ export class EmailService {
       </head>
       <body>
         <div class="container">
+          ${clientLogoUrl ? `
+          <div style="background: white; padding: 20px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+            <img src="${clientLogoUrl}" alt="Client Logo" style="height: 50px; width: auto; object-fit: contain;">
+          </div>
+          ` : ''}
           <div class="header">
             <h1>🎉 Your Retouched Headshot Is Ready!</h1>
             <p>Event: ${eventName}</p>
