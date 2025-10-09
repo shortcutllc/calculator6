@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Users, Camera, Check, Clock, AlertCircle, Copy, Mail, ExternalLink, Info } from 'lucide-react';
+import { Users, Camera, Check, Clock, AlertCircle, Copy, Mail, ExternalLink, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { HeadshotService } from '../services/HeadshotService';
 import { EmployeeGallery, HeadshotEvent } from '../types/headshot';
 
@@ -12,6 +12,8 @@ const ManagerGallery: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<'name' | 'status' | 'email'>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const statusDefinitions = {
     'Photos Ready': 'Initial photos have been uploaded and are ready for the employee to make a selection.',
@@ -55,7 +57,8 @@ const ManagerGallery: React.FC = () => {
       return {
         text: 'No Photos',
         color: 'bg-gray-100 text-gray-800',
-        icon: <AlertCircle className="w-4 h-4" />
+        icon: <AlertCircle className="w-4 h-4" />,
+        sortOrder: 0
       };
     }
 
@@ -63,7 +66,8 @@ const ManagerGallery: React.FC = () => {
       return {
         text: 'Final Ready',
         color: 'bg-green-100 text-green-800',
-        icon: <Check className="w-4 h-4" />
+        icon: <Check className="w-4 h-4" />,
+        sortOrder: 3
       };
     }
 
@@ -71,16 +75,49 @@ const ManagerGallery: React.FC = () => {
       return {
         text: 'Final In Progress',
         color: 'bg-blue-100 text-blue-800',
-        icon: <Clock className="w-4 h-4" />
+        icon: <Clock className="w-4 h-4" />,
+        sortOrder: 2
       };
     }
 
     return {
       text: 'Photos Ready',
       color: 'bg-yellow-100 text-yellow-800',
-      icon: <Camera className="w-4 h-4" />
+      icon: <Camera className="w-4 h-4" />,
+      sortOrder: 1
     };
   };
+
+  const handleSort = (field: 'name' | 'status' | 'email') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedGalleries = useMemo(() => {
+    return [...galleries].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case 'name':
+          comparison = a.employee_name.localeCompare(b.employee_name);
+          break;
+        case 'email':
+          comparison = a.email.localeCompare(b.email);
+          break;
+        case 'status':
+          const statusA = getStatusBadge(a);
+          const statusB = getStatusBadge(b);
+          comparison = statusA.sortOrder - statusB.sortOrder;
+          break;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [galleries, sortField, sortDirection]);
 
   const copyToClipboard = async (text: string, token: string) => {
     try {
@@ -231,8 +268,15 @@ const ManagerGallery: React.FC = () => {
         {/* Employee List */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Employee Galleries</h2>
-            <p className="text-sm text-gray-600">Click on gallery links to view individual employee galleries</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">Employee Galleries</h2>
+                <p className="text-sm text-gray-600">Click on gallery links to view individual employee galleries</p>
+              </div>
+              <div className="text-sm text-gray-500">
+                Sorted by: <span className="font-medium capitalize">{sortField}</span> ({sortDirection === 'asc' ? 'A-Z' : 'Z-A'})
+              </div>
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -240,13 +284,43 @@ const ManagerGallery: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employee
+                    <button
+                      onClick={() => handleSort('name')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
+                    >
+                      <span>Employee</span>
+                      {sortField === 'name' ? (
+                        sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                      ) : (
+                        <ArrowUpDown className="w-4 h-4 opacity-50" />
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    <button
+                      onClick={() => handleSort('status')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
+                    >
+                      <span>Status</span>
+                      {sortField === 'status' ? (
+                        sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                      ) : (
+                        <ArrowUpDown className="w-4 h-4 opacity-50" />
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Gallery Link
+                    <button
+                      onClick={() => handleSort('email')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
+                    >
+                      <span>Email</span>
+                      {sortField === 'email' ? (
+                        sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                      ) : (
+                        <ArrowUpDown className="w-4 h-4 opacity-50" />
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -254,7 +328,7 @@ const ManagerGallery: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {galleries.map((gallery) => {
+                {sortedGalleries.map((gallery) => {
                   const status = getStatusBadge(gallery);
                   const galleryUrl = getGalleryUrl(gallery.unique_token);
                   

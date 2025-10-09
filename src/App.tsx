@@ -10,7 +10,10 @@ import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
 import EmployeeGallery from './components/EmployeeGallery';
 import ManagerGallery from './components/ManagerGallery';
+import PhotographerDashboard from './components/PhotographerDashboard';
+import PhotographerEventManager from './components/PhotographerEventManager';
 import { HeadshotsPage } from './components/HeadshotsPage';
+import { CustomUrlResolver } from './components/CustomUrlResolver';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -30,7 +33,8 @@ function App() {
     location.pathname === '/brochure' ||
     (location.pathname.startsWith('/brochures/') && location.search.includes('shared=true')) ||
     location.pathname.startsWith('/gallery/') ||
-    location.pathname.startsWith('/manager/');
+    location.pathname.startsWith('/manager/') ||
+    location.pathname.startsWith('/photographer/');
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -120,6 +124,14 @@ function App() {
                 path="/manager/:token"
                 element={<ManagerGallery />}
               />
+              <Route 
+                path="/photographer/:token"
+                element={<PhotographerDashboard />}
+              />
+              <Route 
+                path="/photographer/:token/event/:eventId"
+                element={<PhotographerEventManager />}
+              />
               <Route
                 path="/brochure"
                 element={
@@ -158,6 +170,17 @@ function App() {
                   )
                 }
               />
+              
+              {/* Custom URL Routes */}
+              <Route
+                path="/:client/:type/:slug"
+                element={
+                  <CustomUrlResolver>
+                    <div>Redirecting...</div>
+                  </CustomUrlResolver>
+                }
+              />
+              
               <Route path="*" element={<Navigate to={config.app.routes.home} replace />} />
             </Routes>
           </main>

@@ -8,6 +8,7 @@ export interface HeadshotEvent {
   status: 'draft' | 'active' | 'completed' | 'archived';
   client_logo_url?: string;
   manager_token?: string;
+  selection_deadline?: string;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +22,7 @@ export interface EmployeeGallery {
   unique_token: string;
   status: 'pending' | 'photos_uploaded' | 'selection_made' | 'retouching' | 'completed' | 'expired';
   selected_photo_id?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
   photos?: GalleryPhoto[];

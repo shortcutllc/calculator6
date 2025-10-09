@@ -13,6 +13,7 @@ interface EmailRequest {
   galleryUrl: string
   eventName: string
   clientLogoUrl?: string
+  selectionDeadline?: string
 }
 
 serve(async (req) => {
@@ -22,7 +23,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, employeeName, employeeEmail, galleryUrl, eventName, clientLogoUrl }: EmailRequest = await req.json()
+    const { type, employeeName, employeeEmail, galleryUrl, eventName, clientLogoUrl, selectionDeadline }: EmailRequest = await req.json()
 
     // Validate required fields
     if (!type || !employeeName || !employeeEmail || !galleryUrl || !eventName) {
@@ -42,7 +43,7 @@ serve(async (req) => {
     }
 
     // Get from email from environment (use your existing email)
-    const fromEmail = Deno.env.get('FROM_EMAIL') || 'notifications@getshortcut.co'
+    const fromEmail = Deno.env.get('FROM_EMAIL') || 'hello@getshortcut.co'
 
     // Create email content based on type
     let subject: string
@@ -51,8 +52,8 @@ serve(async (req) => {
 
     if (type === 'gallery_ready') {
       subject = `Your headshot photos are ready for selection - ${eventName}`
-      html = getGalleryReadyHtml(employeeName, galleryUrl, eventName, clientLogoUrl)
-      text = getGalleryReadyText(employeeName, galleryUrl, eventName)
+      html = getGalleryReadyHtml(employeeName, galleryUrl, eventName, clientLogoUrl, selectionDeadline)
+      text = getGalleryReadyText(employeeName, galleryUrl, eventName, selectionDeadline)
     } else {
       subject = `Your retouched headshot is ready for download - ${eventName}`
       html = getFinalPhotoReadyHtml(employeeName, galleryUrl, eventName, clientLogoUrl)
@@ -148,7 +149,7 @@ serve(async (req) => {
   }
 })
 
-function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName: string, clientLogoUrl?: string): string {
+function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName: string, clientLogoUrl?: string, selectionDeadline?: string): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -191,11 +192,41 @@ function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName
           
           <p>Once you make your selection, we'll begin retouching your chosen photo and notify you when it's ready for download.</p>
           
+          ${selectionDeadline ? `
+          <div style="background: #fef3cd; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400e; font-weight: 600;">
+              ⏰ Important: Please make your selection by ${(() => {
+                const dateStr = selectionDeadline.split('T')[0];
+                const [year, month, day] = dateStr.split('-');
+                const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                return localDate.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                });
+              })()} to ensure we can process your retouched photo in a timely manner.
+            </p>
+          </div>
+          ` : ''}
+          
           <div style="text-align: center;">
             <a href="${galleryUrl}" class="button">View Your Photos</a>
           </div>
           
+          ${selectionDeadline ? `
+          <p><strong>Important:</strong> Please make your selection by ${(() => {
+            const dateStr = selectionDeadline.split('T')[0];
+            const [year, month, day] = dateStr.split('-');
+            const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            return localDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+          })()} to ensure we can process your retouched photo in a timely manner.</p>
+          ` : `
           <p><strong>Important:</strong> Please make your selection within 7 days to ensure we can process your retouched photo in a timely manner.</p>
+          `}
         </div>
         <div class="footer">
           <p>If you have any questions, please contact us.</p>
@@ -207,7 +238,7 @@ function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName
   `
 }
 
-function getGalleryReadyText(employeeName: string, galleryUrl: string, eventName: string): string {
+function getGalleryReadyText(employeeName: string, galleryUrl: string, eventName: string, selectionDeadline?: string): string {
   return `
     Your Headshot Photos Are Ready!
     
@@ -223,7 +254,16 @@ function getGalleryReadyText(employeeName: string, galleryUrl: string, eventName
     
     Once you make your selection, we'll begin retouching your chosen photo and notify you when it's ready for download.
     
-    Important: Please make your selection within 7 days to ensure we can process your retouched photo in a timely manner.
+    ${selectionDeadline ? `Important: Please make your selection by ${(() => {
+      const dateStr = selectionDeadline.split('T')[0];
+      const [year, month, day] = dateStr.split('-');
+      const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return localDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    })()} to ensure we can process your retouched photo in a timely manner.` : 'Important: Please make your selection within 7 days to ensure we can process your retouched photo in a timely manner.'}
     
     If you have any questions, please contact us.
     This link is unique to you - please do not share it with others.

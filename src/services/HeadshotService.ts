@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
+import { CustomUrlService } from './CustomUrlService';
+import { ClientNameExtractor } from '../utils/clientNameExtractor';
 import { 
   HeadshotEvent, 
   EmployeeGallery, 
@@ -27,6 +29,22 @@ export class HeadshotService {
       .single();
 
     if (error) throw error;
+
+    // Auto-generate custom URL for the event
+    try {
+      await CustomUrlService.autoGenerateCustomUrl(
+        data.id,
+        'headshot_event',
+        {
+          clientName: ClientNameExtractor.fromEventName(data.event_name),
+          eventName: data.event_name
+        }
+      );
+    } catch (urlError) {
+      console.warn('Failed to generate custom URL for event:', urlError);
+      // Don't fail the event creation if URL generation fails
+    }
+
     return data;
   }
 
@@ -99,6 +117,37 @@ export class HeadshotService {
       .select();
 
     if (error) throw error;
+
+    // Auto-generate custom URLs for each employee gallery
+    try {
+      // Get event name for client name extraction
+      const { data: event } = await supabase
+        .from('headshot_events')
+        .select('event_name')
+        .eq('id', eventId)
+        .single();
+
+      const clientName = event ? ClientNameExtractor.fromEventName(event.event_name) : 'client';
+
+      for (const gallery of data) {
+        try {
+          await CustomUrlService.autoGenerateCustomUrl(
+            gallery.id,
+            'employee_gallery',
+            {
+              clientName,
+              employeeName: gallery.employee_name,
+              eventName: event?.event_name
+            }
+          );
+        } catch (urlError) {
+          console.warn(`Failed to generate custom URL for employee ${gallery.employee_name}:`, urlError);
+        }
+      }
+    } catch (urlError) {
+      console.warn('Failed to generate custom URLs for employee galleries:', urlError);
+    }
+
     return data;
   }
 

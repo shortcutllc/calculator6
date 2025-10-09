@@ -8,6 +8,7 @@ export interface EmailNotificationRequest {
   galleryUrl: string;
   eventName: string;
   clientLogoUrl?: string;
+  selectionDeadline?: string;
 }
 
 export class NotificationService {
@@ -65,6 +66,7 @@ export class NotificationService {
     // Get event data (name and client logo) if galleryId is provided
     let actualEventName = eventName; // fallback to passed eventName
     let clientLogoUrl: string | undefined;
+    let selectionDeadline: string | undefined;
     
     if (galleryId) {
       try {
@@ -77,13 +79,14 @@ export class NotificationService {
         if (!error && gallery) {
           const { data: event, error: eventError } = await supabase
             .from('headshot_events')
-            .select('event_name, client_logo_url')
+            .select('event_name, client_logo_url, selection_deadline')
             .eq('id', gallery.event_id)
             .single();
 
           if (!eventError && event) {
             actualEventName = event.event_name; // Use the actual event name from database
             clientLogoUrl = event.client_logo_url;
+            selectionDeadline = event.selection_deadline;
           }
         }
       } catch (error) {
@@ -98,7 +101,8 @@ export class NotificationService {
       employeeEmail,
       galleryUrl,
       eventName: actualEventName,
-      clientLogoUrl
+      clientLogoUrl,
+      selectionDeadline
     };
 
     await this.sendEmailNotification(request);
@@ -123,6 +127,7 @@ export class NotificationService {
     // Get event data (name and client logo) if galleryId is provided
     let actualEventName = eventName; // fallback to passed eventName
     let clientLogoUrl: string | undefined;
+    let selectionDeadline: string | undefined;
     
     if (galleryId) {
       try {
@@ -135,13 +140,14 @@ export class NotificationService {
         if (!error && gallery) {
           const { data: event, error: eventError } = await supabase
             .from('headshot_events')
-            .select('event_name, client_logo_url')
+            .select('event_name, client_logo_url, selection_deadline')
             .eq('id', gallery.event_id)
             .single();
 
           if (!eventError && event) {
             actualEventName = event.event_name; // Use the actual event name from database
             clientLogoUrl = event.client_logo_url;
+            selectionDeadline = event.selection_deadline;
           }
         }
       } catch (error) {
@@ -156,7 +162,8 @@ export class NotificationService {
       employeeEmail,
       galleryUrl,
       eventName: actualEventName,
-      clientLogoUrl
+      clientLogoUrl,
+      selectionDeadline
     };
 
     await this.sendEmailNotification(request);

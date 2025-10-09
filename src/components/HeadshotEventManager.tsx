@@ -26,6 +26,8 @@ import { CSVUploader } from './CSVUploader';
 import { PhotoUploader } from './PhotoUploader';
 import { EmployeeLinksModal } from './EmployeeLinksModal';
 import { EmployeeManager } from './EmployeeManager';
+import { PhotographerEventAssignments } from './PhotographerEventAssignments';
+import { CustomUrlHelper } from '../utils/customUrlHelper';
 
 export const HeadshotEventManager: React.FC = () => {
   const [events, setEvents] = useState<HeadshotEvent[]>([]);
@@ -36,9 +38,10 @@ export const HeadshotEventManager: React.FC = () => {
   const [showCSVUploader, setShowCSVUploader] = useState(false);
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
   const [showEmployeeLinks, setShowEmployeeLinks] = useState(false);
+  const [showPhotographerAssignments, setShowPhotographerAssignments] = useState(false);
   const [eventStats, setEventStats] = useState<HeadshotEventStats | null>(null);
   const [sendingNotifications, setSendingNotifications] = useState(false);
-  const [activeTab, setActiveTab] = useState<'employees' | 'photos' | 'links'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'photos' | 'links' | 'photographers'>('employees');
   const [uploadingForEmployee, setUploadingForEmployee] = useState<{id: string, name: string} | null>(null);
   const [uploadMode, setUploadMode] = useState<'photos' | 'final'>('photos');
 
@@ -287,11 +290,19 @@ export const HeadshotEventManager: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <ExternalLink className="w-4 h-4 text-green-500" />
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      const managerUrl = `${window.location.origin}/manager/${event.manager_token}`;
-                      navigator.clipboard.writeText(managerUrl);
-                      // You could add a toast notification here
+                      try {
+                        const customUrl = await CustomUrlHelper.getManagerUrl(event.id, event.manager_token!);
+                        navigator.clipboard.writeText(customUrl);
+                        alert('Manager link copied to clipboard!');
+                      } catch (error) {
+                        console.error('Failed to get custom manager URL:', error);
+                        // Fallback to original URL
+                        const managerUrl = `${window.location.origin}/manager/${event.manager_token}`;
+                        navigator.clipboard.writeText(managerUrl);
+                        alert('Manager link copied to clipboard!');
+                      }
                     }}
                     className="text-green-600 hover:text-green-800 font-medium text-xs"
                     title="Click to copy manager link"
@@ -343,11 +354,12 @@ export const HeadshotEventManager: React.FC = () => {
                 {[
                   { key: 'employees', label: 'Employees', icon: Users },
                   { key: 'photos', label: 'Photos', icon: Camera },
-                  { key: 'links', label: 'Links', icon: Link }
+                  { key: 'links', label: 'Links', icon: Link },
+                  { key: 'photographers', label: 'Photographers', icon: Users }
                 ].map((tab) => (
                   <button
                     key={tab.key}
-                    onClick={() => setActiveTab(tab.key as 'employees' | 'photos' | 'links')}
+                    onClick={() => setActiveTab(tab.key as 'employees' | 'photos' | 'links' | 'photographers')}
                     className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                       activeTab === tab.key
                         ? 'border-blue-500 text-blue-600'
@@ -449,6 +461,24 @@ export const HeadshotEventManager: React.FC = () => {
                 </p>
               </div>
             )}
+
+            {activeTab === 'photographers' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">Photographer Access</h3>
+                  <Button
+                    onClick={() => setShowPhotographerAssignments(true)}
+                    className="flex items-center space-x-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Manage Photographers</span>
+                  </Button>
+                </div>
+                <p className="text-gray-600">
+                  Assign photographers to this event to give them access to manage photos and galleries.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -496,6 +526,14 @@ export const HeadshotEventManager: React.FC = () => {
           isOpen={showEmployeeLinks}
           onClose={() => setShowEmployeeLinks(false)}
           eventId={selectedEvent.id}
+        />
+      )}
+
+      {showPhotographerAssignments && selectedEvent && (
+        <PhotographerEventAssignments
+          eventId={selectedEvent.id}
+          eventName={selectedEvent.event_name}
+          onClose={() => setShowPhotographerAssignments(false)}
         />
       )}
     </div>

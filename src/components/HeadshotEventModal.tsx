@@ -20,7 +20,9 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
     event_date: editingEvent?.event_date || '',
     total_employees: editingEvent?.total_employees || 0,
     status: editingEvent?.status || 'draft' as HeadshotEvent['status'],
-    client_logo_url: editingEvent?.client_logo_url || ''
+    client_logo_url: editingEvent?.client_logo_url || '',
+    selection_deadline: editingEvent?.selection_deadline ? 
+      editingEvent.selection_deadline.slice(0, 10) : ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -36,18 +38,19 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
 
     if (!formData.event_date) {
       newErrors.event_date = 'Event date is required';
-    } else {
-      const eventDate = new Date(formData.event_date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (eventDate < today) {
-        newErrors.event_date = 'Event date cannot be in the past';
-      }
     }
 
     if (formData.total_employees < 0) {
       newErrors.total_employees = 'Total employees cannot be negative';
+    }
+
+    if (formData.selection_deadline) {
+      const deadlineDate = new Date(formData.selection_deadline);
+      const eventDate = new Date(formData.event_date);
+      
+      if (deadlineDate < eventDate) {
+        newErrors.selection_deadline = 'Selection deadline must be after the event date';
+      }
     }
 
     setErrors(newErrors);
@@ -61,11 +64,16 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
       return;
     }
 
-    onSubmit({
+    // Store the date exactly as selected (treat as local date)
+    const eventData = {
       ...formData,
       event_date: formData.event_date,
-      total_employees: formData.total_employees || 0
-    });
+      total_employees: formData.total_employees || 0,
+      selection_deadline: formData.selection_deadline ? 
+        `${formData.selection_deadline}T00:00:00` : undefined
+    };
+
+    onSubmit(eventData);
   };
 
   const handleInputChange = (field: string, value: string | number) => {
@@ -135,8 +143,8 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -215,6 +223,30 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
             )}
             <p className="mt-1 text-xs text-gray-500">
               This is just an estimate. You can import the actual employee list later.
+            </p>
+          </div>
+
+          {/* Selection Deadline */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Photo Selection Deadline
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                value={formData.selection_deadline}
+                onChange={(e) => handleInputChange('selection_deadline', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-shortcut-blue focus:border-shortcut-blue ${
+                  errors.selection_deadline ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+            {errors.selection_deadline && (
+              <p className="mt-1 text-sm text-red-600">{errors.selection_deadline}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Optional: Set a deadline date for employees to select their photos. Leave blank for no deadline.
             </p>
           </div>
 

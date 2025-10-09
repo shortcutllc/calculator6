@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit, Trash2, X, Save, User, Mail, Phone, Camera, Link, Copy, CheckCircle, Clock, AlertCircle, Search, Filter, Send } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Save, User, Mail, Phone, Camera, Link, Copy, CheckCircle, Clock, AlertCircle, Search, Filter, Send, MessageSquare, Download, MessageCircle } from 'lucide-react';
 import { Button } from './Button';
 import { HeadshotService } from '../services/HeadshotService';
 import { NotificationService } from '../services/NotificationService';
+import { SMSService } from '../services/SMSService';
 import { EmployeeGallery } from '../types/headshot';
 import { supabase } from '../lib/supabaseClient';
+import { CustomUrlHelper } from '../utils/customUrlHelper';
 
 interface EmployeeManagerProps {
   eventId: string;
@@ -26,10 +28,10 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   onUploadFinal
 }) => {
   const [employees, setEmployees] = useState<EmployeeGallery[]>([]);
+  const [eventName, setEventName] = useState<string>('Headshot Event');
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeGallery | null>(null);
-  const [eventName, setEventName] = useState<string>('Headshot Event');
   const [formData, setFormData] = useState<EmployeeFormData>({
     name: '',
     email: '',
@@ -39,8 +41,9 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   const [saving, setSaving] = useState(false);
   const [copiedLinks, setCopiedLinks] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'no_photos' | 'photos_uploaded' | 'photo_selected' | 'final_ready'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'no_photos' | 'photos_uploaded' | 'photo_selected' | 'final_ready' | 'has_notes'>('all');
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
+  const [sendingSMS, setSendingSMS] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchEventName();
@@ -109,9 +112,9 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   };
 
   const copyGalleryLink = async (employee: EmployeeGallery) => {
-    const galleryUrl = `${window.location.origin}/gallery/${employee.unique_token}`;
     try {
-      await navigator.clipboard.writeText(galleryUrl);
+      const customUrl = await CustomUrlHelper.getEmployeeGalleryUrl(employee.id, employee.unique_token);
+      await navigator.clipboard.writeText(customUrl);
       setCopiedLinks(prev => new Set(prev).add(employee.id));
       setTimeout(() => {
         setCopiedLinks(prev => {
@@ -122,13 +125,27 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
       }, 2000);
     } catch (error) {
       console.error('Failed to copy link:', error);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = galleryUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
+      // Fallback to original URL
+      const galleryUrl = `${window.location.origin}/gallery/${employee.unique_token}`;
+      try {
+        await navigator.clipboard.writeText(galleryUrl);
+        setCopiedLinks(prev => new Set(prev).add(employee.id));
+        setTimeout(() => {
+          setCopiedLinks(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(employee.id);
+            return newSet;
+          });
+        }, 2000);
+      } catch (fallbackError) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = galleryUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
     }
   };
 
@@ -147,7 +164,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
     try {
       setSendingEmails(prev => new Set(prev).add(employee.id));
       
-      const galleryUrl = `${window.location.origin}/gallery/${employee.unique_token}`;
+      const galleryUrl = await CustomUrlHelper.getEmployeeGalleryUrl(employee.id, employee.unique_token);
       
       await NotificationService.sendGalleryReadyNotification(
         employee.employee_name,
@@ -201,6 +218,101 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
     }
   };
 
+  const handleDownloadSelectedPhoto = async (employee: EmployeeGallery) => {
+    if (!employee.selected_photo_id) {
+      alert('No photo selected by this employee yet.');
+      return;
+    }
+
+    try {
+      const selectedPhoto = employee.photos?.find(p => p.id === employee.selected_photo_id);
+      if (!selectedPhoto) {
+        alert('Could not find the selected photo.');
+        return;
+      }
+
+      // Fetch the image and download it
+      const response = await fetch(selectedPhoto.photo_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `${employee.employee_name.replace(/\s+/g, '_')}_selected_photo.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading photo:', error);
+      alert('Failed to download photo. Please try again.');
+    }
+  };
+
+  const handleSendSMSReminder = async (employee: EmployeeGallery) => {
+    if (!employee.phone) {
+      alert('This employee does not have a phone number on file.');
+      return;
+    }
+
+    const hasPhotos = employee.photos && employee.photos.length > 0;
+    const hasSelection = employee.selected_photo_id;
+
+    if (!hasPhotos) {
+      alert('This employee does not have photos uploaded yet. Upload photos before sending a reminder.');
+      return;
+    }
+
+    if (hasSelection) {
+      const proceed = window.confirm(
+        `${employee.employee_name} has already made a selection. Send reminder anyway?`
+      );
+      if (!proceed) return;
+    }
+
+    const confirmed = window.confirm(
+      `Send SMS reminder to ${employee.employee_name} at ${employee.phone}?`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setSendingSMS(prev => new Set(prev).add(employee.id));
+      
+      // Get custom URL for the gallery
+      const customUrl = await CustomUrlHelper.getCustomUrl(employee.unique_token, 'employee_gallery');
+      const galleryUrl = customUrl 
+        ? `${window.location.origin}/${customUrl}`
+        : `${window.location.origin}/gallery/${employee.unique_token}`;
+
+      // Get event details for deadline
+      const { data: event } = await supabase
+        .from('headshot_events')
+        .select('selection_deadline')
+        .eq('id', eventId)
+        .single();
+
+      await SMSService.sendGalleryReminderSMS(
+        employee.phone,
+        employee.employee_name,
+        galleryUrl,
+        eventName,
+        event?.selection_deadline
+      );
+      
+      alert(`SMS reminder sent to ${employee.employee_name}!`);
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      alert(`Failed to send SMS to ${employee.employee_name}. Please check the phone number and try again.`);
+    } finally {
+      setSendingSMS(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(employee.id);
+        return newSet;
+      });
+    }
+  };
+
   // Filter and search employees
   const filteredEmployees = useMemo(() => {
     return employees.filter(employee => {
@@ -229,6 +341,9 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
             break;
           case 'final_ready':
             matchesStatus = hasFinal;
+            break;
+          case 'has_notes':
+            matchesStatus = employee.notes && employee.notes.trim().length > 0;
             break;
         }
       }
@@ -402,6 +517,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
             <option value="photos_uploaded">Photos Uploaded</option>
             <option value="photo_selected">Photo Selected</option>
             <option value="final_ready">Final Photo Ready</option>
+            <option value="has_notes">Has Notes</option>
           </select>
         </div>
       </div>
@@ -647,6 +763,14 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
                       </div>
                     )}
 
+                    {/* Notes Indicator */}
+                    {employee.notes && employee.notes.trim().length > 0 && (
+                      <div className="flex items-center space-x-1 text-xs text-blue-600 mb-3">
+                        <MessageSquare className="w-3 h-3" />
+                        <span>Has personal notes</span>
+                      </div>
+                    )}
+
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2">
                       {/* Upload Photos Button - only show if no photos or photos but no selection */}
@@ -676,6 +800,18 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
                           Upload Final
                         </button>
                       )}
+
+                      {/* Download Selected Photo Button - only show if photo is selected */}
+                      {employee.selected_photo_id && (
+                        <button
+                          onClick={() => handleDownloadSelectedPhoto(employee)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-md transition-colors"
+                          title="Download selected photo for retouching"
+                        >
+                          <Download className="w-3 h-3 mr-1" />
+                          Download Selected
+                        </button>
+                      )}
                       
                       <button
                         onClick={() => copyGalleryLink(employee)}
@@ -699,26 +835,50 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
                         )}
                       </button>
 
-                      {/* Email Buttons */}
+                      {/* Notification Buttons - Email & SMS */}
                       {employee.photos && employee.photos.length > 0 && !employee.photos.some(p => p.is_final) && (
-                        <button
-                          onClick={() => handleSendGalleryReadyEmail(employee)}
-                          disabled={sendingEmails.has(employee.id)}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
-                          title="Send gallery ready notification"
-                        >
-                          {sendingEmails.has(employee.id) ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600 mr-1"></div>
-                              Sending...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-3 h-3 mr-1" />
-                              Send Gallery Email
-                            </>
+                        <>
+                          <button
+                            onClick={() => handleSendGalleryReadyEmail(employee)}
+                            disabled={sendingEmails.has(employee.id)}
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                            title="Send email notification"
+                          >
+                            {sendingEmails.has(employee.id) ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600 mr-1"></div>
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="w-3 h-3 mr-1" />
+                                Email
+                              </>
+                            )}
+                          </button>
+
+                          {/* SMS Button - only if has phone and no selection */}
+                          {employee.phone && !employee.selected_photo_id && (
+                            <button
+                              onClick={() => handleSendSMSReminder(employee)}
+                              disabled={sendingSMS.has(employee.id)}
+                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-100 hover:bg-teal-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              title="Send SMS text reminder"
+                            >
+                              {sendingSMS.has(employee.id) ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-600 mr-1"></div>
+                                  Sending...
+                                </>
+                              ) : (
+                                <>
+                                  <MessageCircle className="w-3 h-3 mr-1" />
+                                  SMS
+                                </>
+                              )}
+                            </button>
                           )}
-                        </button>
+                        </>
                       )}
 
                       {employee.photos?.some(p => p.is_final) && (
