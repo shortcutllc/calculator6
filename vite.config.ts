@@ -21,9 +21,29 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'supabase': ['@supabase/supabase-js']
+        manualChunks: (id) => {
+          // PDF utilities - only load when needed
+          if (id.includes('pdf.ts') || id.includes('jspdf') || id.includes('html2canvas')) {
+            return 'pdf-utils';
+          }
+          // Regular proposal components
+          if (id.includes('ProposalViewer') || id.includes('StandaloneProposalViewer') || id.includes('PDFViewer')) {
+            return 'proposal-viewer';
+          }
+          // Holiday proposal components
+          if (id.includes('HolidayProposal') || id.includes('HolidayPage')) {
+            return 'holiday-proposal';
+          }
+          // Vendor libraries
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor';
+            }
+            if (id.includes('supabase')) {
+              return 'supabase';
+            }
+            return 'vendor-other';
+          }
         }
       }
     }

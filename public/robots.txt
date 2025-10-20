@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://proposals.getshortcut.co/sitemap.xml
