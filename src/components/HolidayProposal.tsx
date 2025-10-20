@@ -1246,11 +1246,12 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
               {/* Right Side - Featured Service Box */}
               <div className="md:pl-8">
                 <img 
-                  src="/Holiday Proposal/Hero Images/Massage 2x.png" 
+                  src="/Holiday Proposal/Hero Images/Massage 2x.webp" 
                   alt="Relaxing Massage" 
                   className="w-full h-auto"
                   width="1152"
                   height="876"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </div>
             </div>
@@ -1262,40 +1263,52 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
               {/* Luxe Nail Care */}
               <div className="overflow-hidden rounded-lg">
                 <img 
-                  src="/Holiday Proposal/Hero Images/Nails 2x.png" 
+                  src="/Holiday Proposal/Hero Images/Nails 2x.webp" 
                   alt="Luxe Nail Care" 
                   className="w-full h-auto"
                   style={{ transform: 'scale(1.05)' }}
+                  width="400"
+                  height="300"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
                 />
               </div>
               
               {/* Year End Headshots */}
               <div className="overflow-hidden rounded-lg">
                 <img 
-                  src="/Holiday Proposal/Hero Images/Headshots 2x.png" 
+                  src="/Holiday Proposal/Hero Images/Headshots 2x.webp" 
                   alt="Year End Headshots" 
                   className="w-full h-auto"
                   style={{ transform: 'scale(1.05)' }}
+                  width="400"
+                  height="300"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
                 />
               </div>
               
               {/* Holiday Hair & Makeup */}
               <div className="overflow-hidden rounded-lg">
                 <img 
-                  src="/Holiday Proposal/Hero Images/Hair 2x.png" 
+                  src="/Holiday Proposal/Hero Images/Hair 2x.webp" 
                   alt="Holiday Hair & Makeup" 
                   className="w-full h-auto"
                   style={{ transform: 'scale(1.05)' }}
+                  width="400"
+                  height="300"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
                 />
               </div>
               
               {/* Stress melting Mindfulness */}
               <div className="overflow-hidden rounded-lg">
                 <img 
-                  src="/Holiday Proposal/Hero Images/Mindfulness 2x.png" 
+                  src="/Holiday Proposal/Hero Images/Mindfulness 2x.webp" 
                   alt="Stress melting Mindfulness" 
                   className="w-full h-auto"
                   style={{ transform: 'scale(1.05)' }}
+                  width="400"
+                  height="300"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
                 />
               </div>
             </div>
@@ -1520,7 +1533,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                 {/* Right Side - Massage Image */}
                 <div className="relative flex justify-center">
                   <img 
-                    src="/Holiday Proposal/Our Services/Massage/masssage 2x.png" 
+                    src="/Holiday Proposal/Our Services/Massage/masssage 2x.webp" 
                     alt="Professional Massage Service" 
                     className="w-3/4 h-auto rounded-2xl max-w-md"
                     loading="lazy"
@@ -1592,7 +1605,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                 {/* Right Side - Holiday Party Glam Image */}
                 <div className="relative flex justify-center">
                   <img 
-                    src="/Holiday Proposal/Our Services/Holiday Party Glam/Glam 2x.png" 
+                    src="/Holiday Proposal/Our Services/Holiday Party Glam/Glam 2x.webp" 
                     alt="Holiday Party Hair Styling" 
                     className="w-3/4 h-auto rounded-2xl max-w-md"
                     loading="lazy"
@@ -1664,7 +1677,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                 {/* Right Side - Headshots Image */}
                 <div className="relative flex justify-center">
                   <img 
-                    src="/Holiday Proposal/Our Services/Headshots/Headshots 2x.png" 
+                    src="/Holiday Proposal/Our Services/Headshots/Headshots 2x.webp" 
                     alt="Professional Headshot Session" 
                     className="w-3/4 h-auto rounded-2xl max-w-md"
                     loading="lazy"
@@ -1724,7 +1737,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                 {/* Right Side - Nails Image */}
                 <div className="relative flex justify-center">
                   <img 
-                    src="/Holiday Proposal/Our Services/Nails/Nails 2x.png" 
+                    src="/Holiday Proposal/Our Services/Nails/Nails 2x.webp" 
                     alt="Professional Nail Services" 
                     className="w-3/4 h-auto rounded-2xl max-w-md"
                     loading="lazy"
@@ -1784,7 +1797,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                 {/* Right Side - Courtney Frame */}
                 <div className="relative flex justify-center">
                   <img 
-                    src="/Holiday Proposal/Our Services/Mindfulness/Courtney Frame 2x.png" 
+                    src="/Holiday Proposal/Our Services/Mindfulness/Courtney Frame 2x.webp" 
                     alt="Courtney Schulnick - Mindfulness Leader" 
                     className="w-3/4 h-auto rounded-2xl max-w-md"
                     loading="lazy"

@@ -30,21 +30,31 @@ async function optimizeImages(dir) {
           let outputPath;
           
           if (entry.name.match(/\.png$/i)) {
-            // Optimize PNG (keep as PNG but compress)
-            optimized = await sharp(buffer)
+            // Create both optimized PNG and WebP versions
+            const optimizedPng = await sharp(buffer)
               .png({ quality: 85, compressionLevel: 9 })
               .toBuffer();
-            outputPath = fullPath;
+            
+            const optimizedWebp = await sharp(buffer)
+              .webp({ quality: 85 })
+              .toBuffer();
+            
+            // Write both versions
+            await fs.writeFile(fullPath, optimizedPng);
+            await fs.writeFile(fullPath.replace(/\.png$/i, '.webp'), optimizedWebp);
+            
+            optimized = optimizedWebp; // Use WebP size for reporting
+            outputPath = fullPath.replace(/\.png$/i, '.webp');
           } else {
             // Convert JPG to WebP
             optimized = await sharp(buffer)
               .webp({ quality: 85 })
               .toBuffer();
             outputPath = fullPath.replace(/\.(jpg|jpeg)$/i, '.webp');
+            
+            // Write optimized image
+            await fs.writeFile(outputPath, optimized);
           }
-          
-          // Write optimized image
-          await fs.writeFile(outputPath, optimized);
           
           const optimizedSize = optimized.length;
           const savings = ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
