@@ -39,7 +39,10 @@ serve(async (req) => {
     const formattedPhone = to.startsWith('+') ? to : `+1${to.replace(/\D/g, '')}`;
 
     // Create SMS message
-    let message = `Hi ${employeeName}! This is a friendly reminder to select your headshot photo for ${eventName}.\n\n`;
+    // Extract first name from full name
+    const firstName = employeeName.split(' ')[0];
+    
+    let message = `Hi ${firstName}! This is a friendly reminder to select your headshot photo for ${eventName}.\n\n`;
     
     if (deadline) {
       // Parse and format deadline
@@ -51,13 +54,13 @@ serve(async (req) => {
         month: 'long',
         day: 'numeric'
       });
-      message += `Please make your selection by ${formattedDeadline}.\n\n`;
+      message += `Please make your selection by ${formattedDeadline} so our team can complete the retouching process.\n\n`;
     } else {
-      message += `Please make your selection soon to ensure timely processing.\n\n`;
+      message += `Please make your selection soon so our team can complete the retouching process.\n\n`;
     }
     
     message += `View your gallery: ${galleryUrl}\n\n`;
-    message += `- Shortcut`;
+    message += `Thanks!\nTeam Shortcut`;
 
     // Send SMS via Twilio
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;

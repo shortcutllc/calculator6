@@ -15,6 +15,7 @@ import PhotographerEventManager from './components/PhotographerEventManager';
 import { HeadshotsPage } from './components/HeadshotsPage';
 import { CustomUrlResolver } from './components/CustomUrlResolver';
 import { ProposalProvider } from './contexts/ProposalContext';
+import { HolidayPageProvider } from './contexts/HolidayPageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import { testSupabaseConnection } from './lib/supabaseClient';
@@ -25,6 +26,8 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 // Lazy load components
 const BrochurePage = lazy(() => import('./components/BrochurePage'));
 const PDFViewer = lazy(() => import('./components/PDFViewer'));
+const HolidayProposal = lazy(() => import('./components/HolidayProposal'));
+const HolidayPageManager = lazy(() => import('./components/HolidayPageManager'));
 
 function App() {
   const location = useLocation();
@@ -34,7 +37,10 @@ function App() {
     (location.pathname.startsWith('/brochures/') && location.search.includes('shared=true')) ||
     location.pathname.startsWith('/gallery/') ||
     location.pathname.startsWith('/manager/') ||
-    location.pathname.startsWith('/photographer/');
+    location.pathname.startsWith('/photographer/') ||
+    location.pathname === '/holiday-proposal' ||
+    location.pathname.startsWith('/holiday-page/') ||
+    location.pathname === '/holiday-generic';
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -54,6 +60,7 @@ function App() {
   return (
     <AuthProvider>
       <ProposalProvider>
+        <HolidayPageProvider>
         <div className="min-h-screen flex flex-col bg-gray-100">
           {!isSharedView && <Navigation />}
           <main className="flex-1 overflow-y-auto">
@@ -146,6 +153,56 @@ function App() {
                   </PrivateRoute>
                 }
               />
+              <Route 
+                path="/holiday-proposal"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <HolidayProposal />
+                  </Suspense>
+                }
+              />
+              <Route 
+                path="/holiday-page/:id"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <HolidayProposal />
+                  </Suspense>
+                }
+              />
+              <Route 
+                path="/holiday-generic"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <HolidayProposal isGeneric={true} />
+                  </Suspense>
+                }
+              />
+              <Route 
+                path="/holiday-pages"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <HolidayPageManager />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
               <Route
                 path="/brochures/:name"
                 element={
@@ -185,6 +242,7 @@ function App() {
             </Routes>
           </main>
         </div>
+        </HolidayPageProvider>
       </ProposalProvider>
     </AuthProvider>
   );
