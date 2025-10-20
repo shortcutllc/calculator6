@@ -30,9 +30,9 @@ export default defineConfig({
           if (id.includes('ProposalViewer') || id.includes('StandaloneProposalViewer') || id.includes('PDFViewer')) {
             return 'proposal-viewer';
           }
-          // Holiday proposal components
+          // Holiday proposal components - merge with main bundle to reduce requests
           if (id.includes('HolidayProposal') || id.includes('HolidayPage')) {
-            return 'holiday-proposal';
+            return undefined; // Don't create separate chunk
           }
           // Vendor libraries
           if (id.includes('node_modules')) {
