@@ -652,7 +652,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
         .logo-track {
           display: flex;
           width: max-content;
-          animation: marquee 45s linear infinite;
+          animation: marquee 30s linear infinite;
         }
         
         .logo-track:hover {
@@ -778,7 +778,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
           position: absolute;
           width: 20px;
           height: 20px;
-          animation: sparkleFloat 2s ease-in-out infinite;
+          animation: sparkleFloat 3s ease-in-out infinite;
         }
         
         .sparkle:nth-child(1) {
@@ -1206,7 +1206,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       <section id="top" className="relative overflow-hidden rounded-b-3xl" style={{ backgroundColor: '#214C42', minHeight: '100vh', paddingTop: 0 }}>
         {/* Falling Snow Background */}
         <div className="absolute inset-0 overflow-hidden">
-          {Array.from({ length: 50 }, (_, i) => (
+          {Array.from({ length: 20 }, (_, i) => (
             <div
               key={i}
               className="snow"
@@ -1867,8 +1867,6 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
               />
               
               {/* Sparkles */}
-              <div className="sparkle">✨</div>
-              <div className="sparkle">✨</div>
               <div className="sparkle">✨</div>
               <div className="sparkle">✨</div>
             </div>
