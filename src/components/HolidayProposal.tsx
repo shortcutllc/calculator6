@@ -86,7 +86,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
     });
   }, [holidayPage]);
 
-  const fetchHolidayPage = async () => {
+      const fetchHolidayPage = async () => {
     if (!id && !isGeneric) return;
     
     if (isGeneric) {
@@ -133,12 +133,12 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       };
 
       setHolidayPage(transformedData);
-    } catch (error) {
-      console.error('Error fetching holiday page:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        } catch (error) {
+          console.error('Error fetching holiday page:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
 
   useEffect(() => {
     if (id || isGeneric) {
@@ -1150,10 +1150,10 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
           <div className="flex items-center flex-shrink-0">
             {!isGeneric && (
               <>
-                {partnerLogoUrl ? (
-                  <img 
-                    src={partnerLogoUrl} 
-                    alt={partnerName} 
+          {partnerLogoUrl ? (
+              <img 
+                src={partnerLogoUrl} 
+                alt={partnerName} 
                     className="h-8 sm:h-10 w-auto object-contain"
                     style={{ maxWidth: '120px' }}
                   />
@@ -1245,14 +1245,17 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
               
               {/* Right Side - Featured Service Box */}
               <div className="md:pl-8">
+                <picture>
+                  <source srcSet="/Holiday Proposal/Hero Images/Massage 2x.webp" type="image/webp" />
                 <img 
-                  src="/Holiday Proposal/Hero Images/Massage 2x.webp" 
+                    src="/Holiday Proposal/Hero Images/Massage 2x.png" 
                   alt="Relaxing Massage" 
                   className="w-full h-auto"
-                  width="1152"
-                  height="876"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    width="1152"
+                    height="876"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
+                </picture>
               </div>
             </div>
           </div>
@@ -1262,54 +1265,66 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
               {/* Luxe Nail Care */}
               <div className="overflow-hidden rounded-lg">
-                <img 
-                  src="/Holiday Proposal/Hero Images/Nails 2x.webp" 
-                  alt="Luxe Nail Care" 
-                  className="w-full h-auto"
-                  style={{ transform: 'scale(1.05)' }}
-                  width="400"
-                  height="300"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-                />
+                <picture>
+                  <source srcSet="/Holiday Proposal/Hero Images/Nails 2x.webp" type="image/webp" />
+                  <img 
+                    src="/Holiday Proposal/Hero Images/Nails 2x.png" 
+                    alt="Luxe Nail Care" 
+                    className="w-full h-auto"
+                    style={{ transform: 'scale(1.05)' }}
+                    width="400"
+                    height="300"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+                  />
+                </picture>
               </div>
               
               {/* Year End Headshots */}
               <div className="overflow-hidden rounded-lg">
-                <img 
-                  src="/Holiday Proposal/Hero Images/Headshots 2x.webp" 
-                  alt="Year End Headshots" 
-                  className="w-full h-auto"
-                  style={{ transform: 'scale(1.05)' }}
-                  width="400"
-                  height="300"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-                />
+                <picture>
+                  <source srcSet="/Holiday Proposal/Hero Images/Headshots 2x.webp" type="image/webp" />
+                  <img 
+                    src="/Holiday Proposal/Hero Images/Headshots 2x.png" 
+                    alt="Year End Headshots" 
+                    className="w-full h-auto"
+                    style={{ transform: 'scale(1.05)' }}
+                    width="400"
+                    height="300"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+                  />
+                </picture>
               </div>
               
               {/* Holiday Hair & Makeup */}
               <div className="overflow-hidden rounded-lg">
-                <img 
-                  src="/Holiday Proposal/Hero Images/Hair 2x.webp" 
-                  alt="Holiday Hair & Makeup" 
-                  className="w-full h-auto"
-                  style={{ transform: 'scale(1.05)' }}
-                  width="400"
-                  height="300"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-                />
+                <picture>
+                  <source srcSet="/Holiday Proposal/Hero Images/Hair 2x.webp" type="image/webp" />
+                  <img 
+                    src="/Holiday Proposal/Hero Images/Hair 2x.png" 
+                    alt="Holiday Hair & Makeup" 
+                    className="w-full h-auto"
+                    style={{ transform: 'scale(1.05)' }}
+                    width="400"
+                    height="300"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+                  />
+                </picture>
               </div>
               
               {/* Stress melting Mindfulness */}
               <div className="overflow-hidden rounded-lg">
-                <img 
-                  src="/Holiday Proposal/Hero Images/Mindfulness 2x.webp" 
-                  alt="Stress melting Mindfulness" 
-                  className="w-full h-auto"
-                  style={{ transform: 'scale(1.05)' }}
-                  width="400"
-                  height="300"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-                />
+                <picture>
+                  <source srcSet="/Holiday Proposal/Hero Images/Mindfulness 2x.webp" type="image/webp" />
+                  <img 
+                    src="/Holiday Proposal/Hero Images/Mindfulness 2x.png" 
+                    alt="Stress melting Mindfulness" 
+                    className="w-full h-auto"
+                    style={{ transform: 'scale(1.05)' }}
+                    width="400"
+                    height="300"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+                  />
+                </picture>
               </div>
             </div>
           </div>
@@ -1532,12 +1547,15 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                 
                 {/* Right Side - Massage Image */}
                 <div className="relative flex justify-center">
-                  <img 
-                    src="/Holiday Proposal/Our Services/Massage/masssage 2x.webp" 
-                    alt="Professional Massage Service" 
-                    className="w-3/4 h-auto rounded-2xl max-w-md"
-                    loading="lazy"
-                  />
+                  <picture>
+                    <source srcSet="/Holiday Proposal/Our Services/Massage/masssage 2x.webp" type="image/webp" />
+                    <img 
+                      src="/Holiday Proposal/Our Services/Massage/masssage 2x.png" 
+                      alt="Professional Massage Service" 
+                      className="w-3/4 h-auto rounded-2xl max-w-md"
+                      loading="lazy"
+                    />
+                  </picture>
                 </div>
               </div>
             </div>
@@ -1702,22 +1720,22 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                   
                   {/* Feature Options - 2x2 Grid */}
                   <div className="grid grid-cols-2 gap-5">
-                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                       <img src="/Holiday Proposal/Our Services/Nails/icon.svg" alt="Classic Manicure" className="w-12 h-12 flex-shrink-0" loading="lazy" />
-                      <span className="text-base font-bold" style={{ color: '#003756' }}>Classic Manicure</span>
-                    </div>
+                        <span className="text-base font-bold" style={{ color: '#003756' }}>Classic Manicure</span>
+                      </div>
                     
-                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                       <img src="/Holiday Proposal/Our Services/Nails/icon-2.svg" alt="Gel Manicure" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                       <span className="text-base font-bold" style={{ color: '#003756' }}>Gel Manicure</span>
-                    </div>
+                      </div>
                     
                     <div className="flex items-center gap-3">
                       <img src="/Holiday Proposal/Our Services/Nails/icon-1.svg" alt="Dry Pedicure" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                       <span className="text-base font-bold" style={{ color: '#003756' }}>Dry Pedicure</span>
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                       <img src="/Holiday Proposal/Our Services/Nails/icon.svg" alt="Hand Treatments" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                       <span className="text-base font-bold" style={{ color: '#003756' }}>Hand Treatments</span>
                     </div>
@@ -1841,9 +1859,9 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
           {/* Header Text */}
           <div className="text-center mb-12 md:mb-16">
             {!isGeneric && (
-              <h3 className="text-lg md:text-xl mb-4" style={{ color: '#EFE0C0', fontWeight: 400 }}>
-                A special gift for our friends at {partnerName}
-              </h3>
+            <h3 className="text-lg md:text-xl mb-4" style={{ color: '#EFE0C0', fontWeight: 400 }}>
+              A special gift for our friends at {partnerName}
+            </h3>
             )}
             <h2 className="h1 mb-4" style={{ color: '#EFE0C0', fontWeight: 600 }}>
               Book a Holiday Event and Save for 2026
@@ -2004,7 +2022,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                         {/* Package Title */}
                         <div className="text-center">
                           <h3 className="text-2xl font-bold mb-2" style={{ color: '#003756' }}>
-                            {(preset as any).name || `${preset.appointments} Appointments`}
+                          {(preset as any).name || `${preset.appointments} Appointments`}
                           </h3>
                         </div>
                         
@@ -2025,7 +2043,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                               <p className="text-sm leading-relaxed text-center" style={{ color: '#003756' }}>
                                 {getMindfulnessDescription((preset as any).name)}
                               </p>
-                            </div>
+                        </div>
                           )}
                         </div>
                         
@@ -2033,7 +2051,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                         <div className="pt-4 border-t-2" style={{ borderColor: '#E5E7EB' }}>
                           <div className="text-center">
                             <div className="text-4xl font-bold mb-1" style={{ color: '#003756' }}>
-                              {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
+                            {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
                             </div>
                             <div className="text-sm font-medium opacity-75" style={{ color: '#003756' }}>
                               {(preset as any).custom ? 'Contact for pricing' : 'per session'}
