@@ -40,7 +40,7 @@ function App() {
     location.pathname.startsWith('/photographer/') ||
     location.pathname === '/holiday-proposal' ||
     location.pathname.startsWith('/holiday-page/') ||
-    location.pathname === '/holiday2025';
+    location.pathname === '/holiday-generic';
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -166,7 +166,7 @@ function App() {
                 }
               />
               <Route 
-                path="/holiday2025"
+                path="/holiday-generic"
                 element={
                   <Suspense fallback={
                     <div className="min-h-screen flex items-center justify-center">
