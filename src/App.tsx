@@ -40,7 +40,8 @@ function App() {
     location.pathname.startsWith('/photographer/') ||
     location.pathname === '/holiday-proposal' ||
     location.pathname.startsWith('/holiday-page/') ||
-    location.pathname === '/holiday-generic';
+    location.pathname === '/holiday-generic' ||
+    location.pathname === '/holiday2025';
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -167,6 +168,18 @@ function App() {
               />
               <Route 
                 path="/holiday-generic"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <HolidayProposal isGeneric={true} />
+                  </Suspense>
+                }
+              />
+              <Route 
+                path="/holiday2025"
                 element={
                   <Suspense fallback={
                     <div className="min-h-screen flex items-center justify-center">
