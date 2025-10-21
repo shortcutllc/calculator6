@@ -221,7 +221,7 @@ const HolidayPageManager: React.FC = () => {
         <div className="flex gap-3">
           <button
             onClick={async () => {
-              const url = `${window.location.origin}/holiday-generic`;
+              const url = `${window.location.origin}/holiday2025`;
               await navigator.clipboard.writeText(url);
               alert('Generic page link copied to clipboard!');
             }}
@@ -233,7 +233,7 @@ const HolidayPageManager: React.FC = () => {
           </button>
           <Button 
             variant="secondary"
-            onClick={() => window.open('/holiday-generic', '_blank')}
+            onClick={() => window.open('/holiday2025', '_blank')}
           >
             View Generic Page
           </Button>
