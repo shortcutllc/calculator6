@@ -166,18 +166,6 @@ function App() {
                 }
               />
               <Route 
-                path="/holiday-page/:id"
-                element={
-                  <Suspense fallback={
-                    <div className="min-h-screen flex items-center justify-center">
-                      <LoadingSpinner size="large" />
-                    </div>
-                  }>
-                    <HolidayProposal />
-                  </Suspense>
-                }
-              />
-              <Route 
                 path="/holiday2025"
                 element={
                   <Suspense fallback={
@@ -186,6 +174,18 @@ function App() {
                     </div>
                   }>
                     <HolidayProposal isGeneric={true} />
+                  </Suspense>
+                }
+              />
+              <Route 
+                path="/holiday-page/:id"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <HolidayProposal />
                   </Suspense>
                 }
               />
