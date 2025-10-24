@@ -80,6 +80,14 @@ export const Navigation: React.FC = () => {
             Holiday Pages
           </Button>
           <Button 
+            onClick={() => navigate('/social-media-pages')} 
+            variant="secondary"
+            icon={<span className="text-lg">📱</span>}
+            className="hidden sm:flex"
+          >
+            Social Media
+          </Button>
+          <Button 
             onClick={() => navigate('/admin')} 
             variant="secondary"
             icon={<Settings size={18} />}
@@ -172,6 +180,17 @@ export const Navigation: React.FC = () => {
                   className="w-full"
                 >
                   Holiday Pages
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigate('/social-media-pages');
+                    setIsMenuOpen(false);
+                  }}
+                  variant="secondary"
+                  icon={<span className="text-lg">📱</span>}
+                  className="w-full"
+                >
+                  Social Media
                 </Button>
                 <Button
                   onClick={() => {

@@ -28,6 +28,7 @@ import { EmployeeLinksModal } from './EmployeeLinksModal';
 import { EmployeeManager } from './EmployeeManager';
 import { PhotographerEventAssignments } from './PhotographerEventAssignments';
 import { CustomUrlHelper } from '../utils/customUrlHelper';
+import { formatLocalDateShort } from '../utils/dateHelpers';
 
 export const HeadshotEventManager: React.FC = () => {
   const [events, setEvents] = useState<HeadshotEvent[]>([]);
@@ -274,7 +275,7 @@ export const HeadshotEventManager: React.FC = () => {
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center space-x-2">
                 <Calendar className="w-4 h-4" />
-                <span>{new Date(event.event_date).toLocaleDateString()}</span>
+                <span>{formatLocalDateShort(event.event_date)}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4" />

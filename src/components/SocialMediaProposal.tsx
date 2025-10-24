@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { HolidayPage } from '../types/holidayPage';
-import { supabase } from '../lib/supabaseClient';
+import { useSocialMediaPage } from '../contexts/SocialMediaPageContext';
+import { trackPageView, trackConversion } from '../utils/trackingUtils';
 
-interface HolidayProposalProps {
-  holidayPageData?: HolidayPage;
-  isGeneric?: boolean;
+interface SocialMediaProposalProps {
+  platform: 'linkedin' | 'meta';
 }
 
-const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) => {
-  const { id } = useParams<{ id: string }>();
-  const [holidayPage, setHolidayPage] = useState<HolidayPage | null>(null);
-  const [loading, setLoading] = useState(true);
+const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) => {
+  const { submitContactRequest } = useSocialMediaPage();
+  const [loading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   // Pricing Calculator State - moved to top to avoid hooks order violation
   const [selectedService, setSelectedService] = useState('massage');
@@ -43,25 +42,10 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
     message: ''
   });
 
-  // Initialize form with holiday page data when available
+  // Track page view on component mount
   useEffect(() => {
-    if (holidayPage && holidayPage.data.partnerName) {
-      const contactName = `${holidayPage.customization.contactFirstName || ''} ${holidayPage.customization.contactLastName || ''}`.trim();
-      const nameParts = contactName.split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      setFormData(prev => ({
-        ...prev,
-        firstName,
-        lastName,
-        email: holidayPage.data.clientEmail || '',
-        phone: '', // Phone not stored in holiday page data
-        company: holidayPage.data.partnerName || '',
-        location: '' // Location not stored in holiday page data
-      }));
-    }
-  }, [holidayPage]);
+    trackPageView(platform);
+  }, [platform]);
 
   // FAQ toggle functionality
   useEffect(() => {
@@ -84,101 +68,14 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
         }
       });
     });
-  }, [holidayPage]);
-
-      const fetchHolidayPage = async () => {
-    if (!id && !isGeneric) return;
-    
-    if (isGeneric) {
-      // For generic page, set loading to false immediately
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      
-      if (!id) throw new Error('Holiday page ID is required');
-
-      // Check if id is a valid UUID format
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-      
-      let data: any = null;
-      let error: any = null;
-      
-      if (isUUID) {
-        // If it's a UUID, try to find by ID first
-        const result = await supabase
-          .from('holiday_pages')
-          .select('*')
-          .eq('id', id)
-          .single();
-        data = result.data;
-        error = result.error;
-        
-        // If not found by ID, try unique_token as fallback
-        if (error && error.code === 'PGRST116') {
-          const resultByToken = await supabase
-            .from('holiday_pages')
-            .select('*')
-            .eq('unique_token', id)
-            .single();
-          data = resultByToken.data;
-          error = resultByToken.error;
-        }
-      } else {
-        // If it's not a UUID, it's likely a unique_token
-        const result = await supabase
-          .from('holiday_pages')
-          .select('*')
-          .eq('unique_token', id)
-          .single();
-        data = result.data;
-        error = result.error;
-      }
-      
-      if (error) {
-        throw error;
-      }
-
-      if (!data) throw new Error('Holiday page not found');
-
-      const transformedData: HolidayPage = {
-        id: data.id,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        data: data.data,
-        customization: data.customization,
-        isEditable: data.is_editable,
-        status: data.status,
-        userId: data.user_id,
-        uniqueToken: data.unique_token,
-        customUrl: data.custom_url
-      };
-
-      setHolidayPage(transformedData);
-        } catch (error) {
-          console.error('Error fetching holiday page:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-  useEffect(() => {
-    if (id || isGeneric) {
-      fetchHolidayPage();
-    }
-  }, [id, isGeneric]);
+  }, [platform]);
 
   // Update meta tags for social media previews
   useEffect(() => {
-    if (holidayPage || isGeneric) {
-      const partnerName = isGeneric ? 'Your Team' : (holidayPage?.data.partnerName || 'Your Company');
-      const title = isGeneric ? 'Holiday Wellness Gifts from Shortcut' : `Holiday Wellness Gift from Shortcut - ${partnerName}`;
-      const description = isGeneric 
-        ? 'Give your team a gift they\'ll love. From massages to holiday party glam, we bring wellness right to your office.'
-        : `Give the ${partnerName} team a gift they'll love. From massages to holiday party glam, we bring wellness right to your office.`;
-      const imageUrl = 'https://proposals.getshortcut.co/Holiday Proposal/PREVIEW LINK HOLIDAY PAGES.png';
+    const platformName = platform === 'linkedin' ? 'LinkedIn' : 'Meta';
+    const title = `Holiday Wellness Gifts from Shortcut - ${platformName}`;
+    const description = 'Give your team a gift they\'ll love. From massages to holiday party glam, we bring wellness right to your office.';
+    const imageUrl = 'https://proposals.getshortcut.co/Holiday Proposal/PREVIEW LINK HOLIDAY PAGES.png';
       
       // Update document title
       document.title = title;
@@ -211,22 +108,61 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       // Standard meta tags
       updateMetaTag('description', description);
       updateMetaTag('title', title);
+  }, [platform]);
+
+  // Add tracking pixels for LinkedIn and Meta
+  useEffect(() => {
+    // LinkedIn Insight Tag
+    if (platform === 'linkedin') {
+      const script = document.createElement('script');
+      script.innerHTML = `
+        _linkedin_partner_id = "YOUR_LINKEDIN_PARTNER_ID";
+        window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
+        window._linkedin_data_partner_ids.push(_linkedin_partner_id);
+        (function(l) {
+          if (!l){window.lintrk = function(a,b){window.lintrk.q.push([a,b])};
+          window.lintrk.q=[]}
+          var s = document.getElementsByTagName("script")[0];
+          var b = document.createElement("script");
+          b.type = "text/javascript";b.async = true;
+          b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
+          s.parentNode.insertBefore(b, s);})(window.lintrk);
+      `;
+      document.head.appendChild(script);
     }
-  }, [holidayPage]);
+
+    // Meta (Facebook) Pixel
+    if (platform === 'meta') {
+      const script = document.createElement('script');
+      script.innerHTML = `
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', 'YOUR_FACEBOOK_PIXEL_ID');
+        fbq('track', 'PageView');
+      `;
+      document.head.appendChild(script);
+    }
+  }, [platform]);
 
   // useEffect calls moved to top of component
 
-  // Header scroll behavior - simplified since header is now always white
+  // Header scroll behavior - matching company styling
   useEffect(() => {
     const handleScroll = () => {
-      const header = document.getElementById('holiday-header');
+      const header = document.getElementById('social-media-header');
       
       if (!header) return;
       
       if (window.scrollY > 100) {
-        header.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+        header.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
       } else {
-        header.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+        header.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
       }
     };
 
@@ -262,7 +198,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
     return () => {
       fadeElements.forEach((el) => observer.unobserve(el));
     };
-  }, [holidayPage]);
+  }, [platform]);
 
   // Custom smooth scroll with easing
   const smoothScrollTo = (targetId: string) => {
@@ -305,16 +241,15 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
   };
 
   // Default values for when no holiday page data is available
-  const partnerName = isGeneric ? 'your' : (holidayPage?.data.partnerName || 'Burberry');
-  const partnerLogoUrl = isGeneric ? null : holidayPage?.data.partnerLogoUrl;
-  // const customMessage = holidayPage?.data.customMessage; // Available for future use
+  const partnerName = 'your';
+  const partnerLogoUrl = null;
+  // const customMessage = ''; // Available for future use
   
   // Debug logging
-  console.log('Holiday Page Data:', {
-    hasHolidayPage: !!holidayPage,
+  console.log('Social Media Page Data:', {
+    platform,
     partnerName,
-    partnerLogoUrl,
-    fullData: holidayPage?.data
+    partnerLogoUrl
   });
   
 
@@ -1167,63 +1102,110 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
         }
       `}</style>
 
-      {/* HEADER */}
-      <header id="holiday-header" className="fixed top-0 z-50 w-full bg-white shadow-sm transition-all duration-300">
-        <div className="mx-auto container-narrow px-4 py-4 flex items-center justify-between">
-          {/* Partner Logo - Left Side (empty div for generic to maintain layout) */}
-          <div className="flex items-center flex-shrink-0">
-            {!isGeneric && (
-              <>
-          {partnerLogoUrl ? (
-              <img 
-                src={partnerLogoUrl} 
-                alt={partnerName} 
-                    className="h-8 sm:h-10 w-auto object-contain"
-                    style={{ maxWidth: '120px' }}
-                  />
-                ) : (
-                  <span className="text-sm font-medium text-gray-600">
-                    {partnerName}
-                  </span>
-                )}
-              </>
-            )}
+      {/* Professional Navigation */}
+      <header id="social-media-header" className="fixed top-0 z-50 w-full bg-white border-b border-gray-200 rounded-b-3xl">
+        <div className="max-w-[1380px] mx-auto px-5 py-4 lg:py-5">
+          <div className="grid grid-cols-[1fr_auto] grid-rows-1 lg:flex lg:justify-between lg:items-center">
+            
+            {/* Logo */}
+            <a
+              href="#top"
+              className="w-[195px] max-md:absolute z-50 top-3 left-5"
+              aria-label="Shortcut - Return to top"
+            >
+              <img
+                src="/Holiday Proposal/Shortcut Logo Social Nav Bar.png"
+                alt="Shortcut Logo"
+                className="h-9 w-auto object-contain"
+              />
+            </a>
+
+            {/* Navigation Menu */}
+            <nav className="hidden lg:flex items-center text-sm font-bold relative">
+              <a
+                href="#services"
+                className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+              >
+                Services
+              </a>
+              <a
+                href="#holiday-event"
+                className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+              >
+                Holiday Special
+              </a>
+              <a
+                href="#pricing"
+                className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+              >
+                Pricing
+              </a>
+            </nav>
+
+            {/* CTA Button */}
+            <button
+              onClick={() => {
+                setShowContactForm(true);
+                trackConversion(platform, 'form_start');
+              }}
+              className="relative overflow-hidden group bg-[#315C52] text-[#EFE0C0] font-bold text-sm rounded-full px-6 py-2.5 lg:px-8 lg:py-3 text-nowrap h-fit w-fit hidden lg:block"
+            >
+              <span className="pointer-events-none absolute bg-[#FF5050] inset-0 translate-y-full duration-300 ease-in rounded-[40px] group-hover:rounded-[0] group-hover:translate-y-0" />
+              <span className="pointer-events-none relative">Book Call</span>
+            </button>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="absolute right-5 top-5 w-5 z-10 lg:hidden flex flex-col gap-1 cursor-pointer"
+              aria-expanded="false"
+            >
+              <span className={`h-0.5 w-full bg-[#003C5E] rounded-full transition-transform duration-300 ${showMobileMenu ? 'rotate-45 translate-y-1.5' : ''}`}></span>
+              <span className={`h-0.5 w-full bg-[#003C5E] rounded-full transition-opacity duration-300 ${showMobileMenu ? 'opacity-0' : ''}`}></span>
+              <span className={`h-0.5 w-full bg-[#003C5E] rounded-full transition-transform duration-300 ${showMobileMenu ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
+            </button>
           </div>
-          
-          {/* Shortcut Logo - Right Side */}
-          <a href="#top" className="flex items-center" aria-label="Shortcut logo - return to top">
-            <svg id="holiday-logo-svg" viewBox="0 0 192 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-6 w-auto">
-              <path fillRule="evenodd" clipRule="evenodd"
-                d="M29.6284 21.5003C29.3713 23.7505 28.6818 25.9572 27.3774 27.8371C24.2946 32.28 18.9846 33.7633 13.7386 32.1453C8.56113 30.5486 3.54006 26.0287 0 18.7044L4.84254 16.3639C7.92552 22.7425 11.9483 25.9647 15.3237 27.0057C18.6305 28.0256 21.3824 27.0423 22.9585 24.7709C23.2395 24.366 23.481 23.9084 23.6808 23.4043C23.3774 23.4209 23.0738 23.4262 22.7704 23.4206C19.2805 23.3553 16.0856 21.8408 13.6813 19.7541C11.2932 17.6815 9.45986 14.8481 8.92523 11.8407C8.36688 8.69984 9.26489 5.39496 12.2773 3.08642C13.6869 2.00611 15.2332 1.36494 16.8596 1.24094C18.4816 1.11728 19.9964 1.52212 21.3267 2.23502C23.9138 3.62146 25.9253 6.22268 27.2987 9.01314C28.1685 10.7806 28.8433 12.7443 29.2624 14.7619C31.6786 12.1765 34.3066 10.6389 36.5311 9.77503C37.6804 9.3287 38.7381 9.05577 39.6253 8.91256C40.403 8.78701 41.3422 8.71138 42.1247 8.89196L40.9153 14.1327C41.0086 14.1543 41.0586 14.1618 41.0586 14.1618C41.0583 14.1658 40.8815 14.1579 40.4824 14.2223C39.98 14.3034 39.2871 14.4746 38.4782 14.7887C36.8668 15.4145 34.8583 16.5824 32.995 18.6489C31.9331 19.8266 30.8025 20.7717 29.6284 21.5003ZM24.3046 17.9209C24.1028 15.671 23.4436 13.3605 22.4729 11.3882C21.3666 9.14038 20.0076 7.63027 18.7861 6.97569C18.2121 6.66808 17.7132 6.56999 17.2685 6.60389C16.8283 6.63745 16.255 6.81433 15.5489 7.35549C14.3296 8.28987 13.9682 9.47863 14.2207 10.8994C14.497 12.4535 15.5449 14.2498 17.2067 15.692C18.8522 17.1202 20.8758 18.0057 22.871 18.043C23.3362 18.0517 23.8156 18.0149 24.3046 17.9209Z"
-                fill="#FF5050" />
-              <path fillRule="evenodd" clipRule="evenodd"
-                d="M37.5033 11.1947C34.926 10.3834 32.9956 8.72285 31.3895 6.90729L35.4947 3.27552C36.7809 4.72933 37.9135 5.57753 39.149 5.96641C40.3556 6.34619 42.0247 6.40038 44.5918 5.54394L46.8242 10.5201C44.9245 11.6113 43.8736 13.3885 43.3764 15.227C43.1283 16.1444 43.035 17.0253 43.0393 17.7413C43.0437 18.4635 43.1448 18.831 43.1572 18.8761C43.1582 18.8799 43.1583 18.8806 43.1583 18.8806L38.1127 21.0218C37.7142 20.0827 37.565 18.8953 37.5583 17.7744C37.5511 16.586 37.7026 15.2115 38.0853 13.7961C38.2848 13.0585 38.5517 12.2956 38.8993 11.5353C38.4247 11.4518 37.9596 11.3383 37.5033 11.1947Z"
-                fill="#FF5050" />
-              <path d="M182.038 29.4766V5.46692H187.385V29.4766H182.038ZM178.194 17.0349V12.4916H191.23V17.0349H178.194Z"
-                fill="#175071" />
-              <path
-                d="M167.362 29.861C165.801 29.861 164.415 29.5465 163.203 28.9174C162.015 28.265 161.083 27.3797 160.408 26.2613C159.732 25.1197 159.394 23.8149 159.394 22.3471V12.4916H164.741V22.2772C164.741 22.8597 164.834 23.3606 165.021 23.78C165.23 24.1994 165.533 24.5255 165.929 24.7585C166.326 24.9915 166.803 25.108 167.362 25.108C168.154 25.108 168.784 24.8634 169.25 24.3741C169.716 23.8615 169.949 23.1625 169.949 22.2772V12.4916H175.296V22.3121C175.296 23.8033 174.958 25.1197 174.282 26.2613C173.606 27.3797 172.675 28.265 171.486 28.9174C170.298 29.5465 168.923 29.861 167.362 29.861Z"
-                fill="#175071" />
-              <path
-                d="M150.08 29.8609C148.332 29.8609 146.748 29.4765 145.327 28.7076C143.906 27.9388 142.787 26.8787 141.972 25.5273C141.156 24.176 140.749 22.6615 140.749 20.984C140.749 19.2832 141.156 17.7687 141.972 16.4407C142.81 15.0893 143.941 14.0292 145.362 13.2604C146.783 12.4915 148.379 12.1071 150.15 12.1071C151.478 12.1071 152.689 12.34 153.784 12.806C154.903 13.2487 155.893 13.9244 156.755 14.833L153.33 18.258C152.934 17.8153 152.468 17.4891 151.932 17.2794C151.419 17.0698 150.825 16.9649 150.15 16.9649C149.381 16.9649 148.694 17.1396 148.088 17.4891C147.505 17.8153 147.039 18.2813 146.69 18.8871C146.364 19.4696 146.201 20.1569 146.201 20.949C146.201 21.7412 146.364 22.4402 146.69 23.046C147.039 23.6517 147.517 24.1294 148.123 24.4789C148.728 24.8283 149.404 25.0031 150.15 25.0031C150.849 25.0031 151.466 24.8866 152.002 24.6536C152.561 24.3973 153.039 24.0478 153.435 23.6051L156.825 27.0301C155.94 27.9621 154.938 28.6727 153.819 29.162C152.701 29.6279 151.454 29.8609 150.08 29.8609Z"
-                fill="#175071" />
-              <path d="M129.93 29.4766V5.46692H135.277V29.4766H129.93ZM126.086 17.0349V12.4916H139.122V17.0349H126.086Z"
-                fill="#175071" />
-              <path
-                d="M110.973 29.4766V12.4916H116.32V29.4766H110.973ZM116.32 20.1453L114.084 18.3979C114.526 16.4175 115.272 14.8797 116.32 13.7847C117.369 12.6896 118.825 12.1421 120.689 12.1421C121.504 12.1421 122.215 12.2702 122.821 12.5265C123.45 12.7595 123.997 13.1323 124.463 13.6449L121.283 17.664C121.05 17.4077 120.759 17.2096 120.409 17.0698C120.06 16.93 119.664 16.8601 119.221 16.8601C118.336 16.8601 117.625 17.1397 117.089 17.6989C116.577 18.2348 116.32 19.0503 116.32 20.1453Z"
-                fill="#175071" />
-              <path
-                d="M99.0146 29.8609C97.2672 29.8609 95.6828 29.4765 94.2616 28.7076C92.8636 27.9155 91.7569 26.8437 90.9415 25.4924C90.126 24.141 89.7183 22.6266 89.7183 20.949C89.7183 19.2715 90.126 17.7687 90.9415 16.4407C91.7569 15.1126 92.8636 14.0642 94.2616 13.2953C95.6595 12.5031 97.2439 12.1071 99.0146 12.1071C100.785 12.1071 102.37 12.4915 103.768 13.2604C105.166 14.0292 106.272 15.0893 107.088 16.4407C107.903 17.7687 108.311 19.2715 108.311 20.949C108.311 22.6266 107.903 24.141 107.088 25.4924C106.272 26.8437 105.166 27.9155 103.768 28.7076C102.37 29.4765 100.785 29.8609 99.0146 29.8609ZM99.0146 25.0031C99.7835 25.0031 100.459 24.84 101.042 24.5138C101.624 24.1643 102.067 23.6867 102.37 23.0809C102.696 22.4518 102.859 21.7412 102.859 20.949C102.859 20.1569 102.696 19.4696 102.37 18.8871C102.043 18.2813 101.589 17.8153 101.007 17.4891C100.447 17.1396 99.7835 16.9649 99.0146 16.9649C98.269 16.9649 97.605 17.1396 97.0225 17.4891C96.44 17.8153 95.9857 18.2813 95.6595 18.8871C95.3333 19.4929 95.1702 20.1918 95.1702 20.984C95.1702 21.7529 95.3333 22.4518 95.6595 23.0809C95.9857 23.6867 96.44 24.1643 97.0225 24.5138C97.605 24.84 98.269 25.0031 99.0146 25.0031Z"
-                fill="#175071" />
-              <path
-                d="M81.6902 29.4766V19.7958C81.6902 18.9104 81.4106 18.1998 80.8514 17.6639C80.3155 17.1048 79.6282 16.8252 78.7894 16.8252C78.207 16.8252 77.6944 16.9533 77.2517 17.2096C76.809 17.4426 76.4595 17.7921 76.2032 18.2581C75.947 18.7007 75.8188 19.2133 75.8188 19.7958L73.7568 18.7823C73.7568 17.4542 74.0364 16.2893 74.5956 15.2874C75.1548 14.2856 75.9353 13.5167 76.9372 12.9808C77.939 12.4216 79.0923 12.1421 80.3971 12.1421C81.7251 12.1421 82.8901 12.4216 83.8919 12.9808C84.8938 13.5167 85.6627 14.2739 86.1985 15.2525C86.7577 16.2077 87.0373 17.3261 87.0373 18.6075V29.4766H81.6902ZM70.4717 29.4766V4.10388H75.8188V29.4766H70.4717Z"
-                fill="#175071" />
-              <path
-                d="M60.4075 29.896C59.4057 29.896 58.4154 29.7678 57.4369 29.5116C56.4816 29.2553 55.5846 28.8941 54.7458 28.4282C53.9304 27.9389 53.2314 27.3797 52.6489 26.7506L55.6895 23.6751C56.2486 24.2809 56.9127 24.7585 57.6815 25.108C58.4504 25.4342 59.2892 25.5973 60.1978 25.5973C60.8269 25.5973 61.3045 25.5041 61.6307 25.3177C61.9802 25.1313 62.1549 24.875 62.1549 24.5489C62.1549 24.1295 61.9452 23.8149 61.5259 23.6052C61.1298 23.3723 60.6172 23.1742 59.9881 23.0111C59.3591 22.8247 58.695 22.6267 57.9961 22.417C57.2971 22.2073 56.6331 21.9161 56.004 21.5433C55.3749 21.1705 54.8623 20.6579 54.4663 20.0055C54.0702 19.3299 53.8721 18.4795 53.8721 17.4543C53.8721 16.3592 54.1517 15.4156 54.7109 14.6235C55.2701 13.808 56.0622 13.1673 57.0874 12.7013C58.1126 12.2353 59.3125 12.0023 60.6871 12.0023C62.1316 12.0023 63.4597 12.2586 64.6712 12.7712C65.9061 13.2605 66.9079 13.9944 67.6768 14.9729L64.6363 18.0484C64.1004 17.4193 63.4946 16.9767 62.819 16.7204C62.1666 16.4641 61.5259 16.3359 60.8968 16.3359C60.291 16.3359 59.8367 16.4291 59.5338 16.6155C59.2309 16.7786 59.0795 17.0233 59.0795 17.3495C59.0795 17.6989 59.2775 17.9785 59.6736 18.1882C60.0697 18.3979 60.5823 18.5843 61.2113 18.7474C61.8404 18.9105 62.5044 19.1085 63.2034 19.3415C63.9024 19.5745 64.5664 19.889 65.1955 20.2851C65.8245 20.6812 66.3371 21.2171 66.7332 21.8928C67.1293 22.5451 67.3273 23.4072 67.3273 24.479C67.3273 26.1332 66.6983 27.4496 65.4401 28.4282C64.2053 29.4067 62.5277 29.896 60.4075 29.896Z"
-                fill="#175071" />
-            </svg>
-          </a>
         </div>
+
+        {/* Mobile Menu (unchanged) */}
+        {showMobileMenu && (
+          <div className="lg:hidden border-top border-gray-200 bg-white">
+            <div className="px-6 py-4 space-y-4">
+              <a
+                href="#services"
+                className="block text-base font-medium text-gray-900 hover:text-shortcut-coral transition-colors"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                Services
+              </a>
+              <a
+                href="#holiday-event"
+                className="block text-base font-medium text-gray-900 hover:text-shortcut-coral transition-colors"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                Holiday Special
+              </a>
+              <a
+                href="#pricing"
+                className="block text-base font-medium text-gray-900 hover:text-shortcut-coral transition-colors"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                Pricing
+              </a>
+
+              <button
+                onClick={() => {
+                  setShowContactForm(true);
+                  setShowMobileMenu(false);
+                  trackConversion(platform, 'form_start');
+                }}
+                className="w-full inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-[#EFE0C0] bg-[#315C52] hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#315C52] transition-all duration-200 rounded-full"
+              >
+                Book Call
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* HERO */}
@@ -1254,11 +1236,14 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                   <span className="block">'ahhh' with Shortcut.</span>
                 </h1>
                 <p className="mt-6 md:mt-8 text-lg md:text-xl leading-relaxed max-w-[48ch]" style={{ color: '#EFE0C0', opacity: 0.95 }}>
-                  Give {isGeneric ? 'your team' : `the ${partnerName} team`} a gift they'll love. From massages to holiday party glam, we bring the magic right to your office.
+                  Give your team a gift they'll love. From massages to holiday party glam, we bring the magic right to your office.
                 </p>
                 
                 <div className="mt-10 md:mt-12 flex flex-col sm:flex-row gap-4">
-                  <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#EFE0C0', color: '#214C42' }}>
+                  <button onClick={() => {
+                    setShowContactForm(true);
+                    trackConversion(platform, 'form_start');
+                  }} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#EFE0C0', color: '#214C42' }}>
                     Get in touch
                   </button>
                   <button onClick={() => smoothScrollTo('services')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#EFE0C0', color: '#EFE0C0' }}>
@@ -1878,11 +1863,11 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       </section>
 
       {/* PROMOTIONAL SECTION */}
-      <section className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#214C42' }}>
+      <section id="holiday-event" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#214C42' }}>
         <div className="mx-auto max-w-7xl px-4">
           {/* Header Text */}
           <div className="text-center mb-12 md:mb-16">
-            {!isGeneric && (
+            {(
             <h3 className="text-lg md:text-xl mb-4" style={{ color: '#EFE0C0', fontWeight: 400 }}>
               A special gift for our friends at {partnerName}
             </h3>
@@ -1930,7 +1915,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       </section>
 
       {/* PRICING CALCULATOR */}
-      {(!holidayPage || holidayPage.customization.includePricingCalculator) && (
+      {(
       <section id="pricing" className="fade-in-section py-20 md:py-24 rounded-3xl" style={{ backgroundColor: '#EFE0C0' }}>
         <div className="mx-auto max-w-7xl px-4">
           <div className="text-center mb-16">
@@ -2166,7 +2151,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       </section>
 
       {/* FAQ SECTION */}
-      {(!holidayPage || holidayPage.customization.includeFAQ) && (
+      {(
         <section className="fade-in-section py-16 md:py-20 bg-gray-50 rounded-3xl">
         <div className="mx-auto container-narrow px-4">
           <h2 className="h1 text-center mb-12">Frequently Asked Questions</h2>
@@ -2227,7 +2212,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       </section>
 
       {/* FOOTER */}
-      <footer className="py-12" style={{ backgroundColor: '#003756' }}>
+      <footer className="py-12 rounded-t-3xl" style={{ backgroundColor: '#003756' }}>
         <div className="mx-auto container-narrow px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
@@ -2259,6 +2244,32 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
             </div>
           </div>
           <div className="border-t border-white/20 mt-8 pt-8 text-center text-white/70">
+            <div className="flex justify-center items-center gap-6 mb-4">
+              <a 
+                href="https://www.getshortcut.co/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                About
+              </a>
+              <a 
+                href="https://www.getshortcut.co/privacy" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                Privacy
+              </a>
+              <a 
+                href="https://www.getshortcut.co/terms" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                Terms
+              </a>
+            </div>
             <p>&copy; 2025 Shortcut. All rights reserved.</p>
           </div>
         </div>
@@ -2296,46 +2307,45 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
             <form onSubmit={async (e) => {
               e.preventDefault();
               try {
-                // Save form data to Supabase
-                const { data, error } = await supabase
-                  .from('contact_requests')
-                  .insert([
-                    {
-                      first_name: formData.firstName,
-                      last_name: formData.lastName,
-                      email: formData.email,
-                      phone: formData.phone,
-                      company: formData.company,
-                      location: formData.location,
-                      service_type: formData.serviceType,
-                      event_date: formData.eventDate,
-                      appointment_count: formData.appointmentCount === 'custom' ? formData.customAppointmentCount : formData.appointmentCount,
-                      message: formData.message,
-                      holiday_page_id: holidayPage?.id || null,
-                      created_at: new Date().toISOString()
-                    }
-                  ]);
+                setIsSubmitting(true);
+                
+                // Track form submission
+                trackConversion(platform, 'form_submit');
+                
+                // Submit to social media contact requests
+                await submitContactRequest({
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  email: formData.email,
+                  phone: formData.phone,
+                  company: formData.company,
+                  location: formData.location,
+                  serviceType: formData.serviceType,
+                  eventDate: formData.eventDate,
+                  appointmentCount: formData.appointmentCount === 'custom' ? formData.customAppointmentCount : formData.appointmentCount,
+                  customAppointmentCount: formData.customAppointmentCount,
+                  message: formData.message
+                }, platform);
 
-                if (error) {
-                  console.error('Error saving contact request:', error);
-                  alert('There was an error submitting your request. Please try again.');
-                } else {
-                  console.log('Contact request saved successfully:', data);
-                  alert('Thank you for your interest! We\'ll be in touch soon.');
-                  setShowContactForm(false);
-                  // Reset only the form-specific fields, keep prefilled company data
-                  setFormData(prev => ({
-                    ...prev,
-                    serviceType: '',
-                    eventDate: '',
-                    appointmentCount: '',
-                    customAppointmentCount: '',
-                    message: ''
-                  }));
-                }
+                // Track lead generation
+                trackConversion(platform, 'lead');
+
+                alert('Thank you for your interest! We\'ll be in touch soon.');
+                setShowContactForm(false);
+                // Reset only the form-specific fields, keep prefilled company data
+                setFormData(prev => ({
+                  ...prev,
+                  serviceType: '',
+                  eventDate: '',
+                  appointmentCount: '',
+                  customAppointmentCount: '',
+                  message: ''
+                }));
               } catch (err) {
                 console.error('Error:', err);
                 alert('There was an error submitting your request. Please try again.');
+              } finally {
+                setIsSubmitting(false);
               }
             }} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2509,5 +2519,5 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
   );
 };
 
-export default HolidayProposal;
+export default SocialMediaProposal;
 

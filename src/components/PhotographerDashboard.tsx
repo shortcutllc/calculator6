@@ -19,6 +19,7 @@ import { PhotographerService } from '../services/PhotographerService';
 import { HeadshotService } from '../services/HeadshotService';
 import { HeadshotEvent, HeadshotEventStats } from '../types/headshot';
 import { PhotographerAccess } from '../types/photographer';
+import { formatLocalDateShort } from '../utils/dateHelpers';
 
 const PhotographerDashboard: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -257,7 +258,7 @@ const PhotographerDashboard: React.FC = () => {
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(event.event_date).toLocaleDateString()}
+                      {formatLocalDateShort(event.event_date)}
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

@@ -115,9 +115,11 @@ const HolidayPageManager: React.FC = () => {
     try {
       setDeletingId(id);
       await deleteHolidayPage(id);
+      console.log('✅ Holiday page deleted successfully');
     } catch (error) {
-      console.error('Error deleting holiday page:', error);
-      alert('Failed to delete holiday page. Please try again.');
+      console.error('❌ Error deleting holiday page:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete holiday page';
+      alert(`Failed to delete holiday page: ${errorMessage}`);
     } finally {
       setDeletingId(null);
     }
@@ -147,6 +149,9 @@ const HolidayPageManager: React.FC = () => {
   };
 
   const handleEdit = (holidayPage: HolidayPage) => {
+    console.log('🔧 Edit button clicked for holiday page:', holidayPage);
+    console.log('🔧 Holiday page data:', holidayPage.data);
+    console.log('🔧 Partner logo URL:', holidayPage.data?.partnerLogoUrl);
     setEditingPage(holidayPage);
     setShowCreator(true);
   };
@@ -528,7 +533,10 @@ const HolidayPageManager: React.FC = () => {
       )}
 
       {showCreator && (
-        <HolidayPageCreator onClose={handleCloseCreator} editingPage={editingPage} />
+        <>
+          {console.log('🎭 Rendering HolidayPageCreator modal with editingPage:', editingPage)}
+          <HolidayPageCreator onClose={handleCloseCreator} editingPage={editingPage} />
+        </>
       )}
     </div>
   );

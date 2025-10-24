@@ -48,30 +48,59 @@ export const HolidayPageProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       setLoading(true);
       setError(null);
-      
+
+      console.log('🔍 Fetching all holiday pages...');
       const { data, error } = await supabase
         .from('holiday_pages')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('🔍 Holiday pages query result:', { data, error });
+
+      if (error) {
+        console.error('❌ Error fetching holiday pages:', error);
+        throw error;
+      }
 
       if (!data) {
         throw new Error('No data returned from Supabase');
       }
 
+      console.log('✅ Holiday pages fetched successfully:', data.length, 'pages');
       const transformedHolidayPages = data.map(transformDatabaseHolidayPage);
       setHolidayPages(transformedHolidayPages);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch holiday pages';
       setError(errorMessage);
-      console.error('Error fetching holiday pages:', err);
+      console.error('❌ Error fetching holiday pages:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Test database schema first
+    const testDatabaseSchema = async () => {
+      try {
+        console.log('🔍 Testing database schema...');
+        const { data, error } = await supabase
+          .from('holiday_pages')
+          .select('id, unique_token, created_at')
+          .limit(1);
+        
+        console.log('🔍 Schema test result:', { data, error });
+        
+        if (error) {
+          console.error('❌ Schema test failed:', error);
+        } else {
+          console.log('✅ Schema test passed, columns exist');
+        }
+      } catch (err) {
+        console.error('❌ Schema test error:', err);
+      }
+    };
+    
+    testDatabaseSchema();
     fetchHolidayPages();
   }, []);
 
@@ -80,32 +109,64 @@ export const HolidayPageProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setLoading(true);
       setError(null);
 
-      // Try to get by unique_token first (for public access), then by id (for admin access)
-      let { data, error } = await supabase
-        .from('holiday_pages')
-        .select('*')
-        .eq('unique_token', id)
-        .single();
+      console.log('🔍 Fetching holiday page with ID:', id);
 
-      // If not found by unique_token, try by id
-      if (error && error.code === 'PGRST116') {
-        const { data: dataById, error: errorById } = await supabase
+      // Check if id is a valid UUID format
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      
+      let data: any = null;
+      let error: any = null;
+      
+      if (isUUID) {
+        // If it's a UUID, try to find by ID first
+        console.log('🔍 ID is UUID, trying to fetch by ID...');
+        const result = await supabase
           .from('holiday_pages')
           .select('*')
           .eq('id', id)
           .single();
-        data = dataById;
-        error = errorById;
+        data = result.data;
+        error = result.error;
+        console.log('🔍 ID query result:', { data, error });
+        
+        // If not found by ID, try unique_token as fallback
+        if (error && error.code === 'PGRST116') {
+          console.log('🔍 Not found by ID, trying by unique_token...');
+          const resultByToken = await supabase
+            .from('holiday_pages')
+            .select('*')
+            .eq('unique_token', id)
+            .single();
+          data = resultByToken.data;
+          error = resultByToken.error;
+          console.log('🔍 Unique token query result:', { data, error });
+        }
+      } else {
+        // If it's not a UUID, it's likely a unique_token
+        console.log('🔍 ID is not UUID, trying to fetch by unique_token...');
+        const result = await supabase
+          .from('holiday_pages')
+          .select('*')
+          .eq('unique_token', id)
+          .single();
+        data = result.data;
+        error = result.error;
+        console.log('🔍 Unique token query result:', { data, error });
       }
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching holiday page:', error);
+        throw error;
+      }
       if (!data) throw new Error('Holiday page not found');
 
+      console.log('✅ Holiday page found:', data);
       const holidayPage = transformDatabaseHolidayPage(data);
       setCurrentHolidayPage(holidayPage);
       return holidayPage;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch holiday page';
+      console.error('❌ Holiday page fetch failed:', errorMessage);
       setError(errorMessage);
       return null;
     } finally {
@@ -143,10 +204,12 @@ export const HolidayPageProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You must be logged in to create a holiday page');
 
-      // Upload logo if provided
+      // Handle logo - file upload takes precedence over URL
       let logoUrl = '';
       if (options.partnerLogoFile) {
         logoUrl = await uploadPartnerLogo(options.partnerLogoFile);
+      } else if (options.partnerLogoUrl) {
+        logoUrl = options.partnerLogoUrl;
       }
 
       // Generate unique token for public access
@@ -196,6 +259,8 @@ export const HolidayPageProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setLoading(true);
       setError(null);
 
+      console.log('🔄 Updating holiday page:', id, updates);
+
       const updateData: any = {
         updated_at: new Date().toISOString()
       };
@@ -205,21 +270,38 @@ export const HolidayPageProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (updates.status) updateData.status = updates.status;
       if (updates.isEditable !== undefined) updateData.is_editable = updates.isEditable;
 
-      const { error } = await supabase
+      console.log('📤 Sending update data to Supabase:', updateData);
+
+      const { data, error } = await supabase
         .from('holiday_pages')
         .update(updateData)
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase update error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
 
+      console.log('✅ Supabase update response:', data);
+
+      console.log('✅ Supabase update successful, fetching updated pages...');
       await fetchHolidayPages();
       
       // Update current holiday page if it's the one being updated
       if (currentHolidayPage?.id === id) {
+        console.log('🔄 Updating current holiday page state');
         setCurrentHolidayPage(prev => prev ? { ...prev, ...updates } : null);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update holiday page';
+      console.error('❌ Update failed:', errorMessage);
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -232,12 +314,27 @@ export const HolidayPageProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setLoading(true);
       setError(null);
 
-      const { error } = await supabase
+      console.log('🗑️ Attempting to delete holiday page:', id);
+
+      const { data, error } = await supabase
         .from('holiday_pages')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
-      if (error) throw error;
+      console.log('🗑️ Delete result:', { data, error });
+
+      if (error) {
+        console.error('❌ Delete error:', error);
+        throw error;
+      }
+
+      // Check if any rows were actually deleted
+      if (!data || data.length === 0) {
+        throw new Error('No holiday page found with that ID or you do not have permission to delete it');
+      }
+
+      console.log('✅ Holiday page deleted successfully:', data[0]);
 
       await fetchHolidayPages();
       
@@ -247,6 +344,7 @@ export const HolidayPageProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete holiday page';
+      console.error('❌ Delete failed:', errorMessage);
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {

@@ -6,6 +6,7 @@ import { PhotographerToken, PhotographerEventAssignment } from '../types/photogr
 import { HeadshotEvent } from '../types/headshot';
 import { Button } from './Button';
 import { CustomUrlHelper } from '../utils/customUrlHelper';
+import { formatLocalDateShort } from '../utils/dateHelpers';
 
 export const PhotographerManager: React.FC = () => {
   const [tokens, setTokens] = useState<PhotographerToken[]>([]);
@@ -380,7 +381,7 @@ export const PhotographerManager: React.FC = () => {
                                           <div>
                                             <p className="text-sm font-medium text-gray-900">{event.event_name}</p>
                                             <p className="text-xs text-gray-500">
-                                              {new Date(event.event_date).toLocaleDateString()} • {event.status}
+                                              {formatLocalDateShort(event.event_date)} • {event.status}
                                             </p>
                                           </div>
                                         </div>
@@ -415,7 +416,7 @@ export const PhotographerManager: React.FC = () => {
                                           <div>
                                             <p className="text-sm font-medium text-gray-900">{event.event_name}</p>
                                             <p className="text-xs text-gray-500">
-                                              {new Date(event.event_date).toLocaleDateString()} • {event.status}
+                                              {formatLocalDateShort(event.event_date)} • {event.status}
                                             </p>
                                           </div>
                                         </div>

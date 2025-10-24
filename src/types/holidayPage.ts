@@ -35,6 +35,7 @@ export interface HolidayPage {
 export interface HolidayPageOptions {
   partnerName: string;
   partnerLogoFile?: File;
+  partnerLogoUrl?: string;
   clientEmail?: string;
   contactFirstName?: string;
   contactLastName?: string;

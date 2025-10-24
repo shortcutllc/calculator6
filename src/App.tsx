@@ -16,6 +16,7 @@ import { HeadshotsPage } from './components/HeadshotsPage';
 import { CustomUrlResolver } from './components/CustomUrlResolver';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { HolidayPageProvider } from './contexts/HolidayPageContext';
+import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import { testSupabaseConnection } from './lib/supabaseClient';
@@ -28,6 +29,8 @@ const BrochurePage = lazy(() => import('./components/BrochurePage'));
 const PDFViewer = lazy(() => import('./components/PDFViewer'));
 const HolidayProposal = lazy(() => import('./components/HolidayProposal'));
 const HolidayPageManager = lazy(() => import('./components/HolidayPageManager'));
+const SocialMediaProposal = lazy(() => import('./components/SocialMediaProposal'));
+const SocialMediaPageManager = lazy(() => import('./components/SocialMediaPageManager'));
 
 function App() {
   const location = useLocation();
@@ -41,7 +44,9 @@ function App() {
     location.pathname === '/holiday-proposal' ||
     location.pathname.startsWith('/holiday-page/') ||
     location.pathname === '/holiday-generic' ||
-    location.pathname === '/holiday2025';
+    location.pathname === '/holiday2025' ||
+    location.pathname === '/social-media/linkedin' ||
+    location.pathname === '/social-media/meta';
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -213,6 +218,52 @@ function App() {
                     }>
                       <HolidayPageManager />
                     </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              
+              {/* Social Media Landing Pages */}
+              <Route 
+                path="/social-media/linkedin"
+                element={
+                  <SocialMediaPageProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SocialMediaProposal platform="linkedin" />
+                    </Suspense>
+                  </SocialMediaPageProvider>
+                }
+              />
+              <Route 
+                path="/social-media/meta"
+                element={
+                  <SocialMediaPageProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SocialMediaProposal platform="meta" />
+                    </Suspense>
+                  </SocialMediaPageProvider>
+                }
+              />
+              <Route 
+                path="/social-media-pages"
+                element={
+                  <PrivateRoute>
+                    <SocialMediaPageProvider>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <SocialMediaPageManager />
+                      </Suspense>
+                    </SocialMediaPageProvider>
                   </PrivateRoute>
                 }
               />
