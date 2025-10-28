@@ -2719,8 +2719,8 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
 
       {/* Success Message Modal */}
       {showSuccessMessage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-12 transform transition-all">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-12 transform animate-in zoom-in-95 duration-300">
             {/* Close Button */}
             <button
               onClick={() => setShowSuccessMessage(false)}

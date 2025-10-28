@@ -4,7 +4,7 @@ import { SocialMediaContactRequest } from '../types/socialMediaPage';
 import { Link } from 'lucide-react';
 
 const SocialMediaPageManager: React.FC = () => {
-  const { contactRequests, loading, updateContactRequestStatus } = useSocialMediaPage();
+  const { contactRequests, loading, updateContactRequestStatus, deleteContactRequest } = useSocialMediaPage();
   const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'contacted' | 'followed_up' | 'closed'>('all');
   const [platformFilter, setPlatformFilter] = useState<'all' | 'linkedin' | 'meta'>('all');
   const [utmSourceFilter, setUtmSourceFilter] = useState('all');
@@ -51,6 +51,17 @@ const SocialMediaPageManager: React.FC = () => {
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update status. Please try again.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this contact request? This action cannot be undone.')) {
+      try {
+        await deleteContactRequest(id);
+      } catch (error) {
+        console.error('Error deleting contact request:', error);
+        alert('Failed to delete contact request. Please try again.');
+      }
     }
   };
 
@@ -345,6 +356,13 @@ const SocialMediaPageManager: React.FC = () => {
                     >
                       Email
                     </a>
+                    
+                    <button
+                      onClick={() => handleDelete(request.id)}
+                      className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>

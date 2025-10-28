@@ -9,6 +9,7 @@ interface SocialMediaPageContextType {
   error: string | null;
   submitContactRequest: (formData: SocialMediaFormData, platform: 'linkedin' | 'meta', campaignData?: { campaignId?: string; adSetId?: string; adId?: string }) => Promise<void>;
   updateContactRequestStatus: (id: string, status: 'new' | 'contacted' | 'followed_up' | 'closed') => Promise<void>;
+  deleteContactRequest: (id: string) => Promise<void>;
   fetchContactRequests: () => Promise<void>;
 }
 
@@ -28,6 +29,13 @@ interface SocialMediaPageProviderProps {
 
 async function sendSlackNotification(lead: any) {
   console.log('🔔 Slack notification payload:', lead);
+  
+  // Only send Slack notifications in production
+  if (window.location.hostname === 'localhost') {
+    console.log('🚫 Skipping Slack notification in development');
+    return;
+  }
+  
   try {
     const response = await fetch('/.netlify/functions/slack-notification', {
       method: 'POST',
@@ -255,6 +263,38 @@ export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = (
     }
   };
 
+  const deleteContactRequest = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🗑️ Deleting contact request:', id);
+
+      const { error } = await supabase
+        .from('social_media_contact_requests')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Error deleting contact request:', error);
+        throw error;
+      }
+
+      console.log('✅ Contact request deleted successfully');
+
+      // Refresh the contact requests list
+      await fetchContactRequests();
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete contact request';
+      console.error('❌ Error:', errorMessage);
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch contact requests on mount
   useEffect(() => {
     fetchContactRequests();
@@ -266,6 +306,7 @@ export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = (
     error,
     submitContactRequest,
     updateContactRequestStatus,
+    deleteContactRequest,
     fetchContactRequests
   };
 
