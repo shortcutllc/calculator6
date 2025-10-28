@@ -26,62 +26,20 @@ interface SocialMediaPageProviderProps {
   children: React.ReactNode;
 }
 
-const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
-
 async function sendSlackNotification(lead: any) {
   console.log('🔔 Slack notification payload:', lead);
   try {
-    const response = await fetch(SLACK_WEBHOOK_URL, {
+    const response = await fetch('/.netlify/functions/slack-notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: `🎯 New Social Media Lead!`,
-        blocks: [
-          {
-            type: 'header',
-            text: {
-              type: 'plain_text',
-              text: '🎯 New Social Media Lead!'
-            }
-          },
-          {
-            type: 'section',
-            fields: [
-              {
-                type: 'mrkdwn',
-                text: `*Name:* ${lead.name}`
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Email:* ${lead.email}`
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Platform:* ${lead.platform}`
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Lead Score:* ${lead.leadScore}/100`
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Company:* ${lead.company || 'N/A'}`
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Phone:* ${lead.phone || 'N/A'}`
-              }
-            ]
-          }
-        ]
-      })
+      body: JSON.stringify({ lead })
     });
     
     if (!response.ok) {
-      throw new Error(`Slack webhook failed: ${response.status} ${response.statusText}`);
+      throw new Error(`Slack notification failed: ${response.status} ${response.statusText}`);
     }
     
-    console.log('✅ Slack webhook response:', response.status);
+    console.log('✅ Slack notification sent successfully');
   } catch (error) {
     console.error('❌ Failed to send Slack notification:', error);
     throw error;
