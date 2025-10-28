@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Share2, Plus, Trash, X, Calculator } from 'lucide-react';
+import { Plus, Trash, X, Calculator } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProposal } from '../contexts/ProposalContext';
 import ProposalOptionsModal from './ProposalOptionsModal';
@@ -1384,7 +1384,7 @@ const Home: React.FC = () => {
                                 name={`participants-${index}`}
                                 value="custom"
                                 checked={service.participants !== 'unlimited'}
-                                onChange={(e) =>
+                                onChange={() =>
                                   updateService(index, {
                                     participants: 50
                                   })

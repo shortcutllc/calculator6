@@ -28,3 +28,5 @@ SELECT column_name, data_type, is_nullable
 FROM information_schema.columns 
 WHERE table_name = 'holiday_pages' 
 AND column_name IN ('unique_token', 'custom_url');
+
+

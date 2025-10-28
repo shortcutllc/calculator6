@@ -34,15 +34,16 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Content-Security-Policy = """
-      default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://maps.googleapis.com;
+      default-src 'self' https://www.facebook.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://maps.googleapis.com https://connect.facebook.net https://www.facebook.com https://snap.licdn.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https://* http://*;
-      connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://maps.googleapis.com;
+      connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://maps.googleapis.com https://connect.facebook.net https://www.facebook.com;
       worker-src 'self' blob:;
+      frame-src 'self' https://www.facebook.com https://connect.facebook.net;
       frame-ancestors 'none';
-      form-action 'self';
+      form-action 'self' https://www.facebook.com;
       base-uri 'self'
     """
     Access-Control-Allow-Origin = "*"

@@ -11,6 +11,8 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
   const [loading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+  const serviceOrder = ['massage', 'hair-makeup', 'headshot', 'nails', 'mindfulness'];
   
   // Pricing Calculator State - moved to top to avoid hooks order violation
   const [selectedService, setSelectedService] = useState('massage');
@@ -28,6 +30,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
   // Contact Form State
   const [showContactForm, setShowContactForm] = useState(false);
   const [showMessageField, setShowMessageField] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -45,6 +48,162 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
   // Track page view on component mount
   useEffect(() => {
     trackPageView(platform);
+  }, [platform]);
+
+  // Capture and persist UTM parameters for 90 days
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmParams: Record<string, string> = {};
+    
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(param => {
+      const value = urlParams.get(param);
+      if (value) {
+        utmParams[param] = value;
+      }
+    });
+
+    // Only update if we have UTM parameters in URL
+    if (Object.keys(utmParams).length > 0) {
+      // Get existing UTMs from localStorage
+      const existingUtms = localStorage.getItem('shortcut_utms');
+      let existingParams: Record<string, string> = {};
+      
+      if (existingUtms) {
+        try {
+          existingParams = JSON.parse(existingUtms);
+        } catch (e) {
+          console.error('Error parsing existing UTMs:', e);
+        }
+      }
+
+      // Merge new UTMs with existing (URL UTMs take priority)
+      const mergedUtms = { ...existingParams, ...utmParams };
+      
+      // Store in localStorage with expiration date (90 days)
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 90);
+      
+      const dataToStore = {
+        params: mergedUtms,
+        expiration: expirationDate.getTime()
+      };
+      
+      localStorage.setItem('shortcut_utms', JSON.stringify(dataToStore));
+      console.log('✅ UTM parameters stored:', mergedUtms);
+    } else {
+      // If no UTM params in URL, check if we have stored ones and if they're still valid
+      const storedData = localStorage.getItem('shortcut_utms');
+      if (storedData) {
+        try {
+          const parsed = JSON.parse(storedData);
+          const expiration = parsed.expiration || 0;
+          
+          // If expired, remove it
+          if (Date.now() > expiration) {
+            localStorage.removeItem('shortcut_utms');
+            console.log('🗑️ Expired UTM parameters removed');
+          }
+        } catch (e) {
+          console.error('Error parsing stored UTMs:', e);
+        }
+      }
+    }
+
+    // Function to inject UTMs into all outbound links
+    const injectUtmsIntoLinks = () => {
+      // Get stored UTM parameters
+      const getStoredUtms = (): Record<string, string> => {
+        try {
+          const storedData = localStorage.getItem('shortcut_utms');
+          if (storedData) {
+            const parsed = JSON.parse(storedData);
+            if (parsed.expiration && Date.now() < parsed.expiration) {
+              return parsed.params || {};
+            }
+          }
+        } catch (e) {
+          console.error('Error reading stored UTMs:', e);
+        }
+        return {};
+      };
+
+      const storedUtms = getStoredUtms();
+      
+      if (Object.keys(storedUtms).length === 0) {
+        return; // No UTMs to append
+      }
+
+      // Build UTM query string
+      const utmQueryString = Object.keys(storedUtms)
+        .map(key => `${key}=${encodeURIComponent(storedUtms[key])}`)
+        .join('&');
+
+      // Find all anchor tags with hrefs that are external links
+      const links = document.querySelectorAll('a[href], button[data-calendly-url]');
+      
+      links.forEach((link) => {
+        if (link instanceof HTMLAnchorElement) {
+          const href = link.getAttribute('href');
+          if (href && (href.startsWith('http') || href.startsWith('mailto:') || href.includes('calendly.com'))) {
+            try {
+              const url = new URL(href.includes('//') ? href : `https://${href}`, window.location.origin);
+              const existingParams = new URLSearchParams(url.search);
+              
+              // Only add UTM if they don't already exist
+              let hasNewParam = false;
+              Object.keys(storedUtms).forEach(key => {
+                if (!existingParams.has(key)) {
+                  existingParams.set(key, storedUtms[key]);
+                  hasNewParam = true;
+                }
+              });
+              
+              if (hasNewParam) {
+                url.search = existingParams.toString();
+                link.setAttribute('href', url.toString());
+              }
+            } catch (e) {
+              console.error('Error processing link:', href, e);
+            }
+          }
+        }
+      });
+
+      // Handle Calendly integration
+      const calendlyElements = document.querySelectorAll('[data-calendly-url]');
+      calendlyElements.forEach((element) => {
+        const calendlyUrl = element.getAttribute('data-calendly-url');
+        if (calendlyUrl && element instanceof HTMLElement) {
+          try {
+            const url = new URL(calendlyUrl);
+            const existingParams = new URLSearchParams(url.search);
+            
+            // Add UTM parameters
+            Object.keys(storedUtms).forEach(key => {
+              if (!existingParams.has(key)) {
+                existingParams.set(key, storedUtms[key]);
+              }
+            });
+            
+            url.search = existingParams.toString();
+            element.setAttribute('data-calendly-url', url.toString());
+          } catch (e) {
+            console.error('Error processing Calendly URL:', e);
+          }
+        }
+      });
+    };
+
+    // Inject UTMs into links after a short delay to ensure DOM is ready
+    setTimeout(injectUtmsIntoLinks, 100);
+    
+    // Also re-inject when new elements are added (e.g., dynamic content)
+    const observer = new MutationObserver(injectUtmsIntoLinks);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+    };
   }, [platform]);
 
   // FAQ toggle functionality
@@ -116,7 +275,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
     if (platform === 'linkedin') {
       const script = document.createElement('script');
       script.innerHTML = `
-        _linkedin_partner_id = "YOUR_LINKEDIN_PARTNER_ID";
+        _linkedin_partner_id = "8188114";
         window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
         window._linkedin_data_partner_ids.push(_linkedin_partner_id);
         (function(l) {
@@ -129,10 +288,23 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
           s.parentNode.insertBefore(b, s);})(window.lintrk);
       `;
       document.head.appendChild(script);
+      
+      // Add noscript tracking image for LinkedIn
+      const noscript = document.createElement('noscript');
+      const img = document.createElement('img');
+      img.height = 1;
+      img.width = 1;
+      img.style.display = 'none';
+      img.alt = '';
+      img.src = 'https://px.ads.linkedin.com/collect/?pid=8188114&fmt=gif';
+      noscript.appendChild(img);
+      document.body.appendChild(noscript);
     }
 
     // Meta (Facebook) Pixel
     if (platform === 'meta') {
+      console.log('📊 Initializing Meta Pixel for Meta platform');
+      
       const script = document.createElement('script');
       script.innerHTML = `
         !function(f,b,e,v,n,t,s)
@@ -143,10 +315,25 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', 'YOUR_FACEBOOK_PIXEL_ID');
+        
+        // Initialize pixel
+        console.log('🎯 Initializing Meta Pixel with ID: 1104863743004498');
+        fbq('init', '1104863743004498');
+        
+        // Track page view
         fbq('track', 'PageView');
+        console.log('✅ Meta Pixel PageView event sent');
       `;
       document.head.appendChild(script);
+      
+      // Also set up manual tracking in case fbq isn't available yet
+      setTimeout(() => {
+        if (typeof (window as any).fbq !== 'undefined') {
+          console.log('✅ Meta Pixel loaded and ready');
+        } else {
+          console.warn('⚠️ Meta Pixel not yet loaded');
+        }
+      }, 1000);
     }
   }, [platform]);
 
@@ -171,6 +358,20 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
+  }, []);
+
+  // Track current service index for arrow labels
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.services-scroll') as HTMLElement | null;
+    if (!scrollContainer) return;
+    const onScroll = () => {
+      const slideWidth = scrollContainer.clientWidth || 1;
+      const index = Math.round(scrollContainer.scrollLeft / slideWidth);
+      setCurrentServiceIndex(Math.max(0, Math.min(index, serviceOrder.length - 1)));
+    };
+    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => scrollContainer.removeEventListener('scroll', onScroll as EventListener);
   }, []);
 
   // Intersection Observer for fade-in animations
@@ -715,23 +916,6 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
           }
         }
         
-        .arrow-pointer {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 4rem;
-          color: #EFE0C0;
-          z-index: 10;
-          animation: arrowBounce 2s ease-in-out infinite;
-          pointer-events: none;
-          filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
-        }
-        
-        @keyframes arrowBounce {
-          0%, 100% { transform: translate(-50%, -50%) translateX(0); opacity: 0.9; }
-          50% { transform: translate(-50%, -50%) translateX(20px); opacity: 1; }
-        }
         
         .sparkle {
           position: absolute;
@@ -1104,108 +1288,89 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
 
       {/* Professional Navigation */}
       <header id="social-media-header" className="fixed top-0 z-50 w-full bg-white border-b border-gray-200 rounded-b-3xl">
-        <div className="max-w-[1380px] mx-auto px-5 py-4 lg:py-5">
-          <div className="grid grid-cols-[1fr_auto] grid-rows-1 lg:flex lg:justify-between lg:items-center">
-            
+        {/* Desktop Navigation */}
+        <div className="hidden lg:block">
+          <div className="max-w-[1380px] mx-auto px-5 py-4 lg:py-5">
+            <div className="flex items-center justify-between">
+              {/* Logo */}
+              <a
+                href="#top"
+                className="hover:opacity-80 transition-opacity"
+                aria-label="Shortcut - Return to top"
+              >
+                <img
+                  src="/Holiday Proposal/Shortcut Logo Social Nav Bar.png"
+                  alt="Shortcut Logo"
+                  className="h-9 w-auto object-contain"
+                />
+              </a>
+
+              {/* Navigation Menu */}
+              <nav className="flex items-center text-sm font-bold">
+                <a
+                  href="#services"
+                  className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+                >
+                  Services
+                </a>
+                <a
+                  href="#holiday-event"
+                  className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+                >
+                  Holiday Special
+                </a>
+                <a
+                  href="#pricing"
+                  className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+                >
+                  Pricing
+                </a>
+              </nav>
+
+              {/* CTA Button */}
+              <button
+                onClick={() => {
+                  setShowContactForm(true);
+                  trackConversion(platform, 'form_start');
+                }}
+                className="relative overflow-hidden group bg-[#315C52] text-[#EFE0C0] font-bold text-sm rounded-full px-6 py-2.5 lg:px-8 lg:py-3 text-nowrap h-fit w-fit"
+              >
+                <span className="pointer-events-none absolute bg-[#FF5050] inset-0 translate-y-full duration-300 ease-in rounded-[40px] group-hover:rounded-[0] group-hover:translate-y-0" />
+                <span className="pointer-events-none relative">Book Call</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="lg:hidden px-5 py-4">
+          <div className="flex items-center justify-between">
             {/* Logo */}
             <a
               href="#top"
-              className="w-[195px] max-md:absolute z-50 top-3 left-5"
+              className="hover:opacity-80 transition-opacity"
               aria-label="Shortcut - Return to top"
             >
               <img
                 src="/Holiday Proposal/Shortcut Logo Social Nav Bar.png"
                 alt="Shortcut Logo"
-                className="h-9 w-auto object-contain"
+                className="h-8 w-auto object-contain max-w-[140px]"
               />
             </a>
 
-            {/* Navigation Menu */}
-            <nav className="hidden lg:flex items-center text-sm font-bold relative">
-              <a
-                href="#services"
-                className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
-              >
-                Services
-              </a>
-              <a
-                href="#holiday-event"
-                className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
-              >
-                Holiday Special
-              </a>
-              <a
-                href="#pricing"
-                className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
-              >
-                Pricing
-              </a>
-            </nav>
-
-            {/* CTA Button */}
+            {/* CTA Button for Mobile */}
             <button
               onClick={() => {
                 setShowContactForm(true);
                 trackConversion(platform, 'form_start');
               }}
-              className="relative overflow-hidden group bg-[#315C52] text-[#EFE0C0] font-bold text-sm rounded-full px-6 py-2.5 lg:px-8 lg:py-3 text-nowrap h-fit w-fit hidden lg:block"
+              className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-[#EFE0C0] bg-[#315C52] hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#315C52] transition-all duration-200 rounded-full"
+              aria-label="Contact us"
             >
-              <span className="pointer-events-none absolute bg-[#FF5050] inset-0 translate-y-full duration-300 ease-in rounded-[40px] group-hover:rounded-[0] group-hover:translate-y-0" />
-              <span className="pointer-events-none relative">Book Call</span>
-            </button>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="absolute right-5 top-5 w-5 z-10 lg:hidden flex flex-col gap-1 cursor-pointer"
-              aria-expanded="false"
-            >
-              <span className={`h-0.5 w-full bg-[#003C5E] rounded-full transition-transform duration-300 ${showMobileMenu ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-              <span className={`h-0.5 w-full bg-[#003C5E] rounded-full transition-opacity duration-300 ${showMobileMenu ? 'opacity-0' : ''}`}></span>
-              <span className={`h-0.5 w-full bg-[#003C5E] rounded-full transition-transform duration-300 ${showMobileMenu ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
+              Book Call
             </button>
           </div>
         </div>
-
-        {/* Mobile Menu (unchanged) */}
-        {showMobileMenu && (
-          <div className="lg:hidden border-top border-gray-200 bg-white">
-            <div className="px-6 py-4 space-y-4">
-              <a
-                href="#services"
-                className="block text-base font-medium text-gray-900 hover:text-shortcut-coral transition-colors"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                Services
-              </a>
-              <a
-                href="#holiday-event"
-                className="block text-base font-medium text-gray-900 hover:text-shortcut-coral transition-colors"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                Holiday Special
-              </a>
-              <a
-                href="#pricing"
-                className="block text-base font-medium text-gray-900 hover:text-shortcut-coral transition-colors"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                Pricing
-              </a>
-
-              <button
-                onClick={() => {
-                  setShowContactForm(true);
-                  setShowMobileMenu(false);
-                  trackConversion(platform, 'form_start');
-                }}
-                className="w-full inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-[#EFE0C0] bg-[#315C52] hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#315C52] transition-all duration-200 rounded-full"
-              >
-                Book Call
-              </button>
-            </div>
-          </div>
-        )}
       </header>
 
       {/* HERO */}
@@ -1385,9 +1550,9 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
 
       {/* SERVICES SECTION */}
       <section id="services" className="fade-in-section py-16 md:py-20 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
-        {/* Navigation Arrows */}
-        <div id="left-nav" className="absolute left-8 top-1/2 transform -translate-y-1/2 z-10 flex flex-col items-center gap-3 opacity-0 transition-opacity duration-300">
-          <div className="text-lg font-semibold" style={{ color: '#003756' }}>Massage</div>
+        {/* Navigation Arrows (hidden on mobile) */}
+        <div id="left-nav" className="hidden md:flex absolute left-8 top-1/2 transform -translate-y-1/2 z-10 flex-col items-center gap-3 opacity-0 transition-opacity duration-300">
+          <div className="text-lg font-semibold" style={{ color: '#003756' }}>{getServiceName(serviceOrder[Math.max(0, currentServiceIndex - 1)] || 'massage')}</div>
           <div className="bg-white rounded-full p-3 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={scrollToPrevService}>
             <svg className="w-6 h-6" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -1395,13 +1560,23 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
           </div>
         </div>
 
-        <div id="right-nav" className="absolute right-8 top-1/2 transform -translate-y-1/2 z-10 flex flex-col items-center gap-3">
-          <div className="text-lg font-semibold" style={{ color: '#003756' }}>Headshots</div>
+        <div id="right-nav" className="hidden md:flex absolute right-8 top-1/2 transform -translate-y-1/2 z-10 flex-col items-center gap-3">
+          <div className="text-lg font-semibold" style={{ color: '#003756' }}>{getServiceName(serviceOrder[Math.min(serviceOrder.length - 1, currentServiceIndex + 1)] || 'headshot')}</div>
           <div className="bg-white rounded-full p-3 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={scrollToNextService}>
             <svg className="w-6 h-6" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
             </svg>
           </div>
+        </div>
+
+        {/* Mobile next control */}
+        <div className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+          <button onClick={scrollToNextService} className="px-4 py-2 rounded-full shadow bg-white/90 backdrop-blur text-sm font-semibold flex items-center gap-2">
+            <span>Next: {getServiceName(serviceOrder[(currentServiceIndex + 1) % serviceOrder.length])}</span>
+            <svg className="w-4 h-4" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
         </div>
 
         {/* Service Legend */}
@@ -1892,11 +2067,6 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
               />
             </div>
             
-            {/* Animated Arrow Pointer */}
-            <div className="arrow-pointer hidden md:block">
-              →
-            </div>
-            
             {/* Premium Card (Right) */}
             <div className="promotion-card premium-card-animated">
               <img 
@@ -2277,8 +2447,8 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
 
       {/* Contact Form Modal */}
       {showContactForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start justify-center z-50 p-4 overflow-y-auto pt-8 md:pt-4 md:items-center">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl my-auto">
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h2 className="text-4xl font-bold mb-3" style={{ color: '#003756' }}>Get in touch</h2>
@@ -2330,8 +2500,39 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                 // Track lead generation
                 trackConversion(platform, 'lead');
 
-                alert('Thank you for your interest! We\'ll be in touch soon.');
+                // Fire LinkedIn conversion event
+                if (platform === 'linkedin' && typeof (window as any).lintrk !== 'undefined') {
+                  (window as any).lintrk('track', { conversion_id: 24355842 });
+                  console.log('✅ LinkedIn conversion event fired');
+                }
+
+                // Get UTM parameters from localStorage
+                const getStoredUtms = () => {
+                  try {
+                    const storedData = localStorage.getItem('shortcut_utms');
+                    if (storedData) {
+                      const parsed = JSON.parse(storedData);
+                      if (parsed.expiration && Date.now() < parsed.expiration) {
+                        return parsed.params || {};
+                      }
+                    }
+                  } catch (e) {
+                    console.error('Error reading stored UTMs:', e);
+                  }
+                  return {};
+                };
+
+                const utmParams = getStoredUtms();
+                console.log('📊 UTM parameters retrieved:', utmParams);
+
+                // Build UTM query string
+                const utmQueryString = Object.keys(utmParams)
+                  .map(key => `${key}=${encodeURIComponent(utmParams[key])}`)
+                  .join('&');
+
+                // Show success message
                 setShowContactForm(false);
+                setShowSuccessMessage(true);
                 // Reset only the form-specific fields, keep prefilled company data
                 setFormData(prev => ({
                   ...prev,
@@ -2512,6 +2713,70 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                 Send Message
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message Modal */}
+      {showSuccessMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-12 transform transition-all">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowSuccessMessage(false)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Main Content */}
+            <div className="text-center mb-8">
+              {/* Success Checkmark */}
+              <div className="relative w-24 h-24 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-full bg-green-100 animate-pulse"></div>
+                <div className="absolute inset-2 rounded-full bg-gradient-to-br from-[#315C52] to-[#214C42] flex items-center justify-center">
+                  <svg className="w-12 h-12 text-white animate-scale-in" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              
+              <h2 className="text-5xl font-bold mb-4" style={{ color: '#003756' }}>
+                Circle back soon!
+              </h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                Thanks for reaching out about bringing wellness to your team! We're excited to learn about your company and craft an experience that'll make your employees feel truly appreciated. Look out for an email from us soon to schedule a time to chat.
+              </p>
+            </div>
+
+            {/* Call-to-Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 mt-8">
+              <button
+                onClick={() => {
+                  setShowSuccessMessage(false);
+                  setTimeout(() => smoothScrollTo('services'), 100);
+                }}
+                className="flex-1 inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+                style={{ backgroundColor: '#315C52', color: '#EFE0C0' }}
+              >
+                Explore Our Services
+                <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+              <button
+                onClick={() => {
+                  setShowSuccessMessage(false);
+                  setTimeout(() => smoothScrollTo('top'), 100);
+                }}
+                className="flex-1 px-8 py-4 text-lg font-semibold text-gray-700 hover:text-gray-900 transition-colors underline"
+              >
+                Return to home page
+              </button>
+            </div>
           </div>
         </div>
       )}

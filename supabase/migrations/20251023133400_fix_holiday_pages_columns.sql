@@ -20,3 +20,5 @@ BEGIN
           FOR SELECT USING (status = 'published' AND unique_token IS NOT NULL);
     END IF;
 END $$;
+
+

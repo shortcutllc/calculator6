@@ -15,6 +15,8 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
   
   // Pricing Calculator State - moved to top to avoid hooks order violation
   const [selectedService, setSelectedService] = useState('massage');
+  const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+  const serviceOrder = ['massage', 'hair-makeup', 'headshot', 'nails', 'mindfulness'];
   const [selectedPackageIndex, setSelectedPackageIndex] = useState(1); // Track by index instead
   const [pricingConfig, setPricingConfig] = useState({
     totalAppointments: 24,
@@ -235,6 +237,20 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
+  }, []);
+
+  // Track current service index for arrow labels
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.services-scroll') as HTMLElement | null;
+    if (!scrollContainer) return;
+    const onScroll = () => {
+      const slideWidth = scrollContainer.clientWidth || 1;
+      const index = Math.round(scrollContainer.scrollLeft / slideWidth);
+      setCurrentServiceIndex(Math.max(0, Math.min(index, serviceOrder.length - 1)));
+    };
+    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => scrollContainer.removeEventListener('scroll', onScroll as EventListener);
   }, []);
 
   // Intersection Observer for fade-in animations
@@ -1168,10 +1184,10 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       `}</style>
 
       {/* HEADER */}
-      <header id="holiday-header" className="fixed top-0 z-50 w-full bg-white shadow-sm transition-all duration-300">
+      <header id="holiday-header" className="fixed top-0 z-50 w-full bg-white border-b border-gray-200 rounded-b-3xl">
         <div className="mx-auto container-narrow px-4 py-4 flex items-center justify-between">
-          {/* Partner Logo - Left Side (empty div for generic to maintain layout) */}
-          <div className="flex items-center flex-shrink-0">
+          {/* Partner Logo - Left Side (hidden on small screens, visible on larger) */}
+          <div className="hidden lg:flex items-center flex-shrink-0">
             {!isGeneric && (
               <>
           {partnerLogoUrl ? (
@@ -1189,6 +1205,28 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
               </>
             )}
           </div>
+          
+          {/* Navigation Menu - Centered (hidden on mobile) */}
+          <nav className="hidden lg:flex items-center text-sm font-bold">
+            <a
+              href="#services"
+              className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+            >
+              Services
+            </a>
+            <a
+              href="#holiday-event"
+              className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+            >
+              Holiday Special
+            </a>
+            <a
+              href="#pricing"
+              className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+            >
+              Pricing
+            </a>
+          </nav>
           
           {/* Shortcut Logo - Right Side */}
           <a href="#top" className="flex items-center" aria-label="Shortcut logo - return to top">
@@ -1400,9 +1438,9 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
 
       {/* SERVICES SECTION */}
       <section id="services" className="fade-in-section py-16 md:py-20 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
-        {/* Navigation Arrows */}
-        <div id="left-nav" className="absolute left-8 top-1/2 transform -translate-y-1/2 z-10 flex flex-col items-center gap-3 opacity-0 transition-opacity duration-300">
-          <div className="text-lg font-semibold" style={{ color: '#003756' }}>Massage</div>
+        {/* Navigation Arrows (hidden on mobile) */}
+        <div id="left-nav" className="hidden md:flex absolute left-8 top-1/2 transform -translate-y-1/2 z-10 flex-col items-center gap-3 opacity-0 transition-opacity duration-300">
+          <div className="text-lg font-semibold" style={{ color: '#003756' }}>{getServiceName(serviceOrder[Math.max(0, currentServiceIndex - 1)] || 'massage')}</div>
           <div className="bg-white rounded-full p-3 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={scrollToPrevService}>
             <svg className="w-6 h-6" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -1410,13 +1448,23 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
           </div>
         </div>
 
-        <div id="right-nav" className="absolute right-8 top-1/2 transform -translate-y-1/2 z-10 flex flex-col items-center gap-3">
-          <div className="text-lg font-semibold" style={{ color: '#003756' }}>Headshots</div>
+        <div id="right-nav" className="hidden md:flex absolute right-8 top-1/2 transform -translate-y-1/2 z-10 flex-col items-center gap-3">
+          <div className="text-lg font-semibold" style={{ color: '#003756' }}>{getServiceName(serviceOrder[Math.min(serviceOrder.length - 1, currentServiceIndex + 1)] || 'headshot')}</div>
           <div className="bg-white rounded-full p-3 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={scrollToNextService}>
             <svg className="w-6 h-6" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
             </svg>
           </div>
+        </div>
+
+        {/* Mobile next control */}
+        <div className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+          <button onClick={scrollToNextService} className="px-4 py-2 rounded-full shadow bg-white/90 backdrop-blur text-sm font-semibold flex items-center gap-2">
+            <span>Next: {getServiceName(serviceOrder[(currentServiceIndex + 1) % serviceOrder.length])}</span>
+            <svg className="w-4 h-4" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
         </div>
 
         {/* Service Legend */}
@@ -1878,7 +1926,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       </section>
 
       {/* PROMOTIONAL SECTION */}
-      <section className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#214C42' }}>
+      <section id="holiday-event" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#214C42' }}>
         <div className="mx-auto max-w-7xl px-4">
           {/* Header Text */}
           <div className="text-center mb-12 md:mb-16">

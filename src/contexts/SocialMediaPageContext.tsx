@@ -118,7 +118,9 @@ export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = (
       const rateLimitWindow = 5 * 60 * 1000; // 5 minutes
 
       if (lastSubmission && (now - parseInt(lastSubmission)) < rateLimitWindow) {
-        throw new Error('Please wait before submitting another request');
+        const timeLeft = Math.ceil((rateLimitWindow - (now - parseInt(lastSubmission))) / 1000);
+        console.warn(`⏰ Rate limit active. Time remaining: ${timeLeft} seconds`);
+        throw new Error(`Please wait ${timeLeft} seconds before submitting another request`);
       }
 
       // Calculate lead score and conversion value
