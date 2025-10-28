@@ -26,6 +26,60 @@ interface SocialMediaPageProviderProps {
   children: React.ReactNode;
 }
 
+const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
+
+async function sendSlackNotification(lead: any) {
+  try {
+    await fetch(SLACK_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `🎯 New Social Media Lead!`,
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              type: 'plain_text',
+              text: '🎯 New Social Media Lead!'
+            }
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Name:* ${lead.name}`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Email:* ${lead.email}`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Platform:* ${lead.platform}`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Lead Score:* ${lead.leadScore}/100`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Company:* ${lead.company || 'N/A'}`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Phone:* ${lead.phone || 'N/A'}`
+              }
+            ]
+          }
+        ]
+      })
+    });
+  } catch (error) {
+    console.error('Failed to send Slack notification:', error);
+  }
+}
+
 export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = ({ children }) => {
   const [contactRequests, setContactRequests] = useState<SocialMediaContactRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -164,6 +218,18 @@ export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = (
       }
 
       console.log('✅ Contact request submitted successfully:', data);
+
+      // Send Slack notification
+      await sendSlackNotification({
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: formData.phone,
+        company: formData.company,
+        platform: platform.toUpperCase(),
+        leadScore: leadScore,
+        serviceType: formData.serviceType,
+        campaign: trackingData.utmCampaign
+      });
 
       // Set rate limit
       localStorage.setItem(rateLimitKey, now.toString());
