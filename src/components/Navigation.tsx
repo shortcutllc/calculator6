@@ -74,18 +74,18 @@ export const Navigation: React.FC = () => {
           <Button 
             onClick={() => navigate('/holiday-pages')} 
             variant="secondary"
-            icon={<span className="text-lg">🎄</span>}
+            icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>🎄</span>}
             className="hidden sm:flex"
           >
-            Holiday Pages
+            Holiday
           </Button>
           <Button 
             onClick={() => navigate('/social-media-pages')} 
             variant="secondary"
-            icon={<span className="text-lg">📱</span>}
+            icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>📱</span>}
             className="hidden sm:flex"
           >
-            Social Media
+            Social
           </Button>
           <Button 
             onClick={() => navigate('/admin')} 
@@ -176,10 +176,10 @@ export const Navigation: React.FC = () => {
                     setIsMenuOpen(false);
                   }}
                   variant="secondary"
-                  icon={<span className="text-lg">🎄</span>}
+                  icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>🎄</span>}
                   className="w-full"
                 >
-                  Holiday Pages
+                  Holiday
                 </Button>
                 <Button
                   onClick={() => {
@@ -187,10 +187,10 @@ export const Navigation: React.FC = () => {
                     setIsMenuOpen(false);
                   }}
                   variant="secondary"
-                  icon={<span className="text-lg">📱</span>}
+                  icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>📱</span>}
                   className="w-full"
                 >
-                  Social Media
+                  Social
                 </Button>
                 <Button
                   onClick={() => {
