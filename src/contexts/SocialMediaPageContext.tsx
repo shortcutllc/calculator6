@@ -270,10 +270,13 @@ export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = (
 
       console.log('🗑️ Deleting contact request:', id);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('social_media_contact_requests')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
+
+      console.log('Delete response:', { data, error });
 
       if (error) {
         console.error('❌ Error deleting contact request:', error);
