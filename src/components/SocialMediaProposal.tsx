@@ -45,20 +45,60 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
     message: ''
   });
 
+  // Helper function to get UTM parameters from localStorage or URL
+  const getUtmParams = () => {
+    // First check URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmParams: Record<string, string> = {};
+    
+    ['utm_source', 'utm_medium', 'utm_campaign'].forEach(param => {
+      const value = urlParams.get(param);
+      if (value) {
+        utmParams[param] = value;
+      }
+    });
+
+    // If no URL params, check localStorage
+    if (Object.keys(utmParams).length === 0) {
+      const storedData = localStorage.getItem('shortcut_utms');
+      if (storedData) {
+        try {
+          const parsed = JSON.parse(storedData);
+          const expiration = parsed.expiration || 0;
+          if (Date.now() < expiration && parsed.params) {
+            ['utm_source', 'utm_medium', 'utm_campaign'].forEach(param => {
+              if (parsed.params[param]) {
+                utmParams[param] = parsed.params[param];
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing stored UTMs:', e);
+        }
+      }
+    }
+
+    return utmParams;
+  };
+
   // Track page view on component mount
   useEffect(() => {
     trackPageView(platform);
     
+    // Get UTM parameters
+    const utmParams = getUtmParams();
+    
     // Track Google Analytics page view
     trackGAPageView(`/social-media/${platform}`, `Social Media Landing Page - ${platform}`);
     
-    // Track GA custom event for social media page view
+    // Track GA custom event for social media page view with UTM parameters
     trackGAEvent('page_view', {
       page_title: `Social Media Landing Page - ${platform}`,
       page_location: window.location.href,
       platform: platform,
       event_category: 'engagement',
-      event_label: 'social_media_landing'
+      event_label: 'social_media_landing',
+      ...utmParams
     });
   }, [platform]);
 
@@ -2491,15 +2531,19 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
               try {
                 setIsSubmitting(true);
                 
+                // Get UTM parameters
+                const utmParams = getUtmParams();
+                
                 // Track form submission
                 trackConversion(platform, 'form_submit');
                 
-                // Track Google Analytics form submission
+                // Track Google Analytics form submission with UTM parameters
                 trackGAEvent('form_submit', {
                   form_name: 'social_media_contact',
                   platform: platform,
                   event_category: 'conversion',
-                  event_label: 'contact_form_submit'
+                  event_label: 'contact_form_submit',
+                  ...utmParams
                 });
                 
                 // Submit to social media contact requests
@@ -2520,13 +2564,14 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                 // Track lead generation
                 trackConversion(platform, 'lead');
                 
-                // Track Google Analytics lead conversion
+                // Track Google Analytics lead conversion with UTM parameters
                 trackGAEvent('generate_lead', {
                   platform: platform,
                   event_category: 'conversion',
                   event_label: 'social_media_lead',
                   value: 1,
-                  currency: 'USD'
+                  currency: 'USD',
+                  ...utmParams
                 });
 
                 // Fire LinkedIn conversion event
@@ -2551,13 +2596,8 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   return {};
                 };
 
-                const utmParams = getStoredUtms();
-                console.log('📊 UTM parameters retrieved:', utmParams);
-
-                // Build UTM query string
-                const utmQueryString = Object.keys(utmParams)
-                  .map(key => `${key}=${encodeURIComponent(utmParams[key])}`)
-                  .join('&');
+                const storedUtmParams = getUtmParams();
+                console.log('📊 UTM parameters retrieved:', storedUtmParams);
 
                 // Show success message
                 setShowContactForm(false);
