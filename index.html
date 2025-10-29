@@ -32,6 +32,42 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
     <script src="/env-config.js" defer></script>
+    
+    <!-- Google Analytics 4 -->
+    <script>
+      // Initialize GA after env-config.js loads
+      window.initGA = function() {
+        const gaId = window.__ENV__?.VITE_GA_MEASUREMENT_ID;
+        if (gaId && gaId !== 'GA_MEASUREMENT_ID') {
+          // Load GA script
+          const script = document.createElement('script');
+          script.async = true;
+          script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+          document.head.appendChild(script);
+          
+          // Initialize GA
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          window.gtag = gtag;
+          gtag('js', new Date());
+          gtag('config', gaId, {
+            page_title: document.title,
+            page_location: window.location.href
+          });
+          console.log('✅ Google Analytics initialized with ID:', gaId);
+        } else {
+          console.log('⚠️ Google Analytics not configured - GA_MEASUREMENT_ID not set');
+        }
+      };
+      
+      // Initialize GA when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.initGA);
+      } else {
+        window.initGA();
+      }
+    </script>
+    
     <script>
       // Initialize Google Maps when needed - prevent multiple loads
       let googleMapsLoading = false;

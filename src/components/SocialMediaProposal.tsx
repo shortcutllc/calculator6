@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSocialMediaPage } from '../contexts/SocialMediaPageContext';
-import { trackPageView, trackConversion } from '../utils/trackingUtils';
+import { trackPageView, trackConversion, trackGAEvent, trackGAPageView } from '../utils/trackingUtils';
 
 interface SocialMediaProposalProps {
   platform: 'linkedin' | 'meta';
@@ -48,6 +48,18 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
   // Track page view on component mount
   useEffect(() => {
     trackPageView(platform);
+    
+    // Track Google Analytics page view
+    trackGAPageView(`/social-media/${platform}`, `Social Media Landing Page - ${platform}`);
+    
+    // Track GA custom event for social media page view
+    trackGAEvent('page_view', {
+      page_title: `Social Media Landing Page - ${platform}`,
+      page_location: window.location.href,
+      platform: platform,
+      event_category: 'engagement',
+      event_label: 'social_media_landing'
+    });
   }, [platform]);
 
   // Capture and persist UTM parameters for 90 days
@@ -2482,6 +2494,14 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                 // Track form submission
                 trackConversion(platform, 'form_submit');
                 
+                // Track Google Analytics form submission
+                trackGAEvent('form_submit', {
+                  form_name: 'social_media_contact',
+                  platform: platform,
+                  event_category: 'conversion',
+                  event_label: 'contact_form_submit'
+                });
+                
                 // Submit to social media contact requests
                 await submitContactRequest({
                   firstName: formData.firstName,
@@ -2499,6 +2519,15 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
 
                 // Track lead generation
                 trackConversion(platform, 'lead');
+                
+                // Track Google Analytics lead conversion
+                trackGAEvent('generate_lead', {
+                  platform: platform,
+                  event_category: 'conversion',
+                  event_label: 'social_media_lead',
+                  value: 1,
+                  currency: 'USD'
+                });
 
                 // Fire LinkedIn conversion event
                 if (platform === 'linkedin' && typeof (window as any).lintrk !== 'undefined') {

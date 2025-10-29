@@ -133,6 +133,30 @@ export const trackConversion = (platform: 'linkedin' | 'meta', eventType: 'lead'
 };
 
 /**
+ * Track Google Analytics events
+ */
+export const trackGAEvent = (eventName: string, parameters?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    (window as any).gtag('event', eventName, parameters);
+  }
+};
+
+/**
+ * Track Google Analytics page view
+ */
+export const trackGAPageView = (pagePath: string, pageTitle?: string) => {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    const gaId = (window as any).__ENV__?.VITE_GA_MEASUREMENT_ID;
+    if (gaId && gaId !== 'GA_MEASUREMENT_ID') {
+      (window as any).gtag('config', gaId, {
+        page_path: pagePath,
+        page_title: pageTitle || document.title
+      });
+    }
+  }
+};
+
+/**
  * Track page view events
  */
 export const trackPageView = (platform: 'linkedin' | 'meta') => {
