@@ -46,7 +46,9 @@ function App() {
     location.pathname === '/holiday-generic' ||
     location.pathname === '/holiday2025' ||
     location.pathname === '/social-media/linkedin' ||
-    location.pathname === '/social-media/meta';
+    location.pathname === '/social-media/meta' ||
+    location.pathname === '/social-media-pages/linkedin' ||
+    location.pathname === '/social-media-pages/meta';
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -222,7 +224,7 @@ function App() {
                 }
               />
               
-              {/* Social Media Landing Pages */}
+              {/* Social Media Landing Pages - Public Routes */}
               <Route 
                 path="/social-media/linkedin"
                 element={
@@ -251,6 +253,36 @@ function App() {
                   </SocialMediaPageProvider>
                 }
               />
+              {/* Social Media Landing Pages - Alternative Routes */}
+              <Route 
+                path="/social-media-pages/linkedin"
+                element={
+                  <SocialMediaPageProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SocialMediaProposal platform="linkedin" />
+                    </Suspense>
+                  </SocialMediaPageProvider>
+                }
+              />
+              <Route 
+                path="/social-media-pages/meta"
+                element={
+                  <SocialMediaPageProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SocialMediaProposal platform="meta" />
+                    </Suspense>
+                  </SocialMediaPageProvider>
+                }
+              />
+              {/* Social Media Admin Manager */}
               <Route 
                 path="/social-media-pages"
                 element={
