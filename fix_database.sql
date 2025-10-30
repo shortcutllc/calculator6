@@ -30,3 +30,4 @@ WHERE table_name = 'holiday_pages'
 AND column_name IN ('unique_token', 'custom_url');
 
 
+

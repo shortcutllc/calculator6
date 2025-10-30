@@ -17,18 +17,86 @@ export interface LeadScoringData {
 }
 
 /**
+ * Parse referrer domain from referrer URL
+ */
+const parseReferrerDomain = (referrer: string): string => {
+  try {
+    const url = new URL(referrer);
+    return url.hostname.replace('www.', '');
+  } catch {
+    return referrer;
+  }
+};
+
+/**
+ * Detect traffic source from referrer
+ */
+const detectSourceFromReferrer = (referrer: string): string => {
+  if (!referrer) return 'direct';
+  
+  const domain = parseReferrerDomain(referrer).toLowerCase();
+  
+  // Social media platforms
+  if (domain.includes('linkedin.com')) return 'linkedin';
+  if (domain.includes('facebook.com') || domain.includes('fb.com')) return 'facebook';
+  if (domain.includes('instagram.com')) return 'instagram';
+  if (domain.includes('twitter.com') || domain.includes('x.com')) return 'twitter';
+  if (domain.includes('tiktok.com')) return 'tiktok';
+  if (domain.includes('pinterest.com')) return 'pinterest';
+  
+  // Search engines
+  if (domain.includes('google.com')) return 'google';
+  if (domain.includes('bing.com')) return 'bing';
+  if (domain.includes('yahoo.com')) return 'yahoo';
+  
+  // Other common sources
+  if (domain.includes('reddit.com')) return 'reddit';
+  if (domain.includes('youtube.com')) return 'youtube';
+  
+  return 'other';
+};
+
+/**
  * Extract UTM parameters and tracking data from URL and browser
  */
 export const extractTrackingData = (): TrackingData => {
   const urlParams = new URLSearchParams(window.location.search);
   
+  // Check localStorage for stored UTM params
+  let storedUtms: Record<string, string> = {};
+  try {
+    const storedData = localStorage.getItem('shortcut_utms');
+    if (storedData) {
+      const parsed = JSON.parse(storedData);
+      if (parsed.expiration && Date.now() < parsed.expiration && parsed.params) {
+        storedUtms = parsed.params;
+      }
+    }
+  } catch (e) {
+    console.error('Error reading stored UTMs:', e);
+  }
+  
+  // Priority: URL params > stored params
+  const utmSource = urlParams.get('utm_source') || storedUtms.utm_source || undefined;
+  const utmMedium = urlParams.get('utm_medium') || storedUtms.utm_medium || undefined;
+  const utmCampaign = urlParams.get('utm_campaign') || storedUtms.utm_campaign || undefined;
+  const utmTerm = urlParams.get('utm_term') || storedUtms.utm_term || undefined;
+  const utmContent = urlParams.get('utm_content') || storedUtms.utm_content || undefined;
+  
+  const referrer = document.referrer || undefined;
+  const detectedSource = referrer ? detectSourceFromReferrer(referrer) : 'direct';
+  
+  // Determine final source (UTM > detected referrer > direct)
+  const finalSource = utmSource || (referrer ? detectedSource : 'direct');
+  const finalMedium = utmMedium || (referrer ? 'referral' : 'none');
+  
   return {
-    utmSource: urlParams.get('utm_source') || undefined,
-    utmMedium: urlParams.get('utm_medium') || undefined,
-    utmCampaign: urlParams.get('utm_campaign') || undefined,
-    utmTerm: urlParams.get('utm_term') || undefined,
-    utmContent: urlParams.get('utm_content') || undefined,
-    referrer: document.referrer || undefined,
+    utmSource: finalSource,
+    utmMedium: finalMedium,
+    utmCampaign: utmCampaign,
+    utmTerm: utmTerm,
+    utmContent: utmContent,
+    referrer: referrer,
     userAgent: navigator.userAgent || undefined,
     ipAddress: undefined, // Will be set server-side
   };
@@ -133,24 +201,136 @@ export const trackConversion = (platform: 'linkedin' | 'meta', eventType: 'lead'
 };
 
 /**
- * Track Google Analytics events
+ * Get all tracking context for events
  */
-export const trackGAEvent = (eventName: string, parameters?: Record<string, any>) => {
+export const getTrackingContext = (): Record<string, any> => {
+  const trackingData = extractTrackingData();
+  const storedUtms = getStoredUtmParams();
+  
+  // Build comprehensive tracking context
+  const utmSource = trackingData.utmSource || storedUtms.utm_source || 'direct';
+  const utmMedium = trackingData.utmMedium || storedUtms.utm_medium || 'none';
+  const utmCampaign = trackingData.utmCampaign || storedUtms.utm_campaign || '';
+  
+  const context: Record<string, any> = {
+    // GA4 standard parameter names (for built-in dimensions)
+    source: utmSource,
+    medium: utmMedium,
+    campaign: utmCampaign,
+    
+    // Custom dimension parameter names (matching your GA4 custom dimensions)
+    utm_source: utmSource,
+    utm_medium: utmMedium,
+    utm_campaign: utmCampaign,
+    
+    // Traffic source for user segmentation
+    traffic_source: utmSource,
+    
+    // Additional UTM parameters
+    utm_term: trackingData.utmTerm || storedUtms.utm_term || '',
+    utm_content: trackingData.utmContent || storedUtms.utm_content || '',
+    
+    // Referrer data
+    referrer_domain: trackingData.referrer ? parseReferrerDomain(trackingData.referrer) : '',
+    
+    // Additional context
+    page_location: window.location.href,
+    page_path: window.location.pathname,
+  };
+  
+  return context;
+};
+
+/**
+ * Get stored UTM parameters from localStorage
+ */
+const getStoredUtmParams = (): Record<string, string> => {
+  try {
+    const storedData = localStorage.getItem('shortcut_utms');
+    if (storedData) {
+      const parsed = JSON.parse(storedData);
+      if (parsed.expiration && Date.now() < parsed.expiration && parsed.params) {
+        return parsed.params;
+      }
+    }
+  } catch (e) {
+    console.error('Error reading stored UTMs:', e);
+  }
+  return {};
+};
+
+/**
+ * Set user properties for audience segmentation
+ */
+export const setGAUserProperties = (properties: Record<string, any>) => {
   if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', eventName, parameters);
+    (window as any).gtag('set', 'user_properties', properties);
   }
 };
 
 /**
- * Track Google Analytics page view
+ * Track Google Analytics events with enhanced tracking context
  */
-export const trackGAPageView = (pagePath: string, pageTitle?: string) => {
+export const trackGAEvent = (eventName: string, parameters?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    // Merge tracking context with event parameters
+    const trackingContext = getTrackingContext();
+    const enhancedParams = {
+      ...trackingContext,
+      ...parameters,
+    };
+    
+    (window as any).gtag('event', eventName, enhancedParams);
+    
+    // Log for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 GA Event:', eventName, enhancedParams);
+    }
+  }
+};
+
+/**
+ * Track Google Analytics page view with enhanced tracking
+ */
+export const trackGAPageView = (pagePath: string, pageTitle?: string, additionalParams?: Record<string, any>) => {
   if (typeof window !== 'undefined' && (window as any).gtag) {
     const gaId = (window as any).__ENV__?.VITE_GA_MEASUREMENT_ID;
     if (gaId && gaId !== 'GA_MEASUREMENT_ID') {
+      const trackingContext = getTrackingContext();
+      
+      // Initialize session tracking on first page view
+      const isFirstPageView = !sessionStorage.getItem('session_start_time');
+      if (isFirstPageView) {
+        initSessionTracking();
+      }
+      
+      // Track session page view
+      trackSessionPageView();
+      
+      // Set page config with tracking context
       (window as any).gtag('config', gaId, {
         page_path: pagePath,
-        page_title: pageTitle || document.title
+        page_title: pageTitle || document.title,
+        page_location: window.location.href,
+        ...trackingContext,
+        ...additionalParams
+      });
+      
+      // Set user properties for audience segmentation
+      const pageCount = parseInt(sessionStorage.getItem('page_count') || '1');
+      setGAUserProperties({
+        traffic_source: trackingContext.source,
+        traffic_medium: trackingContext.medium,
+        referrer_domain: trackingContext.referrer_domain,
+        campaign_name: trackingContext.campaign || null,
+        page_count: pageCount,
+      });
+      
+      // Track page_view event with full context
+      trackGAEvent('page_view', {
+        page_title: pageTitle || document.title,
+        page_path: pagePath,
+        ...additionalParams
       });
     }
   }
@@ -175,6 +355,40 @@ export const trackFormSubmit = (platform: 'linkedin' | 'meta') => {
  */
 export const trackLeadGeneration = (platform: 'linkedin' | 'meta') => {
   trackConversion(platform, 'lead');
+};
+
+/**
+ * Initialize session tracking data
+ */
+export const initSessionTracking = () => {
+  if (typeof window === 'undefined') return;
+  
+  // Set session start time
+  if (!sessionStorage.getItem('session_start_time')) {
+    sessionStorage.setItem('session_start_time', Date.now().toString());
+  }
+  
+  // Track session properties
+  const trackingContext = getTrackingContext();
+  setGAUserProperties({
+    ...trackingContext,
+    session_start_time: sessionStorage.getItem('session_start_time'),
+    page_count: 1,
+  });
+};
+
+/**
+ * Track session page view
+ */
+export const trackSessionPageView = () => {
+  if (typeof window === 'undefined') return;
+  
+  const pageCount = parseInt(sessionStorage.getItem('page_count') || '0') + 1;
+  sessionStorage.setItem('page_count', pageCount.toString());
+  
+  setGAUserProperties({
+    page_count: pageCount,
+  });
 };
 
 /**

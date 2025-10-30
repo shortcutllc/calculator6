@@ -32,12 +32,12 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
   const [showMessageField, setShowMessageField] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    fullName: '',
     email: '',
     phone: '',
     company: '',
     location: '',
+    employees: '',
     serviceType: '',
     eventDate: '',
     appointmentCount: '',
@@ -85,20 +85,12 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
   useEffect(() => {
     trackPageView(platform);
     
-    // Get UTM parameters
-    const utmParams = getUtmParams();
-    
-    // Track Google Analytics page view
-    trackGAPageView(`/social-media/${platform}`, `Social Media Landing Page - ${platform}`);
-    
-    // Track GA custom event for social media page view with UTM parameters
-    trackGAEvent('page_view', {
-      page_title: `Social Media Landing Page - ${platform}`,
-      page_location: window.location.href,
+    // Track Google Analytics page view with enhanced tracking (automatically includes UTM params, source, referrer, etc.)
+    trackGAPageView(`/social-media/${platform}`, `Social Media Landing Page - ${platform}`, {
       platform: platform,
       event_category: 'engagement',
       event_label: 'social_media_landing',
-      ...utmParams
+      landing_page_type: 'social_media'
     });
   }, [platform]);
 
@@ -1388,7 +1380,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                 className="relative overflow-hidden group bg-[#315C52] text-[#EFE0C0] font-bold text-sm rounded-full px-6 py-2.5 lg:px-8 lg:py-3 text-nowrap h-fit w-fit"
               >
                 <span className="pointer-events-none absolute bg-[#FF5050] inset-0 translate-y-full duration-300 ease-in rounded-[40px] group-hover:rounded-[0] group-hover:translate-y-0" />
-                <span className="pointer-events-none relative">Book Call</span>
+                <span className="pointer-events-none relative">Book a call</span>
               </button>
             </div>
           </div>
@@ -1419,7 +1411,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
               className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-[#EFE0C0] bg-[#315C52] hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#315C52] transition-all duration-200 rounded-full"
               aria-label="Contact us"
             >
-              Book Call
+              Book a call
             </button>
           </div>
         </div>
@@ -1461,7 +1453,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                     setShowContactForm(true);
                     trackConversion(platform, 'form_start');
                   }} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#EFE0C0', color: '#214C42' }}>
-                    Get in touch
+                    Book a call
                   </button>
                   <button onClick={() => smoothScrollTo('services')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#EFE0C0', color: '#EFE0C0' }}>
                     Explore Services
@@ -1773,7 +1765,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   {/* CTA Buttons */}
                   <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#EFE0C0' }}>
-                      Get in touch
+                      Book a call
                     </button>
                     <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
                       Pricing
@@ -1848,7 +1840,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   {/* CTA Buttons */}
                   <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#EFE0C0' }}>
-                      Get in touch
+                      Book a call
                     </button>
                     <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
                       Pricing
@@ -1920,7 +1912,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   {/* CTA Buttons */}
                   <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#EFE0C0' }}>
-                      Get in touch
+                      Book a call
                     </button>
                     <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
                       Pricing
@@ -1980,7 +1972,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   {/* CTA Buttons */}
                   <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#EFE0C0' }}>
-                      Get in touch
+                      Book a call
                     </button>
                     <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
                       Pricing
@@ -2040,7 +2032,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   {/* CTA Buttons */}
                   <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#EFE0C0' }}>
-                      Get in touch
+                      Book a call
                     </button>
                     <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
                       Pricing
@@ -2421,7 +2413,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 shadow-glow hover:opacity-90 pulse-glow" style={{ backgroundColor: '#9EFAFF', color: '#003C5E' }}>
-              Get in touch
+              Book a call
             </button>
             <div className="text-sm text-white/70">
               <span className="inline-flex items-center gap-2">
@@ -2503,8 +2495,10 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl my-auto">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h2 className="text-4xl font-bold mb-3" style={{ color: '#003756' }}>Get in touch</h2>
-                <p className="text-lg text-gray-600 max-w-2xl">Experience the future of wellness at work with Shortcut, from soothing massages to calming mindfulness sessions.</p>
+                <h2 className="text-4xl font-bold mb-3" style={{ color: '#003756' }}>Plan Your Team's Holiday Wellness Event</h2>
+                <p className="text-lg text-gray-600 max-w-2xl">
+                  We'll help you design the perfect in-office wellness experience — from chair massages to mindfulness sessions. Quick, easy, and stress-free.
+                </p>
               </div>
               <button 
                 onClick={() => {
@@ -2537,41 +2531,41 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                 // Track form submission
                 trackConversion(platform, 'form_submit');
                 
-                // Track Google Analytics form submission with UTM parameters
+                // Track Google Analytics form submission (automatically includes source/UTM tracking)
                 trackGAEvent('form_submit', {
                   form_name: 'social_media_contact',
                   platform: platform,
                   event_category: 'conversion',
                   event_label: 'contact_form_submit',
-                  ...utmParams
+                  engagement_time_msec: Date.now() - (performance.timing.navigationStart || 0)
                 });
                 
                 // Submit to social media contact requests
                 await submitContactRequest({
-                  firstName: formData.firstName,
-                  lastName: formData.lastName,
+                  fullName: formData.fullName,
                   email: formData.email,
                   phone: formData.phone,
                   company: formData.company,
                   location: formData.location,
+                  employees: formData.employees,
                   serviceType: formData.serviceType,
                   eventDate: formData.eventDate,
                   appointmentCount: formData.appointmentCount === 'custom' ? formData.customAppointmentCount : formData.appointmentCount,
                   customAppointmentCount: formData.customAppointmentCount,
-                  message: formData.message
+                  message: formData.employees ? `Employees: ${formData.employees}. ${formData.message || ''}` : formData.message
                 }, platform);
 
                 // Track lead generation
                 trackConversion(platform, 'lead');
                 
-                // Track Google Analytics lead conversion with UTM parameters
+                // Track Google Analytics lead conversion (automatically includes source/UTM tracking)
                 trackGAEvent('generate_lead', {
                   platform: platform,
                   event_category: 'conversion',
                   event_label: 'social_media_lead',
                   value: 1,
                   currency: 'USD',
-                  ...utmParams
+                  engagement_time_msec: Date.now() - (performance.timing.navigationStart || 0)
                 });
 
                 // Fire LinkedIn conversion event
@@ -2620,29 +2614,18 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
             }} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>First name *</label>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Full Name *</label>
                   <input
                     type="text"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                     className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="Enter your first name"
+                    placeholder="Enter your full name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Last name *</label>
-                  <input
-                    type="text"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="Enter your last name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Email *</label>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Work Email *</label>
                   <input
                     type="email"
                     value={formData.email}
@@ -2653,14 +2636,13 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Phone number *</label>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Phone Number</label>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="Enter your phone number"
-                    required
                   />
                 </div>
                 <div>
@@ -2681,21 +2663,41 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
                     className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="Enter your location"
+                    placeholder="e.g. NYC office, Boston HQ, Remote"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Type of service *</label>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}># of Employees *</label>
+                  <input
+                    type="text"
+                    value={formData.employees}
+                    onChange={(e) => setFormData({...formData, employees: e.target.value})}
+                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Enter number of employees"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Visual separator for optional fields */}
+              <div className="flex items-center gap-4 my-4">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="text-sm font-medium text-gray-500">Optional Details</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Type of service</label>
                   <select
                     value={formData.serviceType}
                     onChange={(e) => {
                       setFormData({...formData, serviceType: e.target.value, appointmentCount: ''});
                     }}
                     className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
                   >
-                    <option value="">Select a service</option>
+                    <option value="">Select a service (optional)</option>
                     <option value="massage">Massage</option>
                     <option value="hair-makeup">Holiday Party Glam</option>
                     <option value="headshot">Headshots</option>
@@ -2704,25 +2706,23 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Date of event *</label>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Date of Event</label>
                   <input
                     type="date"
                     value={formData.eventDate}
                     onChange={(e) => setFormData({...formData, eventDate: e.target.value})}
                     className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
                   />
                 </div>
               </div>
 
               {formData.serviceType && (
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Number of appointments *</label>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Number of appointments</label>
                   <select
                     value={formData.appointmentCount}
                     onChange={(e) => setFormData({...formData, appointmentCount: e.target.value})}
                     className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
                   >
                     <option value="">Select appointment count</option>
                     {getServiceAppointmentOptions(formData.serviceType).map((option) => (
@@ -2737,14 +2737,13 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
 
               {formData.appointmentCount === 'custom' && (
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Custom number of appointments *</label>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Custom number of appointments</label>
                   <input
                     type="number"
                     placeholder="Enter custom number of appointments"
                     value={formData.customAppointmentCount}
                     onChange={(e) => setFormData({...formData, customAppointmentCount: e.target.value})}
                     className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
                   />
                 </div>
               )}
@@ -2775,12 +2774,18 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                 </div>
               )}
 
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
-              >
-                Send Message
-              </button>
+              <div className="space-y-4">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isSubmitting ? 'Booking...' : 'Book Intro Call'}
+                </button>
+                <p className="text-center text-sm text-gray-600">
+                  🎁 Book your planning call before Nov 30 and save 15% on your first event.
+                </p>
+              </div>
             </form>
           </div>
         </div>

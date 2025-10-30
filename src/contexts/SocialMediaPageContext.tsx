@@ -151,14 +151,27 @@ export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = (
         throw new Error(`Please wait ${timeLeft} seconds before submitting another request`);
       }
 
+      // Handle fullName field - split into firstName/lastName for database compatibility
+      const firstName = (formData as any).firstName || '';
+      const lastName = (formData as any).lastName || '';
+      let finalFirstName = firstName;
+      let finalLastName = lastName;
+      
+      // If fullName exists, split it
+      if ((formData as any).fullName) {
+        const nameParts = (formData as any).fullName.trim().split(/\s+/);
+        finalFirstName = nameParts[0] || '';
+        finalLastName = nameParts.slice(1).join(' ') || '';
+      }
+
       // Calculate lead score and conversion value
       const { leadScore, conversionValue } = calculateLeadScore(formData, trackingData);
 
       const { data, error } = await supabase
         .from('social_media_contact_requests')
         .insert({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
+          first_name: finalFirstName,
+          last_name: finalLastName,
           email: formData.email,
           phone: formData.phone || null,
           company: formData.company || null,
@@ -196,8 +209,13 @@ export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = (
       // Send Slack notification
       console.log('📱 Sending Slack notification...');
       try {
+        // Get name from either fullName or firstName/lastName
+        const displayName = (formData as any).fullName 
+          ? (formData as any).fullName 
+          : `${(formData as any).firstName || ''} ${(formData as any).lastName || ''}`.trim();
+        
         await sendSlackNotification({
-          name: `${formData.firstName} ${formData.lastName}`,
+          name: displayName,
           email: formData.email,
           phone: formData.phone,
           company: formData.company,

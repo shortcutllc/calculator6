@@ -48,12 +48,12 @@ export interface SocialMediaPage {
 }
 
 export interface SocialMediaFormData {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phone: string;
   company: string;
   location: string;
+  employees?: string;
   serviceType: string;
   eventDate: string;
   appointmentCount: string;
