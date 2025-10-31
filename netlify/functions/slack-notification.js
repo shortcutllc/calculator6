@@ -22,7 +22,16 @@ exports.handler = async (event, context) => {
   try {
     const { lead } = JSON.parse(event.body);
     
-    const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
+    // Get Slack webhook URL from environment variable
+    const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
+    
+    if (!SLACK_WEBHOOK_URL) {
+      console.error('SLACK_WEBHOOK_URL environment variable is not set');
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Slack webhook URL not configured' }),
+      };
+    }
     
     const slackMessage = {
       text: `🎯 New Social Media Lead!`,
