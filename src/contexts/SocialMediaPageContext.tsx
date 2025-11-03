@@ -43,13 +43,31 @@ async function sendSlackNotification(lead: any) {
       body: JSON.stringify({ lead })
     });
     
+    const responseText = await response.text();
+    console.log('📡 Slack notification response:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: responseText
+    });
+    
     if (!response.ok) {
-      throw new Error(`Slack notification failed: ${response.status} ${response.statusText}`);
+      let errorMessage = responseText;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.error || responseText;
+      } catch {
+        // If not JSON, use the text as-is
+      }
+      throw new Error(`Slack notification failed: ${response.status} ${response.statusText} - ${errorMessage}`);
     }
     
     console.log('✅ Slack notification sent successfully');
   } catch (error) {
     console.error('❌ Failed to send Slack notification:', error);
+    console.error('❌ Request details:', {
+      url: '/.netlify/functions/slack-notification',
+      lead: lead
+    });
     throw error;
   }
 }
@@ -227,7 +245,12 @@ export const SocialMediaPageProvider: React.FC<SocialMediaPageProviderProps> = (
         console.log('✅ Slack notification sent successfully');
       } catch (slackError) {
         console.error('❌ Failed to send Slack notification:', slackError);
-        // Don't fail the form submission if Slack fails
+        console.error('❌ Error details:', {
+          message: slackError instanceof Error ? slackError.message : 'Unknown error',
+          stack: slackError instanceof Error ? slackError.stack : undefined,
+          url: window.location.href
+        });
+        // Don't fail the form submission if Slack fails, but log the error for debugging
       }
 
       // Set rate limit
