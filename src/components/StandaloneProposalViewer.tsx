@@ -905,29 +905,29 @@ export const StandaloneProposalViewer: React.FC = () => {
         {/* Summary-First Layout - Key Metrics at Top */}
         <div className="card-large mb-8">
           <div className="mb-8">
-            {displayData.clientLogoUrl ? (
-              <div className="flex justify-start mb-6">
-                <img
-                  src={displayData.clientLogoUrl}
-                  alt={`${displayData.clientName} Logo`}
+              {displayData.clientLogoUrl ? (
+                <div className="flex justify-start mb-6">
+                  <img
+                    src={displayData.clientLogoUrl}
+                    alt={`${displayData.clientName} Logo`}
                   className="max-h-20 max-w-full object-contain rounded shadow-sm"
-                  style={{ maxWidth: '300px' }}
-                  onError={(e) => {
-                    console.error('Logo failed to load:', displayData.clientLogoUrl);
-                    e.currentTarget.style.display = 'none';
-                    const fallbackElement = e.currentTarget.nextElementSibling;
-                    if (fallbackElement) {
-                      (fallbackElement as HTMLElement).style.display = 'block';
-                    }
-                  }}
-                />
+                    style={{ maxWidth: '300px' }}
+                    onError={(e) => {
+                      console.error('Logo failed to load:', displayData.clientLogoUrl);
+                      e.currentTarget.style.display = 'none';
+                      const fallbackElement = e.currentTarget.nextElementSibling;
+                      if (fallbackElement) {
+                        (fallbackElement as HTMLElement).style.display = 'block';
+                      }
+                    }}
+                  />
                 <h1 className="h1 mb-4 hidden">
-                  {displayData.clientName}
+                    {displayData.clientName}
                 </h1>
-              </div>
-            ) : (
+                </div>
+              ) : (
               <h1 className="h1 mb-6">
-                {displayData.clientName}
+                  {displayData.clientName}
               </h1>
             )}
             
@@ -947,28 +947,40 @@ export const StandaloneProposalViewer: React.FC = () => {
             <div>
               <p className="text-sm font-bold text-shortcut-blue mb-1">Event Dates</p>
               <p className="text-base font-medium text-text-dark">
-                {Array.isArray(displayData.eventDates) ? 
-                  displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
-                  'No dates available'
-                }
-              </p>
-            </div>
+                    {Array.isArray(displayData.eventDates) ? 
+                      displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
+                      'No dates available'
+                    }
+                  </p>
+                </div>
             <div>
               <p className="text-sm font-bold text-shortcut-blue mb-1">Locations</p>
               <p className="text-base font-medium text-text-dark">{displayData.locations?.join(', ') || 'No locations available'}</p>
-            </div>
+                </div>
             <div>
               <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
               <p className="text-base font-medium text-text-dark">{displayData.summary?.totalAppointments || 0}</p>
-            </div>
-            {displayData.officeLocation && (
+                  </div>
+                {/* Display multiple office locations if available, otherwise show single office location */}
+                {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
               <div className="md:col-span-3">
-                <p className="text-sm font-bold text-shortcut-blue mb-1">Office Location</p>
-                <p className="text-base font-medium text-text-dark">{displayData.officeLocation}</p>
+                <p className="text-sm font-bold text-shortcut-blue mb-2">Office Location(s)</p>
+                {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0 ? (
+                  <div className="space-y-2">
+                    {Object.entries(displayData.officeLocations).map(([location, address]) => (
+                      <div key={location} className="mb-2">
+                        <p className="text-xs font-bold text-shortcut-navy-blue mb-1">{location}:</p>
+                        <p className="text-base font-medium text-text-dark">{String(address)}</p>
               </div>
-            )}
-          </div>
-        </div>
+                    ))}
+            </div>
+                ) : displayData.officeLocation ? (
+                  <p className="text-base font-medium text-text-dark">{displayData.officeLocation}</p>
+                ) : null}
+                    </div>
+                ) : null}
+                </div>
+            </div>
 
         {/* Mobile Layout: Single column with specific order */}
         <div className="lg:grid lg:grid-cols-3 gap-12">
@@ -978,15 +990,15 @@ export const StandaloneProposalViewer: React.FC = () => {
             <div className="space-y-8">
               {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
                 <div key={location} className="card-large">
-                  <button
-                    onClick={() => toggleLocation(location)}
+                    <button
+                      onClick={() => toggleLocation(location)}
                     className="w-full flex justify-between items-center mb-6 hover:opacity-80 transition-opacity"
-                  >
+                    >
                     <h2 className="text-2xl font-extrabold text-shortcut-blue">
-                      {location}
-                    </h2>
+                        {location}
+                      </h2>
                     {expandedLocations[location] ? <ChevronUp size={24} className="text-shortcut-blue" /> : <ChevronDown size={24} className="text-shortcut-blue" />}
-                  </button>
+                    </button>
                   
                   {expandedLocations[location] && (
                     <div className="pt-6 border-t border-gray-200 space-y-6">
@@ -1263,9 +1275,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                   )}
                 </div>
               ))}
-            </div>
-          </div>
-
+                </div>
+              </div>
+              
           {/* Summary Sections - Mobile: shown after services, Desktop: right sidebar */}
           <div className="lg:sticky lg:top-24 space-y-8 self-start order-2 lg:order-2">
             {/* Service Image Slider - Hidden on mobile */}
@@ -1274,43 +1286,43 @@ export const StandaloneProposalViewer: React.FC = () => {
                 <div className="card-large overflow-hidden p-0">
                   <div className="relative flex flex-col">
                     <div className="w-full aspect-[4/3] relative overflow-hidden">
-                      <img
-                        src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
-                        alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
-                        className="w-full h-full object-cover transition-opacity duration-500"
-                        onError={(e) => {
-                          console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      {uniqueServiceTypes.length > 1 && (
-                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                          {uniqueServiceTypes.map((_, index) => (
-                            <button
-                              key={index}
-                              onClick={() => setCurrentServiceImageIndex(index)}
-                              className={`w-2 h-2 rounded-full transition-colors ${
-                                index === currentServiceImageIndex 
-                                  ? 'bg-white' 
-                                  : 'bg-white/50 hover:bg-white/75'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <img
+                      src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
+                      alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
+                      className="w-full h-full object-cover transition-opacity duration-500"
+                      onError={(e) => {
+                        console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    {uniqueServiceTypes.length > 1 && (
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                        {uniqueServiceTypes.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setCurrentServiceImageIndex(index)}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                              index === currentServiceImageIndex 
+                                ? 'bg-white' 
+                                : 'bg-white/50 hover:bg-white/75'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                     <div className="p-4 bg-shortcut-navy-blue rounded-b-2xl">
-                      <h3 className="text-lg font-bold text-white text-center">
-                        {uniqueServiceTypes.length === 1 
-                          ? getServiceDisplayName(uniqueServiceTypes[0])
-                          : `${uniqueServiceTypes.length} Services`
-                        }
-                      </h3>
-                      {uniqueServiceTypes.length > 1 && (
-                        <p className="text-white/90 text-sm text-center mt-1">
-                          {uniqueServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
-                        </p>
-                      )}
+                    <h3 className="text-lg font-bold text-white text-center">
+                      {uniqueServiceTypes.length === 1 
+                        ? getServiceDisplayName(uniqueServiceTypes[0])
+                        : `${uniqueServiceTypes.length} Services`
+                      }
+                    </h3>
+                    {uniqueServiceTypes.length > 1 && (
+                      <p className="text-white/90 text-sm text-center mt-1">
+                        {uniqueServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
+                      </p>
+                    )}
                     </div>
                   </div>
                 </div>
@@ -1367,15 +1379,17 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile: Service Agreement, Survey, Shortcut Difference, Change History - in specific order */}
-        <div className="space-y-8 mt-8 lg:mt-0">
-          <ServiceAgreement />
-
+        {/* Mobile: Survey, Service Agreement, Shortcut Difference, Change History - in specific order */}
+        <div className="space-y-8 mt-12 lg:mt-16">
           {/* Survey Form - Show only when proposal is approved */}
           {proposal?.status === 'approved' && id && (
             <div id="proposal-survey-form" className="scroll-mt-24">
               <ProposalSurveyForm 
                 proposalId={id}
+                includesMassage={uniqueServiceTypes.some(type => type.toLowerCase() === 'massage')}
+                locations={displayData?.locations || []}
+                officeLocation={displayData?.officeLocation}
+                officeLocations={displayData?.officeLocations}
                 onSuccess={() => {
                   setHasSurveyResponse(true);
                   setShowSurveyCTA(false);
@@ -1384,6 +1398,8 @@ export const StandaloneProposalViewer: React.FC = () => {
               />
             </div>
           )}
+
+          <ServiceAgreement />
 
           <div className="mt-8">
             <div className="flex justify-between items-center mb-8">
@@ -1474,12 +1490,12 @@ export const StandaloneProposalViewer: React.FC = () => {
                     All your corporate wellness needs, simplified. Discover inspiring services that energize your team, all in one place.
                   </p>
                 </div>
-              </div>
             </div>
           </div>
+        </div>
 
-          {/* Change History Section */}
-          {changeSets.length > 0 && (
+        {/* Change History Section */}
+        {changeSets.length > 0 && (
             <div className="card-large">
             <div className="flex items-center justify-between mb-6">
               <h2 className="h2 flex items-center">
@@ -1551,8 +1567,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                 ))}
               </div>
             )}
-            </div>
-          )}
+          </div>
+        )}
         </div>
       </main>
 

@@ -6,6 +6,7 @@ import { Button } from './Button';
 interface ProposalOptionsModalProps {
   onClose: () => void;
   onGenerate: (options: ProposalOptions) => void;
+  locations?: string[];
 }
 
 interface ProposalOptions {
@@ -19,7 +20,8 @@ interface ProposalOptions {
   };
   clientEmail: string;
   clientLogoUrl?: string;
-  officeLocation?: string;
+  officeLocation?: string; // Legacy support
+  officeLocations?: { [location: string]: string }; // New: multiple office locations
 }
 
 interface ValidationErrors {
@@ -28,7 +30,7 @@ interface ValidationErrors {
   clientEmail?: string;
 }
 
-const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, onGenerate }) => {
+const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, onGenerate, locations = [] }) => {
   const [options, setOptions] = useState<ProposalOptions>({
     customization: {
       contactFirstName: '',
@@ -39,7 +41,8 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
       includeCalculator: true
     },
     clientEmail: '',
-    clientLogoUrl: ''
+    clientLogoUrl: '',
+    officeLocations: {}
   });
   
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -50,31 +53,44 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
 
-  // Initialize Google Maps autocomplete
+  const handleOfficeLocationChange = (location: string, address: string) => {
+    setOptions(prev => ({
+      ...prev,
+      officeLocations: {
+        ...prev.officeLocations,
+        [location]: address
+      }
+    }));
+  };
+
+  // Initialize Google Maps autocomplete for all office location inputs
   useEffect(() => {
     const initializeGoogleMaps = () => {
-      const input = document.getElementById('office-location-input') as HTMLInputElement;
-      if (input && window.google && window.google.maps && window.google.maps.places) {
-        try {
-          // Initialize Places Autocomplete
-          const autocomplete = new window.google.maps.places.Autocomplete(input, {
-            types: ['address'],
-            componentRestrictions: { country: 'us' }
-          });
+      locations.forEach((location, index) => {
+        const inputId = `office-location-input-${index}`;
+        const input = document.getElementById(inputId) as HTMLInputElement;
+        if (input && window.google && window.google.maps && window.google.maps.places) {
+          try {
+            // Initialize Places Autocomplete
+            const autocomplete = new window.google.maps.places.Autocomplete(input, {
+              types: ['address'],
+              componentRestrictions: { country: 'us' }
+            });
 
-          // Handle place selection
-          autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            if (place.formatted_address) {
-              handleFieldChange('officeLocation', place.formatted_address);
-            }
-          });
+            // Handle place selection
+            autocomplete.addListener('place_changed', () => {
+              const place = autocomplete.getPlace();
+              if (place.formatted_address) {
+                handleOfficeLocationChange(location, place.formatted_address);
+              }
+            });
 
-          console.log('Google Maps Places Autocomplete initialized successfully');
-        } catch (error) {
-          console.error('Error initializing Google Maps Places Autocomplete:', error);
+            console.log(`Google Maps Places Autocomplete initialized for ${location}`);
+          } catch (error) {
+            console.error(`Error initializing Google Maps Places Autocomplete for ${location}:`, error);
+          }
         }
-      }
+      });
     };
 
     // Initialize Google Maps if not loaded
@@ -95,7 +111,7 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
     return () => {
       clearInterval(checkGoogleMaps);
     };
-  }, []);
+  }, [locations]);
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -252,157 +268,245 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div>
-              <h3 className="text-lg font-extrabold text-shortcut-blue mb-4">Contact Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <h3 className="text-lg font-extrabold text-shortcut-blue mb-6">Contact Information</h3>
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-shortcut-blue">First Name</label>
+                  <label className="block text-sm font-bold text-shortcut-blue mb-2">First Name</label>
                   <input
                     type="text"
                     value={options.customization.contactFirstName}
                     onChange={(e) => handleFieldChange('customization.contactFirstName', e.target.value)}
                     onBlur={() => handleBlur('contactFirstName')}
-                    className={`mt-1 block w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                    className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
                       getFieldError('contactFirstName') ? 'border-red-500' : 'border-gray-200'
                     }`}
                     disabled={loading}
                   />
                   {getFieldError('contactFirstName') && (
-                    <p className="mt-1 text-sm text-red-600">{getFieldError('contactFirstName')}</p>
+                    <p className="mt-2 text-sm text-red-600">{getFieldError('contactFirstName')}</p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-shortcut-blue">Last Name</label>
+                  <label className="block text-sm font-bold text-shortcut-blue mb-2">Last Name</label>
                   <input
                     type="text"
                     value={options.customization.contactLastName}
                     onChange={(e) => handleFieldChange('customization.contactLastName', e.target.value)}
                     onBlur={() => handleBlur('contactLastName')}
-                    className={`mt-1 block w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                    className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
                       getFieldError('contactLastName') ? 'border-red-500' : 'border-gray-200'
                     }`}
                     disabled={loading}
                   />
                   {getFieldError('contactLastName') && (
-                    <p className="mt-1 text-sm text-red-600">{getFieldError('contactLastName')}</p>
+                    <p className="mt-2 text-sm text-red-600">{getFieldError('contactLastName')}</p>
                   )}
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue">Client Email (Optional)</label>
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">Client Email (Optional)</label>
               <input
                 type="email"
                 value={options.clientEmail}
                 onChange={(e) => handleFieldChange('clientEmail', e.target.value)}
                 onBlur={() => handleBlur('clientEmail')}
-                className={`mt-1 block w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
                   getFieldError('clientEmail') ? 'border-red-500' : 'border-gray-200'
                 }`}
                 placeholder="Enter client email to share proposal later"
                 disabled={loading}
               />
               {getFieldError('clientEmail') && (
-                <p className="mt-1 text-sm text-red-600">{getFieldError('clientEmail')}</p>
+                <p className="mt-2 text-sm text-red-600">{getFieldError('clientEmail')}</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-shortcut-blue">Office Location (Optional)</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={options.officeLocation || ''}
-                  onChange={(e) => handleFieldChange('officeLocation', e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal pr-10"
-                  placeholder="Search for office address..."
-                  disabled={loading}
-                  id="office-location-input"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.getElementById('office-location-input') as HTMLInputElement;
-                      if (input && 'geolocation' in navigator) {
-                        navigator.geolocation.getCurrentPosition(
-                          (position) => {
-                            const { latitude, longitude } = position.coords;
-                            const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
-                            
-                            if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-                              // Use reverse geocoding to get address
-                              fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
-                                .then(response => response.json())
-                                .then(data => {
-                                  if (data.status === 'OK' && data.results && data.results[0]) {
-                                    handleFieldChange('officeLocation', data.results[0].formatted_address);
-                                  } else {
-                                    alert('Could not find address for your location. Please enter manually.');
+            {/* Office Locations - Show one input per location if multiple locations exist */}
+            {locations.length > 1 ? (
+              <div>
+                <h3 className="text-lg font-extrabold text-shortcut-blue mb-6">Office Locations (Optional)</h3>
+                <div className="space-y-6">
+                  {locations.map((location, index) => (
+                    <div key={location}>
+                      <label className="block text-sm font-bold text-shortcut-blue mb-2">
+                        Office Address for {location}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={options.officeLocations?.[location] || ''}
+                          onChange={(e) => handleOfficeLocationChange(location, e.target.value)}
+                          className="block w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal pr-12"
+                          placeholder={`Search for office address for ${location}...`}
+                          disabled={loading}
+                          id={`office-location-input-${index}`}
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const inputId = `office-location-input-${index}`;
+                              const input = document.getElementById(inputId) as HTMLInputElement;
+                              if (input && 'geolocation' in navigator) {
+                                navigator.geolocation.getCurrentPosition(
+                                  (position) => {
+                                    const { latitude, longitude } = position.coords;
+                                    const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                                    
+                                    if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                                      // Use reverse geocoding to get address
+                                      fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                                        .then(response => response.json())
+                                        .then(data => {
+                                          if (data.status === 'OK' && data.results && data.results[0]) {
+                                            handleOfficeLocationChange(location, data.results[0].formatted_address);
+                                          } else {
+                                            alert('Could not find address for your location. Please enter manually.');
+                                          }
+                                        })
+                                        .catch(() => {
+                                          alert('Error getting address. Please enter manually.');
+                                        });
+                                    } else {
+                                      alert('Google Maps API key not configured. Please enter the address manually.');
+                                    }
+                                  },
+                                  () => {
+                                    alert('Unable to get your location. Please enter the address manually.');
                                   }
-                                })
-                                .catch(() => {
-                                  alert('Error getting address. Please enter manually.');
-                                });
-                            } else {
-                              alert('Google Maps API key not configured. Please enter the address manually.');
-                            }
-                          },
-                          () => {
-                            alert('Unable to get your location. Please enter the address manually.');
-                          }
-                        );
-                      } else {
-                        alert('Geolocation is not supported by your browser. Please enter the address manually.');
-                      }
-                    }}
-                    className="text-text-dark-60 hover:text-shortcut-blue"
-                    title="Use current location"
-                    disabled={loading}
-                  >
-                    📍
-                  </button>
+                                );
+                              } else {
+                                alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                              }
+                            }}
+                            className="text-text-dark-60 hover:text-shortcut-blue transition-colors p-1.5 rounded-lg hover:bg-neutral-light-gray"
+                            title="Use current location"
+                            disabled={loading}
+                          >
+                            📍
+                          </button>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-text-dark-60">
+                        Enter the office address for {location} or click the location icon to use your current location
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <p className="mt-1 text-xs text-text-dark-60">
-                Enter the office address or click the location icon to use your current location
-              </p>
-            </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-bold text-shortcut-blue mb-2">Office Location (Optional)</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={options.officeLocation || options.officeLocations?.[locations[0] || ''] || ''}
+                    onChange={(e) => {
+                      if (locations.length === 1) {
+                        handleOfficeLocationChange(locations[0], e.target.value);
+                      } else {
+                        handleFieldChange('officeLocation', e.target.value);
+                      }
+                    }}
+                    className="block w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal pr-12"
+                    placeholder="Search for office address..."
+                    disabled={loading}
+                    id="office-location-input-0"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const input = document.getElementById('office-location-input-0') as HTMLInputElement;
+                        if (input && 'geolocation' in navigator) {
+                          navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                              const { latitude, longitude } = position.coords;
+                              const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                              
+                              if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                                // Use reverse geocoding to get address
+                                fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                                  .then(response => response.json())
+                                  .then(data => {
+                                    if (data.status === 'OK' && data.results && data.results[0]) {
+                                      if (locations.length === 1) {
+                                        handleOfficeLocationChange(locations[0], data.results[0].formatted_address);
+                                      } else {
+                                        handleFieldChange('officeLocation', data.results[0].formatted_address);
+                                      }
+                                    } else {
+                                      alert('Could not find address for your location. Please enter manually.');
+                                    }
+                                  })
+                                  .catch(() => {
+                                    alert('Error getting address. Please enter manually.');
+                                  });
+                              } else {
+                                alert('Google Maps API key not configured. Please enter the address manually.');
+                              }
+                            },
+                            () => {
+                              alert('Unable to get your location. Please enter the address manually.');
+                            }
+                          );
+                        } else {
+                          alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                        }
+                      }}
+                      className="text-text-dark-60 hover:text-shortcut-blue transition-colors p-1.5 rounded-lg hover:bg-neutral-light-gray"
+                      title="Use current location"
+                      disabled={loading}
+                    >
+                      📍
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-text-dark-60">
+                  Enter the office address or click the location icon to use your current location
+                </p>
+              </div>
+            )}
 
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue">Client Logo (Optional)</label>
-              <div className="flex flex-col gap-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">Client Logo (Optional)</label>
+              <div className="space-y-3">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleLogoFileChange}
                   disabled={logoUploading || loading}
+                  className="block w-full text-sm text-text-dark-60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-shortcut-teal file:text-shortcut-navy-blue hover:file:bg-shortcut-teal hover:file:bg-opacity-80"
                 />
-                <span className="text-xs text-text-dark-60">Max 5MB. PNG, JPG, SVG, etc.</span>
+                <span className="text-xs text-text-dark-60 block">Max 5MB. PNG, JPG, SVG, etc.</span>
                 <input
                   type="url"
                   placeholder="Paste image URL (https://...)"
                   value={logoUrl}
                   onChange={handleLogoUrlChange}
-                  className="mt-1 block w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                  className="block w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                   disabled={logoUploading || loading}
                 />
                 {logoUrl && (
-                  <img src={logoUrl} alt="Client Logo Preview" className="h-16 mt-2 rounded shadow border" />
+                  <div className="mt-3">
+                    <img src={logoUrl} alt="Client Logo Preview" className="h-20 rounded-lg shadow border border-gray-200" />
+                  </div>
                 )}
-                {logoUploadError && <p className="text-xs text-red-600">{logoUploadError}</p>}
+                {logoUploadError && <p className="text-sm text-red-600 mt-2">{logoUploadError}</p>}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue">Note from Shortcut</label>
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">Note from Shortcut</label>
               <textarea
                 value={options.customization.customNote}
                 onChange={(e) => handleFieldChange('customization.customNote', e.target.value)}
-                rows={3}
-                className="mt-1 block w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                rows={4}
+                className="block w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y"
                 placeholder="We are so excited to service your incredible staff! Our team is looking forward to providing an exceptional experience..."
                 disabled={loading}
               />
@@ -410,14 +514,14 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
           </div>
 
           {Object.keys(errors).length > 0 && touched.contactFirstName && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">
+            <div className="mt-6 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+              <p className="text-sm font-medium text-red-600">
                 Please complete all required fields before generating your proposal
               </p>
             </div>
           )}
 
-          <div className="mt-8 flex justify-end space-x-4">
+          <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-4">
             <Button
               type="button"
               onClick={onClose}

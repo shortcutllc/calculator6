@@ -6,24 +6,52 @@ import { format, parseISO } from 'date-fns';
 
 interface ProposalSurveyFormProps {
   proposalId: string;
+  includesMassage?: boolean;
+  locations?: string[];
+  officeLocation?: string; // Single office location from proposal (legacy)
+  officeLocations?: { [location: string]: string }; // Multiple office locations from proposal
   onSuccess?: () => void;
 }
 
 interface SurveyFormData {
   table_or_chair_preference: string;
   preferred_gender: string;
-  office_address: string;
+  office_address: string; // Single address (legacy) or JSON string for multiple
+  office_addresses?: { [location: string]: string }; // Multiple addresses by location
   massage_space_name: string;
   point_of_contact: string;
   billing_contact: string;
   coi_required: boolean | null;
 }
 
-const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onSuccess }) => {
+const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ 
+  proposalId, 
+  includesMassage = true, 
+  locations = [], 
+  officeLocation,
+  officeLocations,
+  onSuccess 
+}) => {
+  // Initialize form data with office addresses from proposal if available
+  const getInitialOfficeAddresses = () => {
+    if (officeLocations && Object.keys(officeLocations).length > 0) {
+      return officeLocations;
+    }
+    return {};
+  };
+
+  const getInitialOfficeAddress = () => {
+    if (officeLocation) {
+      return officeLocation;
+    }
+    return '';
+  };
+
   const [formData, setFormData] = useState<SurveyFormData>({
     table_or_chair_preference: '',
     preferred_gender: '',
-    office_address: '',
+    office_address: getInitialOfficeAddress(),
+    office_addresses: getInitialOfficeAddresses(),
     massage_space_name: '',
     point_of_contact: '',
     billing_contact: '',
@@ -37,30 +65,64 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [showReadOnlyView, setShowReadOnlyView] = useState(false);
 
-  // Initialize Google Maps autocomplete for office address
+  // Initialize Google Maps autocomplete for office address(es)
   useEffect(() => {
     const initializeGoogleMaps = () => {
-      const input = document.getElementById('office-address-input') as HTMLInputElement;
-      if (input && window.google && window.google.maps && window.google.maps.places) {
-        try {
-          const autocomplete = new window.google.maps.places.Autocomplete(input, {
-            types: ['address'],
-            componentRestrictions: { country: 'us' }
-          });
+      // If multiple locations, initialize autocomplete for each
+      if (locations.length > 1) {
+        locations.forEach((location, index) => {
+          const inputId = `office-address-input-${location}`;
+          const input = document.getElementById(inputId) as HTMLInputElement;
+          if (input && window.google && window.google.maps && window.google.maps.places) {
+            try {
+              const autocomplete = new window.google.maps.places.Autocomplete(input, {
+                types: ['address'],
+                componentRestrictions: { country: 'us' }
+              });
 
-          autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            if (place.formatted_address) {
-              setFormData(prev => ({
-                ...prev,
-                office_address: place.formatted_address
-              }));
+              autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (place.formatted_address) {
+                  setFormData(prev => ({
+                    ...prev,
+                    office_addresses: {
+                      ...prev.office_addresses,
+                      [location]: place.formatted_address
+                    }
+                  }));
+                }
+              });
+
+              console.log(`Google Maps Places Autocomplete initialized for ${location}`);
+            } catch (error) {
+              console.error(`Error initializing Google Maps Places Autocomplete for ${location}:`, error);
             }
-          });
+          }
+        });
+      } else {
+        // Single location - use the original input
+        const input = document.getElementById('office-address-input') as HTMLInputElement;
+        if (input && window.google && window.google.maps && window.google.maps.places) {
+          try {
+            const autocomplete = new window.google.maps.places.Autocomplete(input, {
+              types: ['address'],
+              componentRestrictions: { country: 'us' }
+            });
 
-          console.log('Google Maps Places Autocomplete initialized for survey');
-        } catch (error) {
-          console.error('Error initializing Google Maps Places Autocomplete:', error);
+            autocomplete.addListener('place_changed', () => {
+              const place = autocomplete.getPlace();
+              if (place.formatted_address) {
+                setFormData(prev => ({
+                  ...prev,
+                  office_address: place.formatted_address
+                }));
+              }
+            });
+
+            console.log('Google Maps Places Autocomplete initialized for survey');
+          } catch (error) {
+            console.error('Error initializing Google Maps Places Autocomplete:', error);
+          }
         }
       }
     };
@@ -83,7 +145,24 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
     return () => {
       clearInterval(checkGoogleMaps);
     };
-  }, []);
+  }, [locations]);
+
+  // Update form data when proposal office addresses change (if no existing survey response)
+  useEffect(() => {
+    if (!existingResponse) {
+      if (officeLocations && Object.keys(officeLocations).length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          office_addresses: officeLocations
+        }));
+      } else if (officeLocation) {
+        setFormData(prev => ({
+          ...prev,
+          office_address: officeLocation
+        }));
+      }
+    }
+  }, [officeLocation, officeLocations, existingResponse]);
 
   // Load existing survey response if it exists
   useEffect(() => {
@@ -114,10 +193,38 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
         if (data) {
           console.log('📋 Loaded survey response:', data);
           setExistingResponse(data);
+          
+          // Parse office_address - could be JSON string (multiple) or plain string (single)
+          let officeAddresses = {};
+          let officeAddress = '';
+          if (data.office_address) {
+            try {
+              const parsed = JSON.parse(data.office_address);
+              if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                // It's a JSON object with multiple addresses
+                officeAddresses = parsed;
+              } else {
+                // It's a single address string
+                officeAddress = data.office_address;
+              }
+            } catch {
+              // Not JSON, treat as single address
+              officeAddress = data.office_address;
+            }
+          } else {
+            // No existing survey data, but we might have proposal office addresses to pre-fill
+            if (officeLocations && Object.keys(officeLocations).length > 0) {
+              officeAddresses = officeLocations;
+            } else if (officeLocation) {
+              officeAddress = officeLocation;
+            }
+          }
+          
           setFormData({
             table_or_chair_preference: data.table_or_chair_preference || '',
             preferred_gender: data.preferred_gender || '',
-            office_address: data.office_address || '',
+            office_address: officeAddress || getInitialOfficeAddress(),
+            office_addresses: Object.keys(officeAddresses).length > 0 ? officeAddresses : getInitialOfficeAddresses(),
             massage_space_name: data.massage_space_name || '',
             point_of_contact: data.point_of_contact || '',
             billing_contact: data.billing_contact || '',
@@ -125,6 +232,19 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
           });
           setSuccess(true);
           setShowReadOnlyView(true); // Show read-only view if response exists
+        } else {
+          // No existing survey response, but pre-fill with proposal office addresses if available
+          if (officeLocations && Object.keys(officeLocations).length > 0) {
+            setFormData(prev => ({
+              ...prev,
+              office_addresses: officeLocations
+            }));
+          } else if (officeLocation) {
+            setFormData(prev => ({
+              ...prev,
+              office_address: officeLocation
+            }));
+          }
         }
       } catch (err) {
         console.error('Error loading survey response:', err);
@@ -151,11 +271,21 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
     setSubmitting(true);
 
     try {
+      // If multiple locations, store addresses as JSON; otherwise store as single string
+      let officeAddressValue: string | null = null;
+      if (locations.length > 1 && formData.office_addresses && Object.keys(formData.office_addresses).length > 0) {
+        // Store as JSON string
+        officeAddressValue = JSON.stringify(formData.office_addresses);
+      } else {
+        // Single address (legacy or single location)
+        officeAddressValue = formData.office_address || null;
+      }
+      
       const surveyData = {
         proposal_id: proposalId,
         table_or_chair_preference: formData.table_or_chair_preference || null,
         preferred_gender: formData.preferred_gender || null,
-        office_address: formData.office_address || null,
+        office_address: officeAddressValue,
         massage_space_name: formData.massage_space_name || null,
         point_of_contact: formData.point_of_contact || null,
         billing_contact: formData.billing_contact || null,
@@ -283,50 +413,103 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
           </div>
           
           <div className="space-y-4">
-            <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">1. Table or Chair Preference</p>
-              <p className="text-gray-700">
-                {existingResponse.table_or_chair_preference || <span className="text-gray-400 italic">Not provided</span>}
-              </p>
-            </div>
+            {includesMassage && (
+              <>
+                <div className="bg-white rounded p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-1">1. Table or Chair Preference</p>
+                  <p className="text-gray-700">
+                    {existingResponse.table_or_chair_preference || <span className="text-gray-400 italic">Not provided</span>}
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-1">2. Preferred Gender of Massage Professional</p>
+                  <p className="text-gray-700">
+                    {existingResponse.preferred_gender || <span className="text-gray-400 italic">Not provided</span>}
+                  </p>
+                </div>
+              </>
+            )}
+            
+            {/* Office Address(es) - Show multiple if available or if multiple locations exist */}
+            {(() => {
+              let officeAddresses: { [key: string]: string } = {};
+              let singleAddress = '';
+              
+              if (existingResponse.office_address) {
+                try {
+                  const parsed = JSON.parse(existingResponse.office_address);
+                  if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                    officeAddresses = parsed;
+                  } else {
+                    singleAddress = existingResponse.office_address;
+                  }
+                } catch {
+                  singleAddress = existingResponse.office_address;
+                }
+              }
+              
+              const hasMultipleAddresses = Object.keys(officeAddresses).length > 0;
+              const shouldShowMultiple = locations.length > 1 || hasMultipleAddresses;
+              
+              return (
+                <div className="bg-white rounded p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">{includesMassage ? '3' : '1'}. Office Address{shouldShowMultiple ? 'es' : ''}</p>
+                  {shouldShowMultiple ? (
+                    <div className="space-y-2">
+                      {locations.length > 1 ? (
+                        // Show all locations, even if some don't have addresses
+                        locations.map((location) => {
+                          const address = officeAddresses[location] || (singleAddress && location === locations[0] ? singleAddress : '');
+                          return (
+                            <div key={location} className="border-l-2 border-shortcut-teal pl-3">
+                              <p className="text-xs font-bold text-shortcut-navy-blue mb-1">{location}:</p>
+                              <p className="text-gray-700">{address || <span className="text-gray-400 italic">Not provided</span>}</p>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        // Show multiple addresses from JSON
+                        Object.entries(officeAddresses).map(([location, address]) => (
+                          <div key={location} className="border-l-2 border-shortcut-teal pl-3">
+                            <p className="text-xs font-bold text-shortcut-navy-blue mb-1">{location}:</p>
+                            <p className="text-gray-700">{address || <span className="text-gray-400 italic">Not provided</span>}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {singleAddress || <span className="text-gray-400 italic">Not provided</span>}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
             
             <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">2. Preferred Gender of Massage Professional</p>
-              <p className="text-gray-700">
-                {existingResponse.preferred_gender || <span className="text-gray-400 italic">Not provided</span>}
-              </p>
-            </div>
-            
-            <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">3. Office Address</p>
-              <p className="text-gray-700 whitespace-pre-wrap">
-                {existingResponse.office_address || <span className="text-gray-400 italic">Not provided</span>}
-              </p>
-            </div>
-            
-            <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">4. Name of Space(s) Where Massages Will Take Place</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">{includesMassage ? '4' : '2'}. Name of the Space(s) Where Services Will Take Place</p>
               <p className="text-gray-700">
                 {existingResponse.massage_space_name || <span className="text-gray-400 italic">Not provided</span>}
               </p>
             </div>
             
             <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">5. Point of Contact (including phone number)</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">{includesMassage ? '5' : '3'}. Point of Contact (including phone number)</p>
               <p className="text-gray-700 whitespace-pre-wrap">
                 {existingResponse.point_of_contact || <span className="text-gray-400 italic">Not provided</span>}
               </p>
             </div>
             
             <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">6. Billing Contact / Who to Address Invoice To</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">{includesMassage ? '6' : '4'}. Billing Contact / Who to Address Invoice To</p>
               <p className="text-gray-700 whitespace-pre-wrap">
                 {existingResponse.billing_contact || <span className="text-gray-400 italic">Not provided</span>}
               </p>
             </div>
             
             <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">7. Will a Certificate of Insurance (COI) be Required?</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">{includesMassage ? '7' : '5'}. Will a Certificate of Insurance (COI) be Required?</p>
               <p className="text-gray-700">
                 {existingResponse.coi_required !== null 
                   ? (existingResponse.coi_required ? 'Yes' : 'No')
@@ -340,126 +523,184 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
       {/* Editable form - only show if not in read-only view or if user clicks edit */}
       {!showReadOnlyView && (
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Question 1: Table or Chair Preference */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            1. Table or chair preference <span className="text-gray-500 font-normal">(Optional)</span>
-          </label>
-          <div className="space-y-2">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="table_or_chair_preference"
-                value="Table"
-                checked={formData.table_or_chair_preference === 'Table'}
-                onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
-                className="mr-2"
-              />
-              <span className="text-gray-700">Table</span>
+        {/* Question 1: Table or Chair Preference - Only show if massage is included */}
+        {includesMassage && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              1. Table or chair preference <span className="text-gray-500 font-normal">(Optional)</span>
             </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="table_or_chair_preference"
-                value="Chair"
-                checked={formData.table_or_chair_preference === 'Chair'}
-                onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
-                className="mr-2"
-              />
-              <span className="text-gray-700">Chair</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="table_or_chair_preference"
-                value="No preference"
-                checked={formData.table_or_chair_preference === 'No preference'}
-                onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
-                className="mr-2"
-              />
-              <span className="text-gray-700">No preference</span>
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="table_or_chair_preference"
+                  value="Table"
+                  checked={formData.table_or_chair_preference === 'Table'}
+                  onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">Table</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="table_or_chair_preference"
+                  value="Chair"
+                  checked={formData.table_or_chair_preference === 'Chair'}
+                  onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">Chair</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="table_or_chair_preference"
+                  value="No preference"
+                  checked={formData.table_or_chair_preference === 'No preference'}
+                  onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">No preference</span>
+              </label>
+            </div>
+            <input
+              type="text"
+              placeholder="Or enter custom preference"
+              value={formData.table_or_chair_preference && !['Table', 'Chair', 'No preference'].includes(formData.table_or_chair_preference) ? formData.table_or_chair_preference : ''}
+              onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
+              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Or enter custom preference"
-            value={formData.table_or_chair_preference && !['Table', 'Chair', 'No preference'].includes(formData.table_or_chair_preference) ? formData.table_or_chair_preference : ''}
-            onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
-            className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
-          />
-        </div>
+        )}
 
-        {/* Question 2: Preferred Gender */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            2. Preferred gender of the massage professional <span className="text-gray-500 font-normal">(Optional)</span>
-          </label>
-          <div className="space-y-2">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="preferred_gender"
-                value="Male"
-                checked={formData.preferred_gender === 'Male'}
-                onChange={(e) => handleChange('preferred_gender', e.target.value)}
-                className="mr-2"
-              />
-              <span className="text-gray-700">Male</span>
+        {/* Question 2: Preferred Gender - Only show if massage is included */}
+        {includesMassage && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              2. Preferred gender of the massage professional <span className="text-gray-500 font-normal">(Optional)</span>
             </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="preferred_gender"
-                value="Female"
-                checked={formData.preferred_gender === 'Female'}
-                onChange={(e) => handleChange('preferred_gender', e.target.value)}
-                className="mr-2"
-              />
-              <span className="text-gray-700">Female</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="preferred_gender"
-                value="No preference"
-                checked={formData.preferred_gender === 'No preference'}
-                onChange={(e) => handleChange('preferred_gender', e.target.value)}
-                className="mr-2"
-              />
-              <span className="text-gray-700">No preference</span>
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="preferred_gender"
+                  value="Male"
+                  checked={formData.preferred_gender === 'Male'}
+                  onChange={(e) => handleChange('preferred_gender', e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">Male</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="preferred_gender"
+                  value="Female"
+                  checked={formData.preferred_gender === 'Female'}
+                  onChange={(e) => handleChange('preferred_gender', e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">Female</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="preferred_gender"
+                  value="No preference"
+                  checked={formData.preferred_gender === 'No preference'}
+                  onChange={(e) => handleChange('preferred_gender', e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">No preference</span>
+              </label>
+            </div>
+            <input
+              type="text"
+              placeholder="Or enter custom preference"
+              value={formData.preferred_gender && !['Male', 'Female', 'No preference'].includes(formData.preferred_gender) ? formData.preferred_gender : ''}
+              onChange={(e) => handleChange('preferred_gender', e.target.value)}
+              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Or enter custom preference"
-            value={formData.preferred_gender && !['Male', 'Female', 'No preference'].includes(formData.preferred_gender) ? formData.preferred_gender : ''}
-            onChange={(e) => handleChange('preferred_gender', e.target.value)}
-            className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
-          />
-        </div>
+        )}
 
-        {/* Question 3: Office Address */}
+        {/* Question 3 (or 1): Office Address(es) */}
+        {locations.length > 1 ? (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-4">
+              {includesMassage ? '3' : '1'}. Office addresses
+            </label>
+            <div className="space-y-4">
+              {locations.map((location) => {
+                const hasPrefilledAddress = officeLocations?.[location] || (officeLocation && location === locations[0]);
+                const currentAddress = formData.office_addresses?.[location] || '';
+                return (
+                  <div key={location} className="border-2 border-gray-200 rounded-lg p-4 bg-white hover:border-shortcut-teal transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-bold text-shortcut-navy-blue">
+                        Office Address for {location}
+                      </label>
+                      {hasPrefilledAddress && !existingResponse && (
+                        <span className="text-xs font-medium text-shortcut-teal bg-shortcut-teal bg-opacity-10 px-2 py-1 rounded">
+                          Pre-filled from proposal
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      id={`office-address-input-${location}`}
+                      type="text"
+                      value={currentAddress}
+                      onChange={(e) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          office_addresses: {
+                            ...prev.office_addresses,
+                            [location]: e.target.value
+                          }
+                        }));
+                      }}
+                      placeholder={`Start typing an address for ${location}...`}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                    />
+                    <p className="text-xs text-text-dark-60 mt-2">
+                      Address autocomplete will appear as you type
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                {includesMassage ? '3' : '1'}. Office address
+              </label>
+              {officeLocation && !existingResponse && (
+                <span className="text-xs font-medium text-shortcut-teal bg-shortcut-teal bg-opacity-10 px-2 py-1 rounded">
+                  Pre-filled from proposal
+                </span>
+              )}
+            </div>
+            <input
+              id="office-address-input"
+              type="text"
+              value={formData.office_address}
+              onChange={(e) => handleChange('office_address', e.target.value)}
+              placeholder="Start typing an address..."
+              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+            />
+            <p className="text-xs text-text-dark-60 mt-2">
+              Address autocomplete will appear as you type
+            </p>
+          </div>
+        )}
+
+        {/* Question 4 (or 2): Service Space Name */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            3. Office address
-          </label>
-          <input
-            id="office-address-input"
-            type="text"
-            value={formData.office_address}
-            onChange={(e) => handleChange('office_address', e.target.value)}
-            placeholder="Start typing an address..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Address autocomplete will appear as you type
-          </p>
-        </div>
-
-        {/* Question 4: Massage Space Name */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            4. Name of the space(s) where massages will take place
+            {includesMassage ? '4' : '2'}. Name of the space(s) where services will take place
           </label>
           <input
             type="text"
@@ -470,10 +711,10 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
           />
         </div>
 
-        {/* Question 5: Point of Contact */}
+        {/* Question 5 (or 3): Point of Contact */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            5. Point of contact (including phone number)
+            {includesMassage ? '5' : '3'}. Point of contact (including phone number)
           </label>
           <textarea
             value={formData.point_of_contact}
@@ -484,10 +725,10 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
           />
         </div>
 
-        {/* Question 6: Billing Contact */}
+        {/* Question 6 (or 4): Billing Contact */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            6. Billing contact / who to address the invoice to
+            {includesMassage ? '6' : '4'}. Billing contact / who to address the invoice to
           </label>
           <textarea
             value={formData.billing_contact}
@@ -498,10 +739,10 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ proposalId, onS
           />
         </div>
 
-        {/* Question 7: COI Required */}
+        {/* Question 7 (or 5): COI Required */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            7. Will a Certificate of Insurance (COI) be required?
+            {includesMassage ? '7' : '5'}. Will a Certificate of Insurance (COI) be required?
           </label>
           <div className="space-y-2">
             <label className="flex items-center">

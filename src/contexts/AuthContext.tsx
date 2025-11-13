@@ -58,8 +58,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             timeoutPromise
           ]) as { data: { session: any }, error: any };
 
-          if (sessionError) {
-            console.error('Session retrieval error:', sessionError);
+        if (sessionError) {
+          console.error('Session retrieval error:', sessionError);
             // Clear invalid session
             setUser(null);
             // Clear any stale session data

@@ -71,17 +71,17 @@ export const Button: React.FC<ButtonProps> = ({
       
       {/* Button content wrapper with z-index */}
       <span className={`relative z-[2] pointer-events-none flex items-center justify-center gap-2 ${variant === 'green' ? 'group-hover:text-[#09364f] transition-colors duration-300' : ''}`}>
-        {loading ? (
-          <>
+      {loading ? (
+        <>
             <LoadingSpinner size="small" />
-            <span>Loading...</span>
-          </>
-        ) : (
-          <>
+          <span>Loading...</span>
+        </>
+      ) : (
+        <>
             {icon && <span>{icon}</span>}
-            {children}
-          </>
-        )}
+          {children}
+        </>
+      )}
       </span>
     </button>
   );

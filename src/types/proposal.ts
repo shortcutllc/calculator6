@@ -69,7 +69,8 @@ export interface ProposalData {
   clientName: string;
   clientEmail?: string;
   clientLogoUrl?: string;
-  officeLocation?: string;
+  officeLocation?: string; // Legacy support
+  officeLocations?: { [location: string]: string }; // New: multiple office locations
   eventDates: string[];
   locations: string[];
   services: {

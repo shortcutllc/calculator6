@@ -25,7 +25,7 @@ After reviewing the current implementation against the official Shortcut Style G
 - **Files Affected:** `tailwind.config.js`, all components using `text-shortcut-blue`
 
 #### 1.2 Missing Color Palette
-The following colors from the Style Guide are **completely missing**:
+The following colors from the  are **completely missing**:
 
 | Color Name | Hex Code | Usage | Status |
 |------------|----------|-------|--------|

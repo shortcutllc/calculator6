@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar, Pencil } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useAuth } from '../contexts/AuthContext';
 import EditableField from './EditableField';
@@ -221,6 +221,7 @@ const ProposalViewer: React.FC = () => {
   const [logoUploading, setLogoUploading] = useState(false);
   const [currentServiceImageIndex, setCurrentServiceImageIndex] = useState(0);
   const [updateCounter, setUpdateCounter] = useState(0);
+  const [editingOfficeLocation, setEditingOfficeLocation] = useState<string | null>(null);
 
   useEffect(() => {
     if (displayData?.clientLogoUrl) {
@@ -232,9 +233,10 @@ const ProposalViewer: React.FC = () => {
 
   // Initialize Google Maps autocomplete for edit mode
   useEffect(() => {
-    if (isEditing) {
+    if (isEditing && editingOfficeLocation !== null) {
       const initializeGoogleMaps = () => {
-        const input = document.getElementById('office-location-edit-input') as HTMLInputElement;
+        const inputId = `office-location-edit-input-${editingOfficeLocation}`;
+        const input = document.getElementById(inputId) as HTMLInputElement;
         if (input && window.google && window.google.maps && window.google.maps.places) {
           try {
             // Initialize Places Autocomplete
@@ -247,13 +249,24 @@ const ProposalViewer: React.FC = () => {
             autocomplete.addListener('place_changed', () => {
               const place = autocomplete.getPlace();
               if (place.formatted_address) {
-                handleFieldChange(['officeLocation'], place.formatted_address);
+                if (displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) {
+                  // Update officeLocations object
+                  const updatedOfficeLocations = {
+                    ...(editedData?.officeLocations || displayData.officeLocations),
+                    [editingOfficeLocation]: place.formatted_address
+                  };
+                  handleFieldChange(['officeLocations'], updatedOfficeLocations);
+                } else {
+                  // Legacy: update single officeLocation
+                  handleFieldChange(['officeLocation'], place.formatted_address);
+                }
+                setEditingOfficeLocation(null);
               }
             });
 
-            console.log('Google Maps Places Autocomplete initialized successfully for edit mode');
+            console.log(`Google Maps Places Autocomplete initialized for ${editingOfficeLocation}`);
           } catch (error) {
-            console.error('Error initializing Google Maps Places Autocomplete for edit mode:', error);
+            console.error(`Error initializing Google Maps Places Autocomplete for ${editingOfficeLocation}:`, error);
           }
         }
       };
@@ -277,7 +290,7 @@ const ProposalViewer: React.FC = () => {
         clearInterval(checkGoogleMaps);
       };
     }
-  }, [isEditing]);
+  }, [isEditing, editingOfficeLocation]);
 
   // Auto-rotate service images
   useEffect(() => {
@@ -1033,64 +1046,232 @@ The Shortcut Team`);
 
             {/* Office Location Card */}
             <div className="card-medium">
-              <h3 className="text-lg font-extrabold text-shortcut-blue mb-4">Office Location</h3>
+              <h3 className="text-lg font-extrabold text-shortcut-blue mb-4">
+                {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 1 
+                  ? 'Office Locations' 
+                  : 'Office Location'}
+              </h3>
               <div className="space-y-4">
-                <div className="relative">
-                  <label className="block text-sm font-bold text-shortcut-blue mb-2">Office Address</label>
-                  <input
-                    type="text"
-                    value={displayData.officeLocation || ''}
-                    onChange={(e) => handleFieldChange(['officeLocation'], e.target.value)}
-                    className="w-full px-3 py-2 pr-10 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-                    placeholder="Enter office address..."
-                    id="office-location-edit-input"
-                    data-autocomplete="true"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.getElementById('office-location-edit-input') as HTMLInputElement;
-                      if (input && 'geolocation' in navigator) {
-                        navigator.geolocation.getCurrentPosition(
-                          (position) => {
-                            const { latitude, longitude } = position.coords;
-                            const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
-                            
-                            if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-                              // Use reverse geocoding to get address
-                              fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
-                                .then(response => response.json())
-                                .then(data => {
-                                  if (data.status === 'OK' && data.results && data.results[0]) {
-                                    handleFieldChange(['officeLocation'], data.results[0].formatted_address);
-                                  } else {
-                                    alert('Could not find address for your location. Please enter manually.');
+                {/* Multiple Office Locations - Show all locations from proposal */}
+                {displayData.locations && displayData.locations.length > 1 ? (
+                  displayData.locations.map((location) => {
+                    const address = displayData.officeLocations?.[location] || displayData.officeLocation || '';
+                    const isEditingThis = editingOfficeLocation === location;
+                    
+                    return (
+                      <div key={location} className="border-2 border-gray-200 rounded-lg p-4 bg-white hover:border-shortcut-teal transition-colors">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-sm font-bold text-shortcut-navy-blue">{location}</h4>
+                            </div>
+                            {isEditingThis ? (
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={editedData?.officeLocations?.[location] || address}
+                                  onChange={(e) => {
+                                    // Initialize officeLocations if it doesn't exist
+                                    const currentOfficeLocations = editedData?.officeLocations || displayData.officeLocations || {};
+                                    const updatedOfficeLocations = {
+                                      ...currentOfficeLocations,
+                                      [location]: e.target.value
+                                    };
+                                    handleFieldChange(['officeLocations'], updatedOfficeLocations);
+                                  }}
+                                  className="w-full px-3 py-2 pr-20 border-2 border-shortcut-teal rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                                  placeholder="Enter office address..."
+                                  id={`office-location-edit-input-${location}`}
+                                  data-autocomplete="true"
+                                  autoFocus
+                                />
+                                <div className="absolute right-2 top-2 flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const input = document.getElementById(`office-location-edit-input-${location}`) as HTMLInputElement;
+                                      if (input && 'geolocation' in navigator) {
+                                        navigator.geolocation.getCurrentPosition(
+                                          (position) => {
+                                            const { latitude, longitude } = position.coords;
+                                            const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                                            
+                                            if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                                              fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                                                .then(response => response.json())
+                                                .then(data => {
+                                                  if (data.status === 'OK' && data.results && data.results[0]) {
+                                                    const currentOfficeLocations = editedData?.officeLocations || displayData.officeLocations || {};
+                                                    const updatedOfficeLocations = {
+                                                      ...currentOfficeLocations,
+                                                      [location]: data.results[0].formatted_address
+                                                    };
+                                                    handleFieldChange(['officeLocations'], updatedOfficeLocations);
+                                                  } else {
+                                                    alert('Could not find address for your location. Please enter manually.');
+                                                  }
+                                                })
+                                                .catch(() => {
+                                                  alert('Error getting address. Please enter manually.');
+                                                });
+                                            } else {
+                                              alert('Google Maps API key not configured. Please enter the address manually.');
+                                            }
+                                          },
+                                          () => {
+                                            alert('Unable to get your location. Please enter the address manually.');
+                                          }
+                                        );
+                                      } else {
+                                        alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                                      }
+                                    }}
+                                    className="p-1.5 text-text-dark-60 hover:text-shortcut-blue hover:bg-neutral-light-gray rounded transition-colors"
+                                    title="Use current location"
+                                  >
+                                    📍
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingOfficeLocation(null)}
+                                    className="p-1.5 text-shortcut-navy-blue hover:bg-shortcut-teal hover:bg-opacity-20 rounded transition-colors"
+                                    title="Save"
+                                  >
+                                    <Check size={18} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingOfficeLocation(null);
+                                      // Revert to original value
+                                      const updatedOfficeLocations = {
+                                        ...(editedData?.officeLocations || displayData.officeLocations)
+                                      };
+                                      updatedOfficeLocations[location] = address;
+                                      handleFieldChange(['officeLocations'], updatedOfficeLocations);
+                                    }}
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                                    title="Cancel"
+                                  >
+                                    <X size={18} />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-base text-text-dark flex-1">
+                                  {address || <span className="text-text-dark-60 italic">No address set</span>}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingOfficeLocation(location)}
+                                  className="flex-shrink-0 p-2 text-shortcut-blue hover:bg-shortcut-teal hover:bg-opacity-20 rounded-lg transition-colors group"
+                                  title="Edit address"
+                                >
+                                  <Pencil size={18} className="group-hover:scale-110 transition-transform" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  /* Single Office Location (Legacy) */
+                  <div className="border-2 border-gray-200 rounded-lg p-4 bg-white hover:border-shortcut-teal transition-colors">
+                    {editingOfficeLocation === 'single' ? (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={editedData?.officeLocation || displayData.officeLocation || ''}
+                          onChange={(e) => handleFieldChange(['officeLocation'], e.target.value)}
+                          className="w-full px-3 py-2 pr-20 border-2 border-shortcut-teal rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          placeholder="Enter office address..."
+                          id="office-location-edit-input-single"
+                          data-autocomplete="true"
+                          autoFocus
+                        />
+                        <div className="absolute right-2 top-2 flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const input = document.getElementById('office-location-edit-input-single') as HTMLInputElement;
+                              if (input && 'geolocation' in navigator) {
+                                navigator.geolocation.getCurrentPosition(
+                                  (position) => {
+                                    const { latitude, longitude } = position.coords;
+                                    const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                                    
+                                    if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                                      fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                                        .then(response => response.json())
+                                        .then(data => {
+                                          if (data.status === 'OK' && data.results && data.results[0]) {
+                                            handleFieldChange(['officeLocation'], data.results[0].formatted_address);
+                                          } else {
+                                            alert('Could not find address for your location. Please enter manually.');
+                                          }
+                                        })
+                                        .catch(() => {
+                                          alert('Error getting address. Please enter manually.');
+                                        });
+                                    } else {
+                                      alert('Google Maps API key not configured. Please enter the address manually.');
+                                    }
+                                  },
+                                  () => {
+                                    alert('Unable to get your location. Please enter the address manually.');
                                   }
-                                })
-                                .catch(() => {
-                                  alert('Error getting address. Please enter manually.');
-                                });
-                            } else {
-                              alert('Google Maps API key not configured. Please enter the address manually.');
-                            }
-                          },
-                          () => {
-                            alert('Unable to get your location. Please enter the address manually.');
-                          }
-                        );
-                      } else {
-                        alert('Geolocation is not supported by your browser. Please enter the address manually.');
-                      }
-                    }}
-                    className="absolute right-3 top-9 text-text-dark-60 hover:text-shortcut-blue transition-colors"
-                    title="Use current location"
-                  >
-                    📍
-                  </button>
-                  <p className="text-xs text-text-dark-60 mt-2">
-                    Enter the office address or click the location icon to use your current location
-                  </p>
-                </div>
+                                );
+                              } else {
+                                alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                              }
+                            }}
+                            className="p-1.5 text-text-dark-60 hover:text-shortcut-blue hover:bg-neutral-light-gray rounded transition-colors"
+                            title="Use current location"
+                          >
+                            📍
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingOfficeLocation(null)}
+                            className="p-1.5 text-shortcut-navy-blue hover:bg-shortcut-teal hover:bg-opacity-20 rounded transition-colors"
+                            title="Save"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingOfficeLocation(null);
+                              // Revert to original value
+                              handleFieldChange(['officeLocation'], displayData.officeLocation || '');
+                            }}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                            title="Cancel"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-base text-text-dark flex-1">
+                          {displayData.officeLocation || <span className="text-text-dark-60 italic">No address set</span>}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setEditingOfficeLocation('single')}
+                          className="flex-shrink-0 p-2 text-shortcut-blue hover:bg-shortcut-teal hover:bg-opacity-20 rounded-lg transition-colors group"
+                          title="Edit address"
+                        >
+                          <Pencil size={18} className="group-hover:scale-110 transition-transform" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1175,12 +1356,24 @@ The Shortcut Team`);
                   <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
                   <p className="text-base font-medium text-text-dark">{displayData.summary?.totalAppointments || 0}</p>
                 </div>
-                {displayData.officeLocation && (
+                {/* Display multiple office locations if available, otherwise show single office location */}
+                {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
                   <div className="md:col-span-3">
-                    <p className="text-sm font-bold text-shortcut-blue mb-1">Office Location</p>
-                    <p className="text-base font-medium text-text-dark">{displayData.officeLocation}</p>
+                    <p className="text-sm font-bold text-shortcut-blue mb-2">Office Location(s)</p>
+                    {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0 ? (
+                      <div className="space-y-2">
+                        {Object.entries(displayData.officeLocations).map(([location, address]) => (
+                          <div key={location} className="mb-2">
+                            <p className="text-xs font-bold text-shortcut-navy-blue mb-1">{location}:</p>
+                            <p className="text-base font-medium text-text-dark">{address}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : displayData.officeLocation ? (
+                      <p className="text-base font-medium text-text-dark">{displayData.officeLocation}</p>
+                    ) : null}
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -1654,9 +1847,21 @@ The Shortcut Team`);
                   <span className="font-semibold">Total Appointments:</span>
                   <span className="font-bold text-lg">{displayData.summary?.totalAppointments}</span>
                 </div>
-                <div className="flex justify-between items-center py-3">
+                <div className="flex justify-between items-center py-3 border-b border-white/20">
                   <span className="font-semibold">Total Event Cost:</span>
                   <span className="font-bold text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b border-white/20">
+                  <span className="font-semibold">Professional Revenue:</span>
+                  <span className="font-bold text-lg">${formatCurrency(displayData.summary?.totalProRevenue || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b border-white/20">
+                  <span className="font-semibold">Net Profit:</span>
+                  <span className="font-bold text-lg">${formatCurrency(displayData.summary?.netProfit || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-3">
+                  <span className="font-semibold">Profit Margin:</span>
+                  <span className="font-bold text-lg">{(displayData.summary?.profitMargin || 0).toFixed(1)}%</span>
                 </div>
               </div>
             </div>

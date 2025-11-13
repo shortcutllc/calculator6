@@ -129,6 +129,30 @@ h2, .h2 {
 
 ---
 
+#### Subsection Titles (Day Summary, Event Summary, etc.)
+
+**Class:** `text-xl font-extrabold`
+
+**Properties:**
+- **Font Size:** `1.25rem` (20px)
+- **Font Weight:** `800` (ExtraBold)
+- **Color:** 
+  - `text-shortcut-navy-blue` for white/light backgrounds
+  - `text-white` for dark backgrounds (e.g., navy blue cards)
+
+**Usage:**
+```tsx
+<h4 className="text-xl font-extrabold mb-4 text-shortcut-navy-blue">Day 1 Summary</h4>
+<h2 className="text-xl font-extrabold mb-6 text-white">Event Summary</h2>
+```
+
+**Common Patterns:**
+- **Day Summary titles:** `text-xl font-extrabold mb-4 text-shortcut-navy-blue`
+- **Event Summary titles:** `text-xl font-extrabold mb-6 text-white` (on navy blue background)
+- **Location subsection titles:** `text-xl font-extrabold text-shortcut-navy-blue`
+
+---
+
 ### Body Text
 
 **Default Properties:**
@@ -535,19 +559,85 @@ The Shortcut design system uses a refined premium card system with three sizes: 
 
 ---
 
+## Page Layout Patterns
+
+### Standard Page Container
+
+**Full-Width Pages (Home, History, Admin):**
+```tsx
+<div className="min-h-screen bg-neutral-light-gray">
+  <div className="max-w-7xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
+    <!-- Content -->
+  </div>
+</div>
+```
+
+**Narrow Container Pages (Forms, Single Column):**
+```tsx
+<div className="min-h-screen bg-neutral-light-gray">
+  <div className="max-w-2xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
+    <!-- Content -->
+  </div>
+</div>
+```
+
+**Modal Containers:**
+```tsx
+<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div className="card-large max-w-4xl w-full max-h-[90vh] overflow-y-auto z-50 relative">
+    <!-- Modal content -->
+  </div>
+</div>
+```
+
+---
+
 ## Spacing & Layout
 
 ### Container Padding
 
 **Section Padding Pattern:**
-- **Mobile:** `0 20px`
-- **Desktop (lg):** `0 90px`
+- **Mobile:** `px-5` (20px horizontal padding)
+- **Desktop (lg):** `px-[90px]` (90px horizontal padding)
+- **Vertical Padding:** `py-8 lg:py-12` (32px mobile, 48px desktop)
 
 **Implementation:**
 ```tsx
-<section className="px-5 lg:px-[90px]">
+<div className="max-w-7xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
   <!-- Content -->
-</section>
+</div>
+```
+
+**For Narrower Containers (Forms, Modals):**
+```tsx
+<div className="max-w-2xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
+  <!-- Content -->
+</div>
+```
+
+---
+
+### Spacing Scale
+
+**Consistent Spacing Patterns:**
+- **Form Fields:** `space-y-6` or `space-y-8` for form sections
+- **Section Margins:** `mb-8` for major sections, `mb-6` for subsections
+- **Card Spacing:** `space-y-6` or `space-y-8` within cards
+- **Grid Gaps:** `gap-6` for form grids, `gap-4` for smaller grids
+
+**Implementation:**
+```tsx
+<form className="space-y-6">
+  <div className="space-y-4">
+    <!-- Form fields -->
+  </div>
+</form>
+
+<div className="space-y-8">
+  <div className="card-large mb-8">
+    <!-- Section -->
+  </div>
+</div>
 ```
 
 ---
@@ -576,24 +666,157 @@ The Shortcut design system uses a refined premium card system with three sizes: 
 ```tsx
 <input
   type="text"
-  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-base"
 />
 ```
+
+**Key Properties:**
+- **Padding:** `px-4 py-3` (16px horizontal, 12px vertical)
+- **Border:** `border-2 border-gray-200` (2px border)
+- **Focus:** `focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal`
+- **Text Size:** `text-base` (16px) for better readability
 
 **Textarea:**
 ```tsx
 <textarea
-  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-  rows={3}
+  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y"
+  rows={4}
 />
 ```
 
 **Select:**
 ```tsx
-<select className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal">
+<select className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal">
   <option>Option 1</option>
 </select>
 ```
+
+**Form Labels:**
+```tsx
+<label className="block text-sm font-bold text-shortcut-blue mb-2">
+  Label Text
+</label>
+```
+
+**Form Field Grouping:**
+```tsx
+<div className="space-y-6">
+  <div>
+    <label className="block text-sm font-bold text-shortcut-blue mb-2">
+      Field Label
+    </label>
+    <input className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal" />
+  </div>
+</div>
+```
+
+**Error States:**
+```tsx
+<input
+  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+    hasError ? 'border-red-500' : 'border-gray-200'
+  }`}
+/>
+{hasError && (
+  <p className="mt-2 text-sm text-red-600">Error message</p>
+)}
+```
+
+---
+
+### Modals
+
+**Modal Overlay & Container:**
+```tsx
+<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[200]">
+  <div className="card-large max-w-4xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
+    <div className="flex justify-between items-center mb-8">
+      <h2 className="h2">Modal Title</h2>
+      <button
+        onClick={onClose}
+        className="text-text-dark-60 hover:text-shortcut-blue transition-colors p-2 rounded-lg hover:bg-neutral-light-gray"
+        aria-label="Close modal"
+      >
+        <X size={24} />
+      </button>
+    </div>
+    <!-- Modal content -->
+  </div>
+</div>
+```
+
+**Modal Form Layout:**
+```tsx
+<form onSubmit={handleSubmit}>
+  <div className="space-y-8">
+    <!-- Form sections with space-y-8 -->
+  </div>
+  <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-4">
+    <Button variant="secondary" onClick={onClose}>Cancel</Button>
+    <Button variant="primary" type="submit">Submit</Button>
+  </div>
+</form>
+```
+
+---
+
+### Badges & Indicators
+
+**Info Badge (Light Blue):**
+```tsx
+<div className="bg-shortcut-light-blue text-shortcut-navy-blue px-3 py-1.5 rounded-full text-sm font-bold">
+  Total Appointments: 50
+</div>
+```
+
+**Accent Badge (Teal):**
+```tsx
+<div className="bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue px-3 py-1.5 rounded-full text-sm font-bold">
+  Total Cost: $1,250.00
+</div>
+```
+
+**⚠️ Important:** Never use blue text on blue backgrounds. Always use:
+- `text-shortcut-navy-blue` on light backgrounds (white, teal opacity, etc.)
+- `text-white` on dark backgrounds (navy blue, etc.)
+- `text-shortcut-blue` only on white/light gray backgrounds
+
+**Status Badge (Neutral):**
+```tsx
+<div className="bg-neutral-light-gray text-shortcut-blue px-3 py-1.5 rounded-full text-sm font-bold">
+  Status Text
+</div>
+```
+
+---
+
+### Day Summary Cards
+
+**Pattern:** White card with navy blue border and teal accent boxes
+
+**Structure:**
+```tsx
+<div className="mt-6 bg-white rounded-xl p-6 border-2 border-shortcut-navy-blue shadow-md">
+  <h4 className="text-xl font-extrabold mb-4 text-shortcut-navy-blue">Day 1 Summary</h4>
+  <div className="grid grid-cols-2 gap-4">
+    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
+      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Appointments</div>
+      <div className="text-2xl font-extrabold text-shortcut-navy-blue">{count}</div>
+    </div>
+    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
+      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
+      <div className="text-2xl font-extrabold text-shortcut-navy-blue">${cost}</div>
+    </div>
+  </div>
+</div>
+```
+
+**Key Properties:**
+- **Card:** `bg-white rounded-xl p-6 border-2 border-shortcut-navy-blue shadow-md`
+- **Title:** `text-xl font-extrabold mb-4 text-shortcut-navy-blue`
+- **Accent Boxes:** `bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal`
+- **Labels:** `text-sm font-bold text-shortcut-navy-blue mb-1`
+- **Values:** `text-2xl font-extrabold text-shortcut-navy-blue`
 
 ---
 
@@ -620,21 +843,34 @@ import { Button } from './Button';
 
 export const ExamplePage = () => {
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      {/* Hero Section */}
-      <div className="card-large mb-8">
-        <h1 className="h1 mb-4">Page Title</h1>
-        <p className="mb-6">
-          This is body text using the default 500 weight Medium font.
-        </p>
-        <Button variant="primary" icon={<Icon />}>
-          Primary Action
-        </Button>
-      </div>
+    <div className="min-h-screen bg-neutral-light-gray">
+      <div className="max-w-7xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
+        {/* Hero Section */}
+        <div className="card-large mb-8">
+          <h1 className="h1 mb-8">Page Title</h1>
+          <form className="space-y-6">
+            <div>
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
+                Field Label
+              </label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-base"
+                placeholder="Enter value..."
+              />
+            </div>
+            <div className="pt-4">
+              <Button variant="primary" icon={<Icon />}>
+                Primary Action
+              </Button>
+            </div>
+          </form>
+        </div>
 
-      {/* Content Section */}
-      <div className="card-medium mb-8">
-        <h2 className="h2 mb-4">Section Title</h2>
+        {/* Content Section */}
+        <div className="card-medium mb-8">
+          <h2 className="h2 mb-6">Section Title</h2>
+          <div className="space-y-4">
         <p>Section content goes here...</p>
       </div>
 
@@ -718,6 +954,7 @@ export const CardGrid = () => {
 ### Typography Classes
 - `.h1` - Hero titles (responsive: 40px → 64px)
 - `.h2` - Section titles (responsive: 32px → 64px)
+- `text-xl font-extrabold` - Subsection titles (Day Summary, Event Summary, etc.)
 - `body` - Body text (16px mobile, 18px desktop, weight 500)
 
 ### Color Classes
@@ -759,6 +996,9 @@ export const CardGrid = () => {
 - Green buttons have teal blue hover overlay with text color transition
 - Cards have refined subtle 3-layer shadows and smooth hover lift effects
 - All colors are defined in `tailwind.config.js` for consistency
+- **Modals must use `z-[200]` to appear above navigation bar (`z-[100]`)**
+- **Never use blue text on blue backgrounds** - use `text-shortcut-navy-blue` on light backgrounds, `text-white` on dark backgrounds
+- **Subsection titles** (Day Summary, Event Summary) use `text-xl font-extrabold` not `.h2`
 
 ---
 

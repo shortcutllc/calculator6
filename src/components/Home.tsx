@@ -431,7 +431,11 @@ const Home: React.FC = () => {
       if (options.clientLogoUrl) {
         proposalData.clientLogoUrl = options.clientLogoUrl;
       }
-      if (options.officeLocation) {
+      // Handle office locations - support both new (multiple) and legacy (single) formats
+      if (options.officeLocations && Object.keys(options.officeLocations).length > 0) {
+        proposalData.officeLocations = options.officeLocations;
+      } else if (options.officeLocation) {
+        // Legacy support: if single officeLocation is provided, use it for the first location
         proposalData.officeLocation = options.officeLocation;
       }
 
@@ -709,13 +713,13 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-neutral-light-gray">
       {!showDashboard ? (
-        <div className="max-w-2xl mx-auto p-4 sm:p-8">
+        <div className="max-w-2xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
           <div className="card-large">
-            <h1 className="h1 mb-6">Create New Proposal</h1>
-            <form onSubmit={handleStartCalculation}>
-              <div className="mb-6">
+            <h1 className="h1 mb-8">Create New Proposal</h1>
+            <form onSubmit={handleStartCalculation} className="space-y-6">
+              <div>
                 <label className="block text-shortcut-blue text-sm font-bold mb-2">
                   Client Name
                 </label>
@@ -723,58 +727,63 @@ const Home: React.FC = () => {
                   type="text"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-base"
                   placeholder="Enter client name"
                 />
               </div>
               
-              <div className="mb-6">
+              <div>
                 <label className="block text-shortcut-blue text-sm font-bold mb-2">
                   Locations
                 </label>
-                {locations.map((location, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={location}
-                      onChange={(e) => updateLocation(index, e.target.value)}
-                      className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-                      placeholder="Enter location"
-                    />
-                    {locations.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeLocation(index)}
-                        className="p-2 text-red-600 hover:text-red-800"
-                      >
-                        <X size={20} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                <div className="space-y-3">
+                  {locations.map((location, index) => (
+                    <div key={index} className="flex gap-3 items-center">
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => updateLocation(index, e.target.value)}
+                        className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-base"
+                        placeholder="Enter location"
+                      />
+                      {locations.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeLocation(index)}
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                          aria-label="Remove location"
+                        >
+                          <X size={20} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
                 <button
                   type="button"
                   onClick={addLocation}
-                  className="flex items-center text-shortcut-blue hover:text-shortcut-navy-blue mt-2 font-bold text-sm"
+                  className="flex items-center text-shortcut-blue hover:text-shortcut-navy-blue mt-3 font-bold text-sm transition-colors"
                 >
-                  <Plus size={20} className="mr-1" />
+                  <Plus size={20} className="mr-2" />
                   Add Location
                 </button>
               </div>
               
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full"
-              >
-                Start Calculation
-              </Button>
+              <div className="pt-4">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full"
+                >
+                  Start Calculation
+                </Button>
+              </div>
             </form>
           </div>
         </div>
       ) : showResults ? (
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="flex justify-between items-center mb-6">
+        <div className="max-w-7xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div className="flex items-center gap-4">
               <Button
                 onClick={() => setShowResults(false)}
@@ -798,115 +807,119 @@ const Home: React.FC = () => {
 
           <div className="card-large mb-8">
             <h2 className="h2 mb-6">Event Details</h2>
-            <div className="grid gap-4">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-gray-600">Client Name:</span>
-                <span className="font-semibold">{clientData.name}</span>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <span className="text-sm font-bold text-shortcut-blue">Client Name:</span>
+                <span className="font-bold text-text-dark">{clientData.name}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-gray-600">Total Appointments:</span>
-                <span className="font-semibold">{calculationResults?.totalAppointments}</span>
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <span className="text-sm font-bold text-shortcut-blue">Total Appointments:</span>
+                <span className="font-bold text-text-dark">{calculationResults?.totalAppointments}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-gray-600">Total Event Cost:</span>
-                <span className="font-semibold">${calculationResults?.totalCost.toFixed(2)}</span>
+              <div className="flex justify-between items-center py-3">
+                <span className="text-sm font-bold text-shortcut-blue">Total Event Cost:</span>
+                <span className="font-bold text-shortcut-navy-blue text-lg">${calculationResults?.totalCost.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {Object.entries(calculationResults?.locationBreakdown || {}).map(([location, locationData]) => (
             <div key={location} className="card-large mb-8">
-              <h2 className="h2 mb-6">{location}</h2>
+              <h2 className="h2 mb-8">{location}</h2>
               
-              {Object.entries(locationData.dateBreakdown).map(([date, dateData], dateIndex) => (
-                <div key={date} className="mb-8">
-                  <h3 className="text-lg sm:text-xl font-semibold mb-4">Day {dateIndex + 1} - {date}</h3>
-                  
-                  {dateData.services.map((service, serviceIndex) => (
-                    <div key={serviceIndex} className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-4">
-                      <h4 className="font-semibold mb-3">Service {serviceIndex + 1}: {service.serviceType}</h4>
-                      <div className="grid gap-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Total Hours:</span>
-                          <span>{service.totalHours} hours</span>
+              <div className="space-y-8">
+                {Object.entries(locationData.dateBreakdown).map(([date, dateData], dateIndex) => (
+                  <div key={date} className="space-y-6">
+                    <h3 className="text-xl font-extrabold text-shortcut-navy-blue">Day {dateIndex + 1} - {date}</h3>
+                    
+                    <div className="space-y-4">
+                      {dateData.services.map((service, serviceIndex) => (
+                        <div key={serviceIndex} className="card-small">
+                          <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">Service {serviceIndex + 1}: {service.serviceType}</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                              <span className="text-sm font-bold text-shortcut-blue">Total Hours:</span>
+                              <span className="font-bold text-text-dark">{service.totalHours} hours</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                              <span className="text-sm font-bold text-shortcut-blue">Number of Professionals:</span>
+                              <span className="font-bold text-text-dark">{service.numPros}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                              <span className="text-sm font-bold text-shortcut-blue">Total Appointments:</span>
+                              <span className="font-bold text-text-dark">{service.totalAppointments}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                              <span className="text-sm font-bold text-shortcut-blue">Service Cost:</span>
+                              <span className="font-bold text-shortcut-blue">${service.serviceCost.toFixed(2)}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Number of Professionals:</span>
-                          <span>{service.numPros}</span>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 bg-white rounded-xl p-6 border-2 border-shortcut-navy-blue shadow-md">
+                      <h4 className="text-xl font-extrabold mb-4 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
+                          <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Appointments</div>
+                          <div className="text-2xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments}</div>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Total Appointments:</span>
-                          <span>{service.totalAppointments}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Service Cost:</span>
-                          <span>${service.serviceCost.toFixed(2)}</span>
+                        <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
+                          <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
+                          <div className="text-2xl font-extrabold text-shortcut-navy-blue">${dateData.totalCost.toFixed(2)}</div>
                         </div>
                       </div>
                     </div>
-                  ))}
-
-                  <div className="bg-blue-50 rounded-lg p-4 sm:p-6">
-                    <h4 className="font-semibold mb-3">Day {dateIndex + 1} Totals</h4>
-                    <div className="grid gap-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Appointments:</span>
-                        <span>{dateData.totalAppointments}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Cost:</span>
-                        <span>${dateData.totalCost.toFixed(2)}</span>
-                      </div>
-                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
 
-              <div className="bg-gray-100 rounded-lg p-4 sm:p-6">
-                <h4 className="font-semibold mb-3">{location} Totals</h4>
-                <div className="grid gap-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Appointments:</span>
-                    <span>{locationData.totalAppointments}</span>
+              <div className="mt-8 card-medium bg-neutral-light-gray">
+                <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">{location} Totals</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-bold text-shortcut-blue">Total Appointments:</span>
+                    <span className="font-bold text-text-dark">{locationData.totalAppointments}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Cost:</span>
-                    <span>${locationData.totalCost.toFixed(2)}</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-bold text-shortcut-blue">Total Cost:</span>
+                    <span className="font-bold text-shortcut-blue">${locationData.totalCost.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
             </div>
           ))}
 
-          <div className="card-large bg-shortcut-blue text-white">
-            <h2 className="h2 mb-6 text-white">Event Summary</h2>
-            <div className="grid gap-4 text-white">
-              <div className="flex justify-between items-center py-2 border-b border-white/20">
-                <span>Total Appointments:</span>
-                <span className="font-semibold">{calculationResults?.totalAppointments}</span>
+          <div className="card-large bg-shortcut-navy-blue text-white">
+            <h2 className="text-xl font-extrabold mb-6 text-white">Event Summary</h2>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-3 border-b border-white/20">
+                <span className="font-semibold">Total Appointments:</span>
+                <span className="font-bold text-lg">{calculationResults?.totalAppointments}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-white/20">
-                <span>Total Event Cost:</span>
-                <span className="font-semibold">${calculationResults?.totalCost.toFixed(2)}</span>
+              <div className="flex justify-between items-center py-3 border-b border-white/20">
+                <span className="font-semibold">Total Event Cost:</span>
+                <span className="font-bold text-lg">${calculationResults?.totalCost.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-white/20">
-                <span>Professional Revenue:</span>
-                <span className="font-semibold">${calculationResults?.totalProRevenue.toFixed(2)}</span>
+              <div className="flex justify-between items-center py-3 border-b border-white/20">
+                <span className="font-semibold">Professional Revenue:</span>
+                <span className="font-bold text-lg">${calculationResults?.totalProRevenue.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-white/20">
-                <span>Net Profit:</span>
-                <span className="font-semibold">${calculationResults?.netProfit.toFixed(2)}</span>
+              <div className="flex justify-between items-center py-3 border-b border-white/20">
+                <span className="font-semibold">Net Profit:</span>
+                <span className="font-bold text-lg">${calculationResults?.netProfit.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center py-2">
-                <span>Profit Margin:</span>
-                <span className="font-semibold">{calculationResults?.profitMargin.toFixed(1)}%</span>
+              <div className="flex justify-between items-center py-3">
+                <span className="font-semibold">Profit Margin:</span>
+                <span className="font-bold text-lg">{calculationResults?.profitMargin.toFixed(1)}%</span>
               </div>
             </div>
           </div>
 
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto p-4">
+        <div className="max-w-7xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <h1 className="h1">
               {clientData.name}'s Calculation
@@ -941,48 +954,48 @@ const Home: React.FC = () => {
           </div>
 
           {showPreview && previewResults && (
-            <div key={`preview-${JSON.stringify(previewResults)}`} className="card-medium mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Calculator size={20} className="text-shortcut-blue" />
-                <h3 className="text-xl font-semibold text-shortcut-blue">Calculation Preview</h3>
+            <div key={`preview-${JSON.stringify(previewResults)}`} className="card-medium mb-8">
+              <div className="flex items-center gap-3 mb-6">
+                <Calculator size={24} className="text-shortcut-blue" />
+                <h3 className="text-xl font-extrabold text-shortcut-blue">Calculation Preview</h3>
               </div>
-              <p className="text-gray-600 text-sm mb-4">
+              <p className="text-text-dark-60 text-base mb-6 leading-relaxed">
                 Your calculation preview appears automatically after adding events. You can remove specific services or events, then click "Use This Calculation" to proceed or "Clear Preview" to start over.
               </p>
               
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <h4 className="font-semibold text-gray-800 mb-3">Quick Summary</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+              <div className="card-small bg-neutral-light-gray mb-6">
+                <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">Quick Summary</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                   <div>
-                    <span className="text-gray-600">Total Appointments:</span>
-                    <div className="font-semibold text-gray-800">{previewResults.totalAppointments}</div>
+                    <span className="text-sm font-bold text-shortcut-blue block mb-1">Total Appointments:</span>
+                    <div className="font-bold text-text-dark text-lg">{previewResults.totalAppointments}</div>
                   </div>
                   <div>
-                    <span className="text-gray-600">Total Cost:</span>
-                    <div className="font-semibold text-gray-800">${previewResults.totalCost.toFixed(2)}</div>
+                    <span className="text-sm font-bold text-shortcut-blue block mb-1">Total Cost:</span>
+                    <div className="font-bold text-text-dark text-lg">${previewResults.totalCost.toFixed(2)}</div>
                   </div>
                   <div>
-                    <span className="text-gray-600">Net Profit:</span>
-                    <div className="font-semibold text-gray-800">${previewResults.netProfit.toFixed(2)}</div>
+                    <span className="text-sm font-bold text-shortcut-blue block mb-1">Net Profit:</span>
+                    <div className="font-bold text-text-dark text-lg">${previewResults.netProfit.toFixed(2)}</div>
                   </div>
                   <div>
-                    <span className="text-gray-600">Profit Margin:</span>
-                    <div className="font-semibold text-gray-800">{previewResults.profitMargin.toFixed(1)}%</div>
+                    <span className="text-sm font-bold text-shortcut-blue block mb-1">Profit Margin:</span>
+                    <div className="font-bold text-text-dark text-lg">{previewResults.profitMargin.toFixed(1)}%</div>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-6">
                 {Object.entries(previewResults.locationBreakdown).map(([location, locationData]) => (
-                  <div key={location} className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-800 mb-3">{location}</h4>
-                    <div className="space-y-2">
+                  <div key={location} className="card-small bg-neutral-light-gray">
+                    <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">{location}</h4>
+                    <div className="space-y-3">
                       {Object.entries(locationData.dateBreakdown).map(([date, dateData]) => (
-                        <div key={date} className="bg-white rounded-lg p-3 border border-gray-200">
-                          <div className="flex justify-between items-start mb-2">
+                        <div key={date} className="card-small bg-white">
+                          <div className="flex justify-between items-start mb-3">
                             <div>
-                              <span className="font-medium text-gray-800">{date === 'TBD' ? 'TBD' : date}:</span>
-                              <span className="ml-2 text-gray-600">
+                              <span className="font-bold text-shortcut-blue">{date === 'TBD' ? 'TBD' : date}:</span>
+                              <span className="ml-2 text-text-dark-60 text-sm">
                                 {dateData.services.length} service{dateData.services.length !== 1 ? 's' : ''} • 
                                 {dateData.totalAppointments} appointments • 
                                 ${dateData.totalCost.toFixed(2)}
@@ -990,17 +1003,17 @@ const Home: React.FC = () => {
                             </div>
                             <button
                               onClick={() => removeEventFromPreview(location, date)}
-                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                               title="Remove this event"
                             >
-                              <X size={14} />
+                              <X size={16} />
                             </button>
                           </div>
                           {dateData.services.length > 0 && (
-                            <div className="ml-4 space-y-1">
+                            <div className="ml-4 space-y-2 pt-2 border-t border-gray-200">
                               {dateData.services.map((service, serviceIndex) => (
-                                <div key={serviceIndex} className="flex justify-between items-center text-sm py-1">
-                                  <span className="text-gray-700">
+                                <div key={serviceIndex} className="flex justify-between items-center text-sm py-1.5">
+                                  <span className="text-text-dark">
                                     {service.serviceType} • {service.totalHours}h • {service.numPros} pros • ${service.serviceCost.toFixed(2)}
                                   </span>
                                   <button
@@ -1008,7 +1021,7 @@ const Home: React.FC = () => {
                                     className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                                     title="Remove this service"
                                   >
-                                    <X size={12} />
+                                    <X size={14} />
                                   </button>
                                 </div>
                               ))}
@@ -1027,9 +1040,9 @@ const Home: React.FC = () => {
             {clientData.locations.map((location) => (
               <div
                 key={location}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+                className="card-medium"
               >
-                <h3 className="text-xl font-semibold mb-4 text-shortcut-blue">{location}</h3>
+                <h3 className="text-xl font-extrabold mb-6 text-shortcut-blue">{location}</h3>
                 <Button
                   onClick={() => showEventModalForLocation(location)}
                   variant="primary"
@@ -1045,15 +1058,14 @@ const Home: React.FC = () => {
       )}
 
       {showEventModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto z-50 relative">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
-                Add Event In {currentLocation}
-              </h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[200]">
+          <div className="card-large max-w-4xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="h2">Add Event In {currentLocation}</h2>
               <button
                 onClick={() => setShowEventModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-text-dark-60 hover:text-shortcut-blue transition-colors p-2 rounded-lg hover:bg-neutral-light-gray"
+                aria-label="Close modal"
               >
                 <X size={24} />
               </button>
@@ -1067,30 +1079,31 @@ const Home: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="bg-gray-50 rounded-lg p-6 mb-6 border border-gray-200"
+                  className="card-medium mb-6"
                 >
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-extrabold text-shortcut-blue">
                       Service #{index + 1}
                     </h3>
-                    <div className="flex items-center gap-4">
-                      <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue px-3 py-1.5 rounded-full text-sm font-bold">
                         Total Appointments: {totalAppointments}
                       </div>
-                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                      <div className="bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue px-3 py-1.5 rounded-full text-sm font-bold">
                         Total Cost: ${serviceCost.toFixed(2)}
                       </div>
                       <button
                         onClick={() => removeService(index)}
-                        className="text-red-600 hover:text-red-800"
+                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                        aria-label="Remove service"
                       >
                         <Trash size={20} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">
+                  <div className="mb-6">
+                    <label className="block text-shortcut-blue text-sm font-bold mb-2">
                       Service Date
                     </label>
                     <div className="flex items-center gap-3">
@@ -1105,11 +1118,11 @@ const Home: React.FC = () => {
                           updateService(index, { date: e.target.value });
                         }}
                         disabled={service.date === 'TBD'}
-                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          service.date === 'TBD' ? 'bg-gray-100 text-gray-500' : ''
+                        className={`flex-1 px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                          service.date === 'TBD' ? 'bg-neutral-light-gray text-text-dark-60' : 'border-gray-200'
                         }`}
                       />
-                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <label className="flex items-center gap-2 text-sm font-bold text-shortcut-blue">
                         <input
                           type="checkbox"
                           checked={service.date === 'TBD'}
@@ -1122,16 +1135,16 @@ const Home: React.FC = () => {
                               updateService(index, { date: today });
                             }
                           }}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-4 h-4 text-shortcut-teal border-gray-300 rounded focus:ring-shortcut-teal"
                         />
                         TBD
                       </label>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-gray-700 text-sm font-bold mb-2">
+                      <label className="block text-shortcut-blue text-sm font-bold mb-2">
                         Service Type
                       </label>
                       <select
@@ -1139,7 +1152,7 @@ const Home: React.FC = () => {
                         onChange={(e) =>
                           updateService(index, { serviceType: e.target.value })
                         }
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                       >
                         <option value="massage">Massage</option>
                         <option value="facial">Facial</option>
@@ -1154,7 +1167,7 @@ const Home: React.FC = () => {
 
                     {service.serviceType === 'headshot' && (
                       <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                        <label className="block text-shortcut-blue text-sm font-bold mb-2">
                           Headshot Package
                         </label>
                         <div className="flex gap-2">
@@ -1167,12 +1180,12 @@ const Home: React.FC = () => {
                                   preset as 'basic' | 'premium' | 'executive'
                                 )
                               }
-                              className={`flex-1 px-3 py-2 rounded-lg border ${
+                              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
                                 service.proHourly ===
                                 HEADSHOT_PRESETS[preset as keyof typeof HEADSHOT_PRESETS]
                                   .proHourly
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                                  ? 'bg-shortcut-navy-blue text-white border-shortcut-navy-blue'
+                                  : 'bg-white text-shortcut-blue border-gray-200 hover:bg-neutral-light-gray hover:border-shortcut-teal'
                               }`}
                             >
                               {preset.charAt(0).toUpperCase() + preset.slice(1)}
@@ -1184,7 +1197,7 @@ const Home: React.FC = () => {
 
                     {service.serviceType === 'massage' && (
                       <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                        <label className="block text-shortcut-blue text-sm font-bold mb-2">
                           Massage Type
                         </label>
                         <select
@@ -1192,7 +1205,7 @@ const Home: React.FC = () => {
                           onChange={(e) =>
                             updateService(index, { massageType: e.target.value as 'chair' | 'table' | 'massage' })
                           }
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                         >
                           <option value="massage">General Massage</option>
                           <option value="chair">Chair Massage</option>
@@ -1202,7 +1215,7 @@ const Home: React.FC = () => {
                     )}
 
                     <div>
-                      <label className="block text-gray-700 text-sm font-bold mb-2">
+                      <label className="block text-shortcut-blue text-sm font-bold mb-2">
                         Total Hours
                       </label>
                       <input
@@ -1213,14 +1226,14 @@ const Home: React.FC = () => {
                             totalHours: parseFloat(e.target.value) || 0,
                           })
                         }
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                         step="0.25"
                         min="0"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-gray-700 text-sm font-bold mb-2">
+                      <label className="block text-shortcut-blue text-sm font-bold mb-2">
                         Number of Professionals
                       </label>
                       <input
@@ -1231,12 +1244,12 @@ const Home: React.FC = () => {
                             numPros: parseInt(e.target.value) || 0,
                           })
                         }
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-gray-700 text-sm font-bold mb-2">
+                      <label className="block text-shortcut-blue text-sm font-bold mb-2">
                         Professional Hourly Rate
                       </label>
                       <input
@@ -1247,13 +1260,13 @@ const Home: React.FC = () => {
                             proHourly: parseInt(e.target.value) || 0,
                           })
                         }
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                       />
                     </div>
 
                     {service.serviceType !== 'headshot' && (
                       <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                        <label className="block text-shortcut-blue text-sm font-bold mb-2">
                           Hourly Rate
                         </label>
                         <input
@@ -1264,14 +1277,14 @@ const Home: React.FC = () => {
                               hourlyRate: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                         />
                       </div>
                     )}
 
                     {service.serviceType === 'headshot' && (
                       <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                        <label className="block text-shortcut-blue text-sm font-bold mb-2">
                           Retouching Cost
                         </label>
                         <input
@@ -1282,14 +1295,14 @@ const Home: React.FC = () => {
                               retouchingCost: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                         />
                       </div>
                     )}
 
                     {service.serviceType !== 'headshot' && (
                       <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                        <label className="block text-shortcut-blue text-sm font-bold mb-2">
                           Early Arrival Fee
                         </label>
                         <input
@@ -1300,13 +1313,13 @@ const Home: React.FC = () => {
                               earlyArrival: parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                         />
                       </div>
                     )}
 
                     <div>
-                      <label className="block text-gray-700 text-sm font-bold mb-2">
+                      <label className="block text-shortcut-blue text-sm font-bold mb-2">
                         Discount Percentage
                       </label>
                       <input
@@ -1317,12 +1330,12 @@ const Home: React.FC = () => {
                             discountPercent: parseInt(e.target.value) || 0,
                           })
                         }
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-gray-700 text-sm font-bold mb-2">
+                      <label className="block text-shortcut-blue text-sm font-bold mb-2">
                         Appointment Time (minutes)
                       </label>
                       <input
@@ -1333,7 +1346,7 @@ const Home: React.FC = () => {
                             appTime: parseInt(e.target.value) || 0,
                           })
                         }
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                       />
                     </div>
 
@@ -1341,7 +1354,7 @@ const Home: React.FC = () => {
                     {service.serviceType === 'mindfulness' && (
                       <>
                         <div>
-                          <label className="block text-gray-700 text-sm font-bold mb-2">
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">
                             Class Length (minutes)
                           </label>
                           <select
@@ -1352,7 +1365,7 @@ const Home: React.FC = () => {
                                 fixedPrice: e.target.value === '60' ? 1350 : 1125
                               })
                             }
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                           >
                             <option value={60}>60 minutes - Intro to Mindfulness ($1,350)</option>
                             <option value={30}>30 minutes - Drop-in Session ($1,125)</option>
@@ -1360,11 +1373,11 @@ const Home: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="block text-gray-700 text-sm font-bold mb-2">
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">
                             Participants
                           </label>
-                          <div className="flex gap-2">
-                            <label className="flex items-center">
+                          <div className="flex gap-4 mb-3">
+                            <label className="flex items-center text-text-dark font-medium">
                               <input
                                 type="radio"
                                 name={`participants-${index}`}
@@ -1375,11 +1388,11 @@ const Home: React.FC = () => {
                                     participants: e.target.value
                                   })
                                 }
-                                className="mr-2"
+                                className="mr-2 w-4 h-4 text-shortcut-teal border-gray-300 focus:ring-shortcut-teal"
                               />
                               Unlimited
                             </label>
-                            <label className="flex items-center">
+                            <label className="flex items-center text-text-dark font-medium">
                               <input
                                 type="radio"
                                 name={`participants-${index}`}
@@ -1390,7 +1403,7 @@ const Home: React.FC = () => {
                                     participants: 50
                                   })
                                 }
-                                className="mr-2"
+                                className="mr-2 w-4 h-4 text-shortcut-teal border-gray-300 focus:ring-shortcut-teal"
                               />
                               Custom
                             </label>
@@ -1404,14 +1417,14 @@ const Home: React.FC = () => {
                                   participants: parseInt(e.target.value) || 50
                                 })
                               }
-                              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                               placeholder="Number of participants"
                             />
                           )}
                         </div>
 
                         <div>
-                          <label className="block text-gray-700 text-sm font-bold mb-2">
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">
                             Fixed Price ($)
                           </label>
                           <input
@@ -1422,7 +1435,7 @@ const Home: React.FC = () => {
                                 fixedPrice: parseInt(e.target.value) || 1350
                               })
                             }
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                           />
                         </div>
                       </>
@@ -1432,7 +1445,7 @@ const Home: React.FC = () => {
               );
             })}
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 mt-8 pt-6 border-t border-gray-200">
               <Button
                 onClick={() => addService('same-day')}
                 variant="primary"
@@ -1468,6 +1481,7 @@ const Home: React.FC = () => {
         <ProposalOptionsModal
           onClose={() => setShowProposalModal(false)}
           onGenerate={handleGenerateProposal}
+          locations={clientData.locations}
         />
       )}
     </div>
