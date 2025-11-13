@@ -69,24 +69,24 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
       locations.forEach((location, index) => {
         const inputId = `office-location-input-${index}`;
         const input = document.getElementById(inputId) as HTMLInputElement;
-        if (input && window.google && window.google.maps && window.google.maps.places) {
-          try {
-            // Initialize Places Autocomplete
-            const autocomplete = new window.google.maps.places.Autocomplete(input, {
-              types: ['address'],
-              componentRestrictions: { country: 'us' }
-            });
+      if (input && window.google && window.google.maps && window.google.maps.places) {
+        try {
+          // Initialize Places Autocomplete
+          const autocomplete = new window.google.maps.places.Autocomplete(input, {
+            types: ['address'],
+            componentRestrictions: { country: 'us' }
+          });
 
-            // Handle place selection
-            autocomplete.addListener('place_changed', () => {
-              const place = autocomplete.getPlace();
-              if (place.formatted_address) {
+          // Handle place selection
+          autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (place.formatted_address) {
                 handleOfficeLocationChange(location, place.formatted_address);
-              }
-            });
+            }
+          });
 
             console.log(`Google Maps Places Autocomplete initialized for ${location}`);
-          } catch (error) {
+        } catch (error) {
             console.error(`Error initializing Google Maps Places Autocomplete for ${location}:`, error);
           }
         }
@@ -254,8 +254,8 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="card-large max-w-2xl w-full max-h-[90vh] overflow-y-auto z-50 relative">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
+      <div className="card-large max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
         <div className="flex justify-between items-center mb-6">
           <h2 className="h2">Generate Proposal</h2>
           <button 
@@ -399,11 +399,11 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
                 </div>
               </div>
             ) : (
-              <div>
+            <div>
                 <label className="block text-sm font-bold text-shortcut-blue mb-2">Office Location (Optional)</label>
-                <div className="relative">
-                  <input
-                    type="text"
+              <div className="relative">
+                <input
+                  type="text"
                     value={options.officeLocation || options.officeLocations?.[locations[0] || ''] || ''}
                     onChange={(e) => {
                       if (locations.length === 1) {
@@ -413,63 +413,63 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
                       }
                     }}
                     className="block w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal pr-12"
-                    placeholder="Search for office address..."
-                    disabled={loading}
+                  placeholder="Search for office address..."
+                  disabled={loading}
                     id="office-location-input-0"
-                  />
+                />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-4">
-                    <button
-                      type="button"
-                      onClick={() => {
+                  <button
+                    type="button"
+                    onClick={() => {
                         const input = document.getElementById('office-location-input-0') as HTMLInputElement;
-                        if (input && 'geolocation' in navigator) {
-                          navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                              const { latitude, longitude } = position.coords;
-                              const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
-                              
-                              if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-                                // Use reverse geocoding to get address
-                                fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
-                                  .then(response => response.json())
-                                  .then(data => {
-                                    if (data.status === 'OK' && data.results && data.results[0]) {
+                      if (input && 'geolocation' in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            const { latitude, longitude } = position.coords;
+                            const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                            
+                            if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                              // Use reverse geocoding to get address
+                              fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                  if (data.status === 'OK' && data.results && data.results[0]) {
                                       if (locations.length === 1) {
                                         handleOfficeLocationChange(locations[0], data.results[0].formatted_address);
                                       } else {
-                                        handleFieldChange('officeLocation', data.results[0].formatted_address);
+                                    handleFieldChange('officeLocation', data.results[0].formatted_address);
                                       }
-                                    } else {
-                                      alert('Could not find address for your location. Please enter manually.');
-                                    }
-                                  })
-                                  .catch(() => {
-                                    alert('Error getting address. Please enter manually.');
-                                  });
-                              } else {
-                                alert('Google Maps API key not configured. Please enter the address manually.');
-                              }
-                            },
-                            () => {
-                              alert('Unable to get your location. Please enter the address manually.');
+                                  } else {
+                                    alert('Could not find address for your location. Please enter manually.');
+                                  }
+                                })
+                                .catch(() => {
+                                  alert('Error getting address. Please enter manually.');
+                                });
+                            } else {
+                              alert('Google Maps API key not configured. Please enter the address manually.');
                             }
-                          );
-                        } else {
-                          alert('Geolocation is not supported by your browser. Please enter the address manually.');
-                        }
-                      }}
+                          },
+                          () => {
+                            alert('Unable to get your location. Please enter the address manually.');
+                          }
+                        );
+                      } else {
+                        alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                      }
+                    }}
                       className="text-text-dark-60 hover:text-shortcut-blue transition-colors p-1.5 rounded-lg hover:bg-neutral-light-gray"
-                      title="Use current location"
-                      disabled={loading}
-                    >
-                      📍
-                    </button>
-                  </div>
+                    title="Use current location"
+                    disabled={loading}
+                  >
+                    📍
+                  </button>
                 </div>
-                <p className="mt-2 text-xs text-text-dark-60">
-                  Enter the office address or click the location icon to use your current location
-                </p>
               </div>
+                <p className="mt-2 text-xs text-text-dark-60">
+                Enter the office address or click the location icon to use your current location
+              </p>
+            </div>
             )}
 
             <div>

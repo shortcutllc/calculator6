@@ -778,7 +778,7 @@ export const StandaloneProposalViewer: React.FC = () => {
         </div>
       )}
       {showSurveyCTA && proposal?.status === 'approved' && !hasSurveyResponse && (
-        <div className="fixed top-0 left-0 w-full z-50 bg-blue-600 text-white px-4 py-3 shadow-lg">
+        <div className="fixed top-0 left-0 w-full z-[98] bg-blue-600 text-white px-4 py-3 shadow-lg">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5" />
@@ -801,7 +801,7 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
         </div>
       )}
-      <header className={`bg-white shadow-sm sticky ${showSurveyCTA ? 'top-16' : 'top-0'} z-40 rounded-b-3xl`}>
+      <header className={`bg-white shadow-sm sticky ${showSurveyCTA ? 'top-16' : 'top-0'} z-[99] rounded-b-3xl`}>
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -901,9 +901,9 @@ export const StandaloneProposalViewer: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
+      <main className={`max-w-7xl mx-auto px-4 scroll-mt-24 ${showSurveyCTA ? 'pt-24' : 'pt-16'} pb-12`} id="proposal-content">
         {/* Summary-First Layout - Key Metrics at Top */}
-        <div className="card-large mb-8">
+        <div className="card-large mb-8 scroll-mt-24">
           <div className="mb-8">
               {displayData.clientLogoUrl ? (
                 <div className="flex justify-start mb-6">
