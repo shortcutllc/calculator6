@@ -712,24 +712,24 @@ const Home: React.FC = () => {
     <div className="min-h-screen bg-gray-100">
       {!showDashboard ? (
         <div className="max-w-2xl mx-auto p-4 sm:p-8">
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-8">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-shortcut-blue">Create New Proposal</h1>
+          <div className="card-large">
+            <h1 className="h1 mb-6">Create New Proposal</h1>
             <form onSubmit={handleStartCalculation}>
               <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
+                <label className="block text-shortcut-blue text-sm font-bold mb-2">
                   Client Name
                 </label>
                 <input
                   type="text"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                   placeholder="Enter client name"
                 />
               </div>
               
               <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
+                <label className="block text-shortcut-blue text-sm font-bold mb-2">
                   Locations
                 </label>
                 {locations.map((location, index) => (
@@ -738,7 +738,7 @@ const Home: React.FC = () => {
                       type="text"
                       value={location}
                       onChange={(e) => updateLocation(index, e.target.value)}
-                      className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                       placeholder="Enter location"
                     />
                     {locations.length > 1 && (
@@ -755,19 +755,20 @@ const Home: React.FC = () => {
                 <button
                   type="button"
                   onClick={addLocation}
-                  className="flex items-center text-blue-600 hover:text-blue-800 mt-2"
+                  className="flex items-center text-shortcut-blue hover:text-shortcut-navy-blue mt-2 font-bold text-sm"
                 >
                   <Plus size={20} className="mr-1" />
                   Add Location
                 </button>
               </div>
               
-              <button
+              <Button
                 type="submit"
-                className="w-full px-6 py-3 bg-[#FF5050] text-white font-bold rounded-full hover:bg-[#E84848] transition-colors"
+                variant="primary"
+                className="w-full"
               >
                 Start Calculation
-              </button>
+              </Button>
             </form>
           </div>
         </div>
@@ -781,7 +782,7 @@ const Home: React.FC = () => {
               >
                 Back to Calculator
               </Button>
-              <h1 className="text-2xl sm:text-3xl font-bold text-shortcut-blue">
+              <h1 className="h1">
                 {clientData.name}'s Calculation
               </h1>
             </div>
@@ -795,8 +796,8 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-8 mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold mb-6 text-gray-800">Event Details</h2>
+          <div className="card-large mb-8">
+            <h2 className="h2 mb-6">Event Details</h2>
             <div className="grid gap-4">
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="text-gray-600">Client Name:</span>
@@ -814,8 +815,8 @@ const Home: React.FC = () => {
           </div>
 
           {Object.entries(calculationResults?.locationBreakdown || {}).map(([location, locationData]) => (
-            <div key={location} className="bg-white rounded-lg shadow-md p-4 sm:p-8 mb-8">
-              <h2 className="text-xl sm:text-2xl font-bold mb-6 text-gray-800">{location}</h2>
+            <div key={location} className="card-large mb-8">
+              <h2 className="h2 mb-6">{location}</h2>
               
               {Object.entries(locationData.dateBreakdown).map(([date, dateData], dateIndex) => (
                 <div key={date} className="mb-8">
@@ -877,8 +878,8 @@ const Home: React.FC = () => {
             </div>
           ))}
 
-          <div className="bg-shortcut-blue text-white rounded-lg shadow-md p-4 sm:p-8">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-6 text-white">Event Summary</h2>
+          <div className="card-large bg-shortcut-blue text-white">
+            <h2 className="h2 mb-6 text-white">Event Summary</h2>
             <div className="grid gap-4 text-white">
               <div className="flex justify-between items-center py-2 border-b border-white/20">
                 <span>Total Appointments:</span>
@@ -907,7 +908,7 @@ const Home: React.FC = () => {
       ) : (
         <div className="max-w-4xl mx-auto p-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-            <h1 className="text-2xl sm:text-3xl font-bold text-shortcut-blue">
+            <h1 className="h1">
               {clientData.name}'s Calculation
             </h1>
             <div className="flex gap-3">
@@ -940,7 +941,7 @@ const Home: React.FC = () => {
           </div>
 
           {showPreview && previewResults && (
-            <div key={`preview-${JSON.stringify(previewResults)}`} className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div key={`preview-${JSON.stringify(previewResults)}`} className="card-medium mb-6">
               <div className="flex items-center gap-2 mb-4">
                 <Calculator size={20} className="text-shortcut-blue" />
                 <h3 className="text-xl font-semibold text-shortcut-blue">Calculation Preview</h3>
@@ -1044,8 +1045,8 @@ const Home: React.FC = () => {
       )}
 
       {showEventModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto z-50 relative">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">
                 Add Event In {currentLocation}
@@ -1432,29 +1433,32 @@ const Home: React.FC = () => {
             })}
 
             <div className="flex gap-4">
-              <button
+              <Button
                 onClick={() => addService('same-day')}
-                className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                variant="primary"
+                className="flex-1"
+                icon={<Plus size={20} />}
               >
-                <Plus size={20} className="mr-2" />
                 Add Same Day Service
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => addService('new-day')}
-                className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                variant="green"
+                className="flex-1"
+                icon={<Plus size={20} />}
               >
-                <Plus size={20} className="mr-2" />
                 Add New Day Service
-              </button>
+              </Button>
             </div>
 
             <div className="mt-6">
-              <button
+              <Button
                 onClick={handleSaveEvent}
-                className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                variant="primary"
+                className="w-full"
               >
                 Save Event
-              </button>
+              </Button>
             </div>
           </div>
         </div>

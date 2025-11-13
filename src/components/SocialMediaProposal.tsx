@@ -2555,10 +2555,14 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   message: formData.employees ? `Employees: ${formData.employees}. ${formData.message || ''}` : formData.message
                 }, platform);
 
+                // ✅ API call succeeded - tracking events below only fire after successful submission
+                // If the API call fails, execution jumps to catch block and these events never fire
+
                 // Track lead generation
                 trackConversion(platform, 'lead');
                 
                 // Track Google Analytics lead conversion (automatically includes source/UTM tracking)
+                // ✅ Fires ONLY after successful API submission (await resolved successfully)
                 trackGAEvent('generate_lead', {
                   platform: platform,
                   event_category: 'conversion',
@@ -2567,6 +2571,17 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   currency: 'USD',
                   engagement_time_msec: Date.now() - (performance.timing.navigationStart || 0)
                 });
+
+                // GA4 conversion tracking for Book a Call form
+                // ✅ Fires ONLY after successful API submission (await resolved successfully)
+                // This ensures the event only fires once the API confirms the submission was saved
+                if (typeof window !== 'undefined' && (window as any).gtag) {
+                  (window as any).gtag('event', 'generate_lead', {
+                    event_category: 'form',
+                    event_label: 'Holiday Meta Landing Page'
+                  });
+                  console.log('GA4 lead event fired');
+                }
 
                 // Fire LinkedIn conversion event
                 if (platform === 'linkedin' && typeof (window as any).lintrk !== 'undefined') {

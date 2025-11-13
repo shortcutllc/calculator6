@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { Button } from './Button';
 
 interface ProposalOptionsModalProps {
   onClose: () => void;
@@ -238,12 +239,12 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-8 shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="card-large max-w-2xl w-full max-h-[90vh] overflow-y-auto z-50 relative">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-[#175071]">Generate Proposal</h2>
+          <h2 className="h2">Generate Proposal</h2>
           <button 
             onClick={onClose} 
-            className="text-gray-500 hover:text-gray-700"
+            className="text-text-dark-60 hover:text-shortcut-blue"
             disabled={loading}
           >
             <X size={24} />
@@ -253,17 +254,17 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+              <h3 className="text-lg font-extrabold text-shortcut-blue mb-4">Contact Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">First Name</label>
+                  <label className="block text-sm font-bold text-shortcut-blue">First Name</label>
                   <input
                     type="text"
                     value={options.customization.contactFirstName}
                     onChange={(e) => handleFieldChange('customization.contactFirstName', e.target.value)}
                     onBlur={() => handleBlur('contactFirstName')}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] ${
-                      getFieldError('contactFirstName') ? 'border-red-500' : 'border-gray-300'
+                    className={`mt-1 block w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                      getFieldError('contactFirstName') ? 'border-red-500' : 'border-gray-200'
                     }`}
                     disabled={loading}
                   />
@@ -272,14 +273,14 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                  <label className="block text-sm font-bold text-shortcut-blue">Last Name</label>
                   <input
                     type="text"
                     value={options.customization.contactLastName}
                     onChange={(e) => handleFieldChange('customization.contactLastName', e.target.value)}
                     onBlur={() => handleBlur('contactLastName')}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] ${
-                      getFieldError('contactLastName') ? 'border-red-500' : 'border-gray-300'
+                    className={`mt-1 block w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                      getFieldError('contactLastName') ? 'border-red-500' : 'border-gray-200'
                     }`}
                     disabled={loading}
                   />
@@ -291,14 +292,14 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Client Email (Optional)</label>
+              <label className="block text-sm font-bold text-shortcut-blue">Client Email (Optional)</label>
               <input
                 type="email"
                 value={options.clientEmail}
                 onChange={(e) => handleFieldChange('clientEmail', e.target.value)}
                 onBlur={() => handleBlur('clientEmail')}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] ${
-                  getFieldError('clientEmail') ? 'border-red-500' : 'border-gray-300'
+                className={`mt-1 block w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                  getFieldError('clientEmail') ? 'border-red-500' : 'border-gray-200'
                 }`}
                 placeholder="Enter client email to share proposal later"
                 disabled={loading}
@@ -309,13 +310,13 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Office Location (Optional)</label>
+              <label className="block text-sm font-bold text-shortcut-blue">Office Location (Optional)</label>
               <div className="relative">
                 <input
                   type="text"
                   value={options.officeLocation || ''}
                   onChange={(e) => handleFieldChange('officeLocation', e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] pr-10"
+                  className="mt-1 block w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal pr-10"
                   placeholder="Search for office address..."
                   disabled={loading}
                   id="office-location-input"
@@ -357,7 +358,7 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
                         alert('Geolocation is not supported by your browser. Please enter the address manually.');
                       }
                     }}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-text-dark-60 hover:text-shortcut-blue"
                     title="Use current location"
                     disabled={loading}
                   >
@@ -365,13 +366,13 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
                   </button>
                 </div>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-text-dark-60">
                 Enter the office address or click the location icon to use your current location
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Client Logo (Optional)</label>
+              <label className="block text-sm font-bold text-shortcut-blue">Client Logo (Optional)</label>
               <div className="flex flex-col gap-2">
                 <input
                   type="file"
@@ -379,13 +380,13 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
                   onChange={handleLogoFileChange}
                   disabled={logoUploading || loading}
                 />
-                <span className="text-xs text-gray-500">Max 5MB. PNG, JPG, SVG, etc.</span>
+                <span className="text-xs text-text-dark-60">Max 5MB. PNG, JPG, SVG, etc.</span>
                 <input
                   type="url"
                   placeholder="Paste image URL (https://...)"
                   value={logoUrl}
                   onChange={handleLogoUrlChange}
-                  className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] border-gray-300"
+                  className="mt-1 block w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                   disabled={logoUploading || loading}
                 />
                 {logoUrl && (
@@ -396,12 +397,12 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Note from Shortcut</label>
+              <label className="block text-sm font-bold text-shortcut-blue">Note from Shortcut</label>
               <textarea
                 value={options.customization.customNote}
                 onChange={(e) => handleFieldChange('customization.customNote', e.target.value)}
                 rows={3}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071]"
+                className="mt-1 block w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 placeholder="We are so excited to service your incredible staff! Our team is looking forward to providing an exceptional experience..."
                 disabled={loading}
               />
@@ -417,21 +418,22 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
           )}
 
           <div className="mt-8 flex justify-end space-x-4">
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              variant="secondary"
               disabled={loading}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-2 bg-[#175071] text-white rounded-md hover:bg-[#134660] disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              loading={loading}
               disabled={loading || Object.keys(errors).length > 0}
             >
               {loading ? 'Generating...' : 'Generate Proposal'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

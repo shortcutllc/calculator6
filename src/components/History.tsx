@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight } from 'lucide-react';
+import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProposal } from '../contexts/ProposalContext';
 import { Button } from './Button';
 import { getProposalUrl } from '../utils/url';
+import { supabase } from '../lib/supabaseClient';
 
 interface FilterOptions {
   startDate: string;
@@ -30,6 +31,7 @@ const History: React.FC = () => {
   const [locations, setLocations] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [surveyResponses, setSurveyResponses] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const uniqueLocations = new Set<string>();
@@ -39,6 +41,52 @@ const History: React.FC = () => {
       });
     });
     setLocations(Array.from(uniqueLocations).sort());
+  }, [proposals]);
+
+  // Fetch survey responses for approved proposals
+  useEffect(() => {
+    const fetchSurveyResponses = async () => {
+      const approvedProposalIds = proposals
+        .filter(p => p.status === 'approved')
+        .map(p => p.id);
+
+      if (approvedProposalIds.length === 0) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('proposal_survey_responses')
+          .select('*')
+          .in('proposal_id', approvedProposalIds);
+
+        if (error) {
+          // PGRST301 = relation does not exist (table hasn't been created yet)
+          if (error.code === 'PGRST301' || error.message?.includes('does not exist')) {
+            console.warn('Survey responses table does not exist yet. Migration may not have been applied.');
+            return;
+          }
+          console.error('Error fetching survey responses:', error);
+          return;
+        }
+
+        const responsesMap: Record<string, any> = {};
+        data?.forEach((response) => {
+          responsesMap[response.proposal_id] = response;
+        });
+
+        setSurveyResponses(responsesMap);
+      } catch (err: any) {
+        // Handle case where table doesn't exist
+        if (err?.code === 'PGRST301' || err?.message?.includes('does not exist')) {
+          console.warn('Survey responses table does not exist yet. Migration may not have been applied.');
+          return;
+        }
+        console.error('Error fetching survey responses:', err);
+      }
+    };
+
+    if (proposals.length > 0) {
+      fetchSurveyResponses();
+    }
   }, [proposals]);
 
   const calculateTotalCost = (proposal: any) => {
@@ -98,7 +146,7 @@ const History: React.FC = () => {
     }
 
     return (
-      <span className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1 rounded-full text-sm">
+      <span className="flex items-center gap-1 text-text-dark bg-neutral-light-gray px-2 py-1 rounded-full text-sm">
         <FileText size={14} />
         Draft
       </span>
@@ -172,9 +220,9 @@ const History: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8 mb-8">
+      <div className="card-large mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h2 className="text-2xl font-semibold text-shortcut-blue">Calculation History</h2>
+          <h2 className="h2">Calculation History</h2>
           <Button
             onClick={() => navigate('/')}
             variant="primary"
@@ -183,16 +231,16 @@ const History: React.FC = () => {
           </Button>
         </div>
 
-        <div className="bg-gray-50 rounded-xl p-4 sm:p-6 mb-8">
+        <div className="card-medium mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Sort By
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#175071]"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               >
                 <option value="date-desc">Date (Newest First)</option>
                 <option value="date-asc">Date (Oldest First)</option>
@@ -206,13 +254,13 @@ const History: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Status
               </label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#175071]"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               >
                 <option value="">All Statuses</option>
                 <option value="draft">Draft</option>
@@ -223,13 +271,13 @@ const History: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Location
               </label>
               <select
                 value={filters.location}
                 onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#175071]"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               >
                 <option value="">All Locations</option>
                 {locations.map(location => (
@@ -241,7 +289,7 @@ const History: React.FC = () => {
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Date Range
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -249,19 +297,19 @@ const History: React.FC = () => {
                   type="date"
                   value={filters.startDate}
                   onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#175071]"
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
                 <input
                   type="date"
                   value={filters.endDate}
                   onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#175071]"
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Cost Range
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -270,14 +318,14 @@ const History: React.FC = () => {
                   placeholder="Min"
                   value={filters.minCost}
                   onChange={(e) => setFilters(prev => ({ ...prev, minCost: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#175071]"
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
                 <input
                   type="number"
                   placeholder="Max"
                   value={filters.maxCost}
                   onChange={(e) => setFilters(prev => ({ ...prev, maxCost: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#175071]"
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
               </div>
             </div>
@@ -285,7 +333,7 @@ const History: React.FC = () => {
 
           {(filters.startDate || filters.endDate || filters.minCost || filters.maxCost || filters.location || filters.status) && (
             <div className="mt-4 flex items-center gap-2">
-              <span className="text-sm text-gray-600">Active Filters:</span>
+              <span className="text-sm text-text-dark">Active Filters:</span>
               <button
                 onClick={clearFilters}
                 className="text-sm text-red-600 hover:text-red-800"
@@ -298,9 +346,9 @@ const History: React.FC = () => {
 
         {filteredProposals.length === 0 ? (
           <div className="text-center py-12">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No calculations found</h3>
-            <p className="mt-2 text-sm text-gray-500">
+            <FileText className="mx-auto h-12 w-12 text-text-dark-60" />
+            <h3 className="mt-4 text-lg font-extrabold text-shortcut-blue">No calculations found</h3>
+            <p className="mt-2 text-sm text-text-dark-60">
               {Object.values(filters).some(Boolean)
                 ? 'Try adjusting your filters or create a new calculation'
                 : 'Your saved calculations will appear here'}
@@ -315,13 +363,13 @@ const History: React.FC = () => {
               const shareableLink = getShareableLink(proposal.id);
 
               return (
-                <div key={proposal.id} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div key={proposal.id} className="card-medium">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div className="space-y-1">
-                      <h3 className="text-xl font-semibold text-[#175071]">
+                      <h3 className="text-xl font-extrabold text-shortcut-blue">
                         {proposal.data.clientName}
                       </h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-text-dark-60">
                         Created {format(parseISO(proposal.createdAt), 'MMM d, yyyy h:mm a')}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
@@ -356,42 +404,86 @@ const History: React.FC = () => {
 
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-gray-400" />
-                      <span className="text-sm text-gray-600">
+                      <Calendar className="h-5 w-5 text-text-dark-60" />
+                      <span className="text-sm text-text-dark">
                         {proposal.data.eventDates?.length || 0} {proposal.data.eventDates?.length === 1 ? 'Date' : 'Dates'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5 text-gray-400" />
-                      <span className="text-sm text-gray-600">
+                      <DollarSign className="h-5 w-5 text-text-dark-60" />
+                      <span className="text-sm text-text-dark">
                         ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-gray-400" />
-                      <span className="text-sm text-gray-600">
+                      <FileText className="h-5 w-5 text-text-dark-60" />
+                      <span className="text-sm text-text-dark">
                         {totalEvents} {totalEvents === 1 ? 'Event' : 'Events'}
                       </span>
                     </div>
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-text-dark">
                       Locations: {locations.join(', ')}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <p className="text-sm text-gray-600 truncate">
+                      <p className="text-sm text-text-dark truncate">
                         Share Link: <span className="font-mono text-xs">{shareableLink}</span>
                       </p>
                       <button
                         onClick={() => copyToClipboard(shareableLink, `${proposal.id}-link`)}
-                        className="p-1 text-gray-500 hover:text-gray-700"
+                        className="p-1 text-text-dark-60 hover:text-shortcut-blue"
                         title={copiedId === `${proposal.id}-link` ? 'Copied!' : 'Copy Link'}
                       >
                         {copiedId === `${proposal.id}-link` ? <CheckCircle2 size={14} /> : <Copy size={14} />}
                       </button>
                     </div>
                   </div>
+
+                  {/* Show survey response indicator for approved proposals */}
+                  {proposal.status === 'approved' && surveyResponses[proposal.id] && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-800">Survey Completed</span>
+                          {surveyResponses[proposal.id].submitted_at && (
+                            <span className="text-xs text-blue-600">
+                              ({format(parseISO(surveyResponses[proposal.id].submitted_at), 'MMM d, yyyy')})
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          onClick={() => navigate(`/proposal/${proposal.id}?shared=true`)}
+                          variant="secondary"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          View Survey
+                        </Button>
+                      </div>
+                      <div className="text-sm text-blue-700 space-y-1">
+                        {surveyResponses[proposal.id].table_or_chair_preference && (
+                          <div><strong>Preference:</strong> {surveyResponses[proposal.id].table_or_chair_preference}</div>
+                        )}
+                        {surveyResponses[proposal.id].office_address && (
+                          <div><strong>Address:</strong> {surveyResponses[proposal.id].office_address.substring(0, 50)}...</div>
+                        )}
+                        {surveyResponses[proposal.id].coi_required !== null && (
+                          <div><strong>COI Required:</strong> {surveyResponses[proposal.id].coi_required ? 'Yes' : 'No'}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {proposal.status === 'approved' && !surveyResponses[proposal.id] && (
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <AlertCircle className="w-4 h-4 text-yellow-600" />
+                        <span className="text-sm font-medium text-yellow-800">Survey Not Yet Completed</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

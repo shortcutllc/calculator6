@@ -1900,6 +1900,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
       </section>
 
       {/* TESTIMONIAL */}
+      {(!holidayPage || holidayPage.customization.includeTestimonials) && (
       <section className="fade-in-section testimonial-banner rounded-3xl">
         <div className="testimonial-wrap">
           <div className="testimonial-copy">
@@ -1924,6 +1925,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
           </div>
         </div>
       </section>
+      )}
 
       {/* PROMOTIONAL SECTION */}
       <section id="holiday-event" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#214C42' }}>

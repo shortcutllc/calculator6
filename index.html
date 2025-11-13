@@ -26,11 +26,10 @@
     <!-- Preload critical resources -->
     <link rel="preload" href="/Holiday Proposal/Hero Images/Massage 2x.webp" as="image" type="image/webp">
     
-    <!-- Optimize font loading -->
+    <!-- Optimize font loading - Outfit Font - All weights (100-900) with font-display: swap -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Google Analytics 4 - Load first to ensure availability -->
     <script>
       // Initialize dataLayer immediately
@@ -40,7 +39,8 @@
       gtag('js', new Date());
     </script>
     
-    <script src="/env-config.js" defer></script>
+    <!-- Load env-config.js synchronously BEFORE other scripts -->
+    <script src="/env-config.js"></script>
     
     <!-- Initialize GA after env-config.js loads -->
     <script>

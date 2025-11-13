@@ -35,7 +35,7 @@ const retryWithBackoff = async <T,>(
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true to wait for auth check
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
@@ -43,23 +43,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const { data: { session }, error: sessionError } = await retryWithBackoff(
+        // Use Promise.race with timeout to prevent hanging
+        const sessionPromise = retryWithBackoff(
           () => supabase.auth.getSession()
         );
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+        );
 
-        if (sessionError) {
-          console.error('Session retrieval error:', sessionError);
-          throw sessionError;
+        try {
+          const { data: { session }, error: sessionError } = await Promise.race([
+            sessionPromise,
+            timeoutPromise
+          ]) as { data: { session: any }, error: any };
+
+          if (sessionError) {
+            console.error('Session retrieval error:', sessionError);
+            // Clear invalid session
+            setUser(null);
+            // Clear any stale session data
+            try {
+              await supabase.auth.signOut();
+            } catch (signOutErr) {
+              // Ignore sign out errors
+            }
+          } else if (session) {
+            // Validate session is not expired
+            const expiresAt = session.expires_at;
+            const now = Math.floor(Date.now() / 1000);
+            
+            if (expiresAt && expiresAt < now) {
+              // Session expired, clear it
+              console.log('Session expired, clearing...');
+              setUser(null);
+              try {
+                await supabase.auth.signOut();
+              } catch (signOutErr) {
+                // Ignore sign out errors
+              }
+            } else if (session.user) {
+              // Valid session with user
+              setUser(session.user);
+            } else {
+              // Session exists but no user (invalid)
+              setUser(null);
+              try {
+                await supabase.auth.signOut();
+              } catch (signOutErr) {
+                // Ignore sign out errors
+              }
+            }
+          } else {
+            // No session found
+            setUser(null);
+          }
+        } catch (err: any) {
+          console.error('Error initializing auth:', err);
+          // Clear any potentially corrupted session data if it's not a timeout
+          if (!err.message?.includes('timeout')) {
+            try {
+              await supabase.auth.signOut();
+            } catch (signOutErr) {
+              // Ignore sign out errors
+            }
+          }
+          setUser(null);
+        } finally {
+          setLoading(false);
+          setInitialized(true);
         }
-
-        setUser(session?.user ?? null);
       } catch (err) {
         console.error('Error initializing auth:', err);
-        // Clear any potentially corrupted session data
-        await supabase.auth.signOut();
-      } finally {
         setLoading(false);
         setInitialized(true);
+        setUser(null);
       }
     };
 
@@ -70,7 +128,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (initialized) {
         console.log('Auth state changed:', event);
-        setUser(session?.user ?? null);
+        
+        // Validate session if it exists
+        if (session) {
+          const expiresAt = session.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          
+          if (expiresAt && expiresAt < now) {
+            // Session expired
+            console.log('Session expired in auth state change, clearing...');
+            setUser(null);
+            try {
+              await supabase.auth.signOut();
+            } catch (signOutErr) {
+              // Ignore sign out errors
+            }
+          } else if (session.user) {
+            // Valid session
+            setUser(session.user);
+          } else {
+            // Invalid session (no user)
+            setUser(null);
+          }
+        } else {
+          // No session
+          setUser(null);
+        }
         
         // Handle token refresh errors
         if (event === 'TOKEN_REFRESHED') {
@@ -78,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (event === 'SIGNED_OUT') {
           // Clear any remaining session data
           localStorage.removeItem('supabase.auth.token');
+          setUser(null);
         }
       }
     });

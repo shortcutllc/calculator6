@@ -49,28 +49,28 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services })
   });
 
   return (
-    <div className="bg-[#9EFAFF] rounded-2xl shadow-lg p-8">
-      <h3 className="text-2xl font-bold text-shortcut-blue mb-6">{location} Summary</h3>
-      <div className="space-y-4">
-        <div className="flex justify-between items-center py-2 border-b border-shortcut-blue/20">
-          <span className="text-shortcut-blue">Date(s):</span>
-          <span className="text-shortcut-blue font-semibold">
+    <div className="card-large bg-shortcut-teal">
+      <h3 className="text-xl font-extrabold mb-6 text-shortcut-navy-blue">{location} Summary</h3>
+      <div className="space-y-5">
+        <div className="flex justify-between items-center py-3 border-b-2 border-shortcut-navy-blue border-opacity-20">
+          <span className="font-bold text-shortcut-navy-blue text-base">Date(s):</span>
+          <span className="text-shortcut-navy-blue font-semibold text-base">
             {dates.map(date => formatDate(date)).join(', ')}
           </span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-shortcut-blue/20">
-          <span className="text-shortcut-blue">Service(s):</span>
-          <span className="text-shortcut-blue font-semibold text-right">
+        <div className="flex justify-between items-center py-3 border-b-2 border-shortcut-navy-blue border-opacity-20">
+          <span className="font-bold text-shortcut-navy-blue text-base">Service(s):</span>
+          <span className="text-shortcut-navy-blue font-semibold text-base text-right">
             {Array.from(uniqueServices).join(', ')}
           </span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-shortcut-blue/20">
-          <span className="text-shortcut-blue">Appointments:</span>
-          <span className="text-shortcut-blue font-semibold">{totalAppointments}</span>
+        <div className="flex justify-between items-center py-3 border-b-2 border-shortcut-navy-blue border-opacity-20">
+          <span className="font-bold text-shortcut-navy-blue text-base">Appointments:</span>
+          <span className="text-shortcut-navy-blue font-semibold text-base">{totalAppointments}</span>
         </div>
-        <div className="flex justify-between items-center py-2">
-          <span className="text-shortcut-blue">Total Cost:</span>
-          <span className="text-shortcut-blue font-semibold">${totalCost.toFixed(2)}</span>
+        <div className="flex justify-between items-center py-3">
+          <span className="font-bold text-shortcut-navy-blue text-base">Total Cost:</span>
+          <span className="text-shortcut-navy-blue font-semibold text-base">${totalCost.toFixed(2)}</span>
         </div>
       </div>
     </div>

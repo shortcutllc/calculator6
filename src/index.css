@@ -4,45 +4,285 @@
 
 @layer base {
   html {
-    font-family: 'Outfit', system-ui, sans-serif;
+    font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Typography System - Per Style Guide */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold text-shortcut-blue;
+    font-family: 'Outfit', system-ui, sans-serif;
+    color: #003756;
+    letter-spacing: -0.01em;
   }
 
+  /* H1 - Hero Titles (Responsive Scale) - Reduced slightly */
+  h1, .h1 {
+    font-weight: 800; /* ExtraBold */
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    font-size: 2.5rem; /* 40px - Mobile (reduced from 48px) */
+  }
+  
+  @media (min-width: 768px) {
+    h1, .h1 {
+      font-size: 3rem; /* 48px - Tablet (reduced from 56px) */
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    h1, .h1 {
+      font-size: 3.5rem; /* 56px - Desktop (reduced from 68px) */
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    h1, .h1 {
+      font-size: 4rem; /* 64px - Large Desktop (reduced from 78px) */
+    }
+  }
+
+  /* H2 - Section Titles (Responsive Scale) */
+  h2, .h2 {
+    font-weight: 800; /* ExtraBold */
+    line-height: 1;
+    letter-spacing: -0.01em;
+    font-size: 2rem; /* 32px - Mobile */
+  }
+  
+  @media (min-width: 1024px) {
+    h2, .h2 {
+      font-size: 4rem; /* 64px - Desktop */
+    }
+  }
+
+  /* Body Text - Per Style Guide */
   body {
-    @apply text-base font-normal text-neutral-dark bg-neutral-white antialiased;
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 16px; /* Mobile */
+    font-weight: 500; /* Medium - CORRECTED from 400 */
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: #003756;
+    background-color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  @media (min-width: 1024px) {
+    body {
+      font-size: 18px; /* Desktop */
+    }
   }
 }
 
 @layer components {
-  .btn {
-    @apply px-6 py-3 rounded-full font-bold transition-all duration-200 inline-flex items-center justify-center;
+  /* Primary CTA Button - Per Style Guide */
+  .btn-primary,
+  button.primary-btn,
+  button.book-now-btn,
+  input[type='submit'] {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 14px !important; /* text-sm */
+    font-weight: 700 !important; /* bold */
+    background: #9efaff !important; /* Cyan background */
+    color: #09364f !important; /* Dark blue text */
+    border: none !important;
+    border-radius: 9999px !important; /* rounded-full */
+    min-width: 160px !important;
+    height: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    line-height: normal !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease-in !important;
+    padding: 0.625rem 1.5rem !important; /* py-2.5 px-6 mobile */
+    position: relative !important;
+    overflow: hidden !important;
+    z-index: 10 !important;
+    pointer-events: auto !important;
   }
 
-  .btn-primary {
-    @apply btn bg-shortcut-teal text-shortcut-blue hover:bg-opacity-90;
+  @media (min-width: 1024px) {
+    .btn-primary,
+    button.primary-btn,
+    button.book-now-btn,
+    input[type='submit'] {
+      padding: 1rem 2rem !important; /* py-4 px-8 desktop */
+    }
   }
 
+  @media (max-width: 768px) {
+    .btn-primary,
+    button.primary-btn,
+    button.book-now-btn,
+    input[type='submit'] {
+      width: 100%;
+      min-width: auto;
+    }
+  }
+
+  /* Yellow hover overlay */
+  .btn-primary::before,
+  button.primary-btn::before,
+  button.book-now-btn::before,
+  input[type='submit']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #FEDC64; /* Yellow hover overlay */
+    transform: translateY(100%);
+    transition: transform 0.3s ease-in, border-radius 0.3s ease-in;
+    border-radius: 40px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Hover state */
+  .btn-primary:hover,
+  button.primary-btn:hover,
+  button.book-now-btn:hover,
+  input[type='submit']:hover {
+    animation: buttonHover 0.6s forwards !important;
+  }
+
+  .btn-primary:hover::before,
+  button.primary-btn:hover::before,
+  button.book-now-btn:hover::before,
+  input[type='submit']:hover::before {
+    transform: translateY(0) !important;
+    border-radius: 0 !important;
+  }
+
+  /* Active state */
+  .btn-primary:active,
+  button.primary-btn:active,
+  button.book-now-btn:active,
+  input[type='submit']:active {
+    transform: scale(0.95) !important;
+  }
+
+  /* Span wrapper for button text */
+  .btn-primary span,
+  button.primary-btn span,
+  button.book-now-btn span {
+    position: relative;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Button Hover Animation */
+  @keyframes buttonHover {
+    0% { transform: none; }
+    30% { transform: scale(0.95); }
+    60% { transform: scale(1.05); }
+    100% { transform: none; }
+  }
+
+  /* Secondary Button */
   .btn-secondary {
-    @apply btn border-2 border-shortcut-teal text-shortcut-blue hover:bg-shortcut-teal hover:bg-opacity-10;
+    @apply px-6 py-2.5 lg:px-8 lg:py-4 rounded-full font-bold text-sm transition-all duration-200 inline-flex items-center justify-center;
+    @apply border-2 border-shortcut-teal text-text-button-blue hover:bg-shortcut-teal hover:bg-opacity-10;
   }
 
   .btn-white {
-    @apply btn bg-neutral-white text-shortcut-blue hover:bg-opacity-90;
+    @apply px-6 py-2.5 lg:px-8 lg:py-4 rounded-full font-bold text-sm transition-all duration-200 inline-flex items-center justify-center;
+    @apply bg-neutral-white text-shortcut-blue hover:bg-opacity-90;
   }
 
   .nav-link {
-    @apply font-medium text-shortcut-blue hover:opacity-80 transition-opacity;
+    @apply font-bold text-sm text-shortcut-blue hover:opacity-80 transition-opacity;
   }
 
   .nav-link-dark {
-    @apply font-medium text-neutral-white hover:opacity-80 transition-opacity;
+    @apply font-bold text-sm text-neutral-white hover:opacity-80 transition-opacity;
   }
 
-  .card {
-    @apply bg-neutral-white rounded-lg shadow-md p-6;
+  /* Premium Card System - Refined Shadows */
+  .card,
+  .card-large {
+    background: white;
+    border-radius: 24px;
+    padding: 48px; /* Desktop */
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (max-width: 768px) {
+    .card,
+    .card-large {
+      padding: 32px 24px; /* Mobile */
+    }
+  }
+
+  .card:hover,
+  .card-large:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+
+  .card-medium {
+    background: white;
+    border-radius: 24px;
+    padding: 32px; /* Desktop */
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (max-width: 768px) {
+    .card-medium {
+      padding: 24px; /* Mobile */
+    }
+  }
+
+  .card-medium:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+
+  .card-small {
+    background: white;
+    border-radius: 20px;
+    padding: 24px; /* Desktop */
+    box-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      0 1px 4px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (max-width: 768px) {
+    .card-small {
+      padding: 20px; /* Mobile */
+    }
+  }
+
+  .card-small:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 6px 16px rgba(0, 0, 0, 0.1),
+      0 3px 8px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(0, 0, 0, 0.05);
   }
 
   .card-accent-yellow {

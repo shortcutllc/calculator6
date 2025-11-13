@@ -210,7 +210,7 @@ const HolidayPageManager: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading holiday pages...</p>
+          <p className="text-text-dark-60">Loading holiday pages...</p>
         </div>
       </div>
     );
@@ -220,8 +220,8 @@ const HolidayPageManager: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Holiday Pages</h1>
-          <p className="text-gray-600 mt-2">Manage your customizable holiday proposal pages</p>
+          <h1 className="h1">Holiday Pages</h1>
+          <p className="text-text-dark-60 mt-2">Manage your customizable holiday proposal pages</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -230,7 +230,7 @@ const HolidayPageManager: React.FC = () => {
               await navigator.clipboard.writeText(url);
               alert('Generic page link copied to clipboard!');
             }}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+            className="inline-flex items-center px-4 py-2 text-sm font-bold text-shortcut-blue bg-shortcut-teal bg-opacity-20 rounded-md hover:bg-shortcut-teal hover:bg-opacity-30 transition-colors"
             title="Copy generic holiday page link"
           >
             <Link className="w-4 h-4 mr-2" />
@@ -250,17 +250,17 @@ const HolidayPageManager: React.FC = () => {
 
       {/* Filters Section */}
       {holidayPages.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="card-medium mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Search Input */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-dark-60 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search by partner name, email, or token..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               />
             </div>
 
@@ -269,7 +269,7 @@ const HolidayPageManager: React.FC = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               >
                 <option value="all">All Statuses</option>
                 <option value="published">Published</option>
@@ -283,7 +283,7 @@ const HolidayPageManager: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'name')}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -295,12 +295,12 @@ const HolidayPageManager: React.FC = () => {
           {/* Active Filters Display & Clear Button */}
           {hasActiveFilters && (
             <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-text-dark-60">
                 Showing {filteredAndSortedPages.length} of {holidayPages.length} pages
               </div>
               <button
                 onClick={clearFilters}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 text-sm font-bold text-shortcut-blue bg-neutral-light-gray rounded-md hover:bg-neutral-gray transition-colors"
               >
                 <X className="w-4 h-4 mr-1" />
                 Clear Filters
@@ -312,30 +312,31 @@ const HolidayPageManager: React.FC = () => {
 
       {holidayPages.length === 0 ? (
         <div className="text-center py-12">
-          <div className="text-gray-400 text-6xl mb-4">🎄</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Holiday Pages Yet</h3>
-          <p className="text-gray-600 mb-6">Create your first customizable holiday page for a partner</p>
+          <div className="text-text-dark-60 text-6xl mb-4">🎄</div>
+          <h3 className="text-xl font-extrabold text-shortcut-blue mb-2">No Holiday Pages Yet</h3>
+          <p className="text-text-dark-60 mb-6">Create your first customizable holiday page for a partner</p>
           <Button onClick={() => setShowCreator(true)}>
             Create Your First Holiday Page
           </Button>
         </div>
       ) : filteredAndSortedPages.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow-md">
-          <div className="text-gray-400 text-6xl mb-4">🔍</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Pages Found</h3>
-          <p className="text-gray-600 mb-6">Try adjusting your filters to see more results</p>
-          <button
+        <div className="text-center py-12 card-medium">
+          <div className="text-text-dark-60 text-6xl mb-4">🔍</div>
+          <h3 className="text-xl font-extrabold text-shortcut-blue mb-2">No Pages Found</h3>
+          <p className="text-text-dark-60 mb-6">Try adjusting your filters to see more results</p>
+          <Button
             onClick={clearFilters}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+            variant="primary"
+            icon={<X className="w-4 h-4" />}
+            size="sm"
           >
-            <X className="w-4 h-4 mr-2" />
             Clear All Filters
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedPages.map((holidayPage) => (
-            <div key={holidayPage.id} className="bg-white rounded-lg shadow-md p-6">
+            <div key={holidayPage.id} className="card-medium">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   {holidayPage.data.partnerLogoUrl && (
@@ -345,7 +346,7 @@ const HolidayPageManager: React.FC = () => {
                       className="h-8 w-auto"
                     />
                   )}
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-extrabold text-shortcut-blue">
                     {holidayPage.data.partnerName}
                   </h3>
                 </div>
@@ -354,19 +355,19 @@ const HolidayPageManager: React.FC = () => {
                     ? 'bg-green-100 text-green-800'
                     : holidayPage.status === 'draft'
                     ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-gray-100 text-gray-800'
+                    : 'bg-neutral-light-gray text-shortcut-blue'
                 }`}>
                   {holidayPage.status}
                 </span>
               </div>
 
               <div className="space-y-2 mb-4">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Created:</span> {new Date(holidayPage.createdAt).toLocaleDateString()}
+                <p className="text-sm text-text-dark">
+                  <span className="font-bold">Created:</span> {new Date(holidayPage.createdAt).toLocaleDateString()}
                 </p>
                 {holidayPage.data.clientEmail && (
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Client:</span> {holidayPage.data.clientEmail}
+                  <p className="text-sm text-text-dark">
+                    <span className="font-bold">Client:</span> {holidayPage.data.clientEmail}
                   </p>
                 )}
                 
@@ -374,12 +375,12 @@ const HolidayPageManager: React.FC = () => {
                 <div className="border-t pt-3 mt-3">
                   <button
                     onClick={() => toggleContactRequests(holidayPage.id)}
-                    className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                    className="flex items-center gap-2 text-sm font-bold text-shortcut-blue hover:text-shortcut-navy-blue transition-colors"
                   >
                     <MessageSquare className="w-4 h-4" />
                     Contact Requests
                     {contactRequests[holidayPage.id] && (
-                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                      <span className="bg-shortcut-teal bg-opacity-20 text-shortcut-blue text-xs px-2 py-1 rounded-full">
                         {contactRequests[holidayPage.id].length}
                       </span>
                     )}
@@ -395,19 +396,19 @@ const HolidayPageManager: React.FC = () => {
                       {loadingRequests.has(holidayPage.id) ? (
                         <div className="text-center py-2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mx-auto"></div>
-                          <p className="text-xs text-gray-500 mt-1">Loading...</p>
+                          <p className="text-xs text-text-dark-60 mt-1">Loading...</p>
                         </div>
                       ) : contactRequests[holidayPage.id]?.length > 0 ? (
                         contactRequests[holidayPage.id].map((request) => (
-                          <div key={request.id} className="bg-gray-50 rounded-lg p-3 text-xs">
+                          <div key={request.id} className="bg-neutral-light-gray rounded-lg p-3 text-xs">
                             <div className="flex justify-between items-start mb-2">
                               <div>
-                                <p className="font-medium text-gray-900">
+                                <p className="font-bold text-shortcut-blue">
                                   {request.first_name} {request.last_name}
                                 </p>
-                                <p className="text-gray-600">{request.email}</p>
+                                <p className="text-text-dark">{request.email}</p>
                                 {request.phone && (
-                                  <p className="text-gray-600">{request.phone}</p>
+                                  <p className="text-text-dark">{request.phone}</p>
                                 )}
                               </div>
                               <span className={`px-2 py-1 text-xs rounded-full ${
@@ -416,31 +417,31 @@ const HolidayPageManager: React.FC = () => {
                                   : request.status === 'contacted'
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : request.status === 'followed_up'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-blue'
+                                  : 'bg-neutral-light-gray text-shortcut-blue'
                               }`}>
                                 {request.status.replace('_', ' ')}
                               </span>
                             </div>
                             
                             {request.service_type && (
-                              <p className="text-gray-700 mb-1">
-                                <span className="font-medium">Service:</span> {request.service_type}
+                              <p className="text-text-dark mb-1">
+                                <span className="font-bold">Service:</span> {request.service_type}
                               </p>
                             )}
                             {request.appointment_count && (
-                              <p className="text-gray-700 mb-1">
-                                <span className="font-medium">Appointments:</span> {request.appointment_count}
+                              <p className="text-text-dark mb-1">
+                                <span className="font-bold">Appointments:</span> {request.appointment_count}
                               </p>
                             )}
                             {request.event_date && (
-                              <p className="text-gray-700 mb-1">
-                                <span className="font-medium">Event Date:</span> {new Date(request.event_date).toLocaleDateString()}
+                              <p className="text-text-dark mb-1">
+                                <span className="font-bold">Event Date:</span> {new Date(request.event_date).toLocaleDateString()}
                               </p>
                             )}
                             {request.message && (
-                              <p className="text-gray-700 mb-2">
-                                <span className="font-medium">Message:</span> {request.message}
+                              <p className="text-text-dark mb-2">
+                                <span className="font-bold">Message:</span> {request.message}
                               </p>
                             )}
                             
@@ -456,26 +457,26 @@ const HolidayPageManager: React.FC = () => {
                               {request.status === 'contacted' && (
                                 <button
                                   onClick={() => updateContactRequestStatus(request.id, 'followed_up')}
-                                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded hover:bg-blue-200 transition-colors"
+                                  className="px-2 py-1 bg-shortcut-teal bg-opacity-20 text-shortcut-blue text-xs rounded hover:bg-shortcut-teal hover:bg-opacity-30 transition-colors"
                                 >
                                   Mark Followed Up
                                 </button>
                               )}
                               <button
                                 onClick={() => updateContactRequestStatus(request.id, 'closed')}
-                                className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded hover:bg-gray-200 transition-colors"
+                                className="px-2 py-1 bg-neutral-light-gray text-shortcut-blue text-xs rounded hover:bg-neutral-gray transition-colors"
                               >
                                 Close
                               </button>
                             </div>
                             
-                            <p className="text-gray-500 text-xs mt-1">
+                            <p className="text-text-dark-60 text-xs mt-1">
                               {new Date(request.created_at).toLocaleString()}
                             </p>
                           </div>
                         ))
                       ) : (
-                        <p className="text-gray-500 text-center py-2">No contact requests yet</p>
+                        <p className="text-text-dark-60 text-center py-2">No contact requests yet</p>
                       )}
                     </div>
                   )}
@@ -492,10 +493,10 @@ const HolidayPageManager: React.FC = () => {
                 </Button>
                 <button
                   onClick={() => copyHolidayPageLink(holidayPage)}
-                  className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  className={`inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
                     copiedLinks.has(holidayPage.id)
                       ? 'text-green-700 bg-green-100'
-                      : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
+                      : 'text-shortcut-blue bg-shortcut-teal bg-opacity-20 hover:bg-shortcut-teal hover:bg-opacity-30'
                   }`}
                   title="Copy holiday page link"
                 >

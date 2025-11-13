@@ -37,8 +37,24 @@ function validateEnv(): Env {
   }
 }
 
-// Validate environment variables immediately
-const env = validateEnv();
+// Validate environment variables immediately with fallback
+let env: Env;
+try {
+  env = validateEnv();
+} catch (error) {
+  console.error('Environment validation failed, using fallbacks:', error);
+  // Get environment variables from window.__ENV__ first, then fall back to import.meta.env
+  const windowEnvFallback = (window as any).__ENV__ || {};
+  // Provide fallback values to prevent app crash
+  env = {
+    VITE_SUPABASE_URL: windowEnvFallback.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || '',
+    VITE_SUPABASE_ANON_KEY: windowEnvFallback.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+    MODE: import.meta.env.MODE || 'development',
+    PROD: import.meta.env.PROD || false,
+    DEV: import.meta.env.DEV !== false,
+    BASE_URL: '/'
+  } as Env;
+}
 
 export const config = {
   env,

@@ -19,7 +19,7 @@ export const Navigation: React.FC = () => {
   };
 
   return (
-    <nav className="bg-white py-4 px-4 sm:px-8 shadow-md relative">
+    <nav className="bg-white py-4 px-4 sm:px-8 shadow-md relative rounded-b-3xl">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <button 
           onClick={() => navigate('/')}
@@ -33,68 +33,90 @@ export const Navigation: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <Button 
-            onClick={() => navigate('/')} 
-            variant="primary"
-            className="hidden sm:flex"
-          >
-            Home
-          </Button>
-          <Button 
-            onClick={() => navigate('/history')} 
-            variant="secondary"
-            className="hidden sm:flex"
-          >
-            History
-          </Button>
-          <Button 
-            onClick={() => navigate('/brochure')} 
-            variant="secondary"
-            icon={<FileText size={18} />}
-            className="hidden sm:flex"
-          >
-            Brochures
-          </Button>
-          <Button 
-            onClick={() => navigate('/calculator')} 
-            variant="secondary"
-            icon={<Calculator size={18} />}
-            className="hidden sm:flex"
-          >
-            Calculator
-          </Button>
-          <Button 
-            onClick={() => navigate('/headshots')} 
-            variant="secondary"
-            icon={<Camera size={18} />}
-            className="hidden sm:flex"
-          >
-            Headshots
-          </Button>
-          <Button 
-            onClick={() => navigate('/holiday-pages')} 
-            variant="secondary"
-            icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>🎄</span>}
-            className="hidden sm:flex"
-          >
-            Holiday
-          </Button>
-          <Button 
-            onClick={() => navigate('/social-media-pages')} 
-            variant="secondary"
-            icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>📱</span>}
-            className="hidden sm:flex"
-          >
-            Social
-          </Button>
-          <Button 
-            onClick={() => navigate('/admin')} 
-            variant="secondary"
-            icon={<Settings size={18} />}
-            className="hidden sm:flex"
-          >
-            Admin
-          </Button>
+          {user && (
+            <>
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="primary"
+                className="hidden sm:flex"
+              >
+                Home
+              </Button>
+              <Button 
+                onClick={() => navigate('/history')} 
+                variant="secondary"
+                className="hidden sm:flex"
+              >
+                History
+              </Button>
+              <Button 
+                onClick={() => navigate('/brochure')} 
+                variant="secondary"
+                icon={<FileText size={18} />}
+                className="hidden sm:flex"
+              >
+                Brochures
+              </Button>
+              <Button 
+                onClick={() => navigate('/calculator')} 
+                variant="secondary"
+                icon={<Calculator size={18} />}
+                className="hidden sm:flex"
+              >
+                Calculator
+              </Button>
+              <Button 
+                onClick={() => navigate('/headshots')} 
+                variant="secondary"
+                icon={<Camera size={18} />}
+                className="hidden sm:flex"
+              >
+                Headshots
+              </Button>
+              <Button 
+                onClick={() => navigate('/holiday-pages')} 
+                variant="secondary"
+                icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>🎄</span>}
+                className="hidden sm:flex"
+              >
+                Holiday
+              </Button>
+              <Button 
+                onClick={() => navigate('/social-media-pages')} 
+                variant="secondary"
+                icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>📱</span>}
+                className="hidden sm:flex"
+              >
+                Social
+              </Button>
+              <Button 
+                onClick={() => navigate('/qr-code-signs')} 
+                variant="secondary"
+                icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>📋</span>}
+                className="hidden sm:flex"
+              >
+                QR Codes
+              </Button>
+              <Button 
+                onClick={() => navigate('/admin')} 
+                variant="secondary"
+                icon={<Settings size={18} />}
+                className="hidden sm:flex"
+              >
+                Admin
+              </Button>
+            </>
+          )}
+          {!user && (
+            <Button 
+              onClick={() => navigate('/login')} 
+              variant="primary"
+              icon={<LogIn size={18} />}
+              className="hidden sm:flex"
+            >
+              Sign In
+            </Button>
+          )}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="p-2 hover:bg-gray-100 rounded-md"
@@ -116,94 +138,116 @@ export const Navigation: React.FC = () => {
             </div>
             
             <div className="p-2">
-              <div className="sm:hidden space-y-2 mb-4">
-                <Button
-                  onClick={() => {
-                    navigate('/');
-                    setIsMenuOpen(false);
-                  }}
-                  variant="primary"
-                  className="w-full"
-                >
-                  Home
-                </Button>
-                <Button
-                  onClick={() => {
-                    navigate('/history');
-                    setIsMenuOpen(false);
-                  }}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  History
-                </Button>
-                <Button
-                  onClick={() => {
-                    navigate('/brochure');
-                    setIsMenuOpen(false);
-                  }}
-                  variant="secondary"
-                  icon={<FileText size={18} />}
-                  className="w-full"
-                >
-                  Brochures
-                </Button>
-                <Button
-                  onClick={() => {
-                    navigate('/calculator');
-                    setIsMenuOpen(false);
-                  }}
-                  variant="secondary"
-                  icon={<Calculator size={18} />}
-                  className="w-full"
-                >
-                  Calculator
-                </Button>
-                <Button
-                  onClick={() => {
-                    navigate('/headshots');
-                    setIsMenuOpen(false);
-                  }}
-                  variant="secondary"
-                  icon={<Camera size={18} />}
-                  className="w-full"
-                >
-                  Headshots
-                </Button>
-                <Button
-                  onClick={() => {
-                    navigate('/holiday-pages');
-                    setIsMenuOpen(false);
-                  }}
-                  variant="secondary"
-                  icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>🎄</span>}
-                  className="w-full"
-                >
-                  Holiday
-                </Button>
-                <Button
-                  onClick={() => {
-                    navigate('/social-media-pages');
-                    setIsMenuOpen(false);
-                  }}
-                  variant="secondary"
-                  icon={<span style={{ fontSize: '16px', display: 'inline-block', lineHeight: '1' }}>📱</span>}
-                  className="w-full"
-                >
-                  Social
-                </Button>
-                <Button
-                  onClick={() => {
-                    navigate('/admin');
-                    setIsMenuOpen(false);
-                  }}
-                  variant="secondary"
-                  icon={<Settings size={18} />}
-                  className="w-full"
-                >
-                  Admin
-                </Button>
-              </div>
+              {user && (
+                <div className="sm:hidden space-y-2 mb-4">
+                  <Button
+                    onClick={() => {
+                      navigate('/');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="primary"
+                    size="sm"
+                    className="w-full"
+                  >
+                    Home
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/history');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    className="w-full"
+                  >
+                    History
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/brochure');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    icon={<FileText size={16} />}
+                    className="w-full"
+                  >
+                    Brochures
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/calculator');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    icon={<Calculator size={16} />}
+                    className="w-full"
+                  >
+                    Calculator
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/headshots');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    icon={<Camera size={16} />}
+                    className="w-full"
+                  >
+                    Headshots
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/holiday-pages');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    icon={<span style={{ fontSize: '14px', display: 'inline-block', lineHeight: '1' }}>🎄</span>}
+                    className="w-full"
+                  >
+                    Holiday
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/social-media-pages');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    icon={<span style={{ fontSize: '14px', display: 'inline-block', lineHeight: '1' }}>📱</span>}
+                    className="w-full"
+                  >
+                    Social
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/qr-code-signs');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    icon={<span style={{ fontSize: '14px', display: 'inline-block', lineHeight: '1' }}>📋</span>}
+                    className="w-full"
+                  >
+                    QR Codes
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/admin');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    icon={<Settings size={16} />}
+                    className="w-full"
+                  >
+                    Admin
+                  </Button>
+                </div>
+              )}
               
               {user ? (
                 <>
@@ -213,6 +257,7 @@ export const Navigation: React.FC = () => {
                       setIsMenuOpen(false);
                     }}
                     variant="primary"
+                    size="sm"
                     icon={<UserPlus className="w-4 h-4" />}
                     className="w-full mb-2"
                   >
@@ -224,6 +269,7 @@ export const Navigation: React.FC = () => {
                       setIsMenuOpen(false);
                     }}
                     variant="secondary"
+                    size="sm"
                     icon={<LogOut className="w-4 h-4" />}
                     className="w-full"
                   >
@@ -237,6 +283,7 @@ export const Navigation: React.FC = () => {
                     setIsMenuOpen(false);
                   }}
                   variant="primary"
+                  size="sm"
                   icon={<LogIn className="w-4 h-4" />}
                   className="w-full"
                 >

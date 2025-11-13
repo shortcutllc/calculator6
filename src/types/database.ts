@@ -77,6 +77,50 @@ export interface Database {
           has_pricing_options?: boolean
         }
       }
+      proposal_survey_responses: {
+        Row: {
+          id: string
+          proposal_id: string
+          table_or_chair_preference: string | null
+          preferred_gender: string | null
+          office_address: string | null
+          massage_space_name: string | null
+          point_of_contact: string | null
+          billing_contact: string | null
+          coi_required: boolean | null
+          submitted_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          proposal_id: string
+          table_or_chair_preference?: string | null
+          preferred_gender?: string | null
+          office_address?: string | null
+          massage_space_name?: string | null
+          point_of_contact?: string | null
+          billing_contact?: string | null
+          coi_required?: boolean | null
+          submitted_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          proposal_id?: string
+          table_or_chair_preference?: string | null
+          preferred_gender?: string | null
+          office_address?: string | null
+          massage_space_name?: string | null
+          point_of_contact?: string | null
+          billing_contact?: string | null
+          coi_required?: boolean | null
+          submitted_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

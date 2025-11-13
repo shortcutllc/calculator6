@@ -35,19 +35,19 @@ const InstructionalScroller: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden h-full">
+    <div className="card-large">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-shortcut-teal/20 transition-colors"
+        className="w-full flex justify-between items-center mb-4 hover:opacity-80 transition-opacity"
       >
-        <h2 className="text-2xl font-bold text-shortcut-blue">
+        <h2 className="text-xl font-extrabold text-shortcut-blue">
           How to Edit this Proposal
         </h2>
-        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        {isExpanded ? <ChevronUp size={20} className="text-shortcut-blue" /> : <ChevronDown size={20} className="text-shortcut-blue" />}
       </button>
       
       {isExpanded && (
-        <div className="p-6">
+        <div className="pt-4 border-t border-gray-200">
           <div className="relative">
             <div 
               ref={scrollerRef}

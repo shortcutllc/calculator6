@@ -17,6 +17,7 @@ import { CustomUrlResolver } from './components/CustomUrlResolver';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { HolidayPageProvider } from './contexts/HolidayPageContext';
 import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
+import { QRCodeSignProvider } from './contexts/QRCodeSignContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import { testSupabaseConnection } from './lib/supabaseClient';
@@ -31,6 +32,8 @@ const HolidayProposal = lazy(() => import('./components/HolidayProposal'));
 const HolidayPageManager = lazy(() => import('./components/HolidayPageManager'));
 const SocialMediaProposal = lazy(() => import('./components/SocialMediaProposal'));
 const SocialMediaPageManager = lazy(() => import('./components/SocialMediaPageManager'));
+const QRCodeSignManager = lazy(() => import('./components/QRCodeSignManager'));
+const QRCodeSignDisplay = lazy(() => import('./components/QRCodeSignDisplay'));
 
 function App() {
   const location = useLocation();
@@ -48,15 +51,20 @@ function App() {
     location.pathname === '/social-media/linkedin' ||
     location.pathname === '/social-media/meta' ||
     location.pathname === '/social-media-pages/linkedin' ||
-    location.pathname === '/social-media-pages/meta';
+    location.pathname === '/social-media-pages/meta' ||
+    location.pathname.startsWith('/qr-code-sign/');
 
   useEffect(() => {
+    // Non-blocking initialization - don't await or block rendering
     const initializeApp = async () => {
       try {
+        // Use setTimeout to ensure this doesn't block initial render
+        setTimeout(async () => {
         const connected = await testSupabaseConnection();
         if (!connected) {
           console.error('Failed to establish connection to Supabase after multiple attempts');
         }
+        }, 100);
       } catch (error) {
         console.error('Failed to initialize app:', error);
       }
@@ -297,6 +305,37 @@ function App() {
                       </Suspense>
                     </SocialMediaPageProvider>
                   </PrivateRoute>
+                }
+              />
+              {/* QR Code Signs Routes */}
+              <Route
+                path="/qr-code-signs"
+                element={
+                  <PrivateRoute>
+                    <QRCodeSignProvider>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <QRCodeSignManager />
+                      </Suspense>
+                    </QRCodeSignProvider>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/qr-code-sign/:id"
+                element={
+                  <QRCodeSignProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <QRCodeSignDisplay />
+                    </Suspense>
+                  </QRCodeSignProvider>
                 }
               />
               <Route

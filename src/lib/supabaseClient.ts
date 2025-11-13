@@ -6,15 +6,15 @@ import { config } from '../config';
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000;
 
-// Validate configuration
+// Validate configuration with warning instead of throwing
 if (!config.supabase.url || !config.supabase.anonKey) {
-  throw new Error('Missing Supabase configuration');
+  console.warn('Missing Supabase configuration - some features may not work');
 }
 
-// Create Supabase client
+// Create Supabase client with fallbacks
 export const supabase = createClient<Database>(
-  config.supabase.url,
-  config.supabase.anonKey,
+  config.supabase.url || 'https://placeholder.supabase.co',
+  config.supabase.anonKey || 'placeholder-key',
   {
     auth: {
       autoRefreshToken: true,

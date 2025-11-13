@@ -703,15 +703,16 @@ const ProposalViewer: React.FC = () => {
       
       await updateProposal(id, {
         data: recalculatedData,
-        customization: currentProposal?.customization,
+        customization: editedData?.customization || currentProposal?.customization,
         pricingOptions,
         selectedOptions,
         hasPricingOptions: recalculatedData.hasPricingOptions || false
       });
       
       setIsEditing(false);
-      setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
-      setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+      const finalCustomization = editedData?.customization || currentProposal?.customization;
+      setEditedData({ ...recalculatedData, customization: finalCustomization });
+      setDisplayData({ ...recalculatedData, customization: finalCustomization });
       setHasChanges(true);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save changes';
@@ -873,16 +874,16 @@ The Shortcut Team`);
 
   if (isLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shortcut-blue"></div>
+      <div className="min-h-screen bg-neutral-light-gray flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shortcut-navy-blue"></div>
       </div>
     );
   }
 
   if (loadError || error) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center">
+      <div className="min-h-screen bg-neutral-light-gray flex items-center justify-center">
+        <div className="card-medium text-center">
           <div className="text-red-500 mb-4">
             <X size={48} className="mx-auto" />
           </div>
@@ -900,42 +901,18 @@ The Shortcut Team`);
 
   if (!displayData) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-light-gray flex items-center justify-center">
         <div className="text-xl text-red-500">No proposal data available</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm py-4 px-4 sm:px-8 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            {!isSharedView && (
-              <Button 
-                onClick={() => navigate('/history')}
-                variant="secondary"
-                icon={<ArrowLeft size={20} />}
-              >
-                Back
-              </Button>
-            )}
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Client Logo"
-                className="h-10 w-auto rounded shadow border"
-                style={{ maxWidth: 120, maxHeight: 48 }}
-              />
-            ) : (
-              <img
-                src="/shortcut-logo blue.svg"
-                alt="Shortcut Logo"
-                className="h-8 w-auto"
-              />
-            )}
-          </div>
-          <div className="flex gap-4">
+    <div className="min-h-screen bg-neutral-light-gray">
+      <header className="bg-white shadow-sm sticky top-0 z-50 rounded-b-3xl">
+        {/* Action Buttons Section - Distinguished with background */}
+        <div className="bg-neutral-light-gray py-3 px-4 sm:px-8">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-3">
             <Button
               onClick={handleDownload}
               variant="secondary"
@@ -1001,64 +978,85 @@ The Shortcut Team`);
       </header>
       {/* Logo editing controls (edit mode only, not shared view) */}
       {isEditing && !isSharedView && (
-        <div className="max-w-7xl mx-auto mt-4 flex flex-col sm:flex-row items-center gap-4 px-2">
-          <div className="flex flex-col gap-2 w-full sm:w-auto">
-            <label className="block text-sm font-medium text-gray-700">Client Logo</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleLogoFileChange}
-              disabled={logoUploading}
-            />
-            <span className="text-xs text-gray-500">Max 5MB. PNG, JPG, SVG, etc.</span>
-            <input
-              type="url"
-              placeholder="Paste image URL (https://...)"
-              value={logoUrl}
-              onChange={handleLogoUrlChange}
-              className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] border-gray-300"
-              disabled={logoUploading}
-            />
-            {logoUrl && (
-              <img src={logoUrl} alt="Client Logo Preview" className="h-16 mt-2 rounded shadow border" />
-            )}
-            {logoUploadError && <p className="text-xs text-red-600">{logoUploadError}</p>}
-            {logoUrl && (
-              <button
-                type="button"
-                onClick={handleRemoveLogo}
-                className="text-xs text-red-600 underline mt-1 self-start"
-                disabled={logoUploading}
-              >
-                Remove Logo
-              </button>
-            )}
-          </div>
-          
-          <div className="flex flex-col gap-2 w-full sm:w-auto">
-            <label className="block text-sm font-medium text-gray-700">Office Location</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={displayData.officeLocation || ''}
-                onChange={(e) => handleFieldChange(['officeLocation'], e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#175071] pr-10"
-                placeholder="Enter office address..."
-                id="office-location-edit-input"
-                data-autocomplete="true"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.getElementById('office-location-edit-input') as HTMLInputElement;
-                    if (input && 'geolocation' in navigator) {
-                      navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                          const { latitude, longitude } = position.coords;
-                          const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
-                          
-                                                      if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+        <div className="max-w-7xl mx-auto mt-6 px-4 sm:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Client Logo Card */}
+            <div className="card-medium">
+              <h3 className="text-lg font-extrabold text-shortcut-blue mb-4">Client Logo</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-shortcut-blue mb-2">Upload Logo File</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoFileChange}
+                    disabled={logoUploading}
+                    className="block w-full text-sm text-text-dark-60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-shortcut-teal file:text-shortcut-navy-blue hover:file:bg-shortcut-teal hover:file:bg-opacity-80"
+                  />
+                  <p className="text-xs text-text-dark-60 mt-1">Max 5MB. PNG, JPG, SVG, etc.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-shortcut-blue mb-2">Or Paste Image URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={logoUrl}
+                    onChange={handleLogoUrlChange}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                    disabled={logoUploading}
+                  />
+                </div>
+                {logoUrl && (
+                  <div className="mt-4">
+                    <p className="text-sm font-bold text-shortcut-blue mb-2">Preview</p>
+                    <div className="relative inline-block">
+                      <img src={logoUrl} alt="Client Logo Preview" className="h-20 rounded shadow border border-gray-200" />
+                      <button
+                        type="button"
+                        onClick={handleRemoveLogo}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                        disabled={logoUploading}
+                        title="Remove logo"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {logoUploadError && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                    {logoUploadError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Office Location Card */}
+            <div className="card-medium">
+              <h3 className="text-lg font-extrabold text-shortcut-blue mb-4">Office Location</h3>
+              <div className="space-y-4">
+                <div className="relative">
+                  <label className="block text-sm font-bold text-shortcut-blue mb-2">Office Address</label>
+                  <input
+                    type="text"
+                    value={displayData.officeLocation || ''}
+                    onChange={(e) => handleFieldChange(['officeLocation'], e.target.value)}
+                    className="w-full px-3 py-2 pr-10 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                    placeholder="Enter office address..."
+                    id="office-location-edit-input"
+                    data-autocomplete="true"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById('office-location-edit-input') as HTMLInputElement;
+                      if (input && 'geolocation' in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            const { latitude, longitude } = position.coords;
+                            const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                            
+                            if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
                               // Use reverse geocoding to get address
                               fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
                                 .then(response => response.json())
@@ -1075,77 +1073,112 @@ The Shortcut Team`);
                             } else {
                               alert('Google Maps API key not configured. Please enter the address manually.');
                             }
-                        },
-                        () => {
-                          alert('Unable to get your location. Please enter the address manually.');
-                        }
-                      );
-                    } else {
-                      alert('Geolocation is not supported by your browser. Please enter the address manually.');
-                    }
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                  title="Use current location"
-                >
-                  📍
-                </button>
+                          },
+                          () => {
+                            alert('Unable to get your location. Please enter the address manually.');
+                          }
+                        );
+                      } else {
+                        alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                      }
+                    }}
+                    className="absolute right-3 top-9 text-text-dark-60 hover:text-shortcut-blue transition-colors"
+                    title="Use current location"
+                  >
+                    📍
+                  </button>
+                  <p className="text-xs text-text-dark-60 mt-2">
+                    Enter the office address or click the location icon to use your current location
+                  </p>
+                </div>
               </div>
             </div>
-            <p className="text-xs text-gray-500">
-              Enter the office address or click the location icon to use your current location
-            </p>
           </div>
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
+      <main className="max-w-7xl mx-auto py-6 px-4" id="proposal-content">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-              {displayData.clientLogoUrl ? (
-                <div className="flex justify-start mb-6">
-                  <img
-                    src={displayData.clientLogoUrl}
-                    alt={`${displayData.clientName} Logo`}
-                    className="max-h-24 max-w-full object-contain rounded shadow-sm"
-                    style={{ maxWidth: '300px' }}
-                    onError={(e) => {
-                      console.error('Logo failed to load:', displayData.clientLogoUrl);
-                      // Fallback to client name if logo fails to load
-                      e.currentTarget.style.display = 'none';
-                      const fallbackElement = e.currentTarget.nextElementSibling;
-                      if (fallbackElement) {
-                        (fallbackElement as HTMLElement).style.display = 'block';
-                      }
-                    }}
-                  />
-                  <h2 className="text-3xl font-bold text-shortcut-blue mb-4 hidden">
+            {/* Summary-First Layout - Key Metrics at Top */}
+            <div className="card-large mb-8">
+              <div className="mb-8">
+                {displayData.clientLogoUrl ? (
+                  <div className="flex justify-start mb-6">
+                    <img
+                      src={displayData.clientLogoUrl}
+                      alt={`${displayData.clientName} Logo`}
+                      className="max-h-20 max-w-full object-contain rounded shadow-sm"
+                      style={{ maxWidth: '300px' }}
+                      onError={(e) => {
+                        console.error('Logo failed to load:', displayData.clientLogoUrl);
+                        e.currentTarget.style.display = 'none';
+                        const fallbackElement = e.currentTarget.nextElementSibling;
+                        if (fallbackElement) {
+                          (fallbackElement as HTMLElement).style.display = 'block';
+                        }
+                      }}
+                    />
+                    <h1 className="h1 mb-4 hidden">
+                      {displayData.clientName}
+                    </h1>
+                  </div>
+                ) : (
+                  <h1 className="h1 mb-6">
                     {displayData.clientName}
-                  </h2>
-                </div>
-              ) : (
-                <h2 className="text-3xl font-bold text-shortcut-blue mb-6">
-                  {displayData.clientName}
-                </h2>
-              )}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-600 mb-2">Event Dates</p>
-                  <p className="text-lg font-medium text-gray-900">
+                  </h1>
+                )}
+                
+                {/* Note from Shortcut - Clean, readable design */}
+                {(displayData.customization?.customNote || isEditing) && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <h3 className="text-lg font-extrabold text-shortcut-blue mb-3">Note from Shortcut</h3>
+                    {isEditing ? (
+                      <textarea
+                        value={editedData?.customization?.customNote || ''}
+                        onChange={(e) => {
+                          const updatedData = { ...editedData };
+                          if (!updatedData.customization) {
+                            updatedData.customization = {};
+                          }
+                          updatedData.customization.customNote = e.target.value;
+                          setEditedData(updatedData);
+                        }}
+                        placeholder="Enter a note for the client..."
+                        className="w-full min-h-[100px] p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y font-medium text-base text-text-dark leading-relaxed"
+                      />
+                    ) : (
+                      <p className="text-base text-text-dark leading-relaxed font-medium">
+                        {displayData.customization?.customNote?.replace('above', 'below') || ''}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Key Metrics Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
+                <div>
+                  <p className="text-sm font-bold text-shortcut-blue mb-1">Event Dates</p>
+                  <p className="text-base font-medium text-text-dark">
                     {Array.isArray(displayData.eventDates) ? 
                       displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
                       'No dates available'
                     }
                   </p>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-600 mb-2">Locations</p>
-                  <p className="text-lg font-medium text-gray-900">{displayData.locations?.join(', ') || 'No locations available'}</p>
+                <div>
+                  <p className="text-sm font-bold text-shortcut-blue mb-1">Locations</p>
+                  <p className="text-base font-medium text-text-dark">{displayData.locations?.join(', ') || 'No locations available'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
+                  <p className="text-base font-medium text-text-dark">{displayData.summary?.totalAppointments || 0}</p>
                 </div>
                 {displayData.officeLocation && (
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 md:col-span-2">
-                    <p className="text-sm font-semibold text-gray-600 mb-2">Office Location</p>
-                    <p className="text-lg font-medium text-gray-900">{displayData.officeLocation}</p>
+                  <div className="md:col-span-3">
+                    <p className="text-sm font-bold text-shortcut-blue mb-1">Office Location</p>
+                    <p className="text-base font-medium text-text-dark">{displayData.officeLocation}</p>
                   </div>
                 )}
               </div>
@@ -1153,45 +1186,19 @@ The Shortcut Team`);
 
             <div className="space-y-8">
               {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-                <div key={location} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                  <div className="px-6 py-4 flex justify-between items-center bg-gray-50 border-b border-gray-200">
-                    <button
-                      onClick={() => toggleLocation(location)}
-                      className="flex-1 flex items-center justify-between hover:bg-gray-200/50 transition-colors rounded-lg px-2 py-1"
-                    >
-                      <h2 className="text-2xl font-bold text-shortcut-blue">
-                        {location}
-                      </h2>
-                      {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
-                    {!showingOriginal && !isSharedView && (
-                      <div className="ml-4">
-                        {isEditing ? (
-                          <Button
-                            onClick={handleSaveChanges}
-                            variant="primary"
-                            size="sm"
-                            icon={<Save size={16} />}
-                            loading={isSavingChanges}
-                          >
-                            {isSavingChanges ? 'Saving...' : 'Save'}
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={toggleEditMode}
-                            variant="secondary"
-                            size="sm"
-                            icon={<Edit size={16} />}
-                          >
-                            Edit
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                <div key={location} className="card-large">
+                  <button
+                    onClick={() => toggleLocation(location)}
+                    className="w-full flex justify-between items-center mb-6 hover:opacity-80 transition-opacity"
+                  >
+                    <h2 className="text-2xl font-extrabold text-shortcut-blue">
+                      {location}
+                    </h2>
+                    {expandedLocations[location] ? <ChevronUp size={24} className="text-shortcut-blue" /> : <ChevronDown size={24} className="text-shortcut-blue" />}
+                  </button>
                   
                   {expandedLocations[location] && (
-                    <div className="p-8 space-y-8">
+                    <div className="pt-6 border-t border-gray-200 space-y-6">
                       {Object.entries(locationData)
                         .sort(([dateA], [dateB]) => {
                           // Handle TBD dates - put them at the end
@@ -1203,44 +1210,44 @@ The Shortcut Team`);
                           return new Date(dateA).getTime() - new Date(dateB).getTime();
                         })
                         .map(([date, dateData]: [string, any], dateIndex: number) => (
-                          <div key={date} className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-sm">
+                          <div key={date} className="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
                             <button
                               onClick={() => toggleDate(date)}
-                              className="w-full px-6 py-4 flex justify-between items-center bg-shortcut-blue/10 hover:bg-shortcut-blue/20 transition-colors border-b border-gray-200"
+                              className="w-full px-6 py-4 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors border-b border-gray-200"
                             >
-                              <h3 className="text-xl font-bold text-shortcut-blue">
+                              <h3 className="text-lg font-extrabold text-shortcut-blue">
                                 Day {dateIndex + 1} - {formatDate(date)}
                               </h3>
-                              {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              {expandedDates[date] ? <ChevronUp size={16} className="text-shortcut-blue" /> : <ChevronDown size={16} className="text-shortcut-blue" />}
                             </button>
 
                             {expandedDates[date] && (
-                              <div className="p-8 bg-gray-50">
+                              <div className="p-6 bg-white">
                                 {dateData.services.map((service: any, serviceIndex: number) => (
                                   <div 
                                     key={serviceIndex} 
-                                    className="bg-white rounded-xl p-6 mb-6 shadow-sm border-2 border-gray-200"
+                                    className="card-small mb-6"
                                   >
-                                    <h4 className="text-xl font-bold text-shortcut-blue mb-4 flex items-center">
+                                    <h4 className="text-lg font-extrabold text-shortcut-blue mb-4 flex items-center">
                                       <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
                                       Service Type: {getServiceDisplayName(service.serviceType)}
                                     </h4>
                                     
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (
-                                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                        <p className="text-gray-700 text-sm leading-relaxed">
+                                      <div className="mb-4 p-4 bg-white rounded-lg border-2 border-shortcut-teal shadow-sm">
+                                        <p className="text-text-dark text-sm leading-relaxed">
                                           {getServiceDescription(service)}
                                         </p>
                                         {service.serviceType === 'mindfulness' && (
                                           <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                                             <div>
-                                              <span className="font-semibold text-gray-700">Event Time:</span>
-                                              <span className="ml-2 text-gray-600">{service.classLength || 60} Min</span>
+                                              <span className="font-bold text-shortcut-navy-blue">Event Time:</span>
+                                              <span className="ml-2 text-text-dark">{service.classLength || 60} Min</span>
                                             </div>
                                             <div>
-                                              <span className="font-semibold text-gray-700">Participants:</span>
-                                              <span className="ml-2 text-gray-600">
+                                              <span className="font-bold text-shortcut-navy-blue">Participants:</span>
+                                              <span className="ml-2 text-text-dark">
                                                 {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
                                               </span>
                                             </div>
@@ -1248,19 +1255,19 @@ The Shortcut Team`);
                                         )}
                                         {service.serviceType === 'massage' && service.massageType && (
                                           <div className="mt-3 text-sm">
-                                            <span className="font-semibold text-gray-700">Massage Type:</span>
+                                            <span className="font-bold text-shortcut-navy-blue">Massage Type:</span>
                                             {isEditing ? (
                                               <select
                                                 value={service.massageType}
                                                 onChange={(e) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'massageType'], e.target.value)}
-                                                className="ml-2 px-2 py-1 border border-gray-300 rounded text-sm"
+                                                className="ml-2 px-2 py-1 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                                               >
                                                 <option value="massage">General Massage</option>
                                                 <option value="chair">Chair Massage</option>
                                                 <option value="table">Table Massage</option>
                                               </select>
                                             ) : (
-                                              <span className="ml-2 text-gray-600 capitalize">{service.massageType}</span>
+                                              <span className="ml-2 text-text-dark capitalize">{service.massageType}</span>
                                             )}
                                           </div>
                                         )}
@@ -1269,71 +1276,10 @@ The Shortcut Team`);
                                     
                                     <div className="grid gap-0">
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Service Date:</span>
-                                        <div className="font-semibold">
-                                          {isEditing ? (
-                                            <div className="flex items-center gap-3">
-                                              <input
-                                                type="date"
-                                                value={formatDateForInput(date)}
-                                                onChange={(e) => {
-                                                  // Prevent clearing the date - if empty, keep the current date
-                                                  if (!e.target.value) {
-                                                    return;
-                                                  }
-                                                  handleDateChange(['services', location, date, serviceIndex], e.target.value);
-                                                }}
-                                                disabled={date === 'TBD'}
-                                                className={`px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue ${
-                                                  date === 'TBD' ? 'bg-gray-100 text-gray-500' : ''
-                                                }`}
-                                              />
-                                              <label className="flex items-center gap-2 text-sm text-gray-700">
-                                                <input
-                                                  type="checkbox"
-                                                  checked={date === 'TBD'}
-                                                  onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                      handleDateChange(['services', location, date, serviceIndex], 'TBD');
-                                                    } else {
-                                                      // When unchecking TBD, set to today's date as default
-                                                      const today = new Date().toISOString().split('T')[0];
-                                                      handleDateChange(['services', location, date, serviceIndex], today);
-                                                    }
-                                                  }}
-                                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                />
-                                                TBD
-                                              </label>
-                                              {date !== 'TBD' && (
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    handleDateChange(['services', location, date, serviceIndex], 'TBD');
-                                                  }}
-                                                  className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors z-50 relative cursor-pointer"
-                                                  style={{ 
-                                                    pointerEvents: 'auto',
-                                                    position: 'relative',
-                                                    zIndex: 9999
-                                                  }}
-                                                >
-                                                  Set TBD
-                                                </button>
-                                              )}
-                                            </div>
-                                          ) : (
-                                            formatDate(date)
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Total Hours:</span>
-                                        <div className="font-semibold">
+                                        <span className="text-base font-bold text-shortcut-blue">Total Hours:</span>
+                                        <div className="font-bold text-text-dark">
                                           <EditableField
-                                            value={String(service.totalHours ?? 0)}
+                                            value={String(service.totalHours || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
@@ -1342,8 +1288,27 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Appointment Time:</span>
-                                        <div className="font-semibold">
+                                        <span className="text-base font-bold text-shortcut-blue">Number of Professionals:</span>
+                                        <div className="font-bold text-text-dark">
+                                          <EditableField
+                                            value={String(service.numPros || 0)}
+                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
+                                            isEditing={isEditing}
+                                            type="number"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base font-bold text-shortcut-blue">Total Appointments:</span>
+                                        <span className="font-bold text-text-dark">{service.totalAppointments}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base font-bold text-shortcut-blue">Service Cost:</span>
+                                        <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-base font-bold text-shortcut-blue">Appointment Time:</span>
+                                        <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.appTime ?? 20)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'appTime'], typeof value === 'string' ? parseFloat(value) || 20 : value)}
@@ -1354,19 +1319,8 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Number of Professionals:</span>
-                                        <div className="font-semibold">
-                                          <EditableField
-                                            value={String(service.numPros ?? 1)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 1 : value)}
-                                            isEditing={isEditing}
-                                            type="number"
-                                          />
-                                        </div>
-                                      </div>
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Professional Hourly Rate:</span>
-                                        <div className="font-semibold">
+                                        <span className="text-base font-bold text-shortcut-blue">Professional Hourly Rate:</span>
+                                        <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.proHourly ?? 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'proHourly'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -1377,8 +1331,8 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Service Hourly Rate:</span>
-                                        <div className="font-semibold">
+                                        <span className="text-base font-bold text-shortcut-blue">Service Hourly Rate:</span>
+                                        <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.hourlyRate ?? 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'hourlyRate'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -1389,8 +1343,8 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Early Arrival Fee:</span>
-                                        <div className="font-semibold">
+                                        <span className="text-base font-bold text-shortcut-blue">Early Arrival Fee:</span>
+                                        <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.earlyArrival ?? 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'earlyArrival'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -1402,8 +1356,8 @@ The Shortcut Team`);
                                       </div>
                                       {service.serviceType === 'headshot' && (
                                         <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                          <span className="text-base text-gray-700">Retouching Cost per Photo:</span>
-                                          <div className="font-semibold">
+                                          <span className="text-base font-bold text-shortcut-blue">Retouching Cost per Photo:</span>
+                                          <div className="font-bold text-text-dark">
                                             <EditableField
                                               value={String(service.retouchingCost ?? 0)}
                                               onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'retouchingCost'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -1415,8 +1369,8 @@ The Shortcut Team`);
                                         </div>
                                       )}
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Discount Percentage:</span>
-                                        <div className="font-semibold">
+                                        <span className="text-base font-bold text-shortcut-blue">Discount Percentage:</span>
+                                        <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.discountPercent ?? 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'discountPercent'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -1426,20 +1380,12 @@ The Shortcut Team`);
                                           />
                                         </div>
                                       </div>
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Total Appointments:</span>
-                                        <span className="font-semibold">{service.totalAppointments}</span>
-                                      </div>
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base text-gray-700">Service Cost:</span>
-                                        <span className="font-semibold">${formatCurrency(service.serviceCost)}</span>
-                                      </div>
                                       
                                       {/* Add Options Button */}
                                       {isEditing && !isSharedView && (!service.pricingOptions || service.pricingOptions.length === 0) && (
                                         <div className="mt-4 pt-4 border-t-2 border-gray-200">
                                           <div className="flex items-center justify-between">
-                                            <span className="text-base text-gray-700">Pricing Options:</span>
+                                            <span className="text-base font-bold text-shortcut-blue">Pricing Options:</span>
                                             <button
                                               onClick={() => {
                                                 const pricingOptions = generatePricingOptionsForService(service);
@@ -1447,7 +1393,7 @@ The Shortcut Team`);
                                                 handleFieldChange(['services', location, date, 'services', serviceIndex, 'selectedOption'], 0);
                                                 handleFieldChange(['hasPricingOptions'], true);
                                               }}
-                                              className="px-4 py-2 bg-shortcut-blue text-white hover:bg-shortcut-dark-blue rounded-md font-medium transition-colors"
+                                              className="px-4 py-2 bg-shortcut-navy-blue text-white hover:bg-shortcut-dark-blue rounded-md font-medium transition-colors"
                                             >
                                               Add Options
                                             </button>
@@ -1457,7 +1403,7 @@ The Shortcut Team`);
                                       
                                       {/* Pricing Options Section */}
                                       {displayData.hasPricingOptions && service.pricingOptions && service.pricingOptions.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t-2 border-shortcut-blue/20">
+                                        <div className="mt-4 pt-4 border-t-2 border-shortcut-navy-blue border-opacity-20">
                                           <h5 className="text-lg font-bold text-shortcut-blue mb-3 flex items-center">
                                             <span className="w-2 h-2 rounded-full bg-shortcut-teal mr-2"></span>
                                             Pricing Options
@@ -1468,16 +1414,16 @@ The Shortcut Team`);
                                                 key={optionIndex}
                                                 className={`p-4 rounded-lg border-2 transition-all ${
                                                   service.selectedOption === optionIndex
-                                                    ? 'border-shortcut-blue bg-shortcut-blue/5'
-                                                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                                    ? 'border-shortcut-navy-blue bg-shortcut-navy-blue bg-opacity-5'
+                                                    : 'border-gray-200 bg-neutral-light-gray hover:border-shortcut-teal'
                                                 }`}
                                               >
                                                 <div className="flex justify-between items-start mb-2">
                                                   <div className="flex-1">
-                                                    <h6 className="font-semibold text-gray-900">
+                                                    <h6 className="font-extrabold text-shortcut-blue">
                                                       Option {optionIndex + 1}
                                                     </h6>
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-sm text-text-dark-60">
                                                       {option.totalAppointments} appointments
                                                     </p>
                                                   </div>
@@ -1486,7 +1432,7 @@ The Shortcut Team`);
                                                       ${formatCurrency(option.serviceCost)}
                                                     </div>
                                                     {service.selectedOption === optionIndex && (
-                                                      <div className="text-xs text-shortcut-teal font-semibold">
+                                                      <div className="text-xs text-shortcut-navy-blue font-semibold">
                                                         SELECTED
                                                       </div>
                                                     )}
@@ -1498,7 +1444,7 @@ The Shortcut Team`);
                                                   <div className="mt-3 space-y-2 border-t pt-3">
                                                     <div className="grid grid-cols-2 gap-2">
                                                       <div>
-                                                        <label className="text-xs text-gray-600">Total Hours:</label>
+                                                        <label className="text-xs font-bold text-shortcut-blue">Total Hours:</label>
                                                         <EditableField
                                                           value={String(option.totalHours || service.totalHours)}
                                                           onChange={(value) => handleFieldChange(
@@ -1510,7 +1456,7 @@ The Shortcut Team`);
                                                         />
                                                       </div>
                                                       <div>
-                                                        <label className="text-xs text-gray-600">Hourly Rate:</label>
+                                                        <label className="text-xs font-bold text-shortcut-blue">Hourly Rate:</label>
                                                         <EditableField
                                                           value={String(option.hourlyRate || service.hourlyRate)}
                                                           onChange={(value) => handleFieldChange(
@@ -1524,7 +1470,7 @@ The Shortcut Team`);
                                                       </div>
                                                     </div>
                                                     <div>
-                                                      <label className="text-xs text-gray-600">Number of Pros:</label>
+                                                      <label className="text-xs font-bold text-shortcut-blue">Number of Pros:</label>
                                                       <EditableField
                                                         value={String(option.numPros || service.numPros || 1)}
                                                         onChange={(value) => handleFieldChange(
@@ -1550,8 +1496,8 @@ The Shortcut Team`);
                                                       }}
                                                       className={`px-3 py-1 text-sm rounded-md transition-colors ${
                                                         service.selectedOption === optionIndex
-                                                          ? 'bg-shortcut-blue text-white'
-                                                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                          ? 'bg-shortcut-navy-blue text-white'
+                                                          : 'bg-neutral-light-gray text-shortcut-navy-blue hover:bg-neutral-gray'
                                                       }`}
                                                     >
                                                       {service.selectedOption === optionIndex ? 'Selected' : 'Select'}
@@ -1605,7 +1551,7 @@ The Shortcut Team`);
                                                    newPricingOptions
                                                  );
                                                }}
-                                               className="mt-3 w-full px-4 py-2 bg-shortcut-blue/10 text-shortcut-blue border border-shortcut-blue/20 rounded-md hover:bg-shortcut-blue/20 transition-colors font-medium"
+                                               className="mt-3 w-full px-4 py-2 bg-shortcut-navy-blue bg-opacity-10 text-shortcut-navy-blue border border-shortcut-navy-blue border-opacity-20 rounded-md hover:bg-shortcut-navy-blue hover:bg-opacity-20 transition-colors font-medium"
                                              >
                                                + Add New Option
                                              </button>
@@ -1616,16 +1562,16 @@ The Shortcut Team`);
                                   </div>
                                 ))}
 
-                                <div className="bg-shortcut-blue rounded-xl p-6 text-white">
-                                  <h4 className="text-lg font-bold mb-3">Day {dateIndex + 1} Summary</h4>
-                                  <div className="grid gap-3">
-                                    <div className="flex justify-between items-center py-2 border-b border-white/20">
-                                      <span className="font-semibold">Total Appointments:</span>
-                                      <span className="font-bold text-lg">{dateData.totalAppointments || 0}</span>
+                                <div className="mt-6 bg-white rounded-xl p-6 border-2 border-shortcut-navy-blue shadow-md">
+                                  <h4 className="text-xl font-extrabold mb-4 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
+                                      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Appointments</div>
+                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments || 0}</div>
                                     </div>
-                                    <div className="flex justify-between items-center py-2">
-                                      <span className="font-semibold">Total Cost:</span>
-                                      <span className="font-bold text-lg">${formatCurrency(dateData.totalCost || 0)}</span>
+                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
+                                      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
+                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -1647,18 +1593,18 @@ The Shortcut Team`);
             {(() => {
               const uniqueServiceTypes = getUniqueServiceTypes(displayData);
               return uniqueServiceTypes.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                  <div className="relative">
-                                      <div className="aspect-[4/3] relative overflow-hidden rounded-t-2xl">
-                    <img
-                      src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
-                      alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
-                      className="w-full h-full object-cover transition-opacity duration-500"
-                      onError={(e) => {
-                        console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
+                <div className="card-large overflow-hidden p-0">
+                  <div className="relative flex flex-col">
+                    <div className="w-full aspect-[4/3] relative overflow-hidden">
+                      <img
+                        src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
+                        alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
+                        className="w-full h-full object-cover transition-opacity duration-500"
+                        onError={(e) => {
+                          console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
                       {uniqueServiceTypes.length > 1 && (
                         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                           {uniqueServiceTypes.map((_, index) => (
@@ -1675,7 +1621,7 @@ The Shortcut Team`);
                         </div>
                       )}
                     </div>
-                    <div className="p-4 bg-shortcut-blue">
+                    <div className="p-4 bg-shortcut-navy-blue rounded-b-2xl">
                       <h3 className="text-lg font-bold text-white text-center">
                         {uniqueServiceTypes.length === 1 
                           ? getServiceDisplayName(uniqueServiceTypes[0])
@@ -1701,41 +1647,30 @@ The Shortcut Team`);
               />
             ))}
 
-            <div className="bg-shortcut-blue text-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-3xl font-bold mb-6 text-white">Event Summary</h2>
+            <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
+              <h2 className="text-xl font-extrabold mb-6 text-white">Event Summary</h2>
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Total Appointments:</span>
-                  <span className="font-semibold">{displayData.summary?.totalAppointments}</span>
+                <div className="flex justify-between items-center py-3 border-b border-white/20">
+                  <span className="font-semibold">Total Appointments:</span>
+                  <span className="font-bold text-lg">{displayData.summary?.totalAppointments}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Total Event Cost:</span>
-                  <span className="font-semibold">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Professional Revenue:</span>
-                  <span className="font-semibold">${formatCurrency(displayData.summary?.totalProRevenue || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Net Profit:</span>
-                  <span className="font-semibold">${formatCurrency(displayData.summary?.netProfit || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span>Profit Margin:</span>
-                  <span className="font-semibold">{displayData.summary?.profitMargin.toFixed(1)}%</span>
+                <div className="flex justify-between items-center py-3">
+                  <span className="font-semibold">Total Event Cost:</span>
+                  <span className="font-bold text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-shortcut-blue">Notes</h2>
+            <div className="card-large">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+                <h2 className="text-xl font-extrabold text-shortcut-blue">Notes</h2>
                 {notes && (
                   <Button
                     onClick={handleSaveNotes}
                     disabled={isSavingNotes}
                     variant="primary"
                     icon={<Save size={18} />}
+                    className="w-full sm:w-auto"
                   >
                     {isSavingNotes ? 'Saving...' : 'Save Notes'}
                   </Button>
@@ -1745,7 +1680,7 @@ The Shortcut Team`);
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any notes or comments about the proposal here..."
-                className="w-full h-32 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+                className="w-full min-h-[120px] p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y font-medium"
               />
             </div>
           </div>
@@ -1753,9 +1688,9 @@ The Shortcut Team`);
 
         {/* Change History Section */}
         {changeSets.length > 0 && (
-          <div className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+          <div className="mt-8 card-large">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              <h2 className="h2 flex items-center">
                 <HistoryIcon size={24} className="mr-3 text-shortcut-blue" />
                 Change History
               </h2>
@@ -1771,28 +1706,28 @@ The Shortcut Team`);
             {showChangeHistory && (
               <div className="space-y-4">
                 {changeSets.map((changeSet, index) => (
-                  <div key={changeSet.id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={changeSet.id} className="card-small">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-2">
-                          <User size={16} className="text-gray-500" />
-                          <span className="font-medium">{changeSet.clientName || 'Unknown Client'}</span>
+                          <User size={16} className="text-text-dark-60" />
+                          <span className="font-bold text-shortcut-blue">{changeSet.clientName || 'Unknown Client'}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Mail size={16} className="text-gray-500" />
-                          <span className="text-sm text-gray-600">{changeSet.clientEmail || 'No email'}</span>
+                          <Mail size={16} className="text-text-dark-60" />
+                          <span className="text-sm text-text-dark-60">{changeSet.clientEmail || 'No email'}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Calendar size={16} className="text-gray-500" />
-                          <span className="text-sm text-gray-600">
+                          <Calendar size={16} className="text-text-dark-60" />
+                          <span className="text-sm text-text-dark-60">
                             {new Date(changeSet.submittedAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          changeSet.status === 'pending' ? 'bg-orange-100 text-orange-800' :
-                          changeSet.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          changeSet.status === 'pending' ? 'bg-accent-yellow bg-opacity-20 text-shortcut-dark-blue' :
+                          changeSet.status === 'approved' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
                           'bg-red-100 text-red-800'
                         }`}>
                           {changeSet.status === 'pending' ? 'Pending' :
@@ -1802,22 +1737,22 @@ The Shortcut Team`);
                     </div>
 
                     {changeSet.clientComment && (
-                      <div className="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
-                        <p className="text-sm text-blue-800">
+                      <div className="mb-3 p-3 bg-shortcut-light-blue rounded border-l-4 border-shortcut-teal">
+                        <p className="text-sm text-shortcut-dark-blue">
                           <strong>Client Comment:</strong> {changeSet.clientComment}
                         </p>
                       </div>
                     )}
 
                     {changeSet.adminComment && (
-                      <div className="mb-3 p-3 bg-gray-50 rounded border-l-4 border-gray-400">
-                        <p className="text-sm text-gray-800">
+                      <div className="mb-3 p-3 bg-neutral-light-gray rounded border-l-4 border-shortcut-navy-blue">
+                        <p className="text-sm text-text-dark">
                           <strong>Admin Comment:</strong> {changeSet.adminComment}
                         </p>
                       </div>
                     )}
 
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-text-dark-60">
                       <strong>Changes:</strong> {changeSet.changes.length} modification(s) submitted
                     </div>
                   </div>
@@ -1831,12 +1766,12 @@ The Shortcut Team`);
       {/* Send to Client Modal */}
       {showSendToClientModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+          <div className="card-large max-w-md w-full mx-4">
+            <h3 className="h2 mb-4">
               Send Proposal to Client
             </h3>
             <div className="mb-4">
-              <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="clientName" className="block text-sm font-bold text-shortcut-blue mb-1">
                 Client Name
               </label>
               <input
@@ -1844,11 +1779,11 @@ The Shortcut Team`);
                 id="clientName"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#175071]"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="clientEmail" className="block text-sm font-bold text-shortcut-blue mb-1">
                 Client Email
               </label>
               <input
@@ -1856,11 +1791,11 @@ The Shortcut Team`);
                 id="clientEmail"
                 value={clientEmail}
                 onChange={(e) => setClientEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#175071]"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="shareNote" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="shareNote" className="block text-sm font-bold text-shortcut-blue mb-1">
                 Custom Message (Optional)
               </label>
               <textarea
@@ -1868,7 +1803,7 @@ The Shortcut Team`);
                 value={shareNote}
                 onChange={(e) => setShareNote(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#175071]"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               />
             </div>
             <div className="flex gap-4">
@@ -1882,7 +1817,7 @@ The Shortcut Team`);
               <Button
                 onClick={handleSendToClient}
                 variant="primary"
-                className="flex-1 bg-shortcut-blue hover:bg-shortcut-dark-blue text-white"
+                className="flex-1 bg-shortcut-navy-blue hover:bg-shortcut-dark-blue text-white"
                 loading={isSharing}
               >
                 {isSharing ? 'Sending...' : 'Send Proposal'}

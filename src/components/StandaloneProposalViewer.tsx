@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Mail, AlertCircle, Clock, CheckCircle, XCircle, User, Calendar } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Mail, AlertCircle, Clock, CheckCircle, XCircle, User, Calendar, FileText, HelpCircle, Info } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -12,11 +12,13 @@ import { format } from 'date-fns';
 import { generatePDF } from '../utils/pdf';
 import { Button } from './Button';
 import InstructionalScroller from './InstructionalScroller';
+import InstructionCard from './InstructionCard';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
 import ChangeConfirmationModal from './ChangeConfirmationModal';
 import { trackProposalChanges, createChangeSet } from '../utils/changeTracker';
 import { ProposalChangeSet, ProposalChange } from '../types/proposal';
+import ProposalSurveyForm from './ProposalSurveyForm';
 
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -196,6 +198,9 @@ export const StandaloneProposalViewer: React.FC = () => {
   const [clientComment, setClientComment] = useState('');
   const [isSubmittingChanges, setIsSubmittingChanges] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasSurveyResponse, setHasSurveyResponse] = useState(false);
+  const [showSurveyCTA, setShowSurveyCTA] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   usePageTitle('View Proposal');
 
@@ -336,22 +341,15 @@ export const StandaloneProposalViewer: React.FC = () => {
     fetchProposal();
     fetchChangeSets();
 
-    // Set up periodic refresh every 30s to catch updates
+    // Set up periodic refresh every 5 minutes to catch updates (only when needed)
+    // Removed aggressive focus refresh to prevent constant refreshing
     const refreshInterval = setInterval(() => {
       fetchProposal();
       fetchChangeSets();
-    }, 120000); // Changed from 30000 to 120000 (2 minutes)
-
-    // Refresh when window regains focus (in case user switches tabs)
-    const handleFocus = () => {
-      fetchProposal();
-    };
-
-    window.addEventListener('focus', handleFocus);
+    }, 300000); // 5 minutes - less aggressive refresh
 
     return () => {
       clearInterval(refreshInterval);
-      window.removeEventListener('focus', handleFocus);
     };
   }, [id]);
 
@@ -648,6 +646,14 @@ export const StandaloneProposalViewer: React.FC = () => {
 
       setShowApprovalSuccess(true);
       setTimeout(() => setShowApprovalSuccess(false), 5000);
+
+      // Scroll to survey form after a short delay
+      setTimeout(() => {
+        const surveyElement = document.getElementById('proposal-survey-form');
+        if (surveyElement) {
+          surveyElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 1000);
     } catch (err) {
       console.error('Error approving proposal:', err);
       alert('Failed to approve proposal. Please try again.');
@@ -669,6 +675,57 @@ export const StandaloneProposalViewer: React.FC = () => {
       [date]: !prev[date]
     }));
   };
+
+  // Check if survey response exists
+  const checkSurveyResponse = async () => {
+    if (!id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('proposal_survey_responses')
+        .select('id')
+        .eq('proposal_id', id)
+        .single();
+
+      if (error) {
+        // PGRST116 = no rows returned (this is expected if no survey exists yet)
+        // PGRST301 = relation does not exist (table hasn't been created yet)
+        if (error.code === 'PGRST116') {
+          // No survey exists yet, this is fine
+          setHasSurveyResponse(false);
+          if (proposal?.status === 'approved') {
+            setShowSurveyCTA(true);
+          }
+          return;
+        }
+        if (error.code === 'PGRST301' || error.message?.includes('does not exist')) {
+          console.warn('Survey table does not exist. Migration may not have been applied yet.');
+          // Don't show CTA if table doesn't exist
+          setShowSurveyCTA(false);
+          return;
+        }
+        console.error('Error checking survey response:', error);
+        return;
+      }
+
+      setHasSurveyResponse(!!data);
+      // Show CTA if approved but no survey response
+      if (proposal?.status === 'approved' && !data) {
+        setShowSurveyCTA(true);
+      } else {
+        setShowSurveyCTA(false);
+      }
+    } catch (err) {
+      console.error('Error checking survey response:', err);
+    }
+  };
+
+  // Check survey when proposal status changes or proposal loads
+  useEffect(() => {
+    if (proposal?.status === 'approved' && id) {
+      checkSurveyResponse();
+    }
+  }, [proposal?.status, id, proposal]);
 
   // Auto-rotate service images
   useEffect(() => {
@@ -694,10 +751,10 @@ export const StandaloneProposalViewer: React.FC = () => {
 
   if (error || !displayData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Error Loading Proposal</h2>
-          <p className="text-gray-600 mb-6">{error || 'No proposal data available'}</p>
+      <div className="min-h-screen bg-neutral-light-gray flex items-center justify-center p-4">
+        <div className="card-medium max-w-md w-full text-center">
+          <h2 className="h2 mb-4">Error Loading Proposal</h2>
+          <p className="text-text-dark-60 mb-6">{error || 'No proposal data available'}</p>
           <Button
             onClick={() => navigate(config.app.routes.home)}
             variant="primary"
@@ -712,7 +769,7 @@ export const StandaloneProposalViewer: React.FC = () => {
   const uniqueServiceTypes = getUniqueServiceTypes(displayData);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-neutral-light-gray">
       {showUpdateIndicator && (
         <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
           <div className="bg-green-500 text-white px-4 py-2 rounded-b-lg shadow-md mt-0 text-center text-sm">
@@ -720,7 +777,31 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
         </div>
       )}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+      {showSurveyCTA && proposal?.status === 'approved' && !hasSurveyResponse && (
+        <div className="fixed top-0 left-0 w-full z-50 bg-blue-600 text-white px-4 py-3 shadow-lg">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5" />
+              <div>
+                <p className="font-semibold">Complete the Event Details Survey</p>
+                <p className="text-sm text-blue-100">Please fill out the survey below to help us prepare for your event</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const surveyElement = document.getElementById('proposal-survey-form');
+                if (surveyElement) {
+                  surveyElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+            >
+              Go to Survey ↓
+            </button>
+          </div>
+        </div>
+      )}
+      <header className={`bg-white shadow-sm sticky ${showSurveyCTA ? 'top-16' : 'top-0'} z-40 rounded-b-3xl`}>
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -750,6 +831,14 @@ export const StandaloneProposalViewer: React.FC = () => {
               )}
 
               <div className="flex gap-4">
+                <button
+                  onClick={() => setShowHelpModal(true)}
+                  className="p-2 rounded-lg hover:bg-neutral-light-gray transition-colors"
+                  aria-label="How to edit this proposal"
+                  title="How to edit this proposal"
+                >
+                  <HelpCircle size={20} className="text-shortcut-blue" />
+                </button>
                 {proposal?.status === 'approved' ? (
                   <div className="flex items-center text-green-600 bg-green-50 px-4 rounded-lg border border-green-200">
                     <CheckCircle2 size={18} className="mr-2" />
@@ -758,10 +847,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                 ) : (
                   <Button
                     onClick={() => setShowApprovalConfirm(true)}
-                    variant="primary"
+                    variant="green"
                     icon={<Check size={18} />}
                     loading={isApproving}
-                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     {isApproving ? 'Approving...' : 'Approve Proposal'}
                   </Button>
@@ -814,102 +902,94 @@ export const StandaloneProposalViewer: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto py-12 px-4" id="proposal-content">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-12">
-
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-              {displayData.clientLogoUrl ? (
-                <div className="flex justify-start mb-6">
-                  <img
-                    src={displayData.clientLogoUrl}
-                    alt={`${displayData.clientName} Logo`}
-                    className="max-h-24 max-w-full object-contain rounded shadow-sm"
-                    style={{ maxWidth: '300px' }}
-                    onError={(e) => {
-                      console.error('Logo failed to load:', displayData.clientLogoUrl);
-                      // Fallback to client name if logo fails to load
-                      e.currentTarget.style.display = 'none';
-                      const fallbackElement = e.currentTarget.nextElementSibling;
-                      if (fallbackElement) {
-                        (fallbackElement as HTMLElement).style.display = 'block';
-                      }
-                    }}
-                  />
-                  <h2 className="text-3xl font-bold text-shortcut-blue mb-4 hidden">
-                    {displayData.clientName}
-                  </h2>
-                </div>
-              ) : (
-                <h2 className="text-3xl font-bold text-shortcut-blue mb-6">
-                  {displayData.clientName}
-                </h2>
-              )}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-600 mb-2">Event Dates</p>
-                  <p className="text-lg font-medium text-gray-900">
-                    {Array.isArray(displayData.eventDates) ? 
-                      displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
-                      'No dates available'
+        {/* Summary-First Layout - Key Metrics at Top */}
+        <div className="card-large mb-8">
+          <div className="mb-8">
+            {displayData.clientLogoUrl ? (
+              <div className="flex justify-start mb-6">
+                <img
+                  src={displayData.clientLogoUrl}
+                  alt={`${displayData.clientName} Logo`}
+                  className="max-h-20 max-w-full object-contain rounded shadow-sm"
+                  style={{ maxWidth: '300px' }}
+                  onError={(e) => {
+                    console.error('Logo failed to load:', displayData.clientLogoUrl);
+                    e.currentTarget.style.display = 'none';
+                    const fallbackElement = e.currentTarget.nextElementSibling;
+                    if (fallbackElement) {
+                      (fallbackElement as HTMLElement).style.display = 'block';
                     }
-                  </p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-600 mb-2">Locations</p>
-                  <p className="text-lg font-medium text-gray-900">{displayData.locations?.join(', ') || 'No locations available'}</p>
-                </div>
-                {displayData.officeLocation && (
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 md:col-span-2">
-                    <p className="text-sm font-semibold text-gray-600 mb-2">Office Location</p>
-                    <p className="text-lg font-medium text-gray-900">{displayData.officeLocation}</p>
-                  </div>
-                )}
+                  }}
+                />
+                <h1 className="h1 mb-4 hidden">
+                  {displayData.clientName}
+                </h1>
               </div>
-            </div>
+            ) : (
+              <h1 className="h1 mb-6">
+                {displayData.clientName}
+              </h1>
+            )}
+            
+            {/* Note from Shortcut - Clean, readable design */}
+            {displayData.customization?.customNote && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-extrabold text-shortcut-blue mb-3">Note from Shortcut</h3>
+                <p className="text-base text-text-dark leading-relaxed font-medium">
+                  {displayData.customization.customNote.replace('above', 'below')}
+                </p>
+              </div>
+            )}
+          </div>
 
-            <div className="space-y-8">
-              <InstructionalScroller />
-
-              {displayData.customization?.customNote && (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                  <button
-                    onClick={() => setIsCustomNoteExpanded(!isCustomNoteExpanded)}
-                    className="w-full px-6 py-4 flex justify-between items-center bg-shortcut-blue hover:bg-shortcut-blue/90 transition-colors"
-                  >
-                    <h2 className="text-2xl font-bold text-white">
-                      Note from Shortcut
-                    </h2>
-                    {isCustomNoteExpanded ? <ChevronUp size={20} className="text-white" /> : <ChevronDown size={20} className="text-white" />}
-                  </button>
-                  
-                  {isCustomNoteExpanded && (
-                    <div className="p-8 bg-gray-50">
-                      <p className="text-gray-700 whitespace-pre-wrap font-medium">
-                        {displayData.customization.customNote.replace('above', 'below')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
+            <div>
+              <p className="text-sm font-bold text-shortcut-blue mb-1">Event Dates</p>
+              <p className="text-base font-medium text-text-dark">
+                {Array.isArray(displayData.eventDates) ? 
+                  displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
+                  'No dates available'
+                }
+              </p>
             </div>
+            <div>
+              <p className="text-sm font-bold text-shortcut-blue mb-1">Locations</p>
+              <p className="text-base font-medium text-text-dark">{displayData.locations?.join(', ') || 'No locations available'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
+              <p className="text-base font-medium text-text-dark">{displayData.summary?.totalAppointments || 0}</p>
+            </div>
+            {displayData.officeLocation && (
+              <div className="md:col-span-3">
+                <p className="text-sm font-bold text-shortcut-blue mb-1">Office Location</p>
+                <p className="text-base font-medium text-text-dark">{displayData.officeLocation}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Layout: Single column with specific order */}
+        <div className="lg:grid lg:grid-cols-3 gap-12">
+          {/* Main Content - Services (Day summary + Location Section) - shown first on mobile after top box */}
+          <div className="lg:col-span-2 space-y-8 order-1 lg:order-1">
 
             <div className="space-y-8">
               {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
-                <div key={location} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4 flex justify-between items-center bg-gray-50 border-b border-gray-200">
-                    <button
-                      onClick={() => toggleLocation(location)}
-                      className="flex-1 flex items-center justify-between hover:bg-gray-200/50 transition-colors rounded-lg px-2 py-1"
-                    >
-                      <h2 className="text-2xl font-bold text-shortcut-blue">
-                        {location}
-                      </h2>
-                      {expandedLocations[location] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
-                  </div>
+                <div key={location} className="card-large">
+                  <button
+                    onClick={() => toggleLocation(location)}
+                    className="w-full flex justify-between items-center mb-6 hover:opacity-80 transition-opacity"
+                  >
+                    <h2 className="text-2xl font-extrabold text-shortcut-blue">
+                      {location}
+                    </h2>
+                    {expandedLocations[location] ? <ChevronUp size={24} className="text-shortcut-blue" /> : <ChevronDown size={24} className="text-shortcut-blue" />}
+                  </button>
                   
                   {expandedLocations[location] && (
-                    <div className="p-8 space-y-8">
+                    <div className="pt-6 border-t border-gray-200 space-y-6">
                       {Object.entries(locationData)
                         .sort(([dateA], [dateB]) => {
                           // Handle TBD dates - put them at the end
@@ -921,44 +1001,44 @@ export const StandaloneProposalViewer: React.FC = () => {
                           return new Date(dateA).getTime() - new Date(dateB).getTime();
                         })
                         .map(([date, dateData]: [string, any], dateIndex: number) => (
-                          <div key={date} className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-sm">
+                          <div key={date} className="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
                             <button
                               onClick={() => toggleDate(date)}
-                              className="w-full px-6 py-4 flex justify-between items-center bg-shortcut-blue/10 hover:bg-shortcut-blue/20 transition-colors border-b border-gray-200"
+                              className="w-full px-6 py-4 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors border-b border-gray-200"
                             >
-                              <h3 className="text-xl font-bold text-shortcut-blue">
+                              <h3 className="text-lg font-extrabold text-shortcut-blue">
                                 Day {dateIndex + 1} - {formatDate(date)}
                               </h3>
-                              {expandedDates[date] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              {expandedDates[date] ? <ChevronUp size={16} className="text-shortcut-blue" /> : <ChevronDown size={16} className="text-shortcut-blue" />}
                             </button>
 
                             {expandedDates[date] && (
-                              <div className="p-8 bg-gray-50">
+                              <div className="p-6 bg-white">
                                 {dateData.services.map((service: any, serviceIndex: number) => (
                                   <div 
                                     key={serviceIndex} 
-                                    className={`bg-white rounded-xl p-6 mb-6 shadow-sm border-2 ${getServiceBorderClass(service.serviceType)}`}
+                                    className={`card-small mb-6 border-2 ${getServiceBorderClass(service.serviceType)}`}
                                   >
-                                    <h4 className="text-xl font-bold text-shortcut-blue mb-4 flex items-center">
+                                    <h4 className="text-lg font-extrabold text-shortcut-blue mb-4 flex items-center">
                                       <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
                                       Service Type: {getServiceDisplayName(service.serviceType)}
                                     </h4>
                                     
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (
-                                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                        <p className="text-gray-700 text-sm leading-relaxed">
+                                      <div className="mb-4 p-4 bg-white rounded-lg border-2 border-shortcut-teal shadow-sm">
+                                        <p className="text-text-dark text-sm leading-relaxed">
                                           {getServiceDescription(service)}
                                         </p>
                                         {service.serviceType === 'mindfulness' && (
                                           <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                                             <div>
-                                              <span className="font-semibold text-gray-700">Event Time:</span>
-                                              <span className="ml-2 text-gray-600">{service.classLength || 60} Min</span>
+                                              <span className="font-bold text-shortcut-navy-blue">Event Time:</span>
+                                              <span className="ml-2 text-text-dark">{service.classLength || 60} Min</span>
                                             </div>
                                             <div>
-                                              <span className="font-semibold text-gray-700">Participants:</span>
-                                              <span className="ml-2 text-gray-600">
+                                              <span className="font-bold text-shortcut-navy-blue">Participants:</span>
+                                              <span className="ml-2 text-text-dark">
                                                 {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
                                               </span>
                                             </div>
@@ -966,8 +1046,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         )}
                                         {service.serviceType === 'massage' && service.massageType && (
                                           <div className="mt-3 text-sm">
-                                            <span className="font-semibold text-gray-700">Massage Type:</span>
-                                            <span className="ml-2 text-gray-600 capitalize">{service.massageType}</span>
+                                            <span className="font-bold text-shortcut-navy-blue">Massage Type:</span>
+                                            <span className="ml-2 text-text-dark capitalize">{service.massageType}</span>
                                           </div>
                                         )}
                                       </div>
@@ -975,8 +1055,8 @@ export const StandaloneProposalViewer: React.FC = () => {
 
                                     <div className="grid gap-0">
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-semibold text-gray-700">Total Hours:</span>
-                                        <div className="font-bold text-gray-900">
+                                        <span className="text-base font-bold text-shortcut-blue">Total Hours:</span>
+                                        <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.totalHours || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -987,8 +1067,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-semibold text-gray-700">Number of Professionals:</span>
-                                        <div className="font-bold text-gray-900">
+                                        <span className="text-base font-bold text-shortcut-blue">Number of Professionals:</span>
+                                        <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.numPros || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -998,17 +1078,17 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-semibold text-gray-700">Total Appointments:</span>
-                                        <span className="font-bold text-gray-900">{service.totalAppointments}</span>
+                                        <span className="text-base font-bold text-shortcut-blue">Total Appointments:</span>
+                                        <span className="font-bold text-text-dark">{service.totalAppointments}</span>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-semibold text-gray-700">Service Cost:</span>
+                                        <span className="text-base font-bold text-shortcut-blue">Service Cost:</span>
                                         <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
                                       </div>
                                       
                                       {/* Pricing Options Section */}
                                       {displayData.hasPricingOptions && service.pricingOptions && service.pricingOptions.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t-2 border-shortcut-blue/20">
+                                        <div className="mt-4 pt-4 border-t-2 border-shortcut-navy-blue border-opacity-20">
                                           <h5 className="text-lg font-bold text-shortcut-blue mb-3 flex items-center">
                                             <span className="w-2 h-2 rounded-full bg-shortcut-teal mr-2"></span>
                                             Pricing Options
@@ -1019,8 +1099,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                 key={optionIndex}
                                                 className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
                                                   service.selectedOption === optionIndex
-                                                    ? 'border-shortcut-blue bg-shortcut-blue/5'
-                                                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                                    ? 'border-shortcut-navy-blue bg-shortcut-navy-blue bg-opacity-5'
+                                                    : 'border-gray-200 bg-neutral-light-gray hover:border-shortcut-teal'
                                                 }`}
                                                 onClick={() => {
                                                   // Update the selected option
@@ -1039,10 +1119,10 @@ export const StandaloneProposalViewer: React.FC = () => {
                                               >
                                                 <div className="flex justify-between items-start mb-2">
                                                   <div className="flex-1">
-                                                    <h6 className="font-semibold text-gray-900">
+                                                    <h6 className="font-extrabold text-shortcut-blue">
                                                       Option {optionIndex + 1}
                                                     </h6>
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-sm text-text-dark-60">
                                                       {option.totalAppointments} appointments
                                                     </p>
                                                   </div>
@@ -1051,7 +1131,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                       ${formatCurrency(option.serviceCost)}
                                                     </div>
                                                     {service.selectedOption === optionIndex && (
-                                                      <div className="text-xs text-shortcut-teal font-semibold">
+                                                      <div className="text-xs text-shortcut-navy-blue font-semibold">
                                                         SELECTED
                                                       </div>
                                                     )}
@@ -1063,7 +1143,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                   <div className="mt-3 space-y-2 border-t pt-3">
                                                     <div className="grid grid-cols-2 gap-2">
                                                       <div>
-                                                        <label className="text-xs text-gray-600">Total Hours:</label>
+                                                        <label className="text-xs font-bold text-shortcut-blue">Total Hours:</label>
                                                         <EditableField
                                                           value={String(option.totalHours || service.totalHours)}
                                                           onChange={(value) => handleFieldChange(
@@ -1075,7 +1155,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                         />
                                                       </div>
                                                       <div>
-                                                        <label className="text-xs text-gray-600">Hourly Rate:</label>
+                                                        <label className="text-xs font-bold text-shortcut-blue">Hourly Rate:</label>
                                                         <EditableField
                                                           value={String(option.hourlyRate || service.hourlyRate)}
                                                           onChange={(value) => handleFieldChange(
@@ -1089,7 +1169,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                       </div>
                                                     </div>
                                                     <div>
-                                                      <label className="text-xs text-gray-600">Number of Pros:</label>
+                                                      <label className="text-xs font-bold text-shortcut-blue">Number of Pros:</label>
                                                       <EditableField
                                                         value={String(option.numPros || service.numPros || 1)}
                                                         onChange={(value) => handleFieldChange(
@@ -1115,8 +1195,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                       }}
                                                       className={`w-full px-3 py-2 text-sm rounded-md transition-colors ${
                                                         service.selectedOption === optionIndex
-                                                          ? 'bg-shortcut-blue text-white'
-                                                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                          ? 'bg-shortcut-navy-blue text-white'
+                                                          : 'bg-neutral-light-gray text-shortcut-navy-blue hover:bg-neutral-gray'
                                                       }`}
                                                     >
                                                       {service.selectedOption === optionIndex ? 'Selected' : 'Select This Option'}
@@ -1127,8 +1207,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                                             ))}
                                           </div>
                                           {isEditing && (
-                                            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                              <p className="text-sm text-blue-800">
+                                            <div className="mt-4 p-3 bg-shortcut-light-blue rounded-lg border border-shortcut-teal">
+                                              <p className="text-sm text-shortcut-dark-blue">
                                                 💡 <strong>Tip:</strong> Click on any option above to select it. The selected option will be used for cost calculations.
                                               </p>
                                             </div>
@@ -1151,7 +1231,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                   newPricingOptions
                                                 );
                                               }}
-                                              className="mt-3 w-full px-4 py-2 bg-shortcut-blue/10 text-shortcut-blue border border-shortcut-blue/20 rounded-md hover:bg-shortcut-blue/20 transition-colors font-medium"
+                                              className="mt-3 w-full px-4 py-2 bg-shortcut-navy-blue bg-opacity-10 text-shortcut-navy-blue border border-shortcut-navy-blue border-opacity-20 rounded-md hover:bg-shortcut-navy-blue hover:bg-opacity-20 transition-colors font-medium"
                                             >
                                               + Add New Option
                                             </button>
@@ -1162,16 +1242,16 @@ export const StandaloneProposalViewer: React.FC = () => {
                                   </div>
                                 ))}
 
-                                <div className="bg-shortcut-blue rounded-xl p-6 text-white">
-                                  <h4 className="text-lg font-bold mb-3">Day {dateIndex + 1} Summary</h4>
-                                  <div className="grid gap-3">
-                                    <div className="flex justify-between items-center py-2 border-b border-white/20">
-                                      <span className="font-semibold">Total Appointments:</span>
-                                      <span className="font-bold text-lg">{dateData.totalAppointments || 0}</span>
+                                <div className="mt-6 bg-white rounded-xl p-6 border-2 border-shortcut-navy-blue shadow-md">
+                                  <h4 className="text-xl font-extrabold mb-4 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
+                                      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Appointments</div>
+                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments || 0}</div>
                                     </div>
-                                    <div className="flex justify-between items-center py-2">
-                                      <span className="font-semibold">Total Cost:</span>
-                                      <span className="font-bold text-lg">${formatCurrency(dateData.totalCost || 0)}</span>
+                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
+                                      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
+                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -1184,151 +1264,60 @@ export const StandaloneProposalViewer: React.FC = () => {
                 </div>
               ))}
             </div>
-
-            <ServiceAgreement />
-
-            <div className="mt-16">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-3xl font-bold text-shortcut-blue">
-                  The Shortcut Difference
-                </h2>
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => {
-                      const container = document.getElementById('carousel');
-                      if (container) {
-                        container.scrollBy({ left: -400, behavior: 'smooth' });
-                      }
-                    }}
-                    className="p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors border border-gray-200"
-                    aria-label="Scroll left"
-                  >
-                    <ChevronLeft size={24} className="text-shortcut-blue" />
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const container = document.getElementById('carousel');
-                      if (container) {
-                        container.scrollBy({ left: 400, behavior: 'smooth' });
-                      }
-                    }}
-                    className="p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors border border-gray-200"
-                    aria-label="Scroll right"
-                  >
-                    <ChevronRight size={24} className="text-shortcut-blue" />
-                  </button>
-                </div>
-              </div>
-              
-              <div id="carousel" className="flex overflow-x-auto pb-6 gap-8 hide-scrollbar">
-                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col border border-gray-200">
-                  <div className="w-full h-64">
-                    <img 
-                      src="/Seamless Experience.png"
-                      alt="Seamless wellness experiences by Shortcut"
-                      className="w-full h-full object-cover"
-                      onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
-                    />
-                  </div>
-                  <div className="p-6 flex-grow flex flex-col">
-                    <h3 className="text-xl font-bold text-shortcut-blue mb-3">
-                      Seamless Experiences
-                    </h3>
-                    <p className="text-base text-gray-700 leading-relaxed flex-grow">
-                      We make wellness effortless. Easily integrate our services and create experiences your team will love.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col border border-gray-200">
-                  <div className="w-full h-64">
-                    <img 
-                      src="/Revitalizing Impact.png"
-                      alt="Revitalizing impact of Shortcut's wellness services"
-                      className="w-full h-full object-cover"
-                      onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
-                    />
-                  </div>
-                  <div className="p-6 flex-grow flex flex-col">
-                    <h3 className="text-xl font-bold text-shortcut-blue mb-3">
-                      Revitalizing Impact
-                    </h3>
-                    <p className="text-base text-gray-700 leading-relaxed flex-grow">
-                      Transform office days into feel-good moments. Boost engagement and watch your team thrive with our revitalizing services.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl min-w-[360px] max-w-[420px] flex-none shadow-lg overflow-hidden flex flex-col border border-gray-200">
-                  <div className="w-full h-64">
-                    <img 
-                      src="/All-in-One Wellness.png"
-                      alt="All-in-one corporate wellness solutions by Shortcut"
-                      className="w-full h-full object-cover"
-                      onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
-                    />
-                  </div>
-                  <div className="p-6 flex-grow flex flex-col">
-                    <h3 className="text-xl font-bold text-shortcut-blue mb-3">
-                      All-in-One Wellness
-                    </h3>
-                    <p className="text-base text-gray-700 leading-relaxed flex-grow">
-                      All your corporate wellness needs, simplified. Discover inspiring services that energize your team, all in one place.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
-          <div className="lg:sticky lg:top-24 space-y-8 self-start">
-            {/* Service Image Slider */}
+          {/* Summary Sections - Mobile: shown after services, Desktop: right sidebar */}
+          <div className="lg:sticky lg:top-24 space-y-8 self-start order-2 lg:order-2">
+            {/* Service Image Slider - Hidden on mobile */}
             {uniqueServiceTypes.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="relative">
-                  <div className="aspect-[4/3] relative overflow-hidden rounded-t-2xl">
-                    <img
-                      src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
-                      alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
-                      className="w-full h-full object-cover transition-opacity duration-500"
-                      onError={(e) => {
-                        console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                    {uniqueServiceTypes.length > 1 && (
-                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                        {uniqueServiceTypes.map((_, index) => (
-                          <button
-                            key={index}
-                            onClick={() => setCurrentServiceImageIndex(index)}
-                            className={`w-2 h-2 rounded-full transition-colors ${
-                              index === currentServiceImageIndex 
-                                ? 'bg-white' 
-                                : 'bg-white/50 hover:bg-white/75'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4 bg-shortcut-blue">
-                    <h3 className="text-lg font-bold text-white text-center">
-                      {uniqueServiceTypes.length === 1 
-                        ? getServiceDisplayName(uniqueServiceTypes[0])
-                        : `${uniqueServiceTypes.length} Services`
-                      }
-                    </h3>
-                    {uniqueServiceTypes.length > 1 && (
-                      <p className="text-white/90 text-sm text-center mt-1">
-                        {uniqueServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
-                      </p>
-                    )}
+              <div className="hidden lg:block">
+                <div className="card-large overflow-hidden p-0">
+                  <div className="relative flex flex-col">
+                    <div className="w-full aspect-[4/3] relative overflow-hidden">
+                      <img
+                        src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
+                        alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
+                        className="w-full h-full object-cover transition-opacity duration-500"
+                        onError={(e) => {
+                          console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      {uniqueServiceTypes.length > 1 && (
+                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                          {uniqueServiceTypes.map((_, index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentServiceImageIndex(index)}
+                              className={`w-2 h-2 rounded-full transition-colors ${
+                                index === currentServiceImageIndex 
+                                  ? 'bg-white' 
+                                  : 'bg-white/50 hover:bg-white/75'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 bg-shortcut-navy-blue rounded-b-2xl">
+                      <h3 className="text-lg font-bold text-white text-center">
+                        {uniqueServiceTypes.length === 1 
+                          ? getServiceDisplayName(uniqueServiceTypes[0])
+                          : `${uniqueServiceTypes.length} Services`
+                        }
+                      </h3>
+                      {uniqueServiceTypes.length > 1 && (
+                        <p className="text-white/90 text-sm text-center mt-1">
+                          {uniqueServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* City Summary (LocationSummary) - Light Blue */}
             {Object.entries(displayData.services || {}).map(([location, locationData]) => (
               <LocationSummary 
                 key={location}
@@ -1337,8 +1326,9 @@ export const StandaloneProposalViewer: React.FC = () => {
               />
             ))}
 
-            <div className="bg-shortcut-blue text-white rounded-2xl shadow-lg border border-shortcut-blue/20 p-8">
-              <h2 className="text-3xl font-bold mb-6 text-white">Event Summary</h2>
+            {/* Event Summary - Dark Blue */}
+            <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
+              <h2 className="text-xl font-extrabold mb-6 text-white">Event Summary</h2>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-white/20">
                   <span className="font-semibold">Total Appointments:</span>
@@ -1351,15 +1341,17 @@ export const StandaloneProposalViewer: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-shortcut-blue">Notes</h2>
+            {/* Notes Section */}
+            <div className="card-large">
+              <div className="mb-4">
+                <h2 className="text-xl font-extrabold text-shortcut-blue mb-3">Notes</h2>
                 {notes && (
                   <Button
                     onClick={handleSaveNotes}
                     disabled={isSavingNotes}
                     variant="primary"
                     icon={<Save size={18} />}
+                    className="w-full sm:w-auto"
                   >
                     {isSavingNotes ? 'Saving...' : 'Save Notes'}
                   </Button>
@@ -1369,17 +1361,128 @@ export const StandaloneProposalViewer: React.FC = () => {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any notes or comments about the proposal here..."
-                className="w-full min-h-[120px] p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent resize-y font-medium"
+                className="w-full min-h-[120px] p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y font-medium"
               />
             </div>
           </div>
         </div>
 
-        {/* Change History Section */}
-        {changeSets.length > 0 && (
-          <div className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+        {/* Mobile: Service Agreement, Survey, Shortcut Difference, Change History - in specific order */}
+        <div className="space-y-8 mt-8 lg:mt-0">
+          <ServiceAgreement />
+
+          {/* Survey Form - Show only when proposal is approved */}
+          {proposal?.status === 'approved' && id && (
+            <div id="proposal-survey-form" className="scroll-mt-24">
+              <ProposalSurveyForm 
+                proposalId={id}
+                onSuccess={() => {
+                  setHasSurveyResponse(true);
+                  setShowSurveyCTA(false);
+                  checkSurveyResponse();
+                }}
+              />
+            </div>
+          )}
+
+          <div className="mt-8">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-bold text-shortcut-blue">
+                The Shortcut Difference
+              </h2>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => {
+                    const container = document.getElementById('carousel');
+                    if (container) {
+                      container.scrollBy({ left: -400, behavior: 'smooth' });
+                    }
+                  }}
+                  className="p-2 rounded-full bg-white shadow-md hover:bg-neutral-light-gray transition-colors border border-gray-200"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft size={24} className="text-shortcut-blue" />
+                </button>
+                <button 
+                  onClick={() => {
+                    const container = document.getElementById('carousel');
+                    if (container) {
+                      container.scrollBy({ left: 400, behavior: 'smooth' });
+                    }
+                  }}
+                  className="p-2 rounded-full bg-white shadow-md hover:bg-neutral-light-gray transition-colors border border-gray-200"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight size={24} className="text-shortcut-blue" />
+                </button>
+              </div>
+            </div>
+            
+            <div id="carousel" className="flex overflow-x-auto pb-6 gap-8 hide-scrollbar">
+              <div className="card-medium min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
+                <div className="w-full aspect-[4/3] relative overflow-hidden">
+                  <img 
+                    src="/Seamless Experience.png"
+                    alt="Seamless wellness experiences by Shortcut"
+                    className="w-full h-full object-cover"
+                    onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
+                  />
+                </div>
+                <div className="p-6 flex-grow flex flex-col">
+                  <h3 className="text-xl font-bold text-shortcut-blue mb-3">
+                    Seamless Experiences
+                  </h3>
+                  <p className="text-base text-text-dark leading-relaxed flex-grow">
+                    We make wellness effortless. Easily integrate our services and create experiences your team will love.
+                  </p>
+                </div>
+              </div>
+
+              <div className="card-medium min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
+                <div className="w-full aspect-[4/3] relative overflow-hidden">
+                  <img 
+                    src="/Revitalizing Impact.png"
+                    alt="Revitalizing impact of Shortcut's wellness services"
+                    className="w-full h-full object-cover"
+                    onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
+                  />
+                </div>
+                <div className="p-6 flex-grow flex flex-col">
+                  <h3 className="text-xl font-bold text-shortcut-blue mb-3">
+                    Revitalizing Impact
+                  </h3>
+                  <p className="text-base text-text-dark leading-relaxed flex-grow">
+                    Transform office days into feel-good moments. Boost engagement and watch your team thrive with our revitalizing services.
+                  </p>
+                </div>
+              </div>
+
+              <div className="card-medium min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
+                <div className="w-full aspect-[4/3] relative overflow-hidden">
+                  <img 
+                    src="/All-in-One Wellness.png"
+                    alt="All-in-one corporate wellness solutions by Shortcut"
+                    className="w-full h-full object-cover"
+                    onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
+                  />
+                </div>
+                <div className="p-6 flex-grow flex flex-col">
+                  <h3 className="text-xl font-bold text-shortcut-blue mb-3">
+                    All-in-One Wellness
+                  </h3>
+                  <p className="text-base text-text-dark leading-relaxed flex-grow">
+                    All your corporate wellness needs, simplified. Discover inspiring services that energize your team, all in one place.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Change History Section */}
+          {changeSets.length > 0 && (
+            <div className="card-large">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              <h2 className="h2 flex items-center">
                 <HistoryIcon size={24} className="mr-3 text-shortcut-blue" />
                 Change History
               </h2>
@@ -1395,28 +1498,28 @@ export const StandaloneProposalViewer: React.FC = () => {
             {showChangeHistory && (
               <div className="space-y-4">
                 {changeSets.map((changeSet, index) => (
-                  <div key={changeSet.id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={changeSet.id} className="card-small">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-2">
-                          <User size={16} className="text-gray-500" />
-                          <span className="font-medium">{changeSet.clientName || 'Unknown Client'}</span>
+                          <User size={16} className="text-text-dark-60" />
+                          <span className="font-bold text-shortcut-blue">{changeSet.clientName || 'Unknown Client'}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Mail size={16} className="text-gray-500" />
-                          <span className="text-sm text-gray-600">{changeSet.clientEmail || 'No email'}</span>
+                          <Mail size={16} className="text-text-dark-60" />
+                          <span className="text-sm text-text-dark-60">{changeSet.clientEmail || 'No email'}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Calendar size={16} className="text-gray-500" />
-                          <span className="text-sm text-gray-600">
+                          <Calendar size={16} className="text-text-dark-60" />
+                          <span className="text-sm text-text-dark-60">
                             {new Date(changeSet.submittedAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          changeSet.status === 'pending' ? 'bg-orange-100 text-orange-800' :
-                          changeSet.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          changeSet.status === 'pending' ? 'bg-accent-yellow bg-opacity-20 text-shortcut-dark-blue' :
+                          changeSet.status === 'approved' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
                           'bg-red-100 text-red-800'
                         }`}>
                           {changeSet.status === 'pending' ? 'Pending' :
@@ -1426,40 +1529,41 @@ export const StandaloneProposalViewer: React.FC = () => {
                     </div>
 
                     {changeSet.clientComment && (
-                      <div className="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
-                        <p className="text-sm text-blue-800">
+                      <div className="mb-3 p-3 bg-shortcut-light-blue rounded border-l-4 border-shortcut-teal">
+                        <p className="text-sm text-shortcut-dark-blue">
                           <strong>Client Comment:</strong> {changeSet.clientComment}
                         </p>
                       </div>
                     )}
 
                     {changeSet.adminComment && (
-                      <div className="mb-3 p-3 bg-gray-50 rounded border-l-4 border-gray-400">
-                        <p className="text-sm text-gray-800">
+                      <div className="mb-3 p-3 bg-neutral-light-gray rounded border-l-4 border-shortcut-navy-blue">
+                        <p className="text-sm text-text-dark">
                           <strong>Admin Comment:</strong> {changeSet.adminComment}
                         </p>
                       </div>
                     )}
 
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-text-dark-60">
                       <strong>Changes:</strong> {changeSet.changes.length} modification(s) submitted
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Approval Confirmation Modal */}
       {showApprovalConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 border border-gray-200 shadow-xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+          <div className="card-large max-w-md w-full mx-4">
+            <h3 className="h2 mb-4">
               Approve Proposal
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-text-dark-60 mb-6">
               Are you sure you want to approve this proposal? This will notify our team and mark the proposal as approved.
             </p>
             <div className="flex gap-4">
@@ -1475,8 +1579,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                   setShowApprovalConfirm(false);
                   handleApproval();
                 }}
-                variant="primary"
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                variant="green"
+                className="flex-1"
                 loading={isApproving}
               >
                 {isApproving ? 'Approving...' : 'Yes, Approve'}
@@ -1498,6 +1602,44 @@ export const StandaloneProposalViewer: React.FC = () => {
         onCommentChange={setClientComment}
         isSubmitting={isSubmittingChanges}
       />
+
+      {/* Help Modal - How to Edit this Proposal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowHelpModal(false)}>
+          <div className="card-large max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="h2">How to Edit this Proposal</h2>
+              <button
+                onClick={() => setShowHelpModal(false)}
+                className="p-2 rounded-lg hover:bg-neutral-light-gray transition-colors"
+                aria-label="Close"
+              >
+                <X size={24} className="text-shortcut-blue" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <InstructionCard
+                title="Review"
+                description="Take a peek! Double-check all event details, services, and pricing. Make sure it's all looking sharp and just right for you."
+                icon="review"
+                borderColorClass="border-accent-pink"
+              />
+              <InstructionCard
+                title="Edit"
+                description="Need a tweak? Easily adjust service hours or pro numbers. You can also jot down any notes for our team right here."
+                icon="edit"
+                borderColorClass="border-accent-yellow"
+              />
+              <InstructionCard
+                title="Confirm"
+                description="All set? Hit 'Save Changes' to lock it in. We'll get a heads-up with your updates and finalize everything smoothly."
+                icon="confirm"
+                borderColorClass="border-shortcut-teal"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
