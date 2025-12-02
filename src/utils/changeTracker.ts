@@ -1,4 +1,5 @@
 import { ProposalData, ProposalChange, ProposalChangeSet } from '../types/proposal';
+import { format } from 'date-fns';
 
 // Helper function to get service display name (copied from StandaloneProposalViewer)
 const getServiceDisplayName = (serviceType: string): string => {
@@ -14,6 +15,8 @@ const getServiceDisplayName = (serviceType: string): string => {
       return 'Headshot';
     case 'mindfulness':
       return 'Mindfulness';
+    case 'makeup':
+      return 'Makeup';
     default:
       return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
   }
@@ -64,11 +67,64 @@ const isEqual = (a: any, b: any): boolean => {
 
 // Helper function to get human-readable field names
 const getFieldDisplayName = (field: string): string => {
+  // Service-level field patterns
+  if (field.includes('services.')) {
+    const parts = field.split('.');
+    if (parts.length >= 6) {
+      const location = parts[1];
+      const date = parts[2] === 'TBD' ? 'TBD Date' : formatDate(parts[2]);
+      const serviceIndex = parseInt(parts[4]) + 1;
+      const serviceField = parts[5];
+      
+      // Handle pricing options
+      if (parts[5] === 'pricingOptions' && parts.length >= 8) {
+        const optionIndex = parseInt(parts[6]) + 1;
+        const optionField = parts[7];
+        const fieldNames: { [key: string]: string } = {
+          'totalHours': 'Total Hours',
+          'hourlyRate': 'Hourly Rate',
+          'numPros': 'Number of Professionals',
+          'totalAppointments': 'Total Appointments',
+          'serviceCost': 'Service Cost'
+        };
+        return `${location} - ${date} - Service ${serviceIndex} - Option ${optionIndex} - ${fieldNames[optionField] || optionField}`;
+      }
+      
+      // Handle selected option
+      if (parts[5] === 'selectedOption') {
+        return `${location} - ${date} - Service ${serviceIndex} - Selected Pricing Option`;
+      }
+      
+      // Handle service fields
+      const fieldNames: { [key: string]: string } = {
+        'totalHours': 'Total Hours',
+        'numPros': 'Number of Professionals',
+        'hourlyRate': 'Hourly Rate',
+        'appTime': 'Appointment Time',
+        'proHourly': 'Professional Hourly Rate',
+        'earlyArrival': 'Early Arrival Fee',
+        'retouchingCost': 'Retouching Cost per Photo',
+        'discountPercent': 'Discount Percentage',
+        'massageType': 'Massage Type',
+        'classLength': 'Class Length',
+        'participants': 'Participants',
+        'serviceType': 'Service Type',
+        'totalAppointments': 'Total Appointments',
+        'serviceCost': 'Service Cost'
+      };
+      
+      return `${location} - ${date} - Service ${serviceIndex} - ${fieldNames[serviceField] || serviceField}`;
+    }
+    return 'Service Details';
+  }
+  
   const fieldMap: { [key: string]: string } = {
     'clientName': 'Client Name',
     'clientEmail': 'Client Email',
     'eventDates': 'Event Dates',
     'locations': 'Locations',
+    'officeLocation': 'Office Location',
+    'officeLocations': 'Office Locations',
     'services': 'Services',
     'summary.totalAppointments': 'Total Appointments',
     'summary.totalEventCost': 'Total Event Cost',
@@ -86,6 +142,23 @@ const getFieldDisplayName = (field: string): string => {
   return fieldMap[field] || field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 };
 
+// Helper to format date for display in field names
+const formatDate = (dateString: string): string => {
+  if (!dateString || dateString === 'TBD') return 'TBD';
+  try {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [year, month, day] = dateString.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return format(date, 'MMM d, yyyy');
+    }
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return format(date, 'MMM d, yyyy');
+  } catch {
+    return dateString;
+  }
+};
+
 // Helper function to format value for display
 const formatValue = (value: any, field: string): string => {
   if (value === null || value === undefined) return 'None';
@@ -99,6 +172,10 @@ const formatValue = (value: any, field: string): string => {
   }
   
   if (Array.isArray(value)) {
+    // If it's an array of objects (like services), format each one
+    if (value.length > 0 && typeof value[0] === 'object') {
+      return `${value.length} item${value.length !== 1 ? 's' : ''}`;
+    }
     return value.join(', ');
   }
   
@@ -116,8 +193,16 @@ const formatValue = (value: any, field: string): string => {
       if (value.hourlyRate) details.push(`$${value.hourlyRate}/hr`);
       return `${serviceName}${details.length > 0 ? ` (${details.join(', ')})` : ''}`;
     }
-    // For other objects, show a simple description
-    return 'Updated details';
+    // For other objects, try to stringify meaningfully
+    if (Object.keys(value).length === 0) {
+      return 'Empty';
+    }
+    // For complex objects, show a count or key info
+    const keys = Object.keys(value);
+    if (keys.length <= 3) {
+      return keys.map(key => `${key}: ${formatValue(value[key], key)}`).join(', ');
+    }
+    return `${keys.length} properties`;
   }
   
   return String(value);
@@ -191,28 +276,116 @@ export const trackProposalChanges = (
       const originalDateData = originalLocationData[date] || {};
       const newDateData = newLocationData[date] || {};
       
-      // Track service changes for this date/location
+      // Track service changes for this date/location - compare individual services
       const originalServices = originalDateData.services || [];
       const newServices = newDateData.services || [];
       
-      // Compare services arrays
-      if (!isEqual(originalServices, newServices)) {
-        changes.push({
-          id: generateId(),
-          proposalId: originalData.clientName,
-          field: `services.${location}.${date}.services`,
-          oldValue: originalServices,
-          newValue: newServices,
-          changeType: 'update',
-          timestamp: new Date().toISOString(),
-          clientEmail,
-          clientName,
-          status: 'pending'
-        });
+      // Track individual service field changes instead of entire arrays
+      const maxServices = Math.max(originalServices.length, newServices.length);
+      
+      for (let i = 0; i < maxServices; i++) {
+        const originalService = originalServices[i];
+        const newService = newServices[i];
+        
+        // Service was added
+        if (!originalService && newService) {
+          changes.push({
+            id: generateId(),
+            proposalId: originalData.clientName,
+            field: `services.${location}.${date}.services.${i}.serviceType`,
+            oldValue: undefined,
+            newValue: newService.serviceType,
+            changeType: 'add',
+            timestamp: new Date().toISOString(),
+            clientEmail,
+            clientName,
+            status: 'pending'
+          });
+          // Track key fields of the new service
+          const fieldsToTrack = ['totalHours', 'numPros', 'hourlyRate', 'appTime', 'proHourly', 'earlyArrival', 'discountPercent', 'massageType', 'classLength', 'participants', 'selectedOption'];
+          fieldsToTrack.forEach(field => {
+            if (newService[field] !== undefined) {
+              changes.push({
+                id: generateId(),
+                proposalId: originalData.clientName,
+                field: `services.${location}.${date}.services.${i}.${field}`,
+                oldValue: undefined,
+                newValue: newService[field],
+                changeType: 'add',
+                timestamp: new Date().toISOString(),
+                clientEmail,
+                clientName,
+                status: 'pending'
+              });
+            }
+          });
+        }
+        // Service was removed
+        else if (originalService && !newService) {
+          changes.push({
+            id: generateId(),
+            proposalId: originalData.clientName,
+            field: `services.${location}.${date}.services.${i}.serviceType`,
+            oldValue: originalService.serviceType,
+            newValue: undefined,
+            changeType: 'remove',
+            timestamp: new Date().toISOString(),
+            clientEmail,
+            clientName,
+            status: 'pending'
+          });
+        }
+        // Service exists in both - compare individual fields
+        else if (originalService && newService) {
+          const fieldsToTrack = ['serviceType', 'totalHours', 'numPros', 'hourlyRate', 'appTime', 'proHourly', 'earlyArrival', 'discountPercent', 'massageType', 'classLength', 'participants', 'selectedOption'];
+          fieldsToTrack.forEach(field => {
+            const oldVal = originalService[field];
+            const newVal = newService[field];
+            if (!isEqual(oldVal, newVal)) {
+              changes.push({
+                id: generateId(),
+                proposalId: originalData.clientName,
+                field: `services.${location}.${date}.services.${i}.${field}`,
+                oldValue: oldVal,
+                newValue: newVal,
+                changeType: 'update',
+                timestamp: new Date().toISOString(),
+                clientEmail,
+                clientName,
+                status: 'pending'
+              });
+            }
+          });
+          
+          // Track pricing options changes
+          if (originalService.pricingOptions || newService.pricingOptions) {
+            const originalOptions = originalService.pricingOptions || [];
+            const newOptions = newService.pricingOptions || [];
+            if (!isEqual(originalOptions, newOptions)) {
+              // Track selected option change
+              if (originalService.selectedOption !== newService.selectedOption) {
+                changes.push({
+                  id: generateId(),
+                  proposalId: originalData.clientName,
+                  field: `services.${location}.${date}.services.${i}.selectedOption`,
+                  oldValue: originalService.selectedOption,
+                  newValue: newService.selectedOption,
+                  changeType: 'update',
+                  timestamp: new Date().toISOString(),
+                  clientEmail,
+                  clientName,
+                  status: 'pending'
+                });
+              }
+            }
+          }
+        }
       }
       
-      // Track cost changes
-      if (originalDateData.totalCost !== newDateData.totalCost) {
+      // Track cost changes (only if not just a recalculation from service changes)
+      // Skip if this is just a summary recalculation
+      const hasServiceChanges = changes.some(c => c.field.includes(`services.${location}.${date}.services`));
+      if (!hasServiceChanges && originalDateData.totalCost !== newDateData.totalCost) {
         changes.push({
           id: generateId(),
           proposalId: originalData.clientName,
@@ -227,8 +400,8 @@ export const trackProposalChanges = (
         });
       }
       
-      // Track appointment changes
-      if (originalDateData.totalAppointments !== newDateData.totalAppointments) {
+      // Track appointment changes (only if not just a recalculation)
+      if (!hasServiceChanges && originalDateData.totalAppointments !== newDateData.totalAppointments) {
         changes.push({
           id: generateId(),
           proposalId: originalData.clientName,

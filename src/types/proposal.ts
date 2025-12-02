@@ -155,6 +155,8 @@ export interface ProposalChangeSet {
   reviewedBy?: string;
   reviewedAt?: string;
   adminComment?: string;
+  changeSource?: string | null;
+  userId?: string | null;
 }
 
 export interface ChangeReviewData {

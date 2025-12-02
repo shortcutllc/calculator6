@@ -58,6 +58,15 @@ const SERVICE_DEFAULTS = {
     earlyArrival: 25,
     retouchingCost: 0
   },
+  makeup: {
+    appTime: 30,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
   headshot: {
     appTime: 12,
     totalHours: 5,

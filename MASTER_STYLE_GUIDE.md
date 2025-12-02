@@ -776,10 +776,26 @@ The Shortcut design system uses a refined premium card system with three sizes: 
 </div>
 ```
 
-**⚠️ Important:** Never use blue text on blue backgrounds. Always use:
-- `text-shortcut-navy-blue` on light backgrounds (white, teal opacity, etc.)
-- `text-white` on dark backgrounds (navy blue, etc.)
-- `text-shortcut-blue` only on white/light gray backgrounds
+**⚠️ CRITICAL DESIGN RULE - NEVER VIOLATE:** 
+
+**NEVER use blue text on blue backgrounds.** This creates poor contrast and readability issues.
+
+**Correct Usage:**
+- `text-shortcut-navy-blue` or `text-shortcut-blue` → **ONLY** on white, light gray, or teal opacity backgrounds
+- `text-white` → on dark blue backgrounds (navy blue, shortcut-blue, etc.)
+- `text-text-dark` → on light blue backgrounds (shortcut-light-blue, etc.)
+- `text-shortcut-dark-blue` → on white or very light backgrounds only
+
+**Examples of WRONG usage (DO NOT DO THIS):**
+- ❌ `bg-shortcut-light-blue text-shortcut-navy-blue` (blue text on blue background)
+- ❌ `bg-shortcut-navy-blue text-shortcut-blue` (blue text on blue background)
+- ❌ `bg-shortcut-blue text-shortcut-dark-blue` (blue text on blue background)
+
+**Examples of CORRECT usage:**
+- ✅ `bg-shortcut-light-blue text-text-dark` (dark text on light blue background)
+- ✅ `bg-shortcut-navy-blue text-white` (white text on dark blue background)
+- ✅ `bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue` (blue text on teal opacity - OK)
+- ✅ `bg-white text-shortcut-blue` (blue text on white - OK)
 
 **Status Badge (Neutral):**
 ```tsx
@@ -1005,4 +1021,24 @@ export const CardGrid = () => {
 **Last Updated:** January 2025  
 **Maintained By:** Development Team  
 **Questions?** Refer to `DESIGN_AUDIT_REPORT.md` for detailed audit findings.
+
+---
+
+## Critical Design Rules - Always Follow
+
+### ⚠️ NEVER Use Blue Text on Blue Backgrounds
+
+This is a **CRITICAL** design rule that must never be violated. Blue text on blue backgrounds creates poor contrast, reduces readability, and looks unprofessional.
+
+**Always use:**
+- `text-white` on dark blue backgrounds (`bg-shortcut-navy-blue`, `bg-shortcut-blue`)
+- `text-text-dark` on light blue backgrounds (`bg-shortcut-light-blue`, `bg-shortcut-navy-blue bg-opacity-10`)
+- `text-shortcut-navy-blue` or `text-shortcut-blue` **ONLY** on white, light gray, or teal opacity backgrounds
+
+**Examples:**
+- ✅ `bg-shortcut-navy-blue text-white` (white text on dark blue)
+- ✅ `bg-shortcut-light-blue text-text-dark` (dark text on light blue)
+- ✅ `bg-white text-shortcut-blue` (blue text on white)
+- ❌ `bg-shortcut-light-blue text-shortcut-navy-blue` (blue on blue - WRONG)
+- ❌ `bg-shortcut-navy-blue bg-opacity-10 text-shortcut-navy-blue` (blue on blue - WRONG)
 

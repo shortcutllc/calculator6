@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar, Pencil } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar, Pencil, Briefcase } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useAuth } from '../contexts/AuthContext';
 import EditableField from './EditableField';
@@ -14,7 +14,9 @@ import { Button } from './Button';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
 import ShareProposalModal from './ShareProposalModal';
-import { ProposalChangeSet } from '../types/proposal';
+import { ProposalChangeSet, ProposalChange } from '../types/proposal';
+import { ChangeSourceBadge } from './ChangeSourceBadge';
+import { trackProposalChanges, getChangeDisplayInfo } from '../utils/changeTracker';
 
 const formatCurrency = (value: number): string => {
   return value.toFixed(2);
@@ -34,6 +36,8 @@ const getServiceDisplayName = (serviceType: string): string => {
       return 'Headshot';
     case 'mindfulness':
       return 'Mindfulness';
+    case 'makeup':
+      return 'Makeup';
     default:
       // For other services, capitalize first letter and make rest lowercase
       return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
@@ -70,6 +74,8 @@ const getServiceImagePath = (serviceType: string): string => {
       return '/Hair Slider.png';
     case 'nails':
       return '/Nails Slider.png';
+    case 'makeup':
+      return '/Facials Slider.png'; // Using facials image as fallback for makeup
     case 'headshot':
     case 'headshots':
       return '/Headshot Slider.png';
@@ -123,6 +129,8 @@ const getServiceDescription = (service: any): string => {
       return "Our in-office headshot experience, complete with hair and makeup touch-ups, helps employees present themselves confidently and creates a consistent, professional appearance for your company.";
     case 'facial':
       return "Professional facial treatments that provide deep cleansing, hydration, and relaxation, helping employees feel refreshed and rejuvenated during their workday.";
+    case 'makeup':
+      return "Experience personalized makeup artistry that enhances natural beauty and creates stunning looks tailored to each individual.";
     case 'mindfulness':
       return getMindfulnessDescription(service);
     case 'hair-makeup':
@@ -495,36 +503,150 @@ const ProposalViewer: React.FC = () => {
     if (!id) return;
     
     try {
-      const { data, error } = await supabase
+      // Get the current proposal to see all changes
+      const { data: proposalData, error } = await supabase
         .from('proposals')
         .select('*')
         .eq('id', id)
-        .eq('pending_review', true)
-        .order('updated_at', { ascending: false });
+        .single();
 
       if (error) {
-        console.error('Error fetching change sets:', error);
+        console.error('Error fetching proposal:', error);
         return;
       }
 
-      if (data && data.length > 0) {
-        // Convert proposal data to change sets
-        const changeSets: ProposalChangeSet[] = data.map(proposal => ({
-          id: proposal.id,
-          proposalId: proposal.id,
-          changes: [], // We'll populate this with actual changes if needed
-          clientEmail: proposal.client_email,
-          clientName: proposal.client_name,
-          clientComment: proposal.client_comment || '',
-          status: 'pending' as const,
-          submittedAt: proposal.updated_at,
-          reviewedBy: proposal.reviewed_by,
-          reviewedAt: proposal.reviewed_at,
-          adminComment: proposal.admin_comment
-        }));
-        
-        setChangeSets(changeSets);
+      if (!proposalData || !proposalData.original_data || !proposalData.data) {
+        setChangeSets([]);
+        return;
       }
+
+      // Check if there are actual changes
+      if (JSON.stringify(proposalData.original_data) === JSON.stringify(proposalData.data)) {
+        setChangeSets([]);
+        return;
+      }
+
+      const changeSets: ProposalChangeSet[] = [];
+      
+      // Track client changes separately from staff changes
+      // If client_data exists, it means client made changes
+      // original_data = data before client changes
+      // client_data = data after client changes
+      // data = current data (after staff changes if staff made changes)
+      
+      // Track client changes (if client_data exists)
+      if (proposalData.client_data) {
+        const clientChanges = trackProposalChanges(
+          proposalData.original_data,
+          proposalData.client_data,
+          proposalData.client_email,
+          proposalData.client_name
+        );
+        
+        if (clientChanges.length > 0) {
+          changeSets.push({
+            id: `${proposalData.id}-client`,
+            proposalId: proposalData.id,
+            changes: clientChanges,
+            clientEmail: proposalData.client_email,
+            clientName: proposalData.client_name,
+            clientComment: proposalData.client_comment || '',
+            status: proposalData.pending_review ? 'pending' : (proposalData.status === 'approved' ? 'approved' : 'pending'),
+            submittedAt: proposalData.updated_at,
+            reviewedBy: proposalData.reviewed_by,
+            reviewedAt: proposalData.reviewed_at,
+            adminComment: proposalData.admin_comment,
+            changeSource: 'client',
+            userId: null
+          });
+        }
+      }
+      
+      // Track staff changes (if change_source is staff and data differs from client_data)
+      if ((proposalData.change_source === 'staff' || proposalData.change_source === 'admin') && proposalData.client_data) {
+        // Staff made changes after client changes
+        // Compare client_data (after client changes) to current data (after staff changes)
+        const staffChanges = trackProposalChanges(
+          proposalData.client_data,
+          proposalData.data,
+          proposalData.client_email,
+          proposalData.client_name
+        );
+        
+        if (staffChanges.length > 0) {
+          changeSets.push({
+            id: `${proposalData.id}-staff`,
+            proposalId: proposalData.id,
+            changes: staffChanges,
+            clientEmail: proposalData.client_email,
+            clientName: proposalData.client_name,
+            clientComment: proposalData.client_comment || '',
+            status: proposalData.pending_review ? 'pending' : (proposalData.status === 'approved' ? 'approved' : 'pending'),
+            submittedAt: proposalData.updated_at,
+            reviewedBy: proposalData.reviewed_by,
+            reviewedAt: proposalData.reviewed_at,
+            adminComment: proposalData.admin_comment,
+            changeSource: 'staff',
+            userId: proposalData.user_id
+          });
+        }
+      } else if (proposalData.change_source === 'staff' || proposalData.change_source === 'admin') {
+        // Staff made changes but no client changes (or client_data not set)
+        // Compare original_data to current data
+        const staffChanges = trackProposalChanges(
+          proposalData.original_data,
+          proposalData.data,
+          proposalData.client_email,
+          proposalData.client_name
+        );
+        
+        if (staffChanges.length > 0) {
+          changeSets.push({
+            id: `${proposalData.id}-staff`,
+            proposalId: proposalData.id,
+            changes: staffChanges,
+            clientEmail: proposalData.client_email,
+            clientName: proposalData.client_name,
+            clientComment: proposalData.client_comment || '',
+            status: proposalData.pending_review ? 'pending' : (proposalData.status === 'approved' ? 'approved' : 'pending'),
+            submittedAt: proposalData.updated_at,
+            reviewedBy: proposalData.reviewed_by,
+            reviewedAt: proposalData.reviewed_at,
+            adminComment: proposalData.admin_comment,
+            changeSource: 'staff',
+            userId: proposalData.user_id
+          });
+        }
+      } else if (proposalData.change_source === 'client' && !proposalData.client_data) {
+        // Client made changes (first time, client_data not set yet)
+        // Compare original_data to current data
+        const clientChanges = trackProposalChanges(
+          proposalData.original_data,
+          proposalData.data,
+          proposalData.client_email,
+          proposalData.client_name
+        );
+        
+        if (clientChanges.length > 0) {
+          changeSets.push({
+            id: `${proposalData.id}-client`,
+            proposalId: proposalData.id,
+            changes: clientChanges,
+            clientEmail: proposalData.client_email,
+            clientName: proposalData.client_name,
+            clientComment: proposalData.client_comment || '',
+            status: proposalData.pending_review ? 'pending' : (proposalData.status === 'approved' ? 'approved' : 'pending'),
+            submittedAt: proposalData.updated_at,
+            reviewedBy: proposalData.reviewed_by,
+            reviewedAt: proposalData.reviewed_at,
+            adminComment: proposalData.admin_comment,
+            changeSource: 'client',
+            userId: null
+          });
+        }
+      }
+        
+      setChangeSets(changeSets);
     } catch (error) {
       console.error('Error fetching change sets:', error);
     }
@@ -719,7 +841,9 @@ const ProposalViewer: React.FC = () => {
         customization: editedData?.customization || currentProposal?.customization,
         pricingOptions,
         selectedOptions,
-        hasPricingOptions: recalculatedData.hasPricingOptions || false
+        hasPricingOptions: recalculatedData.hasPricingOptions || false,
+        changeSource: 'staff' // Admin/staff changes made in ProposalViewer
+        // The trigger will handle preserving client_data when staff makes changes
       });
       
       setIsEditing(false);
@@ -1744,7 +1868,7 @@ The Shortcut Team`);
                                                    newPricingOptions
                                                  );
                                                }}
-                                               className="mt-3 w-full px-4 py-2 bg-shortcut-navy-blue bg-opacity-10 text-shortcut-navy-blue border border-shortcut-navy-blue border-opacity-20 rounded-md hover:bg-shortcut-navy-blue hover:bg-opacity-20 transition-colors font-medium"
+                                               className="mt-3 w-full px-4 py-2 bg-shortcut-navy-blue bg-opacity-10 text-text-dark border border-shortcut-navy-blue border-opacity-20 rounded-md hover:bg-shortcut-navy-blue hover:bg-opacity-20 transition-colors font-medium"
                                              >
                                                + Add New Option
                                              </button>
@@ -1909,59 +2033,274 @@ The Shortcut Team`);
             </div>
 
             {showChangeHistory && (
-              <div className="space-y-4">
-                {changeSets.map((changeSet, index) => (
-                  <div key={changeSet.id} className="card-small">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center space-x-2">
+              <div className="space-y-6">
+                {/* Group changes by source */}
+                {(() => {
+                  const clientChanges = changeSets.filter(cs => cs.changeSource === 'client');
+                  const staffChanges = changeSets.filter(cs => cs.changeSource === 'staff' || cs.changeSource === 'admin');
+                  
+                  return (
+                    <>
+                      {/* Client Changes Section */}
+                      {clientChanges.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="h-px flex-1 bg-gray-200"></div>
+                            <h3 className="text-lg font-extrabold text-shortcut-blue flex items-center gap-2">
+                              <User size={20} className="text-shortcut-teal-blue" />
+                              Client Changes
+                            </h3>
+                            <div className="h-px flex-1 bg-gray-200"></div>
+                          </div>
+                          {clientChanges.map((changeSet, index) => (
+                  <div key={changeSet.id} className="card-small border-2 border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <User size={16} className="text-text-dark-60" />
-                          <span className="font-bold text-shortcut-blue">{changeSet.clientName || 'Unknown Client'}</span>
+                          <span className="text-sm font-extrabold text-shortcut-blue">{changeSet.clientName || 'Unknown Client'}</span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Mail size={16} className="text-text-dark-60" />
-                          <span className="text-sm text-text-dark-60">{changeSet.clientEmail || 'No email'}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
+                        {changeSet.clientEmail && (
+                          <div className="flex items-center gap-2">
+                            <Mail size={16} className="text-text-dark-60" />
+                            <span className="text-xs text-text-dark-60">{changeSet.clientEmail}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
                           <Calendar size={16} className="text-text-dark-60" />
-                          <span className="text-sm text-text-dark-60">
-                            {new Date(changeSet.submittedAt).toLocaleDateString()}
+                          <span className="text-xs text-text-dark-60">
+                            {format(new Date(changeSet.submittedAt), 'MMM d, yyyy h:mm a')}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          changeSet.status === 'pending' ? 'bg-accent-yellow bg-opacity-20 text-shortcut-dark-blue' :
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ChangeSourceBadge 
+                          changeSource={changeSet.changeSource} 
+                          userId={changeSet.userId}
+                          size="sm"
+                        />
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          changeSet.status === 'pending' ? 'bg-shortcut-service-yellow bg-opacity-20 text-shortcut-dark-blue' :
                           changeSet.status === 'approved' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
-                          'bg-red-100 text-red-800'
+                          'bg-red-100 text-red-700'
                         }`}>
-                          {changeSet.status === 'pending' ? 'Pending' :
+                          {changeSet.status === 'pending' ? 'Pending Review' :
                            changeSet.status === 'approved' ? 'Approved' : 'Rejected'}
                         </span>
                       </div>
                     </div>
 
                     {changeSet.clientComment && (
-                      <div className="mb-3 p-3 bg-shortcut-light-blue rounded border-l-4 border-shortcut-teal">
-                        <p className="text-sm text-shortcut-dark-blue">
-                          <strong>Client Comment:</strong> {changeSet.clientComment}
-                        </p>
+                      <div className="mb-3 p-3 bg-white rounded border-l-4 border-shortcut-teal shadow-sm">
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-1 uppercase tracking-wide">Client Comment</div>
+                        <p className="text-sm text-text-dark font-medium">{changeSet.clientComment}</p>
                       </div>
                     )}
 
                     {changeSet.adminComment && (
                       <div className="mb-3 p-3 bg-neutral-light-gray rounded border-l-4 border-shortcut-navy-blue">
-                        <p className="text-sm text-text-dark">
-                          <strong>Admin Comment:</strong> {changeSet.adminComment}
-                        </p>
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-1 uppercase tracking-wide">Admin Comment</div>
+                        <p className="text-sm text-text-dark font-medium">{changeSet.adminComment}</p>
                       </div>
                     )}
 
-                    <div className="text-sm text-text-dark-60">
-                      <strong>Changes:</strong> {changeSet.changes.length} modification(s) submitted
-                    </div>
+                    {/* Show actual changes */}
+                    {changeSet.changes && changeSet.changes.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-3 uppercase tracking-wide">
+                          Changes Made ({changeSet.changes.length})
+                        </div>
+                        <div className="space-y-2">
+                          {changeSet.changes.slice(0, 5).map((change) => {
+                            const displayInfo = getChangeDisplayInfo(change);
+                            return (
+                              <div key={change.id} className="p-2 bg-neutral-light-gray rounded-lg">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="text-xs font-extrabold text-shortcut-blue flex-1">{displayInfo.fieldName}</div>
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
+                                    displayInfo.changeType === 'add' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
+                                    displayInfo.changeType === 'remove' ? 'bg-red-100 text-red-700' :
+                                    'bg-neutral-light-gray text-shortcut-blue'
+                                  }`}>
+                                    {displayInfo.changeType === 'add' ? 'Added' : displayInfo.changeType === 'remove' ? 'Removed' : 'Updated'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs flex-wrap">
+                                  {displayInfo.changeType === 'add' && (
+                                    <>
+                                      <span className="text-text-dark-60 italic">No previous value</span>
+                                      <span className="text-shortcut-navy-blue font-bold">→</span>
+                                      <span className="font-bold text-shortcut-navy-blue">{displayInfo.newValueDisplay}</span>
+                                    </>
+                                  )}
+                                  {displayInfo.changeType === 'remove' && (
+                                    <>
+                                      <span className="line-through text-text-dark-60">{displayInfo.oldValueDisplay}</span>
+                                      <span className="text-shortcut-navy-blue font-bold">→</span>
+                                      <span className="text-text-dark-60 italic">Removed</span>
+                                    </>
+                                  )}
+                                  {displayInfo.changeType === 'update' && (
+                                    <>
+                                      <span className="line-through text-text-dark-60">{displayInfo.oldValueDisplay}</span>
+                                      <span className="text-shortcut-teal-blue font-bold">→</span>
+                                      <span className="font-bold text-shortcut-navy-blue">{displayInfo.newValueDisplay}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {changeSet.changes.length > 5 && (
+                            <div className="text-xs text-text-dark-60 text-center py-1">
+                              ... and {changeSet.changes.length - 5} more change{changeSet.changes.length - 5 !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(!changeSet.changes || changeSet.changes.length === 0) && (
+                      <div className="text-sm text-text-dark-60 italic">
+                        Changes detected but details not available
+                      </div>
+                    )}
                   </div>
-                ))}
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Staff Changes Section */}
+                      {staffChanges.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="h-px flex-1 bg-gray-200"></div>
+                            <h3 className="text-lg font-extrabold text-shortcut-blue flex items-center gap-2">
+                              <Briefcase size={20} className="text-shortcut-teal-blue" />
+                              Shortcut Staff Changes
+                            </h3>
+                            <div className="h-px flex-1 bg-gray-200"></div>
+                          </div>
+                          {staffChanges.map((changeSet, index) => (
+                  <div key={changeSet.id} className="card-small border-2 border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <User size={16} className="text-text-dark-60" />
+                          <span className="text-sm font-extrabold text-shortcut-blue">{changeSet.clientName || 'Unknown Client'}</span>
+                        </div>
+                        {changeSet.clientEmail && (
+                          <div className="flex items-center gap-2">
+                            <Mail size={16} className="text-text-dark-60" />
+                            <span className="text-xs text-text-dark-60">{changeSet.clientEmail}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Calendar size={16} className="text-text-dark-60" />
+                          <span className="text-xs text-text-dark-60">
+                            {format(new Date(changeSet.submittedAt), 'MMM d, yyyy h:mm a')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ChangeSourceBadge 
+                          changeSource={changeSet.changeSource} 
+                          userId={changeSet.userId}
+                          size="sm"
+                        />
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          changeSet.status === 'pending' ? 'bg-shortcut-service-yellow bg-opacity-20 text-shortcut-dark-blue' :
+                          changeSet.status === 'approved' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {changeSet.status === 'pending' ? 'Pending Review' :
+                           changeSet.status === 'approved' ? 'Approved' : 'Rejected'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {changeSet.clientComment && (
+                      <div className="mb-3 p-3 bg-white rounded border-l-4 border-shortcut-teal shadow-sm">
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-1 uppercase tracking-wide">Client Comment</div>
+                        <p className="text-sm text-text-dark font-medium">{changeSet.clientComment}</p>
+                      </div>
+                    )}
+
+                    {changeSet.adminComment && (
+                      <div className="mb-3 p-3 bg-neutral-light-gray rounded border-l-4 border-shortcut-navy-blue">
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-1 uppercase tracking-wide">Admin Comment</div>
+                        <p className="text-sm text-text-dark font-medium">{changeSet.adminComment}</p>
+                      </div>
+                    )}
+
+                    {/* Show actual changes */}
+                    {changeSet.changes && changeSet.changes.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-3 uppercase tracking-wide">
+                          Changes Made ({changeSet.changes.length})
+                        </div>
+                        <div className="space-y-2">
+                          {changeSet.changes.slice(0, 5).map((change) => {
+                            const displayInfo = getChangeDisplayInfo(change);
+                            return (
+                              <div key={change.id} className="p-2 bg-neutral-light-gray rounded-lg">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="text-xs font-extrabold text-shortcut-blue flex-1">{displayInfo.fieldName}</div>
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
+                                    displayInfo.changeType === 'add' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
+                                    displayInfo.changeType === 'remove' ? 'bg-red-100 text-red-700' :
+                                    'bg-neutral-light-gray text-shortcut-blue'
+                                  }`}>
+                                    {displayInfo.changeType === 'add' ? 'Added' : displayInfo.changeType === 'remove' ? 'Removed' : 'Updated'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs flex-wrap">
+                                  {displayInfo.changeType === 'add' && (
+                                    <>
+                                      <span className="text-text-dark-60 italic">No previous value</span>
+                                      <span className="text-shortcut-navy-blue font-bold">→</span>
+                                      <span className="font-bold text-shortcut-navy-blue">{displayInfo.newValueDisplay}</span>
+                                    </>
+                                  )}
+                                  {displayInfo.changeType === 'remove' && (
+                                    <>
+                                      <span className="line-through text-text-dark-60">{displayInfo.oldValueDisplay}</span>
+                                      <span className="text-shortcut-navy-blue font-bold">→</span>
+                                      <span className="text-text-dark-60 italic">Removed</span>
+                                    </>
+                                  )}
+                                  {displayInfo.changeType === 'update' && (
+                                    <>
+                                      <span className="line-through text-text-dark-60">{displayInfo.oldValueDisplay}</span>
+                                      <span className="text-shortcut-teal-blue font-bold">→</span>
+                                      <span className="font-bold text-shortcut-navy-blue">{displayInfo.newValueDisplay}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {changeSet.changes.length > 5 && (
+                            <div className="text-xs text-text-dark-60 text-center py-1">
+                              ... and {changeSet.changes.length - 5} more change{changeSet.changes.length - 5 !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(!changeSet.changes || changeSet.changes.length === 0) && (
+                      <div className="text-sm text-text-dark-60 italic">
+                        Changes detected but details not available
+                      </div>
+                    )}
+                  </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>

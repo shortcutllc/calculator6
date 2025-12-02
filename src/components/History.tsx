@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ChangeSourceBadge } from './ChangeSourceBadge';
 import { format, parseISO } from 'date-fns';
 import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -374,6 +375,13 @@ const History: React.FC = () => {
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {getStatusBadge(proposal.status, proposal.hasChanges, proposal.pendingReview)}
+                        {proposal.hasChanges && (
+                          <ChangeSourceBadge 
+                            changeSource={proposal.changeSource} 
+                            userId={proposal.userId}
+                            size="sm"
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">

@@ -16,9 +16,10 @@ import InstructionCard from './InstructionCard';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
 import ChangeConfirmationModal from './ChangeConfirmationModal';
-import { trackProposalChanges, createChangeSet } from '../utils/changeTracker';
+import { trackProposalChanges, createChangeSet, getChangeDisplayInfo } from '../utils/changeTracker';
 import { ProposalChangeSet, ProposalChange } from '../types/proposal';
 import ProposalSurveyForm from './ProposalSurveyForm';
+import { ChangeSourceBadge } from './ChangeSourceBadge';
 
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -39,6 +40,8 @@ const getServiceDisplayName = (serviceType: string): string => {
       return 'Headshot';
     case 'mindfulness':
       return 'Mindfulness';
+    case 'makeup':
+      return 'Makeup';
     default:
       // For other services, capitalize first letter and make rest lowercase
       return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
@@ -96,6 +99,8 @@ const getServiceImagePath = (serviceType: string): string => {
       return '/Hair Slider.png';
     case 'nails':
       return '/Nails Slider.png';
+    case 'makeup':
+      return '/Facials Slider.png'; // Using facials image as fallback for makeup
     case 'headshot':
     case 'headshots':
       return '/Headshot Slider.png';
@@ -149,6 +154,8 @@ const getServiceDescription = (service: any): string => {
       return "Our in-office headshot experience, complete with hair and makeup touch-ups, helps employees present themselves confidently and creates a consistent, professional appearance for your company.";
     case 'facial':
       return "Professional facial treatments that provide deep cleansing, hydration, and relaxation, helping employees feel refreshed and rejuvenated during their workday.";
+    case 'makeup':
+      return "Experience personalized makeup artistry that enhances natural beauty and creates stunning looks tailored to each individual.";
     case 'mindfulness':
       return getMindfulnessDescription(service);
     case 'hair-makeup':
@@ -258,20 +265,43 @@ export const StandaloneProposalViewer: React.FC = () => {
       }
 
       if (data && data.length > 0) {
-        // Convert proposal data to change sets
-        const changeSets: ProposalChangeSet[] = data.map(proposal => ({
-          id: proposal.id,
-          proposalId: proposal.id,
-          changes: [], // We'll populate this with actual changes if needed
-          clientEmail: proposal.client_email,
-          clientName: proposal.client_name,
-          clientComment: proposal.client_comment || '',
-          status: 'pending' as const,
-          submittedAt: proposal.updated_at,
-          reviewedBy: proposal.reviewed_by,
-          reviewedAt: proposal.reviewed_at,
-          adminComment: proposal.admin_comment
-        }));
+        // Convert proposal data to change sets with actual changes
+        // Filter out proposals where original_data equals data (initial generation)
+        const changeSets: ProposalChangeSet[] = data
+          .filter(proposal => {
+            // Only include proposals that have actual changes (original_data != data)
+            if (!proposal.original_data || !proposal.data) return false;
+            // Use JSON comparison to check if they're different
+            return JSON.stringify(proposal.original_data) !== JSON.stringify(proposal.data);
+          })
+          .map(proposal => {
+            let changes: ProposalChange[] = [];
+            if (proposal.original_data && proposal.data) {
+              changes = trackProposalChanges(
+                proposal.original_data,
+                proposal.data,
+                proposal.client_email,
+                proposal.client_name
+              );
+            }
+            
+            return {
+              id: proposal.id,
+              proposalId: proposal.id,
+              changes,
+              clientEmail: proposal.client_email,
+              clientName: proposal.client_name,
+              clientComment: proposal.client_comment || '',
+              status: 'pending' as const,
+              submittedAt: proposal.updated_at,
+              reviewedBy: proposal.reviewed_by,
+              reviewedAt: proposal.reviewed_at,
+              adminComment: proposal.admin_comment,
+              changeSource: proposal.change_source,
+              userId: proposal.user_id
+            };
+          })
+          .filter(changeSet => changeSet.changeSource === 'client'); // Only show client changes
         
         setChangeSets(changeSets);
       }
@@ -470,30 +500,53 @@ export const StandaloneProposalViewer: React.FC = () => {
     try {
       setIsSavingChanges(true);
       
+      const recalculatedData = recalculateServiceTotals(editedData);
+      
+      // Extract pricing options and selected options from the data
+      const pricingOptions: any = {};
+      const selectedOptions: any = {};
+      
+      Object.entries(recalculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+        Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+          dateData.services?.forEach((service: any, serviceIndex: number) => {
+            if (service.pricingOptions && service.pricingOptions.length > 0) {
+              const key = `${location}-${date}-${serviceIndex}`;
+              pricingOptions[key] = service.pricingOptions;
+              selectedOptions[key] = service.selectedOption || 0;
+            }
+          });
+        });
+      });
+      
       const { error } = await supabase
         .from('proposals')
         .update({
-          data: editedData,
+          data: recalculatedData,
           has_changes: true,
           pending_review: true,
           original_data: originalData || proposal.data,
           customization: proposal.customization,
-          change_source: 'client'
+          change_source: 'client',
+          pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
+          selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
+          has_pricing_options: recalculatedData.hasPricingOptions || false
         })
         .eq('id', id);
 
       if (error) throw error;
 
-      setDisplayData({ ...editedData, customization: proposal.customization });
+      setDisplayData({ ...recalculatedData, customization: proposal.customization });
+      setEditedData({ ...recalculatedData, customization: proposal.customization });
       setIsEditing(false);
       setHasUnsavedChanges(false);
       setPendingChanges([]);
 
       setShowChangesSaved(true);
-      setTimeout(() => setShowChangesSaved(false), 3000);
+      setTimeout(() => setShowChangesSaved(false), 5000);
     } catch (err) {
       console.error('Error saving changes:', err);
-      setError('Failed to save changes');
+      setError('We encountered an issue saving your changes. Please try again in a moment.');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsSavingChanges(false);
     }
@@ -514,6 +567,24 @@ export const StandaloneProposalViewer: React.FC = () => {
         clientComment
       );
       
+      const recalculatedData = recalculateServiceTotals(editedData);
+      
+      // Extract pricing options and selected options from the data
+      const pricingOptions: any = {};
+      const selectedOptions: any = {};
+      
+      Object.entries(recalculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+        Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+          dateData.services?.forEach((service: any, serviceIndex: number) => {
+            if (service.pricingOptions && service.pricingOptions.length > 0) {
+              const key = `${location}-${date}-${serviceIndex}`;
+              pricingOptions[key] = service.pricingOptions;
+              selectedOptions[key] = service.selectedOption || 0;
+            }
+          });
+        });
+      });
+      
       // Save changes to database with change tracking
       console.log('Saving changes to database:', {
         id,
@@ -524,15 +595,20 @@ export const StandaloneProposalViewer: React.FC = () => {
       });
       
       // Try a direct update first
+      // When client makes changes, we need to set client_data to preserve the state
       const { error } = await supabase
         .from('proposals')
         .update({
-          data: editedData,
+          data: recalculatedData,
+          client_data: recalculatedData, // Store client changes in client_data
           has_changes: true,
           pending_review: true,
           original_data: originalData || proposal.data,
           customization: proposal.customization,
-          change_source: 'client'
+          change_source: 'client',
+          pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
+          selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
+          has_pricing_options: recalculatedData.hasPricingOptions || false
         })
         .eq('id', id);
 
@@ -542,9 +618,9 @@ export const StandaloneProposalViewer: React.FC = () => {
       }
       
       console.log('✅ Changes saved successfully to database');
-      alert('Changes saved successfully! Check admin dashboard.');
 
-      setDisplayData({ ...editedData, customization: proposal.customization });
+      setDisplayData({ ...recalculatedData, customization: proposal.customization });
+      setEditedData({ ...recalculatedData, customization: proposal.customization });
       setIsEditing(false);
       setHasUnsavedChanges(false);
       setPendingChanges([]);
@@ -552,10 +628,11 @@ export const StandaloneProposalViewer: React.FC = () => {
       setShowChangeConfirmation(false);
 
       setShowChangesSaved(true);
-      setTimeout(() => setShowChangesSaved(false), 3000);
+      setTimeout(() => setShowChangesSaved(false), 5000);
     } catch (err) {
       console.error('Error submitting changes:', err);
-      setError('Failed to submit changes for review');
+      setError('We encountered an issue submitting your changes. Please try again in a moment.');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsSubmittingChanges(false);
     }
@@ -572,7 +649,8 @@ export const StandaloneProposalViewer: React.FC = () => {
         .update({
           notes,
           has_changes: true,
-          pending_review: true
+          pending_review: true,
+          change_source: 'client' // Client changes made in StandaloneProposalViewer
         })
         .eq('id', id);
 
@@ -583,7 +661,8 @@ export const StandaloneProposalViewer: React.FC = () => {
       setTimeout(() => setShowSaveSuccess(false), 3000);
     } catch (err) {
       console.error('Error saving notes:', err);
-      setError('Failed to save notes');
+      setError('We encountered an issue saving your notes. Please try again in a moment.');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsSavingNotes(false);
     }
@@ -596,7 +675,8 @@ export const StandaloneProposalViewer: React.FC = () => {
       await generatePDF('proposal-content', filename);
     } catch (error) {
       console.error('Error downloading PDF:', error);
-      alert('Failed to download PDF. Please try again.');
+      setError('We encountered an issue downloading your PDF. Please try again in a moment.');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsDownloading(false);
     }
@@ -608,17 +688,80 @@ export const StandaloneProposalViewer: React.FC = () => {
     try {
       setIsApproving(true);
       
-      // First, update the proposal status in the database
+      // Get the current data (use editedData if in edit mode, otherwise displayData)
+      const dataToSave = editedData || displayData;
+      const recalculatedData = recalculateServiceTotals(dataToSave);
+      
+      // Extract pricing options and selected options from the data
+      const pricingOptions: any = {};
+      const selectedOptions: any = {};
+      
+      Object.entries(recalculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+        Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+          dateData.services?.forEach((service: any, serviceIndex: number) => {
+            if (service.pricingOptions && service.pricingOptions.length > 0) {
+              const key = `${location}-${date}-${serviceIndex}`;
+              pricingOptions[key] = service.pricingOptions;
+              selectedOptions[key] = service.selectedOption || 0;
+            }
+          });
+        });
+      });
+      
+      // First, save any changes (including pricing option selections) with change_source
       const { error: updateError } = await supabase
         .from('proposals')
         .update({
+          data: recalculatedData,
+          client_data: recalculatedData, // Store client changes in client_data
           status: 'approved',
           pending_review: false,
-          has_changes: false
+          has_changes: false,
+          change_source: 'client', // Mark as client change
+          pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
+          selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
+          has_pricing_options: recalculatedData.hasPricingOptions || false
         })
         .eq('id', id);
 
       if (updateError) throw updateError;
+
+      // Update local state to reflect saved data
+      setDisplayData({ ...recalculatedData, customization: proposal?.customization });
+      setEditedData({ ...recalculatedData, customization: proposal?.customization });
+      
+      // Reload proposal to get updated pricing options
+      const { data: updatedProposal, error: fetchError } = await supabase
+        .from('proposals')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (!fetchError && updatedProposal) {
+        const updatedCalculatedData = recalculateServiceTotals(updatedProposal.data);
+        
+        // Reload pricing options
+        if (updatedProposal.pricing_options && updatedProposal.selected_options) {
+          Object.entries(updatedCalculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+            Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+              dateData.services?.forEach((service: any, serviceIndex: number) => {
+                const key = `${location}-${date}-${serviceIndex}`;
+                if (updatedProposal.pricing_options[key]) {
+                  service.pricingOptions = updatedProposal.pricing_options[key];
+                  service.selectedOption = updatedProposal.selected_options[key] || 0;
+                }
+              });
+            });
+          });
+        }
+        
+        setProposal(updatedProposal);
+        setDisplayData({ ...updatedCalculatedData, customization: updatedProposal.customization });
+        setEditedData({ ...updatedCalculatedData, customization: updatedProposal.customization });
+      } else {
+        // Fallback: just update status
+        setProposal((prev: typeof proposal) => prev ? { ...prev, status: 'approved' } : null);
+      }
 
       // Then, send the approval notification
       const response = await fetch(`${config.supabase.url}/functions/v1/proposal-approval`, {
@@ -630,9 +773,9 @@ export const StandaloneProposalViewer: React.FC = () => {
         body: JSON.stringify({
           proposalId: id,
           clientName: displayData.clientName,
-          totalCost: displayData.summary?.totalEventCost || 0,
-          eventDates: displayData.eventDates,
-          locations: displayData.locations
+          totalCost: recalculatedData.summary?.totalEventCost || 0,
+          eventDates: recalculatedData.eventDates,
+          locations: recalculatedData.locations
         })
       });
 
@@ -640,9 +783,6 @@ export const StandaloneProposalViewer: React.FC = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to send approval notification');
       }
-
-      // Update local proposal state to reflect approval
-      setProposal((prev: typeof proposal) => prev ? { ...prev, status: 'approved' } : null);
 
       setShowApprovalSuccess(true);
       setTimeout(() => setShowApprovalSuccess(false), 5000);
@@ -656,7 +796,8 @@ export const StandaloneProposalViewer: React.FC = () => {
       }, 1000);
     } catch (err) {
       console.error('Error approving proposal:', err);
-      alert('Failed to approve proposal. Please try again.');
+      setError('We encountered an issue approving your proposal. Please try again in a moment.');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsApproving(false);
     }
@@ -812,21 +953,27 @@ export const StandaloneProposalViewer: React.FC = () => {
               />
             </div>
             <div className="flex items-center gap-4">
+              {error && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-full shadow-sm">
+                  <AlertCircle size={18} className="text-red-600" />
+                  <span className="font-bold text-sm">{error}</span>
+                </div>
+              )}
               {showChangesSaved && (
-                <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                  <CheckCircle2 size={18} className="mr-2" />
-                  <span>Changes saved!</span>
+                <div className="flex items-center gap-2 bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue px-4 py-2.5 rounded-full border border-shortcut-teal shadow-sm">
+                  <CheckCircle2 size={18} className="text-shortcut-teal-blue" />
+                  <span className="font-bold text-sm">Your changes have been saved successfully!</span>
                 </div>
               )}
               {showApprovalSuccess ? (
-                <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                  <CheckCircle2 size={18} className="mr-2" />
-                  <span>Proposal approved! Team notified.</span>
+                <div className="flex items-center gap-2 bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue px-4 py-2.5 rounded-full border border-shortcut-teal shadow-sm">
+                  <CheckCircle2 size={18} className="text-shortcut-teal-blue" />
+                  <span className="font-bold text-sm">Thank you! Your proposal has been approved and our team has been notified.</span>
                 </div>
               ) : proposal?.status === 'approved' && (
-                <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                  <CheckCircle2 size={18} className="mr-2" />
-                  <span>Proposal approved! Team notified.</span>
+                <div className="flex items-center gap-2 bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue px-4 py-2.5 rounded-full border border-shortcut-teal shadow-sm">
+                  <CheckCircle2 size={18} className="text-shortcut-teal-blue" />
+                  <span className="font-bold text-sm">Proposal approved! Our team has been notified.</span>
                 </div>
               )}
 
@@ -858,10 +1005,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                   isEditing ? (
                     <Button
                       onClick={handleSaveChanges}
-                      variant="primary"
+                      variant={hasUnsavedChanges ? 'green' : 'primary'}
                       icon={<Save size={18} />}
                       loading={isSavingChanges}
-                      className={hasUnsavedChanges ? 'bg-orange-600 hover:bg-orange-700' : ''}
                     >
                       {isSavingChanges ? 'Saving...' : 
                        hasUnsavedChanges ? `Save Changes (${pendingChanges.length})` : 
@@ -1219,8 +1365,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                                             ))}
                                           </div>
                                           {isEditing && (
-                                            <div className="mt-4 p-3 bg-shortcut-light-blue rounded-lg border border-shortcut-teal">
-                                              <p className="text-sm text-shortcut-dark-blue">
+                                            <div className="mt-4 p-3 bg-neutral-light-gray rounded-lg border border-shortcut-teal">
+                                              <p className="text-sm text-text-dark">
                                                 💡 <strong>Tip:</strong> Click on any option above to select it. The selected option will be used for cost calculations.
                                               </p>
                                             </div>
@@ -1243,7 +1389,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                   newPricingOptions
                                                 );
                                               }}
-                                              className="mt-3 w-full px-4 py-2 bg-shortcut-navy-blue bg-opacity-10 text-shortcut-navy-blue border border-shortcut-navy-blue border-opacity-20 rounded-md hover:bg-shortcut-navy-blue hover:bg-opacity-20 transition-colors font-medium"
+                                              className="mt-3 w-full px-4 py-2 bg-shortcut-navy-blue bg-opacity-10 text-text-dark border border-shortcut-navy-blue border-opacity-20 rounded-md hover:bg-shortcut-navy-blue hover:bg-opacity-20 transition-colors font-medium"
                                             >
                                               + Add New Option
                                             </button>
@@ -1514,55 +1660,118 @@ export const StandaloneProposalViewer: React.FC = () => {
             {showChangeHistory && (
               <div className="space-y-4">
                 {changeSets.map((changeSet, index) => (
-                  <div key={changeSet.id} className="card-small">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center space-x-2">
+                  <div key={changeSet.id} className="card-small border-2 border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <User size={16} className="text-text-dark-60" />
-                          <span className="font-bold text-shortcut-blue">{changeSet.clientName || 'Unknown Client'}</span>
+                          <span className="text-sm font-extrabold text-shortcut-blue">{changeSet.clientName || 'Unknown Client'}</span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Mail size={16} className="text-text-dark-60" />
-                          <span className="text-sm text-text-dark-60">{changeSet.clientEmail || 'No email'}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
+                        {changeSet.clientEmail && (
+                          <div className="flex items-center gap-2">
+                            <Mail size={16} className="text-text-dark-60" />
+                            <span className="text-xs text-text-dark-60">{changeSet.clientEmail}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
                           <Calendar size={16} className="text-text-dark-60" />
-                          <span className="text-sm text-text-dark-60">
-                            {new Date(changeSet.submittedAt).toLocaleDateString()}
+                          <span className="text-xs text-text-dark-60">
+                            {format(new Date(changeSet.submittedAt), 'MMM d, yyyy h:mm a')}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          changeSet.status === 'pending' ? 'bg-accent-yellow bg-opacity-20 text-shortcut-dark-blue' :
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ChangeSourceBadge 
+                          changeSource={changeSet.changeSource} 
+                          userId={changeSet.userId}
+                          size="sm"
+                        />
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          changeSet.status === 'pending' ? 'bg-shortcut-service-yellow bg-opacity-20 text-shortcut-dark-blue' :
                           changeSet.status === 'approved' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
-                          'bg-red-100 text-red-800'
+                          'bg-red-100 text-red-700'
                         }`}>
-                          {changeSet.status === 'pending' ? 'Pending' :
+                          {changeSet.status === 'pending' ? 'Pending Review' :
                            changeSet.status === 'approved' ? 'Approved' : 'Rejected'}
                         </span>
                       </div>
                     </div>
 
                     {changeSet.clientComment && (
-                      <div className="mb-3 p-3 bg-shortcut-light-blue rounded border-l-4 border-shortcut-teal">
-                        <p className="text-sm text-shortcut-dark-blue">
-                          <strong>Client Comment:</strong> {changeSet.clientComment}
-                        </p>
+                      <div className="mb-3 p-3 bg-white rounded border-l-4 border-shortcut-teal shadow-sm">
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-1 uppercase tracking-wide">Client Comment</div>
+                        <p className="text-sm text-text-dark font-medium">{changeSet.clientComment}</p>
                       </div>
                     )}
 
                     {changeSet.adminComment && (
                       <div className="mb-3 p-3 bg-neutral-light-gray rounded border-l-4 border-shortcut-navy-blue">
-                        <p className="text-sm text-text-dark">
-                          <strong>Admin Comment:</strong> {changeSet.adminComment}
-                        </p>
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-1 uppercase tracking-wide">Admin Comment</div>
+                        <p className="text-sm text-text-dark font-medium">{changeSet.adminComment}</p>
                       </div>
                     )}
 
-                    <div className="text-sm text-text-dark-60">
-                      <strong>Changes:</strong> {changeSet.changes.length} modification(s) submitted
-                    </div>
+                    {/* Show actual changes */}
+                    {changeSet.changes && changeSet.changes.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="text-xs font-extrabold text-shortcut-navy-blue mb-3 uppercase tracking-wide">
+                          Changes Made ({changeSet.changes.length})
+                        </div>
+                        <div className="space-y-2">
+                          {changeSet.changes.slice(0, 5).map((change) => {
+                            const displayInfo = getChangeDisplayInfo(change);
+                            return (
+                              <div key={change.id} className="p-2 bg-neutral-light-gray rounded-lg">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="text-xs font-extrabold text-shortcut-blue flex-1">{displayInfo.fieldName}</div>
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
+                                    displayInfo.changeType === 'add' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
+                                    displayInfo.changeType === 'remove' ? 'bg-red-100 text-red-700' :
+                                    'bg-neutral-light-gray text-shortcut-blue'
+                                  }`}>
+                                    {displayInfo.changeType === 'add' ? 'Added' : displayInfo.changeType === 'remove' ? 'Removed' : 'Updated'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs flex-wrap">
+                                  {displayInfo.changeType === 'add' && (
+                                    <>
+                                      <span className="text-text-dark-60 italic">No previous value</span>
+                                      <span className="text-shortcut-navy-blue font-bold">→</span>
+                                      <span className="font-bold text-shortcut-navy-blue">{displayInfo.newValueDisplay}</span>
+                                    </>
+                                  )}
+                                  {displayInfo.changeType === 'remove' && (
+                                    <>
+                                      <span className="line-through text-text-dark-60">{displayInfo.oldValueDisplay}</span>
+                                      <span className="text-shortcut-navy-blue font-bold">→</span>
+                                      <span className="text-text-dark-60 italic">Removed</span>
+                                    </>
+                                  )}
+                                  {displayInfo.changeType === 'update' && (
+                                    <>
+                                      <span className="line-through text-text-dark-60">{displayInfo.oldValueDisplay}</span>
+                                      <span className="text-shortcut-teal-blue font-bold">→</span>
+                                      <span className="font-bold text-shortcut-navy-blue">{displayInfo.newValueDisplay}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {changeSet.changes.length > 5 && (
+                            <div className="text-xs text-text-dark-60 text-center py-1">
+                              ... and {changeSet.changes.length - 5} more change{changeSet.changes.length - 5 !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(!changeSet.changes || changeSet.changes.length === 0) && (
+                      <div className="text-sm text-text-dark-60 italic">
+                        Changes detected but details not available
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

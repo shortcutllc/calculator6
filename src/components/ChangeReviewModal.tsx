@@ -4,6 +4,7 @@ import { Proposal, ProposalData } from '../types/proposal';
 import { format, parseISO } from 'date-fns';
 import { trackProposalChanges, getChangeDisplayInfo } from '../utils/changeTracker';
 import { Button } from './Button';
+import { ChangeSourceBadge } from './ChangeSourceBadge';
 
 interface ChangeReviewModalProps {
   isOpen: boolean;
@@ -40,7 +41,16 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div>
-            <h2 className="h2">Proposal Details</h2>
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="h2">Proposal Details</h2>
+              {proposalData.hasChanges && (
+                <ChangeSourceBadge 
+                  changeSource={proposalData.changeSource} 
+                  userId={proposalData.userId}
+                  size="sm"
+                />
+              )}
+            </div>
             <p className="text-sm text-text-dark-60 mt-1">
               Review proposal for {proposalData.data.clientName || 'Client'}
             </p>
@@ -110,10 +120,17 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
 
           {/* Changes Section */}
           {proposalData.hasChanges && proposalData.originalData && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
-                <h3 className="text-lg font-semibold text-orange-900">Changes Submitted</h3>
+            <div className="card-medium mb-6 border-l-4 border-shortcut-teal">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-shortcut-teal-blue" />
+                  <h3 className="text-xl font-extrabold text-shortcut-blue">Changes Submitted</h3>
+                </div>
+                <ChangeSourceBadge 
+                  changeSource={proposalData.changeSource} 
+                  userId={proposalData.userId}
+                  size="sm"
+                />
               </div>
               
               <div className="space-y-3">
@@ -127,31 +144,53 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
                   
                   if (changes.length === 0) {
                     return (
-                      <p className="text-orange-700 text-sm">
-                        Changes detected but no specific field changes found. This may be due to service modifications or other complex changes.
-                      </p>
+                      <div className="p-4 bg-neutral-light-gray rounded-lg border border-gray-200">
+                        <p className="text-sm font-medium text-text-dark">
+                          Changes detected but no specific field changes found. This may be due to service modifications or other complex changes.
+                        </p>
+                      </div>
                     );
                   }
                   
                   return changes.map((change, index) => {
                     const displayInfo = getChangeDisplayInfo(change);
                     return (
-                      <div key={index} className="bg-white rounded border p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-bold text-shortcut-blue">{displayInfo.fieldName}</span>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            displayInfo.changeType === 'add' ? 'bg-green-100 text-green-800' :
-                            displayInfo.changeType === 'remove' ? 'bg-red-100 text-red-800' :
-                            'bg-blue-100 text-blue-800'
+                      <div key={index} className="card-small border-2 border-gray-200">
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-extrabold text-shortcut-blue mb-2">{displayInfo.fieldName}</div>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
+                            displayInfo.changeType === 'add' ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue' :
+                            displayInfo.changeType === 'remove' ? 'bg-red-100 text-red-700' :
+                            'bg-neutral-light-gray text-shortcut-blue'
                           }`}>
                             {displayInfo.changeType === 'add' ? 'Added' :
                              displayInfo.changeType === 'remove' ? 'Removed' : 'Updated'}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-2 text-sm">
-                          <span className="text-gray-500 line-through">{displayInfo.oldValueDisplay}</span>
-                          <ArrowRight className="w-4 h-4 text-text-dark-60" />
-                          <span className="text-shortcut-blue font-medium">{displayInfo.newValueDisplay}</span>
+                        <div className="flex items-center gap-2 text-sm flex-wrap">
+                          {displayInfo.changeType === 'add' && (
+                            <>
+                              <span className="text-text-dark-60 italic">No previous value</span>
+                              <span className="text-shortcut-navy-blue font-bold">→</span>
+                              <span className="font-bold text-shortcut-navy-blue">{displayInfo.newValueDisplay}</span>
+                            </>
+                          )}
+                          {displayInfo.changeType === 'remove' && (
+                            <>
+                              <span className="line-through text-text-dark-60">{displayInfo.oldValueDisplay}</span>
+                              <span className="text-shortcut-navy-blue font-bold">→</span>
+                              <span className="text-text-dark-60 italic">Removed</span>
+                            </>
+                          )}
+                          {displayInfo.changeType === 'update' && (
+                            <>
+                              <span className="line-through text-text-dark-60">{displayInfo.oldValueDisplay}</span>
+                              <span className="text-shortcut-teal-blue font-bold">→</span>
+                              <span className="font-bold text-shortcut-navy-blue">{displayInfo.newValueDisplay}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
@@ -160,9 +199,9 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
               </div>
               
               {proposalData.clientComment && (
-                <div className="mt-4 p-3 bg-white rounded border">
-                  <h4 className="font-bold text-shortcut-blue mb-1">Client Comment:</h4>
-                  <p className="text-text-dark text-sm">{proposalData.clientComment}</p>
+                <div className="mt-4 p-4 bg-white rounded-lg border-l-4 border-shortcut-teal shadow-sm">
+                  <div className="text-xs font-extrabold text-shortcut-navy-blue mb-2 uppercase tracking-wide">Client Comment</div>
+                  <p className="text-sm text-text-dark font-medium">{proposalData.clientComment}</p>
                 </div>
               )}
             </div>

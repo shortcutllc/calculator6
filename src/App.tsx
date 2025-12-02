@@ -8,6 +8,7 @@ import Calculator from './components/Calculator';
 import Login from './components/Login';
 import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
+import UsersManagement from './components/UsersManagement';
 import EmployeeGallery from './components/EmployeeGallery';
 import ManagerGallery from './components/ManagerGallery';
 import PhotographerDashboard from './components/PhotographerDashboard';
@@ -120,6 +121,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <AdminDashboard />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/users"
+                element={
+                  <PrivateRoute>
+                    <UsersManagement />
                   </PrivateRoute>
                 } 
               />

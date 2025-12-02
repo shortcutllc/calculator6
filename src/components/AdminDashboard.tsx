@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { ChangeSourceBadge } from './ChangeSourceBadge';
 import { CheckCircle, Clock, Search, Filter, Calendar, DollarSign, User, MapPin, Eye, RefreshCw, AlertCircle, FileText } from 'lucide-react';
 import { Button } from './Button';
 import { useProposal } from '../contexts/ProposalContext';
@@ -375,16 +376,26 @@ const AdminDashboard: React.FC = () => {
 
                       {/* Show change details if there are changes */}
                       {proposal.hasChanges && proposal.originalData && (
-                        <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <AlertCircle className="w-4 h-4 text-orange-600" />
-                            <span className="text-sm font-medium text-orange-800">Changes Submitted</span>
+                        <div className="mt-3 p-4 bg-white border-l-4 border-shortcut-teal rounded-lg shadow-sm">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-shortcut-teal-blue" />
+                              <span className="text-sm font-extrabold text-shortcut-blue">Changes Submitted</span>
+                            </div>
+                            <ChangeSourceBadge 
+                              changeSource={proposal.changeSource} 
+                              userId={proposal.userId}
+                              size="sm"
+                            />
                           </div>
-                          <div className="text-sm text-orange-700">
-                            {proposal.changeSource === 'client' ? 'Client has submitted changes for review' : 'Staff has made changes'}
+                          <div className="text-sm font-medium text-text-dark">
+                            {proposal.changeSource === 'client' 
+                              ? 'The client has submitted changes for your review' 
+                              : 'Shortcut Staff has made changes to this proposal'}
                             {proposal.clientComment && (
-                              <div className="mt-2 p-2 bg-white rounded border">
-                                <strong>Client Comment:</strong> {proposal.clientComment}
+                              <div className="mt-3 p-3 bg-neutral-light-gray rounded-lg border border-shortcut-teal">
+                                <div className="text-xs font-extrabold text-shortcut-navy-blue mb-1 uppercase tracking-wide">Client Comment</div>
+                                <p className="text-sm text-text-dark">{proposal.clientComment}</p>
                               </div>
                             )}
                           </div>

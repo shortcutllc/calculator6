@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogIn, LogOut, UserPlus, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, UserPlus, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';
+import { isMasterAccount } from '../utils/isMasterAccount';
 
 export const Navigation: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +13,9 @@ export const Navigation: React.FC = () => {
   const [landingPagesDropdownOpen, setLandingPagesDropdownOpen] = useState(false);
   const proposalsDropdownRef = useRef<HTMLDivElement>(null);
   const landingPagesDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Check if user is master account
+  const isMaster = isMasterAccount(user);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -159,6 +163,18 @@ export const Navigation: React.FC = () => {
               >
                 Headshots
               </Button>
+
+              {/* Users - Only visible to master account */}
+              {isMaster && (
+                <Button 
+                  onClick={() => navigate('/users')} 
+                  variant="secondary"
+                  icon={<Users size={18} />}
+                  className="hidden sm:flex"
+                >
+                  Users
+                </Button>
+              )}
             </>
           )}
           {!user && (
@@ -302,6 +318,25 @@ export const Navigation: React.FC = () => {
                       </button>
                     </div>
                   </div>
+
+                  {/* Users Section - Only visible to master account */}
+                  {isMaster && (
+                    <div className="px-4 py-2 border-t border-gray-100">
+                      <div className="text-xs font-extrabold text-shortcut-blue uppercase tracking-wider mb-2">Users</div>
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => {
+                            navigate('/users');
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                        >
+                          <Users size={16} className="text-text-dark-60" />
+                          Manage Users
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Account Actions */}
                   <div className="px-4 py-2 border-t border-gray-200 mt-2">
