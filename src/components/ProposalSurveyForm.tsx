@@ -172,11 +172,12 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
           .from('proposal_survey_responses')
           .select('*')
           .eq('proposal_id', proposalId)
-          .single();
+          .maybeSingle(); // Use maybeSingle to handle no rows gracefully
 
         if (error) {
           // PGRST116 = no rows returned (this is expected if no survey exists yet)
           // PGRST301 = relation does not exist (table hasn't been created yet)
+          // 406 = Not Acceptable (may indicate RLS or schema issue)
           if (error.code === 'PGRST116') {
             // No survey exists yet, this is fine
             return;
@@ -186,7 +187,17 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
             setError('Database migration required. Please contact support.');
             return;
           }
-          console.error('Error loading survey response:', error);
+          // Handle 406 errors gracefully
+          if (error.code === 'PGRST406' || error.message?.includes('406')) {
+            console.warn('Survey table access issue (406). This may indicate a migration needs to be applied.');
+            return;
+          }
+          console.error('Error loading survey response:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
           return;
         }
 
@@ -313,11 +324,15 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
       setShowSuccessBanner(true);
       setShowReadOnlyView(true); // Switch to read-only view after submission
       // Reload the response to get the full data including submitted_at
-      const { data: updatedData } = await supabase
+      const { data: updatedData, error: reloadError } = await supabase
         .from('proposal_survey_responses')
         .select('*')
         .eq('proposal_id', proposalId)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle potential errors gracefully
+      
+      if (reloadError) {
+        console.warn('Error reloading survey response:', reloadError);
+      }
       
       if (updatedData) {
         setExistingResponse(updatedData);

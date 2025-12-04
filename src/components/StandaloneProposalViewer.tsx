@@ -286,16 +286,16 @@ export const StandaloneProposalViewer: React.FC = () => {
             }
             
             return {
-              id: proposal.id,
-              proposalId: proposal.id,
+          id: proposal.id,
+          proposalId: proposal.id,
               changes,
-              clientEmail: proposal.client_email,
-              clientName: proposal.client_name,
-              clientComment: proposal.client_comment || '',
-              status: 'pending' as const,
-              submittedAt: proposal.updated_at,
-              reviewedBy: proposal.reviewed_by,
-              reviewedAt: proposal.reviewed_at,
+          clientEmail: proposal.client_email,
+          clientName: proposal.client_name,
+          clientComment: proposal.client_comment || '',
+          status: 'pending' as const,
+          submittedAt: proposal.updated_at,
+          reviewedBy: proposal.reviewed_by,
+          reviewedAt: proposal.reviewed_at,
               adminComment: proposal.admin_comment,
               changeSource: proposal.change_source,
               userId: proposal.user_id
@@ -521,10 +521,10 @@ export const StandaloneProposalViewer: React.FC = () => {
       // Build update object
       const updateData: any = {
         data: recalculatedData,
-        has_changes: true,
-        pending_review: true,
-        original_data: originalData || proposal.data,
-        customization: proposal.customization,
+          has_changes: true,
+          pending_review: true,
+          original_data: originalData || proposal.data,
+          customization: proposal.customization,
         change_source: 'client',
         pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
         selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
@@ -538,13 +538,31 @@ export const StandaloneProposalViewer: React.FC = () => {
         .eq('id', id);
 
       if (error) {
-        console.error('Error saving changes:', {
+        console.error('Error saving changes:', JSON.stringify({
           code: error.code,
           message: error.message,
           details: error.details,
           hint: error.hint
-        });
-        throw error;
+        }, null, 2));
+        
+        // Retry without client_data if error occurs
+        const updateDataWithoutClientData = { ...updateData };
+        delete updateDataWithoutClientData.client_data;
+        
+        const { error: retryError } = await supabase
+          .from('proposals')
+          .update(updateDataWithoutClientData)
+          .eq('id', id);
+        
+        if (retryError) {
+          console.error('Error saving changes (retry without client_data):', JSON.stringify({
+            code: retryError.code,
+            message: retryError.message,
+            details: retryError.details,
+            hint: retryError.hint
+          }, null, 2));
+          throw retryError;
+        }
       }
 
       setDisplayData({ ...recalculatedData, customization: proposal.customization });
@@ -606,8 +624,7 @@ export const StandaloneProposalViewer: React.FC = () => {
         changesCount: pendingChanges.length
       });
       
-      // Try a direct update first
-      // Build update object - conditionally include client_data if column exists
+      // Build update object
       const updateData: any = {
         data: recalculatedData,
         has_changes: true,
@@ -620,47 +637,37 @@ export const StandaloneProposalViewer: React.FC = () => {
         has_pricing_options: recalculatedData.hasPricingOptions || false
       };
 
-      // Try to include client_data, but handle gracefully if column doesn't exist
-      try {
-        const { error } = await supabase
-          .from('proposals')
-          .update({
-            ...updateData,
-            client_data: recalculatedData // Store client changes in client_data
-          })
-          .eq('id', id);
+      // Try update with client_data first, fallback without it if needed
+      const { error } = await supabase
+        .from('proposals')
+        .update({
+          ...updateData,
+          client_data: recalculatedData // Store client changes in client_data
+        })
+        .eq('id', id);
 
-        if (error) {
-          // If error mentions client_data column, retry without it
-          if (error.message?.includes('client_data') || error.code === '42703') {
-            console.warn('client_data column may not exist, retrying without it');
-            const { error: retryError } = await supabase
-              .from('proposals')
-              .update(updateData)
-              .eq('id', id);
-            if (retryError) {
-              console.error('Database update error:', retryError);
-              throw retryError;
-            }
-          } else {
-            console.error('Database update error:', error);
-            throw error;
-          }
-        }
-      } catch (err: any) {
-        // If it's a column error, try without client_data
-        if (err?.message?.includes('client_data') || err?.code === '42703') {
-          console.warn('client_data column may not exist, retrying without it');
-          const { error: retryError } = await supabase
-            .from('proposals')
-            .update(updateData)
-            .eq('id', id);
-          if (retryError) {
-            console.error('Database update error:', retryError);
-            throw retryError;
-          }
-        } else {
-          throw err;
+      if (error) {
+        console.error('Error submitting changes (with client_data):', JSON.stringify({
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        }, null, 2));
+        
+        // Retry without client_data as fallback
+        const { error: retryError } = await supabase
+          .from('proposals')
+          .update(updateData)
+          .eq('id', id);
+        
+        if (retryError) {
+          console.error('Error submitting changes (without client_data):', JSON.stringify({
+            code: retryError.code,
+            message: retryError.message,
+            details: retryError.details,
+            hint: retryError.hint
+          }, null, 2));
+          throw retryError;
         }
       }
       
@@ -758,7 +765,6 @@ export const StandaloneProposalViewer: React.FC = () => {
       // First, save any changes (including pricing option selections) with change_source
       const updateData: any = {
         data: recalculatedData,
-        client_data: recalculatedData, // Store client changes in client_data
         status: 'approved',
         pending_review: false,
         has_changes: false,
@@ -768,21 +774,39 @@ export const StandaloneProposalViewer: React.FC = () => {
         has_pricing_options: recalculatedData.hasPricingOptions || false
       };
 
+      // Try update with client_data first, fallback without it if needed
       const { error: updateError } = await supabase
         .from('proposals')
-        .update(updateData)
+        .update({
+          ...updateData,
+          client_data: recalculatedData // Store client changes in client_data
+        })
         .eq('id', id);
 
       if (updateError) {
-        // Log full error details for debugging
-        console.error('Proposal approval update error:', {
+        // Log the full error for debugging
+        console.error('Proposal approval update error (with client_data):', JSON.stringify({
           code: updateError.code,
           message: updateError.message,
           details: updateError.details,
-          hint: updateError.hint,
-          updateData: Object.keys(updateData)
-        });
-        throw updateError;
+          hint: updateError.hint
+        }, null, 2));
+        
+        // Retry without client_data as fallback
+        const { error: retryError } = await supabase
+          .from('proposals')
+          .update(updateData)
+          .eq('id', id);
+        
+        if (retryError) {
+          console.error('Proposal approval update error (without client_data):', JSON.stringify({
+            code: retryError.code,
+            message: retryError.message,
+            details: retryError.details,
+            hint: retryError.hint
+          }, null, 2));
+          throw retryError;
+        }
       }
 
       // Update local state to reflect saved data
@@ -885,11 +909,12 @@ export const StandaloneProposalViewer: React.FC = () => {
         .from('proposal_survey_responses')
         .select('id')
         .eq('proposal_id', id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
 
       if (error) {
         // PGRST116 = no rows returned (this is expected if no survey exists yet)
         // PGRST301 = relation does not exist (table hasn't been created yet)
+        // 406 = Not Acceptable (may indicate RLS or schema issue)
         if (error.code === 'PGRST116') {
           // No survey exists yet, this is fine
           setHasSurveyResponse(false);
@@ -904,7 +929,18 @@ export const StandaloneProposalViewer: React.FC = () => {
           setShowSurveyCTA(false);
           return;
         }
-        console.error('Error checking survey response:', error);
+        // Handle 406 errors gracefully - table might exist but have permission issues
+        if (error.code === 'PGRST406' || error.message?.includes('406')) {
+          console.warn('Survey table access issue (406). This may indicate a migration needs to be applied.');
+          setShowSurveyCTA(false);
+          return;
+        }
+        console.error('Error checking survey response:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         return;
       }
 
@@ -917,6 +953,8 @@ export const StandaloneProposalViewer: React.FC = () => {
       }
     } catch (err) {
       console.error('Error checking survey response:', err);
+      // On any error, don't show the CTA to avoid confusion
+      setShowSurveyCTA(false);
     }
   };
 
@@ -1730,7 +1768,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <Mail size={16} className="text-text-dark-60" />
                             <span className="text-xs text-text-dark-60">{changeSet.clientEmail}</span>
-                          </div>
+                        </div>
                         )}
                         <div className="flex items-center gap-2">
                           <Calendar size={16} className="text-text-dark-60" />
@@ -1775,7 +1813,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <div className="text-xs font-extrabold text-shortcut-navy-blue mb-3 uppercase tracking-wide">
                           Changes Made ({changeSet.changes.length})
-                        </div>
+                    </div>
                         <div className="space-y-2">
                           {changeSet.changes.slice(0, 5).map((change) => {
                             const displayInfo = getChangeDisplayInfo(change);
