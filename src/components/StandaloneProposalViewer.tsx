@@ -518,22 +518,34 @@ export const StandaloneProposalViewer: React.FC = () => {
         });
       });
       
+      // Build update object
+      const updateData: any = {
+        data: recalculatedData,
+        has_changes: true,
+        pending_review: true,
+        original_data: originalData || proposal.data,
+        customization: proposal.customization,
+        change_source: 'client',
+        pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
+        selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
+        has_pricing_options: recalculatedData.hasPricingOptions || false,
+        client_data: recalculatedData // Store client changes in client_data
+      };
+
       const { error } = await supabase
         .from('proposals')
-        .update({
-          data: recalculatedData,
-          has_changes: true,
-          pending_review: true,
-          original_data: originalData || proposal.data,
-          customization: proposal.customization,
-          change_source: 'client',
-          pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
-          selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
-          has_pricing_options: recalculatedData.hasPricingOptions || false
-        })
+        .update(updateData)
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving changes:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
 
       setDisplayData({ ...recalculatedData, customization: proposal.customization });
       setEditedData({ ...recalculatedData, customization: proposal.customization });
@@ -595,26 +607,61 @@ export const StandaloneProposalViewer: React.FC = () => {
       });
       
       // Try a direct update first
-      // When client makes changes, we need to set client_data to preserve the state
-      const { error } = await supabase
-        .from('proposals')
-        .update({
-          data: recalculatedData,
-          client_data: recalculatedData, // Store client changes in client_data
-          has_changes: true,
-          pending_review: true,
-          original_data: originalData || proposal.data,
-          customization: proposal.customization,
-          change_source: 'client',
-          pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
-          selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
-          has_pricing_options: recalculatedData.hasPricingOptions || false
-        })
-        .eq('id', id);
+      // Build update object - conditionally include client_data if column exists
+      const updateData: any = {
+        data: recalculatedData,
+        has_changes: true,
+        pending_review: true,
+        original_data: originalData || proposal.data,
+        customization: proposal.customization,
+        change_source: 'client',
+        pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
+        selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
+        has_pricing_options: recalculatedData.hasPricingOptions || false
+      };
 
-      if (error) {
-        console.error('Database update error:', error);
-        throw error;
+      // Try to include client_data, but handle gracefully if column doesn't exist
+      try {
+        const { error } = await supabase
+          .from('proposals')
+          .update({
+            ...updateData,
+            client_data: recalculatedData // Store client changes in client_data
+          })
+          .eq('id', id);
+
+        if (error) {
+          // If error mentions client_data column, retry without it
+          if (error.message?.includes('client_data') || error.code === '42703') {
+            console.warn('client_data column may not exist, retrying without it');
+            const { error: retryError } = await supabase
+              .from('proposals')
+              .update(updateData)
+              .eq('id', id);
+            if (retryError) {
+              console.error('Database update error:', retryError);
+              throw retryError;
+            }
+          } else {
+            console.error('Database update error:', error);
+            throw error;
+          }
+        }
+      } catch (err: any) {
+        // If it's a column error, try without client_data
+        if (err?.message?.includes('client_data') || err?.code === '42703') {
+          console.warn('client_data column may not exist, retrying without it');
+          const { error: retryError } = await supabase
+            .from('proposals')
+            .update(updateData)
+            .eq('id', id);
+          if (retryError) {
+            console.error('Database update error:', retryError);
+            throw retryError;
+          }
+        } else {
+          throw err;
+        }
       }
       
       console.log('✅ Changes saved successfully to database');
@@ -709,22 +756,34 @@ export const StandaloneProposalViewer: React.FC = () => {
       });
       
       // First, save any changes (including pricing option selections) with change_source
+      const updateData: any = {
+        data: recalculatedData,
+        client_data: recalculatedData, // Store client changes in client_data
+        status: 'approved',
+        pending_review: false,
+        has_changes: false,
+        change_source: 'client', // Mark as client change
+        pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
+        selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
+        has_pricing_options: recalculatedData.hasPricingOptions || false
+      };
+
       const { error: updateError } = await supabase
         .from('proposals')
-        .update({
-          data: recalculatedData,
-          client_data: recalculatedData, // Store client changes in client_data
-          status: 'approved',
-          pending_review: false,
-          has_changes: false,
-          change_source: 'client', // Mark as client change
-          pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
-          selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
-          has_pricing_options: recalculatedData.hasPricingOptions || false
-        })
+        .update(updateData)
         .eq('id', id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        // Log full error details for debugging
+        console.error('Proposal approval update error:', {
+          code: updateError.code,
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint,
+          updateData: Object.keys(updateData)
+        });
+        throw updateError;
+      }
 
       // Update local state to reflect saved data
       setDisplayData({ ...recalculatedData, customization: proposal?.customization });
