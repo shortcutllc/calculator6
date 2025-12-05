@@ -519,17 +519,18 @@ export const StandaloneProposalViewer: React.FC = () => {
       });
       
       // Build update object
+      // Note: client_data column may not exist if migration not applied yet
+      // The database trigger will handle it if the column exists
       const updateData: any = {
         data: recalculatedData,
-          has_changes: true,
-          pending_review: true,
-          original_data: originalData || proposal.data,
-          customization: proposal.customization,
+        has_changes: true,
+        pending_review: true,
+        original_data: originalData || proposal.data,
+        customization: proposal.customization,
         change_source: 'client',
         pricing_options: Object.keys(pricingOptions).length > 0 ? pricingOptions : null,
         selected_options: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
-        has_pricing_options: recalculatedData.hasPricingOptions || false,
-        client_data: recalculatedData // Store client changes in client_data
+        has_pricing_options: recalculatedData.hasPricingOptions || false
       };
 
       const { error } = await supabase
@@ -544,25 +545,7 @@ export const StandaloneProposalViewer: React.FC = () => {
           details: error.details,
           hint: error.hint
         }, null, 2));
-        
-        // Retry without client_data if error occurs
-        const updateDataWithoutClientData = { ...updateData };
-        delete updateDataWithoutClientData.client_data;
-        
-        const { error: retryError } = await supabase
-          .from('proposals')
-          .update(updateDataWithoutClientData)
-          .eq('id', id);
-        
-        if (retryError) {
-          console.error('Error saving changes (retry without client_data):', JSON.stringify({
-            code: retryError.code,
-            message: retryError.message,
-            details: retryError.details,
-            hint: retryError.hint
-          }, null, 2));
-          throw retryError;
-        }
+        throw error;
       }
 
       setDisplayData({ ...recalculatedData, customization: proposal.customization });
@@ -625,6 +608,8 @@ export const StandaloneProposalViewer: React.FC = () => {
       });
       
       // Build update object
+      // Note: client_data column may not exist if migration not applied yet
+      // The database trigger will handle it if the column exists
       const updateData: any = {
         data: recalculatedData,
         has_changes: true,
@@ -637,38 +622,19 @@ export const StandaloneProposalViewer: React.FC = () => {
         has_pricing_options: recalculatedData.hasPricingOptions || false
       };
 
-      // Try update with client_data first, fallback without it if needed
       const { error } = await supabase
         .from('proposals')
-        .update({
-          ...updateData,
-          client_data: recalculatedData // Store client changes in client_data
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (error) {
-        console.error('Error submitting changes (with client_data):', JSON.stringify({
+        console.error('Error submitting changes:', JSON.stringify({
           code: error.code,
           message: error.message,
           details: error.details,
           hint: error.hint
         }, null, 2));
-        
-        // Retry without client_data as fallback
-        const { error: retryError } = await supabase
-          .from('proposals')
-          .update(updateData)
-          .eq('id', id);
-        
-        if (retryError) {
-          console.error('Error submitting changes (without client_data):', JSON.stringify({
-            code: retryError.code,
-            message: retryError.message,
-            details: retryError.details,
-            hint: retryError.hint
-          }, null, 2));
-          throw retryError;
-        }
+        throw error;
       }
       
       console.log('✅ Changes saved successfully to database');
@@ -774,39 +740,21 @@ export const StandaloneProposalViewer: React.FC = () => {
         has_pricing_options: recalculatedData.hasPricingOptions || false
       };
 
-      // Try update with client_data first, fallback without it if needed
+      // Try update - skip client_data initially since migration may not be applied
+      // The database trigger will handle client_data if the column exists
       const { error: updateError } = await supabase
         .from('proposals')
-        .update({
-          ...updateData,
-          client_data: recalculatedData // Store client changes in client_data
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (updateError) {
-        // Log the full error for debugging
-        console.error('Proposal approval update error (with client_data):', JSON.stringify({
+        console.error('Proposal approval update error:', JSON.stringify({
           code: updateError.code,
           message: updateError.message,
           details: updateError.details,
           hint: updateError.hint
         }, null, 2));
-        
-        // Retry without client_data as fallback
-        const { error: retryError } = await supabase
-          .from('proposals')
-          .update(updateData)
-          .eq('id', id);
-        
-        if (retryError) {
-          console.error('Proposal approval update error (without client_data):', JSON.stringify({
-            code: retryError.code,
-            message: retryError.message,
-            details: retryError.details,
-            hint: retryError.hint
-          }, null, 2));
-          throw retryError;
-        }
+        throw updateError;
       }
 
       // Update local state to reflect saved data
