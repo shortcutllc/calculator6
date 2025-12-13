@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogIn, LogOut, UserPlus, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -120,6 +120,26 @@ export const Navigation: React.FC = () => {
                 </Button>
                 {landingPagesDropdownOpen && (
                   <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[150]">
+                    <button
+                      onClick={() => {
+                        navigate('/generic-landing-pages');
+                        setLandingPagesDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
+                    >
+                      <span style={{ fontSize: '16px' }}>🤝</span>
+                      Corporate Partnerships
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/corporatepartnerships');
+                        setLandingPagesDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
+                    >
+                      <span style={{ fontSize: '16px' }}>👁️</span>
+                      View Generic Page
+                    </button>
                     <button
                       onClick={() => {
                         navigate('/holiday-pages');
@@ -249,6 +269,26 @@ export const Navigation: React.FC = () => {
                   <div className="px-4 py-2 border-t border-gray-100">
                     <div className="text-xs font-extrabold text-shortcut-blue uppercase tracking-wider mb-2">Landing Pages</div>
                     <div className="space-y-1">
+                      <button
+                        onClick={() => {
+                          navigate('/generic-landing-pages');
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                      >
+                        <span style={{ fontSize: '16px' }}>🤝</span>
+                        Corporate Partnerships
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/corporatepartnerships');
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                      >
+                        <span style={{ fontSize: '16px' }}>👁️</span>
+                        View Generic Page
+                      </button>
                       <button
                         onClick={() => {
                           navigate('/holiday-pages');

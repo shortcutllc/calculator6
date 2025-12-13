@@ -17,6 +17,7 @@ import { HeadshotsPage } from './components/HeadshotsPage';
 import { CustomUrlResolver } from './components/CustomUrlResolver';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { HolidayPageProvider } from './contexts/HolidayPageContext';
+import { GenericLandingPageProvider } from './contexts/GenericLandingPageContext';
 import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
 import { QRCodeSignProvider } from './contexts/QRCodeSignContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -30,7 +31,9 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 const BrochurePage = lazy(() => import('./components/BrochurePage'));
 const PDFViewer = lazy(() => import('./components/PDFViewer'));
 const HolidayProposal = lazy(() => import('./components/HolidayProposal'));
+const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
 const HolidayPageManager = lazy(() => import('./components/HolidayPageManager'));
+const GenericLandingPageManager = lazy(() => import('./components/GenericLandingPageManager'));
 const SocialMediaProposal = lazy(() => import('./components/SocialMediaProposal'));
 const SocialMediaPageManager = lazy(() => import('./components/SocialMediaPageManager'));
 const QRCodeSignManager = lazy(() => import('./components/QRCodeSignManager'));
@@ -48,6 +51,8 @@ function App() {
     location.pathname === '/holiday-proposal' ||
     location.pathname.startsWith('/holiday-page/') ||
     location.pathname === '/holiday-generic' ||
+    location.pathname === '/corporatepartnerships' ||
+    location.pathname.startsWith('/generic-landing-page/') ||
     location.pathname === '/holiday2025' ||
     location.pathname === '/social-media/linkedin' ||
     location.pathname === '/social-media/meta' ||
@@ -78,6 +83,7 @@ function App() {
     <AuthProvider>
       <ProposalProvider>
         <HolidayPageProvider>
+        <GenericLandingPageProvider>
         <div className="min-h-screen flex flex-col bg-gray-100">
           {!isSharedView && <Navigation />}
           <main className="flex-1 overflow-y-auto">
@@ -203,6 +209,18 @@ function App() {
                 }
               />
               <Route 
+                path="/corporatepartnerships"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <GenericLandingPage isGeneric={true} />
+                  </Suspense>
+                }
+              />
+              <Route 
                 path="/holiday2025"
                 element={
                   <Suspense fallback={
@@ -238,6 +256,32 @@ function App() {
                       <HolidayPageManager />
                     </Suspense>
                   </PrivateRoute>
+                }
+              />
+              <Route 
+                path="/generic-landing-pages"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <GenericLandingPageManager />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              <Route 
+                path="/generic-landing-page/:id"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <GenericLandingPage />
+                  </Suspense>
                 }
               />
               
@@ -386,6 +430,7 @@ function App() {
             </Routes>
           </main>
         </div>
+        </GenericLandingPageProvider>
         </HolidayPageProvider>
       </ProposalProvider>
     </AuthProvider>

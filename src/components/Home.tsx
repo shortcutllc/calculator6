@@ -448,7 +448,7 @@ const Home: React.FC = () => {
         proposalData.officeLocation = options.officeLocation;
       }
 
-      const proposalId = await createProposal(proposalData, options.customization, options.clientEmail);
+      const proposalId = await createProposal(proposalData, options.customization, options.clientEmail, options.isTest);
       if (!proposalId) {
         throw new Error('Failed to create proposal');
       }
@@ -1368,17 +1368,31 @@ const Home: React.FC = () => {
                             Class Length (minutes)
                           </label>
                           <select
-                            value={service.classLength || 60}
-                            onChange={(e) =>
+                            value={service.mindfulnessType || (service.classLength === 30 ? 'drop-in' : 'intro')}
+                            onChange={(e) => {
+                              const selectedType = e.target.value;
+                              let classLength = 60;
+                              let fixedPrice = 1350;
+                              
+                              if (selectedType === 'drop-in') {
+                                classLength = 30;
+                                fixedPrice = 1125;
+                              } else {
+                                classLength = 60;
+                                fixedPrice = 1350;
+                              }
+                              
                               updateService(index, {
-                                classLength: parseInt(e.target.value) || 60,
-                                fixedPrice: e.target.value === '60' ? 1350 : 1125
-                              })
-                            }
+                                classLength,
+                                fixedPrice,
+                                mindfulnessType: selectedType
+                              });
+                            }}
                             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                           >
-                            <option value={60}>60 minutes - Intro to Mindfulness ($1,350)</option>
-                            <option value={30}>30 minutes - Drop-in Session ($1,125)</option>
+                            <option value="intro">60 minutes - Intro to Mindfulness ($1,350)</option>
+                            <option value="drop-in">30 minutes - Drop-in Session ($1,125)</option>
+                            <option value="mindful-movement">60 minutes - Mindful Movement ($1,350)</option>
                           </select>
                         </div>
 

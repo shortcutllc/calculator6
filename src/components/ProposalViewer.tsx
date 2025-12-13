@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar, Pencil, Briefcase } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar, Pencil, Briefcase, Plus, Trash2 } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useAuth } from '../contexts/AuthContext';
 import EditableField from './EditableField';
 import { supabase } from '../lib/supabaseClient';
 import { config } from '../config';
 import { format } from 'date-fns';
-import { recalculateServiceTotals, generatePricingOptionsForService, calculateServiceResults } from '../utils/proposalGenerator';
+import { recalculateServiceTotals, generatePricingOptionsForService, calculateServiceResults, calculateOriginalPrice } from '../utils/proposalGenerator';
 import { getProposalUrl } from '../utils/url';
 import { generatePDF } from '../utils/pdf';
 import { Button } from './Button';
@@ -17,6 +17,96 @@ import ShareProposalModal from './ShareProposalModal';
 import { ProposalChangeSet, ProposalChange } from '../types/proposal';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
 import { trackProposalChanges, getChangeDisplayInfo } from '../utils/changeTracker';
+
+// Service defaults for applying when changing service type
+const SERVICE_DEFAULTS: { [key: string]: any } = {
+  massage: {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0,
+    massageType: 'massage'
+  },
+  facial: {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  hair: {
+    appTime: 30,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  nails: {
+    appTime: 30,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  makeup: {
+    appTime: 30,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  headshot: {
+    appTime: 12,
+    totalHours: 5,
+    numPros: 1,
+    proHourly: 400,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 40
+  },
+  mindfulness: {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1350,
+    mindfulnessType: 'intro'
+  },
+  'hair-makeup': {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  'headshot-hair-makeup': {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  }
+};
 
 const formatCurrency = (value: number): string => {
   return value.toFixed(2);
@@ -93,6 +183,11 @@ const getServiceImagePath = (serviceType: string): string => {
 // Helper function to get mindfulness service description
 const getMindfulnessDescription = (service: any): string => {
   if (service.serviceType !== 'mindfulness') return '';
+  
+  // Check if it's Mindful Movement variant
+  if (service.mindfulnessType === 'mindful-movement') {
+    return "Mindful movement is a wonderful way to connect more fully with the present moment by resting attention on sensations that arise within the body moment to moment.";
+  }
   
   const classLength = service.classLength || 60;
   const participants = service.participants || 'unlimited';
@@ -230,6 +325,23 @@ const ProposalViewer: React.FC = () => {
   const [currentServiceImageIndex, setCurrentServiceImageIndex] = useState(0);
   const [updateCounter, setUpdateCounter] = useState(0);
   const [editingOfficeLocation, setEditingOfficeLocation] = useState<string | null>(null);
+  
+  // Proposal options state
+  const [proposalOptions, setProposalOptions] = useState<any[]>([]);
+  const [isCreatingOption, setIsCreatingOption] = useState(false);
+  const [editingOptionName, setEditingOptionName] = useState<string | null>(null);
+  const [optionNameInput, setOptionNameInput] = useState('');
+  
+  // Link existing proposals state
+  const [showLinkProposalsModal, setShowLinkProposalsModal] = useState(false);
+  const [availableProposals, setAvailableProposals] = useState<any[]>([]);
+  const [selectedProposalsToLink, setSelectedProposalsToLink] = useState<string[]>([]);
+  const [isLinkingProposals, setIsLinkingProposals] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Delete option state
+  const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     if (displayData?.clientLogoUrl) {
@@ -266,7 +378,7 @@ const ProposalViewer: React.FC = () => {
                   handleFieldChange(['officeLocations'], updatedOfficeLocations);
                 } else {
                   // Legacy: update single officeLocation
-                  handleFieldChange(['officeLocation'], place.formatted_address);
+                handleFieldChange(['officeLocation'], place.formatted_address);
                 }
                 setEditingOfficeLocation(null);
               }
@@ -496,7 +608,412 @@ const ProposalViewer: React.FC = () => {
     
     initializeProposal();
     fetchChangeSets();
+    fetchProposalOptions();
   }, [id]);
+
+  // Fetch all proposals in the same group
+  const fetchProposalOptions = async () => {
+    if (!id) return;
+    
+    try {
+      // First, get the current proposal to check if it's part of a group
+      const { data: currentProposal, error: currentError } = await supabase
+        .from('proposals')
+        .select('id, proposal_group_id')
+        .eq('id', id)
+        .single();
+
+      if (currentError || !currentProposal) {
+        setProposalOptions([]);
+        return;
+      }
+
+      const groupId = currentProposal.proposal_group_id || currentProposal.id;
+
+      // Fetch all proposals in the group
+      // If proposal_group_id is set, fetch by that. Otherwise, fetch proposals where id equals groupId (the current proposal is the anchor)
+      const { data: options, error } = await supabase
+        .from('proposals')
+        .select('id, option_name, option_order, status, client_name, created_at, proposal_group_id')
+        .or(`proposal_group_id.eq.${groupId},id.eq.${groupId}`)
+        .order('option_order', { ascending: true, nullsFirst: false });
+
+      if (error) {
+        console.error('Error fetching proposal options:', error);
+        setProposalOptions([]);
+        return;
+      }
+
+      // Sort by option_order, with nulls last, then by created_at
+      const sortedOptions = (options || []).sort((a, b) => {
+        if (a.option_order !== null && b.option_order !== null) {
+          return a.option_order - b.option_order;
+        }
+        if (a.option_order !== null) return -1;
+        if (b.option_order !== null) return 1;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+
+      setProposalOptions(sortedOptions);
+    } catch (err) {
+      console.error('Error fetching proposal options:', err);
+      setProposalOptions([]);
+    }
+  };
+
+  // Create a duplicate proposal as a new option
+  const handleCreateOption = async () => {
+    if (!id || !currentProposal || !displayData) return;
+
+    setIsCreatingOption(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You must be logged in to create a proposal');
+
+      // Determine the group ID - use existing group_id or current proposal ID as the group anchor
+      const { data: currentProposalData } = await supabase
+        .from('proposals')
+        .select('proposal_group_id')
+        .eq('id', id)
+        .single();
+
+      const groupId = currentProposalData?.proposal_group_id || id;
+
+      // Get the next option order
+      const { data: existingOptions } = await supabase
+        .from('proposals')
+        .select('option_order')
+        .or(`proposal_group_id.eq.${groupId},id.eq.${groupId}`);
+
+      const maxOrder = existingOptions?.reduce((max, opt) => 
+        opt.option_order !== null && opt.option_order > max ? opt.option_order : max, 0
+      ) || 0;
+      const nextOrder = maxOrder + 1;
+
+      // Create duplicate proposal data
+      const duplicateData = {
+        data: displayData,
+        customization: currentProposal.customization,
+        is_editable: true,
+        user_id: user.id,
+        status: 'draft',
+        pending_review: false,
+        has_changes: false,
+        original_data: displayData,
+        client_name: displayData.clientName?.trim() || currentProposal.data?.clientName?.trim() || '',
+        notes: '',
+        proposal_group_id: groupId,
+        option_name: `Option ${nextOrder}`,
+        option_order: nextOrder,
+        client_email: currentProposal.clientEmail,
+        client_logo_url: currentProposal.clientLogoUrl
+      };
+
+      // If this is the first option (current proposal doesn't have a group), update it too
+      if (!currentProposalData?.proposal_group_id) {
+        await supabase
+          .from('proposals')
+          .update({
+            proposal_group_id: groupId,
+            option_name: 'Option 1',
+            option_order: 1
+          })
+          .eq('id', id);
+      }
+
+      const { data: newProposal, error } = await supabase
+        .from('proposals')
+        .insert(duplicateData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!newProposal) throw new Error('No proposal data returned after creation');
+
+      // Refresh options list
+      await fetchProposalOptions();
+      
+      // Navigate to the new proposal
+      navigate(`/proposal/${newProposal.id}`);
+    } catch (err) {
+      console.error('Error creating option:', err);
+      alert(err instanceof Error ? err.message : 'Failed to create option');
+    } finally {
+      setIsCreatingOption(false);
+    }
+  };
+
+  // Update option name
+  const handleUpdateOptionName = async (optionId: string, newName: string) => {
+    if (!newName.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('proposals')
+        .update({ option_name: newName.trim() })
+        .eq('id', optionId);
+
+      if (error) throw error;
+
+      await fetchProposalOptions();
+      setEditingOptionName(null);
+      setOptionNameInput('');
+    } catch (err) {
+      console.error('Error updating option name:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update option name');
+    }
+  };
+
+  // Reorder options
+  const handleReorderOption = async (optionId: string, newOrder: number) => {
+    try {
+      const { error } = await supabase
+        .from('proposals')
+        .update({ option_order: newOrder })
+        .eq('id', optionId);
+
+      if (error) throw error;
+
+      await fetchProposalOptions();
+    } catch (err) {
+      console.error('Error reordering option:', err);
+      alert(err instanceof Error ? err.message : 'Failed to reorder option');
+    }
+  };
+
+  // Fetch available proposals to link (exclude current proposal and proposals already in a different group)
+  const fetchAvailableProposals = async () => {
+    if (!id) return;
+
+    try {
+      // Get current proposal's group ID
+      const { data: currentProposal } = await supabase
+        .from('proposals')
+        .select('id, proposal_group_id')
+        .eq('id', id)
+        .single();
+
+      const currentGroupId = currentProposal?.proposal_group_id || currentProposal?.id;
+
+      // Fetch all proposals except the current one
+      const { data: allProposals, error } = await supabase
+        .from('proposals')
+        .select('id, client_name, created_at, proposal_group_id, option_name, status')
+        .neq('id', id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Filter proposals that can be linked:
+      // 1. Not already in a different group, OR
+      // 2. Already in the same group (shouldn't happen, but handle it)
+      const available = (allProposals || []).filter((p: any) => {
+        // If proposal has no group, it can be linked
+        if (!p.proposal_group_id) return true;
+        // If proposal is in the same group, it's already linked (shouldn't show)
+        if (p.proposal_group_id === currentGroupId) return false;
+        // If proposal is in a different group, show it but indicate it's in another group
+        return true;
+      });
+
+      setAvailableProposals(available);
+    } catch (err) {
+      console.error('Error fetching available proposals:', err);
+      setAvailableProposals([]);
+    }
+  };
+
+  // Open link proposals modal
+  const handleOpenLinkProposalsModal = async () => {
+    setShowLinkProposalsModal(true);
+    setSelectedProposalsToLink([]);
+    setSearchTerm('');
+    await fetchAvailableProposals();
+  };
+
+  // Link selected proposals to current group
+  const handleLinkProposals = async () => {
+    if (!id || selectedProposalsToLink.length === 0) return;
+
+    setIsLinkingProposals(true);
+    try {
+      // Get current proposal's group ID
+      const { data: currentProposal } = await supabase
+        .from('proposals')
+        .select('id, proposal_group_id')
+        .eq('id', id)
+        .single();
+
+      const groupId = currentProposal?.proposal_group_id || currentProposal?.id;
+
+      // If current proposal doesn't have a group, create one
+      if (!currentProposal?.proposal_group_id) {
+        await supabase
+          .from('proposals')
+          .update({
+            proposal_group_id: groupId,
+            option_name: 'Option 1',
+            option_order: 1
+          })
+          .eq('id', id);
+      }
+
+      // Get current max order in the group
+      const { data: existingOptions } = await supabase
+        .from('proposals')
+        .select('option_order')
+        .or(`proposal_group_id.eq.${groupId},id.eq.${groupId}`);
+
+      const maxOrder = existingOptions?.reduce((max, opt) => 
+        opt.option_order !== null && opt.option_order > max ? opt.option_order : max, 0
+      ) || 0;
+
+      // Link each selected proposal
+      for (let i = 0; i < selectedProposalsToLink.length; i++) {
+        const proposalId = selectedProposalsToLink[i];
+        const newOrder = maxOrder + i + 1;
+
+        // Check if proposal is already in another group
+        const { data: proposal } = await supabase
+          .from('proposals')
+          .select('proposal_group_id, option_name')
+          .eq('id', proposalId)
+          .single();
+
+        if (proposal?.proposal_group_id && proposal.proposal_group_id !== groupId) {
+          // Proposal is in another group - ask for confirmation or just proceed
+          // For now, we'll proceed and move it to this group
+        }
+
+        await supabase
+          .from('proposals')
+          .update({
+            proposal_group_id: groupId,
+            option_name: proposal?.option_name || `Option ${newOrder}`,
+            option_order: newOrder
+          })
+          .eq('id', proposalId);
+      }
+
+      // Refresh options list
+      await fetchProposalOptions();
+      setShowLinkProposalsModal(false);
+      setSelectedProposalsToLink([]);
+    } catch (err) {
+      console.error('Error linking proposals:', err);
+      alert(err instanceof Error ? err.message : 'Failed to link proposals');
+    } finally {
+      setIsLinkingProposals(false);
+    }
+  };
+
+  // Filter proposals based on search term
+  const filteredAvailableProposals = availableProposals.filter((p: any) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      p.client_name?.toLowerCase().includes(search) ||
+      p.id?.toLowerCase().includes(search) ||
+      p.option_name?.toLowerCase().includes(search)
+    );
+  });
+
+  // Remove option from group (unlink it, don't delete the proposal)
+  const handleRemoveOption = async (optionId: string, optionName: string) => {
+    if (!id || !optionId) return;
+
+    // Confirm deletion
+    if (!window.confirm(`Are you sure you want to remove "${optionName || 'this option'}" from the group? The proposal will remain but will no longer be part of this option set.`)) {
+      return;
+    }
+
+    setDeletingOptionId(optionId);
+    try {
+      // If removing the current proposal, we need to handle it differently
+      if (optionId === id) {
+        // Get the group ID
+        const { data: currentProposal } = await supabase
+          .from('proposals')
+          .select('proposal_group_id')
+          .eq('id', id)
+          .single();
+
+        const groupId = currentProposal?.proposal_group_id;
+
+        // Unlink this proposal from the group
+        await supabase
+          .from('proposals')
+          .update({
+            proposal_group_id: null,
+            option_name: null,
+            option_order: null
+          })
+          .eq('id', optionId);
+
+        // If there are other proposals in the group, navigate to the first one
+        if (groupId) {
+          const { data: remainingOptions } = await supabase
+            .from('proposals')
+            .select('id, option_order')
+            .eq('proposal_group_id', groupId)
+            .order('option_order', { ascending: true })
+            .limit(1);
+
+          if (remainingOptions && remainingOptions.length > 0) {
+            navigate(`/proposal/${remainingOptions[0].id}`);
+          } else {
+            // No other options, just refresh to show this proposal standalone
+            window.location.reload();
+          }
+        }
+      } else {
+        // Removing another option - just unlink it
+        await supabase
+          .from('proposals')
+          .update({
+            proposal_group_id: null,
+            option_name: null,
+            option_order: null
+          })
+          .eq('id', optionId);
+
+        // Reorder remaining options
+        await fetchProposalOptions();
+        
+        // Recalculate option orders for remaining options
+        const { data: currentProposal } = await supabase
+          .from('proposals')
+          .select('id, proposal_group_id')
+          .eq('id', id)
+          .single();
+
+        const groupId = currentProposal?.proposal_group_id || id;
+        const { data: remainingOptions } = await supabase
+          .from('proposals')
+          .select('id, option_order')
+          .or(`proposal_group_id.eq.${groupId},id.eq.${groupId}`)
+          .order('option_order', { ascending: true, nullsFirst: false });
+
+        if (remainingOptions) {
+          // Update option orders sequentially
+          for (let i = 0; i < remainingOptions.length; i++) {
+            await supabase
+              .from('proposals')
+              .update({ option_order: i + 1 })
+              .eq('id', remainingOptions[i].id);
+          }
+        }
+
+        await fetchProposalOptions();
+      }
+    } catch (err) {
+      console.error('Error removing option:', err);
+      alert(err instanceof Error ? err.message : 'Failed to remove option');
+    } finally {
+      setDeletingOptionId(null);
+      setShowDeleteConfirm(null);
+    }
+  };
 
   // Function to fetch change sets for this proposal
   const fetchChangeSets = async () => {
@@ -732,6 +1249,136 @@ const ProposalViewer: React.FC = () => {
     }
   };
 
+  // Handle changing service type - apply defaults
+  const handleServiceTypeChange = (location: string, date: string, serviceIndex: number, newServiceType: string) => {
+    if (!editedData || !isEditing) return;
+    
+    const defaults = SERVICE_DEFAULTS[newServiceType] || {};
+    const currentService = editedData.services[location][date].services[serviceIndex];
+    
+    // Create new service with defaults, preserving date and location
+    const newService = {
+      ...currentService,
+      serviceType: newServiceType,
+      ...defaults,
+      date: currentService.date || date,
+      location: currentService.location || location,
+      // Preserve discountPercent if it exists
+      discountPercent: currentService.discountPercent || 0,
+      // Set service-specific fields based on type
+      massageType: newServiceType === 'massage' ? (currentService.massageType || 'massage') : undefined,
+      mindfulnessType: newServiceType === 'mindfulness' ? (currentService.mindfulnessType || 'intro') : undefined,
+      classLength: newServiceType === 'mindfulness' ? (currentService.classLength || 60) : undefined,
+      participants: newServiceType === 'mindfulness' ? (currentService.participants || 'unlimited') : undefined,
+      fixedPrice: newServiceType === 'mindfulness' ? (currentService.fixedPrice || 1350) : undefined
+    };
+    
+    // Recalculate service totals
+    const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(newService);
+    newService.totalAppointments = totalAppointments;
+    newService.serviceCost = serviceCost;
+    newService.proRevenue = proRevenue;
+    
+    // Update the service
+    handleFieldChange(['services', location, date, 'services', serviceIndex], newService);
+  };
+
+  // Handle changing massage type sub-category
+  const handleMassageTypeChange = (location: string, date: string, serviceIndex: number, newMassageType: string) => {
+    if (!editedData || !isEditing) return;
+    handleFieldChange(['services', location, date, 'services', serviceIndex, 'massageType'], newMassageType);
+  };
+
+  // Handle changing mindfulness type sub-category
+  const handleMindfulnessTypeChange = (location: string, date: string, serviceIndex: number, newMindfulnessType: string) => {
+    if (!editedData || !isEditing) return;
+    
+    const currentService = editedData.services[location][date].services[serviceIndex];
+    let classLength = 60;
+    let fixedPrice = 1350;
+    
+    if (newMindfulnessType === 'drop-in') {
+      classLength = 30;
+      fixedPrice = 1125;
+    } else {
+      classLength = 60;
+      fixedPrice = 1350;
+    }
+    
+    const updatedService = {
+      ...currentService,
+      mindfulnessType: newMindfulnessType,
+      classLength,
+      fixedPrice
+    };
+    
+    // Recalculate service totals
+    const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(updatedService);
+    updatedService.totalAppointments = totalAppointments;
+    updatedService.serviceCost = serviceCost;
+    updatedService.proRevenue = proRevenue;
+    
+    handleFieldChange(['services', location, date, 'services', serviceIndex], updatedService);
+  };
+
+  // Handle adding a new service
+  const handleAddService = (location: string, date: string) => {
+    if (!editedData || !isEditing) return;
+    
+    // Create a new service with massage defaults (most common)
+    const newService = {
+      serviceType: 'massage',
+      ...SERVICE_DEFAULTS.massage,
+      date: date,
+      location: location,
+      discountPercent: 0,
+      totalAppointments: 0,
+      serviceCost: 0,
+      proRevenue: 0
+    };
+    
+    // Recalculate service totals
+    const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(newService);
+    newService.totalAppointments = totalAppointments;
+    newService.serviceCost = serviceCost;
+    newService.proRevenue = proRevenue;
+    
+    // Add the service to the date
+    const updatedData = { ...editedData };
+    if (!updatedData.services[location][date].services) {
+      updatedData.services[location][date].services = [];
+    }
+    updatedData.services[location][date].services.push(newService);
+    
+    // Recalculate totals
+    const recalculatedData = recalculateServiceTotals(updatedData);
+    setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+    setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+    setUpdateCounter(prev => prev + 1);
+  };
+
+  // Handle removing a service
+  const handleRemoveService = (location: string, date: string, serviceIndex: number) => {
+    if (!editedData || !isEditing) return;
+    if (!window.confirm('Are you sure you want to remove this service?')) return;
+    
+    const updatedData = { ...editedData };
+    updatedData.services[location][date].services.splice(serviceIndex, 1);
+    
+    // If no services remain, we could remove the date, but for now just leave it empty
+    if (updatedData.services[location][date].services.length === 0) {
+      updatedData.services[location][date].services = [];
+      updatedData.services[location][date].totalCost = 0;
+      updatedData.services[location][date].totalAppointments = 0;
+    }
+    
+    // Recalculate totals
+    const recalculatedData = recalculateServiceTotals(updatedData);
+    setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+    setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+    setUpdateCounter(prev => prev + 1);
+  };
+
   const handleFieldChange = (path: string[], value: any) => {
     if (!editedData || !isEditing) return;
     
@@ -763,16 +1410,38 @@ const ProposalViewer: React.FC = () => {
             optionService.totalHours = option.totalHours || service.totalHours;
             optionService.hourlyRate = option.hourlyRate || service.hourlyRate;
             optionService.numPros = option.numPros || service.numPros;
-            const { totalAppointments, serviceCost } = calculateServiceResults(optionService);
+            // Preserve discountPercent from option or service
+            if (option.discountPercent !== undefined) {
+              optionService.discountPercent = option.discountPercent;
+            } else {
+              optionService.discountPercent = service.discountPercent || 0;
+            }
+            const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(optionService);
             option.totalAppointments = totalAppointments;
             option.serviceCost = serviceCost;
+            option.originalPrice = originalPrice || option.originalPrice;
+            option.discountPercent = optionService.discountPercent;
           }
         } else if (path.includes('selectedOption')) {
           // We're just changing the selected option
-          const selectedOption = service.pricingOptions[service.selectedOption || 0];
+          const selectedOption = service.pricingOptions[value !== undefined ? value : (service.selectedOption || 0)];
           if (selectedOption) {
             service.totalAppointments = selectedOption.totalAppointments;
             service.serviceCost = selectedOption.serviceCost;
+            // Update totalHours, numPros, and hourlyRate to match the selected option
+            if (selectedOption.totalHours !== undefined) {
+              service.totalHours = selectedOption.totalHours;
+            }
+            if (selectedOption.numPros !== undefined) {
+              service.numPros = selectedOption.numPros;
+            }
+            if (selectedOption.hourlyRate !== undefined) {
+              service.hourlyRate = selectedOption.hourlyRate;
+            }
+            // Preserve discountPercent from selected option
+            if (selectedOption.discountPercent !== undefined) {
+              service.discountPercent = selectedOption.discountPercent;
+            }
           }
         } else {
           // We're editing a base service parameter (totalHours, numPros, etc.)
@@ -783,12 +1452,20 @@ const ProposalViewer: React.FC = () => {
             if (option.totalHours !== undefined) optionService.totalHours = option.totalHours;
             if (option.hourlyRate !== undefined) optionService.hourlyRate = option.hourlyRate;
             if (option.numPros !== undefined) optionService.numPros = option.numPros;
+            // Preserve discountPercent from option or service
+            if (option.discountPercent !== undefined) {
+              optionService.discountPercent = option.discountPercent;
+            } else {
+              optionService.discountPercent = service.discountPercent || 0;
+            }
             
-            const { totalAppointments, serviceCost } = calculateServiceResults(optionService);
+            const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(optionService);
             return {
               ...option,
               totalAppointments,
-              serviceCost
+              serviceCost,
+              originalPrice: originalPrice || option.originalPrice,
+              discountPercent: optionService.discountPercent
             };
           });
           
@@ -797,6 +1474,20 @@ const ProposalViewer: React.FC = () => {
           if (selectedOption) {
             service.totalAppointments = selectedOption.totalAppointments;
             service.serviceCost = selectedOption.serviceCost;
+            // Update totalHours, numPros, and hourlyRate to match the selected option
+            if (selectedOption.totalHours !== undefined) {
+              service.totalHours = selectedOption.totalHours;
+            }
+            if (selectedOption.numPros !== undefined) {
+              service.numPros = selectedOption.numPros;
+            }
+            if (selectedOption.hourlyRate !== undefined) {
+              service.hourlyRate = selectedOption.hourlyRate;
+            }
+            // Preserve discountPercent from selected option
+            if (selectedOption.discountPercent !== undefined) {
+              service.discountPercent = selectedOption.discountPercent;
+            }
           }
         }
       } else {
@@ -1113,6 +1804,205 @@ The Shortcut Team`);
           </div>
         </div>
       </header>
+      
+      {/* Proposal Options Management Section */}
+      {!isSharedView && proposalOptions.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-6">
+          <div className="card-medium">
+            <h3 className="text-lg font-extrabold text-shortcut-blue mb-4">Proposal Options</h3>
+            <div className="space-y-3">
+              {proposalOptions.map((option, index) => {
+                const isCurrent = option.id === id;
+                return (
+                  <div
+                    key={option.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border-2 ${
+                      isCurrent
+                        ? 'border-shortcut-teal bg-shortcut-teal bg-opacity-10'
+                        : 'border-gray-200 bg-white hover:border-shortcut-teal hover:bg-neutral-light-gray'
+                    } transition-colors`}
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <span className="text-sm font-bold text-shortcut-blue min-w-[60px]">
+                        {option.option_name || `Option ${index + 1}`}
+                      </span>
+                      {isCurrent && (
+                        <span className="text-xs font-semibold text-shortcut-navy-blue bg-shortcut-teal bg-opacity-20 px-2 py-1 rounded-full">
+                          Current
+                        </span>
+                      )}
+                      {option.status === 'approved' && (
+                        <span className="text-xs font-semibold text-shortcut-navy-blue bg-shortcut-teal bg-opacity-20 px-2 py-1 rounded-full">
+                          Approved
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isCurrent ? (
+                        <>
+                          {editingOptionName === option.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={optionNameInput}
+                                onChange={(e) => setOptionNameInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleUpdateOptionName(option.id, optionNameInput);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingOptionName(null);
+                                    setOptionNameInput('');
+                                  }
+                                }}
+                                className="px-2 py-1 text-sm border-2 border-shortcut-teal rounded focus:outline-none focus:ring-2 focus:ring-shortcut-teal"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleUpdateOptionName(option.id, optionNameInput)}
+                                className="p-1 text-shortcut-blue hover:bg-shortcut-teal hover:bg-opacity-20 rounded transition-colors"
+                                title="Save"
+                              >
+                                <Check size={16} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingOptionName(null);
+                                  setOptionNameInput('');
+                                }}
+                                className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                                title="Cancel"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setEditingOptionName(option.id);
+                                setOptionNameInput(option.option_name || `Option ${index + 1}`);
+                              }}
+                              className="p-1.5 text-shortcut-blue hover:bg-shortcut-teal hover:bg-opacity-20 rounded transition-colors"
+                              title="Edit name"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <Button
+                          onClick={() => navigate(`/proposal/${option.id}`)}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          View
+                        </Button>
+                      )}
+                      {index > 0 && (
+                        <button
+                          onClick={() => handleReorderOption(option.id, option.option_order! - 1)}
+                          className="p-1.5 text-shortcut-blue hover:bg-shortcut-teal hover:bg-opacity-20 rounded transition-colors"
+                          title="Move up"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                      )}
+                      {index < proposalOptions.length - 1 && (
+                        <button
+                          onClick={() => handleReorderOption(option.id, option.option_order! + 1)}
+                          className="p-1.5 text-shortcut-blue hover:bg-shortcut-teal hover:bg-opacity-20 rounded transition-colors"
+                          title="Move down"
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          if (showDeleteConfirm === option.id) {
+                            handleRemoveOption(option.id, option.option_name || `Option ${index + 1}`);
+                          } else {
+                            setShowDeleteConfirm(option.id);
+                          }
+                        }}
+                        disabled={deletingOptionId === option.id}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                        title={showDeleteConfirm === option.id ? "Confirm removal" : "Remove from group"}
+                      >
+                        {showDeleteConfirm === option.id ? (
+                          <Check size={16} />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </button>
+                      {showDeleteConfirm === option.id && (
+                        <button
+                          onClick={() => setShowDeleteConfirm(null)}
+                          className="p-1.5 text-text-dark-60 hover:bg-gray-100 rounded transition-colors"
+                          title="Cancel"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3">
+              <Button
+                onClick={handleCreateOption}
+                variant="primary"
+                icon={<Plus size={18} />}
+                loading={isCreatingOption}
+                size="md"
+              >
+                {isCreatingOption ? 'Creating...' : 'Add Another Option'}
+              </Button>
+              <Button
+                onClick={handleOpenLinkProposalsModal}
+                variant="secondary"
+                size="md"
+              >
+                Link Existing Proposal
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Another Option Button (when no options exist yet) */}
+      {!isSharedView && proposalOptions.length === 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-6">
+          <div className="card-medium">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-extrabold text-shortcut-blue mb-2">Create Proposal Options</h3>
+                <p className="text-sm text-text-dark-60">
+                  Create multiple proposal variations for your client to compare and choose from.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleCreateOption}
+                  variant="primary"
+                  icon={<Plus size={18} />}
+                  loading={isCreatingOption}
+                  size="md"
+                >
+                  {isCreatingOption ? 'Creating...' : 'Add Another Option'}
+                </Button>
+                <Button
+                  onClick={handleOpenLinkProposalsModal}
+                  variant="secondary"
+                  size="md"
+                >
+                  Link Existing Proposal
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Logo editing controls (edit mode only, not shared view) */}
       {isEditing && !isSharedView && (
         <div className="max-w-7xl mx-auto mt-6 px-4 sm:px-8">
@@ -1123,40 +2013,40 @@ The Shortcut Team`);
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-shortcut-blue mb-2">Upload Logo File</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoFileChange}
-                    disabled={logoUploading}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLogoFileChange}
+              disabled={logoUploading}
                     className="block w-full text-sm text-text-dark-60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-shortcut-teal file:text-shortcut-navy-blue hover:file:bg-shortcut-teal hover:file:bg-opacity-80"
-                  />
+            />
                   <p className="text-xs text-text-dark-60 mt-1">Max 5MB. PNG, JPG, SVG, etc.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-shortcut-blue mb-2">Or Paste Image URL</label>
-                  <input
-                    type="url"
+            <input
+              type="url"
                     placeholder="https://..."
-                    value={logoUrl}
-                    onChange={handleLogoUrlChange}
+              value={logoUrl}
+              onChange={handleLogoUrlChange}
                     className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-                    disabled={logoUploading}
-                  />
+              disabled={logoUploading}
+            />
                 </div>
-                {logoUrl && (
+            {logoUrl && (
                   <div className="mt-4">
                     <p className="text-sm font-bold text-shortcut-blue mb-2">Preview</p>
                     <div className="relative inline-block">
                       <img src={logoUrl} alt="Client Logo Preview" className="h-20 rounded shadow border border-gray-200" />
-                      <button
-                        type="button"
-                        onClick={handleRemoveLogo}
+              <button
+                type="button"
+                onClick={handleRemoveLogo}
                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                        disabled={logoUploading}
+                disabled={logoUploading}
                         title="Remove logo"
-                      >
+              >
                         ×
-                      </button>
+              </button>
                     </div>
                   </div>
                 )}
@@ -1166,8 +2056,8 @@ The Shortcut Team`);
                   </div>
                 )}
               </div>
-            </div>
-
+          </div>
+          
             {/* Office Location Card */}
             <div className="card-medium">
               <h3 className="text-lg font-extrabold text-shortcut-blue mb-4">
@@ -1190,9 +2080,9 @@ The Shortcut Team`);
                               <h4 className="text-sm font-bold text-shortcut-navy-blue">{location}</h4>
                             </div>
                             {isEditingThis ? (
-                              <div className="relative">
-                                <input
-                                  type="text"
+            <div className="relative">
+              <input
+                type="text"
                                   value={editedData?.officeLocations?.[location] || address}
                                   onChange={(e) => {
                                     // Initialize officeLocations if it doesn't exist
@@ -1309,54 +2199,54 @@ The Shortcut Team`);
                         <input
                           type="text"
                           value={editedData?.officeLocation || displayData.officeLocation || ''}
-                          onChange={(e) => handleFieldChange(['officeLocation'], e.target.value)}
+                onChange={(e) => handleFieldChange(['officeLocation'], e.target.value)}
                           className="w-full px-3 py-2 pr-20 border-2 border-shortcut-teal rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-                          placeholder="Enter office address..."
+                placeholder="Enter office address..."
                           id="office-location-edit-input-single"
-                          data-autocomplete="true"
+                data-autocomplete="true"
                           autoFocus
-                        />
+              />
                         <div className="absolute right-2 top-2 flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
+                <button
+                  type="button"
+                  onClick={() => {
                               const input = document.getElementById('office-location-edit-input-single') as HTMLInputElement;
-                              if (input && 'geolocation' in navigator) {
-                                navigator.geolocation.getCurrentPosition(
-                                  (position) => {
-                                    const { latitude, longitude } = position.coords;
-                                    const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
-                                    
-                                    if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-                                      fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
-                                        .then(response => response.json())
-                                        .then(data => {
-                                          if (data.status === 'OK' && data.results && data.results[0]) {
-                                            handleFieldChange(['officeLocation'], data.results[0].formatted_address);
-                                          } else {
-                                            alert('Could not find address for your location. Please enter manually.');
-                                          }
-                                        })
-                                        .catch(() => {
-                                          alert('Error getting address. Please enter manually.');
-                                        });
-                                    } else {
-                                      alert('Google Maps API key not configured. Please enter the address manually.');
-                                    }
-                                  },
-                                  () => {
-                                    alert('Unable to get your location. Please enter the address manually.');
+                    if (input && 'geolocation' in navigator) {
+                      navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                          const { latitude, longitude } = position.coords;
+                          const apiKey = window.__ENV__?.VITE_GOOGLE_MAPS_API_KEY;
+                          
+                                                      if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                              fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                  if (data.status === 'OK' && data.results && data.results[0]) {
+                                    handleFieldChange(['officeLocation'], data.results[0].formatted_address);
+                                  } else {
+                                    alert('Could not find address for your location. Please enter manually.');
                                   }
-                                );
-                              } else {
-                                alert('Geolocation is not supported by your browser. Please enter the address manually.');
-                              }
-                            }}
+                                })
+                                .catch(() => {
+                                  alert('Error getting address. Please enter manually.');
+                                });
+                            } else {
+                              alert('Google Maps API key not configured. Please enter the address manually.');
+                            }
+                        },
+                        () => {
+                          alert('Unable to get your location. Please enter the address manually.');
+                        }
+                      );
+                    } else {
+                      alert('Geolocation is not supported by your browser. Please enter the address manually.');
+                    }
+                  }}
                             className="p-1.5 text-text-dark-60 hover:text-shortcut-blue hover:bg-neutral-light-gray rounded transition-colors"
-                            title="Use current location"
-                          >
-                            📍
-                          </button>
+                  title="Use current location"
+                >
+                  📍
+                </button>
                           <button
                             type="button"
                             onClick={() => setEditingOfficeLocation(null)}
@@ -1377,8 +2267,8 @@ The Shortcut Team`);
                           >
                             <X size={18} />
                           </button>
-                        </div>
-                      </div>
+              </div>
+            </div>
                     ) : (
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-base text-text-dark flex-1">
@@ -1408,29 +2298,29 @@ The Shortcut Team`);
             {/* Summary-First Layout - Key Metrics at Top */}
             <div className="card-large mb-8">
               <div className="mb-8">
-                {displayData.clientLogoUrl ? (
-                  <div className="flex justify-start mb-6">
-                    <img
-                      src={displayData.clientLogoUrl}
-                      alt={`${displayData.clientName} Logo`}
+              {displayData.clientLogoUrl ? (
+                <div className="flex justify-start mb-6">
+                  <img
+                    src={displayData.clientLogoUrl}
+                    alt={`${displayData.clientName} Logo`}
                       className="max-h-20 max-w-full object-contain rounded shadow-sm"
-                      style={{ maxWidth: '300px' }}
-                      onError={(e) => {
-                        console.error('Logo failed to load:', displayData.clientLogoUrl);
-                        e.currentTarget.style.display = 'none';
-                        const fallbackElement = e.currentTarget.nextElementSibling;
-                        if (fallbackElement) {
-                          (fallbackElement as HTMLElement).style.display = 'block';
-                        }
-                      }}
-                    />
+                    style={{ maxWidth: '300px' }}
+                    onError={(e) => {
+                      console.error('Logo failed to load:', displayData.clientLogoUrl);
+                      e.currentTarget.style.display = 'none';
+                      const fallbackElement = e.currentTarget.nextElementSibling;
+                      if (fallbackElement) {
+                        (fallbackElement as HTMLElement).style.display = 'block';
+                      }
+                    }}
+                  />
                     <h1 className="h1 mb-4 hidden">
-                      {displayData.clientName}
-                    </h1>
-                  </div>
-                ) : (
-                  <h1 className="h1 mb-6">
                     {displayData.clientName}
+                    </h1>
+                </div>
+              ) : (
+                  <h1 className="h1 mb-6">
+                  {displayData.clientName}
                   </h1>
                 )}
                 
@@ -1479,7 +2369,7 @@ The Shortcut Team`);
                 <div>
                   <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
                   <p className="text-base font-medium text-text-dark">{displayData.summary?.totalAppointments || 0}</p>
-                </div>
+                  </div>
                 {/* Display multiple office locations if available, otherwise show single office location */}
                 {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
                   <div className="md:col-span-3">
@@ -1504,15 +2394,15 @@ The Shortcut Team`);
             <div className="space-y-8">
               {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
                 <div key={location} className="card-large">
-                  <button
-                    onClick={() => toggleLocation(location)}
+                    <button
+                      onClick={() => toggleLocation(location)}
                     className="w-full flex justify-between items-center mb-6 hover:opacity-80 transition-opacity"
-                  >
+                    >
                     <h2 className="text-2xl font-extrabold text-shortcut-blue">
-                      {location}
-                    </h2>
+                        {location}
+                      </h2>
                     {expandedLocations[location] ? <ChevronUp size={24} className="text-shortcut-blue" /> : <ChevronDown size={24} className="text-shortcut-blue" />}
-                  </button>
+                    </button>
                   
                   {expandedLocations[location] && (
                     <div className="pt-6 border-t border-gray-200 space-y-6">
@@ -1540,15 +2430,55 @@ The Shortcut Team`);
 
                             {expandedDates[date] && (
                               <div className="p-6 bg-white">
+                                {isEditing && !isSharedView && (
+                                  <div className="mb-4 pb-4 border-b border-gray-200">
+                                    <Button
+                                      onClick={() => handleAddService(location, date)}
+                                      variant="secondary"
+                                      icon={<Plus size={18} />}
+                                      size="sm"
+                                    >
+                                      Add Service
+                                    </Button>
+                                  </div>
+                                )}
                                 {dateData.services.map((service: any, serviceIndex: number) => (
                                   <div 
                                     key={serviceIndex} 
                                     className="card-small mb-6"
                                   >
-                                    <h4 className="text-lg font-extrabold text-shortcut-blue mb-4 flex items-center">
-                                      <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
-                                      Service Type: {getServiceDisplayName(service.serviceType)}
-                                    </h4>
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h4 className="text-lg font-extrabold text-shortcut-blue flex items-center">
+                                        <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
+                                        Service Type: {getServiceDisplayName(service.serviceType)}
+                                      </h4>
+                                      {isEditing && !isSharedView && (
+                                        <div className="flex items-center gap-2">
+                                          <select
+                                            value={service.serviceType}
+                                            onChange={(e) => handleServiceTypeChange(location, date, serviceIndex, e.target.value)}
+                                            className="px-3 py-1.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal font-medium"
+                                          >
+                                            <option value="massage">Massage</option>
+                                            <option value="facial">Facial</option>
+                                            <option value="hair">Hair</option>
+                                            <option value="nails">Nails</option>
+                                            <option value="makeup">Makeup</option>
+                                            <option value="headshot">Headshots</option>
+                                            <option value="mindfulness">Mindfulness</option>
+                                            <option value="hair-makeup">Hair + Makeup</option>
+                                            <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
+                                          </select>
+                                          <button
+                                            onClick={() => handleRemoveService(location, date, serviceIndex)}
+                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                                            title="Remove service"
+                                          >
+                                            <Trash2 size={18} />
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
                                     
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (
@@ -1557,26 +2487,56 @@ The Shortcut Team`);
                                           {getServiceDescription(service)}
                                         </p>
                                         {service.serviceType === 'mindfulness' && (
-                                          <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                              <span className="font-bold text-shortcut-navy-blue">Event Time:</span>
-                                              <span className="ml-2 text-text-dark">{service.classLength || 60} Min</span>
-                                            </div>
-                                            <div>
-                                              <span className="font-bold text-shortcut-navy-blue">Participants:</span>
-                                              <span className="ml-2 text-text-dark">
-                                                {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
-                                              </span>
-                                            </div>
+                                          <div className="mt-3 space-y-3">
+                                            {isEditing ? (
+                                              <div>
+                                                <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
+                                                  Mindfulness Type:
+                                                </label>
+                                                <select
+                                                  value={service.mindfulnessType || 'intro'}
+                                                  onChange={(e) => handleMindfulnessTypeChange(location, date, serviceIndex, e.target.value)}
+                                                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                                                >
+                                                  <option value="intro">60 minutes - Intro to Mindfulness ($1,350)</option>
+                                                  <option value="drop-in">30 minutes - Drop-in Session ($1,125)</option>
+                                                  <option value="mindful-movement">60 minutes - Mindful Movement ($1,350)</option>
+                                                </select>
+                                              </div>
+                                            ) : (
+                                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                  <span className="font-bold text-shortcut-navy-blue">Event Time:</span>
+                                                  <span className="ml-2 text-text-dark">{service.classLength || 60} Min</span>
+                                                </div>
+                                                <div>
+                                                  <span className="font-bold text-shortcut-navy-blue">Participants:</span>
+                                                  <span className="ml-2 text-text-dark">
+                                                    {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
+                                                  </span>
+                                                </div>
+                                                {service.mindfulnessType && (
+                                                  <div className="col-span-2">
+                                                    <span className="font-bold text-shortcut-navy-blue">Type:</span>
+                                                    <span className="ml-2 text-text-dark">
+                                                      {service.mindfulnessType === 'intro' ? 'Intro to Mindfulness' :
+                                                       service.mindfulnessType === 'drop-in' ? 'Drop-in Session' :
+                                                       service.mindfulnessType === 'mindful-movement' ? 'Mindful Movement' :
+                                                       'Mindfulness'}
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
                                           </div>
                                         )}
-                                        {service.serviceType === 'massage' && service.massageType && (
+                                        {service.serviceType === 'massage' && (
                                           <div className="mt-3 text-sm">
                                             <span className="font-bold text-shortcut-navy-blue">Massage Type:</span>
                                             {isEditing ? (
                                               <select
-                                                value={service.massageType}
-                                                onChange={(e) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'massageType'], e.target.value)}
+                                                value={service.massageType || 'massage'}
+                                                onChange={(e) => handleMassageTypeChange(location, date, serviceIndex, e.target.value)}
                                                 className="ml-2 px-2 py-1 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                                               >
                                                 <option value="massage">General Massage</option>
@@ -1584,7 +2544,12 @@ The Shortcut Team`);
                                                 <option value="table">Table Massage</option>
                                               </select>
                                             ) : (
-                                              <span className="ml-2 text-text-dark capitalize">{service.massageType}</span>
+                                              <span className="ml-2 text-text-dark capitalize">
+                                                {service.massageType === 'massage' ? 'General' :
+                                                 service.massageType === 'chair' ? 'Chair' :
+                                                 service.massageType === 'table' ? 'Table' :
+                                                 'Massage'}
+                                              </span>
                                             )}
                                           </div>
                                         )}
@@ -1621,7 +2586,21 @@ The Shortcut Team`);
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-bold text-shortcut-blue">Service Cost:</span>
-                                        <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                        <div className="text-right">
+                                          {service.discountPercent > 0 ? (
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-sm text-text-dark-60 line-through">${formatCurrency(calculateOriginalPrice(service))}</span>
+                                                <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                              </div>
+                                              <div className="text-xs font-semibold text-green-600">
+                                                {service.discountPercent}% discount applied
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                          )}
+                                        </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-bold text-shortcut-blue">Appointment Time:</span>
@@ -1745,11 +2724,23 @@ The Shortcut Team`);
                                                     </p>
                                                   </div>
                                                   <div className="text-right">
-                                                    <div className="text-lg font-bold text-shortcut-blue">
-                                                      ${formatCurrency(option.serviceCost)}
-                                                    </div>
+                                                    {(option.discountPercent > 0 || service.discountPercent > 0) ? (
+                                                      <div className="space-y-1">
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                          <span className="text-sm text-text-dark-60 line-through">${formatCurrency(option.originalPrice || calculateOriginalPrice({ ...service, totalHours: option.totalHours || service.totalHours, hourlyRate: option.hourlyRate || service.hourlyRate, numPros: option.numPros || service.numPros }))}</span>
+                                                          <span className="text-lg font-bold text-shortcut-blue">${formatCurrency(option.serviceCost)}</span>
+                                                        </div>
+                                                        <div className="text-xs font-semibold text-green-600">
+                                                          {(option.discountPercent || service.discountPercent || 0)}% discount
+                                                        </div>
+                                                      </div>
+                                                    ) : (
+                                                      <div className="text-lg font-bold text-shortcut-blue">
+                                                        ${formatCurrency(option.serviceCost)}
+                                                      </div>
+                                                    )}
                                                     {service.selectedOption === optionIndex && (
-                                                      <div className="text-xs text-shortcut-navy-blue font-semibold">
+                                                      <div className="text-xs text-shortcut-navy-blue font-semibold mt-1">
                                                         SELECTED
                                                       </div>
                                                     )}
@@ -1796,6 +2787,22 @@ The Shortcut Team`);
                                                         )}
                                                         isEditing={isEditing}
                                                         type="number"
+                                                      />
+                                                    </div>
+                                                    <div>
+                                                      <label className="text-xs font-bold text-shortcut-blue">Discount %:</label>
+                                                      <EditableField
+                                                        value={String(option.discountPercent !== undefined ? option.discountPercent : (service.discountPercent || 0))}
+                                                        onChange={(value) => {
+                                                          const discountValue = parseFloat(value) || 0;
+                                                          handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'discountPercent'], 
+                                                            discountValue
+                                                          );
+                                                        }}
+                                                        isEditing={isEditing}
+                                                        type="number"
+                                                        suffix="%"
                                                       />
                                                     </div>
                                                   </div>
@@ -1854,13 +2861,23 @@ The Shortcut Team`);
                                              <button
                                                onClick={() => {
                                                  // Add new pricing option with current service values
+                                                 const optionService = {
+                                                   ...service,
+                                                   totalHours: service.totalHours,
+                                                   hourlyRate: service.hourlyRate,
+                                                   numPros: service.numPros,
+                                                   discountPercent: service.discountPercent || 0
+                                                 };
+                                                 const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(optionService);
                                                  const newOption = {
                                                    name: `Option ${service.pricingOptions.length + 1}`,
                                                    totalHours: service.totalHours,
                                                    hourlyRate: service.hourlyRate,
                                                    numPros: service.numPros,
-                                                   totalAppointments: service.totalAppointments,
-                                                   serviceCost: service.serviceCost
+                                                   discountPercent: service.discountPercent || 0,
+                                                   totalAppointments,
+                                                   serviceCost,
+                                                   originalPrice
                                                  };
                                                  const newPricingOptions = [...service.pricingOptions, newOption];
                                                  handleFieldChange(
@@ -1913,15 +2930,15 @@ The Shortcut Team`);
                 <div className="card-large overflow-hidden p-0">
                   <div className="relative flex flex-col">
                     <div className="w-full aspect-[4/3] relative overflow-hidden">
-                      <img
-                        src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
-                        alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
-                        className="w-full h-full object-cover transition-opacity duration-500"
-                        onError={(e) => {
-                          console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
+                    <img
+                      src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
+                      alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
+                      className="w-full h-full object-cover transition-opacity duration-500"
+                      onError={(e) => {
+                        console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
                       {uniqueServiceTypes.length > 1 && (
                         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                           {uniqueServiceTypes.map((_, index) => (
@@ -2043,7 +3060,7 @@ The Shortcut Team`);
                     <>
                       {/* Client Changes Section */}
                       {clientChanges.length > 0 && (
-                        <div className="space-y-4">
+              <div className="space-y-4">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="h-px flex-1 bg-gray-200"></div>
                             <h3 className="text-lg font-extrabold text-shortcut-blue flex items-center gap-2">
@@ -2051,7 +3068,7 @@ The Shortcut Team`);
                               Client Changes
                             </h3>
                             <div className="h-px flex-1 bg-gray-200"></div>
-                          </div>
+                        </div>
                           {clientChanges.map((changeSet, index) => (
                   <div key={changeSet.id} className="card-small border-2 border-gray-200">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
@@ -2109,7 +3126,7 @@ The Shortcut Team`);
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <div className="text-xs font-extrabold text-shortcut-navy-blue mb-3 uppercase tracking-wide">
                           Changes Made ({changeSet.changes.length})
-                        </div>
+                    </div>
                         <div className="space-y-2">
                           {changeSet.changes.slice(0, 5).map((change) => {
                             const displayInfo = getChangeDisplayInfo(change);
@@ -2166,7 +3183,7 @@ The Shortcut Team`);
                       </div>
                     )}
                   </div>
-                          ))}
+                ))}
                         </div>
                       )}
                       
@@ -2377,6 +3394,129 @@ The Shortcut Team`);
           <div className="flex items-center gap-2">
             <CheckCircle2 size={18} />
             <span>Proposal sent to client successfully!</span>
+          </div>
+        </div>
+      )}
+
+      {/* Link Existing Proposals Modal */}
+      {showLinkProposalsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
+          <div className="card-large max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <h3 className="text-xl font-extrabold text-shortcut-blue mb-4">
+              Link Existing Proposals
+            </h3>
+            <p className="text-sm text-text-dark-60 mb-4">
+              Select one or more existing proposals to link to this group. They will become options that clients can switch between.
+            </p>
+
+            {/* Search */}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search by client name, proposal ID, or option name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+              />
+            </div>
+
+            {/* Proposal List */}
+            <div className="flex-1 overflow-y-auto mb-4 space-y-2 border-2 border-gray-200 rounded-lg p-4 max-h-96">
+              {filteredAvailableProposals.length === 0 ? (
+                <div className="text-center text-text-dark-60 py-8">
+                  {searchTerm ? 'No proposals found matching your search.' : 'No available proposals to link.'}
+                </div>
+              ) : (
+                filteredAvailableProposals.map((proposal: any) => {
+                  const isSelected = selectedProposalsToLink.includes(proposal.id);
+                  const isInAnotherGroup = proposal.proposal_group_id && proposal.proposal_group_id !== id;
+                  
+                  return (
+                    <div
+                      key={proposal.id}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedProposalsToLink(prev => prev.filter(id => id !== proposal.id));
+                        } else {
+                          setSelectedProposalsToLink(prev => [...prev, proposal.id]);
+                        }
+                      }}
+                      className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                        isSelected
+                          ? 'border-shortcut-teal bg-shortcut-teal bg-opacity-10'
+                          : 'border-gray-200 bg-white hover:border-shortcut-teal hover:bg-neutral-light-gray'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-shortcut-blue">
+                              {proposal.client_name || 'Unnamed Client'}
+                            </span>
+                            {proposal.option_name && (
+                              <span className="text-xs text-text-dark-60">
+                                ({proposal.option_name})
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-text-dark-60">
+                            Created: {format(new Date(proposal.created_at), 'MMM d, yyyy')}
+                            {isInAnotherGroup && (
+                              <span className="ml-2 text-shortcut-service-yellow font-semibold">
+                                (Currently in another group)
+                              </span>
+                            )}
+                          </div>
+                          {proposal.status && (
+                            <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-semibold ${
+                              proposal.status === 'approved' 
+                                ? 'bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue'
+                                : 'bg-gray-200 text-text-dark-60'
+                            }`}>
+                              {proposal.status}
+                            </span>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          {isSelected ? (
+                            <CheckCircle2 size={20} className="text-shortcut-teal" />
+                          ) : (
+                            <div className="w-5 h-5 border-2 border-gray-300 rounded" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <Button
+                onClick={() => {
+                  setShowLinkProposalsModal(false);
+                  setSelectedProposalsToLink([]);
+                  setSearchTerm('');
+                }}
+                variant="secondary"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleLinkProposals}
+                variant="primary"
+                className="flex-1"
+                loading={isLinkingProposals}
+                disabled={selectedProposalsToLink.length === 0}
+              >
+                {isLinkingProposals 
+                  ? 'Linking...' 
+                  : `Link ${selectedProposalsToLink.length} Proposal${selectedProposalsToLink.length !== 1 ? 's' : ''}`
+                }
+              </Button>
+            </div>
           </div>
         </div>
       )}

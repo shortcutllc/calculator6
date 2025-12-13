@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
 import { format, parseISO } from 'date-fns';
-import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight, AlertCircle } from 'lucide-react';
+import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight, AlertCircle, Layers, FlaskConical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProposal } from '../contexts/ProposalContext';
 import { Button } from './Button';
@@ -33,6 +33,8 @@ const History: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [surveyResponses, setSurveyResponses] = useState<Record<string, any>>({});
+  const [proposalGroupCounts, setProposalGroupCounts] = useState<Record<string, number>>({});
+  const [showTestProposals, setShowTestProposals] = useState(false);
 
   useEffect(() => {
     const uniqueLocations = new Set<string>();
@@ -87,6 +89,48 @@ const History: React.FC = () => {
 
     if (proposals.length > 0) {
       fetchSurveyResponses();
+    }
+  }, [proposals]);
+
+  // Fetch proposal group counts
+  useEffect(() => {
+    const fetchProposalGroupCounts = async () => {
+      // Get all unique group IDs from proposals
+      const groupIds = new Set<string>();
+      proposals.forEach(proposal => {
+        if (proposal.proposalGroupId) {
+          groupIds.add(proposal.proposalGroupId);
+        }
+      });
+
+      if (groupIds.size === 0) {
+        setProposalGroupCounts({});
+        return;
+      }
+
+      try {
+        const counts: Record<string, number> = {};
+        
+        // For each group, count how many proposals are in it
+        for (const groupId of groupIds) {
+          const { data, error } = await supabase
+            .from('proposals')
+            .select('id')
+            .or(`proposal_group_id.eq.${groupId},id.eq.${groupId}`);
+
+          if (!error && data) {
+            counts[groupId] = data.length;
+          }
+        }
+
+        setProposalGroupCounts(counts);
+      } catch (err) {
+        console.error('Error fetching proposal group counts:', err);
+      }
+    };
+
+    if (proposals.length > 0) {
+      fetchProposalGroupCounts();
     }
   }, [proposals]);
 
@@ -156,6 +200,9 @@ const History: React.FC = () => {
 
   const filterProposals = () => {
     return proposals.filter(proposal => {
+      // Filter out test proposals unless showTestProposals is true
+      if (!showTestProposals && proposal.isTest) return false;
+
       const proposalDate = new Date(proposal.createdAt);
       const totalCost = calculateTotalCost(proposal);
       const proposalLocations = Object.keys(proposal.data.services || {});
@@ -233,6 +280,23 @@ const History: React.FC = () => {
         </div>
 
         <div className="card-medium mb-8">
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showTestProposals}
+                onChange={(e) => setShowTestProposals(e.target.checked)}
+                className="w-5 h-5 border-2 border-gray-200 rounded focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-shortcut-teal"
+              />
+              <span className="text-sm font-bold text-shortcut-blue">
+                Show Test Proposals
+              </span>
+            </label>
+            <p className="mt-2 text-xs text-text-dark-60 ml-8">
+              Include test proposals in the list
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-bold text-shortcut-blue mb-2">
@@ -375,12 +439,29 @@ const History: React.FC = () => {
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {getStatusBadge(proposal.status, proposal.hasChanges, proposal.pendingReview)}
+                        {proposal.isTest && (
+                          <span className="flex items-center gap-1 text-purple-700 bg-purple-100 px-2 py-1 rounded-full text-sm font-semibold">
+                            <FlaskConical size={14} />
+                            Test
+                          </span>
+                        )}
                         {proposal.hasChanges && (
                           <ChangeSourceBadge 
                             changeSource={proposal.changeSource} 
                             userId={proposal.userId}
                             size="sm"
                           />
+                        )}
+                        {proposal.proposalGroupId && (
+                          <span className="flex items-center gap-1 text-shortcut-navy-blue bg-shortcut-teal bg-opacity-20 px-2 py-1 rounded-full text-sm font-semibold">
+                            <Layers size={14} />
+                            {proposal.optionName || 'Option'} 
+                            {proposalGroupCounts[proposal.proposalGroupId] > 1 && (
+                              <span className="text-xs">
+                                ({proposalGroupCounts[proposal.proposalGroupId]} options)
+                              </span>
+                            )}
+                          </span>
                         )}
                       </div>
                     </div>

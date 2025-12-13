@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
 }
 
 serve(async (req) => {
@@ -34,7 +34,7 @@ serve(async (req) => {
     // Get proposal data
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
-      .select('*')
+      .select('*, proposal_group_id, option_name, option_order')
       .eq('id', proposalId)
       .single()
 
@@ -46,6 +46,24 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
+    }
+
+    // Check if proposal is part of a group and count options
+    let optionCount = 1
+    let hasMultipleOptions = false
+    const groupId = proposal.proposal_group_id || proposalId
+
+    if (proposal.proposal_group_id) {
+      // Fetch all proposals in the group to count options
+      const { data: groupOptions, error: groupError } = await supabase
+        .from('proposals')
+        .select('id, option_name, option_order')
+        .or(`proposal_group_id.eq.${groupId},id.eq.${groupId}`)
+
+      if (!groupError && groupOptions && groupOptions.length > 1) {
+        optionCount = groupOptions.length
+        hasMultipleOptions = true
+      }
     }
 
     // Get SendGrid API key
@@ -61,10 +79,18 @@ serve(async (req) => {
     }
 
     // Generate shared proposal URL
+    // The URL stays the same - StandaloneProposalViewer will automatically show the switcher if there are multiple options
     const proposalUrl = `${Deno.env.get('SITE_URL') || 'https://proposals.getshortcut.co'}/proposal/${proposalId}?shared=true`
 
     // Prepare email content with custom message
     const customMessage = shareNote ? `<p style="margin: 20px 0; line-height: 1.6;">${shareNote.replace(/\n/g, '<br>')}</p>` : '';
+
+    // Prepare proposal-specific message based on whether there are multiple options
+    const proposalMessage = hasMultipleOptions
+      ? `<p>We've prepared ${optionCount} proposal options for your review. Each option offers different configurations to help you find the best fit for your needs.</p>
+         <p>Please click the button below to view and compare all available options:</p>`
+      : `<p>We're excited to share your custom wellness proposal with you!</p>
+         <p>Please click the button below to view your proposal:</p>`;
 
     const emailData = {
       personalizations: [
@@ -96,11 +122,14 @@ serve(async (req) => {
                   </div>
                   <div class="content">
                     ${customMessage}
-                    <p>We're excited to share your custom wellness proposal with you!</p>
-                    <p>Please click the button below to view your proposal:</p>
+                    ${proposalMessage}
                     <div style="text-align: center;">
-                      <a href="${proposalUrl}" class="button">View Your Proposal</a>
+                      <a href="${proposalUrl}" class="button">${hasMultipleOptions ? 'View Proposal Options' : 'View Your Proposal'}</a>
                     </div>
+                    ${hasMultipleOptions 
+                      ? '<p style="margin-top: 20px; font-size: 14px; color: #666;">You can easily switch between options using the option switcher at the top of the proposal page.</p>'
+                      : ''
+                    }
                     <p style="margin-top: 30px;">If you have any questions or need to make changes, please don't hesitate to reach out to us.</p>
                   </div>
                   <div class="footer">

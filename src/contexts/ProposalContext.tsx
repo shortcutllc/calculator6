@@ -9,7 +9,7 @@ interface ProposalContextType {
   error: string | null;
   fetchProposals: () => Promise<void>;
   getProposal: (id: string) => Promise<Proposal | null>;
-  createProposal: (data: ProposalData, customization: ProposalCustomization, clientEmail?: string) => Promise<string>;
+  createProposal: (data: ProposalData, customization: ProposalCustomization, clientEmail?: string, isTest?: boolean) => Promise<string>;
   updateProposal: (id: string, updates: Partial<Proposal>) => Promise<void>;
   deleteProposal: (id: string) => Promise<void>;
 }
@@ -49,7 +49,13 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // New pricing options fields
     pricingOptions: dbProposal.pricing_options,
     selectedOptions: dbProposal.selected_options,
-    hasPricingOptions: dbProposal.has_pricing_options
+    hasPricingOptions: dbProposal.has_pricing_options,
+    // New proposal group fields
+    proposalGroupId: dbProposal.proposal_group_id,
+    optionName: dbProposal.option_name,
+    optionOrder: dbProposal.option_order,
+    // Test proposal flag
+    isTest: dbProposal.is_test || false
   });
 
   const fetchProposals = async () => {
@@ -112,7 +118,8 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const createProposal = async (
     data: ProposalData,
     customization: ProposalCustomization,
-    clientEmail?: string
+    clientEmail?: string,
+    isTest: boolean = false
   ): Promise<string> => {
     try {
       if (!data.clientName) throw new Error('Client name is required');
@@ -130,7 +137,8 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         has_changes: false,
         original_data: data,
         client_name: data.clientName.trim(),
-        notes: ''
+        notes: '',
+        is_test: isTest
       };
 
       const { data: newProposal, error } = await supabase

@@ -31,6 +31,10 @@ export interface Database {
           pricing_options: Json
           selected_options: Json
           has_pricing_options: boolean
+          // New proposal group fields
+          proposal_group_id: string | null
+          option_name: string | null
+          option_order: number | null
         }
         Insert: {
           id?: string
@@ -53,6 +57,10 @@ export interface Database {
           pricing_options?: Json
           selected_options?: Json
           has_pricing_options?: boolean
+          // New proposal group fields
+          proposal_group_id?: string | null
+          option_name?: string | null
+          option_order?: number | null
         }
         Update: {
           id?: string
@@ -75,6 +83,10 @@ export interface Database {
           pricing_options?: Json
           selected_options?: Json
           has_pricing_options?: boolean
+          // New proposal group fields
+          proposal_group_id?: string | null
+          option_name?: string | null
+          option_order?: number | null
         }
       }
       proposal_survey_responses: {

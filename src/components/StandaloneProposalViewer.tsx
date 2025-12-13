@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { config } from '../config';
-import { recalculateServiceTotals, calculateServiceResults } from '../utils/proposalGenerator';
+import { recalculateServiceTotals, calculateServiceResults, calculateOriginalPrice } from '../utils/proposalGenerator';
 import { getServiceBorderClass } from '../utils/styleHelpers';
 import EditableField from './EditableField';
 import { format } from 'date-fns';
@@ -119,6 +119,11 @@ const getServiceImagePath = (serviceType: string): string => {
 const getMindfulnessDescription = (service: any): string => {
   if (service.serviceType !== 'mindfulness') return '';
   
+  // Check if it's Mindful Movement variant
+  if (service.mindfulnessType === 'mindful-movement') {
+    return "Mindful movement is a wonderful way to connect more fully with the present moment by resting attention on sensations that arise within the body moment to moment.";
+  }
+  
   const classLength = service.classLength || 60;
   const participants = service.participants || 'unlimited';
   
@@ -208,6 +213,10 @@ export const StandaloneProposalViewer: React.FC = () => {
   const [hasSurveyResponse, setHasSurveyResponse] = useState(false);
   const [showSurveyCTA, setShowSurveyCTA] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  
+  // Proposal options state (for grouped proposals)
+  const [proposalOptions, setProposalOptions] = useState<any[]>([]);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
   usePageTitle('View Proposal');
 
@@ -246,6 +255,46 @@ export const StandaloneProposalViewer: React.FC = () => {
       setExpandedDates(initialDates);
     }
   }, [displayData]);
+
+  // Fetch proposal options if this proposal is part of a group
+  const fetchProposalOptions = async (groupId: string | null) => {
+    if (!groupId || !id) return;
+    
+    try {
+      setIsLoadingOptions(true);
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('id, option_name, option_order, status, client_name, data')
+        .eq('proposal_group_id', groupId)
+        .order('option_order', { ascending: true, nullsFirst: false });
+
+      if (error) {
+        console.error('Error fetching proposal options:', error);
+        return;
+      }
+
+      if (data && data.length > 1) {
+        // Calculate summary metrics for each option
+        const optionsWithMetrics = data.map((option: any) => {
+          const summary = option.data?.summary || {};
+          return {
+            ...option,
+            totalCost: summary.totalEventCost || 0,
+            totalAppointments: summary.totalAppointments || 0,
+            eventDates: option.data?.eventDates || []
+          };
+        });
+        setProposalOptions(optionsWithMetrics);
+      } else {
+        setProposalOptions([]);
+      }
+    } catch (err) {
+      console.error('Error fetching proposal options:', err);
+      setProposalOptions([]);
+    } finally {
+      setIsLoadingOptions(false);
+    }
+  };
 
   // Function to fetch change sets for this proposal
   const fetchChangeSets = async () => {
@@ -354,6 +403,14 @@ export const StandaloneProposalViewer: React.FC = () => {
           const originalCalculated = recalculateServiceTotals(data.original_data);
           setOriginalData({ ...originalCalculated, customization: data.customization });
         }
+        
+        // Fetch proposal options if this proposal is part of a group
+        if (data.proposal_group_id) {
+          fetchProposalOptions(data.proposal_group_id);
+        } else {
+          setProposalOptions([]);
+        }
+        
         // Show update indicator if this was a refresh
         if (isUpdate) {
           setLastUpdated(new Date());
@@ -414,16 +471,38 @@ export const StandaloneProposalViewer: React.FC = () => {
             optionService.totalHours = option.totalHours || service.totalHours;
             optionService.hourlyRate = option.hourlyRate || service.hourlyRate;
             optionService.numPros = option.numPros || service.numPros;
-            const { totalAppointments, serviceCost } = calculateServiceResults(optionService);
+            // Preserve discountPercent from option or service
+            if (option.discountPercent !== undefined) {
+              optionService.discountPercent = option.discountPercent;
+            } else {
+              optionService.discountPercent = service.discountPercent || 0;
+            }
+            const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(optionService);
             option.totalAppointments = totalAppointments;
             option.serviceCost = serviceCost;
+            option.originalPrice = originalPrice || option.originalPrice;
+            option.discountPercent = optionService.discountPercent;
           }
         } else if (path.includes('selectedOption')) {
           // We're just changing the selected option
-          const selectedOption = service.pricingOptions[service.selectedOption || 0];
+          const selectedOption = service.pricingOptions[value !== undefined ? value : (service.selectedOption || 0)];
           if (selectedOption) {
             service.totalAppointments = selectedOption.totalAppointments;
             service.serviceCost = selectedOption.serviceCost;
+            // Update totalHours, numPros, and hourlyRate to match the selected option
+            if (selectedOption.totalHours !== undefined) {
+              service.totalHours = selectedOption.totalHours;
+            }
+            if (selectedOption.numPros !== undefined) {
+              service.numPros = selectedOption.numPros;
+            }
+            if (selectedOption.hourlyRate !== undefined) {
+              service.hourlyRate = selectedOption.hourlyRate;
+            }
+            // Preserve discountPercent from selected option
+            if (selectedOption.discountPercent !== undefined) {
+              service.discountPercent = selectedOption.discountPercent;
+            }
           }
         } else {
           // We're editing a base service parameter (totalHours, numPros, etc.)
@@ -434,12 +513,20 @@ export const StandaloneProposalViewer: React.FC = () => {
             if (option.totalHours !== undefined) optionService.totalHours = option.totalHours;
             if (option.hourlyRate !== undefined) optionService.hourlyRate = option.hourlyRate;
             if (option.numPros !== undefined) optionService.numPros = option.numPros;
+            // Preserve discountPercent from option or service
+            if (option.discountPercent !== undefined) {
+              optionService.discountPercent = option.discountPercent;
+            } else {
+              optionService.discountPercent = service.discountPercent || 0;
+            }
             
-            const { totalAppointments, serviceCost } = calculateServiceResults(optionService);
+            const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(optionService);
             return {
               ...option,
               totalAppointments,
-              serviceCost
+              serviceCost,
+              originalPrice: originalPrice || option.originalPrice,
+              discountPercent: optionService.discountPercent
             };
           });
           
@@ -448,6 +535,20 @@ export const StandaloneProposalViewer: React.FC = () => {
           if (selectedOption) {
             service.totalAppointments = selectedOption.totalAppointments;
             service.serviceCost = selectedOption.serviceCost;
+            // Update totalHours, numPros, and hourlyRate to match the selected option
+            if (selectedOption.totalHours !== undefined) {
+              service.totalHours = selectedOption.totalHours;
+            }
+            if (selectedOption.numPros !== undefined) {
+              service.numPros = selectedOption.numPros;
+            }
+            if (selectedOption.hourlyRate !== undefined) {
+              service.hourlyRate = selectedOption.hourlyRate;
+            }
+            // Preserve discountPercent from selected option
+            if (selectedOption.discountPercent !== undefined) {
+              service.discountPercent = selectedOption.discountPercent;
+            }
           }
         }
       } else {
@@ -816,7 +917,7 @@ export const StandaloneProposalViewer: React.FC = () => {
       }
 
       setShowApprovalSuccess(true);
-      setTimeout(() => setShowApprovalSuccess(false), 5000);
+      setTimeout(() => setShowApprovalSuccess(false), 8000); // Show longer for multiple options
 
       // Scroll to survey form after a short delay
       setTimeout(() => {
@@ -954,6 +1055,11 @@ export const StandaloneProposalViewer: React.FC = () => {
 
   const uniqueServiceTypes = getUniqueServiceTypes(displayData);
 
+  // Get current option details for approval clarity
+  const currentOption = proposalOptions.find((opt: any) => opt.id === id);
+  const currentOptionName = currentOption?.option_name || proposal?.option_name;
+  const currentOptionIndex = proposalOptions.findIndex((opt: any) => opt.id === id);
+
   return (
     <div className="min-h-screen bg-neutral-light-gray">
       {showUpdateIndicator && (
@@ -987,7 +1093,8 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
         </div>
       )}
-      <header className={`bg-white shadow-sm sticky ${showSurveyCTA ? 'top-16' : 'top-0'} z-[99] rounded-b-3xl`}>
+      
+      <header className={`bg-white shadow-sm sticky ${proposalOptions.length > 1 ? (showSurveyCTA ? 'top-16' : 'top-0') : (showSurveyCTA ? 'top-16' : 'top-0')} z-[99] rounded-b-3xl`}>
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -1013,12 +1120,22 @@ export const StandaloneProposalViewer: React.FC = () => {
               {showApprovalSuccess ? (
                 <div className="flex items-center gap-2 bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue px-4 py-2.5 rounded-full border border-shortcut-teal shadow-sm">
                   <CheckCircle2 size={18} className="text-shortcut-teal-blue" />
-                  <span className="font-bold text-sm">Thank you! Your proposal has been approved and our team has been notified.</span>
+                  <span className="font-bold text-sm">
+                    {proposalOptions.length > 1 && currentOptionName
+                      ? `Thank you! "${currentOptionName}" has been approved and our team has been notified.`
+                      : 'Thank you! Your proposal has been approved and our team has been notified.'
+                    }
+                  </span>
                 </div>
               ) : proposal?.status === 'approved' && (
                 <div className="flex items-center gap-2 bg-shortcut-teal bg-opacity-20 text-shortcut-navy-blue px-4 py-2.5 rounded-full border border-shortcut-teal shadow-sm">
                   <CheckCircle2 size={18} className="text-shortcut-teal-blue" />
-                  <span className="font-bold text-sm">Proposal approved! Our team has been notified.</span>
+                  <span className="font-bold text-sm">
+                    {proposalOptions.length > 1 && currentOptionName
+                      ? `"${currentOptionName}" approved! Our team has been notified.`
+                      : 'Proposal approved! Our team has been notified.'
+                    }
+                  </span>
                 </div>
               )}
 
@@ -1034,7 +1151,12 @@ export const StandaloneProposalViewer: React.FC = () => {
                 {proposal?.status === 'approved' ? (
                   <div className="flex items-center text-green-600 bg-green-50 px-4 rounded-lg border border-green-200">
                     <CheckCircle2 size={18} className="mr-2" />
-                    <span className="font-semibold">Proposal Approved</span>
+                    <span className="font-semibold">
+                      {proposalOptions.length > 1 && currentOptionName
+                        ? `${currentOptionName} Approved`
+                        : 'Proposal Approved'
+                      }
+                    </span>
                   </div>
                 ) : (
                   <Button
@@ -1043,7 +1165,12 @@ export const StandaloneProposalViewer: React.FC = () => {
                     icon={<Check size={18} />}
                     loading={isApproving}
                   >
-                    {isApproving ? 'Approving...' : 'Approve Proposal'}
+                    {isApproving 
+                      ? 'Approving...' 
+                      : proposalOptions.length > 1 && currentOptionName
+                        ? `Approve ${currentOptionName}`
+                        : 'Approve Proposal'
+                    }
                   </Button>
                 )}
                 {proposal?.is_editable && !showingOriginal && (
@@ -1092,7 +1219,112 @@ export const StandaloneProposalViewer: React.FC = () => {
         </div>
       </header>
 
-      <main className={`max-w-7xl mx-auto px-4 scroll-mt-24 ${showSurveyCTA ? 'pt-24' : 'pt-16'} pb-12`} id="proposal-content">
+      {/* Proposal Options Switcher - Style Guide Compliant Design */}
+      {proposalOptions.length > 1 && (
+        <div className={`bg-white border-b-2 border-shortcut-navy-blue border-opacity-10 sticky ${showSurveyCTA ? 'top-[80px]' : 'top-[64px]'} z-[98] shadow-lg`}>
+          <div className="max-w-7xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
+            {/* Section Header - Following Typography System */}
+            <div className="mb-8">
+              <h2 className="h2 mb-3">Compare Your Options</h2>
+              <p className="text-base text-text-dark-60 font-medium">Select an option below to view full details and pricing</p>
+            </div>
+            
+            {/* Options Grid - Using Card System */}
+            <div className="flex items-stretch gap-6 overflow-x-auto pb-6 pt-4 px-6 hide-scrollbar">
+              {proposalOptions.map((option, index) => {
+                const isActive = option.id === id;
+                const optionLabel = option.option_name || `Option ${index + 1}`;
+                const isApproved = option.status === 'approved';
+                const eventCount = option.eventDates?.length || 0;
+                
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => {
+                      navigate(`/proposal/${option.id}?shared=true`);
+                    }}
+                    className={`relative flex flex-col min-w-[280px] sm:min-w-[320px] card-small flex-shrink-0 group transition-all duration-300 ${
+                      isActive
+                        ? 'bg-shortcut-navy-blue text-white shadow-2xl scale-[1.02] ring-4 ring-shortcut-teal ring-opacity-30'
+                        : 'hover:translate-y-[-2px]'
+                    }`}
+                    style={isActive ? {
+                      background: '#003756',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06)'
+                    } : {}}
+                  >
+                    {/* Approved Badge - Top Right */}
+                    {isApproved && (
+                      <div className={`absolute -top-2 -right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg z-10 ${
+                        isActive
+                          ? 'bg-shortcut-teal text-shortcut-navy-blue'
+                          : 'bg-shortcut-teal text-shortcut-navy-blue'
+                      }`}>
+                        <CheckCircle2 size={14} />
+                        Approved
+                      </div>
+                    )}
+                    
+                    {/* Option Number Badge - Top Left */}
+                    <div className={`absolute -top-2 -left-2 w-10 h-10 rounded-full flex items-center justify-center text-sm font-extrabold shadow-md z-10 ${
+                      isActive
+                        ? 'bg-shortcut-teal text-shortcut-navy-blue'
+                        : 'bg-shortcut-navy-blue text-white'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    
+                    {/* Option Header - Following Typography System */}
+                    <div className="mb-6 mt-4">
+                      <h3 className={`text-xl font-extrabold mb-2 ${isActive ? 'text-white' : 'text-shortcut-navy-blue'}`}>
+                        {optionLabel}
+                      </h3>
+                      {eventCount > 0 && (
+                        <p className={`text-sm font-medium ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
+                          {eventCount} {eventCount === 1 ? 'Event Date' : 'Event Dates'}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Key Metrics - Prominent Display */}
+                    <div className="mt-auto space-y-4 pt-6 border-t" style={{ borderColor: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)' }}>
+                      <div className="flex justify-between items-baseline">
+                        <span className={`text-xs font-bold uppercase tracking-wide ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
+                          Total Cost
+                        </span>
+                        <span className={`text-2xl font-extrabold ${isActive ? 'text-white' : 'text-shortcut-navy-blue'}`}>
+                          ${formatCurrency(option.totalCost || 0)}
+                        </span>
+                      </div>
+                      {option.totalAppointments > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className={`text-sm font-semibold ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
+                            Total Appointments
+                          </span>
+                          <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-shortcut-blue'}`}>
+                            {option.totalAppointments}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Active Indicator Bar */}
+                    {isActive && (
+                      <div className="absolute bottom-0 left-0 right-0 h-2 bg-shortcut-teal rounded-b-[20px]"></div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className={`max-w-7xl mx-auto px-4 scroll-mt-24 ${
+        proposalOptions.length > 1 
+          ? (showSurveyCTA ? 'pt-8' : 'pt-8') 
+          : (showSurveyCTA ? 'pt-24' : 'pt-16')
+      } pb-12`} id="proposal-content">
         {/* Summary-First Layout - Key Metrics at Top */}
         <div className="card-large mb-8 scroll-mt-24">
           <div className="mb-8">
@@ -1286,7 +1518,21 @@ export const StandaloneProposalViewer: React.FC = () => {
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-bold text-shortcut-blue">Service Cost:</span>
-                                        <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                        <div className="text-right">
+                                          {service.discountPercent > 0 ? (
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-sm text-text-dark-60 line-through">${formatCurrency(calculateOriginalPrice(service))}</span>
+                                                <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                              </div>
+                                              <div className="text-xs font-semibold text-green-600">
+                                                {service.discountPercent}% discount applied
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                          )}
+                                        </div>
                                       </div>
                                       
                                       {/* Pricing Options Section */}
@@ -1306,18 +1552,11 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                     : 'border-gray-200 bg-neutral-light-gray hover:border-shortcut-teal'
                                                 }`}
                                                 onClick={() => {
-                                                  // Update the selected option
+                                                  // Update the selected option - handleFieldChange will update all totals including totalHours
                                                   handleFieldChange(
                                                     ['services', location, date, 'services', serviceIndex, 'selectedOption'], 
                                                     optionIndex
                                                   );
-                                                  
-                                                  // Update service totals based on the selected option
-                                                  const selectedOption = service.pricingOptions[optionIndex];
-                                                  if (selectedOption) {
-                                                    service.totalAppointments = selectedOption.totalAppointments;
-                                                    service.serviceCost = selectedOption.serviceCost;
-                                                  }
                                                 }}
                                               >
                                                 <div className="flex justify-between items-start mb-2">
@@ -1330,11 +1569,23 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                     </p>
                                                   </div>
                                                   <div className="text-right">
-                                                    <div className="text-lg font-bold text-shortcut-blue">
-                                                      ${formatCurrency(option.serviceCost)}
-                                                    </div>
+                                                    {(option.discountPercent > 0 || service.discountPercent > 0) ? (
+                                                      <div className="space-y-1">
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                          <span className="text-sm text-text-dark-60 line-through">${formatCurrency(option.originalPrice || calculateOriginalPrice({ ...service, totalHours: option.totalHours || service.totalHours, hourlyRate: option.hourlyRate || service.hourlyRate, numPros: option.numPros || service.numPros }))}</span>
+                                                          <span className="text-lg font-bold text-shortcut-blue">${formatCurrency(option.serviceCost)}</span>
+                                                        </div>
+                                                        <div className="text-xs font-semibold text-green-600">
+                                                          {(option.discountPercent || service.discountPercent || 0)}% discount
+                                                        </div>
+                                                      </div>
+                                                    ) : (
+                                                      <div className="text-lg font-bold text-shortcut-blue">
+                                                        ${formatCurrency(option.serviceCost)}
+                                                      </div>
+                                                    )}
                                                     {service.selectedOption === optionIndex && (
-                                                      <div className="text-xs text-shortcut-navy-blue font-semibold">
+                                                      <div className="text-xs text-shortcut-navy-blue font-semibold mt-1">
                                                         SELECTED
                                                       </div>
                                                     )}
@@ -1383,6 +1634,22 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                         type="number"
                                                       />
                                                     </div>
+                                                    <div>
+                                                      <label className="text-xs font-bold text-shortcut-blue">Discount %:</label>
+                                                      <EditableField
+                                                        value={String(option.discountPercent !== undefined ? option.discountPercent : (service.discountPercent || 0))}
+                                                        onChange={(value) => {
+                                                          const discountValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+                                                          handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'discountPercent'], 
+                                                            discountValue
+                                                          );
+                                                        }}
+                                                        isEditing={isEditing}
+                                                        type="number"
+                                                        suffix="%"
+                                                      />
+                                                    </div>
                                                   </div>
                                                 )}
                                                 
@@ -1420,13 +1687,23 @@ export const StandaloneProposalViewer: React.FC = () => {
                                             <button
                                               onClick={() => {
                                                 // Add new pricing option with current service values
+                                                const optionService = {
+                                                  ...service,
+                                                  totalHours: service.totalHours,
+                                                  hourlyRate: service.hourlyRate,
+                                                  numPros: service.numPros,
+                                                  discountPercent: service.discountPercent || 0
+                                                };
+                                                const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(optionService);
                                                 const newOption = {
                                                   name: `Option ${service.pricingOptions.length + 1}`,
                                                   totalHours: service.totalHours,
                                                   hourlyRate: service.hourlyRate,
                                                   numPros: service.numPros,
-                                                  totalAppointments: service.totalAppointments,
-                                                  serviceCost: service.serviceCost
+                                                  discountPercent: service.discountPercent || 0,
+                                                  totalAppointments,
+                                                  serviceCost,
+                                                  originalPrice
                                                 };
                                                 const newPricingOptions = [...service.pricingOptions, newOption];
                                                 handleFieldChange(
@@ -1828,14 +2105,60 @@ export const StandaloneProposalViewer: React.FC = () => {
 
       {/* Approval Confirmation Modal */}
       {showApprovalConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="card-large max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
+          <div className="card-large max-w-2xl w-full mx-4">
             <h3 className="h2 mb-4">
               Approve Proposal
             </h3>
-            <p className="text-text-dark-60 mb-6">
-              Are you sure you want to approve this proposal? This will notify our team and mark the proposal as approved.
+            
+            {/* Show which option is being approved if there are multiple options */}
+            {proposalOptions.length > 1 && proposal && (
+              <div className="mb-6 p-4 bg-shortcut-navy-blue bg-opacity-10 rounded-xl border-2 border-shortcut-navy-blue border-opacity-20">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-shortcut-navy-blue text-white flex items-center justify-center text-sm font-extrabold">
+                    {currentOptionIndex + 1}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-extrabold text-shortcut-navy-blue">
+                      {currentOptionName || `Option ${currentOptionIndex + 1}`}
+                    </h4>
+                    <p className="text-sm text-text-dark-60">
+                      You are approving this specific option
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-shortcut-navy-blue border-opacity-20">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-text-dark-60 mb-1">Total Cost</p>
+                    <p className="text-xl font-extrabold text-shortcut-navy-blue">
+                      ${formatCurrency(displayData?.summary?.totalEventCost || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-text-dark-60 mb-1">Total Appointments</p>
+                    <p className="text-xl font-extrabold text-shortcut-navy-blue">
+                      {displayData?.summary?.totalAppointments || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <p className="text-base text-text-dark-60 font-medium mb-6">
+              {proposalOptions.length > 1 
+                ? 'Are you sure you want to approve this option? This will notify our team and mark this specific proposal option as approved.'
+                : 'Are you sure you want to approve this proposal? This will notify our team and mark the proposal as approved.'
+              }
             </p>
+            
+            {proposalOptions.length > 1 && (
+              <div className="mb-6 p-3 bg-shortcut-service-yellow bg-opacity-20 rounded-lg border border-shortcut-service-yellow border-opacity-30">
+                <p className="text-sm font-semibold text-shortcut-dark-blue">
+                  💡 Note: Only this option will be approved. Other options will remain available for comparison.
+                </p>
+              </div>
+            )}
+            
             <div className="flex gap-4">
               <Button
                 onClick={() => setShowApprovalConfirm(false)}
@@ -1853,7 +2176,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 className="flex-1"
                 loading={isApproving}
               >
-                {isApproving ? 'Approving...' : 'Yes, Approve'}
+                {isApproving ? 'Approving...' : 'Yes, Approve This Option'}
               </Button>
             </div>
           </div>
@@ -1875,7 +2198,7 @@ export const StandaloneProposalViewer: React.FC = () => {
 
       {/* Help Modal - How to Edit this Proposal */}
       {showHelpModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowHelpModal(false)}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4" onClick={() => setShowHelpModal(false)}>
           <div className="card-large max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="h2">How to Edit this Proposal</h2>

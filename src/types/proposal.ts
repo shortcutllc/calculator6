@@ -19,6 +19,7 @@ export interface Service {
   classLength?: number;
   participants?: string | number;
   fixedPrice?: number;
+  mindfulnessType?: 'intro' | 'drop-in' | 'mindful-movement';
   // Massage-specific fields
   massageType?: 'chair' | 'table' | 'massage';
 }
@@ -124,6 +125,12 @@ export interface Proposal {
   pricingOptions?: { [key: string]: any };
   selectedOptions?: { [key: string]: any };
   hasPricingOptions?: boolean;
+  // New fields for proposal groups/options
+  proposalGroupId?: string | null;
+  optionName?: string | null;
+  optionOrder?: number | null;
+  // Test proposal flag
+  isTest?: boolean;
 }
 
 // Change tracking interfaces

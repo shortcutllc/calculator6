@@ -2,9 +2,29 @@ import { v4 as uuidv4 } from 'uuid';
 import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions } from '../types/proposal';
 import { getProposalUrl } from './url';
 
+// Helper function to calculate original price (before discount)
+export const calculateOriginalPrice = (service: any): number => {
+  if (!service.appTime || !service.numPros || !service.totalHours) {
+    return 0;
+  }
+
+  if (service.serviceType === 'headshot') {
+    const proRevenue = service.totalHours * service.numPros * (service.proHourly || 0);
+    const apptsPerHourPerPro = 60 / service.appTime;
+    const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
+    const totalAppts = Math.floor(service.totalHours * totalApptsPerHour);
+    const retouchingTotal = totalAppts * (service.retouchingCost || 0);
+    return proRevenue + retouchingTotal;
+  } else if (service.serviceType === 'mindfulness') {
+    return service.fixedPrice || 1350;
+  } else {
+    return service.totalHours * (service.hourlyRate || 0) * service.numPros;
+  }
+};
+
 export const calculateServiceResults = (service: any) => {
   if (!service.appTime || !service.numPros || !service.totalHours) {
-    return { totalAppointments: 0, serviceCost: 0, proRevenue: 0 };
+    return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0 };
   }
 
   const apptsPerHourPerPro = 60 / service.appTime;
@@ -28,6 +48,8 @@ export const calculateServiceResults = (service: any) => {
                  ((service.earlyArrival || 0) * service.numPros);
   }
 
+  const originalPrice = serviceCost;
+
   if (service.discountPercent > 0) {
     serviceCost = serviceCost * (1 - (service.discountPercent / 100));
   }
@@ -35,7 +57,8 @@ export const calculateServiceResults = (service: any) => {
   return {
     totalAppointments: totalAppts,
     serviceCost: Number(serviceCost.toFixed(2)),
-    proRevenue: Number(proRevenue.toFixed(2))
+    proRevenue: Number(proRevenue.toFixed(2)),
+    originalPrice: Number(originalPrice.toFixed(2))
   };
 };
 
@@ -86,7 +109,7 @@ export const calculatePricingOptionsTotals = (options: PricingOption[]) => {
 // Function to generate pricing options for a service
 export const generatePricingOptionsForService = (service: any): any[] => {
   const baseService = { ...service };
-  const { totalAppointments, serviceCost } = calculateServiceResults(baseService);
+  const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(baseService);
   
   // Create different pricing options based on service type and quantities
   const options = [];
@@ -95,8 +118,12 @@ export const generatePricingOptionsForService = (service: any): any[] => {
   options.push({
     name: 'Option 1',
     totalAppointments: totalAppointments,
+    totalHours: baseService.totalHours,
+    numPros: baseService.numPros,
     hourlyRate: baseService.hourlyRate,
-    serviceCost: serviceCost
+    serviceCost: serviceCost,
+    originalPrice: originalPrice,
+    discountPercent: baseService.discountPercent || 0
   });
   
   // Option 2: Extended (25% more appointments)
@@ -105,12 +132,16 @@ export const generatePricingOptionsForService = (service: any): any[] => {
     ...baseService,
     totalHours: baseService.totalHours * 1.25
   };
-  const { serviceCost: extendedCost } = calculateServiceResults(extendedService);
+  const { serviceCost: extendedCost, originalPrice: extendedOriginalPrice } = calculateServiceResults(extendedService);
   options.push({
     name: 'Option 2',
     totalAppointments: extendedAppointments,
+    totalHours: extendedService.totalHours,
+    numPros: baseService.numPros,
     hourlyRate: baseService.hourlyRate,
-    serviceCost: extendedCost
+    serviceCost: extendedCost,
+    originalPrice: extendedOriginalPrice,
+    discountPercent: baseService.discountPercent || 0
   });
   
   // Option 3: Premium (50% more appointments)
@@ -119,12 +150,16 @@ export const generatePricingOptionsForService = (service: any): any[] => {
     ...baseService,
     totalHours: baseService.totalHours * 1.5
   };
-  const { serviceCost: premiumCost } = calculateServiceResults(premiumService);
+  const { serviceCost: premiumCost, originalPrice: premiumOriginalPrice } = calculateServiceResults(premiumService);
   options.push({
     name: 'Option 3',
     totalAppointments: premiumAppointments,
+    totalHours: premiumService.totalHours,
+    numPros: baseService.numPros,
     hourlyRate: baseService.hourlyRate,
-    serviceCost: premiumCost
+    serviceCost: premiumCost,
+    originalPrice: premiumOriginalPrice,
+    discountPercent: baseService.discountPercent || 0
   });
   
   return options;
@@ -468,12 +503,20 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
             if (option.totalHours !== undefined) optionService.totalHours = option.totalHours;
             if (option.hourlyRate !== undefined) optionService.hourlyRate = option.hourlyRate;
             if (option.numPros !== undefined) optionService.numPros = option.numPros;
+            // Preserve discountPercent from option or service
+            if (option.discountPercent !== undefined) {
+              optionService.discountPercent = option.discountPercent;
+            } else {
+              optionService.discountPercent = service.discountPercent || 0;
+            }
             
-            const { totalAppointments, serviceCost, proRevenue: optionProRevenue } = calculateServiceResults(optionService);
+            const { totalAppointments, serviceCost, proRevenue: optionProRevenue, originalPrice } = calculateServiceResults(optionService);
             return {
               ...option,
               totalAppointments,
               serviceCost,
+              originalPrice: originalPrice || option.originalPrice,
+              discountPercent: optionService.discountPercent,
               proRevenue: optionProRevenue
             };
           });
@@ -483,6 +526,20 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
           if (selectedOption) {
             (service as any).serviceCost = selectedOption.serviceCost;
             (service as any).totalAppointments = selectedOption.totalAppointments;
+            // Update totalHours, numPros, and hourlyRate to match the selected option
+            if (selectedOption.totalHours !== undefined) {
+              (service as any).totalHours = selectedOption.totalHours;
+            }
+            if (selectedOption.numPros !== undefined) {
+              (service as any).numPros = selectedOption.numPros;
+            }
+            if (selectedOption.hourlyRate !== undefined) {
+              (service as any).hourlyRate = selectedOption.hourlyRate;
+            }
+            // Preserve discountPercent from selected option
+            if (selectedOption.discountPercent !== undefined) {
+              (service as any).discountPercent = selectedOption.discountPercent;
+            }
             // Use the selected option's proRevenue
             dayTotalProRevenue += selectedOption.proRevenue || baseProRevenue;
           } else {

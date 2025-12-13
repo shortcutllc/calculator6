@@ -22,6 +22,7 @@ interface ProposalOptions {
   clientLogoUrl?: string;
   officeLocation?: string; // Legacy support
   officeLocations?: { [location: string]: string }; // New: multiple office locations
+  isTest?: boolean; // Test proposal flag
 }
 
 interface ValidationErrors {
@@ -42,7 +43,8 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
     },
     clientEmail: '',
     clientLogoUrl: '',
-    officeLocations: {}
+    officeLocations: {},
+    isTest: false
   });
   
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -510,6 +512,24 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
                 placeholder="We are so excited to service your incredible staff! Our team is looking forward to providing an exceptional experience..."
                 disabled={loading}
               />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.isTest || false}
+                  onChange={(e) => setOptions(prev => ({ ...prev, isTest: e.target.checked }))}
+                  className="w-5 h-5 border-2 border-gray-200 rounded focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-shortcut-teal"
+                  disabled={loading}
+                />
+                <span className="text-sm font-bold text-shortcut-blue">
+                  Mark as Test Proposal
+                </span>
+              </label>
+              <p className="mt-2 text-xs text-text-dark-60 ml-8">
+                Test proposals can be filtered separately on the History page
+              </p>
             </div>
           </div>
 

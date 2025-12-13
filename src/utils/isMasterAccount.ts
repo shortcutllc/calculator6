@@ -14,3 +14,5 @@ export const isMasterAccount = (user: User | null): boolean => {
   return user.email.toLowerCase() === MASTER_ACCOUNT_EMAIL.toLowerCase();
 };
 
+
+
