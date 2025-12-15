@@ -1141,8 +1141,8 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       {/* HEADER */}
       <header id="generic-header" className="fixed top-0 z-50 w-full bg-white border-b border-gray-200 rounded-b-3xl">
         <div className="mx-auto container-narrow px-4 py-4 flex items-center justify-between">
-          {/* Partner Logo - Left Side (hidden on small screens, visible on larger) */}
-          <div className="hidden lg:flex items-center flex-shrink-0">
+          {/* Partner Logo - Left Side (always visible) */}
+          <div className="flex items-center flex-shrink-0">
             {!isGeneric && (
               <>
           {partnerLogoUrl ? (
@@ -1162,7 +1162,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           </div>
           
           {/* Navigation Menu - Centered (hidden on mobile) */}
-          <nav className="hidden lg:flex items-center text-sm font-bold">
+          <nav className="hidden lg:flex flex-1 items-center justify-center text-sm font-bold">
             <a
               href="#services"
               className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
