@@ -291,8 +291,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
+      <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
             {editingPage ? 'Edit Generic Landing Page' : 'Create Generic Landing Page'}
@@ -331,19 +331,19 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             </div>
 
             {/* Returning Client Checkbox */}
-            <div className="bg-neutral-light-gray p-4 rounded-lg border-2 border-gray-200">
+            <div style={{ backgroundColor: '#F1F6F5', padding: '16px', borderRadius: '8px', border: '2px solid #E5E7EB' }}>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={options.isReturningClient}
                   onChange={(e) => handleFieldChange('isReturningClient', e.target.checked)}
-                  className="mr-3 h-5 w-5 rounded border-gray-300 text-shortcut-teal focus:ring-shortcut-teal"
+                  style={{ marginRight: '12px', width: '20px', height: '20px' }}
                 />
                 <div>
-                  <span className="text-sm font-bold text-shortcut-blue">
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#003756' }}>
                     This is for a returning client
                   </span>
-                  <p className="text-sm font-medium text-shortcut-blue mt-1">
+                  <p style={{ fontSize: '14px', fontWeight: '500', color: '#003756', marginTop: '4px' }}>
                     Shows personalized "Welcome back" messaging and simplified contact form
                   </p>
                 </div>
