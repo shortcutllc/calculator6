@@ -15,6 +15,12 @@ function validateEnv(): Env {
   // Get environment variables from window.__ENV__ first, then fall back to import.meta.env
   const windowEnv = (window as any).__ENV__ || {};
   
+  // Log warning if env-config.js didn't load
+  if (!windowEnv.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL) {
+    console.warn('[Config] Warning: VITE_SUPABASE_URL not found in window.__ENV__ or import.meta.env');
+    console.warn('[Config] Make sure env-config.js is loaded before main.tsx');
+  }
+  
   const env = {
     VITE_SUPABASE_URL: windowEnv.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL,
     VITE_SUPABASE_ANON_KEY: windowEnv.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -23,6 +29,12 @@ function validateEnv(): Env {
     DEV: import.meta.env.DEV,
     BASE_URL: '/'
   };
+  
+  console.log('[Config] Environment loaded:', {
+    hasWindowEnv: !!windowEnv.VITE_SUPABASE_URL,
+    hasMetaEnv: !!import.meta.env.VITE_SUPABASE_URL,
+    mode: env.MODE
+  });
 
   try {
     return envSchema.parse(env);
@@ -67,6 +79,7 @@ export const config = {
     allowedOrigins: [
       'https://proposals.getshortcut.co',
       'http://localhost:5173',
+      'http://localhost:5174',
       'http://localhost:4173'
     ],
     routes: {

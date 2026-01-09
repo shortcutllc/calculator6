@@ -338,6 +338,40 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         setExistingResponse(updatedData);
       }
       
+      // Send Slack notification with survey results
+      try {
+        // Fetch proposal data to get client info
+        const { data: proposalData } = await supabase
+          .from('proposals')
+          .select('client_name, client_email, proposal_type, data')
+          .eq('id', proposalId)
+          .single();
+
+        if (proposalData) {
+          const displayData = proposalData.data || {};
+          await fetch('/.netlify/functions/proposal-event-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              eventType: 'survey_completed',
+              proposalId: proposalId,
+              clientName: proposalData.client_name || displayData?.clientName || 'Unknown',
+              clientEmail: proposalData.client_email || displayData?.clientEmail,
+              proposalType: proposalData.proposal_type || 'event',
+              totalCost: displayData?.summary?.totalEventCost || displayData?.mindfulnessProgram?.pricing?.totalCost || 0,
+              eventDates: displayData?.eventDates || [],
+              locations: displayData?.locations || [],
+              surveyResults: updatedData || surveyData // Include full survey results
+            })
+          });
+        }
+      } catch (slackError) {
+        console.error('Error sending Slack notification for survey completion:', slackError);
+        // Don't fail the form submission if Slack fails
+      }
+      
       // Scroll to top of form to show success message
       window.scrollTo({ top: 0, behavior: 'smooth' });
       if (onSuccess) {
@@ -541,7 +575,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         {/* Question 1: Table or Chair Preference - Only show if massage is included */}
         {includesMassage && (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-shortcut-blue mb-2">
               1. Table or chair preference <span className="text-gray-500 font-normal">(Optional)</span>
             </label>
             <div className="space-y-2">
@@ -584,7 +618,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
               placeholder="Or enter custom preference"
               value={formData.table_or_chair_preference && !['Table', 'Chair', 'No preference'].includes(formData.table_or_chair_preference) ? formData.table_or_chair_preference : ''}
               onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
-              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+              className="mt-2 w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
             />
           </div>
         )}
@@ -592,7 +626,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         {/* Question 2: Preferred Gender - Only show if massage is included */}
         {includesMassage && (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-shortcut-blue mb-2">
               2. Preferred gender of the massage professional <span className="text-gray-500 font-normal">(Optional)</span>
             </label>
             <div className="space-y-2">
@@ -635,7 +669,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
               placeholder="Or enter custom preference"
               value={formData.preferred_gender && !['Male', 'Female', 'No preference'].includes(formData.preferred_gender) ? formData.preferred_gender : ''}
               onChange={(e) => handleChange('preferred_gender', e.target.value)}
-              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue"
+              className="mt-2 w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
             />
           </div>
         )}
@@ -676,7 +710,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
                         }));
                       }}
                       placeholder={`Start typing an address for ${location}...`}
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                     />
                     <p className="text-xs text-text-dark-60 mt-2">
                       Address autocomplete will appear as you type

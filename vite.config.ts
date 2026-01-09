@@ -49,12 +49,21 @@ export default defineConfig({
     }
   },
   server: {
+    port: 5174,
     headers: {
       'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*'
     },
     watch: {
       ignored: ['**/public/env-config.js']
+    }
+  },
+  preview: {
+    port: 4173,
+    host: '127.0.0.1', // Force IPv4 to avoid permission issues with IPv6
+    headers: {
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*'
     }
   }
 });

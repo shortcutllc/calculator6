@@ -309,15 +309,15 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             <h3 className="text-lg font-semibold text-gray-900">Partner Information</h3>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Partner Name *
               </label>
               <input
                 type="text"
                 value={options.partnerName}
                 onChange={(e) => handleFieldChange('partnerName', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.partnerName ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                  errors.partnerName ? 'border-red-500' : 'border-gray-200'
                 }`}
                 placeholder="e.g., Burberry, Microsoft, etc."
               />
@@ -327,7 +327,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Partner Logo
               </label>
               
@@ -395,7 +395,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
                   type="file"
                   accept=".svg,.png,.jpg,.jpeg,.webp"
                   onChange={handleLogoFileChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
               )}
 
@@ -406,8 +406,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
                   value={options.partnerLogoUrl}
                   onChange={handleLogoUrlChange}
                   placeholder="https://example.com/logo.png"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.partnerLogoUrl ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                    errors.partnerLogoUrl ? 'border-red-500' : 'border-gray-200'
                   }`}
                 />
               )}
@@ -429,15 +429,15 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Client Email
               </label>
               <input
                 type="email"
                 value={options.clientEmail}
                 onChange={(e) => handleFieldChange('clientEmail', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.clientEmail ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                  errors.clientEmail ? 'border-red-500' : 'border-gray-200'
                 }`}
                 placeholder="client@company.com"
               />
@@ -453,15 +453,15 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-shortcut-blue mb-2">
                   First Name *
                 </label>
                 <input
                   type="text"
                   value={options.contactFirstName}
                   onChange={(e) => handleFieldChange('contactFirstName', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.contactFirstName ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                    errors.contactFirstName ? 'border-red-500' : 'border-gray-200'
                   }`}
                 />
                 {errors.contactFirstName && (
@@ -470,15 +470,15 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-shortcut-blue mb-2">
                   Last Name *
                 </label>
                 <input
                   type="text"
                   value={options.contactLastName}
                   onChange={(e) => handleFieldChange('contactLastName', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.contactLastName ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                    errors.contactLastName ? 'border-red-500' : 'border-gray-200'
                   }`}
                 />
                 {errors.contactLastName && (
@@ -497,7 +497,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               value={options.customMessage}
               onChange={(e) => handleFieldChange('customMessage', e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               placeholder="Any special message for this partner..."
             />
           </div>

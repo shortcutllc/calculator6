@@ -77,14 +77,14 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 40
   },
   mindfulness: {
-    appTime: 60,
+    appTime: 40,
     totalHours: 1,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 60,
+    classLength: 40,
     participants: 'unlimited',
     fixedPrice: 1350
   },

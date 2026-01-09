@@ -55,7 +55,9 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     optionName: dbProposal.option_name,
     optionOrder: dbProposal.option_order,
     // Test proposal flag
-    isTest: dbProposal.is_test || false
+    isTest: dbProposal.is_test || false,
+    // Proposal type
+    proposal_type: dbProposal.proposal_type || 'event'
   });
 
   const fetchProposals = async () => {
@@ -127,6 +129,9 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You must be logged in to create a proposal');
 
+      // Determine proposal type based on data structure
+      const proposalType = data.mindfulnessProgram ? 'mindfulness-program' : 'event';
+
       const proposalData = {
         data,
         customization,
@@ -137,8 +142,11 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         has_changes: false,
         original_data: data,
         client_name: data.clientName.trim(),
+        client_email: clientEmail || data.clientEmail || null,
+        client_logo_url: data.clientLogoUrl || null,
         notes: '',
-        is_test: isTest
+        is_test: isTest,
+        proposal_type: proposalType
       };
 
       const { data: newProposal, error } = await supabase
@@ -179,18 +187,69 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (updates.notes !== undefined) updateData.notes = updates.notes;
       if (updates.clientEmail !== undefined) updateData.client_email = updates.clientEmail;
       if (updates.clientLogoUrl !== undefined) updateData.client_logo_url = updates.clientLogoUrl;
+      // client_name is NOT NULL, so we need to ensure it's always set
+      if (updates.clientName !== undefined) {
+        // Ensure client_name is never empty or null
+        updateData.client_name = updates.clientName?.trim() || (updates.data?.clientName?.trim()) || 'Client';
+      }
       if (updates.changeSource) updateData.change_source = updates.changeSource;
+      if (updates.proposal_type) updateData.proposal_type = updates.proposal_type;
       // New pricing options fields
       if (updates.pricingOptions) updateData.pricing_options = updates.pricingOptions;
       if (updates.selectedOptions) updateData.selected_options = updates.selectedOptions;
       if (updates.hasPricingOptions !== undefined) updateData.has_pricing_options = updates.hasPricingOptions;
 
-      const { error } = await supabase
+      // Remove undefined values to avoid issues
+      const cleanUpdateData: any = {};
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] !== undefined) {
+          cleanUpdateData[key] = updateData[key];
+        }
+      });
+      
+      // Validate that client_name is not empty before sending
+      if (cleanUpdateData.client_name !== undefined && (!cleanUpdateData.client_name || cleanUpdateData.client_name.trim() === '')) {
+        console.warn('⚠️ client_name is empty, using fallback');
+        cleanUpdateData.client_name = cleanUpdateData.data?.clientName || 'Client';
+      }
+      
+      // Validate JSON fields are serializable
+      try {
+        if (cleanUpdateData.data) {
+          JSON.stringify(cleanUpdateData.data);
+        }
+        if (cleanUpdateData.customization) {
+          JSON.stringify(cleanUpdateData.customization);
+        }
+        if (cleanUpdateData.original_data) {
+          JSON.stringify(cleanUpdateData.original_data);
+        }
+      } catch (jsonError) {
+        console.error('❌ JSON serialization error:', jsonError);
+        throw new Error(`Invalid JSON data: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
+      }
+      
+      console.log('🔍 Updating proposal:', { id, updateData: cleanUpdateData });
+      
+      const { error, data } = await supabase
         .from('proposals')
-        .update(updateData)
-        .eq('id', id);
+        .update(cleanUpdateData)
+        .eq('id', id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase update error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        console.error('❌ Update data that failed:', JSON.stringify(cleanUpdateData, null, 2));
+        console.error('❌ Full error object:', error);
+        throw new Error(`Failed to update proposal: ${error.message}${error.details ? ` - ${error.details}` : ''}${error.hint ? ` (${error.hint})` : ''}`);
+      }
+      
+      console.log('✅ Proposal updated successfully:', data);
 
       // Update local state
       setProposals(prev => prev.map(p => 

@@ -279,15 +279,15 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
             <h3 className="text-lg font-semibold text-gray-900">Sign Content</h3>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Title *
               </label>
               <input
                 type="text"
                 value={options.title}
                 onChange={(e) => handleFieldChange('title', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                  errors.title ? 'border-red-500' : 'border-gray-200'
                 }`}
                 placeholder="e.g., Book Your Appointment"
               />
@@ -297,20 +297,20 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Event Details
               </label>
               <textarea
                 value={options.eventDetails}
                 onChange={(e) => handleFieldChange('eventDetails', e.target.value)}
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 placeholder="Enter event details, location, time, etc."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 QR Code URL *
               </label>
               <input
@@ -331,14 +331,14 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Service Type *
               </label>
               <select
                 value={options.serviceType}
                 onChange={(e) => handleFieldChange('serviceType', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.serviceType ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                  errors.serviceType ? 'border-red-500' : 'border-gray-200'
                 }`}
               >
                 {serviceTypes.map((type) => (
@@ -361,20 +361,20 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
             <h3 className="text-lg font-semibold text-gray-900">Partner Information (Optional)</h3>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Partner Name
               </label>
               <input
                 type="text"
                 value={options.partnerName}
                 onChange={(e) => handleFieldChange('partnerName', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 placeholder="e.g., Company Name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2">
                 Partner Logo
               </label>
               
@@ -431,7 +431,7 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
                   type="file"
                   accept=".svg,.png,.jpg,.jpeg,.webp"
                   onChange={handleLogoFileChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
               )}
 
@@ -442,8 +442,8 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
                   value={options.partnerLogoUrl}
                   onChange={handleLogoUrlChange}
                   placeholder="https://example.com/logo.png"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.partnerLogoUrl ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
+                    errors.partnerLogoUrl ? 'border-red-500' : 'border-gray-200'
                   }`}
                 />
               )}

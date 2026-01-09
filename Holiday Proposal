@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Shortcut — Employee Happiness Delivered</title>
+
+<!-- Outfit + Tailwind -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bleu: '#003756',
+        bg: '#F1F6F5',
+        accent: '#003C5E',
+        teal: '#0098AD',
+        lightteal: '#9EFAFF',
+        yellow: '#FEDC64',
+        red: '#FF5050',
+        purple: '#F7BBFF',
+      },
+      fontFamily: { sans: ['Outfit','system-ui','ui-sans-serif','Segoe UI','Roboto','Helvetica','Arial'] },
+      boxShadow: { 
+        soft: '0 10px 30px rgba(0,55,86,0.08)',
+        glow: '0 0 40px rgba(158,250,255,0.3)'
+      }
+    }
+  }
+}
+</script>
+
+<style>
+  body{ font-family: Outfit, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:#003756; }
+  .container-narrow{ max-width: 1200px; }
+
+  /* Typography hierarchy */
+  .h1{font-weight:800; line-height:1.08; letter-spacing:-.01em}
+  @media (min-width:320px){.h1{font-size:2.75rem}}
+  @media (min-width:768px){.h1{font-size:3.25rem}}
+  @media (min-width:1024px){.h1{font-size:3.75rem}}
+
+  .section-title{font-weight:800; line-height:1.1}
+  @media (min-width:320px){.section-title{font-size:1.75rem}}
+  @media (min-width:768px){.section-title{font-size:2.5rem}}
+  @media (min-width:1024px){.section-title{font-size:3rem}}
+
+  /* Hero flipper */
+  .slider{position:relative}
+  .slide{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; animation:fade 25s linear infinite}
+  .slide:nth-child(1){animation-delay: 0s}
+  .slide:nth-child(2){animation-delay: 5s}
+  .slide:nth-child(3){animation-delay:10s}
+  .slide:nth-child(4){animation-delay:15s}
+  .slide:nth-child(5){animation-delay:20s}
+  @keyframes fade{0%{opacity:0} 4%{opacity:1} 20%{opacity:1} 24%{opacity:0} 100%{opacity:0}}
+
+  /* Marquee logos (seamless) */
+  .marquee{overflow:hidden}
+  .marquee__track{display:flex; width:max-content; gap:4rem; align-items:center; animation:scroll-x 28s linear infinite}
+  .marquee__group{display:flex; gap:4rem; align-items:center}
+  .marquee__group img{height:28px; opacity:.9; filter:grayscale(1); flex-shrink:0}
+  @keyframes scroll-x{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+  /* Feel Great scroller (Apple style) */
+  .rail-wrap{ position:relative; }
+  .rail{
+    display:flex; gap:2rem; padding: 0 8vw 1rem;
+    overflow-x:auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scroll-padding: 8vw;
+    -webkit-overflow-scrolling: touch;
+  }
+  .card{
+    scroll-snap-align: center;
+    flex: 0 0 auto;
+    width: min(78vw, 520px);
+    aspect-ratio: 4 / 5;
+    border-radius: 28px;
+    box-shadow: 0 12px 28px rgba(0,55,86,.10);
+    overflow: hidden;
+    position: relative;
+    background: transparent;
+  }
+
+  /* Pulse animation for CTAs */
+  .pulse-glow{ animation: pulse-glow 2s infinite; }
+  @keyframes pulse-glow{ 0%, 100%{ box-shadow: 0 0 20px rgba(158,250,255,0.3); } 50%{ box-shadow: 0 0 40px rgba(158,250,255,0.6); } }
+
+  /* Stats counter animation */
+  .stat-number{ font-variant-numeric: tabular-nums; }
+
+  /* Testimonial cards */
+  .testimonial-card{ 
+    background: linear-gradient(135deg, #fff 0%, #F1F6F5 100%);
+    border: 1px solid rgba(0,55,86,0.08);
+  }
+
+  /* FAQ accordion */
+  .faq-item{ border-bottom: 1px solid rgba(0,55,86,0.08); }
+  .faq-content{ max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+  .faq-content.open{ max-height: 200px; }
+  
+  /* Services Slider */
+  .service-content{ 
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  .service-content.active{ 
+    opacity: 1; 
+    transform: translateY(0);
+  }
+  .service-tab{ 
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .service-tab:hover{ 
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,152,173,0.15);
+  }
+  
+  /* Logo Scroller Animation */
+  @keyframes scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  
+    .animate-scroll {
+    animation: scroll 18s linear infinite;
+    will-change: transform;
+  }
+  
+  .logo-scroller {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .logo-track {
+    display: flex;
+    width: max-content;
+    will-change: transform;
+    animation: marquee 50s linear infinite;
+  }
+  
+  .logo-set {
+    display: flex;
+    align-items: center;
+    gap: clamp(4rem, 7vw, 7rem);
+  }
+  
+  .logo-set img {
+    height: clamp(2rem, 2.75vw, 2.75rem);
+    width: auto;
+    flex-shrink: 0;
+    filter: brightness(0) saturate(100%) invert(89%) sepia(12%) saturate(405%) hue-rotate(353deg) brightness(103%) contrast(93%);
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+  }
+  
+  .logo-set img.logo-compact {
+    height: clamp(1.6rem, 2.2vw, 2.2rem);
+  }
+  
+  .logo-set img:hover {
+    opacity: 1;
+    }
+    
+    /* Video container styling */
+    .video-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+    }
+    
+    .slide:first-child {
+      opacity: 1;
+    }
+    
+    .slide video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    /* Simple cycling animation */
+    @keyframes slideShow {
+      0%, 20% { opacity: 1; }
+      25%, 100% { opacity: 0; }
+    }
+    
+    .slide:nth-child(1) { 
+      animation: slideShow 10s infinite;
+      animation-delay: 0s; 
+    }
+    .slide:nth-child(2) { 
+      animation: slideShow 10s infinite;
+      animation-delay: 2s; 
+    }
+    .slide:nth-child(3) { 
+      animation: slideShow 10s infinite;
+      animation-delay: 4s; 
+    }
+    .slide:nth-child(4) { 
+      animation: slideShow 10s infinite;
+      animation-delay: 6s; 
+    }
+    .slide:nth-child(5) { 
+      animation: slideShow 10s infinite;
+      animation-delay: 8s; 
+    }
+
+  /* Hide scrollbars */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Smooth horizontal scrolling */
+  .services-scroll {
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .service-slide {
+    scroll-snap-align: start;
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+    }
+
+  .testimonial-section {
+    background-color: #F5F0E8;
+    padding: clamp(2.5rem, 6vw, 3.75rem) 0;
+  }
+
+  .testimonial-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+
+  .testimonial-quote {
+    flex: 1.4;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  .testimonial-quote mark {
+    font-size: clamp(3rem, 8vw, 4.75rem);
+    line-height: 1;
+    color: #40C4BE;
+    background: none;
+    font-family: "Outfit", sans-serif;
+    font-weight: 700;
+  }
+
+  .testimonial-quote p {
+    font-size: clamp(1.65rem, 3.3vw, 2.15rem);
+    line-height: 1.4;
+    font-weight: 500;
+    color: #214C42;
+    margin: 0;
+  }
+
+  .testimonial-meta {
+    flex: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: clamp(1.25rem, 3vw, 1.75rem);
+  }
+
+  .testimonial-logo {
+    width: clamp(8rem, 12vw, 10rem);
+    height: auto;
+    filter: brightness(0) saturate(100%) invert(12%) sepia(31%) saturate(486%) hue-rotate(119deg) brightness(91%) contrast(90%);
+  }
+
+  .testimonial-person {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .testimonial-avatar {
+    width: clamp(3.5rem, 5vw, 4rem);
+    height: clamp(3.5rem, 5vw, 4rem);
+    border-radius: 9999px;
+    background: radial-gradient(circle at 30% 30%, rgba(64,196,190,0.25), rgba(33,76,66,0.65));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(64,196,190,0.35);
+    box-shadow: 0 8px 20px rgba(33,76,66,0.15);
+  }
+
+  .testimonial-avatar span {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #F5F0E8;
+    letter-spacing: 0.05em;
+  }
+
+  .testimonial-person .name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #214C42;
+  }
+
+  .testimonial-person .title {
+    font-size: 0.95rem;
+    color: rgba(33,76,66,0.75);
+  }
+
+  @media (max-width: 900px) {
+    .testimonial-inner {
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .testimonial-meta {
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .testimonial-logo {
+      width: clamp(7rem, 30vw, 9rem);
+    }
+    }
+
+  .testimonial-banner {
+    background-color: #ffffff;
+    padding: clamp(3rem, 7vw, 4.75rem) 0;
+    border-radius: 3rem;
+  }
+
+  .testimonial-wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 clamp(1.5rem, 4vw, 2.5rem);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(3rem, 7vw, 6rem);
+  }
+
+  .testimonial-copy {
+    flex: 1.3;
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    align-items: start;
+    gap: clamp(1rem, 3vw, 1.75rem);
+  }
+
+  .testimonial-copy .quote-mark {
+    font-family: "Outfit", sans-serif;
+    font-weight: 700;
+    font-size: clamp(5rem, 12vw, 7rem);
+    line-height: 0.8;
+    color: #40C4BE;
+    opacity: 0.9;
+    transform: translateY(-0.2em);
+  }
+
+  .testimonial-copy blockquote {
+    margin: 0;
+    font-size: clamp(1.95rem, 3.9vw, 2.6rem);
+    line-height: 1.35;
+    font-weight: 500;
+    color: #214C42;
+  }
+
+  .testimonial-side {
+    flex: 0.85;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .testimonial-identity {
+    display: flex;
+    align-items: center;
+    gap: clamp(2rem, 3.5vw, 3.5rem);
+  }
+
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.9rem, 2.2vw, 1.25rem);
+  }
+
+  .testimonial-author .photo {
+    width: clamp(3.4rem, 4.4vw, 4rem);
+    height: clamp(3.4rem, 4.4vw, 4rem);
+    min-width: 3.4rem;
+    min-height: 3.4rem;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #40C4BE;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .testimonial-author .photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .testimonial-author .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .testimonial-author .meta .name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #214C42;
+    line-height: 1.2;
+  }
+
+  .testimonial-author .meta .title {
+    font-size: 0.9rem;
+    color: rgba(33, 76, 66, 0.75);
+    line-height: 1.3;
+  }
+
+  @media (max-width: 900px) {
+    .testimonial-wrap {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .testimonial-identity {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.25rem;
+    }
+
+    .testimonial-side {
+      justify-content: flex-start;
+      width: 100%;
+    }
+    }
+</style>
+</head>
+<body class="bg-white">
+
+<!-- HEADER MENU -->
+<header id="header" class="fixed top-0 z-50 w-full transition-all duration-300">
+  <div class="mx-auto container-narrow px-4 py-4 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2 font-semibold">
+      <svg id="logo-svg" viewBox="0 0 192 34" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-6 w-auto">
+        <path fill-rule="evenodd" clip-rule="evenodd"
+          d="M29.6284 21.5003C29.3713 23.7505 28.6818 25.9572 27.3774 27.8371C24.2946 32.28 18.9846 33.7633 13.7386 32.1453C8.56113 30.5486 3.54006 26.0287 0 18.7044L4.84254 16.3639C7.92552 22.7425 11.9483 25.9647 15.3237 27.0057C18.6305 28.0256 21.3824 27.0423 22.9585 24.7709C23.2395 24.366 23.481 23.9084 23.6808 23.4043C23.3774 23.4209 23.0738 23.4262 22.7704 23.4206C19.2805 23.3553 16.0856 21.8408 13.6813 19.7541C11.2932 17.6815 9.45986 14.8481 8.92523 11.8407C8.36688 8.69984 9.26489 5.39496 12.2773 3.08642C13.6869 2.00611 15.2332 1.36494 16.8596 1.24094C18.4816 1.11728 19.9964 1.52212 21.3267 2.23502C23.9138 3.62146 25.9253 6.22268 27.2987 9.01314C28.1685 10.7806 28.8433 12.7443 29.2624 14.7619C31.6786 12.1765 34.3066 10.6389 36.5311 9.77503C37.6804 9.3287 38.7381 9.05577 39.6253 8.91256C40.403 8.78701 41.3422 8.71138 42.1247 8.89196L40.9153 14.1327C41.0086 14.1543 41.0586 14.1618 41.0586 14.1618C41.0583 14.1658 40.8815 14.1579 40.4824 14.2223C39.98 14.3034 39.2871 14.4746 38.4782 14.7887C36.8668 15.4145 34.8583 16.5824 32.995 18.6489C31.9331 19.8266 30.8025 20.7717 29.6284 21.5003ZM24.3046 17.9209C24.1028 15.671 23.4436 13.3605 22.4729 11.3882C21.3666 9.14038 20.0076 7.63027 18.7861 6.97569C18.2121 6.66808 17.7132 6.56999 17.2685 6.60389C16.8283 6.63745 16.255 6.81433 15.5489 7.35549C14.3296 8.28987 13.9682 9.47863 14.2207 10.8994C14.497 12.4535 15.5449 14.2498 17.2067 15.692C18.8522 17.1202 20.8758 18.0057 22.871 18.043C23.3362 18.0517 23.8156 18.0149 24.3046 17.9209Z"
+          fill="#EFE0C0" />
+        <path fill-rule="evenodd" clip-rule="evenodd"
+          d="M37.5033 11.1947C34.926 10.3834 32.9956 8.72285 31.3895 6.90729L35.4947 3.27552C36.7809 4.72933 37.9135 5.57753 39.149 5.96641C40.3556 6.34619 42.0247 6.40038 44.5918 5.54394L46.8242 10.5201C44.9245 11.6113 43.8736 13.3885 43.3764 15.227C43.1283 16.1444 43.035 17.0253 43.0393 17.7413C43.0437 18.4635 43.1448 18.831 43.1572 18.8761C43.1582 18.8799 43.1583 18.8806 43.1583 18.8806L38.1127 21.0218C37.7142 20.0827 37.565 18.8953 37.5583 17.7744C37.5511 16.586 37.7026 15.2115 38.0853 13.7961C38.2848 13.0585 38.5517 12.2956 38.8993 11.5353C38.4247 11.4518 37.9596 11.3383 37.5033 11.1947Z"
+          fill="#EFE0C0" />
+        <path d="M182.038 29.4766V5.46692H187.385V29.4766H182.038ZM178.194 17.0349V12.4916H191.23V17.0349H178.194Z"
+          fill="#EFE0C0" />
+        <path
+          d="M167.362 29.861C165.801 29.861 164.415 29.5465 163.203 28.9174C162.015 28.265 161.083 27.3797 160.408 26.2613C159.732 25.1197 159.394 23.8149 159.394 22.3471V12.4916H164.741V22.2772C164.741 22.8597 164.834 23.3606 165.021 23.78C165.23 24.1994 165.533 24.5255 165.929 24.7585C166.326 24.9915 166.803 25.108 167.362 25.108C168.154 25.108 168.784 24.8634 169.25 24.3741C169.716 23.8615 169.949 23.1625 169.949 22.2772V12.4916H175.296V22.3121C175.296 23.8033 174.958 25.1197 174.282 26.2613C173.606 27.3797 172.675 28.265 171.486 28.9174C170.298 29.5465 168.923 29.861 167.362 29.861Z"
+          fill="#EFE0C0" />
+        <path
+          d="M150.08 29.8609C148.332 29.8609 146.748 29.4765 145.327 28.7076C143.906 27.9388 142.787 26.8787 141.972 25.5273C141.156 24.176 140.749 22.6615 140.749 20.984C140.749 19.2832 141.156 17.7687 141.972 16.4407C142.81 15.0893 143.941 14.0292 145.362 13.2604C146.783 12.4915 148.379 12.1071 150.15 12.1071C151.478 12.1071 152.689 12.34 153.784 12.806C154.903 13.2487 155.893 13.9244 156.755 14.833L153.33 18.258C152.934 17.8153 152.468 17.4891 151.932 17.2794C151.419 17.0698 150.825 16.9649 150.15 16.9649C149.381 16.9649 148.694 17.1396 148.088 17.4891C147.505 17.8153 147.039 18.2813 146.69 18.8871C146.364 19.4696 146.201 20.1569 146.201 20.949C146.201 21.7412 146.364 22.4402 146.69 23.046C147.039 23.6517 147.517 24.1294 148.123 24.4789C148.728 24.8283 149.404 25.0031 150.15 25.0031C150.849 25.0031 151.466 24.8866 152.002 24.6536C152.561 24.3973 153.039 24.0478 153.435 23.6051L156.825 27.0301C155.94 27.9621 154.938 28.6727 153.819 29.162C152.701 29.6279 151.454 29.8609 150.08 29.8609Z"
+          fill="#EFE0C0" />
+        <path d="M129.93 29.4766V5.46692H135.277V29.4766H129.93ZM126.086 17.0349V12.4916H139.122V17.0349H126.086Z"
+          fill="#EFE0C0" />
+        <path
+          d="M110.973 29.4766V12.4916H116.32V29.4766H110.973ZM116.32 20.1453L114.084 18.3979C114.526 16.4175 115.272 14.8797 116.32 13.7847C117.369 12.6896 118.825 12.1421 120.689 12.1421C121.504 12.1421 122.215 12.2702 122.821 12.5265C123.45 12.7595 123.997 13.1323 124.463 13.6449L121.283 17.664C121.05 17.4077 120.759 17.2096 120.409 17.0698C120.06 16.93 119.664 16.8601 119.221 16.8601C118.336 16.8601 117.625 17.1397 117.089 17.6989C116.577 18.2348 116.32 19.0503 116.32 20.1453Z"
+          fill="#EFE0C0" />
+        <path
+          d="M99.0146 29.8609C97.2672 29.8609 95.6828 29.4765 94.2616 28.7076C92.8636 27.9155 91.7569 26.8437 90.9415 25.4924C90.126 24.141 89.7183 22.6266 89.7183 20.949C89.7183 19.2715 90.126 17.7687 90.9415 16.4407C91.7569 15.1126 92.8636 14.0642 94.2616 13.2953C95.6595 12.5031 97.2439 12.1071 99.0146 12.1071C100.785 12.1071 102.37 12.4915 103.768 13.2604C105.166 14.0292 106.272 15.0893 107.088 16.4407C107.903 17.7687 108.311 19.2715 108.311 20.949C108.311 22.6266 107.903 24.141 107.088 25.4924C106.272 26.8437 105.166 27.9155 103.768 28.7076C102.37 29.4765 100.785 29.8609 99.0146 29.8609ZM99.0146 25.0031C99.7835 25.0031 100.459 24.84 101.042 24.5138C101.624 24.1643 102.067 23.6867 102.37 23.0809C102.696 22.4518 102.859 21.7412 102.859 20.949C102.859 20.1569 102.696 19.4696 102.37 18.8871C102.043 18.2813 101.589 17.8153 101.007 17.4891C100.447 17.1396 99.7835 16.9649 99.0146 16.9649C98.269 16.9649 97.605 17.1396 97.0225 17.4891C96.44 17.8153 95.9857 18.2813 95.6595 18.8871C95.3333 19.4929 95.1702 20.1918 95.1702 20.984C95.1702 21.7529 95.3333 22.4518 95.6595 23.0809C95.9857 23.6867 96.44 24.1643 97.0225 24.5138C97.605 24.84 98.269 25.0031 99.0146 25.0031Z"
+          fill="#EFE0C0" />
+        <path
+          d="M81.6902 29.4766V19.7958C81.6902 18.9104 81.4106 18.1998 80.8514 17.6639C80.3155 17.1048 79.6282 16.8252 78.7894 16.8252C78.207 16.8252 77.6944 16.9533 77.2517 17.2096C76.809 17.4426 76.4595 17.7921 76.2032 18.2581C75.947 18.7007 75.8188 19.2133 75.8188 19.7958L73.7568 18.7823C73.7568 17.4542 74.0364 16.2893 74.5956 15.2874C75.1548 14.2856 75.9353 13.5167 76.9372 12.9808C77.939 12.4216 79.0923 12.1421 80.3971 12.1421C81.7251 12.1421 82.8901 12.4216 83.8919 12.9808C84.8938 13.5167 85.6627 14.2739 86.1985 15.2525C86.7577 16.2077 87.0373 17.3261 87.0373 18.6075V29.4766H81.6902ZM70.4717 29.4766V4.10388H75.8188V29.4766H70.4717Z"
+          fill="#EFE0C0" />
+        <path
+          d="M60.4075 29.896C59.4057 29.896 58.4154 29.7678 57.4369 29.5116C56.4816 29.2553 55.5846 28.8941 54.7458 28.4282C53.9304 27.9389 53.2314 27.3797 52.6489 26.7506L55.6895 23.6751C56.2486 24.2809 56.9127 24.7585 57.6815 25.108C58.4504 25.4342 59.2892 25.5973 60.1978 25.5973C60.8269 25.5973 61.3045 25.5041 61.6307 25.3177C61.9802 25.1313 62.1549 24.875 62.1549 24.5489C62.1549 24.1295 61.9452 23.8149 61.5259 23.6052C61.1298 23.3723 60.6172 23.1742 59.9881 23.0111C59.3591 22.8247 58.695 22.6267 57.9961 22.417C57.2971 22.2073 56.6331 21.9161 56.004 21.5433C55.3749 21.1705 54.8623 20.6579 54.4663 20.0055C54.0702 19.3299 53.8721 18.4795 53.8721 17.4543C53.8721 16.3592 54.1517 15.4156 54.7109 14.6235C55.2701 13.808 56.0622 13.1673 57.0874 12.7013C58.1126 12.2353 59.3125 12.0023 60.6871 12.0023C62.1316 12.0023 63.4597 12.2586 64.6712 12.7712C65.9061 13.2605 66.9079 13.9944 67.6768 14.9729L64.6363 18.0484C64.1004 17.4193 63.4946 16.9767 62.819 16.7204C62.1666 16.4641 61.5259 16.3359 60.8968 16.3359C60.291 16.3359 59.8367 16.4291 59.5338 16.6155C59.2309 16.7786 59.0795 17.0233 59.0795 17.3495C59.0795 17.6989 59.2775 17.9785 59.6736 18.1882C60.0697 18.3979 60.5823 18.5843 61.2113 18.7474C61.8404 18.9105 62.5044 19.1085 63.2034 19.3415C63.9024 19.5745 64.5664 19.889 65.1955 20.2851C65.8245 20.6812 66.3371 21.2171 66.7332 21.8928C67.1293 22.5451 67.3273 23.4072 67.3273 24.479C67.3273 26.1332 66.6983 27.4496 65.4401 28.4282C64.2053 29.4067 62.5277 29.896 60.4075 29.896Z"
+          fill="#EFE0C0" />
+      </svg>
+    </a>
+    <a href="#book" id="cta-button" class="inline-flex items-center justify-center rounded-full font-bold text-sm px-5 py-2.5 shadow-soft hover:opacity-90 transition-colors" style="background-color: #EFE0C0; color: #214C42;">
+      Book a Call
+    </a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section id="top" class="relative overflow-hidden rounded-b-3xl" style="background-color: #214C42; min-height: 100vh; padding-top: 0;">
+  <!-- Holiday Stars and Dots Background -->
+  <div class="absolute inset-0 opacity-30">
+    <!-- Large star top right -->
+    <img src="./frontend/public/Holiday Landing Page/Hero Images/Holiday Star.svg" alt="" class="absolute top-20 right-16 w-12 h-12" style="fill: #EFE0C0;">
+    <!-- Medium star top left -->
+    <img src="./frontend/public/Holiday Landing Page/Hero Images/Holiday Star.svg" alt="" class="absolute top-32 left-10 w-8 h-8" style="fill: #EFE0C0;">
+    <!-- Medium star bottom left -->
+    <img src="./frontend/public/Holiday Landing Page/Hero Images/Holiday Star.svg" alt="" class="absolute bottom-40 left-20 w-8 h-8" style="fill: #EFE0C0;">
+    
+    <!-- Scattered dots -->
+    <div class="absolute top-24 right-24 w-2 h-2 rounded-full" style="background-color: #EFE0C0;"></div>
+    <div class="absolute top-40 left-32 w-1.5 h-1.5 rounded-full" style="background-color: #EFE0C0;"></div>
+    <div class="absolute bottom-32 right-32 w-2 h-2 rounded-full" style="background-color: #EFE0C0;"></div>
+    <div class="absolute top-1/3 left-16 w-1 h-1 rounded-full" style="background-color: #EFE0C0;"></div>
+    <div class="absolute bottom-1/3 right-20 w-1.5 h-1.5 rounded-full" style="background-color: #EFE0C0;"></div>
+    <div class="absolute top-1/2 left-1/3 w-1 h-1 rounded-full" style="background-color: #EFE0C0;"></div>
+    <div class="absolute bottom-1/4 left-1/4 w-1.5 h-1.5 rounded-full" style="background-color: #EFE0C0;"></div>
+      </div>
+      
+  <!-- Main Content -->
+  <div class="relative z-10">
+    <!-- Top Section: Logo and Hero Content -->
+    <div class="mx-auto container-narrow px-4 pt-40 md:pt-48 pb-16 md:pb-20">
+      <div class="grid md:grid-cols-2 gap-16 md:gap-20 items-center">
+        <!-- Left Side - Text Content -->
+        <div>
+          <h1 class="h1" style="color: #EFE0C0;">
+            <span class="block">Gift a moment of</span>
+            <span class="block">'ahhh' with Shortcut.</span>
+          </h1>
+          <p class="mt-6 md:mt-8 text-lg md:text-xl leading-relaxed max-w-[48ch]" style="color: #EFE0C0; opacity: 0.95;">Give your team a gift they'll love. From massages to holiday party glam, we bring the magic right to your office.</p>
+          
+          <div class="mt-10 md:mt-12 flex flex-col sm:flex-row gap-4">
+            <a href="#book" class="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style="background-color: #EFE0C0; color: #214C42;">Book a Call</a>
+            <a href="#services" class="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style="border-color: #EFE0C0; color: #EFE0C0;">Explore Services</a>
+      </div>
+      </div>
+        
+        <!-- Right Side - Featured Service Box -->
+        <div class="md:pl-8">
+          <img 
+            src="./frontend/public/Holiday Landing Page/Hero Images/Frame 1278959.svg" 
+            alt="Relaxing Massage" 
+            class="w-full h-auto"
+          />
+          </div>
+          </div>
+          </div>
+    
+    <!-- Bottom Section: 4 Service Boxes -->
+    <div class="mx-auto container-narrow px-4 pb-16 md:pb-20">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <!-- Festive Nail Care -->
+        <img 
+          src="./frontend/public/Holiday Landing Page/Hero Images/Frame 1278959-1.svg" 
+          alt="Festive Nail Care" 
+          class="w-full h-auto"
+        />
+        
+        <!-- Year End Headshots -->
+        <img 
+          src="./frontend/public/Holiday Landing Page/Hero Images/Frame 1278959-2.svg" 
+          alt="Year End Headshots" 
+          class="w-full h-auto"
+        />
+        
+        <!-- Holiday Hair & Makeup -->
+        <img 
+          src="./frontend/public/Holiday Landing Page/Hero Images/Frame 1278959-3.svg" 
+          alt="Holiday Hair & Makeup" 
+          class="w-full h-auto"
+        />
+        
+        <!-- Stress melting Mindfulness -->
+        <img 
+          src="./frontend/public/Holiday Landing Page/Hero Images/Frame 1278959-4.svg" 
+          alt="Stress melting Mindfulness" 
+          class="w-full h-auto"
+        />
+          </div>
+          </div>
+    
+    <!-- Client Logos Section - Inside Green Hero -->
+    <div class="pb-20 md:pb-24">
+      <div class="text-center mb-10 mx-auto container-narrow px-4">
+        <h2 class="text-2xl md:text-3xl font-bold mb-2" style="color: #EFE0C0;">Top Employers Trust 
+        <svg viewBox="0 0 192 34" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline-block h-8 w-auto ml-2">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M29.6284 21.5003C29.3713 23.7505 28.6818 25.9572 27.3774 27.8371C24.2946 32.28 18.9846 33.7633 13.7386 32.1453C8.56113 30.5486 3.54006 26.0287 0 18.7044L4.84254 16.3639C7.92552 22.7425 11.9483 25.9647 15.3237 27.0057C18.6305 28.0256 21.3824 27.0423 22.9585 24.7709C23.2395 24.366 23.481 23.9084 23.6808 23.4043C23.3774 23.4209 23.0738 23.4262 22.7704 23.4206C19.2805 23.3553 16.0856 21.8408 13.6813 19.7541C11.2932 17.6815 9.45986 14.8481 8.92523 11.8407C8.36688 8.69984 9.26489 5.39496 12.2773 3.08642C13.6869 2.00611 15.2332 1.36494 16.8596 1.24094C18.4816 1.11728 19.9964 1.52212 21.3267 2.23502C23.9138 3.62146 25.9253 6.22268 27.2987 9.01314C28.1685 10.7806 28.8433 12.7443 29.2624 14.7619C31.6786 12.1765 34.3066 10.6389 36.5311 9.77503C37.6804 9.3287 38.7381 9.05577 39.6253 8.91256C40.403 8.78701 41.3422 8.71138 42.1247 8.89196L40.9153 14.1327C41.0086 14.1543 41.0586 14.1618 41.0586 14.1618C41.0583 14.1658 40.8815 14.1579 40.4824 14.2223C39.98 14.3034 39.2871 14.4746 38.4782 14.7887C36.8668 15.4145 34.8583 16.5824 32.995 18.6489C31.9331 19.8266 30.8025 20.7717 29.6284 21.5003ZM24.3046 17.9209C24.1028 15.671 23.4436 13.3605 22.4729 11.3882C21.3666 9.14038 20.0076 7.63027 18.7861 6.97569C18.2121 6.66808 17.7132 6.56999 17.2685 6.60389C16.8283 6.63745 16.255 6.81433 15.5489 7.35549C14.3296 8.28987 13.9682 9.47863 14.2207 10.8994C14.497 12.4535 15.5449 14.2498 17.2067 15.692C18.8522 17.1202 20.8758 18.0057 22.871 18.043C23.3362 18.0517 23.8156 18.0149 24.3046 17.9209Z"
+            fill="#EFE0C0" />
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M37.5033 11.1947C34.926 10.3834 32.9956 8.72285 31.3895 6.90729L35.4947 3.27552C36.7809 4.72933 37.9135 5.57753 39.149 5.96641C40.3556 6.34619 42.0247 6.40038 44.5918 5.54394L46.8242 10.5201C44.9245 11.6113 43.8736 13.3885 43.3764 15.227C43.1283 16.1444 43.035 17.0253 43.0393 17.7413C43.0437 18.4635 43.1448 18.831 43.1572 18.8761C43.1582 18.8799 43.1583 18.8806 43.1583 18.8806L38.1127 21.0218C37.7142 20.0827 37.565 18.8953 37.5583 17.7744C37.5511 16.586 37.7026 15.2115 38.0853 13.7961C38.2848 13.0585 38.5517 12.2956 38.8993 11.5353C38.4247 11.4518 37.9596 11.3383 37.5033 11.1947Z"
+            fill="#EFE0C0" />
+          <path d="M182.038 29.4766V5.46692H187.385V29.4766H182.038ZM178.194 17.0349V12.4916H191.23V17.0349H178.194Z"
+            fill="#EFE0C0" />
+          <path
+            d="M167.362 29.861C165.801 29.861 164.415 29.5465 163.203 28.9174C162.015 28.265 161.083 27.3797 160.408 26.2613C159.732 25.1197 159.394 23.8149 159.394 22.3471V12.4916H164.741V22.2772C164.741 22.8597 164.834 23.3606 165.021 23.78C165.23 24.1994 165.533 24.5255 165.929 24.7585C166.326 24.9915 166.803 25.108 167.362 25.108C168.154 25.108 168.784 24.8634 169.25 24.3741C169.716 23.8615 169.949 23.1625 169.949 22.2772V12.4916H175.296V22.3121C175.296 23.8033 174.958 25.1197 174.282 26.2613C173.606 27.3797 172.675 28.265 171.486 28.9174C170.298 29.5465 168.923 29.861 167.362 29.861Z"
+            fill="#EFE0C0" />
+          <path
+            d="M150.08 29.8609C148.332 29.8609 146.748 29.4765 145.327 28.7076C143.906 27.9388 142.787 26.8787 141.972 25.5273C141.156 24.176 140.749 22.6615 140.749 20.984C140.749 19.2832 141.156 17.7687 141.972 16.4407C142.81 15.0893 143.941 14.0292 145.362 13.2604C146.783 12.4915 148.379 12.1071 150.15 12.1071C151.478 12.1071 152.689 12.34 153.784 12.806C154.903 13.2487 155.893 13.9244 156.755 14.833L153.33 18.258C152.934 17.8153 152.468 17.4891 151.932 17.2794C151.419 17.0698 150.825 16.9649 150.15 16.9649C149.381 16.9649 148.694 17.1396 148.088 17.4891C147.505 17.8153 147.039 18.2813 146.69 18.8871C146.364 19.4696 146.201 20.1569 146.201 20.949C146.201 21.7412 146.364 22.4402 146.69 23.046C147.039 23.6517 147.517 24.1294 148.123 24.4789C148.728 24.8283 149.404 25.0031 150.15 25.0031C150.849 25.0031 151.466 24.8866 152.002 24.6536C152.561 24.3973 153.039 24.0478 153.435 23.6051L156.825 27.0301C155.94 27.9621 154.938 28.6727 153.819 29.162C152.701 29.6279 151.454 29.8609 150.08 29.8609Z"
+            fill="#EFE0C0" />
+          <path d="M129.93 29.4766V5.46692H135.277V29.4766H129.93ZM126.086 17.0349V12.4916H139.122V17.0349H126.086Z"
+            fill="#EFE0C0" />
+          <path
+            d="M110.973 29.4766V12.4916H116.32V29.4766H110.973ZM116.32 20.1453L114.084 18.3979C114.526 16.4175 115.272 14.8797 116.32 13.7847C117.369 12.6896 118.825 12.1421 120.689 12.1421C121.504 12.1421 122.215 12.2702 122.821 12.5265C123.45 12.7595 123.997 13.1323 124.463 13.6449L121.283 17.664C121.05 17.4077 120.759 17.2096 120.409 17.0698C120.06 16.93 119.664 16.8601 119.221 16.8601C118.336 16.8601 117.625 17.1397 117.089 17.6989C116.577 18.2348 116.32 19.0503 116.32 20.1453Z"
+            fill="#EFE0C0" />
+          <path
+            d="M99.0146 29.8609C97.2672 29.8609 95.6828 29.4765 94.2616 28.7076C92.8636 27.9155 91.7569 26.8437 90.9415 25.4924C90.126 24.141 89.7183 22.6266 89.7183 20.949C89.7183 19.2715 90.126 17.7687 90.9415 16.4407C91.7569 15.1126 92.8636 14.0642 94.2616 13.2953C95.6595 12.5031 97.2439 12.1071 99.0146 12.1071C100.785 12.1071 102.37 12.4915 103.768 13.2604C105.166 14.0292 106.272 15.0893 107.088 16.4407C107.903 17.7687 108.311 19.2715 108.311 20.949C108.311 22.6266 107.903 24.141 107.088 25.4924C106.272 26.8437 105.166 27.9155 103.768 28.7076C102.37 29.4765 100.785 29.8609 99.0146 29.8609ZM99.0146 25.0031C99.7835 25.0031 100.459 24.84 101.042 24.5138C101.624 24.1643 102.067 23.6867 102.37 23.0809C102.696 22.4518 102.859 21.7412 102.859 20.949C102.859 20.1569 102.696 19.4696 102.37 18.8871C102.043 18.2813 101.589 17.8153 101.007 17.4891C100.447 17.1396 99.7835 16.9649 99.0146 16.9649C98.269 16.9649 97.605 17.1396 97.0225 17.4891C96.44 17.8153 95.9857 18.2813 95.6595 18.8871C95.3333 19.4929 95.1702 20.1918 95.1702 20.984C95.1702 21.7529 95.3333 22.4518 95.6595 23.0809C95.9857 23.6867 96.44 24.1643 97.0225 24.5138C97.605 24.84 98.269 25.0031 99.0146 25.0031Z"
+            fill="#EFE0C0" />
+          <path
+            d="M81.6902 29.4766V19.7958C81.6902 18.9104 81.4106 18.1998 80.8514 17.6639C80.3155 17.1048 79.6282 16.8252 78.7894 16.8252C78.207 16.8252 77.6944 16.9533 77.2517 17.2096C76.809 17.4426 76.4595 17.7921 76.2032 18.2581C75.947 18.7007 75.8188 19.2133 75.8188 19.7958L73.7568 18.7823C73.7568 17.4542 74.0364 16.2893 74.5956 15.2874C75.1548 14.2856 75.9353 13.5167 76.9372 12.9808C77.939 12.4216 79.0923 12.1421 80.3971 12.1421C81.7251 12.1421 82.8901 12.4216 83.8919 12.9808C84.8938 13.5167 85.6627 14.2739 86.1985 15.2525C86.7577 16.2077 87.0373 17.3261 87.0373 18.6075V29.4766H81.6902ZM70.4717 29.4766V4.10388H75.8188V29.4766H70.4717Z"
+            fill="#EFE0C0" />
+          <path
+            d="M60.4075 29.896C59.4057 29.896 58.4154 29.7678 57.4369 29.5116C56.4816 29.2553 55.5846 28.8941 54.7458 28.4282C53.9304 27.9389 53.2314 27.3797 52.6489 26.7506L55.6895 23.6751C56.2486 24.2809 56.9127 24.7585 57.6815 25.108C58.4504 25.4342 59.2892 25.5973 60.1978 25.5973C60.8269 25.5973 61.3045 25.5041 61.6307 25.3177C61.9802 25.1313 62.1549 24.875 62.1549 24.5489C62.1549 24.1295 61.9452 23.8149 61.5259 23.6052C61.1298 23.3723 60.6172 23.1742 59.9881 23.0111C59.3591 22.8247 58.695 22.6267 57.9961 22.417C57.2971 22.2073 56.6331 21.9161 56.004 21.5433C55.3749 21.1705 54.8623 20.6579 54.4663 20.0055C54.0702 19.3299 53.8721 18.4795 53.8721 17.4543C53.8721 16.3592 54.1517 15.4156 54.7109 14.6235C55.2701 13.808 56.0622 13.1673 57.0874 12.7013C58.1126 12.2353 59.3125 12.0023 60.6871 12.0023C62.1316 12.0023 63.4597 12.2586 64.6712 12.7712C65.9061 13.2605 66.9079 13.9944 67.6768 14.9729L64.6363 18.0484C64.1004 17.4193 63.4946 16.9767 62.819 16.7204C62.1666 16.4641 61.5259 16.3359 60.8968 16.3359C60.291 16.3359 59.8367 16.4291 59.5338 16.6155C59.2309 16.7786 59.0795 17.0233 59.0795 17.3495C59.0795 17.6989 59.2775 17.9785 59.6736 18.1882C60.0697 18.3979 60.5823 18.5843 61.2113 18.7474C61.8404 18.9105 62.5044 19.1085 63.2034 19.3415C63.9024 19.5745 64.5664 19.889 65.1955 20.2851C65.8245 20.6812 66.3371 21.2171 66.7332 21.8928C67.1293 22.5451 67.3273 23.4072 67.3273 24.479C67.3273 26.1332 66.6983 27.4496 65.4401 28.4282C64.2053 29.4067 62.5277 29.896 60.4075 29.896Z"
+            fill="#EFE0C0" />
+        </svg>
+      </h2>
+    </div>
+    
+    <!-- Logo Scroller -->
+    <div class="logo-scroller overflow-hidden py-8">
+      <div class="logo-track" id="logo-track">
+        <div class="logo-set">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/DraftKings.svg" alt="DraftKings">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Wix.svg" alt="Wix">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/BCG.svg" alt="BCG">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/PwC.svg" alt="PwC" class="logo-compact">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Viacom.svg" alt="Viacom" class="logo-compact">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Cencora.svg" alt="Cencora" class="logo-compact">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/MTV.svg" alt="MTV">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Paramount.svg" alt="Paramount">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Warner Bros.svg" alt="Warner Bros">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/White & Case.svg" alt="White & Case" class="logo-compact">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" class="logo-compact">
+        </div>
+        <div class="logo-set" aria-hidden="true">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/DraftKings.svg" alt="DraftKings">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Wix.svg" alt="Wix">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/BCG.svg" alt="BCG">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/PwC.svg" alt="PwC" class="logo-compact">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Viacom.svg" alt="Viacom" class="logo-compact">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Cencora.svg" alt="Cencora" class="logo-compact">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/MTV.svg" alt="MTV">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Paramount.svg" alt="Paramount">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/Warner Bros.svg" alt="Warner Bros">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/White & Case.svg" alt="White & Case" class="logo-compact">
+          <img src="./frontend/public/Holiday Landing Page/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" class="logo-compact">
+        </div>
+        </div>
+        </div>
+</section>
+
+<!-- SERVICES HORIZONTAL SCROLL SECTION -->
+<section id="services" class="py-16 md:py-20 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style="background-color: #E0F2F7;">
+  <!-- Left Navigation Arrow (hidden initially) -->
+  <div id="left-nav" class="absolute left-8 top-1/2 transform -translate-y-1/2 z-10 flex flex-col items-center gap-3 opacity-0 transition-opacity duration-300">
+    <div class="text-sm font-medium" style="color: #003756;">Massage</div>
+    <div class="bg-white rounded-full p-3 shadow-lg cursor-pointer hover:scale-105 transition-transform" onclick="scrollToPrevService()">
+      <svg class="w-6 h-6" style="color: #003756;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+        </div>
+        </div>
+
+  <!-- Right Navigation Arrow -->
+  <div id="right-nav" class="absolute right-8 top-1/2 transform -translate-y-1/2 z-10 flex flex-col items-center gap-3">
+    <div class="text-sm font-medium" style="color: #003756;">Headshots</div>
+    <div class="bg-white rounded-full p-3 shadow-lg cursor-pointer hover:scale-105 transition-transform" onclick="scrollToNextService()">
+      <svg class="w-6 h-6" style="color: #003756;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+      </svg>
+        </div>
+        </div>
+  
+  <div class="flex overflow-x-auto scrollbar-hide services-scroll">
+    <!-- RESET ZONE SERVICE -->
+    <div class="w-full flex-shrink-0 service-slide">
+      <div class="mx-auto container-narrow px-4 py-16 md:py-20">
+        <div class="grid md:grid-cols-2 gap-16 items-center">
+          <!-- Left Side - Text and Service Options -->
+          <div>
+            <h2 class="h1 mb-4" style="color: #003756;">Reset Zone</h2>
+            <h3 class="text-xl md:text-2xl font-semibold mb-6" style="color: #003756;">Relaxing Chair or Table Massages</h3>
+            
+            <p class="text-lg md:text-xl leading-relaxed mb-10" style="color: #003756;">Help your team unwind with soothing massages and spa treatments. Our chair or table massages provide a calming retreat, leaving them refreshed and relaxed during the busy holiday season.</p>
+            
+            <!-- Service Options -->
+            <div class="space-y-5">
+              <!-- First Row: Sports Massage and Compression -->
+              <div class="grid grid-cols-2 gap-5">
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Massage/icon.svg" alt="Sports Massage" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Sports Massage</span>
+        </div>
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Massage/icon-2.svg" alt="Compression" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Compression</span>
+        </div>
+        </div>
+              
+              <!-- Second Row: Express Facial -->
+              <div class="flex items-center gap-3">
+                <img src="./frontend/public/Holiday Landing Page/Our Services/Massage/icon-1.svg" alt="Express Facial" class="w-12 h-12 flex-shrink-0">
+                <span class="text-base font-medium" style="color: #003756;">Express Facial</span>
+        </div>
+        </div>
+            
+            <!-- CTA Buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row gap-4">
+              <a href="#book" class="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style="background-color: #003756; color: #EFE0C0;">Book a Call</a>
+              <a href="#pricing" class="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style="border-color: #003756; color: #003756;">Pricing</a>
+        </div>
+        </div>
+          
+          <!-- Right Side - Massage Image -->
+          <div class="relative flex justify-center">
+            <img 
+              src="./frontend/public/Holiday Landing Page/Our Services/Massage/Frame 1278980.svg" 
+              alt="Professional Massage Service" 
+              class="w-3/4 h-auto rounded-2xl max-w-md"
+            />
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- YEAR END HEADSHOTS SERVICE -->
+    <div class="w-full flex-shrink-0 service-slide">
+      <div class="mx-auto container-narrow px-4 py-16 md:py-20">
+        <div class="grid md:grid-cols-2 gap-16 items-center">
+          <!-- Left Side - Text and Feature Options -->
+          <div>
+            <h2 class="h1 mb-4" style="color: #003756;">Year End Headshots</h2>
+            <h3 class="text-xl md:text-2xl font-semibold mb-6" style="color: #003756;">Headshots + hair & makeup touch ups</h3>
+            
+            <p class="text-lg md:text-xl leading-relaxed mb-10" style="color: #003756;">Our in-office headshot experience, complete with hair and makeup touch-ups, helps employees present themselves confidently and creates a consistent, professional appearance for your company.</p>
+            
+            <!-- Feature Options -->
+            <div class="grid grid-cols-2 gap-5">
+              <!-- First Column -->
+              <div class="space-y-5">
+                <!-- Outfit Guidance -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Headshots/icon.svg" alt="Outfit Guidance" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Outfit Guidance</span>
+  </div>
+                
+                <!-- Background Selection -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Headshots/icon-2.svg" alt="Background Selection" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Background Selection</span>
+                </div>
+                
+                <!-- Fast 5-7 Day Turnaround -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Headshots/icon-3.svg" alt="Fast Turnaround" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Fast 5-7 Day Turnaround</span>
+                </div>
+              </div>
+              
+              <!-- Second Column -->
+              <div class="space-y-5">
+                <!-- Hair + Makeup Touchups -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Headshots/icon-1.svg" alt="Hair + Makeup Touchups" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Hair + Makeup Touchups</span>
+                </div>
+                
+                <!-- Flawless Retouching & Review -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Headshots/icon-4.svg" alt="Flawless Retouching" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Flawless Retouching & Review</span>
+                </div>
+                
+                <!-- Pre & Event Day Support -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Headshots/Frame 1278722.svg" alt="Pre & Event Day Support" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Pre & Event Day Support</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- CTA Buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row gap-4">
+              <a href="#book" class="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style="background-color: #003756; color: #EFE0C0;">Book a Call</a>
+              <a href="#pricing" class="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style="border-color: #003756; color: #003756;">Pricing</a>
+            </div>
+          </div>
+          
+          <!-- Right Side - Headshots Image -->
+          <div class="relative flex justify-center">
+            <img 
+              src="./frontend/public/Holiday Landing Page/Our Services/Headshots/Frame 1278980.svg" 
+              alt="Professional Headshot Session" 
+              class="w-3/4 h-auto rounded-2xl max-w-md"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOLIDAY PARTY GLAM SERVICE -->
+    <div class="w-full flex-shrink-0 service-slide">
+      <div class="mx-auto container-narrow px-4 py-16 md:py-20">
+        <div class="grid md:grid-cols-2 gap-16 items-center">
+          <!-- Left Side - Text and Feature Options -->
+          <div>
+            <h2 class="h1 mb-4" style="color: #003756;">Holiday Party Glam</h2>
+            <h3 class="text-xl md:text-2xl font-semibold mb-6" style="color: #003756;">Expert makeup, styling and barber services</h3>
+            
+            <p class="text-lg md:text-xl leading-relaxed mb-10" style="color: #003756;">Get your team holiday-ready with expert hair and makeup services. From sleek styles to flawless touch-ups, we'll ensure everyone looks their best for the celebration.</p>
+            
+            <!-- Feature Options -->
+            <div class="grid grid-cols-2 gap-5">
+              <!-- First Column -->
+              <div class="space-y-5">
+                <!-- Barber Cut -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Holiday Party Glam/icon.svg" alt="Barber Cut" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Barber Cut</span>
+                </div>
+                
+                <!-- Beard Trim -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Holiday Party Glam/icon-1.svg" alt="Beard Trim" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Beard Trim</span>
+                </div>
+                
+                <!-- Makeup -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Holiday Party Glam/icon-2.svg" alt="Makeup" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Makeup</span>
+                </div>
+              </div>
+              
+              <!-- Second Column -->
+              <div class="space-y-5">
+                <!-- Salon Cut & Style -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Holiday Party Glam/icon-3.svg" alt="Salon Cut & Style" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Salon Cut & Style</span>
+                </div>
+                
+                <!-- Hot Towel Shave -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Holiday Party Glam/icon-4.svg" alt="Hot Towel Shave" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Hot Towel Shave</span>
+                </div>
+                
+                <!-- Blowout -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Holiday Party Glam/Frame 1278723.svg" alt="Blowout" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Blowout</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- CTA Buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row gap-4">
+              <a href="#book" class="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style="background-color: #003756; color: #EFE0C0;">Book a Call</a>
+              <a href="#pricing" class="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style="border-color: #003756; color: #003756;">Pricing</a>
+            </div>
+          </div>
+          
+          <!-- Right Side - Holiday Party Glam Image -->
+          <div class="relative flex justify-center">
+            <img 
+              src="./frontend/public/Holiday Landing Page/Our Services/Holiday Party Glam/Frame 1278980.svg" 
+              alt="Holiday Party Hair Styling" 
+              class="w-3/4 h-auto rounded-2xl max-w-md"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEASONAL MINDFULNESS SERVICE -->
+    <div class="w-full flex-shrink-0 service-slide">
+      <div class="mx-auto container-narrow px-4 py-16 md:py-20">
+        <div class="grid md:grid-cols-2 gap-16 items-center">
+          <!-- Left Side - Text and Feature Options -->
+          <div>
+            <h2 class="h1 mb-4" style="color: #003756;">Seasonal Mindfulness</h2>
+            <h3 class="text-xl md:text-2xl font-semibold mb-6" style="color: #003756;">Holiday Mindfulness experiences</h3>
+            
+            <p class="text-lg md:text-xl leading-relaxed mb-10" style="color: #003756;">Led by mindfulness expert Courtney Schulnick, our holiday Mindfulness experiences go beyond apps—helping teams slow down, breathe deeply, and find balance during the busiest time of year.</p>
+            
+            <!-- Feature Options - 2x2 Grid -->
+            <div class="grid grid-cols-2 gap-5">
+              <!-- Top Row -->
+              <div class="flex items-center gap-3">
+                <img src="./frontend/public/Holiday Landing Page/Our Services/Mindfulness/icon.svg" alt="Mindful Eating" class="w-12 h-12 flex-shrink-0">
+                <span class="text-base font-medium" style="color: #003756;">Mindful Eating + Breath Awareness</span>
+              </div>
+              
+              <div class="flex items-center gap-3">
+                <img src="./frontend/public/Holiday Landing Page/Our Services/Mindfulness/icon-1.svg" alt="Qigong Movement" class="w-12 h-12 flex-shrink-0">
+                <span class="text-base font-medium" style="color: #003756;">Qigong Movement + Body Scan</span>
+              </div>
+              
+              <!-- Bottom Row -->
+              <div class="flex items-center gap-3">
+                <img src="./frontend/public/Holiday Landing Page/Our Services/Mindfulness/icon-2.svg" alt="Movement" class="w-12 h-12 flex-shrink-0">
+                <span class="text-base font-medium" style="color: #003756;">Movement & Body Scan</span>
+              </div>
+              
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded flex-shrink-0" style="background-color: #4ECDC4;"></div>
+                <span class="text-base font-medium" style="color: #003756;">Mindful Communication</span>
+              </div>
+            </div>
+            
+            <!-- CTA Buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row gap-4">
+              <a href="#book" class="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style="background-color: #003756; color: #EFE0C0;">Book a Call</a>
+              <a href="#pricing" class="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style="border-color: #003756; color: #003756;">Pricing</a>
+            </div>
+          </div>
+          
+          <!-- Right Side - Courtney Schulnick Portrait -->
+          <div class="relative flex justify-center">
+            <!-- Portrait with coral-red background frame -->
+            <div class="rounded-2xl p-6 max-w-sm" style="background-color: #FF6B6B;">
+              <img 
+                src="./frontend/public/Holiday Landing Page/Our Services/Mindfulness/Courtney Headshot.png" 
+                alt="Courtney Schulnick - Head of Mindfulness" 
+                class="w-full h-auto rounded-xl mb-4"
+              />
+              <!-- Name and Title -->
+              <div class="text-center">
+                <div class="text-sm font-medium mb-1" style="color: #003756;">Head of Mindfulness</div>
+                <div class="text-lg font-bold" style="color: white;">Courtney Schulnick</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAILS SERVICE -->
+    <div class="w-full flex-shrink-0 service-slide">
+      <div class="mx-auto container-narrow px-4 py-16 md:py-20">
+        <div class="grid md:grid-cols-2 gap-16 items-center">
+          <!-- Left Side - Text and Feature Options -->
+          <div>
+            <h2 class="h1 mb-4" style="color: #003756;">Festive Nail Care</h2>
+            <h3 class="text-xl md:text-2xl font-semibold mb-6" style="color: #003756;">Professional nail services</h3>
+            
+            <p class="text-lg md:text-xl leading-relaxed mb-10" style="color: #003756;">Complete nail care services to keep your team looking polished and festive. From classic manicures to holiday-themed designs, we bring the salon experience to your office.</p>
+            
+            <!-- Feature Options -->
+            <div class="grid grid-cols-2 gap-5">
+              <!-- First Column -->
+              <div class="space-y-5">
+                <!-- Classic Manicure -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Nails/icon.svg" alt="Classic Manicure" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Classic Manicure</span>
+                </div>
+                
+                <!-- Holiday Designs -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Nails/icon-1.svg" alt="Holiday Designs" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Holiday Designs</span>
+                </div>
+              </div>
+              
+              <!-- Second Column -->
+              <div class="space-y-5">
+                <!-- Gel Manicure -->
+                <div class="flex items-center gap-3">
+                  <img src="./frontend/public/Holiday Landing Page/Our Services/Nails/icon-2.svg" alt="Gel Manicure" class="w-12 h-12 flex-shrink-0">
+                  <span class="text-base font-medium" style="color: #003756;">Gel Manicure</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- CTA Buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row gap-4">
+              <a href="#book" class="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style="background-color: #003756; color: #EFE0C0;">Book a Call</a>
+              <a href="#pricing" class="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style="border-color: #003756; color: #003756;">Pricing</a>
+            </div>
+          </div>
+          
+          <!-- Right Side - Nails Image -->
+          <div class="relative flex justify-center">
+            <img 
+              src="./frontend/public/Holiday Landing Page/Our Services/Nails/Frame 1278980.svg" 
+              alt="Professional Nail Services" 
+              class="w-3/4 h-auto rounded-2xl max-w-md"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIAL SECTION -->
+<section class="testimonial-banner">
+  <div class="testimonial-wrap">
+    <div class="testimonial-copy">
+      <span class="quote-mark">&ldquo;</span>
+      <blockquote>
+        The Shortcut team has become an extension of the DraftKings family.
+      </blockquote>
+    </div>
+    <div class="testimonial-side">
+      <div class="testimonial-identity">
+        <img src="./frontend/public/Holiday Landing Page/Parnter Logos/DraftKings.svg" alt="DraftKings" class="partner-logo">
+        <div class="testimonial-author">
+          <div class="photo">
+            <img src="./frontend/public/Holiday Landing Page/Testimonial Headshots/1745346365915.jpeg" alt="Christian W. headshot">
+          </div>
+          <div class="meta">
+            <span class="name">Christian W.</span>
+            <span class="title">Head of Workplace Experience</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEEL GREAT SCROLLER -->
+<section id="feel-great" class="py-14 md:py-20 bg-bleu rounded-t-3xl">
+  <div style="padding: 0 8vw;">
+    <h2 class="h1 text-left text-white" style="font-weight: 600;">Why employees and people managers love Shortcut</h2>
+  </div>
+  <div class="rail-wrap mt-16 md:mt-20">
+    <div class="rail" id="feel-rail">
+      <article class="card"><img src="./frontend/public/homehero/Landing Page Slider 1.svg" alt="Shortcut Service 1" class="absolute inset-0 w-full h-full object-cover object-center"></article>
+      <article class="card"><img src="./frontend/public/homehero/Landing Page Slider 2.svg" alt="Shortcut Service 2" class="absolute inset-0 w-full h-full object-cover object-center"></article>
+      <article class="card"><img src="./frontend/public/homehero/Landing Page Slider 3.svg" alt="Shortcut Service 3" class="absolute inset-0 w-full h-full object-cover object-center"></article>
+      <article class="card"><img src="./frontend/public/homehero/Landing Page Slider 4.svg" alt="Shortcut Service 4" class="absolute inset-0 w-full h-full object-cover object-center"></article>
+    </div>
+  </div>
+</section>
+
+<!-- PROMOTIONAL SECTION -->
+<section class="py-14 md:py-20 rounded-t-3xl rounded-b-3xl" style="background-color: #214C42;">
+  <div class="mx-auto container-narrow px-4">
+    <!-- Header -->
+    <div class="text-center mb-16 md:mb-20">
+      <h3 class="text-lg md:text-xl mb-4" style="color: #EFE0C0;">A special gift for our friends at Burberry</h3>
+      <h2 class="h1 mb-4" style="color: #EFE0C0;">Book a Holiday Event and Save for 2026</h2>
+      <p class="text-lg md:text-xl" style="color: #EFE0C0;">Unlock Premium Partner status with Shortcut and make wellness even easier.</p>
+        </div>
+
+    <!-- Pricing Cards -->
+    <div class="grid md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
+      <!-- Essential Card (Struck Through) -->
+      <div class="relative bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+        <!-- Strike-through line -->
+        <div class="absolute inset-0 pointer-events-none">
+          <div class="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+            <div class="w-full h-1 transform rotate-12 origin-center bg-red-500"></div>
+          </div>
+          </div>
+        
+        <div class="flex justify-between items-start mb-4">
+          <h3 class="text-2xl font-bold text-gray-900">Essential</h3>
+          <span class="text-xl font-bold text-gray-900">Save 10%</span>
+        </div>
+        
+        <p class="mb-6 text-gray-700">Book 4-9 events per year.</p>
+        
+        <div class="space-y-3">
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 bg-blue-500 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <p class="text-sm text-gray-700">Priority scheduling: First choice on event dates.</p>
+      </div>
+      
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 bg-blue-500 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+        </div>
+            <p class="text-sm text-gray-700">Additional discount: 1% off Headshot, Mindfulness and Nutrition experiences.</p>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 bg-blue-500 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <p class="text-sm text-gray-700">Switch it up: Rotate different services throughout the year.</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Premium Card -->
+      <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+        <div class="flex justify-between items-start mb-4">
+          <h3 class="text-2xl font-bold text-gray-900">Premium</h3>
+          <span class="text-xl font-bold text-gray-900">Save 15%</span>
+        </div>
+        
+        <p class="mb-6 text-gray-700">Book 10+ events per year.</p>
+        
+        <div class="space-y-3">
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 bg-blue-500 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+          </div>
+            <p class="text-sm text-gray-700">Free event: get one massage, spa, hair or nail event for every 10 events booked.</p>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 bg-blue-500 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+        </div>
+            <p class="text-sm text-gray-700">Priority scheduling: First choice on event dates.</p>
+      </div>
+          
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 bg-blue-500 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <p class="text-sm text-gray-700">Additional discount: 15% off Headshot and Mindfulness experiences.</p>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 bg-blue-500 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <p class="text-sm text-gray-700">Switch it up: Rotate different services throughout the year.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ SECTION -->
+<section class="py-16 md:py-20 bg-bg">
+  <div class="mx-auto container-narrow px-4">
+    <h2 class="section-title text-center mb-12">Frequently Asked Questions</h2>
+    <div class="max-w-3xl mx-auto space-y-4">
+      <div class="faq-item bg-white rounded-2xl p-6">
+        <button class="faq-question w-full text-left flex items-center justify-between font-semibold text-bleu">
+          <span>How quickly can you set up services?</span>
+          <span class="text-teal text-xl">+</span>
+        </button>
+        <div class="faq-content">
+          <p class="text-bleu/80 mt-4">We can typically set up services within 24-48 hours. For urgent requests, we offer same-day service in most major metropolitan areas.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item bg-white rounded-2xl p-6">
+        <button class="faq-question w-full text-left flex items-center justify-between font-semibold text-bleu">
+          <span>What's included in your pricing?</span>
+          <span class="text-teal text-xl">+</span>
+        </button>
+        <div class="faq-content">
+          <p class="text-bleu/80 mt-4">Our pricing includes all services, equipment, setup, and cleanup. No hidden fees, no surprises. We provide transparent, all-inclusive pricing for every service.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item bg-white rounded-2xl p-6">
+        <button class="faq-question w-full text-left flex items-center justify-between font-semibold text-bleu">
+          <span>Do you work with remote teams?</span>
+          <span class="text-teal text-xl">+</span>
+        </button>
+        <div class="faq-content">
+          <p class="text-bleu/80 mt-4">Yes! We offer virtual wellness sessions and can coordinate in-person services for distributed teams. We'll work with your team's schedule and location needs.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item bg-white rounded-2xl p-6">
+        <button class="faq-question w-full text-left flex items-center justify-between font-semibold text-bleu">
+          <span>What if we need to cancel or reschedule?</span>
+          <span class="text-teal text-xl">+</span>
+        </button>
+        <div class="faq-content">
+          <p class="text-bleu/80 mt-4">We offer flexible cancellation and rescheduling policies. Just give us 24 hours notice and we'll work with you to find a new time that works for your team.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section id="book" class="py-16 md:py-20 bg-accent text-white">
+  <div class="mx-auto container-narrow px-4 text-center">
+    <h2 class="section-title text-white mb-6">Ready to Transform Your Workplace?</h2>
+    <p class="text-lg text-white/80 mb-8 max-w-2xl mx-auto">Join 500+ companies who trust Shortcut to deliver employee happiness. Book a call today and see how easy workplace wellness can be.</p>
+    
+    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+      <a href="mailto:hello@getshortcut.co?subject=Book a Call - Landing Page" class="inline-flex items-center justify-center rounded-full bg-lightteal text-accent font-bold px-8 py-4 shadow-glow hover:opacity-90 pulse-glow">
+        Book a Call Now
+      </a>
+      <div class="text-sm text-white/70">
+        <span class="inline-flex items-center gap-2">
+          <span class="w-2 h-2 bg-teal rounded-full"></span>
+          Free consultation • No commitment
+        </span>
+      </div>
+    </div>
+    
+    <div class="mt-8 text-sm text-white/60">
+      <p>Or call us directly: <a href="tel:+1-555-SHORTCUT" class="text-lightteal hover:text-white">(555) SHORTCUT</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM/SOLUTION SECTION -->
+<section class="py-16 md:py-20 bg-white">
+  <div class="mx-auto container-narrow px-4">
+    <div class="grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <h2 class="section-title mb-6">The Problem with Employee Wellness</h2>
+        <div class="space-y-4 text-bleu/80">
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 bg-red/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="w-2 h-2 bg-red rounded-full"></span>
+            </span>
+            <p>Complex vendor management across multiple wellness services</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 bg-red/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="w-2 h-2 bg-red rounded-full"></span>
+            </span>
+            <p>Time-consuming setup and coordination for each service</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 bg-red/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="w-2 h-2 bg-red rounded-full"></span>
+            </span>
+            <p>Inconsistent quality and unreliable service delivery</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 bg-red/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="w-2 h-2 bg-red rounded-full"></span>
+            </span>
+            <p>Hidden costs and billing complexity</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2 class="section-title mb-6">The Shortcut Solution</h2>
+        <div class="space-y-4 text-bleu/80">
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 bg-teal/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="w-2 h-2 bg-teal rounded-full"></span>
+            </span>
+            <p><strong>One vendor</strong> for all wellness services</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 bg-teal/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="w-2 h-2 bg-teal rounded-full"></span>
+            </span>
+            <p><strong>Zero setup time</strong> - we handle everything</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 bg-teal/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="w-2 h-2 bg-teal rounded-full"></span>
+            </span>
+            <p><strong>Vetted professionals</strong> with consistent quality</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 bg-teal/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="w-2 h-2 bg-teal rounded-full"></span>
+            </span>
+            <p><strong>Transparent pricing</strong> with no hidden fees</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-bleu text-white py-12">
+  <div class="mx-auto container-narrow px-4">
+    <div class="grid md:grid-cols-4 gap-8">
+      <div class="md:col-span-2">
+        <svg viewBox="0 0 192 34" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-8 w-auto mb-4">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M29.6284 21.5003C29.3713 23.7505 28.6818 25.9572 27.3774 27.8371C24.2946 32.28 18.9846 33.7633 13.7386 32.1453C8.56113 30.5486 3.54006 26.0287 0 18.7044L4.84254 16.3639C7.92552 22.7425 11.9483 25.9647 15.3237 27.0057C18.6305 28.0256 21.3824 27.0423 22.9585 24.7709C23.2395 24.366 23.481 23.9084 23.6808 23.4043C23.3774 23.4209 23.0738 23.4262 22.7704 23.4206C19.2805 23.3553 16.0856 21.8408 13.6813 19.7541C11.2932 17.6815 9.45986 14.8481 8.92523 11.8407C8.36688 8.69984 9.26489 5.39496 12.2773 3.08642C13.6869 2.00611 15.2332 1.36494 16.8596 1.24094C18.4816 1.11728 19.9964 1.52212 21.3267 2.23502C23.9138 3.62146 25.9253 6.22268 27.2987 9.01314C28.1685 10.7806 28.8433 12.7443 29.2624 14.7619C31.6786 12.1765 34.3066 10.6389 36.5311 9.77503C37.6804 9.3287 38.7381 9.05577 39.6253 8.91256C40.403 8.78701 41.3422 8.71138 42.1247 8.89196L40.9153 14.1327C41.0086 14.1543 41.0586 14.1618 41.0586 14.1618C41.0583 14.1658 40.8815 14.1579 40.4824 14.2223C39.98 14.3034 39.2871 14.4746 38.4782 14.7887C36.8668 15.4145 34.8583 16.5824 32.995 18.6489C31.9331 19.8266 30.8025 20.7717 29.6284 21.5003ZM24.3046 17.9209C24.1028 15.671 23.4436 13.3605 22.4729 11.3882C21.3666 9.14038 20.0076 7.63027 18.7861 6.97569C18.2121 6.66808 17.7132 6.56999 17.2685 6.60389C16.8283 6.63745 16.255 6.81433 15.5489 7.35549C14.3296 8.28987 13.9682 9.47863 14.2207 10.8994C14.497 12.4535 15.5449 14.2498 17.2067 15.692C18.8522 17.1202 20.8758 18.0057 22.871 18.043C23.3362 18.0517 23.8156 18.0149 24.3046 17.9209Z"
+            fill="#FF5050" />
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M37.5033 11.1947C34.926 10.3834 32.9956 8.72285 31.3895 6.90729L35.4947 3.27552C36.7809 4.72933 37.9135 5.57753 39.149 5.96641C40.3556 6.34619 42.0247 6.40038 44.5918 5.54394L46.8242 10.5201C44.9245 11.6113 43.8736 13.3885 43.3764 15.227C43.1283 16.1444 43.035 17.0253 43.0393 17.7413C43.0437 18.4635 43.1448 18.831 43.1572 18.8761C43.1582 18.8799 43.1583 18.8806 43.1583 18.8806L38.1127 21.0218C37.7142 20.0827 37.565 18.8953 37.5583 17.7744C37.5511 16.586 37.7026 15.2115 38.0853 13.7961C38.2848 13.0585 38.5517 12.2956 38.8993 11.5353C38.4247 11.4518 37.9596 11.3383 37.5033 11.1947Z"
+            fill="#FF5050" />
+          <path d="M182.038 29.4766V5.46692H187.385V29.4766H182.038ZM178.194 17.0349V12.4916H191.23V17.0349H178.194Z"
+            fill="currentColor" />
+          <path
+            d="M167.362 29.861C165.801 29.861 164.415 29.5465 163.203 28.9174C162.015 28.265 161.083 27.3797 160.408 26.2613C159.732 25.1197 159.394 23.8149 159.394 22.3471V12.4916H164.741V22.2772C164.741 22.8597 164.834 23.3606 165.021 23.78C165.23 24.1994 165.533 24.5255 165.929 24.7585C166.326 24.9915 166.803 25.108 167.362 25.108C168.154 25.108 168.784 24.8634 169.25 24.3741C169.716 23.8615 169.949 23.1625 169.949 22.2772V12.4916H175.296V22.3121C175.296 23.8033 174.958 25.1197 174.282 26.2613C173.606 27.3797 172.675 28.265 171.486 28.9174C170.298 29.5465 168.923 29.861 167.362 29.861Z"
+            fill="currentColor" />
+          <path
+            d="M150.08 29.8609C148.332 29.8609 146.748 29.4765 145.327 28.7076C143.906 27.9388 142.787 26.8787 141.972 25.5273C141.156 24.176 140.749 22.6615 140.749 20.984C140.749 19.2832 141.156 17.7687 141.972 16.4407C142.81 15.0893 143.941 14.0292 145.362 13.2604C146.783 12.4915 148.379 12.1071 150.15 12.1071C151.478 12.1071 152.689 12.34 153.784 12.806C154.903 13.2487 155.893 13.9244 156.755 14.833L153.33 18.258C152.934 17.8153 152.468 17.4891 151.932 17.2794C151.419 17.0698 150.825 16.9649 150.15 16.9649C149.381 16.9649 148.694 17.1396 148.088 17.4891C147.505 17.8153 147.039 18.2813 146.69 18.8871C146.364 19.4696 146.201 20.1569 146.201 20.949C146.201 21.7412 146.364 22.4402 146.69 23.046C147.039 23.6517 147.517 24.1294 148.123 24.4789C148.728 24.8283 149.404 25.0031 150.15 25.0031C150.849 25.0031 151.466 24.8866 152.002 24.6536C152.561 24.3973 153.039 24.0478 153.435 23.6051L156.825 27.0301C155.94 27.9621 154.938 28.6727 153.819 29.162C152.701 29.6279 151.454 29.8609 150.08 29.8609Z"
+            fill="currentColor" />
+          <path d="M129.93 29.4766V5.46692H135.277V29.4766H129.93ZM126.086 17.0349V12.4916H139.122V17.0349H126.086Z"
+            fill="currentColor" />
+          <path
+            d="M110.973 29.4766V12.4916H116.32V29.4766H110.973ZM116.32 20.1453L114.084 18.3979C114.526 16.4175 115.272 14.8797 116.32 13.7847C117.369 12.6896 118.825 12.1421 120.689 12.1421C121.504 12.1421 122.215 12.2702 122.821 12.5265C123.45 12.7595 123.997 13.1323 124.463 13.6449L121.283 17.664C121.05 17.4077 120.759 17.2096 120.409 17.0698C120.06 16.93 119.664 16.8601 119.221 16.8601C118.336 16.8601 117.625 17.1397 117.089 17.6989C116.577 18.2348 116.32 19.0503 116.32 20.1453Z"
+            fill="currentColor" />
+          <path
+            d="M99.0146 29.8609C97.2672 29.8609 95.6828 29.4765 94.2616 28.7076C92.8636 27.9155 91.7569 26.8437 90.9415 25.4924C90.126 24.141 89.7183 22.6266 89.7183 20.949C89.7183 19.2715 90.126 17.7687 90.9415 16.4407C91.7569 15.1126 92.8636 14.0642 94.2616 13.2953C95.6595 12.5031 97.2439 12.1071 99.0146 12.1071C100.785 12.1071 102.37 12.4915 103.768 13.2604C105.166 14.0292 106.272 15.0893 107.088 16.4407C107.903 17.7687 108.311 19.2715 108.311 20.949C108.311 22.6266 107.903 24.141 107.088 25.4924C106.272 26.8437 105.166 27.9155 103.768 28.7076C102.37 29.4765 100.785 29.8609 99.0146 29.8609ZM99.0146 25.0031C99.7835 25.0031 100.459 24.84 101.042 24.5138C101.624 24.1643 102.067 23.6867 102.37 23.0809C102.696 22.4518 102.859 21.7412 102.859 20.949C102.859 20.1569 102.696 19.4696 102.37 18.8871C102.043 18.2813 101.589 17.8153 101.007 17.4891C100.447 17.1396 99.7835 16.9649 99.0146 16.9649C98.269 16.9649 97.605 17.1396 97.0225 17.4891C96.44 17.8153 95.9857 18.2813 95.6595 18.8871C95.3333 19.4929 95.1702 20.1918 95.1702 20.984C95.1702 21.7529 95.3333 22.4518 95.6595 23.0809C95.9857 23.6867 96.44 24.1643 97.0225 24.5138C97.605 24.84 98.269 25.0031 99.0146 25.0031Z"
+            fill="#EFE0C0" />
+          <path
+            d="M81.6902 29.4766V19.7958C81.6902 18.9104 81.4106 18.1998 80.8514 17.6639C80.3155 17.1048 79.6282 16.8252 78.7894 16.8252C78.207 16.8252 77.6944 16.9533 77.2517 17.2096C76.809 17.4426 76.4595 17.7921 76.2032 18.2581C75.947 18.7007 75.8188 19.2133 75.8188 19.7958L73.7568 18.7823C73.7568 17.4542 74.0364 16.2893 74.5956 15.2874C75.1548 14.2856 75.9353 13.5167 76.9372 12.9808C77.939 12.4216 79.0923 12.1421 80.3971 12.1421C81.7251 12.1421 82.8901 12.4216 83.8919 12.9808C84.8938 13.5167 85.6627 14.2739 86.1985 15.2525C86.7577 16.2077 87.0373 17.3261 87.0373 18.6075V29.4766H81.6902ZM70.4717 29.4766V4.10388H75.8188V29.4766H70.4717Z"
+            fill="currentColor" />
+          <path
+            d="M60.4075 29.896C59.4057 29.896 58.4154 29.7678 57.4369 29.5116C56.4816 29.2553 55.5846 28.8941 54.7458 28.4282C53.9304 27.9389 53.2314 27.3797 52.6489 26.7506L55.6895 23.6751C56.2486 24.2809 56.9127 24.7585 57.6815 25.108C58.4504 25.4342 59.2892 25.5973 60.1978 25.5973C60.8269 25.5973 61.3045 25.5041 61.6307 25.3177C61.9802 25.1313 62.1549 24.875 62.1549 24.5489C62.1549 24.1295 61.9452 23.8149 61.5259 23.6052C61.1298 23.3723 60.6172 23.1742 59.9881 23.0111C59.3591 22.8247 58.695 22.6267 57.9961 22.417C57.2971 22.2073 56.6331 21.9161 56.004 21.5433C55.3749 21.1705 54.8623 20.6579 54.4663 20.0055C54.0702 19.3299 53.8721 18.4795 53.8721 17.4543C53.8721 16.3592 54.1517 15.4156 54.7109 14.6235C55.2701 13.808 56.0622 13.1673 57.0874 12.7013C58.1126 12.2353 59.3125 12.0023 60.6871 12.0023C62.1316 12.0023 63.4597 12.2586 64.6712 12.7712C65.9061 13.2605 66.9079 13.9944 67.6768 14.9729L64.6363 18.0484C64.1004 17.4193 63.4946 16.9767 62.819 16.7204C62.1666 16.4641 61.5259 16.3359 60.8968 16.3359C60.291 16.3359 59.8367 16.4291 59.5338 16.6155C59.2309 16.7786 59.0795 17.0233 59.0795 17.3495C59.0795 17.6989 59.2775 17.9785 59.6736 18.1882C60.0697 18.3979 60.5823 18.5843 61.2113 18.7474C61.8404 18.9105 62.5044 19.1085 63.2034 19.3415C63.9024 19.5745 64.5664 19.889 65.1955 20.2851C65.8245 20.6812 66.3371 21.2171 66.7332 21.8928C67.1293 22.5451 67.3273 23.4072 67.3273 24.479C67.3273 26.1332 66.6983 27.4496 65.4401 28.4282C64.2053 29.4067 62.5277 29.896 60.4075 29.896Z"
+            fill="currentColor" />
+        </svg>
+        <p class="text-white/70 mb-4">Employee happiness delivered. One vendor, effortless logistics.</p>
+        <div class="flex gap-4">
+          <a href="#" class="text-white/70 hover:text-white">LinkedIn</a>
+          <a href="#" class="text-white/70 hover:text-white">Twitter</a>
+          <a href="#" class="text-white/70 hover:text-white">Instagram</a>
+        </div>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-4">Services</h3>
+        <ul class="space-y-2 text-white/70">
+          <li><a href="#" class="hover:text-white">Massage</a></li>
+          <li><a href="#" class="hover:text-white">Hair & Beauty</a></li>
+          <li><a href="#" class="hover:text-white">Headshots</a></li>
+          <li><a href="#" class="hover:text-white">Mindfulness</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-4">Company</h3>
+        <ul class="space-y-2 text-white/70">
+          <li><a href="#" class="hover:text-white">About</a></li>
+          <li><a href="#" class="hover:text-white">Contact</a></li>
+          <li><a href="#" class="hover:text-white">Privacy</a></li>
+          <li><a href="#" class="hover:text-white">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-white/20 mt-8 pt-8 text-center text-white/70">
+      <p>&copy; 2024 Shortcut. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+// FAQ Accordion
+document.querySelectorAll('.faq-question').forEach(question => {
+  question.addEventListener('click', () => {
+    const content = question.nextElementSibling;
+    const isOpen = content.classList.contains('open');
+    
+    // Close all other FAQs
+    document.querySelectorAll('.faq-content').forEach(c => c.classList.remove('open'));
+    document.querySelectorAll('.faq-question span:last-child').forEach(s => s.textContent = '+');
+    
+    // Toggle current FAQ
+    if (!isOpen) {
+      content.classList.add('open');
+      question.querySelector('span:last-child').textContent = '−';
+    }
+  });
+});
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  });
+});
+
+// Services Slider Functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const serviceAreas = document.querySelectorAll('[data-service]');
+  const serviceDetails = document.getElementById('service-details');
+  
+  // Service data
+  const services = {
+    massage: {
+      title: 'Massage Therapy',
+      description: 'Professional on-site massage therapy to reduce stress, improve circulation, and boost employee well-being. Our licensed therapists bring the spa experience directly to your office.',
+      benefits: [
+        'Stress reduction and relaxation',
+        'Improved circulation and posture', 
+        'Reduced muscle tension and pain',
+        'Enhanced focus and productivity'
+      ],
+      price: 'Starting at $85/person',
+      video: './frontend/public/services/massage.mp4',
+      color: '#FF5050'
+    },
+    hair: {
+      title: 'Hair & Beauty',
+      description: 'Professional hair styling, cuts, and beauty treatments delivered right to your office. Keep your team looking and feeling their best without leaving work.',
+      benefits: [
+        'Professional haircuts and styling',
+        'Beauty treatments and makeup',
+        'Convenient office appointments',
+        'Boosted confidence and morale'
+      ],
+      price: 'Starting at $65/person',
+      video: './frontend/public/services/haircut.mp4',
+      color: '#0098AD'
+    },
+    headshots: {
+      title: 'Professional Headshots',
+      description: 'High-quality corporate headshots for your team\'s professional profiles. Perfect for LinkedIn, company websites, and marketing materials.',
+      benefits: [
+        'Professional lighting and setup',
+        'Multiple poses and angles',
+        'High-resolution digital files',
+        'Quick turnaround time'
+      ],
+      price: 'Starting at $95/person',
+      video: './frontend/public/services/headshot.mp4',
+      color: '#9EFAFF'
+    },
+    mindfulness: {
+      title: 'Mindfulness Sessions',
+      description: 'Guided meditation and mindfulness practices to help your team manage stress, improve focus, and enhance overall mental wellness.',
+      benefits: [
+        'Guided meditation sessions',
+        'Stress management techniques',
+        'Breathing exercises',
+        'Improved focus and clarity'
+      ],
+      price: 'Starting at $45/person',
+      video: './frontend/public/services/mindfulness.mp4',
+      color: '#F7BBFF'
+    },
+    nails: {
+      title: 'Nail Services',
+      description: 'Professional manicures and nail care services to keep your team looking polished and professional. Perfect for maintaining a well-groomed appearance.',
+      benefits: [
+        'Professional manicures',
+        'Nail shaping and filing',
+        'Polish application',
+        'Hand and nail care'
+      ],
+      price: 'Starting at $35/person',
+      video: './frontend/public/services/manicure.mp4',
+      color: '#FEDC64'
+    }
+  };
+  
+  serviceAreas.forEach(area => {
+    area.addEventListener('click', function() {
+      const serviceType = this.getAttribute('data-service');
+      const service = services[serviceType];
+      
+      if (service) {
+        // Update service details panel
+        document.getElementById('service-title').textContent = service.title;
+        document.getElementById('service-description').textContent = service.description;
+        document.getElementById('service-price').textContent = service.price;
+        document.getElementById('service-price').style.color = service.color;
+        
+        // Update benefits
+        const benefitsContainer = document.getElementById('service-benefits');
+        benefitsContainer.innerHTML = '';
+        service.benefits.forEach(benefit => {
+          const benefitDiv = document.createElement('div');
+          benefitDiv.className = 'flex items-center gap-3';
+          benefitDiv.innerHTML = `
+            <span class="w-2 h-2 rounded-full" style="background: ${service.color};"></span>
+            <span style="color: #09364F;">${benefit}</span>
+          `;
+          benefitsContainer.appendChild(benefitDiv);
+        });
+        
+        // Update video
+        const video = document.getElementById('service-video');
+        const videoContainer = document.getElementById('service-video-container');
+        video.querySelector('source').src = service.video;
+        videoContainer.style.background = service.color;
+        video.load();
+        
+        // Show details panel
+        serviceDetails.classList.remove('hidden');
+        
+        // Scroll to details panel
+        serviceDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+    
+    // Hover effects for overlay
+    area.addEventListener('mouseenter', function() {
+      const overlay = this.querySelector('.service-overlay');
+      if (overlay) {
+        overlay.classList.remove('hidden');
+      }
+    });
+    
+    area.addEventListener('mouseleave', function() {
+      const overlay = this.querySelector('.service-overlay');
+      if (overlay) {
+        overlay.classList.add('hidden');
+      }
+    });
+  });
+});
+
+// Header scroll behavior
+window.addEventListener('scroll', function() {
+  const header = document.getElementById('header');
+  const logoSvg = document.getElementById('logo-svg');
+  const ctaButton = document.getElementById('cta-button');
+  
+  if (window.scrollY > 100) {
+    // Scrolled - turn white
+    header.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+    header.style.backdropFilter = 'blur(10px)';
+    header.style.borderBottom = '1px solid rgba(0, 55, 86, 0.08)';
+    
+    // Change logo color to dark
+    const paths = logoSvg.querySelectorAll('path');
+    paths.forEach(path => {
+      path.setAttribute('fill', path.getAttribute('fill') === '#FF5050' ? '#FF5050' : '#003756');
+    });
+    
+    // Change CTA button
+    ctaButton.style.backgroundColor = '#9EFAFF';
+    ctaButton.style.color = '#003C5E';
+  } else {
+    // At top - transparent
+    header.style.backgroundColor = 'transparent';
+    header.style.backdropFilter = 'none';
+    header.style.borderBottom = 'none';
+    
+    // Change logo color to cream
+    const paths = logoSvg.querySelectorAll('path');
+    paths.forEach(path => {
+      path.setAttribute('fill', path.getAttribute('fill') === '#FF5050' ? '#FF5050' : '#EFE0C0');
+    });
+    
+    // Change CTA button
+    ctaButton.style.backgroundColor = '#EFE0C0';
+    ctaButton.style.color = '#214C42';
+  }
+});
+
+// Horizontal scroll navigation
+function scrollToNextService() {
+  const scrollContainer = document.querySelector('.services-scroll');
+  const currentScroll = scrollContainer.scrollLeft;
+  const slideWidth = scrollContainer.clientWidth;
+  
+  // Scroll to next slide
+  scrollContainer.scrollTo({
+    left: currentScroll + slideWidth,
+    behavior: 'smooth'
+  });
+}
+
+function scrollToPrevService() {
+  const scrollContainer = document.querySelector('.services-scroll');
+  const currentScroll = scrollContainer.scrollLeft;
+  const slideWidth = scrollContainer.clientWidth;
+  
+  // Scroll to previous slide
+  scrollContainer.scrollTo({
+    left: currentScroll - slideWidth,
+    behavior: 'smooth'
+  });
+}
+
+// Update navigation arrows based on scroll position
+function updateNavigationArrows() {
+  const scrollContainer = document.querySelector('.services-scroll');
+  const leftNav = document.getElementById('left-nav');
+  const rightNav = document.getElementById('right-nav');
+  const slideWidth = scrollContainer.clientWidth;
+  const currentScroll = scrollContainer.scrollLeft;
+  
+  // Service names in order
+  const services = ['Massage', 'Headshots', 'Holiday Party Glam', 'Seasonal Mindfulness', 'Festive Nail Care'];
+  const currentSlide = Math.round(currentScroll / slideWidth);
+  const leftLabel = leftNav.querySelector('div:first-child');
+  const rightLabel = rightNav.querySelector('div:first-child');
+  
+  // Show/hide left arrow based on scroll position
+  if (currentScroll > 50) {
+    leftNav.style.opacity = '1';
+    if (currentSlide > 0) {
+      leftLabel.textContent = services[currentSlide - 1];
+    }
+  } else {
+    leftNav.style.opacity = '0';
+  }
+  
+  // Show/hide right arrow based on scroll position
+  if (currentScroll >= (services.length - 1) * slideWidth - 50) {
+    rightNav.style.opacity = '0';
+  } else {
+    rightNav.style.opacity = '1';
+    if (currentSlide < services.length - 1) {
+      rightLabel.textContent = services[currentSlide + 1];
+    }
+  }
+}
+
+// Add scroll listener for navigation updates
+document.addEventListener('DOMContentLoaded', function() {
+  const scrollContainer = document.querySelector('.services-scroll');
+  if (scrollContainer) {
+    scrollContainer.addEventListener('scroll', updateNavigationArrows);
+  }
+});
+</script>
+
+</body>
+</html>

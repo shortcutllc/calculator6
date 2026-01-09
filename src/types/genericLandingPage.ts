@@ -43,3 +43,6 @@ export interface GenericLandingPageOptions {
   customMessage?: string;
   customization: GenericLandingPageCustomization;
 }
+
+
+

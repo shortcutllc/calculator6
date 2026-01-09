@@ -75,7 +75,7 @@ const Register: React.FC = () => {
                 setEmail(e.target.value);
                 setError(null);
               }}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               placeholder="Enter your email"
               required
             />
@@ -92,7 +92,7 @@ const Register: React.FC = () => {
                 setPassword(e.target.value);
                 setError(null);
               }}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               placeholder="••••••••"
               required
             />
@@ -109,7 +109,7 @@ const Register: React.FC = () => {
                 setConfirmPassword(e.target.value);
                 setError(null);
               }}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               placeholder="••••••••"
               required
             />

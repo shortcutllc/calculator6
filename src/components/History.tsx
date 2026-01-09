@@ -148,6 +148,89 @@ const History: React.FC = () => {
     return total;
   };
 
+  // Extract unique service types from a proposal
+  const getServiceTypes = (proposal: any): string[] => {
+    const serviceTypes = new Set<string>();
+    
+    // Handle mindfulness programs
+    if (proposal.data.mindfulnessProgram) {
+      serviceTypes.add('mindfulness');
+      return Array.from(serviceTypes);
+    }
+    
+    // Handle regular proposals
+    Object.values(proposal.data.services || {}).forEach((locationData: any) => {
+      Object.values(locationData).forEach((dateData: any) => {
+        dateData.services?.forEach((service: any) => {
+          if (service.serviceType) {
+            const serviceType = service.serviceType.toLowerCase();
+            // Handle composite services by splitting them into individual service tags
+            if (serviceType === 'hair-makeup') {
+              serviceTypes.add('hair');
+              serviceTypes.add('makeup');
+            } else if (serviceType === 'headshot-hair-makeup') {
+              serviceTypes.add('headshot');
+              serviceTypes.add('hair');
+              serviceTypes.add('makeup');
+            } else {
+              // Single service type
+              serviceTypes.add(serviceType);
+            }
+          }
+        });
+      });
+    });
+    
+    return Array.from(serviceTypes);
+  };
+
+  // Get service tag color and display name
+  const getServiceTagInfo = (serviceType: string): { color: string; name: string } => {
+    const normalized = serviceType.toLowerCase();
+    
+    // Cyan services (#9EFAFF)
+    if (normalized === 'massage' || normalized === 'headshot') {
+      return {
+        color: '#9EFAFF',
+        name: normalized === 'massage' ? 'Massage' : 'Headshot'
+      };
+    }
+    
+    // Pink/Purple services (#F7BBFF)
+    if (normalized === 'nail' || normalized === 'nails' || normalized === 'manicure' || normalized === 'pedicure' || normalized === 'facial' || normalized === 'makeup') {
+      return {
+        color: '#F7BBFF',
+        name: normalized === 'facial' ? 'Facial' : 
+              normalized === 'makeup' ? 'Makeup' :
+              normalized === 'manicure' ? 'Manicure' :
+              normalized === 'pedicure' ? 'Pedicure' : 'Nail'
+      };
+    }
+    
+    // Yellow services (#FEDC64)
+    if (normalized === 'hair' || normalized === 'mindfulness' || normalized === 'mindful') {
+      return {
+        color: '#FEDC64',
+        name: normalized === 'hair' ? 'Hair' : 'Mindfulness'
+      };
+    }
+    
+    // Handle composite services (e.g., "hair-makeup", "headshot-hair-makeup")
+    // These will be split into individual tags by getServiceTypes, so this is just a fallback
+    if (normalized.includes('hair') && normalized.includes('makeup')) {
+      return {
+        color: '#FEDC64',
+        name: 'Hair & Makeup'
+      };
+    }
+    
+    // Default fallback
+    return {
+      color: '#E5E7EB',
+      name: serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace(/-/g, ' ')
+    };
+  };
+
   const getShareableLink = (id: string) => {
     return getProposalUrl(id, true);
   };
@@ -305,7 +388,7 @@ const History: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               >
                 <option value="date-desc">Date (Newest First)</option>
                 <option value="date-asc">Date (Oldest First)</option>
@@ -325,7 +408,7 @@ const History: React.FC = () => {
               <select
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               >
                 <option value="">All Statuses</option>
                 <option value="draft">Draft</option>
@@ -342,7 +425,7 @@ const History: React.FC = () => {
               <select
                 value={filters.location}
                 onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
               >
                 <option value="">All Locations</option>
                 {locations.map(location => (
@@ -362,13 +445,13 @@ const History: React.FC = () => {
                   type="date"
                   value={filters.startDate}
                   onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
                 <input
                   type="date"
                   value={filters.endDate}
                   onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
               </div>
             </div>
@@ -383,14 +466,14 @@ const History: React.FC = () => {
                   placeholder="Min"
                   value={filters.minCost}
                   onChange={(e) => setFilters(prev => ({ ...prev, minCost: e.target.value }))}
-                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
                 <input
                   type="number"
                   placeholder="Max"
                   value={filters.maxCost}
                   onChange={(e) => setFilters(prev => ({ ...prev, maxCost: e.target.value }))}
-                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                 />
               </div>
             </div>
@@ -463,6 +546,19 @@ const History: React.FC = () => {
                             )}
                           </span>
                         )}
+                        {/* Service Tags */}
+                        {getServiceTypes(proposal).map((serviceType) => {
+                          const tagInfo = getServiceTagInfo(serviceType);
+                          return (
+                            <span
+                              key={serviceType}
+                              className="px-3 py-1 rounded-full text-xs font-bold text-shortcut-navy-blue border border-shortcut-navy-blue/20"
+                              style={{ backgroundColor: tagInfo.color }}
+                            >
+                              {tagInfo.name}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">

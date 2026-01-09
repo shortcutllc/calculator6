@@ -323,7 +323,12 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
               proHourly: Number(service.proHourly),
               hourlyRate: Number(service.hourlyRate),
               earlyArrival: Number(service.earlyArrival),
-              discountPercent: Number(service.discountPercent)
+              discountPercent: Number(service.discountPercent),
+              // Preserve mindfulness-specific fields
+              classLength: service.classLength ? Number(service.classLength) : (service.serviceType === 'mindfulness' ? 40 : undefined),
+              participants: service.participants,
+              fixedPrice: service.fixedPrice ? Number(service.fixedPrice) : undefined,
+              mindfulnessType: service.mindfulnessType
             });
           }
         }
@@ -433,7 +438,9 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
               
               transformedServices[location][normalizedDate].services.push({
                 ...service,
-                date: normalizedDate
+                date: normalizedDate,
+                // Ensure classLength is set for mindfulness services if missing
+                classLength: service.classLength || (service.serviceType === 'mindfulness' ? 40 : service.classLength)
               });
             });
           }
@@ -445,10 +452,63 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
           if (normalizedDate) {
             transformedServices[location][normalizedDate] = {
               ...dateData,
-              services: dateData.services.map((service: any) => ({
-                ...service,
-                date: normalizedDate
-              }))
+              services: dateData.services.map((service: any) => {
+                const mappedService = {
+                  ...service,
+                  date: normalizedDate
+                };
+                
+                // Ensure classLength and mindfulnessType are synced for mindfulness services
+                if (mappedService.serviceType === 'mindfulness') {
+                  // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
+                  let targetClassLength = 40;
+                  let targetFixedPrice = 1350;
+                  let targetMindfulnessType = 'intro';
+                  
+                  // If mindfulnessType exists, use it to determine classLength
+                  if (mappedService.mindfulnessType === 'drop-in') {
+                    targetClassLength = 30;
+                    targetFixedPrice = 1125;
+                    targetMindfulnessType = 'drop-in';
+                  } else if (mappedService.mindfulnessType === 'mindful-movement') {
+                    targetClassLength = 60;
+                    targetFixedPrice = 1350;
+                    targetMindfulnessType = 'mindful-movement';
+                  } else if (mappedService.mindfulnessType === 'intro') {
+                    targetClassLength = 40;
+                    targetFixedPrice = 1350;
+                    targetMindfulnessType = 'intro';
+                  } else if (mappedService.classLength) {
+                    // No mindfulnessType, infer from classLength
+                    if (mappedService.classLength === 30) {
+                      targetClassLength = 30;
+                      targetFixedPrice = 1125;
+                      targetMindfulnessType = 'drop-in';
+                    } else if (mappedService.classLength === 60) {
+                      targetClassLength = 60;
+                      targetFixedPrice = 1350;
+                      targetMindfulnessType = 'mindful-movement';
+                    } else {
+                      // Default to intro (40 minutes)
+                      targetClassLength = 40;
+                      targetFixedPrice = 1350;
+                      targetMindfulnessType = 'intro';
+                    }
+                  } else {
+                    // No mindfulnessType and no classLength, default to intro
+                    targetClassLength = 40;
+                    targetFixedPrice = 1350;
+                    targetMindfulnessType = 'intro';
+                  }
+                  
+                  // Apply the determined values
+                  mappedService.classLength = targetClassLength;
+                  mappedService.mindfulnessType = targetMindfulnessType;
+                  mappedService.fixedPrice = targetFixedPrice;
+                }
+                
+                return mappedService;
+              })
             };
           }
         });
@@ -488,6 +548,55 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
       let dayTotalProRevenue = 0;
 
       (dayData as any).services.forEach((service: any) => {
+        // Ensure classLength and mindfulnessType are synced for mindfulness services
+        if (service.serviceType === 'mindfulness') {
+          // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
+          let targetClassLength = 40;
+          let targetFixedPrice = 1350;
+          let targetMindfulnessType = 'intro';
+          
+          // If mindfulnessType exists, use it to determine classLength
+          if (service.mindfulnessType === 'drop-in') {
+            targetClassLength = 30;
+            targetFixedPrice = 1125;
+            targetMindfulnessType = 'drop-in';
+          } else if (service.mindfulnessType === 'mindful-movement') {
+            targetClassLength = 60;
+            targetFixedPrice = 1350;
+            targetMindfulnessType = 'mindful-movement';
+          } else if (service.mindfulnessType === 'intro') {
+            targetClassLength = 40;
+            targetFixedPrice = 1350;
+            targetMindfulnessType = 'intro';
+          } else if (service.classLength) {
+            // No mindfulnessType, infer from classLength
+            if (service.classLength === 30) {
+              targetClassLength = 30;
+              targetFixedPrice = 1125;
+              targetMindfulnessType = 'drop-in';
+            } else if (service.classLength === 60) {
+              targetClassLength = 60;
+              targetFixedPrice = 1350;
+              targetMindfulnessType = 'mindful-movement';
+            } else {
+              // Default to intro (40 minutes)
+              targetClassLength = 40;
+              targetFixedPrice = 1350;
+              targetMindfulnessType = 'intro';
+            }
+          } else {
+            // No mindfulnessType and no classLength, default to intro
+            targetClassLength = 40;
+            targetFixedPrice = 1350;
+            targetMindfulnessType = 'intro';
+          }
+          
+          // Apply the determined values
+          (service as any).classLength = targetClassLength;
+          (service as any).mindfulnessType = targetMindfulnessType;
+          (service as any).fixedPrice = targetFixedPrice;
+        }
+        
         let { totalAppointments, serviceCost, proRevenue: baseProRevenue } = calculateServiceResults(service);
         
         (service as any).totalAppointments = totalAppointments;

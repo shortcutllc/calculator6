@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Mail, AlertCircle, Clock, CheckCircle, XCircle, User, Calendar, FileText, HelpCircle, Info } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Mail, AlertCircle, Clock, CheckCircle, XCircle, User, Calendar, FileText, HelpCircle, Info, Brain } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -124,11 +124,11 @@ const getMindfulnessDescription = (service: any): string => {
     return "Mindful movement is a wonderful way to connect more fully with the present moment by resting attention on sensations that arise within the body moment to moment.";
   }
   
-  const classLength = service.classLength || 60;
+  const classLength = service.classLength || 40;
   const participants = service.participants || 'unlimited';
   
-  if (classLength === 60) {
-    return "In just one 60 minute workshop your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.";
+  if (classLength === 40 || classLength === 60) {
+    return "In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.";
   } else if (classLength === 30) {
     return "Our 30-minute drop-in sessions offer a quick and easy way to step out of the \"doing mode\" and into a space of rest and rejuvenation.";
   }
@@ -217,6 +217,100 @@ export const StandaloneProposalViewer: React.FC = () => {
   // Proposal options state (for grouped proposals)
   const [proposalOptions, setProposalOptions] = useState<any[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  
+  // View tracking state
+  const [hasTrackedView, setHasTrackedView] = useState(false);
+
+  // Function to track proposal view
+  const trackProposalView = async (proposalId: string, proposalData: any) => {
+    try {
+      // Check if current user is authenticated (logged in)
+      // If they are authenticated, they're a team member - don't track (skip notifications)
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      // Only track if it's a client view (not authenticated = client)
+      if (currentUser) {
+        console.log('Skipping view tracking - authenticated team member view');
+        return;
+      }
+
+      // Insert view record into database
+      const { error: viewError } = await supabase
+        .from('proposal_views')
+        .insert({
+          proposal_id: proposalId,
+          user_agent: navigator.userAgent || null,
+          viewed_at: new Date().toISOString()
+        });
+
+      if (viewError) {
+        console.error('Error tracking proposal view:', viewError);
+      }
+
+      // Send Slack notification for view
+      try {
+        const response = await fetch('/.netlify/functions/proposal-event-notification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            eventType: 'view',
+            proposalId: proposalId,
+            clientName: proposalData.client_name || proposalData.data?.clientName || 'Unknown',
+            clientEmail: proposalData.client_email || proposalData.data?.clientEmail,
+            proposalType: proposalData.proposal_type || 'event',
+            totalCost: proposalData.data?.summary?.totalEventCost || proposalData.data?.mindfulnessProgram?.pricing?.totalCost || 0,
+            eventDates: proposalData.data?.eventDates || [],
+            locations: proposalData.data?.locations || []
+          })
+        });
+
+        if (!response.ok) {
+          console.error('Failed to send view notification to Slack');
+        }
+      } catch (slackError) {
+        console.error('Error sending Slack notification:', slackError);
+        // Don't fail view tracking if Slack fails
+      }
+    } catch (error) {
+      console.error('Error tracking proposal view:', error);
+      // Don't block the UI if tracking fails
+    }
+  };
+
+  // Function to send Slack notification for proposal events
+  const sendProposalEventNotification = async (
+    eventType: 'view' | 'edit' | 'changes_submitted' | 'approve' | 'approved',
+    proposalData?: any
+  ) => {
+    if (!id || !proposal) return;
+
+    try {
+      const dataToUse = proposalData || proposal;
+      const displayDataToUse = displayData || dataToUse.data;
+
+      await fetch('/.netlify/functions/proposal-event-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventType: eventType,
+          proposalId: id,
+          clientName: dataToUse.client_name || displayDataToUse?.clientName || 'Unknown',
+          clientEmail: dataToUse.client_email || displayDataToUse?.clientEmail,
+          proposalType: dataToUse.proposal_type || 'event',
+          totalCost: displayDataToUse?.summary?.totalEventCost || displayDataToUse?.mindfulnessProgram?.pricing?.totalCost || 0,
+          eventDates: displayDataToUse?.eventDates || [],
+          locations: displayDataToUse?.locations || []
+        })
+      });
+    } catch (error) {
+      console.error('Error sending Slack notification:', error);
+      // Don't block the UI if Slack notification fails
+    }
+  };
 
   usePageTitle('View Proposal');
 
@@ -264,7 +358,7 @@ export const StandaloneProposalViewer: React.FC = () => {
       setIsLoadingOptions(true);
       const { data, error } = await supabase
         .from('proposals')
-        .select('id, option_name, option_order, status, client_name, data')
+        .select('id, option_name, option_order, status, client_name, data, proposal_type')
         .eq('proposal_group_id', groupId)
         .order('option_order', { ascending: true, nullsFirst: false });
 
@@ -277,11 +371,14 @@ export const StandaloneProposalViewer: React.FC = () => {
         // Calculate summary metrics for each option
         const optionsWithMetrics = data.map((option: any) => {
           const summary = option.data?.summary || {};
+          const mindfulnessProgram = option.data?.mindfulnessProgram;
           return {
             ...option,
-            totalCost: summary.totalEventCost || 0,
+            totalCost: summary.totalEventCost || mindfulnessProgram?.pricing?.totalCost || 0,
             totalAppointments: summary.totalAppointments || 0,
-            eventDates: option.data?.eventDates || []
+            eventDates: option.data?.eventDates || [],
+            proposal_type: option.proposal_type || null,
+            totalSessions: mindfulnessProgram?.totalSessions || 0
           };
         });
         setProposalOptions(optionsWithMetrics);
@@ -375,7 +472,75 @@ export const StandaloneProposalViewer: React.FC = () => {
         if (error) throw error;
         if (!data) throw new Error('Proposal not found');
 
+        // Check if this is a mindfulness proposal - if so, redirect to mindfulness viewer
+        if (data.proposal_type === 'mindfulness-program' || data.data?.mindfulnessProgram) {
+          navigate(`/proposal/${id}${location.search}`, { replace: true });
+          return;
+        }
+
+        // Ensure data has required structure for regular proposals
+        if (!data.data || !data.data.services) {
+          throw new Error('Invalid proposal data structure');
+        }
+
         const calculatedData = recalculateServiceTotals(data.data);
+        
+        // Ensure classLength and mindfulnessType are set correctly for mindfulness services
+        if (calculatedData.services) {
+          Object.values(calculatedData.services).forEach((locationData: any) => {
+            Object.values(locationData).forEach((dateData: any) => {
+              dateData.services?.forEach((service: any) => {
+                if (service.serviceType === 'mindfulness') {
+                  // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
+                  let targetClassLength = 40;
+                  let targetFixedPrice = 1350;
+                  let targetMindfulnessType = 'intro';
+                  
+                  // If mindfulnessType exists, use it to determine classLength
+                  if (service.mindfulnessType === 'drop-in') {
+                    targetClassLength = 30;
+                    targetFixedPrice = 1125;
+                    targetMindfulnessType = 'drop-in';
+                  } else if (service.mindfulnessType === 'mindful-movement') {
+                    targetClassLength = 60;
+                    targetFixedPrice = 1350;
+                    targetMindfulnessType = 'mindful-movement';
+                  } else if (service.mindfulnessType === 'intro') {
+                    targetClassLength = 40;
+                    targetFixedPrice = 1350;
+                    targetMindfulnessType = 'intro';
+                  } else if (service.classLength) {
+                    // No mindfulnessType, infer from classLength
+                    if (service.classLength === 30) {
+                      targetClassLength = 30;
+                      targetFixedPrice = 1125;
+                      targetMindfulnessType = 'drop-in';
+                    } else if (service.classLength === 60) {
+                      targetClassLength = 60;
+                      targetFixedPrice = 1350;
+                      targetMindfulnessType = 'mindful-movement';
+                    } else {
+                      // Default to intro (40 minutes)
+                      targetClassLength = 40;
+                      targetFixedPrice = 1350;
+                      targetMindfulnessType = 'intro';
+                    }
+                  } else {
+                    // No mindfulnessType and no classLength, default to intro
+                    targetClassLength = 40;
+                    targetFixedPrice = 1350;
+                    targetMindfulnessType = 'intro';
+                  }
+                  
+                  // Apply the determined values
+                  service.classLength = targetClassLength;
+                  service.mindfulnessType = targetMindfulnessType;
+                  service.fixedPrice = targetFixedPrice;
+                }
+              });
+            });
+          });
+        }
         
         // Load pricing options from the database
         if (data.pricing_options && data.selected_options) {
@@ -416,6 +581,13 @@ export const StandaloneProposalViewer: React.FC = () => {
           setLastUpdated(new Date());
           setShowUpdateIndicator(true);
           setTimeout(() => setShowUpdateIndicator(false), 3000);
+        } else {
+          // Track view only on initial load, not on refresh
+          // The trackProposalView function will check if it's a client view
+          if (!hasTrackedView) {
+            trackProposalView(id, data);
+            setHasTrackedView(true);
+          }
         }
       } catch (err) {
         console.error('Error fetching proposal:', err);
@@ -455,6 +627,28 @@ export const StandaloneProposalViewer: React.FC = () => {
     // If we're changing a service parameter, recalculate service totals
     if (path.length >= 5 && path[0] === 'services' && path[3] === 'services') {
       const service = target;
+      
+      // If we're changing classLength for a mindfulness service, update mindfulnessType to match
+      if (path[path.length - 1] === 'classLength' && service.serviceType === 'mindfulness') {
+        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 40 : (value || 40);
+        let mindfulnessType = 'intro';
+        let fixedPrice = 1350;
+        
+        if (classLengthValue === 30) {
+          mindfulnessType = 'drop-in';
+          fixedPrice = 1125;
+        } else if (classLengthValue === 60) {
+          mindfulnessType = 'mindful-movement';
+          fixedPrice = 1350;
+        } else {
+          // Default to intro for 40 or any other value
+          mindfulnessType = 'intro';
+          fixedPrice = 1350;
+        }
+        
+        service.mindfulnessType = mindfulnessType;
+        service.fixedPrice = fixedPrice;
+      }
       
       if (service.pricingOptions && service.pricingOptions.length > 0) {
         // If we're editing a specific pricing option parameter
@@ -750,6 +944,9 @@ export const StandaloneProposalViewer: React.FC = () => {
 
       setShowChangesSaved(true);
       setTimeout(() => setShowChangesSaved(false), 5000);
+
+      // Send Slack notification for changes submitted
+      sendProposalEventNotification('changes_submitted');
     } catch (err) {
       console.error('Error submitting changes:', err);
       setError('We encountered an issue submitting your changes. Please try again in a moment.');
@@ -895,7 +1092,7 @@ export const StandaloneProposalViewer: React.FC = () => {
         setProposal((prev: typeof proposal) => prev ? { ...prev, status: 'approved' } : null);
       }
 
-      // Then, send the approval notification
+      // Send email approval notification (existing)
       const response = await fetch(`${config.supabase.url}/functions/v1/proposal-approval`, {
         method: 'POST',
         headers: {
@@ -913,8 +1110,14 @@ export const StandaloneProposalViewer: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send approval notification');
+        console.error('Failed to send email approval notification:', errorData);
       }
+
+      // Send Slack notification for approval
+      sendProposalEventNotification('approved', {
+        ...proposal,
+        data: recalculatedData
+      });
 
       setShowApprovalSuccess(true);
       setTimeout(() => setShowApprovalSuccess(false), 8000); // Show longer for multiple options
@@ -1071,7 +1274,7 @@ export const StandaloneProposalViewer: React.FC = () => {
       )}
       {showSurveyCTA && proposal?.status === 'approved' && !hasSurveyResponse && (
         <div className="fixed top-0 left-0 w-full z-[98] bg-blue-600 text-white px-4 py-3 shadow-lg">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="max-w-[1600px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5" />
               <div>
@@ -1095,7 +1298,7 @@ export const StandaloneProposalViewer: React.FC = () => {
       )}
       
       <header className={`bg-white shadow-sm sticky ${proposalOptions.length > 1 ? (showSurveyCTA ? 'top-16' : 'top-0') : (showSurveyCTA ? 'top-16' : 'top-0')} z-[99] rounded-b-3xl`}>
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-8">
+        <div className="max-w-[1600px] mx-auto px-4 py-4 sm:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <img 
@@ -1222,7 +1425,7 @@ export const StandaloneProposalViewer: React.FC = () => {
       {/* Proposal Options Switcher - Style Guide Compliant Design */}
       {proposalOptions.length > 1 && (
         <div className={`bg-white border-b-2 border-shortcut-navy-blue border-opacity-10 sticky ${showSurveyCTA ? 'top-[80px]' : 'top-[64px]'} z-[98] shadow-lg`}>
-          <div className="max-w-7xl mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
+          <div className="max-w-[1600px] mx-auto px-5 lg:px-[90px] py-8 lg:py-12">
             {/* Section Header - Following Typography System */}
             <div className="mb-8">
               <h2 className="h2 mb-3">Compare Your Options</h2>
@@ -1235,7 +1438,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                 const isActive = option.id === id;
                 const optionLabel = option.option_name || `Option ${index + 1}`;
                 const isApproved = option.status === 'approved';
+                const isMindfulness = option.proposal_type === 'mindfulness-program';
                 const eventCount = option.eventDates?.length || 0;
+                const sessionCount = option.totalSessions || 0;
                 
                 return (
                   <button
@@ -1279,11 +1484,37 @@ export const StandaloneProposalViewer: React.FC = () => {
                       <h3 className={`text-xl font-extrabold mb-2 ${isActive ? 'text-white' : 'text-shortcut-navy-blue'}`}>
                         {optionLabel}
                       </h3>
-                      {eventCount > 0 && (
-                        <p className={`text-sm font-medium ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
-                          {eventCount} {eventCount === 1 ? 'Event Date' : 'Event Dates'}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isMindfulness && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                            isActive
+                              ? 'bg-shortcut-pink/30 text-white border border-shortcut-pink/50'
+                              : 'bg-shortcut-pink/20 text-shortcut-navy-blue border border-shortcut-pink/30'
+                          }`}>
+                            <Brain size={12} />
+                            Mindfulness
+                          </span>
+                        )}
+                        {!isMindfulness && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                            isActive
+                              ? 'bg-shortcut-teal/30 text-white border border-shortcut-teal/50'
+                              : 'bg-shortcut-teal/20 text-shortcut-navy-blue border border-shortcut-teal/30'
+                          }`}>
+                            Event
+                          </span>
+                        )}
+                        {isMindfulness && sessionCount > 0 && (
+                          <span className={`text-sm font-medium ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
+                            {sessionCount} {sessionCount === 1 ? 'Session' : 'Sessions'}
+                          </span>
+                        )}
+                        {!isMindfulness && eventCount > 0 && (
+                          <span className={`text-sm font-medium ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
+                            {eventCount} {eventCount === 1 ? 'Event Date' : 'Event Dates'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Key Metrics - Prominent Display */}
@@ -1320,11 +1551,18 @@ export const StandaloneProposalViewer: React.FC = () => {
         </div>
       )}
 
-      <main className={`max-w-7xl mx-auto px-4 scroll-mt-24 ${
+      <main className={`max-w-[1600px] mx-auto px-4 scroll-mt-24 ${
         proposalOptions.length > 1 
           ? (showSurveyCTA ? 'pt-8' : 'pt-8') 
           : (showSurveyCTA ? 'pt-24' : 'pt-16')
       } pb-12`} id="proposal-content">
+        {/* Safety check: Don't render if this is a mindfulness proposal */}
+        {displayData?.mindfulnessProgram ? (
+          <div className="text-center py-12">
+            <p className="text-lg text-text-dark-60">Redirecting to mindfulness proposal viewer...</p>
+          </div>
+        ) : (
+          <>
         {/* Summary-First Layout - Key Metrics at Top */}
         <div className="card-large mb-8 scroll-mt-24">
           <div className="mb-8">
@@ -1356,9 +1594,12 @@ export const StandaloneProposalViewer: React.FC = () => {
             
             {/* Note from Shortcut - Clean, readable design */}
             {displayData.customization?.customNote && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-extrabold text-shortcut-blue mb-3">Note from Shortcut</h3>
-                <p className="text-base text-text-dark leading-relaxed font-medium">
+              <div className="mt-8 pt-8 border-t-2 border-shortcut-teal border-opacity-20 bg-shortcut-teal bg-opacity-5 rounded-xl p-8">
+                <div className="flex items-center space-x-3 mb-5">
+                  <div className="w-3 h-3 rounded-full bg-shortcut-teal"></div>
+                  <h3 className="text-xl font-extrabold text-shortcut-navy-blue">Note from Shortcut</h3>
+                </div>
+                <p className="text-lg text-text-dark leading-relaxed font-medium pl-6">
                   {displayData.customization.customNote.replace('above', 'below')}
                 </p>
               </div>
@@ -1366,65 +1607,71 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
 
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
-            <div>
-              <p className="text-sm font-bold text-shortcut-blue mb-1">Event Dates</p>
-              <p className="text-base font-medium text-text-dark">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 border-t-2 border-shortcut-teal border-opacity-20">
+            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
+              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Event Dates</p>
+              <p className="text-xl font-extrabold text-shortcut-navy-blue leading-tight">
                     {Array.isArray(displayData.eventDates) ? 
                       displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
                       'No dates available'
                     }
                   </p>
                 </div>
-            <div>
-              <p className="text-sm font-bold text-shortcut-blue mb-1">Locations</p>
-              <p className="text-base font-medium text-text-dark">{displayData.locations?.join(', ') || 'No locations available'}</p>
+            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
+              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Locations</p>
+              <p className="text-xl font-extrabold text-shortcut-navy-blue leading-tight">
+                {Array.isArray(displayData.locations) 
+                  ? displayData.locations.join(', ') 
+                  : displayData.locations || 'No locations available'}
+              </p>
                 </div>
-            <div>
-              <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
-              <p className="text-base font-medium text-text-dark">{displayData.summary?.totalAppointments || 0}</p>
+            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
+              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Total Appointments</p>
+              <p className="text-4xl font-extrabold text-shortcut-navy-blue">{displayData.summary?.totalAppointments || 0}</p>
                   </div>
                 {/* Display multiple office locations if available, otherwise show single office location */}
                 {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
-              <div className="md:col-span-3">
-                <p className="text-sm font-bold text-shortcut-blue mb-2">Office Location(s)</p>
-                {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0 ? (
-                  <div className="space-y-2">
-                    {Object.entries(displayData.officeLocations).map(([location, address]) => (
-                      <div key={location} className="mb-2">
-                        <p className="text-xs font-bold text-shortcut-navy-blue mb-1">{location}:</p>
-                        <p className="text-base font-medium text-text-dark">{String(address)}</p>
-              </div>
-                    ))}
-            </div>
-                ) : displayData.officeLocation ? (
-                  <p className="text-base font-medium text-text-dark">{displayData.officeLocation}</p>
-                ) : null}
+              <div className="md:col-span-3 mt-4 pt-8 border-t-2 border-shortcut-teal border-opacity-20">
+                <div className="p-6 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
+                  <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Office Location(s)</p>
+                  {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0 ? (
+                    <div className="space-y-3">
+                      {Object.entries(displayData.officeLocations).map(([location, address]) => (
+                        <div key={location} className="pb-3 border-b border-shortcut-navy-blue border-opacity-10 last:border-0 last:pb-0">
+                          <p className="text-sm font-bold text-shortcut-navy-blue mb-2">{location}:</p>
+                          <p className="text-lg font-semibold text-text-dark">{String(address)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : displayData.officeLocation ? (
+                    <p className="text-lg font-semibold text-text-dark">{displayData.officeLocation}</p>
+                  ) : null}
+                </div>
                     </div>
                 ) : null}
                 </div>
             </div>
 
         {/* Mobile Layout: Single column with specific order */}
-        <div className="lg:grid lg:grid-cols-3 gap-12">
+        <div className="lg:grid lg:grid-cols-12 gap-12">
           {/* Main Content - Services (Day summary + Location Section) - shown first on mobile after top box */}
-          <div className="lg:col-span-2 space-y-8 order-1 lg:order-1">
+          <div className="lg:col-span-8 space-y-8 order-1 lg:order-1">
 
             <div className="space-y-8">
-              {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
+              {displayData.services && Object.entries(displayData.services).map(([location, locationData]: [string, any]) => (
                 <div key={location} className="card-large">
                     <button
                       onClick={() => toggleLocation(location)}
-                    className="w-full flex justify-between items-center mb-6 hover:opacity-80 transition-opacity"
+                    className="w-full flex justify-between items-center mb-8 hover:opacity-80 transition-opacity"
                     >
-                    <h2 className="text-2xl font-extrabold text-shortcut-blue">
+                    <h2 className="text-3xl font-extrabold text-shortcut-blue">
                         {location}
                       </h2>
-                    {expandedLocations[location] ? <ChevronUp size={24} className="text-shortcut-blue" /> : <ChevronDown size={24} className="text-shortcut-blue" />}
+                    {expandedLocations[location] ? <ChevronUp size={28} className="text-shortcut-blue" /> : <ChevronDown size={28} className="text-shortcut-blue" />}
                     </button>
                   
                   {expandedLocations[location] && (
-                    <div className="pt-6 border-t border-gray-200 space-y-6">
+                    <div className="pt-8 border-t-2 border-gray-200 space-y-8">
                       {Object.entries(locationData)
                         .sort(([dateA], [dateB]) => {
                           // Handle TBD dates - put them at the end
@@ -1439,37 +1686,37 @@ export const StandaloneProposalViewer: React.FC = () => {
                           <div key={date} className="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
                             <button
                               onClick={() => toggleDate(date)}
-                              className="w-full px-6 py-4 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors border-b border-gray-200"
+                              className="w-full px-8 py-5 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors border-b-2 border-gray-200"
                             >
-                              <h3 className="text-lg font-extrabold text-shortcut-blue">
+                              <h3 className="text-xl font-extrabold text-shortcut-blue">
                                 Day {dateIndex + 1} - {formatDate(date)}
                               </h3>
-                              {expandedDates[date] ? <ChevronUp size={16} className="text-shortcut-blue" /> : <ChevronDown size={16} className="text-shortcut-blue" />}
+                              {expandedDates[date] ? <ChevronUp size={20} className="text-shortcut-blue" /> : <ChevronDown size={20} className="text-shortcut-blue" />}
                             </button>
 
                             {expandedDates[date] && (
-                              <div className="p-6 bg-white">
+                              <div className="p-8 bg-white">
                                 {dateData.services.map((service: any, serviceIndex: number) => (
                                   <div 
                                     key={serviceIndex} 
-                                    className={`card-small mb-6 border-2 ${getServiceBorderClass(service.serviceType)}`}
+                                    className={`card-small mb-8 border-2 ${getServiceBorderClass(service.serviceType)}`}
                                   >
-                                    <h4 className="text-lg font-extrabold text-shortcut-blue mb-4 flex items-center">
-                                      <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
+                                    <h4 className="text-xl font-extrabold text-shortcut-blue mb-5 flex items-center">
+                                      <span className="w-3.5 h-3.5 rounded-full bg-shortcut-teal mr-3"></span>
                                       Service Type: {getServiceDisplayName(service.serviceType)}
                                     </h4>
                                     
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (
-                                      <div className="mb-4 p-4 bg-white rounded-lg border-2 border-shortcut-teal shadow-sm">
-                                        <p className="text-text-dark text-sm leading-relaxed">
+                                      <div className="mb-5 p-6 bg-white rounded-xl border-2 border-shortcut-teal shadow-sm">
+                                        <p className="text-text-dark text-base leading-relaxed font-medium">
                                           {getServiceDescription(service)}
                                         </p>
                                         {service.serviceType === 'mindfulness' && (
                                           <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                                             <div>
                                               <span className="font-bold text-shortcut-navy-blue">Event Time:</span>
-                                              <span className="ml-2 text-text-dark">{service.classLength || 60} Min</span>
+                                              <span className="ml-2 text-text-dark">{service.classLength || 40} Min</span>
                                             </div>
                                             <div>
                                               <span className="font-bold text-shortcut-navy-blue">Participants:</span>
@@ -1489,21 +1736,40 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     )}
 
                                     <div className="grid gap-0">
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Total Hours:</span>
-                                        <div className="font-bold text-text-dark">
-                                          <EditableField
-                                            value={String(service.totalHours || 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
-                                            isEditing={isEditing}
-                                            type="number"
-                                            suffix=" hours"
-                                          />
+                                      {service.serviceType === 'mindfulness' ? (
+                                        <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
+                                          <span className="text-lg font-bold text-shortcut-blue">Class Length:</span>
+                                          <div className="font-bold text-text-dark text-lg">
+                                            {isEditing ? (
+                                              <EditableField
+                                                value={String(service.classLength || 40)}
+                                                onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'classLength'], typeof value === 'string' ? parseFloat(value) || 40 : value)}
+                                                isEditing={isEditing}
+                                                type="number"
+                                                suffix=" minutes"
+                                              />
+                                            ) : (
+                                              <span>{service.classLength || 40} minutes</span>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Number of Professionals:</span>
-                                        <div className="font-bold text-text-dark">
+                                      ) : (
+                                        <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
+                                          <span className="text-lg font-bold text-shortcut-blue">Total Hours:</span>
+                                          <div className="font-bold text-text-dark text-lg">
+                                            <EditableField
+                                              value={String(service.totalHours || 0)}
+                                              onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
+                                              isEditing={isEditing}
+                                              type="number"
+                                              suffix=" hours"
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                      <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
+                                        <span className="text-lg font-bold text-shortcut-blue">Number of Professionals:</span>
+                                        <div className="font-bold text-text-dark text-lg">
                                           <EditableField
                                             value={String(service.numPros || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -1512,12 +1778,12 @@ export const StandaloneProposalViewer: React.FC = () => {
                                           />
                                         </div>
                                       </div>
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Total Appointments:</span>
-                                        <span className="font-bold text-text-dark">{service.totalAppointments}</span>
+                                      <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
+                                        <span className="text-lg font-bold text-shortcut-blue">Total Appointments:</span>
+                                        <span className="font-bold text-text-dark text-lg">{service.totalAppointments}</span>
                                       </div>
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Service Cost:</span>
+                                      <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
+                                        <span className="text-lg font-bold text-shortcut-blue">Service Cost:</span>
                                         <div className="text-right">
                                           {service.discountPercent > 0 ? (
                                             <div className="space-y-1">
@@ -1722,16 +1988,16 @@ export const StandaloneProposalViewer: React.FC = () => {
                                   </div>
                                 ))}
 
-                                <div className="mt-6 bg-white rounded-xl p-6 border-2 border-shortcut-navy-blue shadow-md">
-                                  <h4 className="text-xl font-extrabold mb-4 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
-                                      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Appointments</div>
-                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments || 0}</div>
+                                <div className="mt-8 bg-white rounded-xl p-8 border-2 border-shortcut-navy-blue shadow-md">
+                                  <h4 className="text-2xl font-extrabold mb-6 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid grid-cols-2 gap-6">
+                                    <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
+                                      <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Appointments</div>
+                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments || 0}</div>
                                     </div>
-                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
-                                      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
-                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                    <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
+                                      <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Cost</div>
+                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -1747,31 +2013,32 @@ export const StandaloneProposalViewer: React.FC = () => {
               </div>
               
           {/* Summary Sections - Mobile: shown after services, Desktop: right sidebar */}
-          <div className="lg:sticky lg:top-24 space-y-8 self-start order-2 lg:order-2">
+          <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-8 self-start order-2 lg:order-2">
             {/* Service Image Slider - Hidden on mobile */}
             {uniqueServiceTypes.length > 0 && (
               <div className="hidden lg:block">
-                <div className="card-large overflow-hidden p-0">
+                <div className="card-large overflow-hidden p-0 shadow-xl">
                   <div className="relative flex flex-col">
-                    <div className="w-full aspect-[4/3] relative overflow-hidden">
+                    <div className="w-full aspect-[4/3] relative overflow-hidden bg-gradient-to-br from-shortcut-teal/20 to-shortcut-navy-blue/20">
                     <img
                       src={getServiceImagePath(uniqueServiceTypes[currentServiceImageIndex])}
                       alt={`${getServiceDisplayName(uniqueServiceTypes[currentServiceImageIndex])} service`}
-                      className="w-full h-full object-cover transition-opacity duration-500"
+                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                       onError={(e) => {
                         console.error('Service image failed to load:', (e.target as HTMLImageElement).src);
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-shortcut-navy-blue/40 to-transparent"></div>
                     {uniqueServiceTypes.length > 1 && (
                       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                         {uniqueServiceTypes.map((_, index) => (
                           <button
                             key={index}
                             onClick={() => setCurrentServiceImageIndex(index)}
-                            className={`w-2 h-2 rounded-full transition-colors ${
+                            className={`w-2.5 h-2.5 rounded-full transition-colors ${
                               index === currentServiceImageIndex 
-                                ? 'bg-white' 
+                                ? 'bg-white shadow-lg' 
                                 : 'bg-white/50 hover:bg-white/75'
                             }`}
                           />
@@ -1779,19 +2046,58 @@ export const StandaloneProposalViewer: React.FC = () => {
                       </div>
                     )}
                   </div>
-                    <div className="p-4 bg-shortcut-navy-blue rounded-b-2xl">
-                    <h3 className="text-lg font-bold text-white text-center">
-                      {uniqueServiceTypes.length === 1 
-                        ? getServiceDisplayName(uniqueServiceTypes[0])
-                        : `${uniqueServiceTypes.length} Services`
-                      }
-                    </h3>
+                    <div className="p-6 bg-gradient-to-r from-shortcut-navy-blue to-shortcut-dark-blue rounded-b-2xl">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-2 h-2 rounded-full bg-shortcut-teal animate-pulse"></div>
+                      <h3 className="text-lg font-extrabold text-white text-center">
+                        {uniqueServiceTypes.length === 1 
+                          ? getServiceDisplayName(uniqueServiceTypes[0])
+                          : `${uniqueServiceTypes.length} Services`
+                        }
+                      </h3>
+                    </div>
                     {uniqueServiceTypes.length > 1 && (
-                      <p className="text-white/90 text-sm text-center mt-1">
+                      <p className="text-white/90 text-sm text-center mt-2">
                         {uniqueServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
                       </p>
                     )}
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Courtney's Bio - Show if mindfulness service is present */}
+            {uniqueServiceTypes.includes('mindfulness') && (
+              <div className="card-large bg-gradient-to-br from-white to-neutral-light-gray overflow-hidden">
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-shortcut-teal/20 to-shortcut-teal/10 flex items-center justify-center border-2 border-shortcut-teal border-opacity-30">
+                    <User className="w-6 h-6 text-shortcut-blue" />
+                  </div>
+                  <h2 className="text-xl font-extrabold text-shortcut-navy-blue">Facilitator</h2>
+                </div>
+                
+                {/* Courtney's Image */}
+                <div className="mb-6 -mx-6 -mt-2">
+                  <img
+                    src="/Holiday Proposal/Our Services/Mindfulness/Courtney Frame 2x.webp"
+                    alt="Courtney Schulnick - Mindfulness Leader"
+                    className="w-full h-auto object-cover"
+                    onError={(e) => {
+                      console.error('Courtney image failed to load');
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <p className="text-xl font-extrabold text-shortcut-navy-blue">
+                    Courtney Schulnick
+                  </p>
+                  <div className="pt-4 border-t-2 border-gray-200">
+                    <p className="text-base text-text-dark leading-relaxed font-medium">
+                      Courtney Schulnick, an attorney with two decades of experience, now leads mindfulness programs at Shortcut. With extensive training from the Myrna Brind Center for Mindfulness, she brings a unique perspective to corporate wellness. Her workshops help employees achieve balance and vitality, transforming workplace well-being and productivity.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1807,31 +2113,41 @@ export const StandaloneProposalViewer: React.FC = () => {
             ))}
 
             {/* Event Summary - Dark Blue */}
-            <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
-              <h2 className="text-xl font-extrabold mb-6 text-white">Event Summary</h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-3 border-b border-white/20">
-                  <span className="font-semibold">Total Appointments:</span>
-                  <span className="font-bold text-lg">{displayData.summary?.totalAppointments}</span>
+            <div className="bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue text-white rounded-2xl shadow-xl border-2 border-shortcut-teal border-opacity-30 p-8">
+              <div className="flex items-center space-x-3 mb-8">
+                <div className="w-10 h-10 rounded-full bg-shortcut-teal bg-opacity-20 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-white" />
                 </div>
-                <div className="flex justify-between items-center py-3">
-                  <span className="font-semibold">Total Event Cost:</span>
-                  <span className="font-bold text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
+              </div>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-white/90 text-lg">Total Appointments:</span>
+                  <span className="font-extrabold text-2xl text-white">{displayData.summary?.totalAppointments || 0}</span>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-teal">
+                  <span className="font-extrabold text-lg text-white">Total Event Cost:</span>
+                  <span className="font-extrabold text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
               </div>
             </div>
 
             {/* Notes Section */}
             <div className="card-large">
-              <div className="mb-4">
-                <h2 className="text-xl font-extrabold text-shortcut-blue mb-3">Notes</h2>
+              <div className="mb-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-shortcut-teal bg-opacity-10 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-shortcut-blue" />
+                  </div>
+                  <h2 className="text-xl font-extrabold text-shortcut-blue">Notes</h2>
+                </div>
                 {notes && (
                   <Button
                     onClick={handleSaveNotes}
                     disabled={isSavingNotes}
                     variant="primary"
                     icon={<Save size={18} />}
-                    className="w-full sm:w-auto"
+                    className="w-full"
                   >
                     {isSavingNotes ? 'Saving...' : 'Save Notes'}
                   </Button>
@@ -1841,7 +2157,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any notes or comments about the proposal here..."
-                className="w-full min-h-[120px] p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y font-medium"
+                className="w-full min-h-[140px] p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y font-medium text-base leading-relaxed transition-all"
               />
             </div>
           </div>
@@ -2101,6 +2417,8 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
         )}
         </div>
+        </>
+        )}
       </main>
 
       {/* Approval Confirmation Modal */}

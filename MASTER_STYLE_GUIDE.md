@@ -1041,4 +1041,3 @@ This is a **CRITICAL** design rule that must never be violated. Blue text on blu
 - ✅ `bg-white text-shortcut-blue` (blue text on white)
 - ❌ `bg-shortcut-light-blue text-shortcut-navy-blue` (blue on blue - WRONG)
 - ❌ `bg-shortcut-navy-blue bg-opacity-10 text-shortcut-navy-blue` (blue on blue - WRONG)
-

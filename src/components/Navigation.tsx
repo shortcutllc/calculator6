@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogIn, LogOut, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users, Handshake, Eye, Gift, Smartphone, Brain, QrCode } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -45,7 +45,7 @@ export const Navigation: React.FC = () => {
 
   return (
     <nav className="bg-white py-4 px-4 sm:px-8 shadow-md relative rounded-b-3xl z-[100]">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+      <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
         {/* Logo on the left */}
         <button 
           onClick={() => navigate('/')}
@@ -59,7 +59,7 @@ export const Navigation: React.FC = () => {
         </button>
 
         {/* Navigation items on the right */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
           {user && (
             <>
               {/* Proposals Dropdown */}
@@ -127,7 +127,7 @@ export const Navigation: React.FC = () => {
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
                     >
-                      <span style={{ fontSize: '16px' }}>🤝</span>
+                      <Handshake size={16} className="text-text-dark-60" />
                       Corporate Partnerships
                     </button>
                     <button
@@ -137,7 +137,7 @@ export const Navigation: React.FC = () => {
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
                     >
-                      <span style={{ fontSize: '16px' }}>👁️</span>
+                      <Eye size={16} className="text-text-dark-60" />
                       View Generic Page
                     </button>
                     <button
@@ -147,7 +147,7 @@ export const Navigation: React.FC = () => {
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
                     >
-                      <span style={{ fontSize: '16px' }}>🎄</span>
+                      <Gift size={16} className="text-text-dark-60" />
                       Holiday
                     </button>
                     <button
@@ -157,12 +157,15 @@ export const Navigation: React.FC = () => {
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
                     >
-                      <span style={{ fontSize: '16px' }}>📱</span>
+                      <Smartphone size={16} className="text-text-dark-60" />
                       Social
                     </button>
                   </div>
                 )}
               </div>
+
+              {/* Visual Separator */}
+              <div className="hidden sm:block h-6 w-px bg-gray-300 mx-1" />
 
               {/* Calculator - Direct Button */}
               <Button 
@@ -182,6 +185,16 @@ export const Navigation: React.FC = () => {
                 className="hidden sm:flex"
               >
                 Headshots
+              </Button>
+
+              {/* Mindfulness Programs - Direct Button */}
+              <Button 
+                onClick={() => navigate('/mindfulness-programs')} 
+                variant="secondary"
+                icon={<Brain size={18} />}
+                className="hidden sm:flex"
+              >
+                Mindfulness
               </Button>
 
               {/* Users - Only visible to master account */}
@@ -276,7 +289,7 @@ export const Navigation: React.FC = () => {
                         }}
                         className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
                       >
-                        <span style={{ fontSize: '16px' }}>🤝</span>
+                        <Handshake size={16} className="text-text-dark-60" />
                         Corporate Partnerships
                       </button>
                       <button
@@ -286,7 +299,7 @@ export const Navigation: React.FC = () => {
                         }}
                         className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
                       >
-                        <span style={{ fontSize: '16px' }}>👁️</span>
+                        <Eye size={16} className="text-text-dark-60" />
                         View Generic Page
                       </button>
                       <button
@@ -296,7 +309,7 @@ export const Navigation: React.FC = () => {
                         }}
                         className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
                       >
-                        <span style={{ fontSize: '16px' }}>🎄</span>
+                        <Gift size={16} className="text-text-dark-60" />
                         Holiday
                       </button>
                       <button
@@ -306,7 +319,7 @@ export const Navigation: React.FC = () => {
                         }}
                         className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
                       >
-                        <span style={{ fontSize: '16px' }}>📱</span>
+                        <Smartphone size={16} className="text-text-dark-60" />
                         Social
                       </button>
                     </div>
@@ -338,6 +351,16 @@ export const Navigation: React.FC = () => {
                       </button>
                       <button
                         onClick={() => {
+                          navigate('/mindfulness-programs');
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                      >
+                        <Brain size={16} className="text-text-dark-60" />
+                        Mindfulness Programs
+                      </button>
+                      <button
+                        onClick={() => {
                           navigate('/brochure');
                           setIsMenuOpen(false);
                         }}
@@ -353,7 +376,7 @@ export const Navigation: React.FC = () => {
                         }}
                         className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
                       >
-                        <span style={{ fontSize: '14px' }}>📋</span>
+                        <QrCode size={16} className="text-text-dark-60" />
                         QR Codes
                       </button>
                     </div>

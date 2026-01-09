@@ -90,7 +90,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
       <textarea
         value={fieldValue}
         onChange={handleChange}
-        className={`w-full min-h-[100px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
+        className={`w-full min-h-[100px] px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${className}`}
         rows={3}
       />
     );
@@ -102,7 +102,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
         type="date"
         value={typeof fieldValue === 'string' ? fieldValue : ''}
         onChange={handleChange}
-        className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
+        className={`w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${className}`}
       />
     );
   }
@@ -114,7 +114,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
         type={type}
         value={typeof fieldValue === 'number' ? String(fieldValue) : fieldValue}
         onChange={handleChange}
-        className={`w-32 px-4 py-2 text-right border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent ${className}`}
+        className={`w-32 px-4 py-3 text-right border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${className}`}
         min={type === 'number' ? 0 : undefined}
         step={type === 'number' ? 'any' : undefined}
       />

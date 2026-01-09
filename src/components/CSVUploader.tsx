@@ -2,23 +2,34 @@ import React, { useState, useRef } from 'react';
 import { X, Upload, FileText, Users, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from './Button';
 import { CSVEmployeeData } from '../types/headshot';
+import { CSVParticipantData } from '../types/mindfulnessProgram';
 import { HeadshotService } from '../services/HeadshotService';
+import { MindfulnessProgramService } from '../services/MindfulnessProgramService';
+
+type CSVData = CSVEmployeeData | CSVParticipantData;
 
 interface CSVUploaderProps {
   onClose: () => void;
-  onUpload: (employees: CSVEmployeeData[]) => void;
+  onUpload: (data: CSVData[]) => void;
+  type?: 'headshot' | 'mindfulness';
+  label?: string; // e.g., "Employees" or "Participants"
 }
 
 export const CSVUploader: React.FC<CSVUploaderProps> = ({
   onClose,
-  onUpload
+  onUpload,
+  type = 'headshot',
+  label
 }) => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvContent, setCsvContent] = useState<string>('');
-  const [parsedEmployees, setParsedEmployees] = useState<CSVEmployeeData[]>([]);
+  const [parsedData, setParsedData] = useState<CSVData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const itemLabel = label || (type === 'mindfulness' ? 'participants' : 'employees');
+  const ItemLabel = itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -39,10 +50,12 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
       setCsvContent(content);
       
       try {
-        const employees = HeadshotService.parseCSV(content);
-        setParsedEmployees(employees);
-        if (employees.length === 0) {
-          setError('No valid employee data found in CSV');
+        const parsed = type === 'mindfulness' 
+          ? MindfulnessProgramService.parseCSV(content)
+          : HeadshotService.parseCSV(content);
+        setParsedData(parsed);
+        if (parsed.length === 0) {
+          setError(`No valid ${itemLabel} data found in CSV`);
         }
       } catch (err) {
         setError('Failed to parse CSV file');
@@ -64,10 +77,12 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
         setCsvContent(content);
         
         try {
-          const employees = HeadshotService.parseCSV(content);
-          setParsedEmployees(employees);
-          if (employees.length === 0) {
-            setError('No valid employee data found in CSV');
+          const parsed = type === 'mindfulness'
+            ? MindfulnessProgramService.parseCSV(content)
+            : HeadshotService.parseCSV(content);
+          setParsedData(parsed);
+          if (parsed.length === 0) {
+            setError(`No valid ${itemLabel} data found in CSV`);
           }
         } catch (err) {
           setError('Failed to parse CSV file');
@@ -84,16 +99,16 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
   };
 
   const handleUpload = async () => {
-    if (parsedEmployees.length === 0) {
-      setError('No employees to upload');
+    if (parsedData.length === 0) {
+      setError(`No ${itemLabel} to upload`);
       return;
     }
 
     setLoading(true);
     try {
-      await onUpload(parsedEmployees);
+      await onUpload(parsedData);
     } catch (err) {
-      setError('Failed to upload employees');
+      setError(`Failed to upload ${itemLabel}`);
     } finally {
       setLoading(false);
     }
@@ -105,7 +120,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'employee_template.csv';
+    a.download = `${itemLabel}_template.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -115,7 +130,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Import Employees from CSV</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Import {ItemLabel} from CSV</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -130,7 +145,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
             <h3 className="font-medium text-blue-900 mb-2">CSV Format Requirements</h3>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• First row should contain headers: name, email, phone</li>
-              <li>• Each row represents one employee</li>
+              <li>• Each row represents one {itemLabel.slice(0, -1)}</li>
               <li>• Name and email are required, phone is optional</li>
               <li>• Use commas to separate values</li>
             </ul>
@@ -158,7 +173,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
                 <div>
                   <p className="text-lg font-medium text-gray-900">{csvFile.name}</p>
                   <p className="text-sm text-gray-600">
-                    {parsedEmployees.length} employees found
+                    {parsedData.length} {itemLabel} found
                   </p>
                 </div>
                 <Button
@@ -166,7 +181,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
                   onClick={() => {
                     setCsvFile(null);
                     setCsvContent('');
-                    setParsedEmployees([]);
+                    setParsedData([]);
                     setError('');
                     if (fileInputRef.current) {
                       fileInputRef.current.value = '';
@@ -184,7 +199,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
                     Drop your CSV file here, or click to browse
                   </p>
                   <p className="text-sm text-gray-600">
-                    Supports CSV files with employee data
+                    Supports CSV files with {itemLabel} data
                   </p>
                 </div>
                 <Button
@@ -218,28 +233,28 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
             <div className="space-y-4">
               <h3 className="font-medium text-gray-900 flex items-center space-x-2">
                 <Users className="w-5 h-5" />
-                <span>Preview ({parsedEmployees.length} employees)</span>
+                <span>Preview ({parsedData.length} {itemLabel})</span>
               </h3>
-              
+
               <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
                 <div className="space-y-2">
-                  {parsedEmployees.slice(0, 10).map((employee, index) => (
+                  {parsedData.slice(0, 10).map((item, index) => (
                     <div key={index} className="flex items-center space-x-4 text-sm">
                       <div className="w-8 h-8 bg-shortcut-blue text-white rounded-full flex items-center justify-center text-xs font-medium">
                         {index + 1}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">{employee.name}</div>
-                        <div className="text-gray-600">{employee.email}</div>
-                        {employee.phone && (
-                          <div className="text-gray-500">{employee.phone}</div>
+                        <div className="font-medium text-gray-900">{item.name}</div>
+                        <div className="text-gray-600">{item.email}</div>
+                        {item.phone && (
+                          <div className="text-gray-500">{item.phone}</div>
                         )}
                       </div>
                     </div>
                   ))}
-                  {parsedEmployees.length > 10 && (
+                  {parsedData.length > 10 && (
                     <div className="text-sm text-gray-500 text-center py-2">
-                      ... and {parsedEmployees.length - 10} more employees
+                      ... and {parsedData.length - 10} more {itemLabel}
                     </div>
                   )}
                 </div>
@@ -259,10 +274,10 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={parsedEmployees.length === 0 || loading}
+              disabled={parsedData.length === 0 || loading}
               className="flex-1"
             >
-              {loading ? 'Uploading...' : `Upload ${parsedEmployees.length} Employees`}
+              {loading ? 'Uploading...' : `Upload ${parsedData.length} ${ItemLabel}`}
             </Button>
           </div>
         </div>

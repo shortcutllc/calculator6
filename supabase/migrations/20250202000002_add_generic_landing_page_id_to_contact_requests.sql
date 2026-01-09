@@ -29,3 +29,6 @@ CREATE POLICY "Users can update contact requests for their pages" ON contact_req
       SELECT id FROM generic_landing_pages WHERE user_id = auth.uid()
     )
   );
+
+
+

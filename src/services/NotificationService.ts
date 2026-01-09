@@ -2,13 +2,20 @@ import { supabase } from '../lib/supabaseClient';
 import { config } from '../config';
 
 export interface EmailNotificationRequest {
-  type: 'gallery_ready' | 'final_photo_ready';
-  employeeName: string;
-  employeeEmail: string;
-  galleryUrl: string;
-  eventName: string;
+  type: 'gallery_ready' | 'final_photo_ready' | 'program_enrollment' | 'program_document_uploaded' | 'program_session_reminder';
+  employeeName?: string;
+  participantName?: string;
+  employeeEmail?: string;
+  participantEmail?: string;
+  galleryUrl?: string;
+  folderUrl?: string;
+  eventName?: string;
+  programName?: string;
   clientLogoUrl?: string;
   selectionDeadline?: string;
+  sessionDate?: string;
+  sessionTime?: string;
+  documentName?: string;
 }
 
 export class NotificationService {
@@ -317,6 +324,214 @@ export class NotificationService {
       console.log(`Final photo notification sent to ${gallery.employee_name}`);
     } catch (error) {
       console.error('Error sending final photo notification:', error);
+      throw error;
+    }
+  }
+
+  // Mindfulness Program Notifications
+  static async sendProgramEnrollmentNotification(
+    participantName: string,
+    participantEmail: string,
+    folderUrl: string,
+    programName: string,
+    folderId?: string
+  ): Promise<void> {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(participantEmail)) {
+      throw new Error(`Invalid email address: ${participantEmail}`);
+    }
+
+    // Get program data if folderId is provided
+    let actualProgramName = programName;
+    let clientLogoUrl: string | undefined;
+
+    if (folderId) {
+      try {
+        const { data: folder, error } = await supabase
+          .from('participant_folders')
+          .select('program_id')
+          .eq('id', folderId)
+          .single();
+
+        if (!error && folder) {
+          const { data: program, error: programError } = await supabase
+            .from('mindfulness_programs')
+            .select('program_name')
+            .eq('id', folder.program_id)
+            .single();
+
+          if (!programError && program) {
+            actualProgramName = program.program_name;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching program data:', error);
+      }
+    }
+
+    const request: EmailNotificationRequest = {
+      type: 'program_enrollment',
+      participantName,
+      participantEmail,
+      folderUrl,
+      programName: actualProgramName,
+      clientLogoUrl
+    };
+
+    await this.sendEmailNotification(request);
+
+    // Log notification in database
+    if (folderId) {
+      try {
+        await supabase
+          .from('program_notifications')
+          .insert({
+            folder_id: folderId,
+            notification_type: 'email',
+            email_address: participantEmail,
+            message_content: `Program enrollment notification sent to ${participantName}`,
+            status: 'sent'
+          });
+      } catch (error) {
+        console.error('Error logging notification:', error);
+      }
+    }
+  }
+
+  static async sendProgramDocumentNotification(
+    participantName: string,
+    participantEmail: string,
+    folderUrl: string,
+    programName: string,
+    documentName: string,
+    folderId?: string
+  ): Promise<void> {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(participantEmail)) {
+      throw new Error(`Invalid email address: ${participantEmail}`);
+    }
+
+    const request: EmailNotificationRequest = {
+      type: 'program_document_uploaded',
+      participantName,
+      participantEmail,
+      folderUrl,
+      programName,
+      documentName
+    };
+
+    await this.sendEmailNotification(request);
+
+    // Log notification in database
+    if (folderId) {
+      try {
+        await supabase
+          .from('program_notifications')
+          .insert({
+            folder_id: folderId,
+            notification_type: 'document_uploaded',
+            email_address: participantEmail,
+            message_content: `Document "${documentName}" uploaded notification sent to ${participantName}`,
+            status: 'sent'
+          });
+      } catch (error) {
+        console.error('Error logging notification:', error);
+      }
+    }
+  }
+
+  static async sendProgramSessionReminder(
+    participantName: string,
+    participantEmail: string,
+    programName: string,
+    sessionDate: string,
+    sessionTime?: string,
+    sessionId?: string,
+    folderId?: string
+  ): Promise<void> {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(participantEmail)) {
+      throw new Error(`Invalid email address: ${participantEmail}`);
+    }
+
+    const request: EmailNotificationRequest = {
+      type: 'program_session_reminder',
+      participantName,
+      participantEmail,
+      programName,
+      sessionDate,
+      sessionTime
+    };
+
+    await this.sendEmailNotification(request);
+
+    // Log notification in database
+    if (folderId || sessionId) {
+      try {
+        await supabase
+          .from('program_notifications')
+          .insert({
+            folder_id: folderId || undefined,
+            session_id: sessionId || undefined,
+            notification_type: 'email',
+            email_address: participantEmail,
+            message_content: `Session reminder sent to ${participantName} for session on ${sessionDate}`,
+            status: 'sent'
+          });
+      } catch (error) {
+        console.error('Error logging notification:', error);
+      }
+    }
+  }
+
+  // Send notifications to all participants in a program
+  static async sendBulkProgramEnrollmentNotifications(programId: string): Promise<void> {
+    try {
+      console.log('Starting bulk enrollment notification send for program:', programId);
+
+      const { data: folders, error } = await supabase
+        .from('participant_folders')
+        .select(`
+          *,
+          program:mindfulness_programs(*)
+        `)
+        .eq('program_id', programId);
+
+      if (error) {
+        console.error('Error fetching folders:', error);
+        throw error;
+      }
+
+      if (!folders || folders.length === 0) {
+        throw new Error('No participant folders found for this program');
+      }
+
+      const programName = folders[0].program?.program_name || 'Mindfulness Program';
+      console.log('Program name:', programName);
+
+      const notificationPromises = folders.map(async (folder) => {
+        const folderUrl = `${window.location.origin}/participant-folder/${folder.unique_token}`;
+        console.log(`Preparing enrollment notification for ${folder.participant_name} (${folder.email})`);
+
+        try {
+          await this.sendProgramEnrollmentNotification(
+            folder.participant_name,
+            folder.email,
+            folderUrl,
+            programName,
+            folder.id
+          );
+          console.log(`✅ Enrollment notification sent to ${folder.participant_name}`);
+        } catch (error) {
+          console.error(`❌ Failed to send notification to ${folder.participant_name}:`, error);
+        }
+      });
+
+      await Promise.all(notificationPromises);
+      console.log('Bulk enrollment notification process completed');
+    } catch (error) {
+      console.error('Error sending bulk enrollment notifications:', error);
       throw error;
     }
   }

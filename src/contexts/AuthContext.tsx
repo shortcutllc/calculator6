@@ -42,24 +42,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Enhanced session initialization with retry mechanism
   useEffect(() => {
     const initAuth = async () => {
+      console.log('[AuthContext] Starting auth initialization...');
       try {
         // Use Promise.race with timeout to prevent hanging
         const sessionPromise = retryWithBackoff(
-          () => supabase.auth.getSession()
+          () => {
+            console.log('[AuthContext] Attempting to get session...');
+            return supabase.auth.getSession();
+          }
         );
         
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => {
+            console.warn('[AuthContext] Auth check timed out after 5 seconds');
+            reject(new Error('Auth check timeout'));
+          }, 5000)
         );
 
         try {
-          const { data: { session }, error: sessionError } = await Promise.race([
+          const result = await Promise.race([
             sessionPromise,
             timeoutPromise
-          ]) as { data: { session: any }, error: any };
+          ]);
+          
+          console.log('[AuthContext] Session result received:', { hasSession: !!result?.data?.session, hasError: !!result?.error });
+          const { data: { session }, error: sessionError } = result;
 
-        if (sessionError) {
-          console.error('Session retrieval error:', sessionError);
+          if (sessionError) {
+            console.error('Session retrieval error:', sessionError);
             // Clear invalid session
             setUser(null);
             // Clear any stale session data
@@ -110,11 +120,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           setUser(null);
         } finally {
+          console.log('[AuthContext] Auth initialization complete, setting loading to false');
           setLoading(false);
           setInitialized(true);
         }
       } catch (err) {
-        console.error('Error initializing auth:', err);
+        console.error('[AuthContext] Outer error initializing auth:', err);
         setLoading(false);
         setInitialized(true);
         setUser(null);

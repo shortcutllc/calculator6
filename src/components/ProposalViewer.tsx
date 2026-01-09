@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar, Pencil, Briefcase, Plus, Trash2 } from 'lucide-react';
+import { Edit, Save, Eye, Share2, ArrowLeft, Check, X, History as HistoryIcon, Globe, Copy, CheckCircle2, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Send, AlertCircle, Clock, CheckCircle, XCircle, User, Mail, Calendar, Pencil, Briefcase, Plus, Trash2, Brain } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useAuth } from '../contexts/AuthContext';
 import EditableField from './EditableField';
@@ -76,14 +76,14 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 40
   },
   mindfulness: {
-    appTime: 60,
+    appTime: 40,
     totalHours: 1,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 60,
+    classLength: 40,
     participants: 'unlimited',
     fixedPrice: 1350,
     mindfulnessType: 'intro'
@@ -189,11 +189,11 @@ const getMindfulnessDescription = (service: any): string => {
     return "Mindful movement is a wonderful way to connect more fully with the present moment by resting attention on sensations that arise within the body moment to moment.";
   }
   
-  const classLength = service.classLength || 60;
+  const classLength = service.classLength || 40;
   const participants = service.participants || 'unlimited';
   
-  if (classLength === 60) {
-    return "In just one 60 minute workshop your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.";
+  if (classLength === 40 || classLength === 60) {
+    return "In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.";
   } else if (classLength === 30) {
     return "Our 30-minute drop-in sessions offer a quick and easy way to step out of the \"doing mode\" and into a space of rest and rejuvenation.";
   }
@@ -795,10 +795,10 @@ const ProposalViewer: React.FC = () => {
 
       const currentGroupId = currentProposal?.proposal_group_id || currentProposal?.id;
 
-      // Fetch all proposals except the current one
+      // Fetch all proposals except the current one (both regular and mindfulness)
       const { data: allProposals, error } = await supabase
         .from('proposals')
-        .select('id, client_name, created_at, proposal_group_id, option_name, status')
+        .select('id, client_name, created_at, proposal_group_id, option_name, status, proposal_type')
         .neq('id', id)
         .order('created_at', { ascending: false });
 
@@ -1178,8 +1178,89 @@ const ProposalViewer: React.FC = () => {
       if (!proposal) {
         throw new Error('Proposal not found');
       }
+
+      // Check if this is a mindfulness proposal - if so, redirect to mindfulness viewer
+      if (proposal.proposal_type === 'mindfulness-program' || proposal.data?.mindfulnessProgram) {
+        navigate(`/proposal/${id}${location.search}`, { replace: true });
+        return;
+      }
+
+      // Ensure data has required structure for regular proposals
+      if (!proposal.data || !proposal.data.services) {
+        throw new Error('Invalid proposal data structure');
+      }
       
       const calculatedData = recalculateServiceTotals(proposal.data);
+      
+      // Ensure classLength and mindfulnessType are set correctly for mindfulness services
+      if (calculatedData.services) {
+        Object.values(calculatedData.services).forEach((locationData: any) => {
+          Object.values(locationData).forEach((dateData: any) => {
+            dateData.services?.forEach((service: any) => {
+              if (service.serviceType === 'mindfulness') {
+                // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
+                let targetClassLength = 40;
+                let targetFixedPrice = 1350;
+                let targetMindfulnessType = 'intro';
+                
+                // If mindfulnessType exists, use it to determine classLength
+                if (service.mindfulnessType === 'drop-in') {
+                  targetClassLength = 30;
+                  targetFixedPrice = 1125;
+                  targetMindfulnessType = 'drop-in';
+                } else if (service.mindfulnessType === 'mindful-movement') {
+                  targetClassLength = 60;
+                  targetFixedPrice = 1350;
+                  targetMindfulnessType = 'mindful-movement';
+                } else if (service.mindfulnessType === 'intro') {
+                  targetClassLength = 40;
+                  targetFixedPrice = 1350;
+                  targetMindfulnessType = 'intro';
+                } else if (service.classLength) {
+                  // No mindfulnessType, infer from classLength
+                  if (service.classLength === 30) {
+                    targetClassLength = 30;
+                    targetFixedPrice = 1125;
+                    targetMindfulnessType = 'drop-in';
+                  } else if (service.classLength === 60) {
+                    targetClassLength = 60;
+                    targetFixedPrice = 1350;
+                    targetMindfulnessType = 'mindful-movement';
+                  } else {
+                    // Default to intro (40 minutes)
+                    targetClassLength = 40;
+                    targetFixedPrice = 1350;
+                    targetMindfulnessType = 'intro';
+                  }
+                } else {
+                  // No mindfulnessType and no classLength, default to intro
+                  targetClassLength = 40;
+                  targetFixedPrice = 1350;
+                  targetMindfulnessType = 'intro';
+                }
+                
+                // Apply the determined values
+                service.classLength = targetClassLength;
+                service.mindfulnessType = targetMindfulnessType;
+                service.fixedPrice = targetFixedPrice;
+              }
+            });
+          });
+        });
+      }
+      
+      // Clean up officeLocations to only include addresses for current locations
+      if (calculatedData.officeLocations && calculatedData.locations) {
+        const cleanedOfficeLocations: { [key: string]: string } = {};
+        calculatedData.locations.forEach((location: string) => {
+          if (calculatedData.officeLocations?.[location]) {
+            cleanedOfficeLocations[location] = calculatedData.officeLocations[location];
+          }
+        });
+        calculatedData.officeLocations = Object.keys(cleanedOfficeLocations).length > 0 
+          ? cleanedOfficeLocations 
+          : undefined;
+      }
       
       // Load pricing options from the database
       if (proposal.pricingOptions && proposal.selectedOptions) {
@@ -1268,7 +1349,7 @@ const ProposalViewer: React.FC = () => {
       // Set service-specific fields based on type
       massageType: newServiceType === 'massage' ? (currentService.massageType || 'massage') : undefined,
       mindfulnessType: newServiceType === 'mindfulness' ? (currentService.mindfulnessType || 'intro') : undefined,
-      classLength: newServiceType === 'mindfulness' ? (currentService.classLength || 60) : undefined,
+      classLength: newServiceType === 'mindfulness' ? (currentService.classLength || 40) : undefined,
       participants: newServiceType === 'mindfulness' ? (currentService.participants || 'unlimited') : undefined,
       fixedPrice: newServiceType === 'mindfulness' ? (currentService.fixedPrice || 1350) : undefined
     };
@@ -1294,14 +1375,17 @@ const ProposalViewer: React.FC = () => {
     if (!editedData || !isEditing) return;
     
     const currentService = editedData.services[location][date].services[serviceIndex];
-    let classLength = 60;
+    let classLength = 40;
     let fixedPrice = 1350;
     
     if (newMindfulnessType === 'drop-in') {
       classLength = 30;
       fixedPrice = 1125;
+    } else if (newMindfulnessType === 'intro') {
+      classLength = 40;
+      fixedPrice = 1350;
     } else {
-      classLength = 60;
+      classLength = 60; // mindful-movement
       fixedPrice = 1350;
     }
     
@@ -1394,6 +1478,28 @@ const ProposalViewer: React.FC = () => {
     // If we're changing a service parameter, recalculate service totals
     if (path.length >= 5 && path[0] === 'services' && path[3] === 'services') {
       const service = target;
+      
+      // If we're changing classLength for a mindfulness service, update mindfulnessType to match
+      if (path[path.length - 1] === 'classLength' && service.serviceType === 'mindfulness') {
+        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 40 : value;
+        let mindfulnessType = 'intro';
+        let fixedPrice = 1350;
+        
+        if (classLengthValue === 30) {
+          mindfulnessType = 'drop-in';
+          fixedPrice = 1125;
+        } else if (classLengthValue === 60) {
+          mindfulnessType = 'mindful-movement';
+          fixedPrice = 1350;
+        } else {
+          // Default to intro for 40 or any other value
+          mindfulnessType = 'intro';
+          fixedPrice = 1350;
+        }
+        
+        service.mindfulnessType = mindfulnessType;
+        service.fixedPrice = fixedPrice;
+      }
       
       if (service.pricingOptions && service.pricingOptions.length > 0) {
         // If we're editing a specific pricing option parameter
@@ -1492,9 +1598,19 @@ const ProposalViewer: React.FC = () => {
         }
       } else {
         // No pricing options, recalculate normally
-        const { totalAppointments, serviceCost } = calculateServiceResults(service);
+        // Make sure we use the updated service object with the new discountPercent
+        const serviceToCalculate = { ...service };
+        // If we just changed discountPercent, make sure it's set
+        if (path[path.length - 1] === 'discountPercent') {
+          serviceToCalculate.discountPercent = value;
+        }
+        const { totalAppointments, serviceCost } = calculateServiceResults(serviceToCalculate);
         service.totalAppointments = totalAppointments;
         service.serviceCost = serviceCost;
+        // Ensure discountPercent is set on the service
+        if (path[path.length - 1] === 'discountPercent') {
+          service.discountPercent = value;
+        }
       }
     }
     
@@ -1510,6 +1626,19 @@ const ProposalViewer: React.FC = () => {
     try {
       setIsSavingChanges(true);
       const recalculatedData = recalculateServiceTotals(editedData);
+      
+      // Clean up officeLocations to only include addresses for current locations
+      if (recalculatedData.officeLocations && recalculatedData.locations) {
+        const cleanedOfficeLocations: { [key: string]: string } = {};
+        recalculatedData.locations.forEach((location: string) => {
+          if (recalculatedData.officeLocations?.[location]) {
+            cleanedOfficeLocations[location] = recalculatedData.officeLocations[location];
+          }
+        });
+        recalculatedData.officeLocations = Object.keys(cleanedOfficeLocations).length > 0 
+          ? cleanedOfficeLocations 
+          : undefined;
+      }
       
       // Extract pricing options and selected options from the data
       const pricingOptions: any = {};
@@ -1722,6 +1851,20 @@ The Shortcut Team`);
           >
             Return Home
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety check: Don't render if this is a mindfulness proposal or missing required data
+  if (!displayData || displayData.mindfulnessProgram || !displayData.services) {
+    return (
+      <div className="min-h-screen bg-neutral-light-gray flex items-center justify-center">
+        <div className="card-medium text-center">
+          <div className="text-shortcut-blue mb-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shortcut-navy-blue mx-auto"></div>
+          </div>
+          <p className="text-lg text-text-dark-60">Redirecting to correct proposal viewer...</p>
         </div>
       </div>
     );
@@ -2083,15 +2226,33 @@ The Shortcut Team`);
             <div className="relative">
               <input
                 type="text"
-                                  value={editedData?.officeLocations?.[location] || address}
+                                  value={editedData?.officeLocations?.[location] ?? (displayData.officeLocations?.[location] ?? displayData.officeLocation ?? '')}
                                   onChange={(e) => {
-                                    // Initialize officeLocations if it doesn't exist
-                                    const currentOfficeLocations = editedData?.officeLocations || displayData.officeLocations || {};
-                                    const updatedOfficeLocations = {
-                                      ...currentOfficeLocations,
-                                      [location]: e.target.value
-                                    };
-                                    handleFieldChange(['officeLocations'], updatedOfficeLocations);
+                                    // Get current locations from editedData or displayData
+                                    const currentLocations = editedData?.locations || displayData.locations || [];
+                                    // Build officeLocations object with only addresses for current locations
+                                    const currentOfficeLocations: { [key: string]: string } = {};
+                                    
+                                    // For each current location, get its address (prioritize editedData, then displayData)
+                                    currentLocations.forEach((loc: string) => {
+                                      // Only check displayData if this location is in displayData.locations
+                                      let address: string | undefined;
+                                      if (editedData?.officeLocations?.[loc]) {
+                                        address = editedData.officeLocations[loc];
+                                      } else if (displayData.locations?.includes(loc) && displayData.officeLocations?.[loc]) {
+                                        // Only use displayData if location is in current proposal
+                                        address = displayData.officeLocations[loc];
+                                      }
+                                      
+                                      if (address) {
+                                        currentOfficeLocations[loc] = address;
+                                      }
+                                    });
+                                    
+                                    // Update the address for the location being edited
+                                    currentOfficeLocations[location] = e.target.value;
+                                    
+                                    handleFieldChange(['officeLocations'], currentOfficeLocations);
                                   }}
                                   className="w-full px-3 py-2 pr-20 border-2 border-shortcut-teal rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                                   placeholder="Enter office address..."
@@ -2115,12 +2276,31 @@ The Shortcut Team`);
                                                 .then(response => response.json())
                                                 .then(data => {
                                                   if (data.status === 'OK' && data.results && data.results[0]) {
-                                                    const currentOfficeLocations = editedData?.officeLocations || displayData.officeLocations || {};
-                                                    const updatedOfficeLocations = {
-                                                      ...currentOfficeLocations,
-                                                      [location]: data.results[0].formatted_address
-                                                    };
-                                                    handleFieldChange(['officeLocations'], updatedOfficeLocations);
+                                                    // Get current locations from editedData or displayData
+                                                    const currentLocations = editedData?.locations || displayData.locations || [];
+                                                    // Build officeLocations object with only addresses for current locations
+                                                    const currentOfficeLocations: { [key: string]: string } = {};
+                                                    
+                                                    // For each current location, get its address (prioritize editedData, then displayData)
+                                                    currentLocations.forEach((loc: string) => {
+                                                      // Only check displayData if this location is in displayData.locations
+                                                      let address: string | undefined;
+                                                      if (editedData?.officeLocations?.[loc]) {
+                                                        address = editedData.officeLocations[loc];
+                                                      } else if (displayData.locations?.includes(loc) && displayData.officeLocations?.[loc]) {
+                                                        // Only use displayData if location is in current proposal
+                                                        address = displayData.officeLocations[loc];
+                                                      }
+                                                      
+                                                      if (address) {
+                                                        currentOfficeLocations[loc] = address;
+                                                      }
+                                                    });
+                                                    
+                                                    // Update the address for the location being edited
+                                                    currentOfficeLocations[location] = data.results[0].formatted_address;
+                                                    
+                                                    handleFieldChange(['officeLocations'], currentOfficeLocations);
                                                   } else {
                                                     alert('Could not find address for your location. Please enter manually.');
                                                   }
@@ -2364,7 +2544,11 @@ The Shortcut Team`);
                 </div>
                 <div>
                   <p className="text-sm font-bold text-shortcut-blue mb-1">Locations</p>
-                  <p className="text-base font-medium text-text-dark">{displayData.locations?.join(', ') || 'No locations available'}</p>
+                  <p className="text-base font-medium text-text-dark">
+                    {Array.isArray(displayData.locations) 
+                      ? displayData.locations.join(', ') 
+                      : displayData.locations || 'No locations available'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
@@ -2498,7 +2682,7 @@ The Shortcut Team`);
                                                   onChange={(e) => handleMindfulnessTypeChange(location, date, serviceIndex, e.target.value)}
                                                   className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                                                 >
-                                                  <option value="intro">60 minutes - Intro to Mindfulness ($1,350)</option>
+                                                  <option value="intro">40 minutes - Intro to Mindfulness ($1,350)</option>
                                                   <option value="drop-in">30 minutes - Drop-in Session ($1,125)</option>
                                                   <option value="mindful-movement">60 minutes - Mindful Movement ($1,350)</option>
                                                 </select>
@@ -2507,7 +2691,7 @@ The Shortcut Team`);
                                               <div className="grid grid-cols-2 gap-4 text-sm">
                                                 <div>
                                                   <span className="font-bold text-shortcut-navy-blue">Event Time:</span>
-                                                  <span className="ml-2 text-text-dark">{service.classLength || 60} Min</span>
+                                                  <span className="ml-2 text-text-dark">{service.classLength || 40} Min</span>
                                                 </div>
                                                 <div>
                                                   <span className="font-bold text-shortcut-navy-blue">Participants:</span>
@@ -2557,18 +2741,37 @@ The Shortcut Team`);
                                     )}
                                     
                                     <div className="grid gap-0">
-                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Total Hours:</span>
-                                        <div className="font-bold text-text-dark">
-                                          <EditableField
-                                            value={String(service.totalHours || 0)}
-                                            onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
-                                            isEditing={isEditing}
-                                            type="number"
-                                            suffix=" hours"
-                                          />
+                                      {service.serviceType === 'mindfulness' ? (
+                                        <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                          <span className="text-base font-bold text-shortcut-blue">Class Length:</span>
+                                          <div className="font-bold text-text-dark">
+                                            {isEditing ? (
+                                              <EditableField
+                                                value={String(service.classLength || 40)}
+                                                onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'classLength'], typeof value === 'string' ? parseFloat(value) || 40 : value)}
+                                                isEditing={isEditing}
+                                                type="number"
+                                                suffix=" minutes"
+                                              />
+                                            ) : (
+                                              <span>{service.classLength || 40} minutes</span>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
+                                      ) : (
+                                        <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                          <span className="text-base font-bold text-shortcut-blue">Total Hours:</span>
+                                          <div className="font-bold text-text-dark">
+                                            <EditableField
+                                              value={String(service.totalHours || 0)}
+                                              onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
+                                              isEditing={isEditing}
+                                              type="number"
+                                              suffix=" hours"
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-bold text-shortcut-blue">Number of Professionals:</span>
                                         <div className="font-bold text-text-dark">
@@ -3401,27 +3604,29 @@ The Shortcut Team`);
       {/* Link Existing Proposals Modal */}
       {showLinkProposalsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
-          <div className="card-large max-w-2xl w-full max-h-[80vh] flex flex-col">
-            <h3 className="text-xl font-extrabold text-shortcut-blue mb-4">
-              Link Existing Proposals
-            </h3>
-            <p className="text-sm text-text-dark-60 mb-4">
-              Select one or more existing proposals to link to this group. They will become options that clients can switch between.
-            </p>
+          <div className="card-large max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="mb-6 pb-4 border-b-2 border-shortcut-teal border-opacity-20">
+              <h3 className="text-2xl font-extrabold text-shortcut-navy-blue mb-2">
+                Link Existing Proposals
+              </h3>
+              <p className="text-base text-text-dark-60">
+                Select one or more existing proposals to link to this group. They will become options that clients can switch between.
+              </p>
+            </div>
 
             {/* Search */}
-            <div className="mb-4">
+            <div className="mb-6">
               <input
                 type="text"
                 placeholder="Search by client name, proposal ID, or option name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-base"
               />
             </div>
 
             {/* Proposal List */}
-            <div className="flex-1 overflow-y-auto mb-4 space-y-2 border-2 border-gray-200 rounded-lg p-4 max-h-96">
+            <div className="flex-1 overflow-y-auto mb-6 space-y-3 border-2 border-gray-200 rounded-xl p-4 bg-neutral-light-gray max-h-96">
               {filteredAvailableProposals.length === 0 ? (
                 <div className="text-center text-text-dark-60 py-8">
                   {searchTerm ? 'No proposals found matching your search.' : 'No available proposals to link.'}
@@ -3441,18 +3646,29 @@ The Shortcut Team`);
                           setSelectedProposalsToLink(prev => [...prev, proposal.id]);
                         }
                       }}
-                      className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                         isSelected
-                          ? 'border-shortcut-teal bg-shortcut-teal bg-opacity-10'
-                          : 'border-gray-200 bg-white hover:border-shortcut-teal hover:bg-neutral-light-gray'
+                          ? 'border-shortcut-teal bg-shortcut-teal bg-opacity-10 shadow-md'
+                          : 'border-gray-200 bg-white hover:border-shortcut-teal hover:bg-white hover:shadow-sm'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="font-bold text-shortcut-blue">
                               {proposal.client_name || 'Unnamed Client'}
                             </span>
+                            {proposal.proposal_type === 'mindfulness-program' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-shortcut-pink/20 text-shortcut-navy-blue border border-shortcut-pink/30">
+                                <Brain size={12} />
+                                Mindfulness
+                              </span>
+                            )}
+                            {proposal.proposal_type !== 'mindfulness-program' && proposal.proposal_type && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-shortcut-teal/20 text-shortcut-navy-blue border border-shortcut-teal/30">
+                                Event
+                              </span>
+                            )}
                             {proposal.option_name && (
                               <span className="text-xs text-text-dark-60">
                                 ({proposal.option_name})
@@ -3492,7 +3708,7 @@ The Shortcut Team`);
             </div>
 
             {/* Footer Actions */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <div className="flex gap-3 pt-6 border-t-2 border-shortcut-teal border-opacity-20">
               <Button
                 onClick={() => {
                   setShowLinkProposalsModal(false);

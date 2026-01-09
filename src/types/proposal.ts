@@ -80,6 +80,41 @@ export interface ProposalData {
   summary: ProposalSummary;
   // New field for pricing options support
   hasPricingOptions?: boolean;
+  // Mindfulness program specific data
+  mindfulnessProgram?: {
+    programId: string;
+    programName: string;
+    facilitatorName: string;
+    startDate: string;
+    endDate: string;
+    totalSessions: number;
+    inPersonSessions: number;
+    virtualSessions: number;
+    sessions: Array<{
+      sessionNumber: number;
+      date: string;
+      time?: string;
+      duration: number;
+      type: 'in-person' | 'virtual';
+      title?: string;
+      content?: string;
+      location?: string;
+      meetingLink?: string;
+    }>;
+    pricing: {
+      inPersonPricePerSession: number;
+      virtualPricePerSession: number;
+      resourcesPrice: number;
+      discountPercent?: number;
+      inPersonTotal: number;
+      virtualTotal: number;
+      subtotal?: number;
+      discountAmount?: number;
+      totalCost: number;
+      costPerParticipant: number;
+      costPerSession: number;
+    };
+  };
 }
 
 export interface ProposalDataWithOptions {
@@ -99,6 +134,7 @@ export interface ProposalCustomization {
   contactFirstName?: string;
   contactLastName?: string;
   customNote?: string;
+  programIntroCopy?: string;
   includeSummary: boolean;
   includeCalculations: boolean;
   includeCalculator: boolean;
@@ -120,6 +156,7 @@ export interface Proposal {
   isShared?: boolean;
   clientEmail?: string;
   clientLogoUrl?: string;
+  clientName?: string;
   changeSource?: string;
   // New fields for pricing options
   pricingOptions?: { [key: string]: any };
@@ -131,6 +168,8 @@ export interface Proposal {
   optionOrder?: number | null;
   // Test proposal flag
   isTest?: boolean;
+  // Proposal type
+  proposal_type?: 'event' | 'mindfulness-program';
 }
 
 // Change tracking interfaces

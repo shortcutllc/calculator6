@@ -49,28 +49,28 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services })
   });
 
   return (
-    <div className="card-large bg-shortcut-teal">
-      <h3 className="text-xl font-extrabold mb-6 text-shortcut-navy-blue">{location} Summary</h3>
-      <div className="space-y-5">
-        <div className="flex justify-between items-center py-3 border-b-2 border-shortcut-navy-blue border-opacity-20">
-          <span className="font-bold text-shortcut-navy-blue text-base">Date(s):</span>
-          <span className="text-shortcut-navy-blue font-semibold text-base">
+    <div className="card-large bg-gradient-to-br from-shortcut-teal/20 to-shortcut-teal/10 border-2 border-shortcut-teal border-opacity-30">
+      <h3 className="text-xl font-extrabold mb-8 text-shortcut-navy-blue">{location} Summary</h3>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-shortcut-navy-blue text-lg">Date(s):</span>
+          <span className="text-shortcut-navy-blue font-semibold text-lg">
             {dates.map(date => formatDate(date)).join(', ')}
           </span>
         </div>
-        <div className="flex justify-between items-center py-3 border-b-2 border-shortcut-navy-blue border-opacity-20">
-          <span className="font-bold text-shortcut-navy-blue text-base">Service(s):</span>
-          <span className="text-shortcut-navy-blue font-semibold text-base text-right">
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-shortcut-navy-blue text-lg">Service(s):</span>
+          <span className="text-shortcut-navy-blue font-semibold text-lg text-right">
             {Array.from(uniqueServices).join(', ')}
           </span>
         </div>
-        <div className="flex justify-between items-center py-3 border-b-2 border-shortcut-navy-blue border-opacity-20">
-          <span className="font-bold text-shortcut-navy-blue text-base">Appointments:</span>
-          <span className="text-shortcut-navy-blue font-semibold text-base">{totalAppointments}</span>
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-shortcut-navy-blue text-lg">Appointments:</span>
+          <span className="text-shortcut-navy-blue font-extrabold text-2xl">{totalAppointments}</span>
         </div>
-        <div className="flex justify-between items-center py-3">
-          <span className="font-bold text-shortcut-navy-blue text-base">Total Cost:</span>
-          <span className="text-shortcut-navy-blue font-semibold text-base">${totalCost.toFixed(2)}</span>
+        <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-navy-blue">
+          <span className="font-extrabold text-shortcut-navy-blue text-lg">Total Cost:</span>
+          <span className="text-shortcut-navy-blue font-extrabold text-2xl">${totalCost.toFixed(2)}</span>
         </div>
       </div>
     </div>

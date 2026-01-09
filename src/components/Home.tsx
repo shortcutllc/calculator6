@@ -154,14 +154,14 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 40
   },
   mindfulness: {
-    appTime: 60,
+    appTime: 40,
     totalHours: 1,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 60,
+    classLength: 40,
     participants: 'unlimited',
     fixedPrice: 1350
   },
@@ -1368,17 +1368,20 @@ const Home: React.FC = () => {
                             Class Length (minutes)
                           </label>
                           <select
-                            value={service.mindfulnessType || (service.classLength === 30 ? 'drop-in' : 'intro')}
+                            value={service.mindfulnessType || (service.classLength === 30 ? 'drop-in' : service.classLength === 60 ? 'mindful-movement' : 'intro')}
                             onChange={(e) => {
                               const selectedType = e.target.value;
-                              let classLength = 60;
+                              let classLength = 40;
                               let fixedPrice = 1350;
                               
                               if (selectedType === 'drop-in') {
                                 classLength = 30;
                                 fixedPrice = 1125;
+                              } else if (selectedType === 'intro') {
+                                classLength = 40;
+                                fixedPrice = 1350;
                               } else {
-                                classLength = 60;
+                                classLength = 60; // mindful-movement
                                 fixedPrice = 1350;
                               }
                               
@@ -1390,7 +1393,7 @@ const Home: React.FC = () => {
                             }}
                             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                           >
-                            <option value="intro">60 minutes - Intro to Mindfulness ($1,350)</option>
+                            <option value="intro">40 minutes - Intro to Mindfulness ($1,350)</option>
                             <option value="drop-in">30 minutes - Drop-in Session ($1,125)</option>
                             <option value="mindful-movement">60 minutes - Mindful Movement ($1,350)</option>
                           </select>

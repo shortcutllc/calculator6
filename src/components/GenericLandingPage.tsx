@@ -1772,7 +1772,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   <h3 className="section-subtitle mb-6" style={{ color: '#003756' }}>Soothing meditation and stress relief</h3>
                   
                   <p className="text-lg md:text-xl leading-relaxed mb-10" style={{ color: '#003756' }}>
-                    In just one 60 minute workshop your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.
+                    In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.
                   </p>
                   
                   {/* Feature Options - 2x2 Grid */}
@@ -2315,79 +2315,79 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             }} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>First name *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>First name *</label>
                   <input
                     type="text"
                     value={formData.firstName}
                     onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     placeholder="Enter your first name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Last name *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Last name *</label>
                   <input
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     placeholder="Enter your last name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Email *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Email *</label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     placeholder="Enter your email address"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Phone number *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Phone number *</label>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     placeholder="Enter your phone number"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Company *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Company *</label>
                   <input
                     type="text"
                     value={formData.company}
                     onChange={(e) => setFormData({...formData, company: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     placeholder="Enter your company name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Location *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Location *</label>
                   <input
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     placeholder="Enter your location"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Type of service *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Type of service *</label>
                   <select
                     value={formData.serviceType}
                     onChange={(e) => {
                       setFormData({...formData, serviceType: e.target.value, appointmentCount: ''});
                     }}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     required
                   >
                     <option value="">Select a service</option>
@@ -2399,12 +2399,12 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Date of event *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Date of event *</label>
                   <input
                     type="date"
                     value={formData.eventDate}
                     onChange={(e) => setFormData({...formData, eventDate: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     required
                   />
                 </div>
@@ -2412,11 +2412,11 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
               {formData.serviceType && (
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Number of appointments *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Number of appointments *</label>
                   <select
                     value={formData.appointmentCount}
                     onChange={(e) => setFormData({...formData, appointmentCount: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     required
                   >
                     <option value="">Select appointment count</option>
@@ -2432,13 +2432,13 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
               {formData.appointmentCount === 'custom' && (
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Custom number of appointments *</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Custom number of appointments *</label>
                   <input
                     type="number"
                     placeholder="Enter custom number of appointments"
                     value={formData.customAppointmentCount}
                     onChange={(e) => setFormData({...formData, customAppointmentCount: e.target.value})}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                     required
                   />
                 </div>
@@ -2459,12 +2459,12 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
               {showMessageField && (
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#003756' }}>Your message</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Your message</label>
                   <textarea
                     value={formData.message}
                     onChange={(e) => setFormData({...formData, message: e.target.value})}
                     rows={4}
-                    className="w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all resize-none"
                     placeholder="Tell us more about your event or any special requirements..."
                   />
                 </div>
