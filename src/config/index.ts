@@ -13,11 +13,11 @@ export type Env = z.infer<typeof envSchema>;
 
 function validateEnv(): Env {
   // Get environment variables from window.__ENV__ first, then fall back to import.meta.env
-  const windowEnv = (window as any).__ENV__ || {};
+  const windowEnv = typeof window !== 'undefined' && (window as any).__ENV__ ? (window as any).__ENV__ : {};
   
-  // Log warning if env-config.js didn't load
-  if (!windowEnv.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL) {
-    console.warn('[Config] Warning: VITE_SUPABASE_URL not found in window.__ENV__ or import.meta.env');
+  // Log warning if env-config.js didn't load (only in browser)
+  if (typeof window !== 'undefined' && !windowEnv.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL) {
+    console.warn('[Config] Warning: VITE_SUPABASE_URL not found');
     console.warn('[Config] Make sure env-config.js is loaded before main.tsx');
   }
   
@@ -56,7 +56,7 @@ try {
 } catch (error) {
   console.error('Environment validation failed, using fallbacks:', error);
   // Get environment variables from window.__ENV__ first, then fall back to import.meta.env
-  const windowEnvFallback = (window as any).__ENV__ || {};
+  const windowEnvFallback = typeof window !== 'undefined' && (window as any).__ENV__ ? (window as any).__ENV__ : {};
   // Provide fallback values to prevent app crash
   env = {
     VITE_SUPABASE_URL: windowEnvFallback.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || '',

@@ -394,6 +394,10 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
 export const recalculateServiceTotals = (proposalData: ProposalData): ProposalData => {
   console.log('Input data structure:', proposalData);
   
+  // Preserve gratuity fields
+  const gratuityType = proposalData.gratuityType || null;
+  const gratuityValue = proposalData.gratuityValue || null;
+  
   const updatedData = { ...proposalData };
   
   updatedData.summary = {
@@ -688,10 +692,35 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     return new Date(a).getTime() - new Date(b).getTime();
   });
 
-  updatedData.summary.netProfit = Number((updatedData.summary.totalEventCost - updatedData.summary.totalProRevenue).toFixed(2));
-  updatedData.summary.profitMargin = updatedData.summary.totalEventCost > 0 
-    ? Number(((updatedData.summary.netProfit / updatedData.summary.totalEventCost) * 100).toFixed(2))
+  // Calculate gratuity if specified
+  let gratuityAmount = 0;
+  const subtotalBeforeGratuity = updatedData.summary.totalEventCost;
+  
+  if (updatedData.gratuityType && updatedData.gratuityValue) {
+    if (updatedData.gratuityType === 'percentage') {
+      gratuityAmount = subtotalBeforeGratuity * (updatedData.gratuityValue / 100);
+    } else if (updatedData.gratuityType === 'dollar') {
+      gratuityAmount = updatedData.gratuityValue;
+    }
+    gratuityAmount = Number(gratuityAmount.toFixed(2));
+    updatedData.summary.totalEventCost = Number((subtotalBeforeGratuity + gratuityAmount).toFixed(2));
+  }
+  
+  updatedData.summary.gratuityAmount = gratuityAmount;
+  updatedData.summary.subtotalBeforeGratuity = subtotalBeforeGratuity;
+
+  // Calculate net profit based on subtotal (before gratuity) - gratuity doesn't affect profit
+  const netProfitBeforeGratuity = subtotalBeforeGratuity - updatedData.summary.totalProRevenue;
+  updatedData.summary.netProfit = Number(netProfitBeforeGratuity.toFixed(2));
+  
+  // Profit margin should be calculated based on subtotal (before gratuity), not total (after gratuity)
+  updatedData.summary.profitMargin = subtotalBeforeGratuity > 0 
+    ? Number(((netProfitBeforeGratuity / subtotalBeforeGratuity) * 100).toFixed(2))
     : 0;
+
+  // Preserve gratuity fields in the returned data
+  if (gratuityType) updatedData.gratuityType = gratuityType;
+  if (gratuityValue !== null) updatedData.gratuityValue = gratuityValue;
 
   console.log('Output data structure:', updatedData);
   return updatedData;

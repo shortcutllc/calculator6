@@ -1190,7 +1190,15 @@ const ProposalViewer: React.FC = () => {
         throw new Error('Invalid proposal data structure');
       }
       
+      // Preserve gratuity fields from proposal data before recalculation
+      const gratuityType = proposal.data?.gratuityType || null;
+      const gratuityValue = proposal.data?.gratuityValue || null;
+      
       const calculatedData = recalculateServiceTotals(proposal.data);
+      
+      // Restore gratuity fields after recalculation
+      if (gratuityType) calculatedData.gratuityType = gratuityType;
+      if (gratuityValue !== null) calculatedData.gratuityValue = gratuityValue;
       
       // Ensure classLength and mindfulnessType are set correctly for mindfulness services
       if (calculatedData.services) {
@@ -1625,7 +1633,15 @@ const ProposalViewer: React.FC = () => {
     
     try {
       setIsSavingChanges(true);
+      // Preserve gratuity fields before recalculation
+      const gratuityType = editedData?.gratuityType || null;
+      const gratuityValue = editedData?.gratuityValue || null;
+      
       const recalculatedData = recalculateServiceTotals(editedData);
+      
+      // Restore gratuity fields after recalculation
+      if (gratuityType) recalculatedData.gratuityType = gratuityType;
+      if (gratuityValue !== null) recalculatedData.gratuityValue = gratuityValue;
       
       // Clean up officeLocations to only include addresses for current locations
       if (recalculatedData.officeLocations && recalculatedData.locations) {
@@ -3184,6 +3200,79 @@ The Shortcut Team`);
               />
             ))}
 
+            {/* Gratuity Section - Only show in edit mode */}
+            {isEditing && !isSharedView && (
+              <div className="card-large">
+                <h2 className="text-xl font-extrabold text-shortcut-blue mb-4">Gratuity</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-shortcut-blue mb-2">Gratuity Type</label>
+                    <select
+                      value={editedData?.gratuityType || ''}
+                      onChange={(e) => {
+                        const newData = { ...editedData };
+                        newData.gratuityType = e.target.value || null;
+                        if (!e.target.value) {
+                          newData.gratuityValue = null;
+                        }
+                        const recalculated = recalculateServiceTotals(newData);
+                        setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                        setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                      }}
+                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                    >
+                      <option value="">No Gratuity</option>
+                      <option value="percentage">Percentage</option>
+                      <option value="dollar">Dollar Amount</option>
+                    </select>
+                  </div>
+                  {editedData?.gratuityType && (
+                    <div>
+                      <label className="block text-sm font-bold text-shortcut-blue mb-2">
+                        {editedData.gratuityType === 'percentage' ? 'Gratuity Percentage' : 'Gratuity Amount'}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {editedData.gratuityType === 'percentage' ? (
+                          <>
+                            <EditableField
+                              value={String(editedData.gratuityValue || 0)}
+                              onChange={(value) => {
+                                const newData = { ...editedData };
+                                newData.gratuityValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+                                const recalculated = recalculateServiceTotals(newData);
+                                setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                                setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                              }}
+                              isEditing={isEditing}
+                              type="number"
+                              suffix="%"
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-shortcut-blue font-bold">$</span>
+                            <EditableField
+                              value={String(editedData.gratuityValue || 0)}
+                              onChange={(value) => {
+                                const newData = { ...editedData };
+                                newData.gratuityValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+                                const recalculated = recalculateServiceTotals(newData);
+                                setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                                setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                              }}
+                              isEditing={isEditing}
+                              type="number"
+                              prefix="$"
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
               <h2 className="text-xl font-extrabold mb-6 text-white">Event Summary</h2>
               <div className="space-y-4">
@@ -3191,6 +3280,20 @@ The Shortcut Team`);
                   <span className="font-semibold">Total Appointments:</span>
                   <span className="font-bold text-lg">{displayData.summary?.totalAppointments}</span>
                 </div>
+                {displayData.gratuityType && displayData.gratuityValue !== null && displayData.gratuityValue !== undefined && (
+                  <>
+                    <div className="flex justify-between items-center py-3 border-b border-white/20">
+                      <span className="font-semibold">Subtotal:</span>
+                      <span className="font-bold text-lg">${formatCurrency(displayData.summary?.subtotalBeforeGratuity ?? displayData.summary?.totalEventCost ?? 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-white/20">
+                      <span className="font-semibold">
+                        Gratuity {displayData.gratuityType === 'percentage' ? `(${displayData.gratuityValue}%)` : ''}:
+                      </span>
+                      <span className="font-bold text-lg">${formatCurrency(displayData.summary?.gratuityAmount || 0)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between items-center py-3 border-b border-white/20">
                   <span className="font-semibold">Total Event Cost:</span>
                   <span className="font-bold text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>

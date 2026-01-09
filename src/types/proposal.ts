@@ -64,6 +64,8 @@ export interface ProposalSummary {
   totalProRevenue: number;
   netProfit: number;
   profitMargin: number;
+  gratuityAmount?: number;
+  subtotalBeforeGratuity?: number;
 }
 
 export interface ProposalData {
@@ -80,6 +82,9 @@ export interface ProposalData {
   summary: ProposalSummary;
   // New field for pricing options support
   hasPricingOptions?: boolean;
+  // Gratuity fields
+  gratuityType?: 'percentage' | 'dollar' | null;
+  gratuityValue?: number | null;
   // Mindfulness program specific data
   mindfulnessProgram?: {
     programId: string;

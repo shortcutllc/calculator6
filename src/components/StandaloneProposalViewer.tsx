@@ -483,7 +483,15 @@ export const StandaloneProposalViewer: React.FC = () => {
           throw new Error('Invalid proposal data structure');
         }
 
+        // Preserve gratuity fields from proposal data before recalculation
+        const gratuityType = data.data?.gratuityType || null;
+        const gratuityValue = data.data?.gratuityValue || null;
+        
         const calculatedData = recalculateServiceTotals(data.data);
+        
+        // Restore gratuity fields after recalculation
+        if (gratuityType) calculatedData.gratuityType = gratuityType;
+        if (gratuityValue !== null) calculatedData.gratuityValue = gratuityValue;
         
         // Ensure classLength and mindfulnessType are set correctly for mindfulness services
         if (calculatedData.services) {
@@ -2125,6 +2133,20 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span className="font-semibold text-white/90 text-lg">Total Appointments:</span>
                   <span className="font-extrabold text-2xl text-white">{displayData.summary?.totalAppointments || 0}</span>
                 </div>
+                {displayData.summary?.subtotalBeforeGratuity !== undefined && displayData.summary?.gratuityAmount !== undefined && displayData.summary.gratuityAmount > 0 && (
+                  <>
+                    <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-teal/30">
+                      <span className="font-semibold text-white/90 text-lg">Subtotal:</span>
+                      <span className="font-extrabold text-xl text-white">${formatCurrency(displayData.summary.subtotalBeforeGratuity || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-white/90 text-lg">
+                        Gratuity {displayData.gratuityType === 'percentage' ? `(${displayData.gratuityValue}%)` : ''}:
+                      </span>
+                      <span className="font-extrabold text-xl text-white">${formatCurrency(displayData.summary.gratuityAmount || 0)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-teal">
                   <span className="font-extrabold text-lg text-white">Total Event Cost:</span>
                   <span className="font-extrabold text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
