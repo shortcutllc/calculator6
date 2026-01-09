@@ -236,7 +236,8 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
         user_id: user.id,
         status: 'published',
         unique_token: uniqueToken,
-        custom_url: null
+        custom_url: null,
+        is_returning_client: options.isReturningClient || false
       };
 
       const { data: newPage, error } = await supabase
@@ -272,6 +273,7 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
       if (updates.customization) updateData.customization = updates.customization;
       if (updates.status) updateData.status = updates.status;
       if (updates.isEditable !== undefined) updateData.is_editable = updates.isEditable;
+      if (updates.isReturningClient !== undefined) updateData.is_returning_client = updates.isReturningClient;
 
       const { data, error } = await supabase
         .from('generic_landing_pages')

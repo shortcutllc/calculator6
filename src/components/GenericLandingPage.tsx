@@ -323,6 +323,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
   // Default values for when no holiday page data is available
   const partnerName = isGeneric ? 'your' : (genericLandingPage?.data.partnerName || 'Your Company');
   const partnerLogoUrl = isGeneric ? null : genericLandingPage?.data.partnerLogoUrl;
+  const isReturningClient = genericLandingPage?.isReturningClient || false;
   // const customMessage = genericLandingPage?.data.customMessage; // Available for future use
   
   // Debug logging
@@ -1228,11 +1229,23 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               {/* Left Side - Text Content */}
               <div>
                 <h1 className="h1" style={{ color: '#FFFFFF' }}>
-                  <span className="block">Employee Happiness</span>
-                  <span className="block">Delivered</span>
+                  {isReturningClient ? (
+                    <>
+                      <span className="block">Welcome back,</span>
+                      <span className="block">{partnerName}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="block">Employee Happiness</span>
+                      <span className="block">Delivered</span>
+                    </>
+                  )}
                 </h1>
                 <p className="mt-6 md:mt-8 text-lg md:text-xl leading-relaxed max-w-[48ch]" style={{ color: '#FFFFFF', opacity: 0.95 }}>
-                  Say goodbye to outdated office perks and hello to a new era of employee wellness with Shortcut
+                  {isReturningClient
+                    ? `Let's plan your 2026 wellness calendar together`
+                    : `Say goodbye to outdated office perks and hello to a new era of employee wellness with Shortcut`
+                  }
                 </p>
                 
                 <div className="mt-10 md:mt-12 flex flex-col sm:flex-row gap-4">
@@ -2177,6 +2190,45 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           </div>
         </div>
       </section>
+      )}
+
+      {/* SOCIAL PROOF STATS - Only for returning clients */}
+      {isReturningClient && (
+        <section className="py-12 md:py-16 bg-white">
+          <div className="mx-auto container-narrow px-4">
+            <h2 className="h2 text-center mb-8 md:mb-12" style={{ color: '#003756' }}>
+              Why Companies Renew Year After Year
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              {/* Stat 1 */}
+              <div className="card-medium text-center">
+                <div className="text-5xl md:text-6xl font-extrabold mb-3" style={{ color: '#018EA2' }}>
+                  87%
+                </div>
+                <p className="text-xl font-bold mb-2" style={{ color: '#003756' }}>
+                  Client Retention Rate
+                </p>
+                <p className="font-medium" style={{ color: '#003756' }}>
+                  Most partners renew and expand their programs
+                </p>
+              </div>
+
+              {/* Stat 2 */}
+              <div className="card-medium text-center">
+                <div className="text-5xl md:text-6xl font-extrabold mb-3" style={{ color: '#018EA2' }}>
+                  94%
+                </div>
+                <p className="text-xl font-bold mb-2" style={{ color: '#003756' }}>
+                  Employee Satisfaction
+                </p>
+                <p className="font-medium" style={{ color: '#003756' }}>
+                  Employees love the convenience and quality
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
       {/* FINAL CTA */}

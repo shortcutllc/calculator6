@@ -27,6 +27,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
     contactFirstName: editingPage?.customization?.contactFirstName || '',
     contactLastName: editingPage?.customization?.contactLastName || '',
     customMessage: editingPage?.data?.customMessage || '',
+    isReturningClient: editingPage?.isReturningClient || false,
     customization: {
       contactFirstName: editingPage?.customization?.contactFirstName || '',
       contactLastName: editingPage?.customization?.contactLastName || '',
@@ -50,6 +51,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         contactFirstName: editingPage.customization?.contactFirstName || '',
         contactLastName: editingPage.customization?.contactLastName || '',
         customMessage: editingPage.data?.customMessage || '',
+        isReturningClient: editingPage.isReturningClient || false,
         customization: {
           contactFirstName: editingPage.customization?.contactFirstName || '',
           contactLastName: editingPage.customization?.contactLastName || '',
@@ -215,7 +217,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         contactFirstName: options.contactFirstName,
         contactLastName: options.contactLastName,
         customMessage: options.customMessage || undefined,
-        customization: finalCustomization
+        customization: finalCustomization,
+        isReturningClient: options.isReturningClient
       };
 
       let pageId;
@@ -260,7 +263,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         
         await updateGenericLandingPage(editingPage.id, {
           data: updateData,
-          customization: finalCustomization
+          customization: finalCustomization,
+          isReturningClient: options.isReturningClient
         });
         
         console.log('✅ Generic landing page updated successfully');
@@ -324,6 +328,26 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               {errors.partnerName && (
                 <p className="text-red-500 text-sm mt-1">{errors.partnerName}</p>
               )}
+            </div>
+
+            {/* Returning Client Checkbox */}
+            <div className="bg-neutral-light-gray p-4 rounded-lg border-2 border-gray-200">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.isReturningClient}
+                  onChange={(e) => handleFieldChange('isReturningClient', e.target.checked)}
+                  className="mr-3 h-5 w-5 rounded border-gray-300 text-shortcut-teal focus:ring-shortcut-teal"
+                />
+                <div>
+                  <span className="text-sm font-bold text-shortcut-blue">
+                    This is for a returning client
+                  </span>
+                  <p className="text-sm font-medium text-shortcut-blue mt-1">
+                    Shows personalized "Welcome back" messaging and simplified contact form
+                  </p>
+                </div>
+              </label>
             </div>
 
             <div>

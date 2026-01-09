@@ -31,6 +31,7 @@ export interface GenericLandingPage {
   userId?: string;
   uniqueToken?: string; // For public access
   customUrl?: string; // For custom URL system
+  isReturningClient?: boolean; // Whether this is for a returning client (shows personalized messaging)
 }
 
 export interface GenericLandingPageOptions {
@@ -42,6 +43,7 @@ export interface GenericLandingPageOptions {
   contactLastName?: string;
   customMessage?: string;
   customization: GenericLandingPageCustomization;
+  isReturningClient?: boolean; // Whether this is for a returning client
 }
 
 
