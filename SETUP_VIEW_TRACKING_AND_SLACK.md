@@ -98,8 +98,9 @@ You have two options to run the migration:
 10. **Click**: "Allow"
 11. **Copy the Webhook URL**: It will look like:
     ```
-    https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+    https://hooks.slack.com/services/YOUR_TEAM_ID/YOUR_BOT_ID/YOUR_WEBHOOK_TOKEN
     ```
+    (Replace with your actual webhook URL - this is just an example format)
 12. **Save this URL** - you'll need it in Step 3
 
 ---
