@@ -131,11 +131,17 @@ interface EventConfig {
 
 const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const [events, setEvents] = useState<EventConfig[]>([
-    { id: '1', service: 'massage', packageIndex: 1, preset: null, mode: 'package', location: 'Main Office' }
-  ]);
+  const [events, setEvents] = useState<EventConfig[]>([]);
+  const [draftEvent, setDraftEvent] = useState<EventConfig>({
+    id: '1',
+    service: 'massage',
+    packageIndex: 1,
+    preset: null,
+    mode: 'package',
+    location: 'Main Office'
+  });
   const [locations, setLocations] = useState<string[]>(['Main Office']);
-  const [currentEventIndex, setCurrentEventIndex] = useState(0);
+  const [currentEventIndex, setCurrentEventIndex] = useState(-1); // -1 means draft mode
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -193,7 +199,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
   }, [events, clientName, clientEmail, companyName, isOpen]);
 
   // Update preset for current event
-  const currentEvent = events[currentEventIndex];
+  const currentEvent = currentEventIndex === -1 ? draftEvent : events[currentEventIndex];
   const currentPreset = currentEvent && currentEvent.mode === 'package'
     ? SERVICE_PRESETS[currentEvent.service as keyof typeof SERVICE_PRESETS]?.[currentEvent.packageIndex] || null
     : null;
@@ -259,23 +265,36 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
     ? calculateCustomPreset(currentEvent)
     : null;
 
-  // Update preset in events array
+  // Update preset in events array or draft
   useEffect(() => {
     if (currentEvent) {
-      if (currentEvent.mode === 'package' && currentPreset) {
-        setEvents(prev => prev.map((event, idx) => 
-          idx === currentEventIndex 
-            ? { ...event, preset: currentPreset }
-            : event
-        ));
-      } else if (currentEvent.mode === 'custom') {
-        const customPreset = calculateCustomPreset(currentEvent);
-        if (customPreset) {
-          setEvents(prev => prev.map((event, idx) => 
-            idx === currentEventIndex 
-              ? { ...event, preset: customPreset }
+      if (currentEventIndex === -1) {
+        // Update draft preset
+        if (currentEvent.mode === 'package' && currentPreset) {
+          setDraftEvent(prev => ({ ...prev, preset: currentPreset }));
+        } else if (currentEvent.mode === 'custom') {
+          const customPreset = calculateCustomPreset(currentEvent);
+          if (customPreset) {
+            setDraftEvent(prev => ({ ...prev, preset: customPreset }));
+          }
+        }
+      } else {
+        // Update event in array
+        if (currentEvent.mode === 'package' && currentPreset) {
+          setEvents(prev => prev.map((event, idx) =>
+            idx === currentEventIndex
+              ? { ...event, preset: currentPreset }
               : event
           ));
+        } else if (currentEvent.mode === 'custom') {
+          const customPreset = calculateCustomPreset(currentEvent);
+          if (customPreset) {
+            setEvents(prev => prev.map((event, idx) =>
+              idx === currentEventIndex
+                ? { ...event, preset: customPreset }
+                : event
+            ));
+          }
         }
       }
     }
@@ -357,57 +376,89 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
     }
   };
 
-  // Add new event (no max limit, but show progress toward 9)
+  // Add draft event to proposal
   const addEvent = () => {
-    const newEvent: EventConfig = {
-      id: String(events.length + 1),
+    // Add current draft to events
+    const eventWithId = { ...draftEvent, id: String(events.length + 1) };
+    const newEvents = [...events, eventWithId];
+    saveToHistory(newEvents);
+    setEvents(newEvents);
+
+    // Create new draft for next event
+    const newDraft: EventConfig = {
+      id: String(events.length + 2),
       service: 'massage',
       packageIndex: 1,
       preset: null,
       mode: 'package',
       location: locations[0] || 'Main Office'
     };
-    const newEvents = [...events, newEvent];
-    saveToHistory(newEvents);
-    setEvents(newEvents);
-    setCurrentEventIndex(events.length);
+    setDraftEvent(newDraft);
+    setCurrentEventIndex(-1); // Stay in draft mode
   };
 
   // Toggle mode for current event
   const toggleEventMode = (mode: 'package' | 'custom') => {
-    const newEvents = events.map((event, idx) => 
-      idx === currentEventIndex 
-        ? { 
-            ...event, 
-            mode,
-            // Initialize custom config if switching to custom mode
-            customConfig: mode === 'custom' && !event.customConfig
-              ? { eventTime: 4, pros: 4 } // No appointments - will be calculated
-              : event.customConfig,
-            preset: null // Reset preset when switching modes
-          }
-        : event
-    );
-    saveToHistory(newEvents);
-    setEvents(newEvents);
+    if (currentEventIndex === -1) {
+      // Update draft
+      setDraftEvent(prev => ({
+        ...prev,
+        mode,
+        // Initialize custom config if switching to custom mode
+        customConfig: mode === 'custom' && !prev.customConfig
+          ? { eventTime: 4, pros: 4 } // No appointments - will be calculated
+          : prev.customConfig,
+        preset: null // Reset preset when switching modes
+      }));
+    } else {
+      // Update event in array
+      const newEvents = events.map((event, idx) =>
+        idx === currentEventIndex
+          ? {
+              ...event,
+              mode,
+              // Initialize custom config if switching to custom mode
+              customConfig: mode === 'custom' && !event.customConfig
+                ? { eventTime: 4, pros: 4 } // No appointments - will be calculated
+                : event.customConfig,
+              preset: null // Reset preset when switching modes
+            }
+          : event
+      );
+      saveToHistory(newEvents);
+      setEvents(newEvents);
+    }
   };
 
   // Update custom config for current event (only eventTime and pros)
   const updateCustomConfig = (field: 'eventTime' | 'pros', value: number) => {
-    const newEvents = events.map((event, idx) => 
-      idx === currentEventIndex 
-        ? { 
-            ...event, 
-            customConfig: {
-              ...(event.customConfig || { eventTime: 4, pros: 4 }),
-              [field]: value
-            },
-            preset: null // Reset preset to recalculate (appointments will be auto-calculated)
-          }
-        : event
-    );
-    saveToHistory(newEvents);
-    setEvents(newEvents);
+    if (currentEventIndex === -1) {
+      // Update draft
+      setDraftEvent(prev => ({
+        ...prev,
+        customConfig: {
+          ...(prev.customConfig || { eventTime: 4, pros: 4 }),
+          [field]: value
+        },
+        preset: null // Reset preset to recalculate (appointments will be auto-calculated)
+      }));
+    } else {
+      // Update event in array
+      const newEvents = events.map((event, idx) =>
+        idx === currentEventIndex
+          ? {
+              ...event,
+              customConfig: {
+                ...(event.customConfig || { eventTime: 4, pros: 4 }),
+                [field]: value
+              },
+              preset: null // Reset preset to recalculate (appointments will be auto-calculated)
+            }
+          : event
+      );
+      saveToHistory(newEvents);
+      setEvents(newEvents);
+    }
   };
 
   // Remove event
@@ -423,45 +474,79 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
 
   // Update current event service
   const updateCurrentEventService = (service: string) => {
-    const newEvents = events.map((event, idx) => 
-      idx === currentEventIndex 
-        ? { 
-            ...event, 
-            service, 
-            packageIndex: 1, 
-            preset: null,
-            // Reset custom config when changing service
-            customConfig: event.mode === 'custom' 
-              ? { eventTime: 4, pros: 4 } // Appointments will be calculated
-              : event.customConfig
-          }
-        : event
-    );
-    saveToHistory(newEvents);
-    setEvents(newEvents);
+    if (currentEventIndex === -1) {
+      // Update draft
+      setDraftEvent(prev => ({
+        ...prev,
+        service,
+        packageIndex: 1,
+        preset: null,
+        // Reset custom config when changing service
+        customConfig: prev.mode === 'custom'
+          ? { eventTime: 4, pros: 4 } // Appointments will be calculated
+          : prev.customConfig
+      }));
+    } else {
+      // Update event in array
+      const newEvents = events.map((event, idx) =>
+        idx === currentEventIndex
+          ? {
+              ...event,
+              service,
+              packageIndex: 1,
+              preset: null,
+              // Reset custom config when changing service
+              customConfig: event.mode === 'custom'
+                ? { eventTime: 4, pros: 4 } // Appointments will be calculated
+                : event.customConfig
+            }
+          : event
+      );
+      saveToHistory(newEvents);
+      setEvents(newEvents);
+    }
   };
 
   // Update current event package
   const updateCurrentEventPackage = (packageIndex: number) => {
-    const newEvents = events.map((event, idx) => 
-      idx === currentEventIndex 
-        ? { ...event, packageIndex, preset: null }
-        : event
-    );
-    saveToHistory(newEvents);
-    setEvents(newEvents);
+    if (currentEventIndex === -1) {
+      // Update draft
+      setDraftEvent(prev => ({
+        ...prev,
+        packageIndex,
+        preset: null
+      }));
+    } else {
+      // Update event in array
+      const newEvents = events.map((event, idx) =>
+        idx === currentEventIndex
+          ? { ...event, packageIndex, preset: null }
+          : event
+      );
+      saveToHistory(newEvents);
+      setEvents(newEvents);
+    }
   };
 
   // Update current event location
   const updateCurrentEventLocation = (location: string) => {
-    const newEvents = events.map((event, idx) => 
-      idx === currentEventIndex 
-        ? { ...event, location }
-        : event
-    );
-    saveToHistory(newEvents);
-    setEvents(newEvents);
-    
+    if (currentEventIndex === -1) {
+      // Update draft
+      setDraftEvent(prev => ({
+        ...prev,
+        location
+      }));
+    } else {
+      // Update event in array
+      const newEvents = events.map((event, idx) =>
+        idx === currentEventIndex
+          ? { ...event, location }
+          : event
+      );
+      saveToHistory(newEvents);
+      setEvents(newEvents);
+    }
+
     // Add location to locations list if new
     if (!locations.includes(location)) {
       setLocations([...locations, location]);
@@ -506,6 +591,30 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
   const cancelLocationEdit = () => {
     setEditingLocation(null);
     setLocationEditValue('');
+  };
+
+  const removeLocation = (locationToRemove: string) => {
+    // Don't allow removing the last location
+    if (locations.length <= 1) return;
+
+    // Remove the location from the list
+    const newLocations = locations.filter(loc => loc !== locationToRemove);
+    setLocations(newLocations);
+
+    // Update all events using this location to use the first remaining location
+    const defaultLocation = newLocations[0];
+    const newEvents = events.map(event =>
+      event.location === locationToRemove
+        ? { ...event, location: defaultLocation }
+        : event
+    );
+    saveToHistory(newEvents);
+    setEvents(newEvents);
+
+    // Update draft event if it uses this location
+    if (draftEvent.location === locationToRemove) {
+      setDraftEvent(prev => ({ ...prev, location: defaultLocation }));
+    }
   };
 
   // Calculate service data from preset for a given event
@@ -1018,514 +1127,499 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
             </div>
           )}
 
-          {/* Events List & Summary Sidebar */}
+          {/* Configuration & Summary Grid */}
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 mb-8">
-            {/* Left: Events List */}
-            <div className="md:col-span-2 space-y-4">
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-extrabold" style={{ color: '#003756' }}>
-                    Your Events ({events.length})
-                  </h3>
-                  <button
-                    onClick={addEvent}
-                    className="px-4 py-2 rounded-full font-bold text-sm border-2 transition-all hover:bg-shortcut-blue hover:text-white"
-                    style={{ 
-                      borderColor: '#003756', 
-                      color: '#003756', 
-                      backgroundColor: 'transparent' 
-                    }}
-                  >
-                    + Add Event
-                  </button>
-                </div>
-                
-                {/* Progress Bar for Discount Milestones */}
-                <div className="space-y-3">
-                  {/* 4 Events Progress (15% discount) */}
+            {/* Left: Current Event Configuration */}
+            <div className="md:col-span-2 space-y-8">
+              {currentEvent && (
+                <>
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-bold" style={{ color: '#003756' }}>
-                        4 Events = 15% Discount
-                      </span>
-                      <span className="text-sm font-extrabold" style={{ color: events.length >= 4 ? '#FF5050' : '#6b7280' }}>
-                        {Math.min(events.length, 4)}/4
-                      </span>
-                    </div>
-                    <div className="w-full h-3 bg-neutral-light-gray rounded-full overflow-hidden">
-                      <div 
-                        className="h-full transition-all duration-500 rounded-full"
-                        style={{ 
-                          width: `${Math.min((events.length / 4) * 100, 100)}%`,
-                          backgroundColor: events.length >= 4 ? '#FF5050' : '#003756'
-                        }}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* 9 Events Progress (20% discount) */}
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-bold" style={{ color: '#003756' }}>
-                        9 Events = 20% Discount
-                      </span>
-                      <span className="text-sm font-extrabold" style={{ color: events.length >= 9 ? '#FF5050' : '#6b7280' }}>
-                        {Math.min(events.length, 9)}/9
-                      </span>
-                    </div>
-                    <div className="w-full h-3 bg-neutral-light-gray rounded-full overflow-hidden">
-                      <div 
-                        className="h-full transition-all duration-500 rounded-full"
-                        style={{ 
-                          width: `${Math.min((events.length / 9) * 100, 100)}%`,
-                          backgroundColor: events.length >= 9 ? '#FF5050' : '#003756'
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+                    <h3 className="text-xl font-extrabold mb-6" style={{ color: '#003756' }}>
+                      {currentEventIndex === -1 ? 'Configure New Event' : `Configure Event ${currentEventIndex + 1}`}
+                    </h3>
 
-              {/* Event Cards */}
-              {events.map((event, index) => {
-                const eventColor = getServiceColor(event.service);
-                const isActive = index === currentEventIndex;
-                
-                return (
-                  <div
-                    key={event.id}
-                    className={`card-small cursor-pointer transition-all ${
-                      isActive ? 'ring-2 ring-offset-2' : ''
-                    }`}
-                    style={{
-                      borderColor: isActive ? eventColor : undefined,
-                      borderWidth: isActive ? '2px' : undefined,
-                      backgroundColor: isActive ? `${eventColor}15` : undefined,
-                    }}
-                    onClick={() => setCurrentEventIndex(index)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="text-lg font-extrabold" style={{ color: '#003756' }}>
-                            Event {index + 1}
-                          </span>
-                          {event.preset && (
-                            <span 
-                              className="text-xs px-3 py-1 rounded-full font-bold"
-                              style={{ backgroundColor: eventColor, color: '#003756' }}
-                            >
-                              {getServiceName(event.service)}
-                            </span>
-                          )}
+                    {/* Mode Toggle */}
+                    <div className="mb-6">
+                      <div className="flex gap-4 p-1 bg-neutral-light-gray rounded-xl inline-flex">
+                        <button
+                          onClick={() => toggleEventMode('package')}
+                          className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${
+                            currentEvent.mode === 'package'
+                              ? 'bg-white shadow-md text-shortcut-blue'
+                              : 'text-text-dark-60'
+                          }`}
+                        >
+                          Package Mode
+                        </button>
+                        <button
+                          onClick={() => toggleEventMode('custom')}
+                          className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${
+                            currentEvent.mode === 'custom'
+                              ? 'bg-white shadow-md text-shortcut-blue'
+                              : 'text-text-dark-60'
+                          }`}
+                        >
+                          Custom Mode
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Step 1: Service Selection */}
+                    <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
+                      1. Choose Service
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-8">
+                      {[
+                        { id: 'massage', name: 'Massage', icon: '💆‍♀️' },
+                        { id: 'hair-makeup', name: 'Glam', icon: '✨' },
+                        { id: 'headshot', name: 'Headshots', icon: '📸' },
+                        { id: 'nails', name: 'Nails', icon: '💅' },
+                        { id: 'mindfulness', name: 'Mindfulness', icon: '🧘‍♀️' }
+                      ].map((service) => {
+                        const svcColor = getServiceColor(service.id);
+                        return (
+                          <button
+                            key={service.id}
+                            onClick={() => updateCurrentEventService(service.id)}
+                            className={`card-small text-center transition-all duration-300 ${
+                              currentEventService === service.id
+                                ? 'ring-2 ring-offset-2'
+                                : ''
+                            }`}
+                            style={{
+                              backgroundColor: currentEventService === service.id ? `${svcColor}20` : undefined,
+                              borderColor: currentEventService === service.id ? svcColor : undefined,
+                              borderWidth: currentEventService === service.id ? '2px' : undefined,
+                            }}
+                          >
+                            <div className="text-3xl mb-3">{service.icon}</div>
+                            <div className="font-extrabold text-base" style={{ color: '#003756' }}>{service.name}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Step 2: Package or Custom Configuration */}
+                    {currentEvent.mode === 'package' ? (
+                      <>
+                        <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
+                          2. Select Package
+                        </h4>
+                        <div className="grid md:grid-cols-3 gap-6 mb-8">
+                          {presets.map((preset, index) => (
+                            <div key={index} className="relative">
+                              {(preset as any).popular && (
+                                <div className="absolute -top-3 -right-3 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-20 border-2 border-white" style={{ backgroundColor: '#FF5050' }}>
+                                  MOST POPULAR
+                                </div>
+                              )}
+                              <button
+                                onClick={() => updateCurrentEventPackage(index)}
+                                className={`relative card-small text-center transition-all duration-300 ${
+                                  currentEvent.packageIndex === index
+                                    ? 'ring-2 ring-offset-2'
+                                    : ''
+                                }`}
+                                style={{
+                                  borderColor: currentEvent.packageIndex === index ? serviceColor : undefined,
+                                  borderWidth: currentEvent.packageIndex === index ? '2px' : undefined,
+                                  backgroundColor: currentEvent.packageIndex === index ? `${serviceColor}15` : undefined,
+                                }}
+                              >
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="text-xl font-extrabold mb-2" style={{ color: '#003756' }}>
+                                      {(preset as any).name || `${preset.appointments} Appointments`}
+                                    </h4>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#003756' }}>
+                                      <span>⏱️</span>
+                                      <span>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#003756' }}>
+                                      <span>👥</span>
+                                      <span>{preset.pros} {getServiceName(currentEventService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="pt-4 border-t-2 border-shortcut-teal border-opacity-20">
+                                    <div className="text-3xl font-extrabold mb-1" style={{ color: '#003756' }}>
+                                      ${preset.price.toLocaleString()}
+                                    </div>
+                                    <div className="text-sm font-medium" style={{ color: '#6b7280' }}>
+                                      per session
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                        {event.preset ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ 
-                                backgroundColor: event.mode === 'custom' ? '#FEDC64' : eventColor,
-                                color: '#003756'
-                              }}>
-                                {event.mode === 'custom' ? 'Custom' : 'Package'}
-                              </span>
-                              <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-neutral-light-gray" style={{ color: '#003756' }}>
-                                📍 {event.location}
-                              </span>
-                            </div>
-                            <div className="text-base font-semibold" style={{ color: '#003756' }}>
-                              {event.preset.appointments} {event.preset.appointments === 1 ? 'appointment' : 'appointments'}
-                            </div>
-                            <div className="text-lg font-extrabold" style={{ color: '#003756' }}>
-                              ${event.preset.price.toLocaleString()}
+                      </>
+                    ) : (
+                      <>
+                        <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
+                          2. Custom Configuration
+                        </h4>
+                        <div className="card-medium space-y-6 mb-8">
+                          {/* Event Time */}
+                          <div>
+                            <label className="block text-sm font-bold mb-3 text-shortcut-blue">
+                              Event Duration (hours)
+                            </label>
+                            <div className="space-y-2">
+                              <input
+                                type="range"
+                                min="0.5"
+                                max="12"
+                                step="0.5"
+                                value={currentEvent.customConfig?.eventTime || 4}
+                                onChange={(e) => updateCustomConfig('eventTime', parseFloat(e.target.value))}
+                                className="w-full h-3 md:h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-shortcut-teal touch-manipulation"
+                                style={{ WebkitAppearance: 'none', touchAction: 'pan-y' }}
+                              />
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-text-dark-60">0.5</span>
+                                <span className="text-lg font-extrabold text-shortcut-navy-blue">
+                                  {currentEvent.customConfig?.eventTime || 4} {currentEvent.customConfig?.eventTime === 1 ? 'hour' : 'hours'}
+                                </span>
+                                <span className="text-sm font-medium text-text-dark-60">12</span>
+                              </div>
                             </div>
                           </div>
-                        ) : (
-                          <div className="text-sm font-medium" style={{ color: '#6b7280' }}>
-                            {event.mode === 'custom' ? 'Configure custom settings' : 'Select service and package'}
+
+                          {/* Number of Professionals */}
+                          <div>
+                            <label className="block text-sm font-bold mb-3 text-shortcut-blue">
+                              Number of Professionals
+                            </label>
+                            <div className="space-y-2">
+                              <input
+                                type="range"
+                                min="1"
+                                max="10"
+                                value={currentEvent.customConfig?.pros || 4}
+                                onChange={(e) => updateCustomConfig('pros', parseInt(e.target.value))}
+                                className="w-full h-3 md:h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-shortcut-teal touch-manipulation"
+                                style={{ WebkitAppearance: 'none', touchAction: 'pan-y' }}
+                              />
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-text-dark-60">1</span>
+                                <span className="text-lg font-extrabold text-shortcut-navy-blue">
+                                  {currentEvent.customConfig?.pros || 4} {currentEvent.customConfig?.pros === 1 ? 'professional' : 'professionals'}
+                                </span>
+                                <span className="text-sm font-medium text-text-dark-60">10</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Calculated Appointments (Display Only) */}
+                          {currentCustomPreset && (
+                            <div className="p-4 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
+                              <p className="text-xs font-bold text-shortcut-blue mb-2 uppercase tracking-wider">Calculated Appointments</p>
+                              <p className="text-2xl font-extrabold text-shortcut-navy-blue">
+                                {currentCustomPreset.appointments} {currentCustomPreset.appointments === 1 ? 'appointment' : 'appointments'}
+                              </p>
+                              <p className="text-xs font-medium text-text-dark-60 mt-2">
+                                Based on {currentCustomPreset.eventTime} {currentCustomPreset.eventTime === 1 ? 'hour' : 'hours'} × {currentCustomPreset.pros} {currentCustomPreset.pros === 1 ? 'professional' : 'professionals'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Estimated Cost */}
+                          {currentCustomPreset && (
+                            <div className="pt-4 border-t-2 border-shortcut-teal border-opacity-20">
+                              <div className="p-4 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
+                                <p className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Estimated Cost</p>
+                                <p className="text-3xl font-extrabold text-shortcut-navy-blue">
+                                  ${currentCustomPreset.price.toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Step 3: Location Selection */}
+                    <div className="mb-8">
+                      <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
+                        3. Select Location {currentEventIndex === -1 ? 'for New Event' : `for Event ${currentEventIndex + 1}`}
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap gap-3">
+                          {locations.map((location) => (
+                            <div key={location} className="relative group">
+                              {editingLocation === location ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={locationEditValue}
+                                    onChange={(e) => setLocationEditValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        saveLocationEdit();
+                                      } else if (e.key === 'Escape') {
+                                        cancelLocationEdit();
+                                      }
+                                    }}
+                                    className="px-4 py-2 rounded-xl border-2 border-shortcut-blue focus:outline-none focus:ring-2 focus:ring-shortcut-teal font-bold text-sm"
+                                    style={{ color: '#003756' }}
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={saveLocationEdit}
+                                    className="px-3 py-2 rounded-lg bg-shortcut-blue text-white font-bold text-sm hover:opacity-90"
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    onClick={cancelLocationEdit}
+                                    className="px-3 py-2 rounded-lg bg-gray-200 text-shortcut-blue font-bold text-sm hover:opacity-90"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => updateCurrentEventLocation(location)}
+                                    className={`px-6 py-3 rounded-xl font-bold text-sm transition-all border-2 ${
+                                      currentEvent.location === location
+                                        ? 'bg-shortcut-blue text-white border-shortcut-blue'
+                                        : 'bg-white text-shortcut-blue border-shortcut-blue border-opacity-30 hover:border-opacity-60'
+                                    }`}
+                                  >
+                                    📍 {location}
+                                  </button>
+                                  <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                    <button
+                                      onClick={() => startEditingLocation(location)}
+                                      className="bg-shortcut-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-shortcut-dark-blue"
+                                      title="Edit location name"
+                                    >
+                                      ✎
+                                    </button>
+                                    {locations.length > 1 && (
+                                      <button
+                                        onClick={() => removeLocation(location)}
+                                        className="bg-shortcut-coral text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:opacity-80"
+                                        title="Delete location"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                          <button
+                            onClick={addLocation}
+                            className="px-6 py-3 rounded-xl font-bold text-sm transition-all border-2 border-dashed border-shortcut-blue border-opacity-30 hover:border-opacity-60 text-shortcut-blue"
+                          >
+                            + Add Location
+                          </button>
+                        </div>
+                        {locations.length > 0 && (
+                          <div className="mt-4 p-4 bg-neutral-light-gray rounded-xl">
+                            <p className="text-xs font-medium" style={{ color: '#6b7280' }}>
+                              💡 Tip: Events across different locations count toward your discount total.
+                            </p>
                           </div>
                         )}
                       </div>
-                      {events.length > 1 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeEvent(index);
-                          }}
-                          className="p-1.5 rounded-lg hover:bg-red-50 transition-colors ml-4 flex-shrink-0"
-                          aria-label="Remove event"
-                        >
-                          <X size={18} className="text-red-500" />
-                        </button>
-                      )}
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* Add to Proposal Button */}
+                  <div className="mt-8 p-6 bg-gradient-to-r from-shortcut-teal/10 to-shortcut-teal/5 rounded-2xl border-2 border-shortcut-teal/30">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div>
+                        <h4 className="text-lg font-extrabold text-shortcut-blue mb-1">
+                          {currentEventIndex === -1 ? 'New Event Ready!' : `Event ${currentEventIndex + 1} Ready!`}
+                        </h4>
+                        <p className="text-sm text-text-dark-60">
+                          {events.length < 4
+                            ? 'Add more events to unlock 15% discount'
+                            : events.length < 9
+                            ? 'Add more for 20% savings!'
+                            : 'Maximum savings unlocked!'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={addEvent}
+                        className="px-6 py-3 rounded-full font-extrabold text-base bg-shortcut-blue text-white hover:opacity-90 transition-all hover:scale-105 shadow-lg whitespace-nowrap pulse-glow"
+                      >
+                        + Add to Proposal
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Right: Running Summary */}
+            {/* Right: Summary Cart */}
             <div className="md:col-span-1">
-              <div className="md:sticky md:top-24 card-medium">
-                <h3 className="text-xl font-extrabold mb-6" style={{ color: '#003756' }}>
-                  Quarterly Summary
-                </h3>
-                <div className="space-y-6">
-                  <div className="p-6 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
-                    <p className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Events</p>
-                    <p className="text-3xl font-extrabold text-shortcut-navy-blue">
-                      {totals.totalEvents}
-                    </p>
-                    {totals.locationCount > 1 && (
-                      <p className="text-xs font-medium mt-2" style={{ color: '#6b7280' }}>
-                        Across {totals.locationCount} location{totals.locationCount !== 1 ? 's' : ''}
-                      </p>
-                    )}
+              <div className="md:sticky md:top-24 space-y-6">
+                <div>
+                  <h3 className="text-xl font-extrabold text-shortcut-blue mb-4">
+                    Your Proposal
+                  </h3>
+
+                  {/* Progress bars */}
+                  <div className="space-y-3 mb-6">
+                    {/* 4 Events Progress (15% discount) */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-bold" style={{ color: '#003756' }}>
+                          4 Events = 15% Discount
+                        </span>
+                        <span className="text-sm font-extrabold" style={{ color: events.length >= 4 ? '#FF5050' : '#6b7280' }}>
+                          {Math.min(events.length, 4)}/4
+                        </span>
+                      </div>
+                      <div className="w-full h-3 bg-neutral-light-gray rounded-full overflow-hidden">
+                        <div
+                          className="h-full transition-all duration-500 rounded-full"
+                          style={{
+                            width: `${Math.min((events.length / 4) * 100, 100)}%`,
+                            backgroundColor: events.length >= 4 ? '#FF5050' : '#003756'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* 9 Events Progress (20% discount) */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-bold" style={{ color: '#003756' }}>
+                          9 Events = 20% Discount
+                        </span>
+                        <span className="text-sm font-extrabold" style={{ color: events.length >= 9 ? '#FF5050' : '#6b7280' }}>
+                          {Math.min(events.length, 9)}/9
+                        </span>
+                      </div>
+                      <div className="w-full h-3 bg-neutral-light-gray rounded-full overflow-hidden">
+                        <div
+                          className="h-full transition-all duration-500 rounded-full"
+                          style={{
+                            width: `${Math.min((events.length / 9) * 100, 100)}%`,
+                            backgroundColor: events.length >= 9 ? '#FF5050' : '#003756'
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-6 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
-                    <p className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Appointments</p>
-                    <p className="text-3xl font-extrabold text-shortcut-navy-blue">
+
+                  {/* Events list */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-extrabold text-shortcut-blue mb-3 uppercase tracking-wider">
+                      Events ({events.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {events.map((event, index) => {
+                        const eventColor = getServiceColor(event.service);
+                        const isActive = index === currentEventIndex;
+
+                        return (
+                          <div
+                            key={event.id}
+                            className={`p-3 rounded-xl cursor-pointer transition-all border-2 ${
+                              isActive ? 'ring-2 ring-offset-1' : ''
+                            }`}
+                            style={{
+                              borderColor: isActive ? eventColor : '#E5E7EB',
+                              backgroundColor: isActive ? `${eventColor}15` : '#FFFFFF',
+                            }}
+                            onClick={() => setCurrentEventIndex(index)}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-sm font-extrabold" style={{ color: '#003756' }}>
+                                    Event {index + 1}
+                                  </span>
+                                  {event.preset && (
+                                    <span
+                                      className="text-xs px-2 py-0.5 rounded-full font-bold truncate"
+                                      style={{ backgroundColor: eventColor, color: '#003756' }}
+                                    >
+                                      {getServiceName(event.service)}
+                                    </span>
+                                  )}
+                                </div>
+                                {event.preset ? (
+                                  <div className="space-y-1">
+                                    <div className="text-xs font-semibold" style={{ color: '#003756' }}>
+                                      {event.preset.appointments} {event.preset.appointments === 1 ? 'apt' : 'apts'}
+                                    </div>
+                                    <div className="text-sm font-extrabold" style={{ color: '#003756' }}>
+                                      ${event.preset.price.toLocaleString()}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-xs font-medium" style={{ color: '#6b7280' }}>
+                                    Not configured
+                                  </div>
+                                )}
+                              </div>
+                              {events.length > 1 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeEvent(index);
+                                  }}
+                                  className="p-1 rounded-lg hover:bg-red-50 transition-colors ml-2 flex-shrink-0"
+                                  aria-label="Remove event"
+                                >
+                                  <X size={14} className="text-red-500" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary stats */}
+                <div className="space-y-4">
+                  <div className="p-4 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
+                    <p className="text-xs font-bold text-shortcut-blue mb-2 uppercase tracking-wider">Total Appointments</p>
+                    <p className="text-2xl font-extrabold text-shortcut-navy-blue">
                       {totals.totalAppointments}
                     </p>
                   </div>
-                  <div className="p-6 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
-                    <p className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Subtotal</p>
-                    <p className="text-3xl font-extrabold text-shortcut-navy-blue">
+                  <div className="p-4 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
+                    <p className="text-xs font-bold text-shortcut-blue mb-2 uppercase tracking-wider">Subtotal</p>
+                    <p className="text-2xl font-extrabold text-shortcut-navy-blue">
                       ${totals.totalCost.toLocaleString()}
                     </p>
                   </div>
                   {totals.discountPercent > 0 && (
                     <>
-                      <div className="p-6 bg-gradient-to-br from-shortcut-coral/10 to-shortcut-coral/5 rounded-xl border-2 border-shortcut-coral border-opacity-30">
-                        <p className="text-xs font-bold text-shortcut-coral mb-3 uppercase tracking-wider">
-                          Quarterly Discount ({totals.discountPercent}%)
+                      <div className="p-4 bg-gradient-to-br from-shortcut-coral/10 to-shortcut-coral/5 rounded-xl border-2 border-shortcut-coral border-opacity-30">
+                        <p className="text-xs font-bold text-shortcut-coral mb-2 uppercase tracking-wider">
+                          Discount ({totals.discountPercent}%)
                         </p>
-                        <p className="text-2xl font-extrabold text-shortcut-coral">
+                        <p className="text-xl font-extrabold text-shortcut-coral">
                           -${totals.discountAmount.toLocaleString()}
                         </p>
                       </div>
-                      <div className="p-6 bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue rounded-xl border-2 border-shortcut-teal border-opacity-30">
-                        <p className="text-xs font-bold text-white mb-3 uppercase tracking-wider">Total Cost</p>
-                        <p className="text-4xl font-extrabold text-shortcut-teal">
+                      <div className="p-4 bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue rounded-xl border-2 border-shortcut-teal border-opacity-30">
+                        <p className="text-xs font-bold text-white mb-2 uppercase tracking-wider">Total Cost</p>
+                        <p className="text-3xl font-extrabold text-shortcut-teal">
                           ${totals.finalCost.toLocaleString()}
                         </p>
                       </div>
                     </>
                   )}
-                  {totals.totalEvents < 4 && (
-                    <div className="p-4 bg-gradient-to-br from-shortcut-service-yellow/20 to-shortcut-service-yellow/10 rounded-xl border-2 border-shortcut-service-yellow border-opacity-30">
-                      <p className="text-xs font-bold text-center" style={{ color: '#003756' }}>
-                        Add {4 - totals.totalEvents} more event{4 - totals.totalEvents !== 1 ? 's' : ''} to unlock 15% savings
-                      </p>
-                    </div>
-                  )}
-                  {totals.totalEvents >= 4 && totals.totalEvents < 9 && (
-                    <div className="p-4 bg-gradient-to-br from-shortcut-service-yellow/20 to-shortcut-service-yellow/10 rounded-xl border-2 border-shortcut-service-yellow border-opacity-30">
-                      <p className="text-xs font-bold text-center" style={{ color: '#003756' }}>
-                        Add {9 - totals.totalEvents} more event{9 - totals.totalEvents !== 1 ? 's' : ''} to unlock 20% savings
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Current Event Configuration */}
-          {currentEvent && (
-            <>
-              {/* Step 1: Service Selection for Current Event */}
-              <div className="mb-8">
-                <h3 className="text-xl font-extrabold mb-6" style={{ color: '#003756' }}>
-                  Configure Event {currentEventIndex + 1}
-                </h3>
-                
-                {/* Mode Toggle */}
-                <div className="mb-6">
-                  <div className="flex gap-4 p-1 bg-neutral-light-gray rounded-xl inline-flex">
-                    <button
-                      onClick={() => toggleEventMode('package')}
-                      className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${
-                        currentEvent.mode === 'package'
-                          ? 'bg-white shadow-md text-shortcut-blue'
-                          : 'text-text-dark-60'
-                      }`}
-                    >
-                      Package Mode
-                    </button>
-                    <button
-                      onClick={() => toggleEventMode('custom')}
-                      className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${
-                        currentEvent.mode === 'custom'
-                          ? 'bg-white shadow-md text-shortcut-blue'
-                          : 'text-text-dark-60'
-                      }`}
-                    >
-                      Custom Mode
-                    </button>
-                  </div>
-                </div>
-
-                <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
-                  1. Choose Service
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
-                  {[
-                    { id: 'massage', name: 'Massage', icon: '💆‍♀️' },
-                    { id: 'hair-makeup', name: 'Glam', icon: '✨' },
-                    { id: 'headshot', name: 'Headshots', icon: '📸' },
-                    { id: 'nails', name: 'Nails', icon: '💅' },
-                    { id: 'mindfulness', name: 'Mindfulness', icon: '🧘‍♀️' }
-                  ].map((service) => {
-                    const svcColor = getServiceColor(service.id);
-                    return (
-                      <button
-                        key={service.id}
-                        onClick={() => updateCurrentEventService(service.id)}
-                        className={`card-small text-center transition-all duration-300 ${
-                          currentEventService === service.id 
-                            ? 'ring-2 ring-offset-2' 
-                            : ''
-                        }`}
-                        style={{
-                          backgroundColor: currentEventService === service.id ? `${svcColor}20` : undefined,
-                          borderColor: currentEventService === service.id ? svcColor : undefined,
-                          borderWidth: currentEventService === service.id ? '2px' : undefined,
-                        }}
-                      >
-                        <div className="text-3xl mb-3">{service.icon}</div>
-                        <div className="font-extrabold text-base" style={{ color: '#003756' }}>{service.name}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Step 2: Package or Custom Configuration */}
-              <div className="mb-8">
-                {currentEvent.mode === 'package' ? (
-                  <>
-                    <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
-                      2. Select Package
-                    </h4>
-                    <div className="grid md:grid-cols-3 gap-6">
-                  {presets.map((preset, index) => (
-                    <div key={index} className="relative">
-                      {(preset as any).popular && (
-                        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#FF5050] to-[#175071] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-20">
-                          MOST POPULAR
-                        </div>
-                      )}
-                      <button
-                        onClick={() => updateCurrentEventPackage(index)}
-                        className={`relative card-small text-center transition-all duration-300 ${
-                          currentEvent.packageIndex === index 
-                            ? 'ring-2 ring-offset-2' 
-                            : ''
-                        }`}
-                        style={{
-                          borderColor: currentEvent.packageIndex === index ? serviceColor : undefined,
-                          borderWidth: currentEvent.packageIndex === index ? '2px' : undefined,
-                          backgroundColor: currentEvent.packageIndex === index ? `${serviceColor}15` : undefined,
-                        }}
-                      >
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="text-xl font-extrabold mb-2" style={{ color: '#003756' }}>
-                            {(preset as any).name || `${preset.appointments} Appointments`}
-                          </h4>
-                        </div>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#003756' }}>
-                            <span>⏱️</span>
-                            <span>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#003756' }}>
-                            <span>👥</span>
-                            <span>{preset.pros} {getServiceName(currentEventService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
-                          </div>
-                        </div>
-                        <div className="pt-4 border-t-2 border-shortcut-teal border-opacity-20">
-                          <div className="text-3xl font-extrabold mb-1" style={{ color: '#003756' }}>
-                            ${preset.price.toLocaleString()}
-                          </div>
-                          <div className="text-sm font-medium" style={{ color: '#6b7280' }}>
-                            per session
-                          </div>
-                        </div>
-                      </div>
-                      </button>
-                    </div>
-                  ))}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
-                      2. Custom Configuration
-                    </h4>
-                    <div className="card-medium space-y-6">
-                      {/* Event Time */}
-                      <div>
-                        <label className="block text-sm font-bold mb-3 text-shortcut-blue">
-                          Event Duration (hours)
-                        </label>
-                        <div className="space-y-2">
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="12"
-                            step="0.5"
-                            value={currentEvent.customConfig?.eventTime || 4}
-                            onChange={(e) => updateCustomConfig('eventTime', parseFloat(e.target.value))}
-                            className="w-full h-3 md:h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-shortcut-teal touch-manipulation"
-                            style={{ WebkitAppearance: 'none', touchAction: 'pan-y' }}
-                          />
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-text-dark-60">0.5</span>
-                            <span className="text-lg font-extrabold text-shortcut-navy-blue">
-                              {currentEvent.customConfig?.eventTime || 4} {currentEvent.customConfig?.eventTime === 1 ? 'hour' : 'hours'}
-                            </span>
-                            <span className="text-sm font-medium text-text-dark-60">12</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Number of Professionals */}
-                      <div>
-                        <label className="block text-sm font-bold mb-3 text-shortcut-blue">
-                          Number of Professionals
-                        </label>
-                        <div className="space-y-2">
-                          <input
-                            type="range"
-                            min="1"
-                            max="10"
-                            value={currentEvent.customConfig?.pros || 4}
-                            onChange={(e) => updateCustomConfig('pros', parseInt(e.target.value))}
-                            className="w-full h-3 md:h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-shortcut-teal touch-manipulation"
-                            style={{ WebkitAppearance: 'none', touchAction: 'pan-y' }}
-                          />
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-text-dark-60">1</span>
-                            <span className="text-lg font-extrabold text-shortcut-navy-blue">
-                              {currentEvent.customConfig?.pros || 4} {currentEvent.customConfig?.pros === 1 ? 'professional' : 'professionals'}
-                            </span>
-                            <span className="text-sm font-medium text-text-dark-60">10</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Calculated Appointments (Display Only) */}
-                      {currentCustomPreset && (
-                        <div className="p-4 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
-                          <p className="text-xs font-bold text-shortcut-blue mb-2 uppercase tracking-wider">Calculated Appointments</p>
-                          <p className="text-2xl font-extrabold text-shortcut-navy-blue">
-                            {currentCustomPreset.appointments} {currentCustomPreset.appointments === 1 ? 'appointment' : 'appointments'}
-                          </p>
-                          <p className="text-xs font-medium text-text-dark-60 mt-2">
-                            Based on {currentCustomPreset.eventTime} {currentCustomPreset.eventTime === 1 ? 'hour' : 'hours'} × {currentCustomPreset.pros} {currentCustomPreset.pros === 1 ? 'professional' : 'professionals'}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Estimated Cost */}
-                      {currentCustomPreset && (
-                        <div className="pt-4 border-t-2 border-shortcut-teal border-opacity-20">
-                          <div className="p-4 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
-                            <p className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Estimated Cost</p>
-                            <p className="text-3xl font-extrabold text-shortcut-navy-blue">
-                              ${currentCustomPreset.price.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Step 3: Location Selection */}
-          {currentEvent && (
-            <div className="mb-8">
-              <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
-                3. Select Location for Event {currentEventIndex + 1}
-              </h4>
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-3">
-                  {locations.map((location) => (
-                    <div key={location} className="relative group">
-                      {editingLocation === location ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={locationEditValue}
-                            onChange={(e) => setLocationEditValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                saveLocationEdit();
-                              } else if (e.key === 'Escape') {
-                                cancelLocationEdit();
-                              }
-                            }}
-                            className="px-4 py-2 rounded-xl border-2 border-shortcut-blue focus:outline-none focus:ring-2 focus:ring-shortcut-teal font-bold text-sm"
-                            style={{ color: '#003756' }}
-                            autoFocus
-                          />
-                          <button
-                            onClick={saveLocationEdit}
-                            className="px-3 py-2 rounded-lg bg-shortcut-blue text-white font-bold text-sm hover:opacity-90"
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={cancelLocationEdit}
-                            className="px-3 py-2 rounded-lg bg-gray-200 text-shortcut-blue font-bold text-sm hover:opacity-90"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => updateCurrentEventLocation(location)}
-                            className={`px-6 py-3 rounded-xl font-bold text-sm transition-all border-2 ${
-                              currentEvent.location === location
-                                ? 'bg-shortcut-blue text-white border-shortcut-blue'
-                                : 'bg-white text-shortcut-blue border-shortcut-blue border-opacity-30 hover:border-opacity-60'
-                            }`}
-                          >
-                            📍 {location}
-                          </button>
-                          <button
-                            onClick={() => startEditingLocation(location)}
-                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-shortcut-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-shortcut-dark-blue"
-                            title="Edit location name"
-                          >
-                            ✎
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={addLocation}
-                    className="px-6 py-3 rounded-xl font-bold text-sm transition-all border-2 border-dashed border-shortcut-blue border-opacity-30 hover:border-opacity-60 text-shortcut-blue"
-                  >
-                    + Add Location
-                  </button>
-                </div>
-                {locations.length > 0 && (
-                  <div className="mt-4 p-4 bg-neutral-light-gray rounded-xl">
-                    <p className="text-xs font-medium" style={{ color: '#6b7280' }}>
-                      💡 Tip: Events across different locations count toward your discount total.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Step 4: Contact Information */}
           <div className="mb-8">
@@ -1825,6 +1919,17 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
           </div>
         </div>
       )}
+
+      {/* Pulse Glow Animation Styles */}
+      <style>{`
+        .pulse-glow {
+          animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(158, 250, 255, 0.3); }
+          50% { box-shadow: 0 0 40px rgba(158, 250, 255, 0.6); }
+        }
+      `}</style>
     </div>
   );
 };

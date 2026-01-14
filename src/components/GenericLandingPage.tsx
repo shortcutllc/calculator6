@@ -1543,18 +1543,19 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                 onClick={() => isReturningClient ? smoothScrollTo('pricing') : setShowContactForm(true)}
                 variant="primary"
                 size="lg"
+                className="text-xl md:text-2xl px-14 py-7"
               >
-                {isReturningClient ? 'Build My Quarterly Proposal' : 'Get in touch'}
+                {isReturningClient ? 'Build My 2026 Proposal' : 'Get in touch'}
               </Button>
 
               {!isReturningClient && (
-                <button
+                <Button
                   onClick={() => smoothScrollTo('services')}
-                  className="text-sm lg:text-base font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
-                  style={{ color: '#FFFFFF' }}
+                  variant="secondary"
+                  size="lg"
                 >
                   Explore Services
-                </button>
+                </Button>
               )}
             </div>
 
@@ -2005,13 +2006,17 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   {/* CTA Buttons */}
                   <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     {!isReturningClient && (
-                      <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#FFFFFF' }}>
+                      <Button onClick={() => setShowContactForm(true)} variant="primary" size="lg">
                         Get in touch
-                      </button>
+                      </Button>
                     )}
-                    <button onClick={() => smoothScrollTo('pricing')} className={`inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all ${isReturningClient ? '' : 'border-2'}`} style={isReturningClient ? { backgroundColor: '#003756', color: '#FFFFFF' } : { borderColor: '#003756', color: '#003756', backgroundColor: 'transparent' }}>
-                      {isReturningClient ? 'Build My Quarterly Proposal' : 'Pricing'}
-                    </button>
+                    <Button
+                      onClick={() => smoothScrollTo('pricing')}
+                      variant={isReturningClient ? "primary" : "secondary"}
+                      size="lg"
+                    >
+                      {isReturningClient ? 'Build my 2026 Schedule' : 'Pricing'}
+                    </Button>
                   </div>
                 </div>
                 
@@ -2136,15 +2141,8 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       {(!genericLandingPage || genericLandingPage.customization.includePricingCalculator) && (
         <section id="pricing" className="fade-in-section py-16 md:py-24 rounded-3xl" style={{ backgroundColor: '#F8F9FA' }}>
           <div className="mx-auto max-w-7xl px-5 lg:px-[90px]">
-            {/* Section Header with Visual Bridge */}
+            {/* Section Header */}
             <div className="text-center mb-16">
-              <div className="inline-block mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="h-1 w-16 bg-gradient-to-r from-transparent to-shortcut-teal rounded-full"></div>
-                  <span className="text-sm font-bold uppercase tracking-[0.15em] text-shortcut-teal">Pricing</span>
-                  <div className="h-1 w-16 bg-gradient-to-l from-transparent to-shortcut-teal rounded-full"></div>
-                </div>
-              </div>
               <h2 className="text-[32px] md:text-[48px] lg:text-[56px] font-extrabold mb-6 leading-tight tracking-tight" style={{ color: '#003756', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.01em' }}>
                 Choose Your Perfect Package
               </h2>
@@ -2154,8 +2152,8 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             </div>
 
             {/* Service Selector Tabs */}
-            <div className="mb-12">
-              <div className="flex flex-wrap justify-center gap-3">
+            <div className="mb-8">
+              <div className="flex flex-wrap justify-center gap-4">
                 {serviceOrder.map((service, index) => {
                   const isActive = currentServiceIndex === index;
                   const serviceColor = getServiceColor(service);
@@ -2182,8 +2180,8 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             </div>
 
             {/* Package Selection */}
-            <div className="mb-16">
-              <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+            <div className="mb-8">
+              <div className="grid md:grid-cols-3 gap-6">
                 {SERVICE_PRESETS[serviceOrder[currentServiceIndex] as keyof typeof SERVICE_PRESETS]?.map((preset, index) => {
                   const currentService = serviceOrder[currentServiceIndex];
                   const serviceColor = getServiceColor(currentService);
@@ -2211,20 +2209,20 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       } as React.CSSProperties}
                     >
                       {(preset as any).popular && (
-                        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#FF5050] to-[#175071] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10">
+                        <div className="absolute -top-3 -right-3 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10 border-2 border-white" style={{ backgroundColor: '#FF5050' }}>
                           MOST POPULAR
                         </div>
                       )}
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         {/* Package Title */}
                         <div className="text-center">
-                          <h3 className="text-2xl font-bold mb-2" style={{ color: '#003756', fontWeight: 700 }}>
+                          <h3 className="text-2xl font-extrabold mb-2" style={{ color: '#003756', fontWeight: 800 }}>
                             {(preset as any).name || `${preset.appointments} Appointments`}
                           </h3>
                         </div>
 
                         {/* Package Details */}
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <div className="flex items-center justify-center gap-3 text-base">
                             <span className="text-lg">⏱️</span>
                             <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
@@ -2263,15 +2261,15 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             </div>
 
             {/* What's Included Section with Master Style Guide Design */}
-            <div className="mb-16 bg-gradient-to-br from-shortcut-teal/5 to-shortcut-teal/10 rounded-[24px] p-8 md:p-12">
-              <h3 className="text-2xl md:text-3xl font-bold mb-8 text-center" style={{ color: '#003756', fontWeight: 700 }}>
+            <div className="mb-8 bg-gradient-to-br from-shortcut-teal/5 to-shortcut-teal/10 rounded-[24px] p-8 md:p-12">
+              <h3 className="text-2xl md:text-3xl font-extrabold mb-6 text-center" style={{ color: '#003756', fontWeight: 800 }}>
                 What's Included:
               </h3>
-              <div className="grid md:grid-cols-2 gap-5">
+              <div className="grid md:grid-cols-2 gap-4">
                 {getWhatsIncluded(serviceOrder[currentServiceIndex]).map((item, index) => (
                   <div key={index} className="flex items-center gap-4 p-5 bg-white rounded-[24px] border-2 border-shortcut-teal/20 shadow-sm hover:shadow-md transition-shadow">
                     <div className="w-8 h-8 bg-shortcut-teal rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-base font-bold">✓</span>
+                      <span className="text-base font-bold" style={{ color: '#FF5050' }}>✓</span>
                     </div>
                     <span className="text-gray-700 font-semibold">{item}</span>
                   </div>
@@ -2281,19 +2279,15 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
             {/* Build Your Proposal Button with Enhanced Design */}
             <div className="text-center">
-              <button
+              <Button
                 onClick={() => setShowProposalBuilder(true)}
-                className="inline-flex items-center justify-center rounded-full font-bold px-14 py-7 text-xl md:text-2xl hover:opacity-90 transition-all transform hover:scale-105"
-                style={{
-                  backgroundColor: '#003756',
-                  color: '#EFE0C0',
-                  boxShadow: '0 25px 50px -12px rgba(0, 55, 86, 0.3), 0 12px 24px -8px rgba(0, 55, 86, 0.2)',
-                  fontWeight: 700
-                }}
+                variant="primary"
+                size="lg"
+                className="text-xl md:text-2xl px-14 py-7"
               >
                 Build Your Proposal
                 <span className="ml-3 text-3xl">→</span>
-              </button>
+              </Button>
               <p className="text-base mt-5 font-medium" style={{ color: '#003756', opacity: 0.6 }}>
                 Free consultation • No commitment required
               </p>
@@ -2575,8 +2569,9 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               </div>
 
               {/* CTA strip */}
-              <div
-                className="rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center"
+              <button
+                onClick={() => smoothScrollTo('services')}
+                className="w-full rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   height: '82px',
                   backgroundColor: '#fab8ff',
@@ -2587,36 +2582,36 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   className="m-0 text-[18px] leading-[26px] font-medium text-center"
                   style={{ color: '#b8337a' }}
                 >
-                  Take a tour →
+                  See Services →
                 </p>
-              </div>
+              </button>
             </div>
 
             {/* Card 2 - Calm, delivered */}
-            <div 
+            <div
               className="shortcut-section-card"
               style={{
-                backgroundColor: '#f0f0ff',
+                backgroundColor: '#E5FCFE',
                 border: '1px solid rgba(0, 31, 31, 0.08)',
               }}
             >
               <div className="border border-solid rounded-[24px] pb-0" style={{ borderColor: 'rgba(0, 31, 31, 0.08)' }}>
                 {/* Title and icon */}
                 <div className="relative px-8 pt-[52px] pb-6">
-                  <h3 
+                  <h3
                     className="text-[37px] leading-[43px] tracking-[-0.95px] m-0 font-medium"
                     style={{ color: '#001f1f' }}
                   >
                     Calm, delivered
                   </h3>
-                  
+
                   {/* Plus icon button */}
                   <button
                     className="absolute right-8 top-8 flex items-center justify-center rounded-[20px]"
                     style={{
                       width: '40px',
                       height: '40px',
-                      backgroundColor: '#7070ff',
+                      backgroundColor: '#018EA2',
                     }}
                     aria-label="Expand Calm, delivered"
                   >
@@ -2651,19 +2646,19 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                           <div
                             className="shortcut-checkbox"
                             style={{
-                              backgroundColor: '#e1e1fa',
-                              borderColor: 'rgba(112, 112, 255, 0.36)',
+                              backgroundColor: '#D4F7FB',
+                              borderColor: 'rgba(1, 142, 162, 0.36)',
                             }}
                           >
                             <div className="shortcut-check-icon">
                               <svg fill="none" viewBox="0 0 14.3715 9.7279">
-                                <path d="M 1.215 4.8045 L 5.06625 8.5125 L 13.15675 1.215" stroke="#4533b8" strokeLinecap="square" strokeWidth="2.43" />
+                                <path d="M 1.215 4.8045 L 5.06625 8.5125 L 13.15675 1.215" stroke="#018EA2" strokeLinecap="square" strokeWidth="2.43" />
                               </svg>
                             </div>
                           </div>
                           <p
                             className="m-0 text-[27px] leading-[36px] font-medium"
-                            style={{ color: '#4533b8' }}
+                            style={{ color: '#018EA2' }}
                           >
                             {item.boldText ? (
                               <>
@@ -2690,7 +2685,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                 <div className="px-8 pb-8">
                   <p
                     className="m-0 text-[19px] leading-[26px] font-normal opacity-64"
-                    style={{ color: '#4533b8' }}
+                    style={{ color: '#018EA2' }}
                   >
                     Operational simplicity and ease that remove friction from your day.
                   </p>
@@ -2698,21 +2693,22 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               </div>
 
               {/* CTA strip */}
-              <div
-                className="rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center"
+              <button
+                onClick={() => smoothScrollTo('pricing')}
+                className="w-full rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   height: '82px',
-                  backgroundColor: '#b8b8ff',
+                  backgroundColor: '#9EFAFF',
                   borderColor: 'rgba(0, 31, 31, 0.08)',
                 }}
               >
                 <p
                   className="m-0 text-[18px] leading-[26px] font-medium text-center"
-                  style={{ color: '#4533b8' }}
+                  style={{ color: '#003756' }}
                 >
-                  Take a tour →
+                  See Pricing →
                 </p>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -2862,9 +2858,9 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 shadow-glow hover:opacity-90 pulse-glow" style={{ backgroundColor: '#9EFAFF', color: '#003C5E' }}>
+            <Button onClick={() => setShowContactForm(true)} variant="primary" size="lg">
               {isReturningClient ? 'Commit to Quarterly Program & Save 15%' : 'Get in touch'}
-            </button>
+            </Button>
             <div className="text-sm text-white/70">
               <span className="inline-flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0098AD' }}></span>
