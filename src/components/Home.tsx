@@ -217,7 +217,7 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1500
+    fixedPrice: 1375
   },
   'mindfulness-cle': {
     appTime: 60,
@@ -229,7 +229,19 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1500
+  },
+  'mindfulness-pro-reactivity': {
+    appTime: 45,
+    totalHours: 0.75,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 45,
+    participants: 'unlimited',
+    fixedPrice: 1375
   }
 };
 
@@ -291,7 +303,8 @@ const Home: React.FC = () => {
                service.serviceType === 'mindfulness-soles' ||
                service.serviceType === 'mindfulness-movement' ||
                service.serviceType === 'mindfulness-pro' ||
-               service.serviceType === 'mindfulness-cle') {
+               service.serviceType === 'mindfulness-cle' ||
+               service.serviceType === 'mindfulness-pro-reactivity') {
       // Mindfulness services use fixed pricing
       serviceCost = service.fixedPrice || 1350;
       proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
@@ -1121,15 +1134,49 @@ const Home: React.FC = () => {
       {showEventModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[200]">
           <div className="card-large max-w-4xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="h2">Add Event In {currentLocation}</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[32px] md:text-[40px] font-extrabold text-shortcut-blue leading-tight" style={{ fontWeight: 800 }}>Add Event In {currentLocation}</h2>
               <button
                 onClick={() => setShowEventModal(false)}
                 className="text-text-dark-60 hover:text-shortcut-blue transition-colors p-2 rounded-lg hover:bg-neutral-light-gray"
                 aria-label="Close modal"
               >
-                <X size={24} />
+                <X size={28} />
               </button>
+            </div>
+
+            {/* Add Service Section - Prominent at top */}
+            <div className="mb-8 p-5 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-[24px] border-2 border-shortcut-teal/30">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-shortcut-teal rounded-full flex items-center justify-center flex-shrink-0">
+                  <Plus size={24} className="text-shortcut-navy-blue" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-shortcut-blue" style={{ fontWeight: 700 }}>Add Services to This Event</h3>
+                  <p className="text-sm text-text-dark-60 font-medium">Choose whether services happen on the same day or different days</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => addService('same-day')}
+                  variant="primary"
+                  className="flex-1"
+                  icon={<Plus size={20} />}
+                >
+                  Same Day Service
+                </Button>
+                <Button
+                  onClick={() => addService('new-day')}
+                  variant="green"
+                  className="flex-1"
+                  icon={<Plus size={20} />}
+                >
+                  Different Day Service
+                </Button>
+              </div>
+              <p className="text-xs text-text-dark-60 mt-3 font-medium">
+                💡 <strong>Same Day:</strong> Multiple services on one date (e.g., massage + nails). <strong>Different Day:</strong> Services on separate dates.
+              </p>
             </div>
 
             {services.map((service, index) => {
@@ -1226,6 +1273,7 @@ const Home: React.FC = () => {
                         <option value="mindfulness-movement">Ground & Reset: Cultivating Mindfulness Through Movement and Stillness</option>
                         <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                         <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
+                        <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Response Wisely</option>
                         <option value="hair-makeup">Hair + Makeup</option>
                         <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                       </select>
@@ -1528,30 +1576,11 @@ const Home: React.FC = () => {
               );
             })}
 
-            <div className="flex gap-4 mt-8 pt-6 border-t border-gray-200">
-              <Button
-                onClick={() => addService('same-day')}
-                variant="primary"
-                className="flex-1"
-                icon={<Plus size={20} />}
-              >
-                Add Same Day Service
-              </Button>
-              <Button
-                onClick={() => addService('new-day')}
-                variant="green"
-                className="flex-1"
-                icon={<Plus size={20} />}
-              >
-                Add New Day Service
-              </Button>
-            </div>
-
-            <div className="mt-6">
+            <div className="mt-8 pt-6 border-t-2 border-gray-200">
               <Button
                 onClick={handleSaveEvent}
                 variant="primary"
-                className="w-full"
+                className="w-full text-lg py-4"
               >
                 Save Event
               </Button>

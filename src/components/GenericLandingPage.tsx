@@ -495,8 +495,8 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       { appointments: 60, eventTime: 6, pros: 5, price: 4050 }
     ],
     mindfulness: [
-      { appointments: 1, eventTime: 0.5, pros: 1, price: 1225, name: 'Mindful Eating & Breathe Awareness', popular: true },
-      { appointments: 1, eventTime: 0.5, pros: 1, price: 1225, name: 'Movement & Scan' },
+      { appointments: 1, eventTime: 0.5, pros: 1, price: 1250, name: 'Mindful Eating & Breathe Awareness', popular: true },
+      { appointments: 1, eventTime: 0.5, pros: 1, price: 1250, name: 'Movement & Scan' },
       { appointments: 1, eventTime: 1, pros: 1, price: 1500, name: 'Speak & Listen' }
     ]
   } as const;
@@ -1633,6 +1633,94 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         `}</style>
       </section>
 
+      {/* PROMOTIONAL SECTION */}
+      <section id="pricing-section" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
+        <div className="mx-auto max-w-7xl px-4">
+          {/* Header Text */}
+          <div className="text-center mb-12 md:mb-16">
+            {!isGeneric && (
+            <h3 className="text-lg md:text-xl mb-4" style={{ color: '#FFFFFF', fontWeight: 400 }}>
+              {isReturningClient
+                ? `A special thank you for our friends at ${partnerName}`
+                : `A special gift for our friends at ${partnerName}`
+              }
+            </h3>
+            )}
+            <h2 className="h1 mb-6 md:mb-8" style={{ color: '#FFFFFF' }}>
+              {isReturningClient
+                ? 'Commit to Quarterly Wellness Events and Save 15% on Your 2026 Calendar'
+                : 'Book your first event for 2026 and save'
+              }
+            </h2>
+            <p className="text-base lg:text-lg font-medium mb-4 max-w-3xl mx-auto" style={{ color: '#FFFFFF', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
+              {isReturningClient
+                ? 'Lock in 4+ events per year and unlock premium partner benefits. Commit by February 16, 2026 to secure your quarterly program.'
+                : 'Unlock Premium Partner status with Shortcut and make wellness even easier.'
+              }
+            </p>
+            {isReturningClient && (() => {
+              const deadline = new Date('2026-02-16T23:59:59');
+              const now = new Date();
+              const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              const isPastDeadline = daysUntil < 0;
+
+              return (
+                <div className="bg-yellow-400 bg-opacity-20 border-2 border-yellow-400 rounded-xl p-6 mb-6 max-w-2xl mx-auto">
+                  <div className="flex items-center justify-center gap-4">
+                    <span className="text-3xl animate-pulse">⏰</span>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold text-white mb-1 uppercase tracking-wider">Commitment Deadline</p>
+                      {!isPastDeadline ? (
+                        <>
+                          <p className="text-3xl md:text-4xl font-bold text-white mb-1">
+                            {daysUntil} {daysUntil === 1 ? 'Day' : 'Days'} Left
+                          </p>
+                          <p className="text-sm text-white text-opacity-90">February 16, 2026</p>
+                        </>
+                      ) : (
+                        <p className="text-xl font-bold text-white">Deadline Passed - Contact Us for Availability</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Promotion Cards */}
+          <div className="promotion-cards-wrapper grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
+            {/* Essential Card (Left) */}
+            <div className="promotion-card essential-card-fade">
+              <img
+                src="/Holiday Proposal/Promotion Section/Essential promotion box.svg"
+                alt="Essential Partner Promotion"
+                className="w-full h-auto"
+                loading="lazy"
+              />
+            </div>
+
+            {/* Animated Arrow Pointer */}
+            <div className="arrow-pointer hidden md:block">
+              →
+            </div>
+
+            {/* Premium Card (Right) */}
+            <div className="promotion-card premium-card-animated">
+              <img
+                src="/Holiday Proposal/Promotion Section/Premium promotion box.svg"
+                alt="Premium Partner Promotion"
+                className="w-full h-auto"
+                loading="lazy"
+              />
+
+              {/* Sparkles */}
+              <div className="sparkle">✨</div>
+              <div className="sparkle">✨</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* SERVICES SECTION */}
       <section id="services" className="fade-in-section py-16 md:py-20 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
         {/* Mobile swipe indicator */}
@@ -2041,132 +2129,177 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </div>
 
         {/* Packages Section - Integrated Below Services */}
-        {(!genericLandingPage || genericLandingPage.customization.includePricingCalculator) && (
-          <div className="mx-auto container-narrow px-4 py-12 md:py-16 border-t-2 border-shortcut-teal border-opacity-20 mt-8">
-            <div className="text-center mb-12">
-              <h2 className="h1 mb-4" style={{ color: '#003756' }}>
-                Popular {getServiceName(serviceOrder[currentServiceIndex])} Packages
+      </section>
+
+      {/* CHOOSE YOUR PACKAGE SECTION - Standalone with Master Style Guide Design */}
+      {(!genericLandingPage || genericLandingPage.customization.includePricingCalculator) && (
+        <section id="pricing" className="fade-in-section py-16 md:py-24 rounded-3xl" style={{ backgroundColor: '#F8F9FA' }}>
+          <div className="mx-auto max-w-7xl px-5 lg:px-[90px]">
+            {/* Section Header with Visual Bridge */}
+            <div className="text-center mb-16">
+              <div className="inline-block mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="h-1 w-16 bg-gradient-to-r from-transparent to-shortcut-teal rounded-full"></div>
+                  <span className="text-sm font-bold uppercase tracking-[0.15em] text-shortcut-teal">Pricing</span>
+                  <div className="h-1 w-16 bg-gradient-to-l from-transparent to-shortcut-teal rounded-full"></div>
+                </div>
+              </div>
+              <h2 className="text-[32px] md:text-[48px] lg:text-[56px] font-extrabold mb-6 leading-tight tracking-tight" style={{ color: '#003756', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.01em' }}>
+                Choose Your Perfect Package
               </h2>
-              <p className="text-lg md:text-xl max-w-3xl mx-auto mb-8" style={{ color: '#003756' }}>
-                Choose your perfect wellness experience. All packages include premium service and professional setup.
+              <p className="text-lg md:text-xl lg:text-2xl max-w-3xl mx-auto leading-relaxed" style={{ color: '#003756', opacity: 0.8, lineHeight: 1.6 }}>
+                Select the {getServiceName(serviceOrder[currentServiceIndex]).toLowerCase()} package that fits your team's needs. All packages include premium service and professional setup.
               </p>
             </div>
 
-            <div className="max-w-5xl mx-auto">
-              {/* Package Selection */}
-              <div className="mb-12">
-                <div className="grid md:grid-cols-3 gap-6">
-                  {SERVICE_PRESETS[serviceOrder[currentServiceIndex] as keyof typeof SERVICE_PRESETS]?.map((preset, index) => {
-                    const currentService = serviceOrder[currentServiceIndex];
-                    const serviceColor = getServiceColor(currentService);
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setSelectedService(currentService);
-                          setSelectedPackageIndex(index);
-                          setPricingConfig((prev: any) => ({ ...prev, totalAppointments: preset.appointments }));
-                        }}
-                        className={`package-button relative p-8 rounded-3xl text-center transition-all duration-300 transform hover:scale-105 overflow-hidden ${
-                          selectedService === currentService && selectedPackageIndex === index
-                            ? 'selected ring-4 ring-offset-4 shadow-2xl scale-105' 
-                            : 'hover:shadow-xl'
-                        }`}
-                        style={{
-                          '--package-color': serviceColor,
-                          backgroundColor: 'white',
-                          color: '#003756',
-                          border: selectedService === currentService && selectedPackageIndex === index ? `3px solid ${serviceColor}` : '2px solid #E5E7EB',
-                          boxShadow: selectedService === currentService && selectedPackageIndex === index ? `0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)` : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                        } as React.CSSProperties}
-                      >
-                        {(preset as any).popular && (
-                          <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#FF5050] to-[#175071] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10">
-                            MOST POPULAR
+            {/* Service Selector Tabs */}
+            <div className="mb-12">
+              <div className="flex flex-wrap justify-center gap-3">
+                {serviceOrder.map((service, index) => {
+                  const isActive = currentServiceIndex === index;
+                  const serviceColor = getServiceColor(service);
+                  return (
+                    <button
+                      key={service}
+                      onClick={() => setCurrentServiceIndex(index)}
+                      className="px-6 py-3 rounded-full font-bold text-base transition-all duration-300 transform hover:scale-105"
+                      style={{
+                        backgroundColor: isActive ? serviceColor : 'white',
+                        color: isActive ? 'white' : '#003756',
+                        border: `2px solid ${serviceColor}`,
+                        boxShadow: isActive
+                          ? '0 10px 25px -5px rgba(0, 55, 86, 0.2), 0 4px 12px -2px rgba(0, 55, 86, 0.1)'
+                          : '0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        fontWeight: 700
+                      }}
+                    >
+                      {getServiceName(service)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Package Selection */}
+            <div className="mb-16">
+              <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+                {SERVICE_PRESETS[serviceOrder[currentServiceIndex] as keyof typeof SERVICE_PRESETS]?.map((preset, index) => {
+                  const currentService = serviceOrder[currentServiceIndex];
+                  const serviceColor = getServiceColor(currentService);
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSelectedService(currentService);
+                        setSelectedPackageIndex(index);
+                        setPricingConfig((prev: any) => ({ ...prev, totalAppointments: preset.appointments }));
+                      }}
+                      className={`package-button relative p-8 rounded-[24px] text-center transition-all duration-300 transform hover:scale-105 overflow-hidden ${
+                        selectedService === currentService && selectedPackageIndex === index
+                          ? 'selected ring-4 ring-offset-4 scale-105'
+                          : 'hover:shadow-xl'
+                      }`}
+                      style={{
+                        '--package-color': serviceColor,
+                        backgroundColor: 'white',
+                        color: '#003756',
+                        border: selectedService === currentService && selectedPackageIndex === index ? `3px solid ${serviceColor}` : '2px solid #E5E7EB',
+                        boxShadow: selectedService === currentService && selectedPackageIndex === index
+                          ? '0 25px 50px -12px rgba(0, 55, 86, 0.2), 0 12px 24px -8px rgba(0, 55, 86, 0.12), 0 0 0 1px rgba(0, 55, 86, 0.05)'
+                          : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                      } as React.CSSProperties}
+                    >
+                      {(preset as any).popular && (
+                        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#FF5050] to-[#175071] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10">
+                          MOST POPULAR
+                        </div>
+                      )}
+                      <div className="space-y-6">
+                        {/* Package Title */}
+                        <div className="text-center">
+                          <h3 className="text-2xl font-bold mb-2" style={{ color: '#003756', fontWeight: 700 }}>
+                            {(preset as any).name || `${preset.appointments} Appointments`}
+                          </h3>
+                        </div>
+
+                        {/* Package Details */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-center gap-3 text-base">
+                            <span className="text-lg">⏱️</span>
+                            <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
                           </div>
-                        )}
-                        <div className="space-y-6">
-                          {/* Package Title */}
+                          <div className="flex items-center justify-center gap-3 text-base">
+                            <span className="text-lg">👥</span>
+                            <span className="font-semibold" style={{ color: '#003756' }}>{preset.pros} {getServiceName(currentService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
+                          </div>
+
+                          {/* Mindfulness Service Descriptions */}
+                          {currentService === 'mindfulness' && (preset as any).name && (
+                            <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                              <p className="text-sm leading-relaxed text-center" style={{ color: '#003756' }}>
+                                {getMindfulnessDescription((preset as any).name)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Price Section */}
+                        <div className="pt-4 border-t-2" style={{ borderColor: '#E5E7EB' }}>
                           <div className="text-center">
-                            <h3 className="text-2xl font-bold mb-2" style={{ color: '#003756' }}>
-                              {(preset as any).name || `${preset.appointments} Appointments`}
-                            </h3>
-                          </div>
-                          
-                          {/* Package Details */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-center gap-3 text-base">
-                              <span className="text-lg">⏱️</span>
-                              <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
+                            <div className="text-4xl font-bold mb-1" style={{ color: '#003756' }}>
+                              {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
                             </div>
-                            <div className="flex items-center justify-center gap-3 text-base">
-                              <span className="text-lg">👥</span>
-                              <span className="font-semibold" style={{ color: '#003756' }}>{preset.pros} {getServiceName(currentService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
-                            </div>
-                            
-                            {/* Mindfulness Service Descriptions */}
-                            {currentService === 'mindfulness' && (preset as any).name && (
-                              <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-                                <p className="text-sm leading-relaxed text-center" style={{ color: '#003756' }}>
-                                  {getMindfulnessDescription((preset as any).name)}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Price Section */}
-                          <div className="pt-4 border-t-2" style={{ borderColor: '#E5E7EB' }}>
-                            <div className="text-center">
-                              <div className="text-4xl font-bold mb-1" style={{ color: '#003756' }}>
-                                {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
-                              </div>
-                              <div className="text-sm font-medium opacity-75" style={{ color: '#003756' }}>
-                                {(preset as any).custom ? 'Contact for pricing' : 'per session'}
-                              </div>
+                            <div className="text-sm font-medium opacity-75" style={{ color: '#003756' }}>
+                              {(preset as any).custom ? 'Contact for pricing' : 'per session'}
                             </div>
                           </div>
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* What's Included Section */}
-              <div className="mb-12">
-                <h3 className="text-xl font-bold mb-6 text-center" style={{ color: '#003756' }}>
-                  What's Included:
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {getWhatsIncluded(serviceOrder[currentServiceIndex]).map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-green-600 text-sm">✓</span>
                       </div>
-                      <span className="text-gray-700 font-medium">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Build Your Proposal Button */}
-              <div className="text-center mt-12">
-                <button
-                  onClick={() => setShowProposalBuilder(true)}
-                  className="inline-flex items-center justify-center rounded-full font-bold px-10 py-5 text-lg shadow-soft hover:opacity-90 transition-all gap-3 transform hover:scale-105"
-                  style={{ backgroundColor: '#003756', color: '#FFFFFF' }}
-                >
-                  <span>Build Your Proposal</span>
-                  <span className="text-xl">→</span>
-                </button>
-                <p className="text-sm mt-4 opacity-75" style={{ color: '#6b7280' }}>
-                  Select a package above to get started
-                </p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
+            {/* What's Included Section with Master Style Guide Design */}
+            <div className="mb-16 bg-gradient-to-br from-shortcut-teal/5 to-shortcut-teal/10 rounded-[24px] p-8 md:p-12">
+              <h3 className="text-2xl md:text-3xl font-bold mb-8 text-center" style={{ color: '#003756', fontWeight: 700 }}>
+                What's Included:
+              </h3>
+              <div className="grid md:grid-cols-2 gap-5">
+                {getWhatsIncluded(serviceOrder[currentServiceIndex]).map((item, index) => (
+                  <div key={index} className="flex items-center gap-4 p-5 bg-white rounded-[24px] border-2 border-shortcut-teal/20 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="w-8 h-8 bg-shortcut-teal rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-base font-bold">✓</span>
+                    </div>
+                    <span className="text-gray-700 font-semibold">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Build Your Proposal Button with Enhanced Design */}
+            <div className="text-center">
+              <button
+                onClick={() => setShowProposalBuilder(true)}
+                className="inline-flex items-center justify-center rounded-full font-bold px-14 py-7 text-xl md:text-2xl hover:opacity-90 transition-all transform hover:scale-105"
+                style={{
+                  backgroundColor: '#003756',
+                  color: '#EFE0C0',
+                  boxShadow: '0 25px 50px -12px rgba(0, 55, 86, 0.3), 0 12px 24px -8px rgba(0, 55, 86, 0.2)',
+                  fontWeight: 700
+                }}
+              >
+                Build Your Proposal
+                <span className="ml-3 text-3xl">→</span>
+              </button>
+              <p className="text-base mt-5 font-medium" style={{ color: '#003756', opacity: 0.6 }}>
+                Free consultation • No commitment required
+              </p>
+            </div>
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* HIGH PERFORMANCE STARTS HERE - ShortcutSection Style */}
       <section 
@@ -2650,95 +2783,6 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           </div>
         </section>
       )}
-
-      {/* PROMOTIONAL SECTION */}
-      <section id="pricing-section" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
-        <div className="mx-auto max-w-7xl px-4">
-          {/* Header Text */}
-          <div className="text-center mb-12 md:mb-16">
-            {!isGeneric && (
-            <h3 className="text-lg md:text-xl mb-4" style={{ color: '#FFFFFF', fontWeight: 400 }}>
-              {isReturningClient 
-                ? `A special thank you for our friends at ${partnerName}`
-                : `A special gift for our friends at ${partnerName}`
-              }
-            </h3>
-            )}
-            <h2 className="h1 mb-6 md:mb-8" style={{ color: '#FFFFFF' }}>
-              {isReturningClient 
-                ? 'Commit to Quarterly Wellness Events and Save 15% on Your 2026 Calendar'
-                : 'Book your first event for 2026 and save'
-              }
-            </h2>
-            <p className="text-base lg:text-lg font-medium mb-4 max-w-3xl mx-auto" style={{ color: '#FFFFFF', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
-              {isReturningClient 
-                ? 'Lock in 4+ events per year and unlock premium partner benefits. Commit by February 16, 2026 to secure your quarterly program.'
-                : 'Unlock Premium Partner status with Shortcut and make wellness even easier.'
-              }
-            </p>
-            {isReturningClient && (() => {
-              const deadline = new Date('2026-02-16T23:59:59');
-              const now = new Date();
-              const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-              const isPastDeadline = daysUntil < 0;
-              
-              return (
-                <div className="bg-yellow-400 bg-opacity-20 border-2 border-yellow-400 rounded-xl p-6 mb-6 max-w-2xl mx-auto">
-                  <div className="flex items-center justify-center gap-4">
-                    <span className="text-3xl animate-pulse">⏰</span>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-white mb-1 uppercase tracking-wider">Commitment Deadline</p>
-                      {!isPastDeadline ? (
-                        <>
-                          <p className="text-3xl md:text-4xl font-bold text-white mb-1">
-                            {daysUntil} {daysUntil === 1 ? 'Day' : 'Days'} Left
-                          </p>
-                          <p className="text-sm text-white text-opacity-90">February 16, 2026</p>
-                        </>
-                      ) : (
-                        <p className="text-xl font-bold text-white">Deadline Passed - Contact Us for Availability</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Promotion Cards */}
-          <div className="promotion-cards-wrapper grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
-            {/* Essential Card (Left) */}
-            <div className="promotion-card essential-card-fade">
-              <img 
-                src="/Holiday Proposal/Promotion Section/Essential promotion box.svg" 
-                alt="Essential Partner Promotion" 
-                className="w-full h-auto"
-                loading="lazy"
-              />
-            </div>
-            
-            {/* Animated Arrow Pointer */}
-            <div className="arrow-pointer hidden md:block">
-              →
-            </div>
-            
-            {/* Premium Card (Right) */}
-            <div className="promotion-card premium-card-animated">
-              <img 
-                src="/Holiday Proposal/Promotion Section/Premium promotion box.svg" 
-                alt="Premium Partner Promotion" 
-                className="w-full h-auto"
-                loading="lazy"
-              />
-              
-              {/* Sparkles */}
-              <div className="sparkle">✨</div>
-              <div className="sparkle">✨</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
 
       {/* FEEL GREAT SCROLLER */}
       <section id="feel-great" className="fade-in-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>

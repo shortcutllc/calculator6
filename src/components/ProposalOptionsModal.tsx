@@ -258,79 +258,81 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
       <div className="card-large max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="h2">Generate Proposal</h2>
-          <button 
-            onClick={onClose} 
-            className="text-text-dark-60 hover:text-shortcut-blue"
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-[32px] md:text-[40px] font-extrabold text-shortcut-blue leading-tight" style={{ fontWeight: 800 }}>Generate Proposal</h2>
+          <button
+            onClick={onClose}
+            className="text-text-dark-60 hover:text-shortcut-blue transition-colors rounded-lg p-2 hover:bg-neutral-light-gray"
             disabled={loading}
           >
-            <X size={24} />
+            <X size={28} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="space-y-8">
-            <div>
-              <h3 className="text-lg font-extrabold text-shortcut-blue mb-6">Contact Information</h3>
+          <div className="space-y-6">
+            {/* Contact Information Section */}
+            <div className="card-small bg-gradient-to-br from-shortcut-teal/5 to-shortcut-teal/10 border-2 border-shortcut-teal/20">
+              <h3 className="text-xl md:text-2xl font-bold text-shortcut-blue mb-6" style={{ fontWeight: 700 }}>Contact Information</h3>
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-shortcut-blue mb-2">First Name</label>
+                  <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>First Name</label>
                   <input
                     type="text"
                     value={options.customization.contactFirstName}
                     onChange={(e) => handleFieldChange('customization.contactFirstName', e.target.value)}
                     onBlur={() => handleBlur('contactFirstName')}
-                    className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                      getFieldError('contactFirstName') ? 'border-red-500' : 'border-gray-200'
+                    className={`block w-full px-4 py-3 border-2 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                      getFieldError('contactFirstName') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
                     }`}
                     disabled={loading}
                   />
                   {getFieldError('contactFirstName') && (
-                    <p className="mt-2 text-sm text-red-600">{getFieldError('contactFirstName')}</p>
+                    <p className="mt-2 text-sm text-red-600 font-medium">{getFieldError('contactFirstName')}</p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-shortcut-blue mb-2">Last Name</label>
+                  <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>Last Name</label>
                   <input
                     type="text"
                     value={options.customization.contactLastName}
                     onChange={(e) => handleFieldChange('customization.contactLastName', e.target.value)}
                     onBlur={() => handleBlur('contactLastName')}
-                    className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                      getFieldError('contactLastName') ? 'border-red-500' : 'border-gray-200'
+                    className={`block w-full px-4 py-3 border-2 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                      getFieldError('contactLastName') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
                     }`}
                     disabled={loading}
                   />
                   {getFieldError('contactLastName') && (
-                    <p className="mt-2 text-sm text-red-600">{getFieldError('contactLastName')}</p>
+                    <p className="mt-2 text-sm text-red-600 font-medium">{getFieldError('contactLastName')}</p>
                   )}
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">Client Email (Optional)</label>
+            {/* Client Email Section */}
+            <div className="card-small bg-white border-2 border-gray-200">
+              <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>Client Email (Optional)</label>
               <input
                 type="email"
                 value={options.clientEmail}
                 onChange={(e) => handleFieldChange('clientEmail', e.target.value)}
                 onBlur={() => handleBlur('clientEmail')}
-                className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                  getFieldError('clientEmail') ? 'border-red-500' : 'border-gray-200'
+                className={`block w-full px-4 py-3 border-2 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                  getFieldError('clientEmail') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
                 }`}
                 placeholder="Enter client email to share proposal later"
                 disabled={loading}
               />
               {getFieldError('clientEmail') && (
-                <p className="mt-2 text-sm text-red-600">{getFieldError('clientEmail')}</p>
+                <p className="mt-2 text-sm text-red-600 font-medium">{getFieldError('clientEmail')}</p>
               )}
             </div>
 
             {/* Office Locations - Show one input per location if multiple locations exist */}
             {locations.length > 1 ? (
-              <div>
-                <h3 className="text-lg font-extrabold text-shortcut-blue mb-6">Office Locations (Optional)</h3>
+              <div className="card-small bg-white border-2 border-gray-200">
+                <h3 className="text-xl md:text-2xl font-bold text-shortcut-blue mb-6" style={{ fontWeight: 700 }}>Office Locations (Optional)</h3>
                 <div className="space-y-6">
                   {locations.map((location, index) => (
                     <div key={location}>

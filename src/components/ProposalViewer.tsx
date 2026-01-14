@@ -140,7 +140,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 0,
     classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1500
+    fixedPrice: 1375
   },
   'mindfulness-cle': {
     appTime: 60,
@@ -152,7 +152,19 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1500
+  },
+  'mindfulness-pro-reactivity': {
+    appTime: 45,
+    totalHours: 0.75,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 45,
+    participants: 'unlimited',
+    fixedPrice: 1375
   }
 };
 
@@ -276,6 +288,16 @@ const getServiceDescription = (service: any): string => {
       return "Experience personalized makeup artistry that enhances natural beauty and creates stunning looks tailored to each individual.";
     case 'mindfulness':
       return getMindfulnessDescription(service);
+    case 'mindfulness-soles':
+      return "Grounding Under Pressure: The Soles of the Feet Practice offers a powerful technique to stay present and composed during high-stress moments, helping attorneys manage pressure with calm and focus.";
+    case 'mindfulness-movement':
+      return "Ground & Reset: Cultivating Mindfulness Through Movement and Stillness combines gentle movement and stillness practices to help attorneys reconnect with the present moment and reduce stress.";
+    case 'mindfulness-pro':
+      return "Mindfulness: PRO Practice introduces the Pause-Relax-Open framework, a practical approach for attorneys to step out of reactivity and respond more skillfully in high-stakes situations.";
+    case 'mindfulness-cle':
+      return "Mindfulness: CLE Ethics Program is an ethics-approved course exploring how mindfulness supports ethical decision-making, emotional regulation, and professional wellbeing for legal professionals.";
+    case 'mindfulness-pro-reactivity':
+      return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants will learn what mindfulness is, explore the neuroscience of stress and emotional regulation, and practice formal PRO (Pause-Relax-Open) techniques alongside informal 'On-the-Spot' practices for everyday legal work.";
     case 'hair-makeup':
       return "Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.";
     case 'headshot-hair-makeup':
@@ -2718,6 +2740,7 @@ The Shortcut Team`);
                                             <option value="mindfulness-movement">Mindfulness: Ground & Reset</option>
                                             <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                                             <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
+                                            <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Response Wisely</option>
                                             <option value="hair-makeup">Hair + Makeup</option>
                                             <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                                           </select>

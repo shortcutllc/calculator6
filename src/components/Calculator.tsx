@@ -140,7 +140,7 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1500
+    fixedPrice: 1375
   },
   'mindfulness-cle': {
     appTime: 60,
@@ -152,7 +152,19 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1500
+  },
+  'mindfulness-pro-reactivity': {
+    appTime: 45,
+    totalHours: 0.75,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 45,
+    participants: 'unlimited',
+    fixedPrice: 1375
   }
 };
 
@@ -218,7 +230,8 @@ const Calculator: React.FC = () => {
                service.serviceType === 'mindfulness-soles' ||
                service.serviceType === 'mindfulness-movement' ||
                service.serviceType === 'mindfulness-pro' ||
-               service.serviceType === 'mindfulness-cle') {
+               service.serviceType === 'mindfulness-cle' ||
+               service.serviceType === 'mindfulness-pro-reactivity') {
       // Mindfulness services use fixed pricing
       serviceCost = service.fixedPrice || 1350;
       proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
@@ -320,6 +333,7 @@ const Calculator: React.FC = () => {
                   <option value="mindfulness-movement">Ground & Reset: Cultivating Mindfulness Through Movement and Stillness</option>
                   <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                   <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
+                  <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Response Wisely</option>
                   <option value="hair-makeup">Hair + Makeup</option>
                   <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                 </select>
