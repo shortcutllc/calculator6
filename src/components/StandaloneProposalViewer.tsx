@@ -54,6 +54,8 @@ const getServiceDisplayName = (serviceType: string): string => {
       return 'Mindfulness: PRO Practice';
     case 'mindfulness-cle':
       return 'Mindfulness: CLE Ethics Program';
+    case 'mindfulness-pro-reactivity':
+      return 'Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Response Wisely';
     case 'makeup':
       return 'Makeup';
     default:
@@ -111,7 +113,8 @@ const isMindfulnessOnlyProposal = (displayData: any): boolean => {
     'mindfulness-soles',
     'mindfulness-movement',
     'mindfulness-pro',
-    'mindfulness-cle'
+    'mindfulness-cle',
+    'mindfulness-pro-reactivity'
   ];
 
   return uniqueServiceTypes.every(type =>
@@ -150,6 +153,7 @@ const getServiceImagePath = (serviceType: string): string => {
     case 'mindfulness-movement':
     case 'mindfulness-pro':
     case 'mindfulness-cle':
+    case 'mindfulness-pro-reactivity':
       return '/Mindfulness Slider.png';
     case 'hair-makeup':
       return '/Hair Slider.png';
@@ -216,6 +220,8 @@ const getServiceDescription = (service: any): string => {
       return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants learn the PRO (Pause-Relax-Open) practice and an informal \"On-the-Spot\" practice that can be used in the moment - before difficult conversations, emails, or decisions. Includes exploration of the neuroscience of stress, reactivity, and emotional regulation.";
     case 'mindfulness-cle':
       return "This one-hour CLE introduces mindfulness as an evidence-based skill set that supports ethical decision-making, professional responsibility, and sound judgment in legal practice. Participants will understand how stress impacts attention and ethical awareness, learn how mindfulness supports competence and clarity, and practice tools to pause, regulate stress, and respond intentionally. Shortcut manages the full CLE process including accreditation, attendance tracking, and credit reporting.";
+    case 'mindfulness-pro-reactivity':
+      return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants will learn what mindfulness is, explore the neuroscience of stress and emotional regulation, and practice formal PRO (Pause-Relax-Open) techniques alongside informal 'On-the-Spot' practices for everyday legal work.";
     case 'hair-makeup':
       return "Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.";
     case 'headshot-hair-makeup':
