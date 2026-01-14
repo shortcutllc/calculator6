@@ -77,16 +77,16 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 40
   },
   mindfulness: {
-    appTime: 40,
-    totalHours: 1,
+    appTime: 45,
+    totalHours: 0.75,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 40,
+    classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1375
   },
   'hair-makeup': {
     appTime: 20,

@@ -66,14 +66,14 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 0
   },
   mindfulness: {
-    appTime: 40,
+    appTime: 45,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 40,
+    classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1375
   }
 };
 
