@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useProposal } from '../contexts/ProposalContext';
 import { prepareProposalFromCalculation } from '../utils/proposalGenerator';
 import ClientProposalBuilder from './ClientProposalBuilder';
+import { Button } from './Button';
 
 interface GenericLandingPageProps {
   genericLandingPageData?: GenericLandingPageType;
@@ -1538,18 +1539,18 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 md:mb-16">
-              <button 
-                onClick={() => isReturningClient ? smoothScrollTo('pricing') : setShowContactForm(true)} 
-                className="inline-flex items-center justify-center rounded-full font-bold px-8 py-3 lg:px-10 lg:py-4 text-sm lg:text-base transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]" 
-                style={{ backgroundColor: '#9efaff', color: '#09364f' }}
+              <Button
+                onClick={() => isReturningClient ? smoothScrollTo('pricing') : setShowContactForm(true)}
+                variant="primary"
+                size="lg"
               >
                 {isReturningClient ? 'Build My Quarterly Proposal' : 'Get in touch'}
-              </button>
-              
+              </Button>
+
               {!isReturningClient && (
-                <button 
-                  onClick={() => smoothScrollTo('services')} 
-                  className="text-sm lg:text-base font-semibold underline underline-offset-2 transition-opacity hover:opacity-80" 
+                <button
+                  onClick={() => smoothScrollTo('services')}
+                  className="text-sm lg:text-base font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
                   style={{ color: '#FFFFFF' }}
                 >
                   Explore Services
