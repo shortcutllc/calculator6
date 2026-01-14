@@ -4,7 +4,10 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      // Configure React plugin to not interfere with dependency optimization
+      jsxRuntime: 'automatic'
+    }),
     viteStaticCopy({
       targets: [
         {
@@ -15,6 +18,8 @@ export default defineConfig({
     })
   ],
   base: '/',
+  // Completely remove optimizeDeps to let Vite handle it naturally
+  // This should prevent the 504 errors by not forcing pre-bundling
   build: {
     sourcemap: true,
     outDir: 'dist',
@@ -55,7 +60,18 @@ export default defineConfig({
       'Access-Control-Allow-Origin': '*'
     },
     watch: {
-      ignored: ['**/public/env-config.js']
+      // Ignore generated folders that cause restart loops
+      ignored: [
+        '**/public/env-config.js',
+        '**/dist/**',
+        '**/.vite/**',
+        '**/node_modules/.vite/**',
+        '**/.git/**',
+        '**/node_modules/**'
+      ],
+      // Enable polling for macOS file-watch stability
+      usePolling: true,
+      interval: 300
     }
   },
   preview: {

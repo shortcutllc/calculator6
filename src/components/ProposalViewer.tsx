@@ -105,6 +105,54 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     hourlyRate: 135,
     earlyArrival: 25,
     retouchingCost: 0
+  },
+  'mindfulness-soles': {
+    appTime: 30,
+    totalHours: 0.5,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 30,
+    participants: 'unlimited',
+    fixedPrice: 1250
+  },
+  'mindfulness-movement': {
+    appTime: 30,
+    totalHours: 0.5,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 30,
+    participants: 'unlimited',
+    fixedPrice: 1250
+  },
+  'mindfulness-pro': {
+    appTime: 45,
+    totalHours: 0.75,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 45,
+    participants: 'unlimited',
+    fixedPrice: 1500
+  },
+  'mindfulness-cle': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1350
   }
 };
 
@@ -2666,6 +2714,10 @@ The Shortcut Team`);
                                             <option value="makeup">Makeup</option>
                                             <option value="headshot">Headshots</option>
                                             <option value="mindfulness">Mindfulness</option>
+                                            <option value="mindfulness-soles">Mindfulness: Soles of the Feet</option>
+                                            <option value="mindfulness-movement">Mindfulness: Ground & Reset</option>
+                                            <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
+                                            <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
                                             <option value="hair-makeup">Hair + Makeup</option>
                                             <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                                           </select>

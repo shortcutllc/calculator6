@@ -20,6 +20,12 @@ import { trackProposalChanges, createChangeSet, getChangeDisplayInfo } from '../
 import { ProposalChangeSet, ProposalChange } from '../types/proposal';
 import ProposalSurveyForm from './ProposalSurveyForm';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
+import {
+  WhyShortcutSection,
+  CLEWhyShortcutSection,
+  ParticipantBenefitsSection,
+  AdditionalResourcesSection
+} from './MindfulnessProposalContent';
 
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -40,6 +46,14 @@ const getServiceDisplayName = (serviceType: string): string => {
       return 'Headshot';
     case 'mindfulness':
       return 'Mindfulness';
+    case 'mindfulness-soles':
+      return 'Grounding Under Pressure: The Soles of the Feet Practice';
+    case 'mindfulness-movement':
+      return 'Ground & Reset: Cultivating Mindfulness Through Movement and Stillness';
+    case 'mindfulness-pro':
+      return 'Mindfulness: PRO Practice';
+    case 'mindfulness-cle':
+      return 'Mindfulness: CLE Ethics Program';
     case 'makeup':
       return 'Makeup';
     default:
@@ -72,7 +86,7 @@ const formatDate = (dateString: string): string => {
 // Helper function to get unique service types from proposal data
 const getUniqueServiceTypes = (displayData: any): string[] => {
   const serviceTypes = new Set<string>();
-  
+
   if (displayData?.services) {
     Object.values(displayData.services).forEach((locationData: any) => {
       Object.values(locationData).forEach((dateData: any) => {
@@ -82,8 +96,35 @@ const getUniqueServiceTypes = (displayData: any): string[] => {
       });
     });
   }
-  
+
   return Array.from(serviceTypes);
+};
+
+// Helper function to check if proposal contains only mindfulness services
+const isMindfulnessOnlyProposal = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+
+  if (uniqueServiceTypes.length === 0) return false;
+
+  const mindfulnessTypes = [
+    'mindfulness',
+    'mindfulness-soles',
+    'mindfulness-movement',
+    'mindfulness-pro',
+    'mindfulness-cle'
+  ];
+
+  return uniqueServiceTypes.every(type =>
+    mindfulnessTypes.includes(type.toLowerCase())
+  );
+};
+
+// Helper function to check if proposal contains CLE service
+const hasCLEService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  return uniqueServiceTypes.some(type =>
+    type.toLowerCase() === 'mindfulness-cle'
+  );
 };
 
 // Helper function to get service image path
@@ -105,6 +146,10 @@ const getServiceImagePath = (serviceType: string): string => {
     case 'headshots':
       return '/Headshot Slider.png';
     case 'mindfulness':
+    case 'mindfulness-soles':
+    case 'mindfulness-movement':
+    case 'mindfulness-pro':
+    case 'mindfulness-cle':
       return '/Mindfulness Slider.png';
     case 'hair-makeup':
       return '/Hair Slider.png';
@@ -163,6 +208,14 @@ const getServiceDescription = (service: any): string => {
       return "Experience personalized makeup artistry that enhances natural beauty and creates stunning looks tailored to each individual.";
     case 'mindfulness':
       return getMindfulnessDescription(service);
+    case 'mindfulness-soles':
+      return "This session introduces a powerful, body-based mindfulness practice designed to help attorneys manage stress, pressure, and emotional reactivity in real time. Participants learn the Soles of the Feet meditation, a grounding practice that helps calm the nervous system and invite both body and mind to relax. Particularly helpful in court, before high-stakes appearances, or during moments of emotional escalation.";
+    case 'mindfulness-movement':
+      return "This session emphasizes body-based mindfulness practices that help release tension and cultivate steadiness - especially effective for attorneys who feel mentally overloaded or physically depleted. Participants practice gentle, accessible mindful movement to release tension and awaken body awareness, followed by a Body Scan meditation to promote relaxation and presence.";
+    case 'mindfulness-pro':
+      return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants learn the PRO (Pause-Relax-Open) practice and an informal \"On-the-Spot\" practice that can be used in the moment - before difficult conversations, emails, or decisions. Includes exploration of the neuroscience of stress, reactivity, and emotional regulation.";
+    case 'mindfulness-cle':
+      return "This one-hour CLE introduces mindfulness as an evidence-based skill set that supports ethical decision-making, professional responsibility, and sound judgment in legal practice. Participants will understand how stress impacts attention and ethical awareness, learn how mindfulness supports competence and clarity, and practice tools to pause, regulate stress, and respond intentionally. Shortcut manages the full CLE process including accreditation, attendance tracking, and credit reporting.";
     case 'hair-makeup':
       return "Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.";
     case 'headshot-hair-makeup':
@@ -2018,8 +2071,23 @@ export const StandaloneProposalViewer: React.FC = () => {
                 </div>
               ))}
                 </div>
+
+            {/* Why Shortcut Section - Show CLE version if CLE present, otherwise regular */}
+            {isMindfulnessOnlyProposal(displayData) && (
+              hasCLEService(displayData) ? <CLEWhyShortcutSection /> : <WhyShortcutSection />
+            )}
+
+            {/* Participant Benefits - Show for mindfulness-only proposals in left column */}
+            {isMindfulnessOnlyProposal(displayData) && (
+              <ParticipantBenefitsSection />
+            )}
+
+            {/* Additional Resources - Show for mindfulness-only proposals in left column */}
+            {isMindfulnessOnlyProposal(displayData) && (
+              <AdditionalResourcesSection />
+            )}
               </div>
-              
+
           {/* Summary Sections - Mobile: shown after services, Desktop: right sidebar */}
           <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-8 self-start order-2 lg:order-2">
             {/* Service Image Slider - Hidden on mobile */}
@@ -2075,8 +2143,8 @@ export const StandaloneProposalViewer: React.FC = () => {
               </div>
             )}
 
-            {/* Courtney's Bio - Show if mindfulness service is present */}
-            {uniqueServiceTypes.includes('mindfulness') && (
+            {/* Courtney's Bio - Show if proposal is mindfulness-only */}
+            {isMindfulnessOnlyProposal(displayData) && (
               <div className="card-large bg-gradient-to-br from-white to-neutral-light-gray overflow-hidden">
                 <div className="flex items-center space-x-3 mb-6">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-shortcut-teal/20 to-shortcut-teal/10 flex items-center justify-center border-2 border-shortcut-teal border-opacity-30">

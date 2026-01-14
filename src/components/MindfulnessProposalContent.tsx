@@ -56,7 +56,7 @@ const ProgramOverviewSection: React.FC<{ program: any }> = ({ program }) => {
 };
 
 // Helper component for Why Shortcut Section
-const WhyShortcutSection: React.FC = () => (
+export const WhyShortcutSection: React.FC = () => (
   <div className="card-large bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 border-2 border-shortcut-teal border-opacity-20">
     <h2 className="h2 mb-8 text-shortcut-navy-blue">Why Shortcut?</h2>
     <p className="text-lg font-medium text-text-dark mb-6 leading-relaxed">
@@ -94,8 +94,65 @@ const WhyShortcutSection: React.FC = () => (
   </div>
 );
 
+// Helper component for CLE-specific Why Shortcut Section
+export const CLEWhyShortcutSection: React.FC = () => (
+  <div className="card-large bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 border-2 border-shortcut-teal border-opacity-20">
+    <h2 className="h2 mb-8 text-shortcut-navy-blue">Why Shortcut?</h2>
+    <p className="text-lg font-medium text-text-dark mb-6 leading-relaxed">
+      With Shortcut, you can count on:
+    </p>
+    <div className="space-y-6">
+      <div className="flex items-start space-x-4">
+        <div className="w-3 h-3 rounded-full bg-shortcut-teal mt-2 flex-shrink-0"></div>
+        <div>
+          <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Dedicated Facilitator</p>
+          <p className="text-base font-medium text-text-dark leading-relaxed">
+            Courtney Schulnick, who brings over a decade of experience and will guide every session to ensure continuity and reliability.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-start space-x-4">
+        <div className="w-3 h-3 rounded-full bg-shortcut-teal mt-2 flex-shrink-0"></div>
+        <div>
+          <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Punctual and Prepared Sessions</p>
+          <p className="text-base font-medium text-text-dark leading-relaxed">
+            Each session is expertly planned and starts promptly, maximizing the value of your team's time.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-start space-x-4">
+        <div className="w-3 h-3 rounded-full bg-shortcut-teal mt-2 flex-shrink-0"></div>
+        <div>
+          <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Full CLE Administration</p>
+          <p className="text-base font-medium text-text-dark leading-relaxed">
+            Shortcut manages the entire CLE process including accreditation submission, attendance tracking, and credit reporting—no administrative burden on your firm.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-start space-x-4">
+        <div className="w-3 h-3 rounded-full bg-shortcut-teal mt-2 flex-shrink-0"></div>
+        <div>
+          <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Ethics & Professionalism Credit</p>
+          <p className="text-base font-medium text-text-dark leading-relaxed">
+            This program qualifies for Ethics & Professionalism CLE credit, with New York accreditation actively being pursued.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-start space-x-4">
+        <div className="w-3 h-3 rounded-full bg-shortcut-teal mt-2 flex-shrink-0"></div>
+        <div>
+          <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Effortless Scheduling</p>
+          <p className="text-base font-medium text-text-dark leading-relaxed">
+            Shortcut's advanced scheduling technology simplifies program management, making the process a breeze for your team.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // Helper component for Participant Benefits Section
-const ParticipantBenefitsSection: React.FC = () => (
+export const ParticipantBenefitsSection: React.FC = () => (
   <div className="card-large">
     <h2 className="h2 mb-10">Participant Benefits</h2>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -137,7 +194,7 @@ const ParticipantBenefitsSection: React.FC = () => (
 );
 
 // Helper component for Additional Resources Section
-const AdditionalResourcesSection: React.FC = () => (
+export const AdditionalResourcesSection: React.FC = () => (
   <div className="card-large">
     <h2 className="h2 mb-10">Additional Resources</h2>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

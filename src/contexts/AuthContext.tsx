@@ -177,6 +177,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    // Suppress refresh token errors when there's no session (expected on public pages)
+    // This prevents console errors on generic landing pages and other public routes
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const error = event.reason;
+      const errorMessage = error?.message || error?.toString() || '';
+      
+      // Suppress refresh token errors when there's no session
+      if (errorMessage.includes('Refresh Token Not Found') || 
+          errorMessage.includes('Invalid Refresh Token')) {
+        // Check if there's a session - if not, suppress the error
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) {
+            // No session exists, so this error is expected on public pages - suppress it
+            event.preventDefault();
+            console.debug('Suppressed expected refresh token error (no session exists)');
+          }
+        }).catch(() => {
+          // If we can't check session, suppress to avoid noise
+          event.preventDefault();
+        });
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+
     return () => {
       subscription.unsubscribe();
     };

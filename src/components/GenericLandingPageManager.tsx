@@ -108,18 +108,18 @@ const GenericLandingPageManager: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this holiday page?')) {
+    if (!window.confirm('Are you sure you want to delete this landing page?')) {
       return;
     }
 
     try {
       setDeletingId(id);
       await deleteGenericLandingPage(id);
-      console.log('✅ Holiday page deleted successfully');
+      console.log('✅ Landing page deleted successfully');
     } catch (error) {
-      console.error('❌ Error deleting holiday page:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete holiday page';
-      alert(`Failed to delete holiday page: ${errorMessage}`);
+      console.error('❌ Error deleting landing page:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete landing page';
+      alert(`Failed to delete landing page: ${errorMessage}`);
     } finally {
       setDeletingId(null);
     }
@@ -210,7 +210,7 @@ const GenericLandingPageManager: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-text-dark-60">Loading holiday pages...</p>
+          <p className="text-text-dark-60">Loading landing pages...</p>
         </div>
       </div>
     );
@@ -231,7 +231,7 @@ const GenericLandingPageManager: React.FC = () => {
               alert('Generic page link copied to clipboard!');
             }}
             className="inline-flex items-center px-4 py-2 text-sm font-bold text-shortcut-blue bg-shortcut-teal bg-opacity-20 rounded-md hover:bg-shortcut-teal hover:bg-opacity-30 transition-colors"
-            title="Copy generic holiday page link"
+            title="Copy generic landing page link"
           >
             <Link className="w-4 h-4 mr-2" />
             Copy Generic Link

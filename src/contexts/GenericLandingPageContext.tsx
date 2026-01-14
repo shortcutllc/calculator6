@@ -31,18 +31,31 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
   const [genericLandingPages, setGenericLandingPages] = useState<GenericLandingPage[]>([]);
   const [currentGenericLandingPage, setCurrentGenericLandingPage] = useState<GenericLandingPage | null>(null);
 
-  const transformDatabaseGenericLandingPage = (dbPage: any): GenericLandingPage => ({
-    id: dbPage.id,
-    createdAt: dbPage.created_at,
-    updatedAt: dbPage.updated_at,
-    data: dbPage.data,
-    customization: dbPage.customization,
-    isEditable: dbPage.is_editable,
-    status: dbPage.status,
-    userId: dbPage.user_id,
-    uniqueToken: dbPage.unique_token,
-    customUrl: dbPage.custom_url
-  });
+  const transformDatabaseGenericLandingPage = (dbPage: any): GenericLandingPage => {
+    // Explicitly handle is_returning_client with proper boolean conversion
+    let isReturningClientValue = false;
+    if ('is_returning_client' in dbPage) {
+      // Column exists, convert to boolean properly
+      isReturningClientValue = dbPage.is_returning_client === true || 
+                               dbPage.is_returning_client === 1 || 
+                               dbPage.is_returning_client === 'true' ||
+                               dbPage.is_returning_client === '1';
+    }
+    
+    return {
+      id: dbPage.id,
+      createdAt: dbPage.created_at,
+      updatedAt: dbPage.updated_at,
+      data: dbPage.data,
+      customization: dbPage.customization,
+      isEditable: dbPage.is_editable,
+      status: dbPage.status,
+      userId: dbPage.user_id,
+      uniqueToken: dbPage.unique_token,
+      customUrl: dbPage.custom_url,
+      isReturningClient: isReturningClientValue
+    };
+  };
 
   const fetchGenericLandingPages = async () => {
     try {
@@ -177,7 +190,8 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
         .upload(filePath, file);
 
       if (uploadError) {
-        // Fallback to holiday-page-assets if generic bucket doesn't exist
+        // Fallback to holiday-page-assets bucket if generic-landing-page-assets doesn't exist
+        // (This is a storage bucket name, not a feature reference)
         const { error: fallbackError } = await supabase.storage
           .from('holiday-page-assets')
           .upload(filePath, file);
@@ -264,6 +278,25 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
       setError(null);
 
       console.log('🔄 Updating generic landing page:', id, updates);
+      console.log('🔍 CRITICAL: isReturningClient value in updates:', updates.isReturningClient, typeof updates.isReturningClient);
+      
+      // First, verify the column exists by trying to select it
+      const { data: testData, error: testError } = await supabase
+        .from('generic_landing_pages')
+        .select('id, is_returning_client')
+        .eq('id', id)
+        .limit(1);
+      
+      if (testError) {
+        console.error('❌ CRITICAL ERROR: Column is_returning_client may not exist!', testError);
+        console.error('❌ Error code:', testError.code);
+        console.error('❌ Error message:', testError.message);
+        if (testError.message?.includes('column') || testError.message?.includes('does not exist')) {
+          alert('ERROR: The database column "is_returning_client" does not exist. Please run the migration: 20260109190000_add_returning_client_field.sql');
+        }
+      } else {
+        console.log('✅ Column exists, current value:', testData?.[0]?.is_returning_client);
+      }
 
       const updateData: any = {
         updated_at: new Date().toISOString()
@@ -273,7 +306,23 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
       if (updates.customization) updateData.customization = updates.customization;
       if (updates.status) updateData.status = updates.status;
       if (updates.isEditable !== undefined) updateData.is_editable = updates.isEditable;
-      if (updates.isReturningClient !== undefined) updateData.is_returning_client = updates.isReturningClient;
+      
+      // ALWAYS set is_returning_client if it's in the updates object (including false)
+      // Use 'in' operator which is simpler and more reliable
+      if ('isReturningClient' in updates) {
+        // Explicitly convert to boolean - handle true, 'true', 1, etc.
+        const boolValue = updates.isReturningClient === true || 
+                         updates.isReturningClient === 'true' || 
+                         updates.isReturningClient === 1 ||
+                         updates.isReturningClient === '1';
+        updateData.is_returning_client = boolValue;
+        console.log('💾 CRITICAL: Setting is_returning_client to:', boolValue, '(from:', updates.isReturningClient, typeof updates.isReturningClient + ')');
+      } else {
+        console.log('⚠️ CRITICAL: isReturningClient not found in updates! Keys:', Object.keys(updates));
+      }
+
+      console.log('💾 CRITICAL: Final updateData:', updateData);
+      console.log('💾 CRITICAL: updateData.is_returning_client:', updateData.is_returning_client);
 
       const { data, error } = await supabase
         .from('generic_landing_pages')
@@ -283,14 +332,50 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
 
       if (error) {
         console.error('❌ Supabase update error:', error);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
 
-      console.log('✅ Supabase update successful');
+      console.log('✅ Supabase update successful, returned data:', data);
+      if (data && data.length > 0) {
+        const returnedRecord = data[0];
+        console.log('✅ CRITICAL: Updated page is_returning_client value:', returnedRecord.is_returning_client);
+        console.log('✅ CRITICAL: Full updated record keys:', Object.keys(returnedRecord));
+        console.log('✅ CRITICAL: Full updated record:', JSON.stringify(returnedRecord, null, 2));
+        
+        // Double-check by querying the database directly - SELECT ALL COLUMNS
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('generic_landing_pages')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        console.log('🔍 CRITICAL: Verification query result:', verifyData);
+        console.log('🔍 CRITICAL: Verification query error:', verifyError);
+        if (verifyData) {
+          console.log('🔍 CRITICAL: Verified is_returning_client in database:', verifyData.is_returning_client);
+          console.log('🔍 CRITICAL: Does column exist?', 'is_returning_client' in verifyData);
+        }
+      } else {
+        console.error('❌ CRITICAL: No data returned from update!');
+      }
       await fetchGenericLandingPages();
       
+      // Update currentGenericLandingPage if it's the one being updated
       if (currentGenericLandingPage?.id === id) {
-        setCurrentGenericLandingPage(prev => prev ? { ...prev, ...updates } : null);
+        // Transform the returned data to match GenericLandingPage type
+        const updatedPage = data && data.length > 0 
+          ? transformDatabaseGenericLandingPage(data[0])
+          : null;
+        
+        if (updatedPage) {
+          console.log('🔄 Updating currentGenericLandingPage state with:', updatedPage);
+          setCurrentGenericLandingPage(updatedPage);
+        } else {
+          // Fallback: merge updates into existing state
+          console.log('⚠️ No updated data returned, merging updates into existing state');
+          setCurrentGenericLandingPage(prev => prev ? { ...prev, ...updates } : null);
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update generic landing page';

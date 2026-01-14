@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { GenericLandingPage as GenericLandingPageType } from '../types/genericLandingPage';
 import { supabase } from '../lib/supabaseClient';
+import { useProposal } from '../contexts/ProposalContext';
+import { prepareProposalFromCalculation } from '../utils/proposalGenerator';
+import ClientProposalBuilder from './ClientProposalBuilder';
 
 interface GenericLandingPageProps {
   genericLandingPageData?: GenericLandingPageType;
@@ -10,8 +13,14 @@ interface GenericLandingPageProps {
 
 const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = false }) => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { createProposal } = useProposal();
   const [genericLandingPage, setGenericLandingPage] = useState<GenericLandingPageType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showProposalPreview, setShowProposalPreview] = useState(false);
+  const [isGeneratingProposal, setIsGeneratingProposal] = useState(false);
+  const [showProposalBuilder, setShowProposalBuilder] = useState(false);
   
   // Pricing Calculator State - moved to top to avoid hooks order violation
   const [selectedService, setSelectedService] = useState('massage');
@@ -31,6 +40,8 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
   // Contact Form State
   const [showContactForm, setShowContactForm] = useState(false);
   const [showMessageField, setShowMessageField] = useState(false);
+  const shortcutSectionRef = useRef<HTMLElement>(null);
+  const [shortcutSectionInView, setShortcutSectionInView] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -145,6 +156,23 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
       if (!data) throw new Error('Generic landing page not found');
 
+      console.log('🔍 Raw data from database:', data);
+      console.log('🔍 is_returning_client from database:', data.is_returning_client, typeof data.is_returning_client);
+      console.log('🔍 Does is_returning_client exist in data?', 'is_returning_client' in data);
+      console.log('🔍 All database columns:', Object.keys(data));
+
+      // Explicitly handle is_returning_client - check if column exists
+      let isReturningClientValue = false;
+      if ('is_returning_client' in data) {
+        // Column exists, use its value (handle null, undefined, false, true)
+        isReturningClientValue = data.is_returning_client === true || data.is_returning_client === 1 || data.is_returning_client === 'true';
+        console.log('✅ is_returning_client column exists, value:', isReturningClientValue, 'raw:', data.is_returning_client);
+      } else {
+        console.warn('⚠️ WARNING: is_returning_client column does NOT exist in database! Migration may not have been run.');
+        console.warn('⚠️ Please run migration: 20260109190000_add_returning_client_field.sql');
+        isReturningClientValue = false;
+      }
+
       const transformedData: GenericLandingPageType = {
         id: data.id,
         createdAt: data.created_at,
@@ -155,8 +183,11 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         status: data.status,
         userId: data.user_id,
         uniqueToken: data.unique_token,
-        customUrl: data.custom_url
+        customUrl: data.custom_url,
+        isReturningClient: isReturningClientValue
       };
+
+      console.log('🔍 Transformed data isReturningClient:', transformedData.isReturningClient, typeof transformedData.isReturningClient);
 
       setGenericLandingPage(transformedData);
         } catch (error) {
@@ -168,9 +199,10 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
   useEffect(() => {
     if (id || isGeneric) {
+      console.log('🔄 Fetching generic landing page, id:', id, 'location.search:', location.search);
       fetchGenericLandingPage();
     }
-  }, [id, isGeneric]);
+  }, [id, isGeneric, location.search]); // Added location.search to trigger refetch on URL changes
 
   // Update meta tags for social media previews
   useEffect(() => {
@@ -180,7 +212,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       const description = isGeneric
         ? 'Give your team a gift they\'ll love. From massages to hair & makeup, we bring wellness right to your office.'
         : `Give the ${partnerName} team a gift they'll love. From massages to hair & makeup, we bring wellness right to your office.`;
-      const imageUrl = 'https://proposals.getshortcut.co/Holiday Proposal/PREVIEW LINK HOLIDAY PAGES.png';
+      const imageUrl = 'https://proposals.getshortcut.co/Holiday Proposal/PREVIEW LINK HOLIDAY PAGES.png'; // Note: Using existing asset path
       
       // Update document title
       document.title = title;
@@ -239,19 +271,90 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
     };
   }, []);
 
+  // Intersection Observer for ShortcutSection scroll-into-view animation
+  useEffect(() => {
+    // Always set to true after a short delay to ensure animations trigger
+    // This prevents the issue where content disappears
+    const fallbackTimer = setTimeout(() => {
+      setShortcutSectionInView(true);
+    }, 300);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Trigger when section is 25-35% visible (threshold 0.25-0.35)
+          if (entry.intersectionRatio >= 0.25) {
+            setShortcutSectionInView(true);
+          }
+        });
+      },
+      {
+        threshold: [0.1, 0.25, 0.30, 0.35], // More thresholds to catch the range
+        rootMargin: '0px',
+      }
+    );
+
+    if (shortcutSectionRef.current) {
+      observer.observe(shortcutSectionRef.current);
+      
+      // Check if already in view on mount (fallback) - use setTimeout to ensure DOM is ready
+      setTimeout(() => {
+        if (shortcutSectionRef.current) {
+          const rect = shortcutSectionRef.current.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const elementTop = rect.top;
+          const elementHeight = rect.height;
+          const visibleHeight = Math.min(viewportHeight - elementTop, elementHeight);
+          const visibleRatio = visibleHeight / elementHeight;
+          
+          if (visibleRatio >= 0.1) {
+            setShortcutSectionInView(true);
+          }
+        }
+      }, 100);
+    }
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      if (shortcutSectionRef.current) {
+        observer.unobserve(shortcutSectionRef.current);
+      }
+    };
+  }, []);
+
   // Track current service index for arrow labels
   useEffect(() => {
     const scrollContainer = document.querySelector('.services-scroll') as HTMLElement | null;
     if (!scrollContainer) return;
+    
     const onScroll = () => {
       const slideWidth = scrollContainer.clientWidth || 1;
-      const index = Math.round(scrollContainer.scrollLeft / slideWidth);
-      setCurrentServiceIndex(Math.max(0, Math.min(index, serviceOrder.length - 1)));
+      const scrollLeft = scrollContainer.scrollLeft;
+      // Calculate index with a small threshold to handle rounding
+      const index = Math.round(scrollLeft / slideWidth);
+      const clampedIndex = Math.max(0, Math.min(index, serviceOrder.length - 1));
+      setCurrentServiceIndex(clampedIndex);
     };
+    
+    // Use both scroll and scrollend events for better accuracy
     scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+    scrollContainer.addEventListener('scrollend', onScroll, { passive: true });
+    
+    // Initial calculation
     onScroll();
-    return () => scrollContainer.removeEventListener('scroll', onScroll as EventListener);
-  }, []);
+    
+    // Also listen for resize to recalculate
+    const onResize = () => {
+      setTimeout(onScroll, 100);
+    };
+    window.addEventListener('resize', onResize);
+    
+    return () => {
+      scrollContainer.removeEventListener('scroll', onScroll as EventListener);
+      scrollContainer.removeEventListener('scrollend', onScroll as EventListener);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [serviceOrder.length]);
 
   // Intersection Observer for fade-in animations
   useEffect(() => {
@@ -320,17 +423,38 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
     requestAnimationFrame(animation);
   };
 
-  // Default values for when no holiday page data is available
+  // Default values for when no generic landing page data is available
   const partnerName = isGeneric ? 'your' : (genericLandingPage?.data.partnerName || 'Your Company');
   const partnerLogoUrl = isGeneric ? null : genericLandingPage?.data.partnerLogoUrl;
   const isReturningClient = genericLandingPage?.isReturningClient || false;
   // const customMessage = genericLandingPage?.data.customMessage; // Available for future use
   
-  // Debug logging
-  console.log('Generic Landing Page Data:', {
+  // CRITICAL DEBUG LOGGING - This will show if the value is being read correctly
+  useEffect(() => {
+    console.log('🔍🔍🔍 GenericLandingPage Debug:', {
+      genericLandingPage,
+      isReturningClient,
+      rawIsReturningClient: genericLandingPage?.isReturningClient,
+      partnerName,
+      'WILL_SHOW_RETURNING_CLIENT_UI': isReturningClient === true
+    });
+    
+    // VERY VISIBLE ALERT-STYLE LOG
+    if (isReturningClient) {
+      console.log('%c✅✅✅ RETURNING CLIENT MODE IS ACTIVE ✅✅✅', 'background: #00ff00; color: #000; font-size: 20px; font-weight: bold; padding: 10px;');
+      console.log('%cThe page should show "Welcome back" messaging and simplified form', 'background: #ffff00; color: #000; font-size: 14px; padding: 5px;');
+    } else {
+      console.log('%c❌❌❌ RETURNING CLIENT MODE IS NOT ACTIVE ❌❌❌', 'background: #ff0000; color: #fff; font-size: 20px; font-weight: bold; padding: 10px;');
+      console.log('%cThe page will show standard new client messaging', 'background: #ffcccc; color: #000; font-size: 14px; padding: 5px;');
+    }
+  }, [genericLandingPage, isReturningClient, partnerName]);
+  
+  console.log('🔍🔍🔍 Generic Landing Page Data:', {
     hasGenericLandingPage: !!genericLandingPage,
     partnerName,
     partnerLogoUrl,
+    isReturningClient,
+    'genericLandingPage?.isReturningClient': genericLandingPage?.isReturningClient,
     fullData: genericLandingPage?.data
   });
   
@@ -418,9 +542,9 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
   // Get mindfulness service description
   const getMindfulnessDescription = (serviceName: string) => {
     const descriptions = {
-      'Mindful Eating & Breathe Awareness': 'Slow down and reconnect through mindful eating and breath awareness. This 30-minute session uses the five senses to invite deeper presence and calm and bring ease to the holiday rush.',
-      'Movement & Scan': 'Release holiday tension with gentle movement and a guided body scan. This 30-minute course awakens body awareness, eases stress, and restores balance.',
-      'Speak & Listen': 'Learn mindfulness tools to step out of reactivity and more consciously respond. This 60-minute workshop introduces calming techniques to ease holiday stress and deepen meaningful connection.'
+      'Mindful Eating & Breathe Awareness': 'Slow down and reconnect through mindful eating and breath awareness. This 30-minute session uses the five senses to invite deeper presence and calm and bring ease to the daily rush.',
+      'Movement & Scan': 'Release tension with gentle movement and a guided body scan. This 30-minute course awakens body awareness, eases stress, and restores balance.',
+      'Speak & Listen': 'Learn mindfulness tools to step out of reactivity and more consciously respond. This 60-minute workshop introduces calming techniques to ease stress and deepen meaningful connection.'
     };
     return descriptions[serviceName as keyof typeof descriptions] || '';
   };
@@ -445,6 +569,127 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
     });
   };
 
+
+  // Handle building proposal from calculator
+  const handleBuildProposal = async () => {
+    if (!currentPreset || !partnerName) {
+      alert('Please select a package and ensure partner name is set');
+      return;
+    }
+
+    try {
+      setIsGeneratingProposal(true);
+
+      // Map service IDs to proposal service types
+      const serviceTypeMap: { [key: string]: string } = {
+        'massage': 'massage',
+        'hair-makeup': 'hair-makeup',
+        'headshot': 'headshot',
+        'nails': 'nails',
+        'mindfulness': 'mindfulness'
+      };
+
+      const proposalServiceType = serviceTypeMap[selectedService] || 'massage';
+
+      // Calculate pricing based on preset
+      const basePrice = currentPreset.price;
+      const discountPercent = isReturningClient ? 15 : 0;
+
+      // Create service data structure for proposal
+      const serviceData = {
+        serviceType: proposalServiceType,
+        totalHours: currentPreset.eventTime,
+        numPros: currentPreset.pros,
+        appTime: proposalServiceType === 'headshot' ? 20 : (proposalServiceType === 'mindfulness' ? 30 : 20),
+        hourlyRate: proposalServiceType === 'headshot' ? 200 : (proposalServiceType === 'mindfulness' ? 0 : 135),
+        proHourly: proposalServiceType === 'headshot' ? 100 : (proposalServiceType === 'mindfulness' ? 0 : 50),
+        earlyArrival: proposalServiceType === 'mindfulness' ? 0 : 25,
+        retouchingCost: proposalServiceType === 'headshot' ? 50 : 0,
+        discountPercent: discountPercent,
+        date: 'TBD',
+        fixedPrice: proposalServiceType === 'mindfulness' ? basePrice : undefined
+      };
+
+      // Create client data structure
+      const clientData = {
+        name: partnerName,
+        locations: ['Main Office'],
+        events: {
+          'Main Office': [{
+            services: [serviceData]
+          }]
+        }
+      };
+
+      // Generate proposal data
+      const proposalData = prepareProposalFromCalculation(clientData);
+      
+      // Add client email if available
+      if (genericLandingPage?.data?.clientEmail) {
+        proposalData.clientEmail = genericLandingPage.data.clientEmail;
+      }
+
+      // Add quarterly commitment metadata
+      if (isReturningClient) {
+        const basePriceForCommitment = proposalServiceType === 'mindfulness' ? basePrice : currentPreset.price;
+        const discountAmount = basePriceForCommitment * (discountPercent / 100);
+        (proposalData as any).quarterlyCommitment = {
+          eventsCommitted: 4,
+          discountPercent: 15,
+          deadline: '2026-02-16',
+          totalSavings: discountAmount * 4 // Assuming 4 events
+        };
+      }
+
+      // Create proposal
+      const customization = {
+        includeSummary: true,
+        includeCalculations: false,
+        includeCalculator: false,
+        customNote: isReturningClient
+          ? `We're excited to continue our partnership with ${partnerName}! This quarterly commitment proposal includes a 15% discount for committing to 4+ events in 2026.`
+          : `We are so excited to service the incredible staff at ${partnerName}! Our team is looking forward to providing an exceptional experience for everyone involved.`
+      };
+
+      const proposalId = await createProposal(
+        proposalData,
+        customization,
+        genericLandingPage?.data?.clientEmail
+      );
+
+      // Navigate to proposal
+      navigate(`/proposal/${proposalId}`);
+    } catch (error) {
+      console.error('Error building proposal:', error);
+      alert(error instanceof Error ? error.message : 'Failed to build proposal. Please try again.');
+    } finally {
+      setIsGeneratingProposal(false);
+      setShowProposalPreview(false);
+    }
+  };
+
+  // Calculate proposal preview data
+  const getProposalPreviewData = () => {
+    if (!currentPreset) return null;
+
+    const basePrice = currentPreset.price;
+    const discountPercent = isReturningClient ? 15 : 0;
+    const discountAmount = basePrice * (discountPercent / 100);
+    const finalPrice = basePrice - discountAmount;
+    const quarterlySavings = discountAmount * 4; // 4 events
+
+    return {
+      serviceName: getServiceName(selectedService),
+      appointments: currentPreset.appointments,
+      eventTime: currentPreset.eventTime,
+      pros: currentPreset.pros,
+      basePrice,
+      discountPercent,
+      discountAmount,
+      finalPrice: finalPrice, // Used in preview modal
+      quarterlySavings
+    };
+  };
 
   // Get what's included for each service
   const getWhatsIncluded = (serviceId: string) => {
@@ -494,26 +739,32 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
     const scrollContainer = document.querySelector('.services-scroll') as HTMLElement;
     if (!scrollContainer) return;
     
-    const currentScroll = scrollContainer.scrollLeft;
     const slideWidth = scrollContainer.clientWidth;
+    const nextIndex = (currentServiceIndex + 1) % serviceOrder.length;
     
     scrollContainer.scrollTo({
-      left: currentScroll + slideWidth,
+      left: nextIndex * slideWidth,
       behavior: 'smooth'
     });
+    
+    // Update index immediately for arrow labels
+    setCurrentServiceIndex(nextIndex);
   };
 
   const scrollToPrevService = () => {
     const scrollContainer = document.querySelector('.services-scroll') as HTMLElement;
     if (!scrollContainer) return;
     
-    const currentScroll = scrollContainer.scrollLeft;
     const slideWidth = scrollContainer.clientWidth;
+    const prevIndex = currentServiceIndex > 0 ? currentServiceIndex - 1 : serviceOrder.length - 1;
     
     scrollContainer.scrollTo({
-      left: currentScroll - slideWidth,
+      left: prevIndex * slideWidth,
       behavior: 'smooth'
     });
+    
+    // Update index immediately for arrow labels
+    setCurrentServiceIndex(prevIndex);
   };
 
   const scrollToService = (serviceIndex: number) => {
@@ -710,7 +961,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           height: 3rem;
           width: 10rem;
           flex-shrink: 0;
-          filter: brightness(0) invert(1);
+          filter: brightness(0) saturate(100%) invert(27%) sepia(100%) saturate(2000%) hue-rotate(200deg) brightness(0.3) contrast(1.2);
           opacity: 0.9;
           transition: opacity 0.3s ease;
           object-fit: contain;
@@ -993,7 +1244,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         .partner-logo {
           width: clamp(8rem, 12vw, 10rem);
           height: auto;
-          filter: brightness(0) saturate(100%) invert(12%) sepia(31%) saturate(486%) hue-rotate(119deg) brightness(91%) contrast(90%);
+          filter: brightness(0) saturate(100%) invert(27%) sepia(100%) saturate(2000%) hue-rotate(200deg) brightness(0.3) contrast(1.2);
         }
 
         @media (max-width: 900px) {
@@ -1171,7 +1422,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               Services
             </a>
             <a
-              href="#holiday-event"
+              href="#pricing-section"
               className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
             >
               Special Offers
@@ -1221,188 +1472,179 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       </header>
 
       {/* HERO */}
-      <section id="top" className="relative overflow-hidden rounded-b-3xl" style={{ backgroundColor: '#003756', minHeight: '100vh', paddingTop: 0 }}>
-        {/* Main Content */}
-        <div className="relative z-10">
-          <div className="mx-auto container-narrow px-4 pt-40 md:pt-48 pb-16 md:pb-20">
-            <div className="grid md:grid-cols-2 gap-16 md:gap-20 items-center">
-              {/* Left Side - Text Content */}
-              <div>
-                <h1 className="h1" style={{ color: '#FFFFFF' }}>
-                  {isReturningClient ? (
-                    <>
-                      <span className="block">Welcome back,</span>
-                      <span className="block">{partnerName}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="block">Employee Happiness</span>
-                      <span className="block">Delivered</span>
-                    </>
-                  )}
-                </h1>
-                <p className="mt-6 md:mt-8 text-lg md:text-xl leading-relaxed max-w-[48ch]" style={{ color: '#FFFFFF', opacity: 0.95 }}>
-                  {isReturningClient
-                    ? `Let's plan your 2026 wellness calendar together`
-                    : `Say goodbye to outdated office perks and hello to a new era of employee wellness with Shortcut`
-                  }
-                </p>
-                
-                <div className="mt-10 md:mt-12 flex flex-col sm:flex-row gap-4">
-                  <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#FFFFFF', color: '#003756' }}>
-                    Get in touch
-                  </button>
-                  <button onClick={() => smoothScrollTo('services')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#FFFFFF', color: '#FFFFFF' }}>
-                    Explore Services
-                  </button>
+      <section id="top" className="relative overflow-hidden rounded-b-3xl" style={{ backgroundColor: '#F0F0FF', minHeight: '100vh', paddingTop: 0 }}>
+        <div className="relative z-10 flex items-center justify-center min-h-screen">
+          <div className="mx-auto max-w-5xl px-5 lg:px-[90px] py-20 md:py-32 lg:py-40 text-center">
+            {/* Animated Icons Stack - Single visible icon cycling */}
+            <div className="mb-12 md:mb-16 flex justify-center items-center relative mx-auto" style={{ height: '120px', width: '120px' }}>
+              {[
+                '/Generic Landing Page/Icons/Group 633170.png',
+                '/Generic Landing Page/Icons/Group 633171.png',
+                '/Generic Landing Page/Icons/Group 633182.png',
+                '/Generic Landing Page/Icons/Group 633183.png',
+                '/Generic Landing Page/Icons/Group 633184.png'
+              ].map((icon, index) => (
+                <div
+                  key={index}
+                  className="absolute inset-0 flex items-center justify-center animated-icon-cycle"
+                  style={{
+                    animation: `iconCycle 20s ease-in-out infinite`,
+                    animationDelay: `${index * 4}s`,
+                    opacity: 0
+                  }}
+                >
+                  <img 
+                    src={icon} 
+                    alt="" 
+                    className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 object-contain"
+                    loading="lazy"
+                  />
                 </div>
-              </div>
-              
-              {/* Right Side - Featured Service Box */}
-              <div className="md:pl-8">
-                <img 
-                  src="/Landing Page Hero Images/Massage Hero.png" 
-                  alt="Relaxing Massage" 
-                  className="w-full h-auto"
-                  width="1152"
-                  height="876"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </div>
+              ))}
             </div>
-          </div>
-          
-          {/* Bottom Section: 4 Service Boxes */}
-          <div className="mx-auto container-narrow px-4 pb-16 md:pb-20">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {/* Nail Care */}
-              <div className="overflow-hidden rounded-lg">
-                <img 
-                  src="/Landing Page Hero Images/Nails Hero.png" 
-                  alt="Nail Care" 
-                  className="w-full h-auto"
-                  style={{ transform: 'scale(1.05)' }}
-                  width="400"
-                  height="300"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-                />
-              </div>
-              
-              {/* Hair & Makeup */}
-              <div className="overflow-hidden rounded-lg">
-                <img 
-                  src="/Landing Page Hero Images/Hair Hero.png" 
-                  alt="Hair & Makeup" 
-                  className="w-full h-auto"
-                  style={{ transform: 'scale(1.05)' }}
-                  width="400"
-                  height="300"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-                />
-              </div>
-              
-              {/* Professional Headshots */}
-              <div className="overflow-hidden rounded-lg">
-                <img 
-                  src="/Landing Page Hero Images/Headshots Hero.png" 
-                  alt="Professional Headshots" 
-                  className="w-full h-auto"
-                  style={{ transform: 'scale(1.05)' }}
-                  width="400"
-                  height="300"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-                />
-              </div>
-              
-              {/* Mindfulness */}
-              <div className="overflow-hidden rounded-lg">
-                <img 
-                  src="/Landing Page Hero Images/Mindfulness Hero.png" 
-                  alt="Mindfulness" 
-                  className="w-full h-auto"
-                  style={{ transform: 'scale(1.05)' }}
-                  width="400"
-                  height="300"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Client Logos Section */}
-          <div className="pb-20 md:pb-24">
-            <div className="text-center mb-10 mx-auto container-narrow px-4">
-              <h2 className="text-3xl md:text-4xl font-bold mb-2" style={{ color: '#FFFFFF' }}>
-                Top Employers Trust Shortcut
-              </h2>
+
+            {/* Headline */}
+            <div className="mb-6 md:mb-8 flex justify-center">
+              <h1
+                className="h1 text-center"
+                style={{ 
+                  color: '#003756',
+                  maxWidth: '950px'
+                }}
+              >
+                {isReturningClient ? (
+                  <>
+                    <div className="block">
+                      To our friends at {partnerName},
+                    </div>
+                    <div className="block">
+                      let's keep the feel-good moments rolling in 2026.
+                    </div>
+                  </>
+                ) : (
+                  'Wellness that actually works for your team'
+                )}
+              </h1>
             </div>
             
-            {/* Logo Scroller */}
-            <div className="overflow-hidden py-8">
-              <div className="logo-track">
-                <div className="logo-set">
-                  <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
-                </div>
-                <div className="logo-set" aria-hidden="true">
-                  <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+            {/* Subheadline */}
+            <p className="text-base lg:text-lg font-medium mb-10 md:mb-12 max-w-4xl mx-auto" style={{ color: '#003756', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
+              {isReturningClient ? (
+                'As a thank-you for a great 2025, partners who commit to at least four events in 2026 unlock Premier Partner status — including priority scheduling and 15% off all services.'
+              ) : (
+                'We bring the spa, salon, and studio directly to your office. No scheduling headaches, no employee complaints—just wellness that your team actually wants.'
+              )}
+            </p>
+            
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 md:mb-16">
+              <button 
+                onClick={() => isReturningClient ? smoothScrollTo('pricing') : setShowContactForm(true)} 
+                className="inline-flex items-center justify-center rounded-full font-bold px-8 py-3 lg:px-10 lg:py-4 text-sm lg:text-base transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]" 
+                style={{ backgroundColor: '#9efaff', color: '#09364f' }}
+              >
+                {isReturningClient ? 'Build My Quarterly Proposal' : 'Get in touch'}
+              </button>
+              
+              {!isReturningClient && (
+                <button 
+                  onClick={() => smoothScrollTo('services')} 
+                  className="text-sm lg:text-base font-semibold underline underline-offset-2 transition-opacity hover:opacity-80" 
+                  style={{ color: '#FFFFFF' }}
+                >
+                  Explore Services
+                </button>
+              )}
+            </div>
+
+            {/* Client Logos Title - Inside Centered Container */}
+            <div className="pt-8 md:pt-12">
+              <div className="text-center mb-8 md:mb-10">
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-6 md:mb-8" style={{ color: '#003756' }}>
+                  Top Employers Trust Shortcut
+                </h2>
+              </div>
+              
+              {/* Logo Scroller - Full Width, Breaks Out of Container */}
+              <div className="overflow-hidden py-6 md:py-8 -mx-5 lg:-mx-[90px]">
+                <div className="logo-track">
+                  <div className="logo-set">
+                    <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+                  </div>
+                  <div className="logo-set" aria-hidden="true">
+                    <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
+                    <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Animation Styles */}
+        <style>{`
+          @keyframes iconCycle {
+            0% {
+              opacity: 0;
+              transform: rotateY(90deg) scale(0.9);
+            }
+            5% {
+              opacity: 1;
+              transform: rotateY(0deg) scale(1);
+            }
+            15% {
+              opacity: 1;
+              transform: rotateY(0deg) scale(1);
+            }
+            20% {
+              opacity: 0;
+              transform: rotateY(-90deg) scale(0.9);
+            }
+            100% {
+              opacity: 0;
+              transform: rotateY(-90deg) scale(0.9);
+            }
+          }
+          
+          .animated-icon-cycle {
+            will-change: opacity, transform;
+          }
+        `}</style>
       </section>
 
       {/* SERVICES SECTION */}
       <section id="services" className="fade-in-section py-16 md:py-20 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
-        {/* Navigation Arrows (hidden on mobile) */}
-        <div id="left-nav" className="hidden md:flex absolute left-8 top-1/2 transform -translate-y-1/2 z-10 flex-col items-center gap-3 opacity-0 transition-opacity duration-300">
-          <div className="text-lg font-semibold" style={{ color: '#003756' }}>{getServiceName(serviceOrder[Math.max(0, currentServiceIndex - 1)] || 'massage')}</div>
-          <div className="bg-white rounded-full p-3 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={scrollToPrevService}>
-            <svg className="w-6 h-6" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-            </svg>
-          </div>
-        </div>
-
-        <div id="right-nav" className="hidden md:flex absolute right-8 top-1/2 transform -translate-y-1/2 z-10 flex-col items-center gap-3">
-          <div className="text-lg font-semibold" style={{ color: '#003756' }}>{getServiceName(serviceOrder[Math.min(serviceOrder.length - 1, currentServiceIndex + 1)] || 'headshot')}</div>
-          <div className="bg-white rounded-full p-3 shadow-lg cursor-pointer hover:scale-105 transition-transform" onClick={scrollToNextService}>
-            <svg className="w-6 h-6" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </div>
-        </div>
-
-        {/* Mobile next control */}
+        {/* Mobile swipe indicator */}
         <div className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-          <button onClick={scrollToNextService} className="px-4 py-2 rounded-full shadow bg-white/90 backdrop-blur text-sm font-semibold flex items-center gap-2">
-            <span>Next: {getServiceName(serviceOrder[(currentServiceIndex + 1) % serviceOrder.length])}</span>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm">
+            <span className="text-xs font-medium" style={{ color: '#003756' }}>
+              Swipe to explore services
+            </span>
             <svg className="w-4 h-4" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
             </svg>
-          </button>
+          </div>
         </div>
 
         {/* Service Legend */}
@@ -1543,16 +1785,6 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       <span className="text-base font-bold" style={{ color: '#003756' }}>Express Facial</span>
                     </div>
                   </div>
-                  
-                  {/* CTA Buttons */}
-                  <div className="mt-10 flex flex-col sm:flex-row gap-4">
-                    <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#FFFFFF' }}>
-                      Get in touch
-                    </button>
-                    <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
-                      Pricing
-                    </button>
-                  </div>
                 </div>
                 
                 {/* Right Side - Massage Image */}
@@ -1562,7 +1794,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                     <img 
                       src="/Holiday Proposal/Our Services/Massage/masssage 2x.png" 
                       alt="Professional Massage Service" 
-                      className="w-3/4 h-auto rounded-2xl max-w-md"
+                      className="w-full h-auto rounded-2xl max-w-md"
                       loading="lazy"
                     />
                   </picture>
@@ -1571,7 +1803,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             </div>
           </div>
 
-          {/* HOLIDAY PARTY GLAM SERVICE */}
+          {/* HAIR & MAKEUP SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
             <div className="mx-auto container-narrow px-4 py-16 md:py-20">
               <div className="grid md:grid-cols-2 gap-16 items-center">
@@ -1618,24 +1850,14 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       </div>
                     </div>
                   </div>
-                  
-                  {/* CTA Buttons */}
-                  <div className="mt-10 flex flex-col sm:flex-row gap-4">
-                    <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#FFFFFF' }}>
-                      Get in touch
-                    </button>
-                    <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
-                      Pricing
-                    </button>
-                  </div>
                 </div>
                 
-                {/* Right Side - Holiday Party Glam Image */}
+                {/* Right Side - Hair & Makeup Image */}
                 <div className="relative flex justify-center">
                   <img 
                     src="/Holiday Proposal/Our Services/Holiday Party Glam/Glam 2x.webp" 
-                    alt="Holiday Party Hair Styling" 
-                    className="w-3/4 h-auto rounded-2xl max-w-md"
+                    alt="Hair & Makeup Styling" 
+                    className="w-full h-auto rounded-2xl max-w-md"
                     loading="lazy"
                   />
                 </div>
@@ -1693,11 +1915,13 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   
                   {/* CTA Buttons */}
                   <div className="mt-10 flex flex-col sm:flex-row gap-4">
-                    <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#FFFFFF' }}>
-                      Get in touch
-                    </button>
-                    <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
-                      Pricing
+                    {!isReturningClient && (
+                      <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#FFFFFF' }}>
+                        Get in touch
+                      </button>
+                    )}
+                    <button onClick={() => smoothScrollTo('pricing')} className={`inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all ${isReturningClient ? '' : 'border-2'}`} style={isReturningClient ? { backgroundColor: '#003756', color: '#FFFFFF' } : { borderColor: '#003756', color: '#003756', backgroundColor: 'transparent' }}>
+                      {isReturningClient ? 'Build My Quarterly Proposal' : 'Pricing'}
                     </button>
                   </div>
                 </div>
@@ -1707,7 +1931,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   <img 
                     src="/Holiday Proposal/Our Services/Headshots/Headshots 2x.webp" 
                     alt="Professional Headshot Session" 
-                    className="w-3/4 h-auto rounded-2xl max-w-md"
+                    className="w-full h-auto rounded-2xl max-w-md"
                     loading="lazy"
                   />
                 </div>
@@ -1750,16 +1974,6 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       <span className="text-base font-bold" style={{ color: '#003756' }}>Hand Treatments</span>
                     </div>
                   </div>
-                  
-                  {/* CTA Buttons */}
-                  <div className="mt-10 flex flex-col sm:flex-row gap-4">
-                    <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#FFFFFF' }}>
-                      Get in touch
-                    </button>
-                    <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
-                      Pricing
-                    </button>
-                  </div>
                 </div>
                 
                 {/* Right Side - Nails Image */}
@@ -1767,7 +1981,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   <img 
                     src="/Holiday Proposal/Our Services/Nails/Nails 2x.webp" 
                     alt="Professional Nail Services" 
-                    className="w-3/4 h-auto rounded-2xl max-w-md"
+                    className="w-full h-auto rounded-2xl max-w-md"
                     loading="lazy"
                   />
                 </div>
@@ -1810,16 +2024,6 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       <span className="text-base font-bold" style={{ color: '#003756' }}>Mindful Communication</span>
                     </div>
                   </div>
-                  
-                  {/* CTA Buttons */}
-                  <div className="mt-10 flex flex-col sm:flex-row gap-4">
-                    <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#FFFFFF' }}>
-                      Get in touch
-                    </button>
-                    <button onClick={() => smoothScrollTo('pricing')} className="inline-flex items-center justify-center rounded-full border-2 px-8 py-4 text-base font-semibold hover:opacity-80 transition-all" style={{ borderColor: '#003756', color: '#003756' }}>
-                      Pricing
-                    </button>
-                  </div>
                 </div>
                 
                 {/* Right Side - Courtney Frame */}
@@ -1827,10 +2031,553 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   <img 
                     src="/Holiday Proposal/Our Services/Mindfulness/Courtney Frame 2x.webp" 
                     alt="Courtney Schulnick - Mindfulness Leader" 
-                    className="w-3/4 h-auto rounded-2xl max-w-md"
+                    className="w-full h-auto rounded-2xl max-w-md"
                     loading="lazy"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Packages Section - Integrated Below Services */}
+        {(!genericLandingPage || genericLandingPage.customization.includePricingCalculator) && (
+          <div className="mx-auto container-narrow px-4 py-12 md:py-16 border-t-2 border-shortcut-teal border-opacity-20 mt-8">
+            <div className="text-center mb-12">
+              <h2 className="h1 mb-4" style={{ color: '#003756' }}>
+                Popular {getServiceName(serviceOrder[currentServiceIndex])} Packages
+              </h2>
+              <p className="text-lg md:text-xl max-w-3xl mx-auto mb-8" style={{ color: '#003756' }}>
+                Choose your perfect wellness experience. All packages include premium service and professional setup.
+              </p>
+            </div>
+
+            <div className="max-w-5xl mx-auto">
+              {/* Package Selection */}
+              <div className="mb-12">
+                <div className="grid md:grid-cols-3 gap-6">
+                  {SERVICE_PRESETS[serviceOrder[currentServiceIndex] as keyof typeof SERVICE_PRESETS]?.map((preset, index) => {
+                    const currentService = serviceOrder[currentServiceIndex];
+                    const serviceColor = getServiceColor(currentService);
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setSelectedService(currentService);
+                          setSelectedPackageIndex(index);
+                          setPricingConfig((prev: any) => ({ ...prev, totalAppointments: preset.appointments }));
+                        }}
+                        className={`package-button relative p-8 rounded-3xl text-center transition-all duration-300 transform hover:scale-105 overflow-hidden ${
+                          selectedService === currentService && selectedPackageIndex === index
+                            ? 'selected ring-4 ring-offset-4 shadow-2xl scale-105' 
+                            : 'hover:shadow-xl'
+                        }`}
+                        style={{
+                          '--package-color': serviceColor,
+                          backgroundColor: 'white',
+                          color: '#003756',
+                          border: selectedService === currentService && selectedPackageIndex === index ? `3px solid ${serviceColor}` : '2px solid #E5E7EB',
+                          boxShadow: selectedService === currentService && selectedPackageIndex === index ? `0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)` : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        } as React.CSSProperties}
+                      >
+                        {(preset as any).popular && (
+                          <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#FF5050] to-[#175071] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10">
+                            MOST POPULAR
+                          </div>
+                        )}
+                        <div className="space-y-6">
+                          {/* Package Title */}
+                          <div className="text-center">
+                            <h3 className="text-2xl font-bold mb-2" style={{ color: '#003756' }}>
+                              {(preset as any).name || `${preset.appointments} Appointments`}
+                            </h3>
+                          </div>
+                          
+                          {/* Package Details */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-center gap-3 text-base">
+                              <span className="text-lg">⏱️</span>
+                              <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-3 text-base">
+                              <span className="text-lg">👥</span>
+                              <span className="font-semibold" style={{ color: '#003756' }}>{preset.pros} {getServiceName(currentService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
+                            </div>
+                            
+                            {/* Mindfulness Service Descriptions */}
+                            {currentService === 'mindfulness' && (preset as any).name && (
+                              <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                                <p className="text-sm leading-relaxed text-center" style={{ color: '#003756' }}>
+                                  {getMindfulnessDescription((preset as any).name)}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Price Section */}
+                          <div className="pt-4 border-t-2" style={{ borderColor: '#E5E7EB' }}>
+                            <div className="text-center">
+                              <div className="text-4xl font-bold mb-1" style={{ color: '#003756' }}>
+                                {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
+                              </div>
+                              <div className="text-sm font-medium opacity-75" style={{ color: '#003756' }}>
+                                {(preset as any).custom ? 'Contact for pricing' : 'per session'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* What's Included Section */}
+              <div className="mb-12">
+                <h3 className="text-xl font-bold mb-6 text-center" style={{ color: '#003756' }}>
+                  What's Included:
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {getWhatsIncluded(serviceOrder[currentServiceIndex]).map((item, index) => (
+                    <div key={index} className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-green-600 text-sm">✓</span>
+                      </div>
+                      <span className="text-gray-700 font-medium">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Build Your Proposal Button */}
+              <div className="text-center mt-12">
+                <button
+                  onClick={() => setShowProposalBuilder(true)}
+                  className="inline-flex items-center justify-center rounded-full font-bold px-10 py-5 text-lg shadow-soft hover:opacity-90 transition-all gap-3 transform hover:scale-105"
+                  style={{ backgroundColor: '#003756', color: '#FFFFFF' }}
+                >
+                  <span>Build Your Proposal</span>
+                  <span className="text-xl">→</span>
+                </button>
+                <p className="text-sm mt-4 opacity-75" style={{ color: '#6b7280' }}>
+                  Select a package above to get started
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* HIGH PERFORMANCE STARTS HERE - ShortcutSection Style */}
+      <section 
+        ref={shortcutSectionRef}
+        className={`fade-in-section py-20 md:py-28 bg-white ${shortcutSectionInView ? 'shortcut-section-in-view' : ''}`}
+        style={{ fontFamily: "'Outfit', sans-serif" }}
+      >
+        <style>{`
+          .shortcut-section-card {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+          }
+          .shortcut-section-card:hover {
+            transform: scale(1.02);
+          }
+          .shortcut-section-card:active {
+            transform: scale(0.98);
+          }
+          .shortcut-checklist-container {
+            position: relative;
+            height: 315px;
+            overflow: hidden;
+          }
+          .shortcut-checklist-scroll {
+            position: relative;
+            z-index: 1;
+            animation: scrollChecklist 22s linear infinite;
+            will-change: transform;
+          }
+          @keyframes scrollChecklist {
+            0% {
+              transform: translateY(0);
+            }
+            100% {
+              transform: translateY(calc(-50% - 26px));
+            }
+          }
+          .shortcut-checklist-mask {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            background: linear-gradient(to bottom,
+              rgba(252, 242, 254, 1) 0%,
+              rgba(252, 242, 254, 0) 8%,
+              rgba(252, 242, 254, 0) 92%,
+              rgba(252, 242, 254, 1) 100%);
+          }
+          .shortcut-checklist-container[data-card="calm"] .shortcut-checklist-mask {
+            background: linear-gradient(to bottom,
+              rgba(240, 240, 255, 1) 0%,
+              rgba(240, 240, 255, 0) 8%,
+              rgba(240, 240, 255, 0) 92%,
+              rgba(240, 240, 255, 1) 100%);
+          }
+          .shortcut-checkbox {
+            width: 33px;
+            height: 33px;
+            border-radius: 17px;
+            border: 2px solid;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .shortcut-check-icon {
+            width: 15px;
+            height: 10px;
+          }
+          .shortcut-plus-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .shortcut-plus-icon svg {
+            width: 100%;
+            height: 100%;
+          }
+          .shortcut-checklist-item {
+            opacity: 0;
+            transform: translateY(8px);
+            transition: none;
+          }
+          /* Animate bullets when section comes into view */
+          .shortcut-section-in-view .shortcut-checklist-item {
+            animation: fadeInBullet 0.35s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(1) { 
+            animation-delay: 0s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(2) { 
+            animation-delay: 0.175s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(3) { 
+            animation-delay: 0.35s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(4) { 
+            animation-delay: 0.525s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(5) { 
+            animation-delay: 0.7s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(6) { 
+            animation-delay: 0s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(7) { 
+            animation-delay: 0.175s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(8) { 
+            animation-delay: 0.35s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(9) { 
+            animation-delay: 0.525s; 
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(10) { 
+            animation-delay: 0.7s; 
+          }
+          @keyframes fadeInBullet {
+            from {
+              opacity: 0;
+              transform: translateY(8px);
+            }
+            to {
+              opacity: 0.95;
+              transform: translateY(0);
+            }
+          }
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(1),
+          .shortcut-section-in-view .shortcut-checklist-item:nth-child(6) {
+            animation-name: fadeInBulletStrong;
+          }
+          @keyframes fadeInBulletStrong {
+            from {
+              opacity: 0;
+              transform: translateY(8px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
+        
+        <div className="max-w-[1200px] mx-auto px-6">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 
+              className="h1 mb-6 md:mb-8"
+              style={{ color: '#003756' }}
+            >
+              Slack. Zoom. <span style={{ color: '#FF5050' }}>Shortcut</span>.<br />
+              One of these helps your team relax.
+            </h1>
+            <p 
+              className="text-base lg:text-lg font-medium max-w-3xl mx-auto"
+              style={{ color: '#003756', lineHeight: '1.1', letterSpacing: '-0.01em' }}
+            >
+              Real moments of calm at work — felt by employees, effortless for employers.
+            </p>
+          </div>
+
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Card 1 - Reset at work */}
+            <div 
+              className="shortcut-section-card"
+              style={{
+                backgroundColor: '#fcf2fe',
+                border: '1px solid rgba(0, 31, 31, 0.08)',
+              }}
+            >
+              <div className="border border-solid rounded-[24px] pb-0" style={{ borderColor: 'rgba(0, 31, 31, 0.08)' }}>
+                {/* Title and icon */}
+                <div className="relative px-8 pt-[52px] pb-6">
+                  <h3 
+                    className="text-[37px] leading-[43px] tracking-[-0.95px] m-0 font-medium"
+                    style={{ color: '#001f1f' }}
+                  >
+                    Reset at work
+                  </h3>
+                  
+                  {/* Plus icon button */}
+                  <button
+                    className="absolute right-8 top-8 flex items-center justify-center rounded-[20px]"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: '#e063c7',
+                    }}
+                    aria-label="Expand Reset at work"
+                  >
+                    <div className="shortcut-plus-icon">
+                      <svg fill="none" viewBox="0 0 19.7345 19.7345">
+                        <path d="M 9.86725 4.11175 L 9.86725 15.6228" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.28917" />
+                        <path d="M 4.11175 9.86725 L 15.6228 9.86725" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.28917" />
+                      </svg>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Checklist items with scroll */}
+                <div className="shortcut-checklist-container px-8 pb-6" data-card="reset">
+                  <div className="shortcut-checklist-mask"></div>
+                  <div className="shortcut-checklist-scroll">
+                    <div className="space-y-[52px]">
+                      {[
+                        { text: 'Chair & table massage', boldText: 'massage' },
+                        { text: 'Office grooming & self-care', boldText: 'self-care' },
+                        { text: 'Headshots & confidence boosts', boldText: 'confidence boosts' },
+                        { text: 'Pop-up wellness experiences', boldText: 'wellness' },
+                        { text: 'On-site, zero planning required', boldText: 'zero planning' },
+                      ].concat([
+                        { text: 'Chair & table massage', boldText: 'massage' },
+                        { text: 'Office grooming & self-care', boldText: 'self-care' },
+                        { text: 'Headshots & confidence boosts', boldText: 'confidence boosts' },
+                        { text: 'Pop-up wellness experiences', boldText: 'wellness' },
+                        { text: 'On-site, zero planning required', boldText: 'zero planning' },
+                      ]).map((item, idx) => (
+                        <div key={idx} className="shortcut-checklist-item flex items-center gap-[11px]">
+                          <div
+                            className="shortcut-checkbox"
+                            style={{
+                              backgroundColor: '#fde5ff',
+                              borderColor: 'rgba(224, 99, 199, 0.36)',
+                            }}
+                          >
+                            <div className="shortcut-check-icon">
+                              <svg fill="none" viewBox="0 0 14.3715 9.7279">
+                                <path d="M 1.215 4.8045 L 5.06625 8.5125 L 13.15675 1.215" stroke="#b8337a" strokeLinecap="square" strokeWidth="2.43" />
+                              </svg>
+                            </div>
+                          </div>
+                          <p
+                            className="m-0 text-[27px] leading-[36px] font-medium"
+                            style={{ color: '#b8337a' }}
+                          >
+                            {item.boldText ? (
+                              <>
+                                {item.text.split(item.boldText).map((part, i) => (
+                                  <span key={i}>
+                                    {part}
+                                    {i < item.text.split(item.boldText).length - 1 && (
+                                      <strong className="font-bold">{item.boldText}</strong>
+                                    )}
+                                  </span>
+                                ))}
+                              </>
+                            ) : (
+                              item.text
+                            )}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="px-8 pb-8">
+                  <p
+                    className="m-0 text-[19px] leading-[26px] font-normal opacity-64"
+                    style={{ color: '#b8337a' }}
+                  >
+                    Physical, on-site wellness experiences that help your team recharge and refocus.
+                  </p>
+                </div>
+              </div>
+
+              {/* CTA strip */}
+              <div
+                className="rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center"
+                style={{
+                  height: '82px',
+                  backgroundColor: '#fab8ff',
+                  borderColor: 'rgba(0, 31, 31, 0.08)',
+                }}
+              >
+                <p
+                  className="m-0 text-[18px] leading-[26px] font-medium text-center"
+                  style={{ color: '#b8337a' }}
+                >
+                  Take a tour →
+                </p>
+              </div>
+            </div>
+
+            {/* Card 2 - Calm, delivered */}
+            <div 
+              className="shortcut-section-card"
+              style={{
+                backgroundColor: '#f0f0ff',
+                border: '1px solid rgba(0, 31, 31, 0.08)',
+              }}
+            >
+              <div className="border border-solid rounded-[24px] pb-0" style={{ borderColor: 'rgba(0, 31, 31, 0.08)' }}>
+                {/* Title and icon */}
+                <div className="relative px-8 pt-[52px] pb-6">
+                  <h3 
+                    className="text-[37px] leading-[43px] tracking-[-0.95px] m-0 font-medium"
+                    style={{ color: '#001f1f' }}
+                  >
+                    Calm, delivered
+                  </h3>
+                  
+                  {/* Plus icon button */}
+                  <button
+                    className="absolute right-8 top-8 flex items-center justify-center rounded-[20px]"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: '#7070ff',
+                    }}
+                    aria-label="Expand Calm, delivered"
+                  >
+                    <div className="shortcut-plus-icon">
+                      <svg fill="none" viewBox="0 0 19.7345 19.7345">
+                        <path d="M 9.86725 4.11175 L 9.86725 15.6228" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.28917" />
+                        <path d="M 4.11175 9.86725 L 15.6228 9.86725" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.28917" />
+                      </svg>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Checklist items with scroll */}
+                <div className="shortcut-checklist-container px-8 pb-6" data-card="calm">
+                  <div className="shortcut-checklist-mask"></div>
+                  <div className="shortcut-checklist-scroll">
+                    <div className="space-y-[52px]">
+                      {[
+                        { text: 'One vendor, multiple services', boldText: 'One vendor' },
+                        { text: 'Easy scheduling & sign-ups', boldText: 'Easy' },
+                        { text: 'Nationwide provider network', boldText: 'Nationwide' },
+                        { text: 'Consistent quarterly programs', boldText: 'Consistent' },
+                        { text: 'Zero admin headaches', boldText: 'Zero admin' },
+                      ].concat([
+                        { text: 'One vendor, multiple services', boldText: 'One vendor' },
+                        { text: 'Easy scheduling & sign-ups', boldText: 'Easy' },
+                        { text: 'Nationwide provider network', boldText: 'Nationwide' },
+                        { text: 'Consistent quarterly programs', boldText: 'Consistent' },
+                        { text: 'Zero admin headaches', boldText: 'Zero admin' },
+                      ]).map((item, idx) => (
+                        <div key={idx} className="shortcut-checklist-item flex items-center gap-[11px]">
+                          <div
+                            className="shortcut-checkbox"
+                            style={{
+                              backgroundColor: '#e1e1fa',
+                              borderColor: 'rgba(112, 112, 255, 0.36)',
+                            }}
+                          >
+                            <div className="shortcut-check-icon">
+                              <svg fill="none" viewBox="0 0 14.3715 9.7279">
+                                <path d="M 1.215 4.8045 L 5.06625 8.5125 L 13.15675 1.215" stroke="#4533b8" strokeLinecap="square" strokeWidth="2.43" />
+                              </svg>
+                            </div>
+                          </div>
+                          <p
+                            className="m-0 text-[27px] leading-[36px] font-medium"
+                            style={{ color: '#4533b8' }}
+                          >
+                            {item.boldText ? (
+                              <>
+                                {item.text.split(item.boldText).map((part, i) => (
+                                  <span key={i}>
+                                    {part}
+                                    {i < item.text.split(item.boldText).length - 1 && (
+                                      <strong className="font-bold">{item.boldText}</strong>
+                                    )}
+                                  </span>
+                                ))}
+                              </>
+                            ) : (
+                              item.text
+                            )}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="px-8 pb-8">
+                  <p
+                    className="m-0 text-[19px] leading-[26px] font-normal opacity-64"
+                    style={{ color: '#4533b8' }}
+                  >
+                    Operational simplicity and ease that remove friction from your day.
+                  </p>
+                </div>
+              </div>
+
+              {/* CTA strip */}
+              <div
+                className="rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center"
+                style={{
+                  height: '82px',
+                  backgroundColor: '#b8b8ff',
+                  borderColor: 'rgba(0, 31, 31, 0.08)',
+                }}
+              >
+                <p
+                  className="m-0 text-[18px] leading-[26px] font-medium text-center"
+                  style={{ color: '#4533b8' }}
+                >
+                  Take a tour →
+                </p>
               </div>
             </div>
           </div>
@@ -1865,22 +2612,97 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       </section>
       )}
 
+      {/* SOCIAL PROOF STATS - Only for returning clients - Moved above promo for better trust-building */}
+      {isReturningClient && (
+        <section className="py-12 md:py-16 bg-white">
+          <div className="mx-auto container-narrow px-4">
+            <h2 className="h2 text-center mb-8 md:mb-12" style={{ color: '#003756' }}>
+              Why Companies Renew Year After Year
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              {/* Stat 1 */}
+              <div className="card-medium text-center">
+                <div className="text-5xl md:text-6xl font-extrabold mb-3" style={{ color: '#018EA2' }}>
+                  87%
+                </div>
+                <p className="text-xl font-bold mb-2" style={{ color: '#003756' }}>
+                  Client Retention Rate
+                </p>
+                <p className="font-medium" style={{ color: '#003756' }}>
+                  Most partners renew and expand their programs
+                </p>
+              </div>
+
+              {/* Stat 2 */}
+              <div className="card-medium text-center">
+                <div className="text-5xl md:text-6xl font-extrabold mb-3" style={{ color: '#018EA2' }}>
+                  94%
+                </div>
+                <p className="text-xl font-bold mb-2" style={{ color: '#003756' }}>
+                  Employee Satisfaction
+                </p>
+                <p className="font-medium" style={{ color: '#003756' }}>
+                  Employees love the convenience and quality
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* PROMOTIONAL SECTION */}
-      <section id="holiday-event" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
+      <section id="pricing-section" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
         <div className="mx-auto max-w-7xl px-4">
           {/* Header Text */}
           <div className="text-center mb-12 md:mb-16">
             {!isGeneric && (
             <h3 className="text-lg md:text-xl mb-4" style={{ color: '#FFFFFF', fontWeight: 400 }}>
-              A special gift for our friends at {partnerName}
+              {isReturningClient 
+                ? `A special thank you for our friends at ${partnerName}`
+                : `A special gift for our friends at ${partnerName}`
+              }
             </h3>
             )}
-            <h2 className="h1 mb-4" style={{ color: '#FFFFFF', fontWeight: 600 }}>
-              Book your first event for 2026 and save
+            <h2 className="h1 mb-6 md:mb-8" style={{ color: '#FFFFFF' }}>
+              {isReturningClient 
+                ? 'Commit to Quarterly Wellness Events and Save 15% on Your 2026 Calendar'
+                : 'Book your first event for 2026 and save'
+              }
             </h2>
-            <p className="text-lg md:text-xl" style={{ color: '#FFFFFF', fontWeight: 400 }}>
-              Unlock Premium Partner status with Shortcut and make wellness even easier.
+            <p className="text-base lg:text-lg font-medium mb-4 max-w-3xl mx-auto" style={{ color: '#FFFFFF', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
+              {isReturningClient 
+                ? 'Lock in 4+ events per year and unlock premium partner benefits. Commit by February 16, 2026 to secure your quarterly program.'
+                : 'Unlock Premium Partner status with Shortcut and make wellness even easier.'
+              }
             </p>
+            {isReturningClient && (() => {
+              const deadline = new Date('2026-02-16T23:59:59');
+              const now = new Date();
+              const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              const isPastDeadline = daysUntil < 0;
+              
+              return (
+                <div className="bg-yellow-400 bg-opacity-20 border-2 border-yellow-400 rounded-xl p-6 mb-6 max-w-2xl mx-auto">
+                  <div className="flex items-center justify-center gap-4">
+                    <span className="text-3xl animate-pulse">⏰</span>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold text-white mb-1 uppercase tracking-wider">Commitment Deadline</p>
+                      {!isPastDeadline ? (
+                        <>
+                          <p className="text-3xl md:text-4xl font-bold text-white mb-1">
+                            {daysUntil} {daysUntil === 1 ? 'Day' : 'Days'} Left
+                          </p>
+                          <p className="text-sm text-white text-opacity-90">February 16, 2026</p>
+                        </>
+                      ) : (
+                        <p className="text-xl font-bold text-white">Deadline Passed - Contact Us for Availability</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Promotion Cards */}
@@ -1917,221 +2739,6 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </div>
       </section>
 
-      {/* PRICING CALCULATOR */}
-      {(!genericLandingPage || genericLandingPage.customization.includePricingCalculator) && (
-      <section id="pricing" className="fade-in-section py-20 md:py-24 rounded-3xl" style={{ backgroundColor: '#FFFFFF' }}>
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="text-center mb-16">
-            <h2 className="h1 mb-6" style={{ color: '#003756' }}>Popular Packages</h2>
-            <p className="text-xl md:text-2xl max-w-3xl mx-auto" style={{ color: '#003756' }}>
-              Choose your perfect wellness experience. All packages include premium service and professional setup.
-            </p>
-          </div>
-          
-          <div className="max-w-5xl mx-auto">
-            {/* Left Side - Calculator */}
-            <div className="space-y-8">
-              {/* Service Selection */}
-              <div className="mb-12">
-                <label className="block text-xl font-bold mb-6 text-center" style={{ color: '#003756' }}>
-                  Choose Your Service
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  {[
-                    { 
-                      id: 'massage', 
-                      name: 'Massage', 
-                      description: 'Relaxing chair or table massages',
-                      color: '#9EFAFF',
-                      icon: '💆‍♀️'
-                    },
-                    { 
-                      id: 'hair-makeup', 
-                      name: 'Hair & Makeup', 
-                      description: 'Hair styling & makeup services',
-                      color: '#FEDC64',
-                      icon: '✨'
-                    },
-                    { 
-                      id: 'headshot', 
-                      name: 'Headshots', 
-                      description: 'Professional photography',
-                      color: '#9EFAFF',
-                      icon: '📸'
-                    },
-                    { 
-                      id: 'nails', 
-                      name: 'Nails', 
-                      description: 'Manicures & nail art',
-                      color: '#F9CDFF',
-                      icon: '💅'
-                    },
-                    { 
-                      id: 'mindfulness', 
-                      name: 'Mindfulness', 
-                      description: 'Stress-relief sessions',
-                      color: '#FEDC64',
-                      icon: '🧘‍♀️'
-                    }
-                  ].map((service) => (
-                    <button
-                      key={service.id}
-                      onClick={() => {
-                        setSelectedService(service.id);
-                        setSelectedPackageIndex(1); // Reset to middle package when changing services
-                      }}
-                      className={`relative p-6 rounded-3xl text-center transition-all duration-300 transform hover:scale-105 ${
-                        selectedService === service.id 
-                          ? 'ring-4 ring-offset-4 shadow-xl' 
-                          : 'hover:shadow-lg'
-                      }`}
-                      style={{
-                        backgroundColor: selectedService === service.id ? service.color : 'white',
-                        color: '#003756',
-                        border: '2px solid #e5e7eb',
-                      }}
-                    >
-                      <div className="text-3xl mb-3">{service.icon}</div>
-                      <div className="font-bold text-lg mb-2">{service.name}</div>
-                      <div className="text-sm opacity-75 leading-tight">{service.description}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Package Selection */}
-              <div className="mb-12">
-                <label className="block text-xl font-bold mb-8 text-center" style={{ color: '#003756' }}>
-                  Popular {getServiceName(selectedService)} Packages
-                </label>
-                <div className="grid md:grid-cols-3 gap-6">
-                  {SERVICE_PRESETS[selectedService as keyof typeof SERVICE_PRESETS]?.map((preset, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setSelectedPackageIndex(index);
-                        setPricingConfig((prev: any) => ({ ...prev, totalAppointments: preset.appointments }));
-                      }}
-                      className={`package-button relative p-8 rounded-3xl text-center transition-all duration-300 transform hover:scale-105 overflow-hidden ${
-                        selectedPackageIndex === index 
-                          ? 'selected ring-4 ring-offset-4 shadow-2xl scale-105' 
-                          : 'hover:shadow-xl'
-                      }`}
-                      style={{
-                        '--package-color': getServiceColor(selectedService),
-                        backgroundColor: 'white',
-                        color: '#003756',
-                        border: selectedPackageIndex === index ? `3px solid ${getServiceColor(selectedService)}` : '2px solid #E5E7EB',
-                        boxShadow: selectedPackageIndex === index ? `0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)` : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                      } as React.CSSProperties}
-                    >
-                      {(preset as any).popular && (
-                        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#FF5050] to-[#175071] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg">
-                          MOST POPULAR
-                        </div>
-                      )}
-                      <div className="space-y-6">
-                        {/* Package Title */}
-                        <div className="text-center">
-                          <h3 className="text-2xl font-bold mb-2" style={{ color: '#003756' }}>
-                          {(preset as any).name || `${preset.appointments} Appointments`}
-                          </h3>
-                        </div>
-                        
-                        {/* Package Details */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-center gap-3 text-base">
-                            <span className="text-lg">⏱️</span>
-                            <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-3 text-base">
-                            <span className="text-lg">👥</span>
-                            <span className="font-semibold" style={{ color: '#003756' }}>{preset.pros} {getServiceName(selectedService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
-                          </div>
-                          
-                          {/* Mindfulness Service Descriptions */}
-                          {selectedService === 'mindfulness' && (preset as any).name && (
-                            <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-                              <p className="text-sm leading-relaxed text-center" style={{ color: '#003756' }}>
-                                {getMindfulnessDescription((preset as any).name)}
-                              </p>
-                        </div>
-                          )}
-                        </div>
-                        
-                        {/* Price Section */}
-                        <div className="pt-4 border-t-2" style={{ borderColor: '#E5E7EB' }}>
-                          <div className="text-center">
-                            <div className="text-4xl font-bold mb-1" style={{ color: '#003756' }}>
-                            {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
-                            </div>
-                            <div className="text-sm font-medium opacity-75" style={{ color: '#003756' }}>
-                              {(preset as any).custom ? 'Contact for pricing' : 'per session'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* What's Included Section */}
-              <div className="mb-12">
-                <h3 className="text-xl font-bold mb-6 text-center" style={{ color: '#003756' }}>
-                  What's Included:
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {getWhatsIncluded(selectedService).map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-green-600 text-sm">✓</span>
-                      </div>
-                      <span className="text-gray-700 font-medium">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Enhanced Pricing Display & CTA */}
-              {currentPreset && (
-                <div className="text-center space-y-8">
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-3xl p-8 border-2 border-blue-200">
-                    <div className="text-lg font-medium mb-2" style={{ color: '#6b7280' }}>
-                      {(currentPreset as any).custom ? 'Custom Quote Available' : 'Your Package Price'}
-                    </div>
-                    <div className="text-5xl font-bold mb-4" style={{ color: '#003756' }}>
-                      {(currentPreset as any).custom ? 'Custom' : `$${currentPreset.price.toLocaleString()}`}
-                    </div>
-                    <div className="text-lg font-semibold mb-2" style={{ color: '#003756' }}>
-                      {currentPreset.appointments} {selectedService === 'mindfulness' ? (currentPreset.appointments === 1 ? 'session' : 'sessions') : 'appointments'} • {getServiceName(selectedService)}
-                    </div>
-                    <div className="text-sm" style={{ color: '#6b7280' }}>
-                      {currentPreset.eventTime} {currentPreset.eventTime === 1 ? 'hour' : 'hours'} • {currentPreset.pros} {getServiceName(selectedService).toLowerCase()} {currentPreset.pros === 1 ? 'pro' : 'pros'}
-                    </div>
-                  </div>
-
-                  {/* CTA Button */}
-                  <div>
-                    <a 
-                      href="#book" 
-                      className="inline-flex items-center justify-center rounded-full font-bold px-12 py-6 text-xl shadow-2xl hover:opacity-90 pulse-glow transition-all transform hover:scale-105"
-                      style={{ backgroundColor: '#003756', color: '#EFE0C0' }}
-                    >
-                      Get Your Custom Quote
-                      <span className="ml-3 text-2xl">→</span>
-                    </a>
-                    <p className="text-sm mt-4 opacity-75" style={{ color: '#6b7280' }}>
-                      Free consultation • No commitment required
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-      )}
 
       {/* FEEL GREAT SCROLLER */}
       <section id="feel-great" className="fade-in-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
@@ -2192,61 +2799,34 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       </section>
       )}
 
-      {/* SOCIAL PROOF STATS - Only for returning clients */}
-      {isReturningClient && (
-        <section className="py-12 md:py-16 bg-white">
-          <div className="mx-auto container-narrow px-4">
-            <h2 className="h2 text-center mb-8 md:mb-12" style={{ color: '#003756' }}>
-              Why Companies Renew Year After Year
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {/* Stat 1 */}
-              <div className="card-medium text-center">
-                <div className="text-5xl md:text-6xl font-extrabold mb-3" style={{ color: '#018EA2' }}>
-                  87%
-                </div>
-                <p className="text-xl font-bold mb-2" style={{ color: '#003756' }}>
-                  Client Retention Rate
-                </p>
-                <p className="font-medium" style={{ color: '#003756' }}>
-                  Most partners renew and expand their programs
-                </p>
-              </div>
-
-              {/* Stat 2 */}
-              <div className="card-medium text-center">
-                <div className="text-5xl md:text-6xl font-extrabold mb-3" style={{ color: '#018EA2' }}>
-                  94%
-                </div>
-                <p className="text-xl font-bold mb-2" style={{ color: '#003756' }}>
-                  Employee Satisfaction
-                </p>
-                <p className="font-medium" style={{ color: '#003756' }}>
-                  Employees love the convenience and quality
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* FINAL CTA */}
       <section id="book" className="fade-in-section py-16 md:py-20 text-white rounded-3xl" style={{ backgroundColor: '#003756' }}>
         <div className="mx-auto container-narrow px-4 text-center">
-          <h2 className="h1 text-white mb-6">Ready to Transform Your Workplace?</h2>
+          <h2 className="h1 text-white mb-6">
+            {isReturningClient 
+              ? 'Ready to Lock In Your 2026 Quarterly Program?'
+              : 'Ready to Transform Your Workplace?'
+            }
+          </h2>
           <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Join 500+ companies who trust Shortcut to deliver employee happiness. Book a call today and see how easy workplace wellness can be.
+            {isReturningClient
+              ? `As a valued partner, commit to 4+ quarterly events and save 15% while securing priority booking and guaranteed availability on your preferred dates. Commit by February 16, 2026.`
+              : 'Join 500+ companies who trust Shortcut to deliver employee happiness. Book a call today and see how easy workplace wellness can be.'
+            }
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 shadow-glow hover:opacity-90 pulse-glow" style={{ backgroundColor: '#9EFAFF', color: '#003C5E' }}>
-              Get in touch
+              {isReturningClient ? 'Commit to Quarterly Program & Save 15%' : 'Get in touch'}
             </button>
             <div className="text-sm text-white/70">
               <span className="inline-flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0098AD' }}></span>
-                Free consultation • No commitment
+                {isReturningClient 
+                  ? 'Schedule commitment call • Lock in your calendar'
+                  : 'Free consultation • No commitment'
+                }
               </span>
             </div>
           </div>
@@ -2285,7 +2865,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/20 mt-8 pt-8 text-center text-white/70">
+          <div className="border-t border-white/20 mt-8 pt-8 text-center" style={{ color: '#003756' }}>
             <p>&copy; 2025 Shortcut. All rights reserved.</p>
           </div>
         </div>
@@ -2297,8 +2877,14 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           <div className="bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h2 className="text-4xl font-bold mb-3" style={{ color: '#003756' }}>Get in touch</h2>
-                <p className="text-lg text-gray-600 max-w-2xl">Experience the future of wellness at work with Shortcut, from soothing massages to calming mindfulness sessions.</p>
+                <h2 className="text-4xl font-bold mb-3" style={{ color: '#003756' }}>
+                  {isReturningClient ? 'Welcome back! Ready to lock in your quarterly program?' : 'Get in touch'}
+                </h2>
+                <p className="text-lg text-gray-600 max-w-2xl">
+                  {isReturningClient 
+                    ? `Commit to 4+ quarterly events and save 15% on your 2026 calendar. Build your personalized proposal below and lock in your preferred dates.`
+                    : 'Experience the future of wellness at work with Shortcut, from soothing massages to calming mindfulness sessions.'}
+                </p>
               </div>
               <button 
                 onClick={() => {
@@ -2324,24 +2910,32 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               e.preventDefault();
               try {
                 // Save form data to Supabase
-                const { data, error } = await supabase
-                  .from('contact_requests')
-                  .insert([
-                    {
-                      first_name: formData.firstName,
-                      last_name: formData.lastName,
+                // For returning clients, use simplified data; for new clients, use full form data
+                const contactData: any = {
                       email: formData.email,
-                      phone: formData.phone,
-                      company: formData.company,
-                      location: formData.location,
                       service_type: formData.serviceType,
                       event_date: formData.eventDate,
-                      appointment_count: formData.appointmentCount === 'custom' ? formData.customAppointmentCount : formData.appointmentCount,
-                      message: formData.message,
+                  message: formData.message || null,
                       generic_landing_page_id: genericLandingPage?.id || null,
                       created_at: new Date().toISOString()
-                    }
-                  ]);
+                };
+
+                // Add full form fields only for new clients
+                if (!isReturningClient) {
+                  contactData.first_name = formData.firstName;
+                  contactData.last_name = formData.lastName;
+                  contactData.phone = formData.phone;
+                  contactData.company = formData.company;
+                  contactData.location = formData.location;
+                  contactData.appointment_count = formData.appointmentCount === 'custom' ? formData.customAppointmentCount : formData.appointmentCount;
+                } else {
+                  // For returning clients, use company name from the landing page if available
+                  contactData.company = genericLandingPage?.data?.partnerName || null;
+                }
+
+                const { data, error } = await supabase
+                  .from('contact_requests')
+                  .insert([contactData]);
 
                 if (error) {
                   console.error('Error saving contact request:', error);
@@ -2365,6 +2959,64 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                 alert('There was an error submitting your request. Please try again.');
               }
             }} className="space-y-8">
+              {isReturningClient ? (
+                // Simplified form for returning clients
+                <>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Email *</label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+                        placeholder="Enter your email address"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Type of service *</label>
+                      <select
+                        value={formData.serviceType}
+                        onChange={(e) => {
+                          setFormData({...formData, serviceType: e.target.value, appointmentCount: ''});
+                        }}
+                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+                        required
+                      >
+                        <option value="">Select a service</option>
+                        <option value="massage">Massage</option>
+                        <option value="hair-makeup">Hair & Makeup</option>
+                        <option value="headshot">Headshots</option>
+                        <option value="nails">Nail Care</option>
+                        <option value="mindfulness">Mindfulness</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Preferred date *</label>
+                      <input
+                        type="date"
+                        value={formData.eventDate}
+                        onChange={(e) => setFormData({...formData, eventDate: e.target.value})}
+                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>Message (optional)</label>
+                      <textarea
+                        value={formData.message}
+                        onChange={(e) => setFormData({...formData, message: e.target.value})}
+                        rows={4}
+                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all resize-none"
+                        placeholder="Any special requests or questions?"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Full form for new clients
+                <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#003756' }}>First name *</label>
@@ -2520,18 +3172,143 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                     placeholder="Tell us more about your event or any special requirements..."
                   />
                 </div>
+                  )}
+                </>
               )}
 
               <button
                 type="submit"
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                Send Message
+                {isReturningClient ? 'Send Request' : 'Send Message'}
               </button>
             </form>
           </div>
         </div>
       )}
+
+      {/* Proposal Preview Modal */}
+      {showProposalPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold" style={{ color: '#003756' }}>
+                Your Quarterly Proposal Preview
+              </h2>
+              <button
+                onClick={() => setShowProposalPreview(false)}
+                className="text-gray-400 hover:text-gray-600 text-3xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {getProposalPreviewData() && (() => {
+              const preview = getProposalPreviewData()!;
+              return (
+                <div className="space-y-6">
+                  {/* Service Summary */}
+                  <div className="bg-gray-50 rounded-xl p-6">
+                    <h3 className="text-xl font-bold mb-4" style={{ color: '#003756' }}>
+                      Selected Package
+                    </h3>
+                    <div className="space-y-2">
+                      <p className="text-lg">
+                        <strong>Service:</strong> {preview.serviceName}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Appointments:</strong> {preview.appointments} per event
+                      </p>
+                      <p className="text-lg">
+                        <strong>Event Duration:</strong> {preview.eventTime} {preview.eventTime === 1 ? 'hour' : 'hours'}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Professionals:</strong> {preview.pros} {preview.pros === 1 ? 'pro' : 'pros'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Pricing Breakdown */}
+                  <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-200">
+                    <h3 className="text-xl font-bold mb-4" style={{ color: '#003756' }}>
+                      Pricing Breakdown
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-lg">Base Price (per event):</span>
+                        <span className="text-lg font-bold">${preview.basePrice.toLocaleString()}</span>
+                      </div>
+                      {isReturningClient && (
+                        <>
+                          <div className="flex justify-between text-green-600">
+                            <span className="text-lg">Quarterly Discount ({preview.discountPercent}%):</span>
+                            <span className="text-lg font-bold">-${preview.discountAmount.toLocaleString()}</span>
+                          </div>
+                          <div className="border-t-2 border-blue-300 pt-3 mt-3">
+                            <div className="flex justify-between">
+                              <span className="text-xl font-bold">Price Per Event:</span>
+                              <span className="text-xl font-bold" style={{ color: '#003756' }}>
+                                ${preview.finalPrice.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="bg-yellow-100 rounded-lg p-4 mt-4">
+                            <p className="text-sm font-semibold mb-1" style={{ color: '#003756' }}>
+                              Quarterly Commitment (4 events)
+                            </p>
+                            <p className="text-2xl font-bold" style={{ color: '#003756' }}>
+                              Total Savings: ${preview.quarterlySavings.toLocaleString()}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Commitment Terms */}
+                  {isReturningClient && (
+                    <div className="bg-yellow-50 rounded-xl p-6 border-2 border-yellow-200">
+                      <h3 className="text-xl font-bold mb-3" style={{ color: '#003756' }}>
+                        Quarterly Commitment Terms
+                      </h3>
+                      <ul className="space-y-2 list-disc list-inside">
+                        <li>Commit to 4+ events in 2026</li>
+                        <li>15% discount applied to all events</li>
+                        <li>Priority booking and guaranteed availability</li>
+                        <li>Dedicated account manager</li>
+                        <li>Deadline: February 16, 2026</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* CTA Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <button
+                      onClick={handleBuildProposal}
+                      disabled={isGeneratingProposal}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGeneratingProposal ? 'Generating Proposal...' : 'Generate Full Proposal'}
+                    </button>
+                    <button
+                      onClick={() => setShowProposalPreview(false)}
+                      className="flex-1 border-2 border-gray-300 text-gray-700 font-bold py-4 px-8 rounded-xl transition-all hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Client Proposal Builder Modal */}
+      <ClientProposalBuilder
+        isOpen={showProposalBuilder}
+        onClose={() => setShowProposalBuilder(false)}
+      />
     </div>
   );
 };

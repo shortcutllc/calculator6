@@ -38,7 +38,11 @@ export const calculateServiceResults = (service: any) => {
     proRevenue = service.totalHours * service.numPros * (service.proHourly || 0);
     const retouchingTotal = totalAppts * (service.retouchingCost || 0);
     serviceCost = proRevenue + retouchingTotal;
-  } else if (service.serviceType === 'mindfulness') {
+  } else if (service.serviceType === 'mindfulness' ||
+             service.serviceType === 'mindfulness-soles' ||
+             service.serviceType === 'mindfulness-movement' ||
+             service.serviceType === 'mindfulness-pro' ||
+             service.serviceType === 'mindfulness-cle') {
     // Mindfulness services use fixed pricing
     serviceCost = service.fixedPrice || 1350;
     proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness

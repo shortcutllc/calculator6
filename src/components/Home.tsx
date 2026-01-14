@@ -182,6 +182,54 @@ const SERVICE_DEFAULTS = {
     hourlyRate: 135,
     earlyArrival: 25,
     retouchingCost: 0
+  },
+  'mindfulness-soles': {
+    appTime: 30,
+    totalHours: 0.5,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 30,
+    participants: 'unlimited',
+    fixedPrice: 1250
+  },
+  'mindfulness-movement': {
+    appTime: 30,
+    totalHours: 0.5,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 30,
+    participants: 'unlimited',
+    fixedPrice: 1250
+  },
+  'mindfulness-pro': {
+    appTime: 45,
+    totalHours: 0.75,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 45,
+    participants: 'unlimited',
+    fixedPrice: 1500
+  },
+  'mindfulness-cle': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1350
   }
 };
 
@@ -239,7 +287,11 @@ const Home: React.FC = () => {
       proRevenue = service.totalHours * service.numPros * service.proHourly;
       const retouchingTotal = totalAppts * (service.retouchingCost || 0);
       serviceCost = proRevenue + retouchingTotal;
-    } else if (service.serviceType === 'mindfulness') {
+    } else if (service.serviceType === 'mindfulness' ||
+               service.serviceType === 'mindfulness-soles' ||
+               service.serviceType === 'mindfulness-movement' ||
+               service.serviceType === 'mindfulness-pro' ||
+               service.serviceType === 'mindfulness-cle') {
       // Mindfulness services use fixed pricing
       serviceCost = service.fixedPrice || 1350;
       proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
@@ -1170,6 +1222,10 @@ const Home: React.FC = () => {
                         <option value="makeup">Makeup</option>
                         <option value="headshot">Headshots</option>
                         <option value="mindfulness">Mindfulness</option>
+                        <option value="mindfulness-soles">Grounding Under Pressure: The Soles of the Feet Practice</option>
+                        <option value="mindfulness-movement">Ground & Reset: Cultivating Mindfulness Through Movement and Stillness</option>
+                        <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
+                        <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
                         <option value="hair-makeup">Hair + Makeup</option>
                         <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                       </select>

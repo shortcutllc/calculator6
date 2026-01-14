@@ -43,6 +43,10 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
   React.useEffect(() => {
     if (editingPage) {
       console.log('🔄 Updating options for editing page:', editingPage);
+      console.log('🔍 editingPage.isReturningClient:', editingPage.isReturningClient, typeof editingPage.isReturningClient);
+      const isReturningClientValue = editingPage.isReturningClient === true || editingPage.isReturningClient === 'true' || editingPage.isReturningClient === 1;
+      console.log('🔍 Parsed isReturningClient value:', isReturningClientValue);
+      
       setOptions({
         partnerName: editingPage.data?.partnerName || '',
         partnerLogoFile: null,
@@ -51,7 +55,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         contactFirstName: editingPage.customization?.contactFirstName || '',
         contactLastName: editingPage.customization?.contactLastName || '',
         customMessage: editingPage.data?.customMessage || '',
-        isReturningClient: editingPage.isReturningClient || false,
+        isReturningClient: isReturningClientValue,
         customization: {
           contactFirstName: editingPage.customization?.contactFirstName || '',
           contactLastName: editingPage.customization?.contactLastName || '',
@@ -260,12 +264,23 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         };
         
         console.log('💾 Updating generic landing page with data:', updateData);
+        console.log('🔍 isReturningClient being sent:', options.isReturningClient, typeof options.isReturningClient);
+        console.log('🔍 Current options state:', JSON.stringify({ isReturningClient: options.isReturningClient }, null, 2));
         
-        await updateGenericLandingPage(editingPage.id, {
+        // Ensure isReturningClient is explicitly set as a boolean
+        const isReturningClientValue = options.isReturningClient === true || options.isReturningClient === 'true';
+        
+        const updatePayload = {
           data: updateData,
           customization: finalCustomization,
-          isReturningClient: options.isReturningClient
-        });
+          isReturningClient: isReturningClientValue // Explicitly convert to boolean
+        };
+        
+        console.log('🔍 Update payload:', JSON.stringify(updatePayload, null, 2));
+        console.log('🔍 options.isReturningClient original:', options.isReturningClient, typeof options.isReturningClient);
+        console.log('🔍 isReturningClientValue converted:', isReturningClientValue, typeof isReturningClientValue);
+        
+        await updateGenericLandingPage(editingPage.id, updatePayload);
         
         console.log('✅ Generic landing page updated successfully');
         pageId = editingPage.id;
@@ -274,6 +289,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         setUpdatedLogoUrl(logoUrl);
       } else {
         // Create new page
+        console.log('🔍 Creating new page with isReturningClient:', genericLandingPageOptions.isReturningClient);
         pageId = await createGenericLandingPage(genericLandingPageOptions);
       }
       
@@ -281,7 +297,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         onClose();
       }
       
-      navigate(`/generic-landing-page/${pageId}`);
+      // Add timestamp to force page reload and refetch
+      navigate(`/generic-landing-page/${pageId}?refresh=${Date.now()}`);
     } catch (error) {
       console.error('Error creating generic landing page:', error);
       alert('Failed to create generic landing page. Please try again.');
@@ -579,7 +596,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               type="submit"
               disabled={loading}
             >
-              {loading ? (editingPage ? 'Updating...' : 'Creating...') : (editingPage ? 'Update Holiday Page' : 'Create Holiday Page')}
+              {loading ? (editingPage ? 'Updating...' : 'Creating...') : (editingPage ? 'Update Landing Page' : 'Create Landing Page')}
             </Button>
           </div>
         </form>

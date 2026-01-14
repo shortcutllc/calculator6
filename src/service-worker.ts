@@ -23,9 +23,15 @@ registerRoute(
   })
 );
 
-// Cache static assets
+// Cache static assets, but EXCLUDE Vite's optimized deps to prevent 504 errors
 registerRoute(
-  ({ request }) => request.destination === 'style' || request.destination === 'script',
+  ({ request, url }) => {
+    // Don't cache Vite's optimized dependencies - they cause 504 errors when outdated
+    if (url.pathname.includes('/node_modules/.vite/deps/')) {
+      return false;
+    }
+    return request.destination === 'style' || request.destination === 'script';
+  },
   new CacheFirst({
     cacheName: 'static-resources'
   })

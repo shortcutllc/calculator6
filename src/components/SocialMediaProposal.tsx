@@ -873,7 +873,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
           height: 3rem;
           width: 10rem;
           flex-shrink: 0;
-          filter: brightness(0) invert(1);
+          filter: brightness(0) saturate(100%) invert(27%) sepia(100%) saturate(2000%) hue-rotate(200deg) brightness(0.3) contrast(1.2);
           opacity: 0.9;
           transition: opacity 0.3s ease;
           object-fit: contain;
@@ -1550,7 +1550,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
           {/* Client Logos Section */}
           <div className="pb-20 md:pb-24">
             <div className="text-center mb-10 mx-auto container-narrow px-4">
-              <h2 className="text-3xl md:text-4xl font-bold mb-2" style={{ color: '#EFE0C0' }}>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2" style={{ color: '#003756' }}>
                 Top Employers Trust Shortcut
               </h2>
             </div>
