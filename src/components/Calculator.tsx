@@ -233,7 +233,7 @@ const Calculator: React.FC = () => {
                service.serviceType === 'mindfulness-cle' ||
                service.serviceType === 'mindfulness-pro-reactivity') {
       // Mindfulness services use fixed pricing
-      serviceCost = service.fixedPrice || 1350;
+      serviceCost = service.fixedPrice || 1375;
       proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
     } else {
       const totalEarlyArrival = service.earlyArrival * service.numPros;

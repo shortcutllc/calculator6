@@ -226,11 +226,11 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
     if (event.service === 'mindfulness') {
       // Mindfulness uses fixed pricing based on event time
       if (eventTime === 0.5) {
-        price = 1225;
+        price = 1250;
       } else if (eventTime === 1) {
         price = 1500;
       } else {
-        price = 1350;
+        price = 1375;
       }
     } else {
       // Calculate based on hours, pros, and hourly rate

@@ -306,7 +306,7 @@ const Home: React.FC = () => {
                service.serviceType === 'mindfulness-cle' ||
                service.serviceType === 'mindfulness-pro-reactivity') {
       // Mindfulness services use fixed pricing
-      serviceCost = service.fixedPrice || 1350;
+      serviceCost = service.fixedPrice || 1375;
       proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
     } else {
       const totalEarlyArrival = service.earlyArrival * service.numPros;
@@ -1475,18 +1475,18 @@ const Home: React.FC = () => {
                             value={service.mindfulnessType || (service.classLength === 30 ? 'drop-in' : service.classLength === 60 ? 'mindful-movement' : 'intro')}
                             onChange={(e) => {
                               const selectedType = e.target.value;
-                              let classLength = 40;
-                              let fixedPrice = 1350;
-                              
+                              let classLength = 45;
+                              let fixedPrice = 1375;
+
                               if (selectedType === 'drop-in') {
                                 classLength = 30;
-                                fixedPrice = 1125;
+                                fixedPrice = 1250;
                               } else if (selectedType === 'intro') {
-                                classLength = 40;
-                                fixedPrice = 1350;
+                                classLength = 45;
+                                fixedPrice = 1375;
                               } else {
                                 classLength = 60; // mindful-movement
-                                fixedPrice = 1350;
+                                fixedPrice = 1500;
                               }
                               
                               updateService(index, {
@@ -1560,10 +1560,10 @@ const Home: React.FC = () => {
                           </label>
                           <input
                             type="number"
-                            value={service.fixedPrice || 1350}
+                            value={service.fixedPrice || 1375}
                             onChange={(e) =>
                               updateService(index, {
-                                fixedPrice: parseInt(e.target.value) || 1350
+                                fixedPrice: parseInt(e.target.value) || 1375
                               })
                             }
                             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"

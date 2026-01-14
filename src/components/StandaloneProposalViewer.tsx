@@ -697,20 +697,20 @@ export const StandaloneProposalViewer: React.FC = () => {
       
       // If we're changing classLength for a mindfulness service, update mindfulnessType to match
       if (path[path.length - 1] === 'classLength' && service.serviceType === 'mindfulness') {
-        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 40 : (value || 40);
+        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 45 : (value || 45);
         let mindfulnessType = 'intro';
-        let fixedPrice = 1350;
-        
+        let fixedPrice = 1375;
+
         if (classLengthValue === 30) {
           mindfulnessType = 'drop-in';
-          fixedPrice = 1125;
+          fixedPrice = 1250;
         } else if (classLengthValue === 60) {
           mindfulnessType = 'mindful-movement';
-          fixedPrice = 1350;
+          fixedPrice = 1500;
         } else {
-          // Default to intro for 40 or any other value
+          // Default to intro for 45 or any other value
           mindfulnessType = 'intro';
-          fixedPrice = 1350;
+          fixedPrice = 1375;
         }
         
         service.mindfulnessType = mindfulnessType;

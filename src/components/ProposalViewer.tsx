@@ -1277,43 +1277,43 @@ const ProposalViewer: React.FC = () => {
             dateData.services?.forEach((service: any) => {
               if (service.serviceType === 'mindfulness') {
                 // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
-                let targetClassLength = 40;
-                let targetFixedPrice = 1350;
+                let targetClassLength = 45;
+                let targetFixedPrice = 1375;
                 let targetMindfulnessType = 'intro';
-                
+
                 // If mindfulnessType exists, use it to determine classLength
                 if (service.mindfulnessType === 'drop-in') {
                   targetClassLength = 30;
-                  targetFixedPrice = 1125;
+                  targetFixedPrice = 1250;
                   targetMindfulnessType = 'drop-in';
                 } else if (service.mindfulnessType === 'mindful-movement') {
                   targetClassLength = 60;
-                  targetFixedPrice = 1350;
+                  targetFixedPrice = 1500;
                   targetMindfulnessType = 'mindful-movement';
                 } else if (service.mindfulnessType === 'intro') {
-                  targetClassLength = 40;
-                  targetFixedPrice = 1350;
+                  targetClassLength = 45;
+                  targetFixedPrice = 1375;
                   targetMindfulnessType = 'intro';
                 } else if (service.classLength) {
                   // No mindfulnessType, infer from classLength
                   if (service.classLength === 30) {
                     targetClassLength = 30;
-                    targetFixedPrice = 1125;
+                    targetFixedPrice = 1250;
                     targetMindfulnessType = 'drop-in';
                   } else if (service.classLength === 60) {
                     targetClassLength = 60;
-                    targetFixedPrice = 1350;
+                    targetFixedPrice = 1500;
                     targetMindfulnessType = 'mindful-movement';
                   } else {
-                    // Default to intro (40 minutes)
-                    targetClassLength = 40;
-                    targetFixedPrice = 1350;
+                    // Default to intro (45 minutes)
+                    targetClassLength = 45;
+                    targetFixedPrice = 1375;
                     targetMindfulnessType = 'intro';
                   }
                 } else {
                   // No mindfulnessType and no classLength, default to intro
-                  targetClassLength = 40;
-                  targetFixedPrice = 1350;
+                  targetClassLength = 45;
+                  targetFixedPrice = 1375;
                   targetMindfulnessType = 'intro';
                 }
                 
@@ -1427,9 +1427,9 @@ const ProposalViewer: React.FC = () => {
       // Set service-specific fields based on type
       massageType: newServiceType === 'massage' ? (currentService.massageType || 'massage') : undefined,
       mindfulnessType: newServiceType === 'mindfulness' ? (currentService.mindfulnessType || 'intro') : undefined,
-      classLength: newServiceType === 'mindfulness' ? (currentService.classLength || 40) : undefined,
+      classLength: newServiceType === 'mindfulness' ? (currentService.classLength || 45) : undefined,
       participants: newServiceType === 'mindfulness' ? (currentService.participants || 'unlimited') : undefined,
-      fixedPrice: newServiceType === 'mindfulness' ? (currentService.fixedPrice || 1350) : undefined
+      fixedPrice: newServiceType === 'mindfulness' ? (currentService.fixedPrice || 1375) : undefined
     };
     
     // Recalculate service totals
@@ -1453,18 +1453,18 @@ const ProposalViewer: React.FC = () => {
     if (!editedData || !isEditing) return;
     
     const currentService = editedData.services[location][date].services[serviceIndex];
-    let classLength = 40;
-    let fixedPrice = 1350;
-    
+    let classLength = 45;
+    let fixedPrice = 1375;
+
     if (newMindfulnessType === 'drop-in') {
       classLength = 30;
-      fixedPrice = 1125;
+      fixedPrice = 1250;
     } else if (newMindfulnessType === 'intro') {
-      classLength = 40;
-      fixedPrice = 1350;
+      classLength = 45;
+      fixedPrice = 1375;
     } else {
       classLength = 60; // mindful-movement
-      fixedPrice = 1350;
+      fixedPrice = 1500;
     }
     
     const updatedService = {
@@ -1559,20 +1559,20 @@ const ProposalViewer: React.FC = () => {
       
       // If we're changing classLength for a mindfulness service, update mindfulnessType to match
       if (path[path.length - 1] === 'classLength' && service.serviceType === 'mindfulness') {
-        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 40 : value;
+        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 45 : value;
         let mindfulnessType = 'intro';
-        let fixedPrice = 1350;
-        
+        let fixedPrice = 1375;
+
         if (classLengthValue === 30) {
           mindfulnessType = 'drop-in';
-          fixedPrice = 1125;
+          fixedPrice = 1250;
         } else if (classLengthValue === 60) {
           mindfulnessType = 'mindful-movement';
-          fixedPrice = 1350;
+          fixedPrice = 1500;
         } else {
-          // Default to intro for 40 or any other value
+          // Default to intro for 45 or any other value
           mindfulnessType = 'intro';
-          fixedPrice = 1350;
+          fixedPrice = 1375;
         }
         
         service.mindfulnessType = mindfulnessType;
