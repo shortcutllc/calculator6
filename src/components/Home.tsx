@@ -288,9 +288,16 @@ const Home: React.FC = () => {
   }, [clientData.events, clientData.name, clientData.locations]);
 
   const calculateServiceResults = (service: Service) => {
+    const isMindfulness = service.serviceType === 'mindfulness' ||
+                          service.serviceType === 'mindfulness-soles' ||
+                          service.serviceType === 'mindfulness-movement' ||
+                          service.serviceType === 'mindfulness-pro' ||
+                          service.serviceType === 'mindfulness-cle' ||
+                          service.serviceType === 'mindfulness-pro-reactivity';
+
     const apptsPerHourPerPro = 60 / service.appTime;
     const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
-    const totalAppts = Math.floor(service.totalHours * totalApptsPerHour);
+    const totalAppts = isMindfulness ? 0 : Math.floor(service.totalHours * totalApptsPerHour);
 
     let serviceCost = 0;
     let proRevenue = 0;
@@ -299,12 +306,7 @@ const Home: React.FC = () => {
       proRevenue = service.totalHours * service.numPros * service.proHourly;
       const retouchingTotal = totalAppts * (service.retouchingCost || 0);
       serviceCost = proRevenue + retouchingTotal;
-    } else if (service.serviceType === 'mindfulness' ||
-               service.serviceType === 'mindfulness-soles' ||
-               service.serviceType === 'mindfulness-movement' ||
-               service.serviceType === 'mindfulness-pro' ||
-               service.serviceType === 'mindfulness-cle' ||
-               service.serviceType === 'mindfulness-pro-reactivity') {
+    } else if (isMindfulness) {
       // Mindfulness services use fixed pricing
       serviceCost = service.fixedPrice || 1375;
       proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
