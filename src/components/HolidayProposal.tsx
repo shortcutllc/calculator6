@@ -394,7 +394,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
   const getServiceName = (serviceId: string) => {
     const names = {
       'massage': 'Massage',
-      'hair-makeup': 'Holiday Glam',
+      'hair-makeup': 'Holiday Hair & Beauty',
       'headshot': 'Headshots',
       'nails': 'Nails',
       'mindfulness': 'Mindfulness'
@@ -1507,7 +1507,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
               button.classList.remove('filling');
             }}
           >
-            <span className="relative z-10">Holiday Glam</span>
+            <span className="relative z-10">Holiday Hair & Beauty</span>
           </button>
           <button 
             onClick={() => scrollToService(2)}
@@ -1639,7 +1639,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
-                  <h2 className="h1 mb-4" style={{ color: '#003756' }}>Holiday Party Glam</h2>
+                  <h2 className="h1 mb-4" style={{ color: '#003756' }}>Holiday Party Hair & Beauty</h2>
                   <h3 className="section-subtitle mb-6" style={{ color: '#003756' }}>Expert makeup, styling and barber services</h3>
                   
                   <p className="text-lg md:text-xl leading-relaxed mb-10" style={{ color: '#003756' }}>
@@ -1651,15 +1651,15 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                     {/* First Column */}
                     <div className="space-y-5">
                       <div className="flex items-center gap-3">
-                        <img src="/Holiday Proposal/Our Services/Holiday Party Glam/icon.svg" alt="Barber Cut" className="w-12 h-12 flex-shrink-0" loading="lazy" />
+                        <img src="/Holiday Proposal/Our Services/Holiday Party Hair & Beauty/icon.svg" alt="Barber Cut" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                         <span className="text-base font-bold" style={{ color: '#003756' }}>Barber Cut</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <img src="/Holiday Proposal/Our Services/Holiday Party Glam/icon-1.svg" alt="Beard Trim" className="w-12 h-12 flex-shrink-0" loading="lazy" />
+                        <img src="/Holiday Proposal/Our Services/Holiday Party Hair & Beauty/icon-1.svg" alt="Beard Trim" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                         <span className="text-base font-bold" style={{ color: '#003756' }}>Beard Trim</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <img src="/Holiday Proposal/Our Services/Holiday Party Glam/icon-2.svg" alt="Makeup" className="w-12 h-12 flex-shrink-0" loading="lazy" />
+                        <img src="/Holiday Proposal/Our Services/Holiday Party Hair & Beauty/icon-2.svg" alt="Makeup" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                         <span className="text-base font-bold" style={{ color: '#003756' }}>Makeup</span>
                       </div>
                     </div>
@@ -1667,15 +1667,15 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                     {/* Second Column */}
                     <div className="space-y-5">
                       <div className="flex items-center gap-3">
-                        <img src="/Holiday Proposal/Our Services/Holiday Party Glam/icon-3.svg" alt="Salon Cut & Style" className="w-12 h-12 flex-shrink-0" loading="lazy" />
+                        <img src="/Holiday Proposal/Our Services/Holiday Party Hair & Beauty/icon-3.svg" alt="Salon Cut & Style" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                         <span className="text-base font-bold" style={{ color: '#003756' }}>Salon Cut & Style</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <img src="/Holiday Proposal/Our Services/Holiday Party Glam/icon-4.svg" alt="Hot Towel Shave" className="w-12 h-12 flex-shrink-0" loading="lazy" />
+                        <img src="/Holiday Proposal/Our Services/Holiday Party Hair & Beauty/icon-4.svg" alt="Hot Towel Shave" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                         <span className="text-base font-bold" style={{ color: '#003756' }}>Hot Towel Shave</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <img src="/Holiday Proposal/Our Services/Holiday Party Glam/Frame 1278723.svg" alt="Blowout" className="w-12 h-12 flex-shrink-0" loading="lazy" />
+                        <img src="/Holiday Proposal/Our Services/Holiday Party Hair & Beauty/Frame 1278723.svg" alt="Blowout" className="w-12 h-12 flex-shrink-0" loading="lazy" />
                         <span className="text-base font-bold" style={{ color: '#003756' }}>Blowout</span>
                       </div>
                     </div>
@@ -1692,10 +1692,10 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                   </div>
                 </div>
                 
-                {/* Right Side - Holiday Party Glam Image */}
+                {/* Right Side - Holiday Party Hair & Beauty Image */}
                 <div className="relative flex justify-center">
                   <img 
-                    src="/Holiday Proposal/Our Services/Holiday Party Glam/Glam 2x.webp" 
+                    src="/Holiday Proposal/Our Services/Holiday Party Hair & Beauty/Hair & Beauty 2x.webp" 
                     alt="Holiday Party Hair Styling" 
                     className="w-3/4 h-auto rounded-2xl max-w-md"
                     loading="lazy"
@@ -2009,7 +2009,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                     },
                     { 
                       id: 'hair-makeup', 
-                      name: 'Holiday Glam', 
+                      name: 'Holiday Hair & Beauty', 
                       description: 'Hair styling & makeup services',
                       color: '#FEDC64',
                       icon: '✨'
@@ -2467,7 +2467,7 @@ const HolidayProposal: React.FC<HolidayProposalProps> = ({ isGeneric = false }) 
                   >
                     <option value="">Select a service</option>
                     <option value="massage">Massage</option>
-                    <option value="hair-makeup">Holiday Party Glam</option>
+                    <option value="hair-makeup">Holiday Party Hair & Beauty</option>
                     <option value="headshot">Headshots</option>
                     <option value="nails">Nail Care</option>
                     <option value="mindfulness">Mindfulness</option>

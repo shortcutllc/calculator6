@@ -81,7 +81,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
 const getServiceName = (serviceId: string) => {
   const names: { [key: string]: string } = {
     'massage': 'Massage',
-    'hair-makeup': 'Glam',
+    'hair-makeup': 'Hair & Beauty',
     'headshot': 'Headshots',
     'nails': 'Nails',
     'mindfulness': 'Mindfulness'
@@ -99,6 +99,18 @@ const getServiceColor = (serviceId: string) => {
     'mindfulness': '#FEDC64'
   };
   return colors[serviceId] || '#9EFAFF';
+};
+
+// Service images
+const getServiceImagePath = (serviceId: string) => {
+  const images: { [key: string]: string } = {
+    'massage': '/QR Code Sign/Service Images/Massage.png',
+    'hair-makeup': '/QR Code Sign/Service Images/Hair & Beauty.png',
+    'headshot': '/QR Code Sign/Service Images/Headshots.png',
+    'nails': '/QR Code Sign/Service Images/Nails.png',
+    'mindfulness': '/QR Code Sign/Service Images/Mindfulness.png'
+  };
+  return images[serviceId] || '/QR Code Sign/Service Images/Massage.png';
 };
 
 interface ClientProposalBuilderProps {
@@ -1170,11 +1182,11 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-8">
                       {[
-                        { id: 'massage', name: 'Massage', icon: '💆‍♀️' },
-                        { id: 'hair-makeup', name: 'Glam', icon: '✨' },
-                        { id: 'headshot', name: 'Headshots', icon: '📸' },
-                        { id: 'nails', name: 'Nails', icon: '💅' },
-                        { id: 'mindfulness', name: 'Mindfulness', icon: '🧘‍♀️' }
+                        { id: 'massage', name: 'Massage' },
+                        { id: 'hair-makeup', name: 'Hair & Beauty' },
+                        { id: 'headshot', name: 'Headshots' },
+                        { id: 'nails', name: 'Nails' },
+                        { id: 'mindfulness', name: 'Mindfulness' }
                       ].map((service) => {
                         const svcColor = getServiceColor(service.id);
                         return (
@@ -1192,7 +1204,15 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                               borderWidth: currentEventService === service.id ? '2px' : undefined,
                             }}
                           >
-                            <div className="text-3xl mb-3">{service.icon}</div>
+                            <div className="mb-3 flex justify-center">
+                              <div className="w-16 h-16 rounded-xl overflow-hidden" style={{ border: `2px solid ${svcColor}` }}>
+                                <img
+                                  src={getServiceImagePath(service.id)}
+                                  alt={service.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            </div>
                             <div className="font-extrabold text-base" style={{ color: '#003756' }}>{service.name}</div>
                           </button>
                         );
@@ -1231,6 +1251,16 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                                     <h4 className="text-xl font-extrabold mb-2" style={{ color: '#003756' }}>
                                       {(preset as any).name || `${preset.appointments} Appointments`}
                                     </h4>
+                                  </div>
+                                  {/* Service Image Frame */}
+                                  <div className="flex justify-center mb-3">
+                                    <div className="w-20 h-20 rounded-xl overflow-hidden shadow-md" style={{ border: `2px solid ${serviceColor}` }}>
+                                      <img
+                                        src={getServiceImagePath(currentEventService)}
+                                        alt={getServiceName(currentEventService)}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
                                   </div>
                                   <div className="space-y-3">
                                     <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#003756' }}>

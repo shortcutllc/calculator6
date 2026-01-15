@@ -520,7 +520,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
   const getServiceName = (serviceId: string) => {
     const names = {
       'massage': 'Massage',
-      'hair-makeup': 'Glam',
+      'hair-makeup': 'Hair & Beauty',
       'headshot': 'Headshots',
       'nails': 'Nails',
       'mindfulness': 'Mindfulness'
@@ -538,6 +538,18 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       'mindfulness': '#FEDC64'
     };
     return colors[serviceId as keyof typeof colors] || '#9EFAFF';
+  };
+
+  // Get service image path
+  const getServiceImagePath = (serviceId: string) => {
+    const images = {
+      'massage': '/QR Code Sign/Service Images/Massage.png',
+      'hair-makeup': '/QR Code Sign/Service Images/Hair & Beauty.png',
+      'headshot': '/QR Code Sign/Service Images/Headshots.png',
+      'nails': '/QR Code Sign/Service Images/Nails.png',
+      'mindfulness': '/QR Code Sign/Service Images/Mindfulness.png'
+    };
+    return images[serviceId as keyof typeof images] || '/QR Code Sign/Service Images/Massage.png';
   };
 
   // Get mindfulness service description
@@ -2161,7 +2173,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                     <button
                       key={service}
                       onClick={() => setCurrentServiceIndex(index)}
-                      className="px-6 py-3 rounded-full font-bold text-base transition-all duration-300 transform hover:scale-105"
+                      className="px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base transition-all duration-300 transform hover:scale-105"
                       style={{
                         backgroundColor: isActive ? serviceColor : 'white',
                         color: isActive ? 'white' : '#003756',
@@ -2181,7 +2193,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
             {/* Package Selection */}
             <div className="mb-8">
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {SERVICE_PRESETS[serviceOrder[currentServiceIndex] as keyof typeof SERVICE_PRESETS]?.map((preset, index) => {
                   const currentService = serviceOrder[currentServiceIndex];
                   const serviceColor = getServiceColor(currentService);
@@ -2193,7 +2205,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                         setSelectedPackageIndex(index);
                         setPricingConfig((prev: any) => ({ ...prev, totalAppointments: preset.appointments }));
                       }}
-                      className={`package-button relative p-8 rounded-[24px] text-center transition-all duration-300 transform hover:scale-105 overflow-hidden ${
+                      className={`package-button relative p-6 md:p-8 rounded-[24px] text-center transition-all duration-300 transform hover:scale-105 overflow-hidden ${
                         selectedService === currentService && selectedPackageIndex === index
                           ? 'selected ring-4 ring-offset-4 scale-105'
                           : 'hover:shadow-xl'
@@ -2223,6 +2235,16 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
                         {/* Package Details */}
                         <div className="space-y-4">
+                          {/* Service Image Frame */}
+                          <div className="flex justify-center mb-4">
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden shadow-md" style={{ border: `3px solid ${getServiceColor(currentService)}` }}>
+                              <img
+                                src={getServiceImagePath(currentService)}
+                                alt={getServiceName(currentService)}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </div>
                           <div className="flex items-center justify-center gap-3 text-base">
                             <span className="text-lg">⏱️</span>
                             <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
