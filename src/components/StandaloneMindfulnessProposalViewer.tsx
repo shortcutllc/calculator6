@@ -424,10 +424,14 @@ We understand the importance of offering impactful wellness solutions that respe
         const optionsWithMetrics = data.map((option: any) => {
           const summary = option.data?.summary || {};
           const mindfulnessProgram = option.data?.mindfulnessProgram;
+
+          // For mindfulness proposals, always use 'unlimited' for totalAppointments
+          let totalAppointments = 'unlimited';
+
           return {
             ...option,
             totalCost: summary.totalEventCost || mindfulnessProgram?.pricing?.totalCost || 0,
-            totalAppointments: summary.totalAppointments || 0,
+            totalAppointments: totalAppointments,
             eventDates: option.data?.eventDates || [],
             proposal_type: option.proposal_type || null,
             totalSessions: mindfulnessProgram?.totalSessions || 0
@@ -792,16 +796,14 @@ We understand the importance of offering impactful wellness solutions that respe
                           ${(option.totalCost || 0).toLocaleString()}
                         </span>
                       </div>
-                      {option.totalAppointments > 0 && (
-                        <div className="flex justify-between items-center">
-                          <span className={`text-sm font-semibold ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
-                            Total Appointments
-                          </span>
-                          <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-shortcut-blue'}`}>
-                            {option.totalAppointments}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-semibold ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
+                          Total Appointments
+                        </span>
+                        <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-shortcut-blue'}`}>
+                          {option.totalAppointments === 0 || option.totalAppointments === 'unlimited' ? '∞' : option.totalAppointments}
+                        </span>
+                      </div>
                     </div>
                     
                     {/* Active Indicator Bar */}
@@ -1008,7 +1010,9 @@ We understand the importance of offering impactful wellness solutions that respe
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-white/90 text-lg">Participants:</span>
-                  <span className="font-extrabold text-xl text-white">{displayData.summary?.totalAppointments || 0}</span>
+                  <span className="font-extrabold text-xl text-white">
+                    {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
+                  </span>
                 </div>
                 {(program.pricing?.discountPercent || 0) > 0 && (
                   <>

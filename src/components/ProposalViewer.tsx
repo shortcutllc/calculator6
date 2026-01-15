@@ -2638,7 +2638,9 @@ The Shortcut Team`);
                 </div>
                 <div>
                   <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
-                  <p className="text-base font-medium text-text-dark">{displayData.summary?.totalAppointments || 0}</p>
+                  <p className="text-base font-medium text-text-dark">
+                    {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
+                  </p>
                   </div>
                 {/* Display multiple office locations if available, otherwise show single office location */}
                 {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
@@ -2876,12 +2878,32 @@ The Shortcut Team`);
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-bold text-shortcut-blue">Total Appointments:</span>
-                                        <span className="font-bold text-text-dark">{service.totalAppointments}</span>
+                                        <span className="font-bold text-text-dark">{service.totalAppointments === 'unlimited' ? '∞' : service.totalAppointments}</span>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-bold text-shortcut-blue">Service Cost:</span>
                                         <div className="text-right">
-                                          {service.discountPercent > 0 ? (
+                                          {(service.serviceType === 'mindfulness' ||
+                                            service.serviceType === 'mindfulness-soles' ||
+                                            service.serviceType === 'mindfulness-movement' ||
+                                            service.serviceType === 'mindfulness-pro' ||
+                                            service.serviceType === 'mindfulness-cle' ||
+                                            service.serviceType === 'mindfulness-pro-reactivity') && isEditing ? (
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-bold text-shortcut-blue">$</span>
+                                              <input
+                                                type="number"
+                                                value={service.serviceCost}
+                                                onChange={(e) => {
+                                                  const newCost = parseFloat(e.target.value) || 0;
+                                                  handleFieldChange(['services', location, date, 'services', serviceIndex, 'serviceCost'], newCost);
+                                                  // Also update fixedPrice to match
+                                                  handleFieldChange(['services', location, date, 'services', serviceIndex, 'fixedPrice'], newCost);
+                                                }}
+                                                className="w-32 px-3 py-2 border-2 border-shortcut-blue rounded-lg font-bold text-shortcut-blue text-lg text-right"
+                                              />
+                                            </div>
+                                          ) : service.discountPercent > 0 ? (
                                             <div className="space-y-1">
                                               <div className="flex items-center gap-2">
                                                 <span className="text-sm text-text-dark-60 line-through">${formatCurrency(calculateOriginalPrice(service))}</span>
@@ -3014,7 +3036,7 @@ The Shortcut Team`);
                                                       Option {optionIndex + 1}
                                                     </h6>
                                                     <p className="text-sm text-text-dark-60">
-                                                      {option.totalAppointments} appointments
+                                                      {option.totalAppointments === 'unlimited' ? '∞' : option.totalAppointments} appointments
                                                     </p>
                                                   </div>
                                                   <div className="text-right">
@@ -3195,7 +3217,9 @@ The Shortcut Team`);
                                   <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
                                       <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Appointments</div>
-                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments || 0}</div>
+                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">
+                                        {dateData.totalAppointments === 0 || dateData.totalAppointments === 'unlimited' ? '∞' : (dateData.totalAppointments || 0)}
+                                      </div>
                                     </div>
                                     <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
                                       <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
@@ -3353,7 +3377,9 @@ The Shortcut Team`);
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-white/20">
                   <span className="font-semibold">Total Appointments:</span>
-                  <span className="font-bold text-lg">{displayData.summary?.totalAppointments}</span>
+                  <span className="font-bold text-lg">
+                    {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
+                  </span>
                 </div>
                 {displayData.gratuityType && displayData.gratuityValue !== null && displayData.gratuityValue !== undefined && (
                   <>

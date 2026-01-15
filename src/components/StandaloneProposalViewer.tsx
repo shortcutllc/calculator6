@@ -431,10 +431,22 @@ export const StandaloneProposalViewer: React.FC = () => {
         const optionsWithMetrics = data.map((option: any) => {
           const summary = option.data?.summary || {};
           const mindfulnessProgram = option.data?.mindfulnessProgram;
+
+          // Check if this is a mindfulness-only proposal
+          const isMindfulness = isMindfulnessOnlyProposal(option.data);
+
+          // For mindfulness proposals, use 'unlimited' for totalAppointments
+          let totalAppointments = summary.totalAppointments;
+          if (isMindfulness) {
+            totalAppointments = 'unlimited';
+          } else if (totalAppointments === undefined || totalAppointments === null) {
+            totalAppointments = 0;
+          }
+
           return {
             ...option,
             totalCost: summary.totalEventCost || mindfulnessProgram?.pricing?.totalCost || 0,
-            totalAppointments: summary.totalAppointments || 0,
+            totalAppointments: totalAppointments,
             eventDates: option.data?.eventDates || [],
             proposal_type: option.proposal_type || null,
             totalSessions: mindfulnessProgram?.totalSessions || 0
@@ -1594,16 +1606,14 @@ export const StandaloneProposalViewer: React.FC = () => {
                           ${formatCurrency(option.totalCost || 0)}
                         </span>
                       </div>
-                      {option.totalAppointments > 0 && (
-                        <div className="flex justify-between items-center">
-                          <span className={`text-sm font-semibold ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
-                            Total Appointments
-                          </span>
-                          <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-shortcut-blue'}`}>
-                            {option.totalAppointments}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-semibold ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
+                          Total Appointments
+                        </span>
+                        <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-shortcut-blue'}`}>
+                          {option.totalAppointments === 0 || option.totalAppointments === 'unlimited' ? '∞' : option.totalAppointments}
+                        </span>
+                      </div>
                     </div>
                     
                     {/* Active Indicator Bar */}
@@ -1694,7 +1704,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                 </div>
             <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
               <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Total Appointments</p>
-              <p className="text-4xl font-extrabold text-shortcut-navy-blue">{displayData.summary?.totalAppointments || 0}</p>
+              <p className="text-4xl font-extrabold text-shortcut-navy-blue">
+                {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
+              </p>
                   </div>
                 {/* Display multiple office locations if available, otherwise show single office location */}
                 {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
@@ -1847,7 +1859,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                       </div>
                                       <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
                                         <span className="text-lg font-bold text-shortcut-blue">Total Appointments:</span>
-                                        <span className="font-bold text-text-dark text-lg">{service.totalAppointments}</span>
+                                        <span className="font-bold text-text-dark text-lg">{service.totalAppointments === 'unlimited' ? '∞' : service.totalAppointments}</span>
                                       </div>
                                       <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
                                         <span className="text-lg font-bold text-shortcut-blue">Service Cost:</span>
@@ -1898,7 +1910,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                       Option {optionIndex + 1}
                                                     </h6>
                                                     <p className="text-sm text-text-dark-60">
-                                                      {option.totalAppointments} appointments
+                                                      {option.totalAppointments === 'unlimited' ? '∞' : option.totalAppointments} appointments
                                                     </p>
                                                   </div>
                                                   <div className="text-right">
@@ -2060,7 +2072,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                                   <div className="grid grid-cols-2 gap-6">
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Appointments</div>
-                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments || 0}</div>
+                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">
+                                        {dateData.totalAppointments === 0 || dateData.totalAppointments === 'unlimited' ? '∞' : (dateData.totalAppointments || 0)}
+                                      </div>
                                     </div>
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Cost</div>
@@ -2205,7 +2219,9 @@ export const StandaloneProposalViewer: React.FC = () => {
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-white/90 text-lg">Total Appointments:</span>
-                  <span className="font-extrabold text-2xl text-white">{displayData.summary?.totalAppointments || 0}</span>
+                  <span className="font-extrabold text-2xl text-white">
+                    {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
+                  </span>
                 </div>
                 {displayData.summary?.subtotalBeforeGratuity !== undefined && displayData.summary?.gratuityAmount !== undefined && displayData.summary.gratuityAmount > 0 && (
                   <>
@@ -2551,7 +2567,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-text-dark-60 mb-1">Total Appointments</p>
                     <p className="text-xl font-extrabold text-shortcut-navy-blue">
-                      {displayData?.summary?.totalAppointments || 0}
+                      {displayData?.summary?.totalAppointments === 0 || displayData?.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData?.summary?.totalAppointments || 0)}
                     </p>
                   </div>
                 </div>

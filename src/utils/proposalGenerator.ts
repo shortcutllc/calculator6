@@ -23,33 +23,35 @@ export const calculateOriginalPrice = (service: any): number => {
 };
 
 export const calculateServiceResults = (service: any) => {
-  if (!service.appTime || !service.numPros || !service.totalHours) {
+  const isMindfulness = service.serviceType === 'mindfulness' ||
+                        service.serviceType === 'mindfulness-soles' ||
+                        service.serviceType === 'mindfulness-movement' ||
+                        service.serviceType === 'mindfulness-pro' ||
+                        service.serviceType === 'mindfulness-cle' ||
+                        service.serviceType === 'mindfulness-pro-reactivity';
+
+  if (!isMindfulness && (!service.appTime || !service.numPros || !service.totalHours)) {
     return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0 };
   }
 
-  const apptsPerHourPerPro = 60 / service.appTime;
-  const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
-  const totalAppts = Math.floor(service.totalHours * totalApptsPerHour);
+  const apptsPerHourPerPro = service.appTime ? 60 / service.appTime : 0;
+  const totalApptsPerHour = apptsPerHourPerPro * (service.numPros || 0);
+  const totalAppts = isMindfulness ? 'unlimited' : Math.floor((service.totalHours || 0) * totalApptsPerHour);
 
   let serviceCost = 0;
   let proRevenue = 0;
 
   if (service.serviceType === 'headshot') {
     proRevenue = service.totalHours * service.numPros * (service.proHourly || 0);
-    const retouchingTotal = totalAppts * (service.retouchingCost || 0);
+    const retouchingTotal = (typeof totalAppts === 'number' ? totalAppts : 0) * (service.retouchingCost || 0);
     serviceCost = proRevenue + retouchingTotal;
-  } else if (service.serviceType === 'mindfulness' ||
-             service.serviceType === 'mindfulness-soles' ||
-             service.serviceType === 'mindfulness-movement' ||
-             service.serviceType === 'mindfulness-pro' ||
-             service.serviceType === 'mindfulness-cle' ||
-             service.serviceType === 'mindfulness-pro-reactivity') {
+  } else if (isMindfulness) {
     // Mindfulness services use fixed pricing
     serviceCost = service.fixedPrice || 1375;
     proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
   } else {
     serviceCost = service.totalHours * (service.hourlyRate || 0) * service.numPros;
-    proRevenue = (service.totalHours * service.numPros * (service.proHourly || 0)) + 
+    proRevenue = (service.totalHours * service.numPros * (service.proHourly || 0)) +
                  ((service.earlyArrival || 0) * service.numPros);
   }
 
@@ -101,7 +103,7 @@ export const createPricingOptions = (
 // Function to calculate totals for pricing options
 export const calculatePricingOptionsTotals = (options: PricingOption[]) => {
   return options.reduce((totals, option) => ({
-    totalAppointments: totals.totalAppointments + option.totalAppointments,
+    totalAppointments: totals.totalAppointments + (typeof option.totalAppointments === 'number' ? option.totalAppointments : 0),
     totalCost: totals.totalCost + option.totalCost,
     totalProRevenue: totals.totalProRevenue + (option.services[0]?.proRevenue || 0)
   }), {
@@ -378,7 +380,7 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
         proposalData.services[location][date] = {
           services,
           totalCost: services.reduce((sum, service) => sum + service.serviceCost, 0),
-          totalAppointments: services.reduce((sum, service) => sum + service.totalAppointments, 0)
+          totalAppointments: services.reduce((sum, service) => sum + (typeof service.totalAppointments === 'number' ? service.totalAppointments : 0), 0)
         };
         
         console.log(`Added ${services.length} services to ${location} on ${date}`);
@@ -669,13 +671,16 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
         }
         
         dayTotalCost += (service as any).serviceCost;
-        dayTotalAppointments += (service as any).totalAppointments;
+        // Only add numeric appointments, skip 'unlimited'
+        if (typeof (service as any).totalAppointments === 'number') {
+          dayTotalAppointments += (service as any).totalAppointments;
+        }
         // proRevenue is already added in the pricing options logic above
       });
 
       updatedData.services[location][date].totalCost = Number(dayTotalCost.toFixed(2));
       updatedData.services[location][date].totalAppointments = dayTotalAppointments;
-      
+
       updatedData.summary.totalAppointments += dayTotalAppointments;
       updatedData.summary.totalEventCost += dayTotalCost;
       updatedData.summary.totalProRevenue += dayTotalProRevenue;

@@ -33,9 +33,12 @@ const formatDate = (dateString: string): string => {
 const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services }) => {
   const dates = Object.keys(services).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   
-  const totalAppointments = Object.values(services).reduce((sum: number, dateData: any) => 
-    sum + dateData.totalAppointments, 0
-  );
+  const totalAppointments = Object.values(services).reduce((sum: number, dateData: any) => {
+    if (typeof dateData.totalAppointments === 'number') {
+      return sum + dateData.totalAppointments;
+    }
+    return sum;
+  }, 0);
   
   const totalCost = Object.values(services).reduce((sum: number, dateData: any) => 
     sum + dateData.totalCost, 0
@@ -66,7 +69,9 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services })
         </div>
         <div className="flex justify-between items-center">
           <span className="font-semibold text-shortcut-navy-blue text-lg">Appointments:</span>
-          <span className="text-shortcut-navy-blue font-extrabold text-2xl">{totalAppointments}</span>
+          <span className="text-shortcut-navy-blue font-extrabold text-2xl">
+            {totalAppointments === 0 ? '∞' : totalAppointments}
+          </span>
         </div>
         <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-navy-blue">
           <span className="font-extrabold text-shortcut-navy-blue text-lg">Total Cost:</span>
