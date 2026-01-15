@@ -152,7 +152,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1500
+    fixedPrice: 1875
   },
   'mindfulness-pro-reactivity': {
     appTime: 45,
@@ -2740,7 +2740,7 @@ The Shortcut Team`);
                                             <option value="mindfulness-movement">Mindfulness: Ground & Reset</option>
                                             <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                                             <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
-                                            <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Response Wisely</option>
+                                            <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely</option>
                                             <option value="hair-makeup">Hair + Makeup</option>
                                             <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                                           </select>
@@ -2787,7 +2787,7 @@ The Shortcut Team`);
                                                 <div>
                                                   <span className="font-bold text-shortcut-navy-blue">Participants:</span>
                                                   <span className="ml-2 text-text-dark">
-                                                    {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
+                                                    {service.participants === 'unlimited' ? '∞' : service.participants}
                                                   </span>
                                                 </div>
                                                 {service.mindfulnessType && (

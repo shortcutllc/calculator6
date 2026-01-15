@@ -229,7 +229,7 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1500
+    fixedPrice: 1875
   },
   'mindfulness-pro-reactivity': {
     appTime: 45,
@@ -1273,7 +1273,7 @@ const Home: React.FC = () => {
                         <option value="mindfulness-movement">Ground & Reset: Cultivating Mindfulness Through Movement and Stillness</option>
                         <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                         <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
-                        <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Response Wisely</option>
+                        <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely</option>
                         <option value="hair-makeup">Hair + Makeup</option>
                         <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                       </select>

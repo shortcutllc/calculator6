@@ -55,7 +55,7 @@ const getServiceDisplayName = (serviceType: string): string => {
     case 'mindfulness-cle':
       return 'Mindfulness: CLE Ethics Program';
     case 'mindfulness-pro-reactivity':
-      return 'Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Response Wisely';
+      return 'Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely';
     case 'makeup':
       return 'Makeup';
     default:
@@ -1788,7 +1788,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                             <div>
                                               <span className="font-bold text-shortcut-navy-blue">Participants:</span>
                                               <span className="ml-2 text-text-dark">
-                                                {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
+                                                {service.participants === 'unlimited' ? '∞' : service.participants}
                                               </span>
                                             </div>
                                           </div>
