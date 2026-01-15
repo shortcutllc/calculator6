@@ -15,11 +15,37 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Parse existing event details if editing
+  const parseEventDetails = (details: string) => {
+    const lines = details?.split('\n').map(l => l.trim()).filter(l => l) || [];
+    const result = { serviceTypeText: '', date: '', time: '', location: '' };
+
+    lines.forEach(line => {
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes('service') || lowerLine.includes('type')) {
+        result.serviceTypeText = line.replace(/^[^:]+:\s*/, '');
+      } else if (lowerLine.includes('date:') || lowerLine.includes('when:')) {
+        result.date = line.replace(/^[^:]+:\s*/, '');
+      } else if (lowerLine.includes('time:')) {
+        result.time = line.replace(/^[^:]+:\s*/, '');
+      } else if (lowerLine.includes('location:') || lowerLine.includes('where:')) {
+        result.location = line.replace(/^[^:]+:\s*/, '');
+      }
+    });
+
+    return result;
+  };
+
+  const existingDetails = editingSign ? parseEventDetails(editingSign.data?.eventDetails) : null;
+
   const [options, setOptions] = useState({
     title: editingSign?.data?.title || '',
-    eventDetails: editingSign?.data?.eventDetails || '',
-    qrCodeUrl: editingSign?.data?.qrCodeUrl || '',
     serviceType: editingSign?.data?.serviceType || 'massage',
+    serviceTypeText: existingDetails?.serviceTypeText || '',
+    eventDate: existingDetails?.date || '',
+    eventTime: existingDetails?.time || '',
+    location: existingDetails?.location || '',
+    qrCodeUrl: editingSign?.data?.qrCodeUrl || '',
     partnerLogoFile: null as File | null,
     partnerLogoUrl: editingSign?.data?.partnerLogoUrl || '',
     partnerName: editingSign?.data?.partnerName || '',
@@ -29,11 +55,15 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
   // Update options when editingSign changes
   React.useEffect(() => {
     if (editingSign) {
+      const details = parseEventDetails(editingSign.data?.eventDetails);
       setOptions({
         title: editingSign.data?.title || '',
-        eventDetails: editingSign.data?.eventDetails || '',
-        qrCodeUrl: editingSign.data?.qrCodeUrl || '',
         serviceType: editingSign.data?.serviceType || 'massage',
+        serviceTypeText: details.serviceTypeText || '',
+        eventDate: details.date || '',
+        eventTime: details.time || '',
+        location: details.location || '',
+        qrCodeUrl: editingSign.data?.qrCodeUrl || '',
         partnerLogoFile: null,
         partnerLogoUrl: editingSign.data?.partnerLogoUrl || '',
         partnerName: editingSign.data?.partnerName || '',
@@ -48,7 +78,7 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!options.title.trim()) {
       newErrors.title = 'Title is required';
     }
@@ -125,9 +155,9 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
 
       // Clear any previous errors and reset URL when uploading file
       setErrors(prev => ({ ...prev, partnerLogoFile: '', partnerLogoUrl: '' }));
-      setOptions(prev => ({ 
-        ...prev, 
-        partnerLogoFile: file, 
+      setOptions(prev => ({
+        ...prev,
+        partnerLogoFile: file,
         partnerLogoUrl: '' // Clear URL when uploading file
       }));
     }
@@ -135,8 +165,8 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
 
   const handleLogoUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
-    setOptions(prev => ({ 
-      ...prev, 
+    setOptions(prev => ({
+      ...prev,
       partnerLogoUrl: url,
       partnerLogoFile: null // Clear file when using URL
     }));
@@ -145,15 +175,15 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
 
   const validateLogoUrl = (url: string): boolean => {
     if (!url) return true; // URL is optional
-    
+
     try {
       new URL(url);
       // Check if it's an image URL
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'];
-      const hasImageExtension = imageExtensions.some(ext => 
+      const hasImageExtension = imageExtensions.some(ext =>
         url.toLowerCase().includes(ext)
       );
-      
+
       if (!hasImageExtension && !url.includes('data:image/')) {
         setErrors(prev => ({
           ...prev,
@@ -161,7 +191,7 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
         }));
         return false;
       }
-      
+
       return true;
     } catch {
       setErrors(prev => ({
@@ -172,23 +202,35 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
     }
   };
 
+  // Build event details string from individual fields
+  const buildEventDetails = () => {
+    const parts = [];
+    if (options.serviceTypeText) parts.push(`Service Type: ${options.serviceTypeText}`);
+    if (options.eventDate) parts.push(`Date: ${options.eventDate}`);
+    if (options.eventTime) parts.push(`Time: ${options.eventTime}`);
+    if (options.location) parts.push(`Location: ${options.location}`);
+    return parts.join('\n');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     try {
       setLoading(true);
-      
+
       const finalCustomization: QRCodeSignCustomization = {
         ...options.customization
       };
 
+      const eventDetails = buildEventDetails();
+
       const qrCodeSignOptions = {
         title: options.title.trim(),
-        eventDetails: options.eventDetails.trim(),
+        eventDetails: eventDetails,
         qrCodeUrl: options.qrCodeUrl.trim(),
         serviceType: options.serviceType,
         partnerLogoFile: options.partnerLogoFile || undefined,
@@ -198,46 +240,46 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
       };
 
       let qrCodeSignId;
-      
+
       if (editingSign) {
         // Update existing sign
         let logoUrl = editingSign.data.partnerLogoUrl || '';
-        
+
         // Upload new logo if provided (file takes precedence over URL)
         if (options.partnerLogoFile) {
           logoUrl = await uploadPartnerLogo(options.partnerLogoFile);
         } else if (options.partnerLogoUrl && options.partnerLogoUrl !== editingSign.data.partnerLogoUrl) {
           logoUrl = options.partnerLogoUrl;
         }
-        
+
         // Update the sign data
         const updateData = {
           ...editingSign.data,
           title: options.title.trim(),
-          eventDetails: options.eventDetails.trim(),
+          eventDetails: eventDetails,
           qrCodeUrl: options.qrCodeUrl.trim(),
           serviceType: options.serviceType,
           partnerLogoUrl: logoUrl,
           partnerName: options.partnerName.trim() || undefined,
           updatedAt: new Date().toISOString()
         };
-        
+
         await updateQRCodeSign(editingSign.id, {
           data: updateData,
           customization: finalCustomization
         });
-        
+
         qrCodeSignId = editingSign.id;
         setUpdatedLogoUrl(logoUrl);
       } else {
         // Create new sign
         qrCodeSignId = await createQRCodeSign(qrCodeSignOptions);
       }
-      
+
       if (onClose) {
         onClose();
       }
-      
+
       navigate(`/qr-code-sign/${qrCodeSignId}`);
     } catch (error) {
       console.error('Error creating QR code sign:', error);
@@ -258,87 +300,53 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
+      <div className="bg-white rounded-2xl p-8 lg:p-12 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-shortcut-navy-blue">
             {editingSign ? 'Edit QR Code Sign' : 'Create QR Code Sign'}
           </h2>
           {onClose && (
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="text-shortcut-navy-blue opacity-40 hover:opacity-60 text-3xl leading-none transition-opacity"
             >
               ×
             </button>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Sign Content */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Sign Content</h3>
-            
+          <div className="space-y-6">
+            <h3 className="text-xl lg:text-2xl font-extrabold text-shortcut-navy-blue">Sign Content</h3>
+
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
-                Title *
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
+                Event Title *
               </label>
               <input
                 type="text"
                 value={options.title}
                 onChange={(e) => handleFieldChange('title', e.target.value)}
-                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                  errors.title ? 'border-red-500' : 'border-gray-200'
+                className={`w-full px-4 py-3 text-base font-medium border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                  errors.title ? 'border-accent-coral' : 'border-gray-300'
                 }`}
-                placeholder="e.g., Book Your Appointment"
+                placeholder="e.g., Complimentary Massage Services for Powin PDX Employees"
               />
               {errors.title && (
-                <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                <p className="text-accent-coral text-sm font-medium mt-2">{errors.title}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
-                Event Details
-              </label>
-              <textarea
-                value={options.eventDetails}
-                onChange={(e) => handleFieldChange('eventDetails', e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-                placeholder="Enter event details, location, time, etc."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
-                QR Code URL *
-              </label>
-              <input
-                type="url"
-                value={options.qrCodeUrl}
-                onChange={(e) => handleFieldChange('qrCodeUrl', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.qrCodeUrl ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="https://example.com/book-appointment"
-              />
-              {errors.qrCodeUrl && (
-                <p className="text-red-500 text-sm mt-1">{errors.qrCodeUrl}</p>
-              )}
-              <p className="text-gray-500 text-sm mt-1">
-                This URL will be encoded in the QR code
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
-                Service Type *
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
+                Service Type (Category) *
               </label>
               <select
                 value={options.serviceType}
                 onChange={(e) => handleFieldChange('serviceType', e.target.value)}
-                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                  errors.serviceType ? 'border-red-500' : 'border-gray-200'
+                className={`w-full px-4 py-3 text-base font-medium border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                  errors.serviceType ? 'border-accent-coral' : 'border-gray-300'
                 }`}
               >
                 {serviceTypes.map((type) => (
@@ -348,79 +356,160 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
                 ))}
               </select>
               {errors.serviceType && (
-                <p className="text-red-500 text-sm mt-1">{errors.serviceType}</p>
+                <p className="text-accent-coral text-sm font-medium mt-2">{errors.serviceType}</p>
               )}
-              <p className="text-gray-500 text-sm mt-1">
-                This determines which icons and images appear on the sign
+              <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium mt-2">
+                This determines which image appears on the sign
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
+                QR Code URL *
+              </label>
+              <input
+                type="url"
+                value={options.qrCodeUrl}
+                onChange={(e) => handleFieldChange('qrCodeUrl', e.target.value)}
+                className={`w-full px-4 py-3 text-base font-medium border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                  errors.qrCodeUrl ? 'border-accent-coral' : 'border-gray-300'
+                }`}
+                placeholder="https://example.com/book-appointment"
+              />
+              {errors.qrCodeUrl && (
+                <p className="text-accent-coral text-sm font-medium mt-2">{errors.qrCodeUrl}</p>
+              )}
+              <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium mt-2">
+                This URL will be encoded in the QR code (booking/signup link)
               </p>
             </div>
           </div>
 
-          {/* Partner Information (Optional) */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Partner Information (Optional)</h3>
-            
+          {/* Event Details */}
+          <div className="space-y-6">
+            <h3 className="text-xl lg:text-2xl font-extrabold text-shortcut-navy-blue">Event Details</h3>
+
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
+                Service Type (Display Text)
+              </label>
+              <input
+                type="text"
+                value={options.serviceTypeText}
+                onChange={(e) => handleFieldChange('serviceTypeText', e.target.value)}
+                className="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+                placeholder="e.g., Compression & Sports"
+              />
+              <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium mt-2">
+                Optional custom text for service type (will use category if left blank)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
+                Event Date
+              </label>
+              <input
+                type="text"
+                value={options.eventDate}
+                onChange={(e) => handleFieldChange('eventDate', e.target.value)}
+                className="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+                placeholder="e.g., March 5th"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
+                Event Time
+              </label>
+              <input
+                type="text"
+                value={options.eventTime}
+                onChange={(e) => handleFieldChange('eventTime', e.target.value)}
+                className="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+                placeholder="e.g., 1:00 PM - 5:00 PM"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
+                Location
+              </label>
+              <input
+                type="text"
+                value={options.location}
+                onChange={(e) => handleFieldChange('location', e.target.value)}
+                className="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+                placeholder="e.g., Quiet Room"
+              />
+            </div>
+          </div>
+
+          {/* Partner Information (Optional) */}
+          <div className="space-y-6">
+            <h3 className="text-xl lg:text-2xl font-extrabold text-shortcut-navy-blue">Partner Information (Optional)</h3>
+
+            <div>
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
                 Partner Name
               </label>
               <input
                 type="text"
                 value={options.partnerName}
                 onChange={(e) => handleFieldChange('partnerName', e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-                placeholder="e.g., Company Name"
+                className="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+                placeholder="e.g., Powin"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
+              <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
                 Partner Logo
               </label>
-              
+
               {/* Current logo display */}
               {(() => {
                 const currentLogoUrl = updatedLogoUrl || options.partnerLogoUrl || editingSign?.data?.partnerLogoUrl;
                 const shouldShowLogo = currentLogoUrl && !options.partnerLogoFile;
-                
+
                 return shouldShowLogo && (
-                  <div className="mb-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-2">Current logo:</p>
-                    <img 
-                      src={currentLogoUrl} 
-                      alt="Current logo" 
-                      className="h-12 w-auto object-contain" 
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+                    <p className="text-sm font-medium text-shortcut-navy-blue mb-2">Current logo:</p>
+                    <img
+                      src={currentLogoUrl}
+                      alt="Current logo"
+                      className="h-12 w-auto object-contain"
                       onError={(e) => console.error('❌ Logo image failed to load:', currentLogoUrl)}
                     />
-                    <p className="text-xs text-gray-500 mt-2">Upload a new file or paste a URL to replace this logo</p>
+                    <p className="text-xs font-medium text-shortcut-navy-blue opacity-60 mt-2">Upload a new file or paste a URL to replace this logo</p>
                   </div>
                 );
               })()}
 
               {/* Input type toggle */}
-              <div className="mb-3">
-                <div className="flex space-x-4">
-                  <label className="flex items-center">
+              <div className="mb-4">
+                <div className="flex space-x-6">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="radio"
                       name="logoInputType"
                       value="file"
                       checked={logoInputType === 'file'}
                       onChange={(e) => setLogoInputType(e.target.value as 'file' | 'url')}
-                      className="mr-2"
+                      className="mr-2 w-4 h-4"
                     />
-                    Upload File
+                    <span className="text-sm font-bold text-shortcut-navy-blue">Upload File</span>
                   </label>
-                  <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="radio"
                       name="logoInputType"
                       value="url"
                       checked={logoInputType === 'url'}
                       onChange={(e) => setLogoInputType(e.target.value as 'file' | 'url')}
-                      className="mr-2"
+                      className="mr-2 w-4 h-4"
                     />
-                    Paste URL
+                    <span className="text-sm font-bold text-shortcut-navy-blue">Paste URL</span>
                   </label>
                 </div>
               </div>
@@ -431,7 +520,7 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
                   type="file"
                   accept=".svg,.png,.jpg,.jpeg,.webp"
                   onChange={handleLogoFileChange}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                  className="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
                 />
               )}
 
@@ -442,22 +531,22 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
                   value={options.partnerLogoUrl}
                   onChange={handleLogoUrlChange}
                   placeholder="https://example.com/logo.png"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                    errors.partnerLogoUrl ? 'border-red-500' : 'border-gray-200'
+                  className={`w-full px-4 py-3 text-base font-medium border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                    errors.partnerLogoUrl ? 'border-accent-coral' : 'border-gray-300'
                   }`}
                 />
               )}
 
               {/* Error messages */}
               {errors.partnerLogoFile && (
-                <p className="text-red-500 text-sm mt-1">{errors.partnerLogoFile}</p>
+                <p className="text-accent-coral text-sm font-medium mt-2">{errors.partnerLogoFile}</p>
               )}
               {errors.partnerLogoUrl && (
-                <p className="text-red-500 text-sm mt-1">{errors.partnerLogoUrl}</p>
+                <p className="text-accent-coral text-sm font-medium mt-2">{errors.partnerLogoUrl}</p>
               )}
 
-              <p className="text-gray-500 text-sm mt-1">
-                {logoInputType === 'file' 
+              <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium mt-2">
+                {logoInputType === 'file'
                   ? 'SVG files are preferred for color customization. Max size: 5MB'
                   : 'Paste a direct link to an image (PNG, JPG, SVG, etc.)'
                 }
@@ -466,7 +555,7 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end space-x-4 pt-6">
+          <div className="flex justify-end space-x-4 pt-8">
             {onClose && (
               <Button
                 type="button"
@@ -491,4 +580,3 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
 };
 
 export default QRCodeSignCreator;
-
