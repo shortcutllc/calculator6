@@ -1487,9 +1487,9 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       {/* HERO */}
       <section id="top" className="relative overflow-hidden rounded-b-3xl" style={{ backgroundColor: '#F0F0FF', minHeight: '100vh', paddingTop: 0 }}>
         <div className="relative z-10 flex items-center justify-center min-h-screen">
-          <div className="mx-auto max-w-5xl px-5 lg:px-[90px] py-20 md:py-32 lg:py-40 text-center">
+          <div className="mx-auto max-w-5xl px-4 md:px-5 lg:px-[90px] py-16 md:py-32 lg:py-40 text-center">
             {/* Animated Icons Stack - Single visible icon cycling */}
-            <div className="mb-12 md:mb-16 flex justify-center items-center relative mx-auto" style={{ height: '120px', width: '120px' }}>
+            <div className="mb-8 md:mb-12 lg:mb-16 flex justify-center items-center relative mx-auto" style={{ height: '80px', width: '80px' }}>
               {[
                 '/Generic Landing Page/Icons/Group 633170.png',
                 '/Generic Landing Page/Icons/Group 633171.png',
@@ -1506,10 +1506,10 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                     opacity: 0
                   }}
                 >
-                  <img 
-                    src={icon} 
-                    alt="" 
-                    className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 object-contain"
+                  <img
+                    src={icon}
+                    alt=""
+                    className="w-20 h-20 md:w-28 md:h-28 lg:w-36 lg:h-36 object-contain"
                     loading="lazy"
                   />
                 </div>
@@ -1541,7 +1541,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             </div>
             
             {/* Subheadline */}
-            <p className="text-base lg:text-lg font-medium mb-10 md:mb-12 max-w-4xl mx-auto" style={{ color: '#003756', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
+            <p className="text-xs sm:text-sm md:text-base lg:text-lg font-medium mb-8 md:mb-10 lg:mb-12 max-w-[95%] sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto" style={{ color: '#003756', lineHeight: '1.5', letterSpacing: '-0.01em' }}>
               {isReturningClient ? (
                 'As a thank-you for a great 2025, partners who commit to at least four events in 2026 unlock Premier Partner status — including priority scheduling and 15% off all services.'
               ) : (
@@ -1555,7 +1555,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                 onClick={() => isReturningClient ? smoothScrollTo('pricing') : setShowContactForm(true)}
                 variant="primary"
                 size="lg"
-                className="text-xl md:text-2xl px-14 py-7"
+                className="text-base md:text-xl lg:text-2xl px-8 md:px-12 lg:px-14 py-4 md:py-6 lg:py-7 w-full sm:w-auto"
               >
                 {isReturningClient ? 'Build My 2026 Proposal' : 'Get in touch'}
               </Button>
@@ -1565,6 +1565,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   onClick={() => smoothScrollTo('services')}
                   variant="secondary"
                   size="lg"
+                  className="w-full sm:w-auto"
                 >
                   Explore Services
                 </Button>
@@ -1736,7 +1737,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       </section>
 
       {/* SERVICES SECTION */}
-      <section id="services" className="fade-in-section py-16 md:py-20 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
+      <section id="services" className="fade-in-section pt-12 pb-8 md:pt-16 md:pb-12 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
         {/* Mobile swipe indicator */}
         <div className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm">
@@ -1856,7 +1857,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         <div className="flex overflow-x-auto scrollbar-hide services-scroll">
           {/* RESET ZONE SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
+            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Service Options */}
                 <div>
@@ -1907,7 +1908,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* HAIR & MAKEUP SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
+            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1969,7 +1970,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* YEAR END HEADSHOTS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
+            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -2047,7 +2048,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* NAILS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
+            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -2097,7 +2098,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* SEASONAL MINDFULNESS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
+            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -2221,7 +2222,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       } as React.CSSProperties}
                     >
                       {(preset as any).popular && (
-                        <div className="absolute -top-3 -right-3 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10 border-2 border-white" style={{ backgroundColor: '#FF5050' }}>
+                        <div className="absolute -top-3 -right-3 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10" style={{ backgroundColor: '#FF5050' }}>
                           MOST POPULAR
                         </div>
                       )}
@@ -2235,16 +2236,6 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
                         {/* Package Details */}
                         <div className="space-y-4">
-                          {/* Service Image Frame */}
-                          <div className="flex justify-center mb-4">
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden shadow-md" style={{ border: `3px solid ${getServiceColor(currentService)}` }}>
-                              <img
-                                src={getServiceImagePath(currentService)}
-                                alt={getServiceName(currentService)}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          </div>
                           <div className="flex items-center justify-center gap-3 text-base">
                             <span className="text-lg">⏱️</span>
                             <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>

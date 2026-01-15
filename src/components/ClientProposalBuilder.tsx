@@ -1205,7 +1205,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                             }}
                           >
                             <div className="mb-3 flex justify-center">
-                              <div className="w-16 h-16 rounded-xl overflow-hidden" style={{ border: `2px solid ${svcColor}` }}>
+                              <div className="w-16 h-16 rounded-xl overflow-hidden" style={{ backgroundColor: svcColor }}>
                                 <img
                                   src={getServiceImagePath(service.id)}
                                   alt={service.name}
@@ -1213,7 +1213,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                                 />
                               </div>
                             </div>
-                            <div className="font-extrabold text-base" style={{ color: '#003756' }}>{service.name}</div>
+                            <div className="font-extrabold text-sm" style={{ color: '#003756', minHeight: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{service.name}</div>
                           </button>
                         );
                       })}
@@ -1229,7 +1229,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                           {presets.map((preset, index) => (
                             <div key={index} className="relative">
                               {(preset as any).popular && (
-                                <div className="absolute -top-3 -right-3 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-20 border-2 border-white" style={{ backgroundColor: '#FF5050' }}>
+                                <div className="absolute -top-3 -right-3 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-20" style={{ backgroundColor: '#FF5050' }}>
                                   MOST POPULAR
                                 </div>
                               )}
@@ -1251,16 +1251,6 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                                     <h4 className="text-xl font-extrabold mb-2" style={{ color: '#003756' }}>
                                       {(preset as any).name || `${preset.appointments} Appointments`}
                                     </h4>
-                                  </div>
-                                  {/* Service Image Frame */}
-                                  <div className="flex justify-center mb-3">
-                                    <div className="w-20 h-20 rounded-xl overflow-hidden shadow-md" style={{ border: `2px solid ${serviceColor}` }}>
-                                      <img
-                                        src={getServiceImagePath(currentEventService)}
-                                        alt={getServiceName(currentEventService)}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    </div>
                                   </div>
                                   <div className="space-y-3">
                                     <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#003756' }}>
