@@ -43,6 +43,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
   const [showMessageField, setShowMessageField] = useState(false);
   const shortcutSectionRef = useRef<HTMLElement>(null);
   const [shortcutSectionInView, setShortcutSectionInView] = useState(false);
+  const [commitmentLevel, setCommitmentLevel] = useState<'4plus' | '9plus'>('4plus');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -1552,7 +1553,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 md:mb-16">
               <Button
-                onClick={() => isReturningClient ? smoothScrollTo('pricing') : setShowContactForm(true)}
+                onClick={() => setShowProposalBuilder(true)}
                 variant="primary"
                 size="lg"
                 className="text-base md:text-xl lg:text-2xl px-8 md:px-12 lg:px-14 py-4 md:py-6 lg:py-7 w-full sm:w-auto"
@@ -1648,93 +1649,307 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         `}</style>
       </section>
 
-      {/* PROMOTIONAL SECTION */}
-      <section id="pricing-section" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
-        <div className="mx-auto max-w-7xl px-4">
-          {/* Header Text */}
-          <div className="text-center mb-12 md:mb-16">
-            {!isGeneric && (
-            <h3 className="text-lg md:text-xl mb-4" style={{ color: '#FFFFFF', fontWeight: 400 }}>
-              {isReturningClient
-                ? `A special thank you for our friends at ${partnerName}`
-                : `A special gift for our friends at ${partnerName}`
-              }
-            </h3>
-            )}
-            <h2 className="h1 mb-6 md:mb-8" style={{ color: '#FFFFFF' }}>
-              {isReturningClient
-                ? 'Commit to Quarterly Wellness Events and Save 15% on Your 2026 Calendar'
-                : 'Book your first event for 2026 and save'
-              }
-            </h2>
-            <p className="text-base lg:text-lg font-medium mb-4 max-w-3xl mx-auto" style={{ color: '#FFFFFF', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
-              {isReturningClient
-                ? 'Lock in 4+ events per year and unlock premium partner benefits. Commit by February 16, 2026 to secure your quarterly program.'
-                : 'Unlock Premium Partner status with Shortcut and make wellness even easier.'
-              }
-            </p>
-            {isReturningClient && (() => {
-              const deadline = new Date('2026-02-16T23:59:59');
-              const now = new Date();
-              const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-              const isPastDeadline = daysUntil < 0;
+      {/* WAYS TO SAVE SECTION - Apple/Airbnb Style */}
+      {isReturningClient && (
+        <section id="pricing-section" className="fade-in-section py-20 md:py-32" style={{ backgroundColor: 'white' }}>
+          <div className="mx-auto max-w-6xl px-6">
+            {/* Header */}
+            <div className="text-center mb-12 md:mb-16">
+              {!isGeneric && (
+                <h3 className="text-lg md:text-xl mb-4" style={{ color: '#003756', opacity: 0.6, fontWeight: 400 }}>
+                  A special thank you for our friends at {partnerName}
+                </h3>
+              )}
+              <h2 className="text-5xl md:text-6xl lg:text-7xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                Ways to Save
+              </h2>
+              <p className="text-xl md:text-2xl font-normal max-w-2xl mx-auto mb-8" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.4' }}>
+                Lock in 4+ events and unlock Premier Partner benefits with priority booking and guaranteed availability
+              </p>
 
-              return (
-                <div className="bg-yellow-400 bg-opacity-20 border-2 border-yellow-400 rounded-xl p-6 mb-6 max-w-2xl mx-auto">
-                  <div className="flex items-center justify-center gap-4">
-                    <span className="text-3xl animate-pulse">⏰</span>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-white mb-1 uppercase tracking-wider">Commitment Deadline</p>
-                      {!isPastDeadline ? (
-                        <>
-                          <p className="text-3xl md:text-4xl font-bold text-white mb-1">
-                            {daysUntil} {daysUntil === 1 ? 'Day' : 'Days'} Left
-                          </p>
-                          <p className="text-sm text-white text-opacity-90">February 16, 2026</p>
-                        </>
-                      ) : (
-                        <p className="text-xl font-bold text-white">Deadline Passed - Contact Us for Availability</p>
-                      )}
+              {/* Deadline Timer */}
+              {(() => {
+                const deadline = new Date('2026-02-16T23:59:59');
+                const now = new Date();
+                const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                const isPastDeadline = daysUntil < 0;
+
+                return !isPastDeadline ? (
+                  <div className="inline-flex items-center gap-4 px-8 py-4 rounded-full" style={{ backgroundColor: '#FEF3C7', border: '1px solid #FCD34D' }}>
+                    <span className="text-2xl">⏰</span>
+                    <div className="text-left">
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#92400E', opacity: 0.8 }}>
+                        Commitment Deadline
+                      </p>
+                      <p className="text-2xl font-semibold" style={{ color: '#92400E' }}>
+                        {daysUntil} {daysUntil === 1 ? 'Day' : 'Days'} Left
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-lg font-semibold" style={{ color: '#DC2626' }}>
+                    Deadline Passed - Contact Us for Availability
+                  </p>
+                );
+              })()}
+            </div>
+
+            {/* Commitment Level Selector */}
+            <div className="flex justify-center gap-3 mb-16">
+              <button
+                onClick={() => setCommitmentLevel('4plus')}
+                className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300"
+                style={{
+                  backgroundColor: commitmentLevel === '4plus' ? '#003756' : '#E0F2F7',
+                  color: commitmentLevel === '4plus' ? 'white' : '#003756'
+                }}
+              >
+                4+ Events • Save 15%
+              </button>
+              <button
+                onClick={() => setCommitmentLevel('9plus')}
+                className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300"
+                style={{
+                  backgroundColor: commitmentLevel === '9plus' ? '#003756' : '#E0F2F7',
+                  color: commitmentLevel === '9plus' ? 'white' : '#003756'
+                }}
+              >
+                9+ Events • Save 20%
+              </button>
+            </div>
+
+            {/* Savings Cards Grid */}
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto" style={{
+              justifyItems: commitmentLevel === '4plus' ? 'center' : 'stretch'
+            }}>
+              {/* Single Event */}
+              <div
+                className="relative overflow-hidden rounded-3xl transition-all duration-700 ease-out hover:-translate-y-2"
+                style={{
+                  backgroundColor: '#F8F9FA',
+                  border: '1px solid rgba(0, 55, 86, 0.1)',
+                  width: '100%',
+                  maxWidth: commitmentLevel === '4plus' ? '400px' : '100%'
+                }}
+              >
+                <div className="p-8 md:p-10">
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: '#003756', opacity: 0.6 }}>
+                      Single
+                    </p>
+                    <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                      Pay as you go
+                    </h3>
+                  </div>
+                  <div className="space-y-4 mb-8">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-semibold" style={{ color: '#003756' }}>$0</span>
+                      <span className="text-lg" style={{ color: '#003756', opacity: 0.6 }}>saved</span>
+                    </div>
+                    <p className="text-base" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>
+                      Standard pricing per event
+                    </p>
+                  </div>
+                  <div className="pt-6 border-t" style={{ borderColor: 'rgba(0, 55, 86, 0.15)' }}>
+                    <p className="text-base font-medium" style={{ color: '#003756', opacity: 0.7 }}>
+                      Flexibility • No commitment
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quarterly - 4+ Events - Always visible */}
+              <div
+                className="relative overflow-hidden rounded-3xl transition-all duration-700 ease-out hover:-translate-y-2"
+                style={{
+                  backgroundColor: '#E0F2F7',
+                  border: '2px solid #9EFAFF',
+                  width: '100%',
+                  maxWidth: commitmentLevel === '4plus' ? '400px' : '100%'
+                }}
+              >
+                <div className="absolute top-6 right-6">
+                  <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide" style={{ backgroundColor: '#9EFAFF', color: '#003756' }}>
+                    Premier
+                  </div>
+                </div>
+                <div className="p-8 md:p-10">
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: '#003756', opacity: 0.6 }}>
+                      Quarterly
+                    </p>
+                    <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                      15% off
+                    </h3>
+                  </div>
+                  <div className="space-y-3 mb-8">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-base uppercase tracking-wider font-semibold" style={{ color: '#003756', opacity: 0.6 }}>
+                        4+ Events
+                      </span>
+                    </div>
+
+                    {/* Benefits List */}
+                    <div className="space-y-4 mt-6">
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#003756', fontSize: '1.25rem', fontWeight: 'bold', marginTop: '2px' }}>✓</span>
+                        <p className="text-base" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>
+                          Priority scheduling: First choice on event dates
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#003756', fontSize: '1.25rem', fontWeight: 'bold', marginTop: '2px' }}>✓</span>
+                        <p className="text-base" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>
+                          Additional discount: 15% off Headshot and Mindfulness experiences ✨
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#003756', fontSize: '1.25rem', fontWeight: 'bold', marginTop: '2px' }}>✓</span>
+                        <p className="text-base" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>
+                          Switch it up: Rotate different services throughout the year
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              );
-            })()}
+              </div>
+
+              {/* Enterprise - 9+ Events - Slides in elegantly when 9+ tab is active */}
+              <div
+                className="relative overflow-hidden rounded-3xl transition-all duration-700 ease-out hover:-translate-y-2"
+                style={{
+                  backgroundColor: '#003756',
+                  border: '2px solid #FF5050',
+                  opacity: commitmentLevel === '9plus' ? 1 : 0,
+                  transform: commitmentLevel === '9plus' ? 'translateX(0) scale(1)' : 'translateX(40px) scale(0.9)',
+                  pointerEvents: commitmentLevel === '9plus' ? 'auto' : 'none',
+                  width: '100%'
+                }}
+              >
+                <div className="absolute top-6 right-6">
+                  <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide" style={{ backgroundColor: '#FF5050', color: 'white' }}>
+                    Best Value
+                  </div>
+                </div>
+                <div className="p-8 md:p-10">
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: 'white', opacity: 0.7 }}>
+                      Enterprise
+                    </p>
+                    <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: 'white', letterSpacing: '-0.02em' }}>
+                      20% off
+                    </h3>
+                  </div>
+                  <div className="space-y-3 mb-8">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-base uppercase tracking-wider font-semibold text-white" style={{ opacity: 0.6 }}>
+                        9+ Events
+                      </span>
+                    </div>
+
+                    {/* Benefits List */}
+                    <div className="space-y-4 mt-6">
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#FF5050', fontSize: '1.25rem', marginTop: '2px' }}>✓</span>
+                        <p className="text-base text-white" style={{ opacity: 0.95, lineHeight: '1.6' }}>
+                          Priority scheduling: First choice on event dates
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#FF5050', fontSize: '1.25rem', marginTop: '2px' }}>✓</span>
+                        <p className="text-base text-white" style={{ opacity: 0.95, lineHeight: '1.6' }}>
+                          Additional discount: 15% off Headshot and Mindfulness experiences ✨
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#FF5050', fontSize: '1.25rem', marginTop: '2px' }}>✓</span>
+                        <p className="text-base text-white" style={{ opacity: 0.95, lineHeight: '1.6' }}>
+                          Switch it up: Rotate different services throughout the year
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#FEDC64', fontSize: '1.25rem', marginTop: '2px' }}>✓</span>
+                        <p className="text-base font-semibold text-white" style={{ lineHeight: '1.6' }}>
+                          1 free event included
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="text-center mt-16">
+              <button
+                onClick={() => setShowProposalBuilder(true)}
+                className="px-10 py-5 rounded-full text-lg font-medium transition-all duration-300 hover:scale-105"
+                style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
+              >
+                Build My 2026 Proposal
+              </button>
+              <p className="mt-6 text-sm" style={{ color: '#003756', opacity: 0.5 }}>
+                Commit by February 16, 2026 to secure your quarterly program
+              </p>
+            </div>
           </div>
+        </section>
+      )}
 
-          {/* Promotion Cards */}
-          <div className="promotion-cards-wrapper grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
-            {/* Essential Card (Left) */}
-            <div className="promotion-card essential-card-fade">
-              <img
-                src="/Holiday Proposal/Promotion Section/Essential promotion box.svg"
-                alt="Essential Partner Promotion"
-                className="w-full h-auto"
-                loading="lazy"
-              />
+      {/* PROMOTIONAL SECTION - For Non-Returning Clients */}
+      {!isReturningClient && (
+        <section id="pricing-section" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
+          <div className="mx-auto max-w-7xl px-4">
+            {/* Header Text */}
+            <div className="text-center mb-12 md:mb-16">
+              {!isGeneric && (
+                <h3 className="text-lg md:text-xl mb-4" style={{ color: '#FFFFFF', fontWeight: 400 }}>
+                  A special gift for our friends at {partnerName}
+                </h3>
+              )}
+              <h2 className="h1 mb-6 md:mb-8" style={{ color: '#FFFFFF' }}>
+                Book your first event for 2026 and save
+              </h2>
+              <p className="text-base lg:text-lg font-medium mb-4 max-w-3xl mx-auto" style={{ color: '#FFFFFF', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
+                Unlock Premium Partner status with Shortcut and make wellness even easier.
+              </p>
             </div>
 
-            {/* Animated Arrow Pointer */}
-            <div className="arrow-pointer hidden md:block">
-              →
-            </div>
+            {/* Promotion Cards */}
+            <div className="promotion-cards-wrapper grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
+              {/* Essential Card (Left) */}
+              <div className="promotion-card essential-card-fade">
+                <img
+                  src="/Holiday Proposal/Promotion Section/Essential promotion box.svg"
+                  alt="Essential Partner Promotion"
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
 
-            {/* Premium Card (Right) */}
-            <div className="promotion-card premium-card-animated">
-              <img
-                src="/Holiday Proposal/Promotion Section/Premium promotion box.svg"
-                alt="Premium Partner Promotion"
-                className="w-full h-auto"
-                loading="lazy"
-              />
+              {/* Animated Arrow Pointer */}
+              <div className="arrow-pointer hidden md:block">
+                →
+              </div>
 
-              {/* Sparkles */}
-              <div className="sparkle">✨</div>
-              <div className="sparkle">✨</div>
+              {/* Premium Card (Right) */}
+              <div className="promotion-card premium-card-animated">
+                <img
+                  src="/Holiday Proposal/Promotion Section/Premium promotion box.svg"
+                  alt="Premium Partner Promotion"
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+
+                {/* Sparkles */}
+                <div className="sparkle">✨</div>
+                <div className="sparkle">✨</div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
 
       {/* SERVICES SECTION */}
       <section id="services" className="fade-in-section pt-12 pb-8 md:pt-16 md:pb-12 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
@@ -2361,10 +2576,10 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           }
           .shortcut-checklist-container[data-card="calm"] .shortcut-checklist-mask {
             background: linear-gradient(to bottom,
-              rgba(240, 240, 255, 1) 0%,
-              rgba(240, 240, 255, 0) 8%,
-              rgba(240, 240, 255, 0) 92%,
-              rgba(240, 240, 255, 1) 100%);
+              rgba(229, 252, 254, 1) 0%,
+              rgba(229, 252, 254, 0) 8%,
+              rgba(229, 252, 254, 0) 92%,
+              rgba(229, 252, 254, 1) 100%);
           }
           .shortcut-checkbox {
             width: 33px;
@@ -2888,38 +3103,69 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       </section>
 
       {/* FOOTER */}
-      <footer className="py-12" style={{ backgroundColor: '#FF5050' }}>
+      <footer className="py-12" style={{ backgroundColor: 'white' }}>
         <div className="mx-auto container-narrow px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
-              <div className="h1 text-white mb-4">Shortcut</div>
-              <p className="text-white/70 mb-4">Employee happiness delivered. One vendor, effortless logistics.</p>
+              <a href="#top" className="inline-block mb-4" aria-label="Shortcut logo - return to top">
+                <svg viewBox="0 0 192 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-auto">
+                  <path fillRule="evenodd" clipRule="evenodd"
+                    d="M29.6284 21.5003C29.3713 23.7505 28.6818 25.9572 27.3774 27.8371C24.2946 32.28 18.9846 33.7633 13.7386 32.1453C8.56113 30.5486 3.54006 26.0287 0 18.7044L4.84254 16.3639C7.92552 22.7425 11.9483 25.9647 15.3237 27.0057C18.6305 28.0256 21.3824 27.0423 22.9585 24.7709C23.2395 24.366 23.481 23.9084 23.6808 23.4043C23.3774 23.4209 23.0738 23.4262 22.7704 23.4206C19.2805 23.3553 16.0856 21.8408 13.6813 19.7541C11.2932 17.6815 9.45986 14.8481 8.92523 11.8407C8.36688 8.69984 9.26489 5.39496 12.2773 3.08642C13.6869 2.00611 15.2332 1.36494 16.8596 1.24094C18.4816 1.11728 19.9964 1.52212 21.3267 2.23502C23.9138 3.62146 25.9253 6.22268 27.2987 9.01314C28.1685 10.7806 28.8433 12.7443 29.2624 14.7619C31.6786 12.1765 34.3066 10.6389 36.5311 9.77503C37.6804 9.3287 38.7381 9.05577 39.6253 8.91256C40.403 8.78701 41.3422 8.71138 42.1247 8.89196L40.9153 14.1327C41.0086 14.1543 41.0586 14.1618 41.0586 14.1618C41.0583 14.1658 40.8815 14.1579 40.4824 14.2223C39.98 14.3034 39.2871 14.4746 38.4782 14.7887C36.8668 15.4145 34.8583 16.5824 32.995 18.6489C31.9331 19.8266 30.8025 20.7717 29.6284 21.5003ZM24.3046 17.9209C24.1028 15.671 23.4436 13.3605 22.4729 11.3882C21.3666 9.14038 20.0076 7.63027 18.7861 6.97569C18.2121 6.66808 17.7132 6.56999 17.2685 6.60389C16.8283 6.63745 16.255 6.81433 15.5489 7.35549C14.3296 8.28987 13.9682 9.47863 14.2207 10.8994C14.497 12.4535 15.5449 14.2498 17.2067 15.692C18.8522 17.1202 20.8758 18.0057 22.871 18.043C23.3362 18.0517 23.8156 18.0149 24.3046 17.9209Z"
+                    fill="#FF5050" />
+                  <path fillRule="evenodd" clipRule="evenodd"
+                    d="M37.5033 11.1947C34.926 10.3834 32.9956 8.72285 31.3895 6.90729L35.4947 3.27552C36.7809 4.72933 37.9135 5.57753 39.149 5.96641C40.3556 6.34619 42.0247 6.40038 44.5918 5.54394L46.8242 10.5201C44.9245 11.6113 43.8736 13.3885 43.3764 15.227C43.1283 16.1444 43.035 17.0253 43.0393 17.7413C43.0437 18.4635 43.1448 18.831 43.1572 18.8761C43.1582 18.8799 43.1583 18.8806 43.1583 18.8806L38.1127 21.0218C37.7142 20.0827 37.565 18.8953 37.5583 17.7744C37.5511 16.586 37.7026 15.2115 38.0853 13.7961C38.2848 13.0585 38.5517 12.2956 38.8993 11.5353C38.4247 11.4518 37.9596 11.3383 37.5033 11.1947Z"
+                    fill="#FF5050" />
+                  <path d="M182.038 29.4766V5.46692H187.385V29.4766H182.038ZM178.194 17.0349V12.4916H191.23V17.0349H178.194Z"
+                    fill="#175071" />
+                  <path
+                    d="M167.362 29.861C165.801 29.861 164.415 29.5465 163.203 28.9174C162.015 28.265 161.083 27.3797 160.408 26.2613C159.732 25.1197 159.394 23.8149 159.394 22.3471V12.4916H164.741V22.2772C164.741 22.8597 164.834 23.3606 165.021 23.78C165.23 24.1994 165.533 24.5255 165.929 24.7585C166.326 24.9915 166.803 25.108 167.362 25.108C168.154 25.108 168.784 24.8634 169.25 24.3741C169.716 23.8615 169.949 23.1625 169.949 22.2772V12.4916H175.296V22.3121C175.296 23.8033 174.958 25.1197 174.282 26.2613C173.606 27.3797 172.675 28.265 171.486 28.9174C170.298 29.5465 168.923 29.861 167.362 29.861Z"
+                    fill="#175071" />
+                  <path
+                    d="M150.08 29.8609C148.332 29.8609 146.748 29.4765 145.327 28.7076C143.906 27.9388 142.787 26.8787 141.972 25.5273C141.156 24.176 140.749 22.6615 140.749 20.984C140.749 19.2832 141.156 17.7687 141.972 16.4407C142.81 15.0893 143.941 14.0292 145.362 13.2604C146.783 12.4915 148.379 12.1071 150.15 12.1071C151.478 12.1071 152.689 12.34 153.784 12.806C154.903 13.2487 155.893 13.9244 156.755 14.833L153.33 18.258C152.934 17.8153 152.468 17.4891 151.932 17.2794C151.419 17.0698 150.825 16.9649 150.15 16.9649C149.381 16.9649 148.694 17.1396 148.088 17.4891C147.505 17.8153 147.039 18.2813 146.69 18.8871C146.364 19.4696 146.201 20.1569 146.201 20.949C146.201 21.7412 146.364 22.4402 146.69 23.046C147.039 23.6517 147.517 24.1294 148.123 24.4789C148.728 24.8283 149.404 25.0031 150.15 25.0031C150.849 25.0031 151.466 24.8866 152.002 24.6536C152.561 24.3973 153.039 24.0478 153.435 23.6051L156.825 27.0301C155.94 27.9621 154.938 28.6727 153.819 29.162C152.701 29.6279 151.454 29.8609 150.08 29.8609Z"
+                    fill="#175071" />
+                  <path d="M129.93 29.4766V5.46692H135.277V29.4766H129.93ZM126.086 17.0349V12.4916H139.122V17.0349H126.086Z"
+                    fill="#175071" />
+                  <path
+                    d="M110.973 29.4766V12.4916H116.32V29.4766H110.973ZM116.32 20.1453L114.084 18.3979C114.526 16.4175 115.272 14.8797 116.32 13.7847C117.369 12.6896 118.825 12.1421 120.689 12.1421C121.504 12.1421 122.215 12.2702 122.821 12.5265C123.45 12.7595 123.997 13.1323 124.463 13.6449L121.283 17.664C121.05 17.4077 120.759 17.2096 120.409 17.0698C120.06 16.93 119.664 16.8601 119.221 16.8601C118.336 16.8601 117.625 17.1397 117.089 17.6989C116.577 18.2348 116.32 19.0503 116.32 20.1453Z"
+                    fill="#175071" />
+                  <path
+                    d="M99.0146 29.8609C97.2672 29.8609 95.6828 29.4765 94.2616 28.7076C92.8636 27.9155 91.7569 26.8437 90.9415 25.4924C90.126 24.141 89.7183 22.6266 89.7183 20.949C89.7183 19.2715 90.126 17.7687 90.9415 16.4407C91.7569 15.1126 92.8636 14.0642 94.2616 13.2953C95.6595 12.5031 97.2439 12.1071 99.0146 12.1071C100.785 12.1071 102.37 12.4915 103.768 13.2604C105.166 14.0292 106.272 15.0893 107.088 16.4407C107.903 17.7687 108.311 19.2715 108.311 20.949C108.311 22.6266 107.903 24.141 107.088 25.4924C106.272 26.8437 105.166 27.9155 103.768 28.7076C102.37 29.4765 100.785 29.8609 99.0146 29.8609ZM99.0146 25.0031C99.7835 25.0031 100.459 24.84 101.042 24.5138C101.624 24.1643 102.067 23.6867 102.37 23.0809C102.696 22.4518 102.859 21.7412 102.859 20.949C102.859 20.1569 102.696 19.4696 102.37 18.8871C102.043 18.2813 101.589 17.8153 101.007 17.4891C100.447 17.1396 99.7835 16.9649 99.0146 16.9649C98.269 16.9649 97.605 17.1396 97.0225 17.4891C96.44 17.8153 95.9857 18.2813 95.6595 18.8871C95.3333 19.4929 95.1702 20.1918 95.1702 20.984C95.1702 21.7529 95.3333 22.4518 95.6595 23.0809C95.9857 23.6867 96.44 24.1643 97.0225 24.5138C97.605 24.84 98.269 25.0031 99.0146 25.0031Z"
+                    fill="#175071" />
+                  <path
+                    d="M81.6902 29.4766V19.7958C81.6902 18.9104 81.4106 18.1998 80.8514 17.6639C80.3155 17.1048 79.6282 16.8252 78.7894 16.8252C78.207 16.8252 77.6944 16.9533 77.2517 17.2096C76.809 17.4426 76.4595 17.7921 76.2032 18.2581C75.947 18.7007 75.8188 19.2133 75.8188 19.7958L73.7568 18.7823C73.7568 17.4542 74.0364 16.2893 74.5956 15.2874C75.1548 14.2856 75.9353 13.5167 76.9372 12.9808C77.939 12.4216 79.0923 12.1421 80.3971 12.1421C81.7251 12.1421 82.8901 12.4216 83.8919 12.9808C84.8938 13.5167 85.6627 14.2739 86.1985 15.2525C86.7577 16.2077 87.0373 17.3261 87.0373 18.6075V29.4766H81.6902ZM70.4717 29.4766V4.10388H75.8188V29.4766H70.4717Z"
+                    fill="#175071" />
+                  <path
+                    d="M56.5498 29.8609C54.8024 29.8609 53.218 29.4765 51.7968 28.7076C50.3988 27.9155 49.2921 26.8437 48.4767 25.4924C47.6612 24.141 47.2535 22.6266 47.2535 20.949C47.2535 19.2715 47.6612 17.7687 48.4767 16.4407C49.2921 15.1126 50.3988 14.0642 51.7968 13.2953C53.1947 12.5031 54.7791 12.1071 56.5498 12.1071C58.3205 12.1071 59.9049 12.4915 61.3028 13.2604C62.7008 14.0292 63.8075 15.0893 64.623 16.4407C65.4384 17.7687 65.8461 19.2715 65.8461 20.949C65.8461 22.6266 65.4384 24.141 64.623 25.4924C63.8075 26.8437 62.7008 27.9155 61.3028 28.7076C59.9049 29.4765 58.3205 29.8609 56.5498 29.8609ZM56.5498 25.0031C57.3187 25.0031 57.9943 24.84 58.5768 24.5138C59.1593 24.1643 59.6019 23.6867 59.9049 23.0809C60.2311 22.4518 60.3942 21.7412 60.3942 20.949C60.3942 20.1569 60.2311 19.4696 59.9049 18.8871C59.5787 18.2813 59.1243 17.8153 58.5418 17.4891C57.9826 17.1396 57.3187 16.9649 56.5498 16.9649C55.8042 16.9649 55.1403 17.1396 54.5578 17.4891C53.9753 17.8153 53.5209 18.2813 53.1947 18.8871C52.8685 19.4929 52.7054 20.1918 52.7054 20.984C52.7054 21.7529 52.8685 22.4518 53.1947 23.0809C53.5209 23.6867 53.9753 24.1643 54.5578 24.5138C55.1403 24.84 55.8042 25.0031 56.5498 25.0031Z"
+                    fill="#175071" />
+                </svg>
+              </a>
+              <p className="mb-4" style={{ color: '#003756' }}>Employee happiness delivered. One vendor, effortless logistics.</p>
               <div className="flex gap-4">
-                <a href="#" className="text-white/70 hover:text-white">LinkedIn</a>
-                <a href="#" className="text-white/70 hover:text-white">Twitter</a>
-                <a href="#" className="text-white/70 hover:text-white">Instagram</a>
+                <a href="#" style={{ color: '#003756' }} className="hover:opacity-70">LinkedIn</a>
+                <a href="#" style={{ color: '#003756' }} className="hover:opacity-70">Twitter</a>
+                <a href="#" style={{ color: '#003756' }} className="hover:opacity-70">Instagram</a>
               </div>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-white">Services</h3>
-              <ul className="space-y-2 text-white/70">
-                <li><a href="#" className="hover:text-white">Massage</a></li>
-                <li><a href="#" className="hover:text-white">Hair & Beauty</a></li>
-                <li><a href="#" className="hover:text-white">Headshots</a></li>
-                <li><a href="#" className="hover:text-white">Mindfulness</a></li>
+              <h3 className="font-semibold mb-4" style={{ color: '#003756' }}>Services</h3>
+              <ul className="space-y-2">
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Massage</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Hair & Beauty</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Headshots</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Mindfulness</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-white">Company</h3>
-              <ul className="space-y-2 text-white/70">
-                <li><a href="#" className="hover:text-white">About</a></li>
-                <li><a href="#" className="hover:text-white">Contact</a></li>
-                <li><a href="#" className="hover:text-white">Privacy</a></li>
-                <li><a href="#" className="hover:text-white">Terms</a></li>
+              <h3 className="font-semibold mb-4" style={{ color: '#003756' }}>Company</h3>
+              <ul className="space-y-2">
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">About</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Contact</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Privacy</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Terms</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/20 mt-8 pt-8 text-center" style={{ color: '#003756' }}>
+          <div className="mt-8 pt-8 text-center" style={{ borderTop: '1px solid rgba(0, 55, 86, 0.2)', color: '#003756' }}>
             <p>&copy; 2025 Shortcut. All rights reserved.</p>
           </div>
         </div>
