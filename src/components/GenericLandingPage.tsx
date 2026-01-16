@@ -1825,7 +1825,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                 <div className="p-8 md:p-10">
                   <div className="mb-6">
                     <p className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: 'white', opacity: 0.7 }}>
-                      Enterprise
+                      Monthly
                     </p>
                     <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: 'white', letterSpacing: '-0.02em' }}>
                       20% off
