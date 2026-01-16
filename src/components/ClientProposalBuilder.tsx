@@ -1090,21 +1090,21 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-8 py-8 flex justify-between items-center z-10" style={{ borderColor: 'rgba(0, 55, 86, 0.1)' }}>
-          <div>
-            <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+        <div className="sticky top-0 bg-white border-b px-4 md:px-8 py-6 md:py-8 flex justify-between items-start md:items-center z-10 gap-4" style={{ borderColor: 'rgba(0, 55, 86, 0.1)' }}>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-semibold mb-2 md:mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
               Build My 2026 Proposal
             </h2>
-            <p className="text-lg md:text-xl max-w-2xl" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.5' }}>
+            <p className="text-sm md:text-lg lg:text-xl max-w-2xl" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.5' }}>
               Create your customized proposal and unlock savings: 15% off for 4+ events, 20% off for 9+ events
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Undo/Redo buttons */}
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+            {/* Undo/Redo buttons - hidden on mobile */}
             <button
               onClick={handleUndo}
               disabled={historyIndex <= 0}
-              className="p-2 rounded-lg hover:bg-neutral-light-gray transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="hidden md:block p-2 rounded-lg hover:bg-neutral-light-gray transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Undo"
               title="Undo (Cmd/Ctrl+Z)"
             >
@@ -1113,7 +1113,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
             <button
               onClick={handleRedo}
               disabled={historyIndex >= history.length - 1}
-              className="p-2 rounded-lg hover:bg-neutral-light-gray transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="hidden md:block p-2 rounded-lg hover:bg-neutral-light-gray transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Redo"
               title="Redo (Cmd/Ctrl+Shift+Z)"
             >
@@ -1121,16 +1121,16 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-neutral-light-gray transition-colors"
+              className="p-2 rounded-lg hover:bg-neutral-light-gray transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Close"
             >
-              <X size={24} className="text-shortcut-blue" />
+              <X size={20} className="text-shortcut-blue md:w-6 md:h-6" />
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="px-8 py-8">
+        <div className="px-4 md:px-8 py-6 md:py-8">
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
@@ -1151,10 +1151,10 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
 
                     {/* Mode Toggle */}
                     <div className="mb-8">
-                      <div className="flex gap-3 inline-flex">
+                      <div className="flex gap-2 md:gap-3 inline-flex flex-wrap">
                         <button
                           onClick={() => toggleEventMode('package')}
-                          className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300"
+                          className="px-6 py-3 md:px-8 md:py-4 rounded-full text-sm md:text-base font-medium transition-all duration-300 min-h-[44px]"
                           style={{
                             backgroundColor: currentEvent.mode === 'package' ? '#003756' : 'transparent',
                             color: currentEvent.mode === 'package' ? 'white' : '#003756',
@@ -1165,7 +1165,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                         </button>
                         <button
                           onClick={() => toggleEventMode('custom')}
-                          className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300"
+                          className="px-6 py-3 md:px-8 md:py-4 rounded-full text-sm md:text-base font-medium transition-all duration-300 min-h-[44px]"
                           style={{
                             backgroundColor: currentEvent.mode === 'custom' ? '#003756' : 'transparent',
                             color: currentEvent.mode === 'custom' ? 'white' : '#003756',
@@ -1178,7 +1178,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                     </div>
 
                     {/* Step 1: Service Selection */}
-                    <h4 className="text-xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                    <h4 className="text-lg md:text-xl font-semibold mb-4 md:mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                       1. Choose Service
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-8">
@@ -1223,15 +1223,15 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                     {/* Step 2: Package or Custom Configuration */}
                     {currentEvent.mode === 'package' ? (
                       <>
-                        <h4 className="text-xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                        <h4 className="text-lg md:text-xl font-semibold mb-4 md:mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                           2. Select Package
                         </h4>
-                        <div className="grid md:grid-cols-3 gap-6 mb-8">
+                        <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
                           {presets.map((preset, index) => (
                             <button
                               key={index}
                               onClick={() => updateCurrentEventPackage(index)}
-                              className="relative p-8 rounded-3xl text-center transition-all duration-300 hover:-translate-y-1"
+                              className="relative p-6 md:p-8 rounded-3xl text-center transition-all duration-300 hover:-translate-y-1"
                               style={{
                                 backgroundColor: currentEvent.packageIndex === index ? serviceColor : '#F8F9FA',
                                 border: currentEvent.packageIndex === index ? `2px solid ${serviceColor}` : '1px solid rgba(0, 55, 86, 0.1)'
@@ -1245,7 +1245,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                                 </div>
                               )}
                               <div className="space-y-4">
-                                <h4 className="text-2xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                                <h4 className="text-xl md:text-2xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                                   {(preset as any).name || `${preset.appointments} Appointments`}
                                 </h4>
                                 <div className="space-y-4 mb-6">
@@ -1258,8 +1258,8 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                                     <span className="text-base font-medium" style={{ color: '#003756', opacity: 0.9 }}>{preset.pros} {getServiceName(currentEventService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
                                   </div>
                                 </div>
-                                <div className="pt-6 border-t" style={{ borderColor: 'rgba(0, 55, 86, 0.15)' }}>
-                                  <div className="text-4xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                                <div className="pt-4 md:pt-6 border-t" style={{ borderColor: 'rgba(0, 55, 86, 0.15)' }}>
+                                  <div className="text-3xl md:text-4xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                                     ${preset.price.toLocaleString()}
                                   </div>
                                   <p className="text-sm font-medium" style={{ color: '#003756', opacity: 0.6 }}>
@@ -1273,7 +1273,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                       </>
                     ) : (
                       <>
-                        <h4 className="text-xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                        <h4 className="text-lg md:text-xl font-semibold mb-4 md:mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                           2. Custom Configuration
                         </h4>
                         <div className="card-medium space-y-6 mb-8">
@@ -1746,7 +1746,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
             <button
               onClick={handleGenerateProposal}
               disabled={isGenerating || !clientName.trim() || !clientEmail.trim()}
-              className="px-10 py-5 rounded-full text-lg font-medium transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] w-full sm:w-auto"
               style={{
                 backgroundColor: '#FF5050',
                 color: 'white',
