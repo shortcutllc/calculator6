@@ -279,38 +279,22 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
 
   // Update preset in events array or draft
   useEffect(() => {
-    if (currentEvent) {
-      if (currentEventIndex === -1) {
-        // Update draft preset
-        if (currentEvent.mode === 'package' && currentPreset) {
-          setDraftEvent(prev => ({ ...prev, preset: currentPreset }));
-        } else if (currentEvent.mode === 'custom') {
-          const customPreset = calculateCustomPreset(currentEvent);
-          if (customPreset) {
-            setDraftEvent(prev => ({ ...prev, preset: customPreset }));
-          }
-        }
-      } else {
-        // Update event in array
-        if (currentEvent.mode === 'package' && currentPreset) {
-          setEvents(prev => prev.map((event, idx) =>
-            idx === currentEventIndex
-              ? { ...event, preset: currentPreset }
-              : event
-          ));
-        } else if (currentEvent.mode === 'custom') {
-          const customPreset = calculateCustomPreset(currentEvent);
-          if (customPreset) {
-            setEvents(prev => prev.map((event, idx) =>
-              idx === currentEventIndex
-                ? { ...event, preset: customPreset }
-                : event
-            ));
-          }
-        }
+    if (currentEventIndex === -1) {
+      // Update draft preset
+      if (currentPreset) {
+        setDraftEvent(prev => ({ ...prev, preset: currentPreset }));
+      }
+    } else {
+      // Update event in array
+      if (currentPreset) {
+        setEvents(prev => prev.map((event, idx) =>
+          idx === currentEventIndex
+            ? { ...event, preset: currentPreset }
+            : event
+        ));
       }
     }
-  }, [currentPreset, currentCustomPreset, currentEventIndex, currentEvent]);
+  }, [currentPreset, currentEventIndex]);
 
   // Calculate totals across all events
   const calculateTotals = () => {

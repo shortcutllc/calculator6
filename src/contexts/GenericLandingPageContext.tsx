@@ -324,11 +324,15 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
       console.log('💾 CRITICAL: Final updateData:', updateData);
       console.log('💾 CRITICAL: updateData.is_returning_client:', updateData.is_returning_client);
 
-      const { data, error } = await supabase
+      const { data, error, status, statusText } = await supabase
         .from('generic_landing_pages')
         .update(updateData)
         .eq('id', id)
-        .select();
+        .select('*');
+
+      console.log('📊 Update response status:', status, statusText);
+      console.log('📊 Update response data:', data);
+      console.log('📊 Update response error:', error);
 
       if (error) {
         console.error('❌ Supabase update error:', error);
@@ -337,19 +341,39 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
       }
 
       console.log('✅ Supabase update successful, returned data:', data);
-      if (data && data.length > 0) {
-        const returnedRecord = data[0];
-        console.log('✅ CRITICAL: Updated page is_returning_client value:', returnedRecord.is_returning_client);
-        console.log('✅ CRITICAL: Full updated record keys:', Object.keys(returnedRecord));
-        console.log('✅ CRITICAL: Full updated record:', JSON.stringify(returnedRecord, null, 2));
-        
+
+      // If no data returned from update (possible RLS issue), fetch it separately
+      let updatedRecord = data && data.length > 0 ? data[0] : null;
+
+      if (!updatedRecord) {
+        console.warn('⚠️ No data returned from update, fetching separately...');
+        const { data: fetchedData, error: fetchError } = await supabase
+          .from('generic_landing_pages')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (fetchError) {
+          console.error('❌ Failed to fetch updated record:', fetchError);
+          throw fetchError;
+        }
+
+        updatedRecord = fetchedData;
+        console.log('✅ Fetched record separately:', updatedRecord);
+      }
+
+      if (updatedRecord) {
+        console.log('✅ CRITICAL: Updated page is_returning_client value:', updatedRecord.is_returning_client);
+        console.log('✅ CRITICAL: Full updated record keys:', Object.keys(updatedRecord));
+        console.log('✅ CRITICAL: Full updated record:', JSON.stringify(updatedRecord, null, 2));
+
         // Double-check by querying the database directly - SELECT ALL COLUMNS
         const { data: verifyData, error: verifyError } = await supabase
           .from('generic_landing_pages')
           .select('*')
           .eq('id', id)
           .single();
-        
+
         console.log('🔍 CRITICAL: Verification query result:', verifyData);
         console.log('🔍 CRITICAL: Verification query error:', verifyError);
         if (verifyData) {
@@ -357,17 +381,17 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
           console.log('🔍 CRITICAL: Does column exist?', 'is_returning_client' in verifyData);
         }
       } else {
-        console.error('❌ CRITICAL: No data returned from update!');
+        console.error('❌ CRITICAL: No data returned from update and failed to fetch!');
       }
       await fetchGenericLandingPages();
-      
+
       // Update currentGenericLandingPage if it's the one being updated
       if (currentGenericLandingPage?.id === id) {
         // Transform the returned data to match GenericLandingPage type
-        const updatedPage = data && data.length > 0 
-          ? transformDatabaseGenericLandingPage(data[0])
+        const updatedPage = updatedRecord
+          ? transformDatabaseGenericLandingPage(updatedRecord)
           : null;
-        
+
         if (updatedPage) {
           console.log('🔄 Updating currentGenericLandingPage state with:', updatedPage);
           setCurrentGenericLandingPage(updatedPage);
