@@ -1485,12 +1485,13 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </div>
       </header>
 
-      {/* HERO */}
+      {/* HERO - Apple/Airbnb Style */}
       <section id="top" className="relative overflow-hidden rounded-b-3xl" style={{ backgroundColor: '#F0F0FF', minHeight: '100vh', paddingTop: 0 }}>
         <div className="relative z-10 flex items-center justify-center min-h-screen">
-          <div className="mx-auto max-w-5xl px-4 md:px-5 lg:px-[90px] py-16 md:py-32 lg:py-40 text-center">
-            {/* Animated Icons Stack - Single visible icon cycling */}
-            <div className="mb-8 md:mb-12 lg:mb-16 flex justify-center items-center relative mx-auto" style={{ height: '80px', width: '80px' }}>
+          <div className="mx-auto max-w-5xl px-6 py-20 md:py-32 text-center">
+
+            {/* Animated Icons Stack - Simplified fade transition */}
+            <div className="mb-12 md:mb-16 flex justify-center items-center relative mx-auto" style={{ height: '120px', width: '120px' }}>
               {[
                 '/Generic Landing Page/Icons/Group 633170.png',
                 '/Generic Landing Page/Icons/Group 633171.png',
@@ -1500,9 +1501,9 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               ].map((icon, index) => (
                 <div
                   key={index}
-                  className="absolute inset-0 flex items-center justify-center animated-icon-cycle"
+                  className="absolute inset-0 flex items-center justify-center"
                   style={{
-                    animation: `iconCycle 20s ease-in-out infinite`,
+                    animation: `iconFade 20s ease-out infinite`,
                     animationDelay: `${index * 4}s`,
                     opacity: 0
                   }}
@@ -1510,7 +1511,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   <img
                     src={icon}
                     alt=""
-                    className="w-20 h-20 md:w-28 md:h-28 lg:w-36 lg:h-36 object-contain"
+                    className="w-24 h-24 md:w-32 md:h-32 object-contain"
                     loading="lazy"
                   />
                 </div>
@@ -1518,71 +1519,65 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             </div>
 
             {/* Headline */}
-            <div className="mb-6 md:mb-8 flex justify-center">
-              <h1
-                className="h1 text-center"
-                style={{ 
-                  color: '#003756',
-                  maxWidth: '950px'
-                }}
-              >
-                {isReturningClient ? (
-                  <>
-                    <div className="block">
-                      To our friends at {partnerName},
-                    </div>
-                    <div className="block">
-                      let's keep the feel-good moments rolling in 2026.
-                    </div>
-                  </>
-                ) : (
-                  'Wellness that actually works for your team'
-                )}
-              </h1>
-            </div>
-            
+            <h1
+              className="text-5xl md:text-6xl lg:text-7xl font-semibold mb-8 max-w-4xl mx-auto"
+              style={{
+                color: '#003756',
+                letterSpacing: '-0.02em',
+                lineHeight: '1.1'
+              }}
+            >
+              {isReturningClient ? (
+                <>
+                  To our friends at {partnerName}, let's keep the feel-good moments rolling in 2026.
+                </>
+              ) : (
+                'Wellness that actually works for your team'
+              )}
+            </h1>
+
             {/* Subheadline */}
-            <p className="text-xs sm:text-sm md:text-base lg:text-lg font-medium mb-8 md:mb-10 lg:mb-12 max-w-[95%] sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto" style={{ color: '#003756', lineHeight: '1.5', letterSpacing: '-0.01em' }}>
+            <p className="text-lg md:text-xl lg:text-2xl font-normal mb-12 md:mb-16 max-w-3xl mx-auto" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.5' }}>
               {isReturningClient ? (
                 'As a thank-you for a great 2025, partners who commit to at least four events in 2026 unlock Premier Partner status — including priority scheduling and 15% off all services.'
               ) : (
                 'We bring the spa, salon, and studio directly to your office. No scheduling headaches, no employee complaints—just wellness that your team actually wants.'
               )}
             </p>
-            
+
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 md:mb-16">
-              <Button
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 md:mb-24">
+              <button
                 onClick={() => setShowProposalBuilder(true)}
-                variant="primary"
-                size="lg"
-                className="text-base md:text-xl lg:text-2xl px-8 md:px-12 lg:px-14 py-4 md:py-6 lg:py-7 w-full sm:w-auto"
+                className="px-10 py-5 rounded-full text-lg font-medium transition-all duration-300 hover:scale-105 w-full sm:w-auto"
+                style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
               >
                 {isReturningClient ? 'Build My 2026 Proposal' : 'Get in touch'}
-              </Button>
+              </button>
 
               {!isReturningClient && (
-                <Button
+                <button
                   onClick={() => smoothScrollTo('services')}
-                  variant="secondary"
-                  size="lg"
-                  className="w-full sm:w-auto"
+                  className="px-10 py-5 rounded-full text-lg font-medium transition-all duration-300 hover:scale-105 w-full sm:w-auto"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#003756',
+                    border: '2px solid #003756'
+                  }}
                 >
                   Explore Services
-                </Button>
+                </button>
               )}
             </div>
 
-            {/* Client Logos Title - Inside Centered Container */}
-            <div className="pt-8 md:pt-12">
-              <div className="text-center mb-8 md:mb-10">
-                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-6 md:mb-8" style={{ color: '#003756' }}>
-                  Top Employers Trust Shortcut
-                </h2>
-              </div>
-              
-              {/* Logo Scroller - Full Width, Breaks Out of Container */}
-              <div className="overflow-hidden py-6 md:py-8 -mx-5 lg:-mx-[90px]">
+            {/* Client Logos Section */}
+            <div className="pt-12 md:pt-16">
+              <p className="text-sm font-semibold uppercase tracking-wider mb-12" style={{ color: '#003756', opacity: 0.6 }}>
+                Trusted by Top Employers
+              </p>
+
+              {/* Logo Scroller */}
+              <div className="overflow-hidden py-8 -mx-6">
                 <div className="logo-track">
                   <div className="logo-set">
                     <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
@@ -1618,33 +1613,29 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           </div>
         </div>
 
-        {/* Animation Styles */}
+        {/* Animation Styles - Simplified Apple-style fade */}
         <style>{`
-          @keyframes iconCycle {
+          @keyframes iconFade {
             0% {
               opacity: 0;
-              transform: rotateY(90deg) scale(0.9);
+              transform: scale(0.95);
             }
             5% {
               opacity: 1;
-              transform: rotateY(0deg) scale(1);
-            }
-            15% {
-              opacity: 1;
-              transform: rotateY(0deg) scale(1);
+              transform: scale(1);
             }
             20% {
+              opacity: 1;
+              transform: scale(1);
+            }
+            25% {
               opacity: 0;
-              transform: rotateY(-90deg) scale(0.9);
+              transform: scale(0.95);
             }
             100% {
               opacity: 0;
-              transform: rotateY(-90deg) scale(0.9);
+              transform: scale(0.95);
             }
-          }
-          
-          .animated-icon-cycle {
-            will-change: opacity, transform;
           }
         `}</style>
       </section>
@@ -1951,168 +1942,118 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       )}
 
 
-      {/* SERVICES SECTION */}
-      <section id="services" className="fade-in-section pt-12 pb-8 md:pt-16 md:pb-12 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
+      {/* SERVICES SECTION - Apple/Airbnb Style */}
+      <section id="services" className="fade-in-section py-20 md:py-32 rounded-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
         {/* Mobile swipe indicator */}
-        <div className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm">
-            <span className="text-xs font-medium" style={{ color: '#003756' }}>
-              Swipe to explore services
+        <div className="md:hidden absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)' }}>
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#003756', opacity: 0.7 }}>
+              Swipe to explore
             </span>
-            <svg className="w-4 h-4" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" style={{ color: '#003756', opacity: 0.7 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
             </svg>
           </div>
         </div>
 
-        {/* Service Legend */}
-        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-12 px-4">
-          <button 
+        {/* Service Navigation */}
+        <div className="flex flex-wrap justify-center gap-4 mb-16 px-6">
+          <button
             onClick={() => scrollToService(0)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#9EFAFF');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300 hover:scale-105"
+            style={{
+              backgroundColor: '#9EFAFF',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Massage</span>
+            Massage
           </button>
-          <button 
+          <button
             onClick={() => scrollToService(1)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#FEDC64');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300 hover:scale-105"
+            style={{
+              backgroundColor: '#FEDC64',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Glam</span>
+            Glam
           </button>
-          <button 
+          <button
             onClick={() => scrollToService(2)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#9EFAFF');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300 hover:scale-105"
+            style={{
+              backgroundColor: '#9EFAFF',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Headshots</span>
+            Headshots
           </button>
-          <button 
+          <button
             onClick={() => scrollToService(3)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#F9CDFF');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300 hover:scale-105"
+            style={{
+              backgroundColor: '#F9CDFF',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Nails</span>
+            Nails
           </button>
-          <button 
+          <button
             onClick={() => scrollToService(4)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#FEDC64');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300 hover:scale-105"
+            style={{
+              backgroundColor: '#FEDC64',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Mindfulness</span>
+            Mindfulness
           </button>
         </div>
         
         <div className="flex overflow-x-auto scrollbar-hide services-scroll">
           {/* RESET ZONE SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
-              <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16">
+              <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                 {/* Left Side - Text and Service Options */}
                 <div>
-                  <h2 className="h1 mb-4" style={{ color: '#003756' }}>Reset Zone</h2>
-                  <h3 className="section-subtitle mb-6" style={{ color: '#003756' }}>Relaxing Chair or Table Massages</h3>
-                  
-                  <p className="text-lg md:text-xl leading-relaxed mb-10" style={{ color: '#003756' }}>
+                  <h2 className="text-4xl md:text-5xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>Reset Zone</h2>
+                  <p className="text-lg font-medium mb-8" style={{ color: '#003756', opacity: 0.6 }}>Relaxing Chair or Table Massages</p>
+
+                  <p className="text-lg md:text-xl mb-12" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>
                     Treat your team to rejuvenating chair or table massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.
                   </p>
-                  
+
                   {/* Service Options */}
-                  <div className="space-y-5">
+                  <div className="space-y-6">
                     {/* First Row: Sports Massage and Compression */}
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-2 gap-6">
                       <div className="flex items-center gap-3">
                         <img src="/Holiday Proposal/Our Services/Massage/icon.svg" alt="Sports Massage" className="w-12 h-12 flex-shrink-0" loading="lazy" />
-                        <span className="text-base font-bold" style={{ color: '#003756' }}>Sports Massage</span>
+                        <span className="text-base font-semibold" style={{ color: '#003756' }}>Sports Massage</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <img src="/Holiday Proposal/Our Services/Massage/icon-2.svg" alt="Compression" className="w-12 h-12 flex-shrink-0" loading="lazy" />
-                        <span className="text-base font-bold" style={{ color: '#003756' }}>Compression Massage</span>
+                        <span className="text-base font-semibold" style={{ color: '#003756' }}>Compression Massage</span>
                       </div>
                     </div>
-                    
+
                     {/* Second Row: Express Facial */}
                     <div className="flex items-center gap-3">
                       <img src="/Holiday Proposal/Our Services/Massage/icon-1.svg" alt="Express Facial" className="w-12 h-12 flex-shrink-0" loading="lazy" />
-                      <span className="text-base font-bold" style={{ color: '#003756' }}>Express Facial</span>
+                      <span className="text-base font-semibold" style={{ color: '#003756' }}>Express Facial</span>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Right Side - Massage Image */}
                 <div className="relative flex justify-center">
                   <picture>
                     <source srcSet="/Holiday Proposal/Our Services/Massage/masssage 2x.webp" type="image/webp" />
-                    <img 
-                      src="/Holiday Proposal/Our Services/Massage/masssage 2x.png" 
-                      alt="Professional Massage Service" 
-                      className="w-full h-auto rounded-2xl max-w-md"
+                    <img
+                      src="/Holiday Proposal/Our Services/Massage/masssage 2x.png"
+                      alt="Professional Massage Service"
+                      className="w-full h-auto rounded-3xl max-w-md"
                       loading="lazy"
                     />
                   </picture>
@@ -2123,14 +2064,14 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* HAIR & MAKEUP SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
-              <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16">
+              <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
-                  <h2 className="h1 mb-4" style={{ color: '#003756' }}>Hair & Makeup</h2>
-                  <h3 className="section-subtitle mb-6" style={{ color: '#003756' }}>Expert makeup, styling and barber services</h3>
-                  
-                  <p className="text-lg md:text-xl leading-relaxed mb-10" style={{ color: '#003756' }}>
+                  <h2 className="text-4xl md:text-5xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>Hair & Makeup</h2>
+                  <p className="text-lg font-medium mb-8" style={{ color: '#003756', opacity: 0.6 }}>Expert makeup, styling and barber services</p>
+
+                  <p className="text-lg md:text-xl mb-12" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>
                     Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.
                   </p>
                   
@@ -2365,22 +2306,22 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         {/* Packages Section - Integrated Below Services */}
       </section>
 
-      {/* CHOOSE YOUR PACKAGE SECTION - Standalone with Master Style Guide Design */}
+      {/* CHOOSE YOUR PACKAGE SECTION - Apple/Airbnb Style */}
       {(!genericLandingPage || genericLandingPage.customization.includePricingCalculator) && (
-        <section id="pricing" className="fade-in-section py-16 md:py-24 rounded-3xl" style={{ backgroundColor: '#F8F9FA' }}>
-          <div className="mx-auto max-w-7xl px-5 lg:px-[90px]">
+        <section id="pricing" className="fade-in-section py-20 md:py-32 rounded-3xl" style={{ backgroundColor: 'white' }}>
+          <div className="mx-auto max-w-6xl px-6">
             {/* Section Header */}
             <div className="text-center mb-16">
-              <h2 className="text-[32px] md:text-[48px] lg:text-[56px] font-extrabold mb-6 leading-tight tracking-tight" style={{ color: '#003756', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.01em' }}>
+              <h2 className="text-5xl md:text-6xl font-semibold mb-8" style={{ color: '#003756', letterSpacing: '-0.02em', lineHeight: '1.1' }}>
                 Choose Your Perfect Package
               </h2>
-              <p className="text-lg md:text-xl lg:text-2xl max-w-3xl mx-auto leading-relaxed" style={{ color: '#003756', opacity: 0.8, lineHeight: 1.6 }}>
+              <p className="text-xl md:text-2xl max-w-3xl mx-auto" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.5' }}>
                 Select the {getServiceName(serviceOrder[currentServiceIndex]).toLowerCase()} package that fits your team's needs. All packages include premium service and professional setup.
               </p>
             </div>
 
             {/* Service Selector Tabs */}
-            <div className="mb-8">
+            <div className="mb-16">
               <div className="flex flex-wrap justify-center gap-4">
                 {serviceOrder.map((service, index) => {
                   const isActive = currentServiceIndex === index;
@@ -2389,15 +2330,11 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                     <button
                       key={service}
                       onClick={() => setCurrentServiceIndex(index)}
-                      className="px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base transition-all duration-300 transform hover:scale-105"
+                      className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300 hover:scale-105"
                       style={{
-                        backgroundColor: isActive ? serviceColor : 'white',
-                        color: isActive ? 'white' : '#003756',
-                        border: `2px solid ${serviceColor}`,
-                        boxShadow: isActive
-                          ? '0 10px 25px -5px rgba(0, 55, 86, 0.2), 0 4px 12px -2px rgba(0, 55, 86, 0.1)'
-                          : '0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                        fontWeight: 700
+                        backgroundColor: isActive ? serviceColor : 'transparent',
+                        color: isActive ? '#003756' : '#003756',
+                        border: `2px solid ${serviceColor}`
                       }}
                     >
                       {getServiceName(service)}
@@ -2408,11 +2345,12 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             </div>
 
             {/* Package Selection */}
-            <div className="mb-8">
+            <div className="mb-16">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {SERVICE_PRESETS[serviceOrder[currentServiceIndex] as keyof typeof SERVICE_PRESETS]?.map((preset, index) => {
                   const currentService = serviceOrder[currentServiceIndex];
                   const serviceColor = getServiceColor(currentService);
+                  const isSelected = selectedService === currentService && selectedPackageIndex === index;
                   return (
                     <button
                       key={index}
@@ -2421,66 +2359,53 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                         setSelectedPackageIndex(index);
                         setPricingConfig((prev: any) => ({ ...prev, totalAppointments: preset.appointments }));
                       }}
-                      className={`package-button relative p-6 md:p-8 rounded-[24px] text-center transition-all duration-300 transform hover:scale-105 overflow-hidden ${
-                        selectedService === currentService && selectedPackageIndex === index
-                          ? 'selected ring-4 ring-offset-4 scale-105'
-                          : 'hover:shadow-xl'
-                      }`}
+                      className="relative p-8 md:p-10 rounded-3xl text-center transition-all duration-300 hover:-translate-y-2 overflow-hidden"
                       style={{
-                        '--package-color': serviceColor,
-                        backgroundColor: 'white',
-                        color: '#003756',
-                        border: selectedService === currentService && selectedPackageIndex === index ? `3px solid ${serviceColor}` : '2px solid #E5E7EB',
-                        boxShadow: selectedService === currentService && selectedPackageIndex === index
-                          ? '0 25px 50px -12px rgba(0, 55, 86, 0.2), 0 12px 24px -8px rgba(0, 55, 86, 0.12), 0 0 0 1px rgba(0, 55, 86, 0.05)'
-                          : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-                      } as React.CSSProperties}
+                        backgroundColor: isSelected ? serviceColor : '#F8F9FA',
+                        border: isSelected ? `2px solid ${serviceColor}` : '1px solid rgba(0, 55, 86, 0.1)'
+                      }}
                     >
-                      {(preset as any).popular && (
-                        <div className="absolute -top-3 -right-3 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10" style={{ backgroundColor: '#FF5050' }}>
-                          MOST POPULAR
+                      {/* Package Title */}
+                      <div className="mb-6">
+                        {(preset as any).popular && (
+                          <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-4" style={{ backgroundColor: '#FF5050', color: 'white' }}>
+                            Most Popular
+                          </div>
+                        )}
+                        <h3 className="text-2xl md:text-3xl font-semibold" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                          {(preset as any).name || `${preset.appointments} Appointments`}
+                        </h3>
+                      </div>
+
+                      {/* Package Details */}
+                      <div className="space-y-4 mb-8">
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="text-xl">⏱️</span>
+                          <span className="text-base font-medium" style={{ color: '#003756', opacity: 0.9 }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
                         </div>
-                      )}
-                      <div className="space-y-4">
-                        {/* Package Title */}
-                        <div className="text-center">
-                          <h3 className="text-2xl font-extrabold mb-2" style={{ color: '#003756', fontWeight: 800 }}>
-                            {(preset as any).name || `${preset.appointments} Appointments`}
-                          </h3>
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="text-xl">👥</span>
+                          <span className="text-base font-medium" style={{ color: '#003756', opacity: 0.9 }}>{preset.pros} {getServiceName(currentService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
                         </div>
 
-                        {/* Package Details */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-center gap-3 text-base">
-                            <span className="text-lg">⏱️</span>
-                            <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
+                        {/* Mindfulness Service Descriptions */}
+                        {currentService === 'mindfulness' && (preset as any).name && (
+                          <div className="mt-6 p-4 rounded-2xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)' }}>
+                            <p className="text-sm text-center" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>
+                              {getMindfulnessDescription((preset as any).name)}
+                            </p>
                           </div>
-                          <div className="flex items-center justify-center gap-3 text-base">
-                            <span className="text-lg">👥</span>
-                            <span className="font-semibold" style={{ color: '#003756' }}>{preset.pros} {getServiceName(currentService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
-                          </div>
+                        )}
+                      </div>
 
-                          {/* Mindfulness Service Descriptions */}
-                          {currentService === 'mindfulness' && (preset as any).name && (
-                            <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-                              <p className="text-sm leading-relaxed text-center" style={{ color: '#003756' }}>
-                                {getMindfulnessDescription((preset as any).name)}
-                              </p>
-                            </div>
-                          )}
+                      {/* Price Section */}
+                      <div className="pt-6 border-t" style={{ borderColor: 'rgba(0, 55, 86, 0.15)' }}>
+                        <div className="text-4xl md:text-5xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                          {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
                         </div>
-
-                        {/* Price Section */}
-                        <div className="pt-4 border-t-2" style={{ borderColor: '#E5E7EB' }}>
-                          <div className="text-center">
-                            <div className="text-4xl font-bold mb-1" style={{ color: '#003756' }}>
-                              {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
-                            </div>
-                            <div className="text-sm font-medium opacity-75" style={{ color: '#003756' }}>
-                              {(preset as any).custom ? 'Contact for pricing' : 'per session'}
-                            </div>
-                          </div>
-                        </div>
+                        <p className="text-sm font-medium" style={{ color: '#003756', opacity: 0.6 }}>
+                          {(preset as any).custom ? 'Contact for pricing' : 'per session'}
+                        </p>
                       </div>
                     </button>
                   );
@@ -2488,35 +2413,33 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               </div>
             </div>
 
-            {/* What's Included Section with Master Style Guide Design */}
-            <div className="mb-8 bg-gradient-to-br from-shortcut-teal/5 to-shortcut-teal/10 rounded-[24px] p-8 md:p-12">
-              <h3 className="text-2xl md:text-3xl font-extrabold mb-6 text-center" style={{ color: '#003756', fontWeight: 800 }}>
-                What's Included:
+            {/* What's Included Section */}
+            <div className="mb-16 p-10 md:p-12 rounded-3xl" style={{ backgroundColor: '#F8F9FA' }}>
+              <h3 className="text-3xl md:text-4xl font-semibold mb-10 text-center" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                What's Included
               </h3>
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-6">
                 {getWhatsIncluded(serviceOrder[currentServiceIndex]).map((item, index) => (
-                  <div key={index} className="flex items-center gap-4 p-5 bg-white rounded-[24px] border-2 border-shortcut-teal/20 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="w-8 h-8 bg-shortcut-teal rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-base font-bold" style={{ color: '#FF5050' }}>✓</span>
+                  <div key={index} className="flex items-start gap-4">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ backgroundColor: getServiceColor(serviceOrder[currentServiceIndex]) }}>
+                      <span className="text-sm font-bold" style={{ color: '#003756' }}>✓</span>
                     </div>
-                    <span className="text-gray-700 font-semibold">{item}</span>
+                    <span className="text-base" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>{item}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Build Your Proposal Button with Enhanced Design */}
+            {/* Build Your Proposal Button */}
             <div className="text-center">
-              <Button
+              <button
                 onClick={() => setShowProposalBuilder(true)}
-                variant="primary"
-                size="lg"
-                className="text-xl md:text-2xl px-14 py-7"
+                className="px-10 py-5 rounded-full text-lg font-medium transition-all duration-300 hover:scale-105"
+                style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
               >
                 Build Your Proposal
-                <span className="ml-3 text-3xl">→</span>
-              </Button>
-              <p className="text-base mt-5 font-medium" style={{ color: '#003756', opacity: 0.6 }}>
+              </button>
+              <p className="text-base mt-6 font-medium" style={{ color: '#003756', opacity: 0.5 }}>
                 Free consultation • No commitment required
               </p>
             </div>
@@ -2524,11 +2447,11 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </section>
       )}
 
-      {/* HIGH PERFORMANCE STARTS HERE - ShortcutSection Style */}
-      <section 
+      {/* HIGH PERFORMANCE STARTS HERE - Apple/Airbnb Style */}
+      <section
         ref={shortcutSectionRef}
-        className={`fade-in-section py-20 md:py-28 bg-white ${shortcutSectionInView ? 'shortcut-section-in-view' : ''}`}
-        style={{ fontFamily: "'Outfit', sans-serif" }}
+        className={`fade-in-section py-20 md:py-32 ${shortcutSectionInView ? 'shortcut-section-in-view' : ''}`}
+        style={{ backgroundColor: '#F8F9FA' }}
       >
         <style>{`
           .shortcut-section-card {
@@ -2671,19 +2594,19 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           }
         `}</style>
         
-        <div className="max-w-[1200px] mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-6">
           {/* Header */}
-          <div className="text-center mb-12">
-            <h1 
-              className="h1 mb-6 md:mb-8"
-              style={{ color: '#003756' }}
+          <div className="text-center mb-16">
+            <h2
+              className="text-5xl md:text-6xl font-semibold mb-8"
+              style={{ color: '#003756', letterSpacing: '-0.02em', lineHeight: '1.1' }}
             >
               Slack. Zoom. <span style={{ color: '#FF5050' }}>Shortcut</span>.<br />
               One of these helps your team relax.
-            </h1>
-            <p 
-              className="text-base lg:text-lg font-medium max-w-3xl mx-auto"
-              style={{ color: '#003756', lineHeight: '1.1', letterSpacing: '-0.01em' }}
+            </h2>
+            <p
+              className="text-xl md:text-2xl max-w-3xl mx-auto"
+              style={{ color: '#003756', opacity: 0.7, lineHeight: '1.5' }}
             >
               Real moments of calm at work — felt by employees, effortless for employers.
             </p>
@@ -3029,75 +2952,78 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </div>
       </section>
 
-      {/* FAQ SECTION */}
+      {/* FAQ SECTION - Apple/Airbnb Style */}
       {(!genericLandingPage || genericLandingPage.customization.includeFAQ) && (
-        <section className="fade-in-section py-16 md:py-20 bg-gray-50 rounded-3xl">
-        <div className="mx-auto container-narrow px-4">
-          <h2 className="h1 text-center mb-12">Frequently Asked Questions</h2>
-          <div className="max-w-3xl mx-auto space-y-4">
-            {[
-              {
-                q: 'How quickly can you set up services?',
-                a: 'We can typically set up services within 24-48 hours. For urgent requests, we offer same-day service in most major metropolitan areas.'
-              },
-              {
-                q: "What's included in your pricing?",
-                a: 'Our pricing includes all services, equipment, setup, and cleanup. No hidden fees, no surprises. We provide transparent, all-inclusive pricing for every service.'
-              },
-              {
-                q: 'Do you work with remote teams?',
-                a: "Yes! We offer virtual wellness sessions and can coordinate in-person services for distributed teams. We'll work with your team's schedule and location needs."
-              },
-              {
-                q: 'What if we need to cancel or reschedule?',
-                a: "We offer flexible cancellation and rescheduling policies. Just give us 24 hours notice and we'll work with you to find a new time that works for your team."
-              }
-            ].map((faq, idx) => (
-              <div key={idx} className="faq-item bg-white rounded-2xl p-6">
-                <button className="faq-question w-full text-left flex items-center justify-between font-semibold" style={{ color: '#003756' }}>
-                  <span>{faq.q}</span>
-                  <span className="faq-icon text-[#0098AD] text-xl">+</span>
-                </button>
-                <div className="faq-content">
-                  <p className="mt-4 text-gray-700">{faq.a}</p>
+        <section className="fade-in-section py-20 md:py-32 rounded-3xl" style={{ backgroundColor: 'white' }}>
+          <div className="mx-auto max-w-4xl px-6">
+            <h2 className="text-5xl md:text-6xl font-semibold text-center mb-16" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+              Frequently Asked Questions
+            </h2>
+            <div className="space-y-6">
+              {[
+                {
+                  q: 'How quickly can you set up services?',
+                  a: 'We can typically set up services within 24-48 hours. For urgent requests, we offer same-day service in most major metropolitan areas.'
+                },
+                {
+                  q: "What's included in your pricing?",
+                  a: 'Our pricing includes all services, equipment, setup, and cleanup. No hidden fees, no surprises. We provide transparent, all-inclusive pricing for every service.'
+                },
+                {
+                  q: 'Do you work with remote teams?',
+                  a: "Yes! We offer virtual wellness sessions and can coordinate in-person services for distributed teams. We'll work with your team's schedule and location needs."
+                },
+                {
+                  q: 'What if we need to cancel or reschedule?',
+                  a: "We offer flexible cancellation and rescheduling policies. Just give us 24 hours notice and we'll work with you to find a new time that works for your team."
+                }
+              ].map((faq, idx) => (
+                <div key={idx} className="faq-item rounded-3xl p-8" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0, 55, 86, 0.1)' }}>
+                  <button className="faq-question w-full text-left flex items-center justify-between text-xl font-semibold" style={{ color: '#003756' }}>
+                    <span>{faq.q}</span>
+                    <span className="faq-icon text-2xl" style={{ color: '#003756', opacity: 0.6 }}>+</span>
+                  </button>
+                  <div className="faq-content">
+                    <p className="mt-6 text-base" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>{faq.a}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       )}
 
 
-      {/* FINAL CTA */}
-      <section id="book" className="fade-in-section py-16 md:py-20 text-white rounded-3xl" style={{ backgroundColor: '#003756' }}>
-        <div className="mx-auto container-narrow px-4 text-center">
-          <h2 className="h1 text-white mb-6">
-            {isReturningClient 
+      {/* FINAL CTA - Apple/Airbnb Style */}
+      <section id="book" className="fade-in-section py-20 md:py-32 rounded-3xl" style={{ backgroundColor: '#003756' }}>
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <h2 className="text-5xl md:text-6xl font-semibold mb-8" style={{ color: 'white', letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+            {isReturningClient
               ? 'Ready to Lock In Your 2026 Quarterly Program?'
               : 'Ready to Transform Your Workplace?'
             }
           </h2>
-          <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto" style={{ color: 'white', opacity: 0.8, lineHeight: '1.5' }}>
             {isReturningClient
               ? `As a valued partner, commit to 4+ quarterly events and save 15% while securing priority booking and guaranteed availability on your preferred dates. Commit by February 16, 2026.`
               : 'Join 500+ companies who trust Shortcut to deliver employee happiness. Book a call today and see how easy workplace wellness can be.'
             }
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button onClick={() => setShowContactForm(true)} variant="primary" size="lg">
+
+          <div className="flex flex-col items-center gap-6">
+            <button
+              onClick={() => setShowContactForm(true)}
+              className="px-10 py-5 rounded-full text-lg font-medium transition-all duration-300 hover:scale-105"
+              style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.3)' }}
+            >
               {isReturningClient ? 'Commit to Quarterly Program & Save 15%' : 'Get in touch'}
-            </Button>
-            <div className="text-sm text-white/70">
-              <span className="inline-flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0098AD' }}></span>
-                {isReturningClient 
-                  ? 'Schedule commitment call • Lock in your calendar'
-                  : 'Free consultation • No commitment'
-                }
-              </span>
-            </div>
+            </button>
+            <p className="text-sm font-medium" style={{ color: 'white', opacity: 0.6 }}>
+              {isReturningClient
+                ? 'Schedule commitment call • Lock in your calendar'
+                : 'Free consultation • No commitment'
+              }
+            </p>
           </div>
         </div>
       </section>

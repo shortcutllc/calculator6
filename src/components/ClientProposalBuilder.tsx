@@ -1080,24 +1080,23 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
   const serviceColor = getServiceColor(currentEventService);
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4"
       onClick={onClose}
-      style={{ fontFamily: "'Outfit', sans-serif" }}
     >
-      <div 
+      <div
         className="bg-white rounded-3xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl touch-pan-y"
         onClick={(e) => e.stopPropagation()}
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b-2 border-shortcut-teal border-opacity-20 px-8 py-6 flex justify-between items-center z-10">
+        <div className="sticky top-0 bg-white border-b px-8 py-8 flex justify-between items-center z-10" style={{ borderColor: 'rgba(0, 55, 86, 0.1)' }}>
           <div>
-            <h2 className="h1 mb-2" style={{ color: '#003756' }}>
-              Build Your Quarterly Proposal
+            <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+              Build My 2026 Proposal
             </h2>
-            <p className="text-base lg:text-lg font-medium max-w-2xl" style={{ color: '#003756', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
-              Build your quarterly proposal and unlock savings: 15% off for 4 events, 20% off for 9+ events
+            <p className="text-lg md:text-xl max-w-2xl" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.5' }}>
+              Create your customized proposal and unlock savings: 15% off for 4+ events, 20% off for 9+ events
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1146,30 +1145,32 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
               {currentEvent && (
                 <>
                   <div>
-                    <h3 className="text-xl font-extrabold mb-6" style={{ color: '#003756' }}>
+                    <h3 className="text-2xl md:text-3xl font-semibold mb-8" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                       {currentEventIndex === -1 ? 'Configure New Event' : `Configure Event ${currentEventIndex + 1}`}
                     </h3>
 
                     {/* Mode Toggle */}
-                    <div className="mb-6">
-                      <div className="flex gap-4 p-1 bg-neutral-light-gray rounded-xl inline-flex">
+                    <div className="mb-8">
+                      <div className="flex gap-3 inline-flex">
                         <button
                           onClick={() => toggleEventMode('package')}
-                          className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${
-                            currentEvent.mode === 'package'
-                              ? 'bg-white shadow-md text-shortcut-blue'
-                              : 'text-text-dark-60'
-                          }`}
+                          className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300"
+                          style={{
+                            backgroundColor: currentEvent.mode === 'package' ? '#003756' : 'transparent',
+                            color: currentEvent.mode === 'package' ? 'white' : '#003756',
+                            border: '2px solid #003756'
+                          }}
                         >
                           Package Mode
                         </button>
                         <button
                           onClick={() => toggleEventMode('custom')}
-                          className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${
-                            currentEvent.mode === 'custom'
-                              ? 'bg-white shadow-md text-shortcut-blue'
-                              : 'text-text-dark-60'
-                          }`}
+                          className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300"
+                          style={{
+                            backgroundColor: currentEvent.mode === 'custom' ? '#003756' : 'transparent',
+                            color: currentEvent.mode === 'custom' ? 'white' : '#003756',
+                            border: '2px solid #003756'
+                          }}
                         >
                           Custom Mode
                         </button>
@@ -1177,7 +1178,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                     </div>
 
                     {/* Step 1: Service Selection */}
-                    <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
+                    <h4 className="text-xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                       1. Choose Service
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-8">
@@ -1222,63 +1223,57 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                     {/* Step 2: Package or Custom Configuration */}
                     {currentEvent.mode === 'package' ? (
                       <>
-                        <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
+                        <h4 className="text-xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                           2. Select Package
                         </h4>
                         <div className="grid md:grid-cols-3 gap-6 mb-8">
                           {presets.map((preset, index) => (
-                            <div key={index} className="relative">
+                            <button
+                              key={index}
+                              onClick={() => updateCurrentEventPackage(index)}
+                              className="relative p-8 rounded-3xl text-center transition-all duration-300 hover:-translate-y-1"
+                              style={{
+                                backgroundColor: currentEvent.packageIndex === index ? serviceColor : '#F8F9FA',
+                                border: currentEvent.packageIndex === index ? `2px solid ${serviceColor}` : '1px solid rgba(0, 55, 86, 0.1)'
+                              }}
+                            >
                               {(preset as any).popular && (
-                                <div className="absolute -top-3 -right-3 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-20" style={{ backgroundColor: '#FF5050' }}>
-                                  MOST POPULAR
+                                <div className="mb-4">
+                                  <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: '#FF5050', color: 'white' }}>
+                                    Most Popular
+                                  </div>
                                 </div>
                               )}
-                              <button
-                                onClick={() => updateCurrentEventPackage(index)}
-                                className={`relative card-small text-center transition-all duration-300 ${
-                                  currentEvent.packageIndex === index
-                                    ? 'ring-2 ring-offset-2'
-                                    : ''
-                                }`}
-                                style={{
-                                  borderColor: currentEvent.packageIndex === index ? serviceColor : undefined,
-                                  borderWidth: currentEvent.packageIndex === index ? '2px' : undefined,
-                                  backgroundColor: currentEvent.packageIndex === index ? `${serviceColor}15` : undefined,
-                                }}
-                              >
-                                <div className="space-y-4">
-                                  <div>
-                                    <h4 className="text-xl font-extrabold mb-2" style={{ color: '#003756' }}>
-                                      {(preset as any).name || `${preset.appointments} Appointments`}
-                                    </h4>
+                              <div className="space-y-4">
+                                <h4 className="text-2xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                                  {(preset as any).name || `${preset.appointments} Appointments`}
+                                </h4>
+                                <div className="space-y-4 mb-6">
+                                  <div className="flex items-center justify-center gap-3">
+                                    <span className="text-xl">⏱️</span>
+                                    <span className="text-base font-medium" style={{ color: '#003756', opacity: 0.9 }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
                                   </div>
-                                  <div className="space-y-3">
-                                    <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#003756' }}>
-                                      <span>⏱️</span>
-                                      <span>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
-                                    </div>
-                                    <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#003756' }}>
-                                      <span>👥</span>
-                                      <span>{preset.pros} {getServiceName(currentEventService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
-                                    </div>
-                                  </div>
-                                  <div className="pt-4 border-t-2 border-shortcut-teal border-opacity-20">
-                                    <div className="text-3xl font-extrabold mb-1" style={{ color: '#003756' }}>
-                                      ${preset.price.toLocaleString()}
-                                    </div>
-                                    <div className="text-sm font-medium" style={{ color: '#6b7280' }}>
-                                      per session
-                                    </div>
+                                  <div className="flex items-center justify-center gap-3">
+                                    <span className="text-xl">👥</span>
+                                    <span className="text-base font-medium" style={{ color: '#003756', opacity: 0.9 }}>{preset.pros} {getServiceName(currentEventService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
                                   </div>
                                 </div>
-                              </button>
-                            </div>
+                                <div className="pt-6 border-t" style={{ borderColor: 'rgba(0, 55, 86, 0.15)' }}>
+                                  <div className="text-4xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                                    ${preset.price.toLocaleString()}
+                                  </div>
+                                  <p className="text-sm font-medium" style={{ color: '#003756', opacity: 0.6 }}>
+                                    per session
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
                           ))}
                         </div>
                       </>
                     ) : (
                       <>
-                        <h4 className="text-lg font-extrabold mb-4" style={{ color: '#003756' }}>
+                        <h4 className="text-xl font-semibold mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
                           2. Custom Configuration
                         </h4>
                         <div className="card-medium space-y-6 mb-8">
@@ -1751,10 +1746,11 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
             <button
               onClick={handleGenerateProposal}
               disabled={isGenerating || !clientName.trim() || !clientEmail.trim()}
-              className="px-6 py-4 rounded-full font-bold text-base shadow-soft hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ 
-                backgroundColor: '#003756', 
-                color: '#FFFFFF' 
+              className="px-10 py-5 rounded-full text-lg font-medium transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: '#FF5050',
+                color: 'white',
+                boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)'
               }}
             >
               {isGenerating ? (
