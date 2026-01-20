@@ -5214,19 +5214,23 @@
 .rosie-auth-label {
   font-size: 14px;
   font-weight: 600;
-  color: var(--rosie-text-primary);
+  color: #1D1D1F !important;
+  display: block;
+  margin-bottom: 4px;
 }
 
 .rosie-auth-input {
   width: 100%;
   padding: 14px 16px;
-  border: 2px solid var(--rosie-border);
+  border: 2px solid #E5E5E7;
   border-radius: var(--rosie-radius-sm);
   font-size: 16px;
   font-family: inherit;
-  color: var(--rosie-text-primary);
-  background: var(--rosie-bg-card);
+  color: #1D1D1F !important;
+  -webkit-text-fill-color: #1D1D1F !important;
+  background: #FFFFFF !important;
   transition: all var(--rosie-transition);
+  box-sizing: border-box;
 }
 
 .rosie-auth-input:focus {
@@ -5237,6 +5241,38 @@
 
 .rosie-auth-input::placeholder {
   color: var(--rosie-text-tertiary);
+}
+
+/* Date input specific styling */
+.rosie-auth-input[type="date"] {
+  color: var(--rosie-text-primary);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.rosie-auth-input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+/* Ensure text inputs have dark text */
+.rosie-auth-input[type="email"],
+.rosie-auth-input[type="text"] {
+  color: var(--rosie-text-primary);
+  -webkit-text-fill-color: var(--rosie-text-primary);
+}
+
+/* Auth Sections */
+.rosie-auth-section {
+  margin-bottom: 8px;
+}
+
+.rosie-auth-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rosie-text-secondary);
+  margin: 0 0 12px 0;
+  text-align: center;
 }
 
 /* Divider */

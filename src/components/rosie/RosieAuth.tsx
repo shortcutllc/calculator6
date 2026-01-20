@@ -121,14 +121,24 @@ export const RosieAuth: React.FC<RosieAuthProps> = ({ onComplete }) => {
             All with the support of expert-backed guidance.
           </p>
 
-          <div className="rosie-auth-buttons">
+          {/* Sign In Section */}
+          <div className="rosie-auth-section">
+            <h2 className="rosie-auth-section-title">Sign In</h2>
             <button
               className="rosie-auth-btn rosie-auth-btn-primary"
               onClick={() => setView('signin')}
             >
-              Get Started
+              Sign in with Email
             </button>
+          </div>
 
+          <div className="rosie-auth-divider">
+            <span>or</span>
+          </div>
+
+          {/* Sign Up Section */}
+          <div className="rosie-auth-section">
+            <h2 className="rosie-auth-section-title">New to Rosie?</h2>
             <button
               className="rosie-auth-btn rosie-auth-btn-google"
               onClick={handleGoogleSignIn}
@@ -152,7 +162,13 @@ export const RosieAuth: React.FC<RosieAuthProps> = ({ onComplete }) => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Continue with Google
+              Sign up with Google
+            </button>
+            <button
+              className="rosie-auth-btn rosie-auth-btn-secondary"
+              onClick={() => setView('signin')}
+            >
+              Sign up with Email
             </button>
           </div>
 
