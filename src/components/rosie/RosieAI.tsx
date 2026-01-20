@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { RosieOnboarding } from './RosieOnboarding';
+import { RosieAuthProvider, useRosieAuth } from './RosieAuthContext';
+import { RosieAuth } from './RosieAuth';
 import { RosieTimeline } from './RosieTimeline';
 import { RosieChat } from './RosieChat';
 import { RosieDevelopment } from './RosieDevelopment';
@@ -24,7 +25,9 @@ const formatDuration = (seconds: number): string => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-export const RosieAI: React.FC = () => {
+// Inner component that uses auth context
+const RosieAIContent: React.FC = () => {
+  const { user, currentBaby, loading: authLoading } = useRosieAuth();
   const [data, setData] = useState<RosieData | null>(null);
   const [activeTab, setActiveTab] = useState<'timeline' | 'insights' | 'development' | 'chat'>('timeline');
   const [isLoading, setIsLoading] = useState(true);
@@ -32,12 +35,45 @@ export const RosieAI: React.FC = () => {
   const [showQuickLogModal, setShowQuickLogModal] = useState<'feed' | 'sleep' | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(() => getTimePeriod(new Date().getHours()));
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
-    const stored = getStoredData();
-    setData(stored);
+    // If user is authenticated and has a baby, load from localStorage (for now)
+    // In the future, this will sync with Supabase
+    if (currentBaby) {
+      const stored = getStoredData();
+      // Merge currentBaby info into stored data
+      if (stored) {
+        setData({
+          ...stored,
+          baby: {
+            name: currentBaby.name,
+            birthDate: currentBaby.birthDate,
+            photoUrl: currentBaby.photoUrl,
+          }
+        });
+      } else {
+        setData({
+          baby: {
+            name: currentBaby.name,
+            birthDate: currentBaby.birthDate,
+            photoUrl: currentBaby.photoUrl,
+          },
+          timeline: [],
+          chatHistory: [],
+          caregiverNotes: [],
+        });
+      }
+    } else if (!authLoading && !user) {
+      // Not authenticated, show auth screen
+      setShowAuth(true);
+    } else {
+      // Fallback to local storage for non-authenticated usage
+      const stored = getStoredData();
+      setData(stored);
+    }
     setIsLoading(false);
-  }, []);
+  }, [user, currentBaby, authLoading]);
 
   // Update banner timer display every second when timer is active
   useEffect(() => {
@@ -218,7 +254,8 @@ export const RosieAI: React.FC = () => {
     setShowProfile(false);
   };
 
-  if (isLoading) {
+  // Show loading state
+  if (isLoading || authLoading) {
     return (
       <div className="rosie-container">
         <div className="rosie-loading">
@@ -228,6 +265,12 @@ export const RosieAI: React.FC = () => {
     );
   }
 
+  // Show auth screen if user needs to sign in
+  if (showAuth || (!user && !data?.baby)) {
+    return <RosieAuth onComplete={() => setShowAuth(false)} />;
+  }
+
+  // Show onboarding if no baby data (for non-authenticated local usage)
   if (!data?.baby) {
     return <RosieOnboarding onComplete={handleOnboardingComplete} />;
   }
@@ -370,6 +413,15 @@ export const RosieAI: React.FC = () => {
         />
       )}
     </div>
+  );
+};
+
+// Main export wraps with auth provider
+export const RosieAI: React.FC = () => {
+  return (
+    <RosieAuthProvider>
+      <RosieAIContent />
+    </RosieAuthProvider>
   );
 };
 
