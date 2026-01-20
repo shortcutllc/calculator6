@@ -90,6 +90,18 @@ export const expertInsights: Record<string, ExpertInsight[]> = {
       source: 'Dr. Becky Kennedy, Good Inside',
       sourceType: 'expert',
     },
+    {
+      topic: 'Hitting',
+      insight: 'When toddlers hit, they\'re not being "bad." They\'re overwhelmed and their immature brain defaults to physical expression. Stay calm, block the hit, and name the feeling.',
+      source: 'Dr. Becky Kennedy, Good Inside',
+      sourceType: 'expert',
+    },
+    {
+      topic: 'Power Struggles',
+      insight: 'Offer two choices instead of commands: "Do you want to put your shoes on first or your jacket?" The child feels control, you get the outcome you need.',
+      source: 'Janet Lansbury, No Bad Kids',
+      sourceType: 'expert',
+    },
   ],
   development: [
     {
@@ -223,6 +235,104 @@ export const parentWellnessContent: ParentWellnessContent[] = [
     oneThingToday: 'Write down three things you\'re proud of from this year.',
     selfCareReminder: 'You made it through the hardest year. You are your baby\'s perfect parent.',
   },
+  // Year 2: Toddlerhood (weeks 53-104)
+  {
+    weekRange: [53, 65],
+    howYouMightFeel: [
+      'Exhausted by constant supervision needs',
+      'Frustrated by tantrums and big emotions',
+      'Amazed by their growing vocabulary',
+      'Nostalgic for baby days (already!)',
+    ],
+    permissionSlip: 'It\'s okay to not enjoy every moment. Toddlers are hard. You can love your child and not love this phase.',
+    oneThingToday: 'Sit on the floor and follow their lead in play for 5 minutes. No phones, no agenda.',
+    selfCareReminder: 'Toddlers push boundaries because they feel safe with you. That\'s a success, not a failure.',
+  },
+  {
+    weekRange: [66, 78],
+    howYouMightFeel: [
+      'Tested by the "no" phase',
+      'Wondering if tantrums are normal (they are)',
+      'Proud of their growing independence',
+      'Touched out from constant physical demands',
+    ],
+    permissionSlip: 'It\'s okay to put them in a safe space and take a 2-minute breather. Regulated you > reactive you.',
+    oneThingToday: 'Name your own emotions out loud: "Mommy/Daddy feels frustrated right now."',
+    selfCareReminder: 'Dr. Becky says: "Kids don\'t give you a hard time, they\'re having a hard time." So are you. Both are valid.',
+  },
+  {
+    weekRange: [79, 91],
+    howYouMightFeel: [
+      'Negotiating with a tiny dictator daily',
+      'Delighted by their imagination',
+      'Questioning every parenting choice',
+      'Craving adult conversation desperately',
+    ],
+    permissionSlip: 'It\'s okay to use screen time strategically. It\'s okay to need a break from imaginative play.',
+    oneThingToday: 'Have a real conversation with another adult - even by text counts.',
+    selfCareReminder: 'The fact that you worry about being a good parent means you ARE a good parent.',
+  },
+  {
+    weekRange: [92, 104],
+    howYouMightFeel: [
+      'Amazed they\'re almost two',
+      'Anticipating the "terrible twos"',
+      'Proud of their blossoming personality',
+      'Feeling more confident as a parent',
+    ],
+    permissionSlip: 'It\'s okay if potty training isn\'t happening yet. Most kids aren\'t ready until 2.5-3.',
+    oneThingToday: 'Take a photo together - not just of them. You belong in these memories.',
+    selfCareReminder: 'The "terrible twos" are a myth. It\'s really the "developmentally appropriate boundary testing twos."',
+  },
+  // Year 3 (weeks 105-156)
+  {
+    weekRange: [105, 117],
+    howYouMightFeel: [
+      'Exhausted by endless questions',
+      'Amazed by their growing logic',
+      'Frustrated by power struggles',
+      'Proud of how far you\'ve both come',
+    ],
+    permissionSlip: 'It\'s okay to say "I don\'t know, let\'s find out" to their questions. You don\'t need all the answers.',
+    oneThingToday: 'Let them help with something you\'d normally do faster alone. Process over outcome.',
+    selfCareReminder: 'Two-year-olds are supposed to be irrational. Their prefrontal cortex is decades from being done.',
+  },
+  {
+    weekRange: [118, 130],
+    howYouMightFeel: [
+      'Tested by potty training challenges',
+      'Delighted by their sense of humor',
+      'Overwhelmed by their energy levels',
+      'More comfortable in your parenting skin',
+    ],
+    permissionSlip: 'It\'s okay if potty training takes months. No healthy kid goes to college in diapers.',
+    oneThingToday: 'Laugh at something together. Silliness is connection.',
+    selfCareReminder: 'You\'re not raising them to be good toddlers. You\'re raising them to be good humans. Big picture.',
+  },
+  {
+    weekRange: [131, 143],
+    howYouMightFeel: [
+      'Navigating social dynamics at play dates',
+      'Proud of their growing empathy',
+      'Exhausted by nap transition struggles',
+      'Excited about their upcoming milestones',
+    ],
+    permissionSlip: 'It\'s okay if they\'re not "sharing" perfectly. Forced sharing teaches nothing. Turn-taking is the goal.',
+    oneThingToday: 'Go outside together, even for 10 minutes. Fresh air fixes more than you\'d think.',
+    selfCareReminder: 'They remember how you make them feel, not whether you did Pinterest crafts.',
+  },
+  {
+    weekRange: [144, 156],
+    howYouMightFeel: [
+      'Disbelief they\'re almost three',
+      'Proud of the little person they\'re becoming',
+      'Nervous about preschool transitions',
+      'Nostalgic for the baby they were',
+    ],
+    permissionSlip: 'It\'s okay to not feel ready for the next phase. Growth is bittersweet.',
+    oneThingToday: 'Tell them specifically what you love about them: "I love how curious you are."',
+    selfCareReminder: 'You\'ve kept a human alive and thriving for three years. That\'s extraordinary.',
+  },
 ];
 
 // Quick wins by age
@@ -252,10 +362,34 @@ export const quickWins: QuickWin[] = [
   { activity: 'Clap hands together', duration: '2 min', benefit: 'Motor skills + music', ageAppropriate: [24, 52] },
 
   // 8-12 months
-  { activity: 'Stack and knock blocks', duration: '5 min', benefit: 'Fine motor + cause/effect', ageAppropriate: [32, 52] },
-  { activity: 'Practice waving bye-bye', duration: '2 min', benefit: 'Social skills', ageAppropriate: [32, 52] },
-  { activity: 'Point and name things', duration: '5 min', benefit: 'Language building', ageAppropriate: [36, 52] },
-  { activity: 'Dance party', duration: '3 min', benefit: 'Gross motor + joy', ageAppropriate: [30, 52] },
+  { activity: 'Stack and knock blocks', duration: '5 min', benefit: 'Fine motor + cause/effect', ageAppropriate: [32, 78] },
+  { activity: 'Practice waving bye-bye', duration: '2 min', benefit: 'Social skills', ageAppropriate: [32, 65] },
+  { activity: 'Point and name things', duration: '5 min', benefit: 'Language building', ageAppropriate: [36, 78] },
+  { activity: 'Dance party', duration: '3 min', benefit: 'Gross motor + joy', ageAppropriate: [30, 156] },
+
+  // Year 2: Toddlers (12-24 months)
+  { activity: 'Simple puzzles (2-4 pieces)', duration: '5 min', benefit: 'Problem solving', ageAppropriate: [52, 104] },
+  { activity: 'Scribbling with crayons', duration: '5 min', benefit: 'Fine motor + creativity', ageAppropriate: [52, 156] },
+  { activity: 'Hide and seek (simple)', duration: '5 min', benefit: 'Object permanence + fun', ageAppropriate: [52, 156] },
+  { activity: 'Stacking cups', duration: '3 min', benefit: 'Spatial reasoning', ageAppropriate: [52, 91] },
+  { activity: 'Ball rolling back and forth', duration: '5 min', benefit: 'Turn-taking + motor', ageAppropriate: [52, 104] },
+  { activity: 'Looking at books together', duration: '5 min', benefit: 'Language + bonding', ageAppropriate: [52, 156] },
+  { activity: 'Sorting by color', duration: '5 min', benefit: 'Cognitive development', ageAppropriate: [65, 156] },
+  { activity: 'Pretend cooking', duration: '5 min', benefit: 'Imagination', ageAppropriate: [65, 156] },
+  { activity: 'Naming body parts', duration: '3 min', benefit: 'Language + body awareness', ageAppropriate: [52, 104] },
+  { activity: 'Blow bubbles', duration: '5 min', benefit: 'Tracking + outdoor time', ageAppropriate: [52, 156] },
+
+  // Year 3: Toddlers (24-36 months)
+  { activity: 'Matching games', duration: '5 min', benefit: 'Memory + focus', ageAppropriate: [91, 156] },
+  { activity: 'Play-doh squishing', duration: '10 min', benefit: 'Fine motor + creativity', ageAppropriate: [91, 156] },
+  { activity: 'Simple role play', duration: '5 min', benefit: 'Social-emotional', ageAppropriate: [91, 156] },
+  { activity: 'Counting objects', duration: '3 min', benefit: 'Early math', ageAppropriate: [91, 156] },
+  { activity: 'Obstacle course', duration: '10 min', benefit: 'Gross motor + following directions', ageAppropriate: [91, 156] },
+  { activity: 'Puzzles (5-10 pieces)', duration: '5 min', benefit: 'Problem solving', ageAppropriate: [104, 156] },
+  { activity: 'Simon says', duration: '5 min', benefit: 'Listening + impulse control', ageAppropriate: [104, 156] },
+  { activity: 'Drawing shapes', duration: '5 min', benefit: 'Pre-writing skills', ageAppropriate: [104, 156] },
+  { activity: 'Sorting by size', duration: '5 min', benefit: 'Early math concepts', ageAppropriate: [104, 156] },
+  { activity: 'Helping with chores', duration: '5 min', benefit: 'Responsibility + motor skills', ageAppropriate: [78, 156] },
 ];
 
 // Get appropriate content for a specific week

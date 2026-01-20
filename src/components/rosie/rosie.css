@@ -4515,3 +4515,545 @@
   margin: -8px 0 16px;
   font-style: italic;
 }
+
+/* ===== Leap Week Range & Browse Button ===== */
+.rosie-leap-week-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px 16px;
+}
+
+.rosie-leap-week-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rosie-purple);
+}
+
+.rosie-leap-week-age {
+  font-size: 13px;
+  color: var(--rosie-text-secondary);
+}
+
+.rosie-leap-browse-section {
+  padding: 0 24px 24px;
+  border-top: 1px solid var(--rosie-border);
+  margin-top: 8px;
+  padding-top: 20px;
+}
+
+.rosie-leap-browse-btn {
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--rosie-purple-light) 0%, rgba(175, 82, 222, 0.15) 100%);
+  border: 1px solid rgba(175, 82, 222, 0.2);
+  border-radius: var(--rosie-radius);
+  color: var(--rosie-purple);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--rosie-transition);
+  font-family: inherit;
+}
+
+.rosie-leap-browse-btn:hover {
+  background: linear-gradient(135deg, rgba(175, 82, 222, 0.2) 0%, rgba(175, 82, 222, 0.25) 100%);
+  transform: translateY(-1px);
+}
+
+.rosie-leap-browse-btn-secondary {
+  margin-top: 16px;
+  background: transparent;
+  border: 1px solid var(--rosie-border-strong);
+  color: var(--rosie-text-primary);
+}
+
+.rosie-leap-browse-btn-secondary:hover {
+  background: var(--rosie-fill-secondary);
+}
+
+/* Leap Overview Card (when not in a leap) */
+.rosie-card-leap-overview {
+  padding: 24px;
+  background: linear-gradient(180deg, rgba(175, 82, 222, 0.06) 0%, var(--rosie-bg-card) 40%);
+}
+
+.rosie-leap-overview-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.rosie-leap-overview-icon {
+  font-size: 28px;
+}
+
+.rosie-leap-overview-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--rosie-text-primary);
+  margin: 0;
+}
+
+.rosie-leap-overview-subtitle {
+  font-size: 13px;
+  color: var(--rosie-text-secondary);
+  margin: 4px 0 0;
+}
+
+.rosie-leap-overview-text {
+  font-size: 15px;
+  color: var(--rosie-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+/* ===== Leap Browser Modal ===== */
+.rosie-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: rosie-fade-in 0.2s ease;
+}
+
+@keyframes rosie-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.rosie-modal {
+  background: var(--rosie-bg-card);
+  border-radius: var(--rosie-radius-xl) var(--rosie-radius-xl) 0 0;
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: rosie-slide-up 0.3s var(--rosie-ease);
+}
+
+@keyframes rosie-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.rosie-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--rosie-border);
+  position: sticky;
+  top: 0;
+  background: var(--rosie-bg-card);
+  z-index: 1;
+}
+
+.rosie-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--rosie-text-primary);
+  margin: 0;
+}
+
+.rosie-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--rosie-fill-secondary);
+  border: none;
+  font-size: 24px;
+  color: var(--rosie-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--rosie-transition);
+  line-height: 1;
+}
+
+.rosie-modal-close:hover {
+  background: var(--rosie-fill);
+  color: var(--rosie-text-primary);
+}
+
+.rosie-modal-content {
+  padding: 20px 24px 40px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Leap Browser Intro */
+.rosie-leap-browser-intro {
+  font-size: 14px;
+  color: var(--rosie-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+/* Leap Timeline Visualization */
+.rosie-leap-timeline {
+  margin-bottom: 24px;
+}
+
+.rosie-leap-timeline-track {
+  height: 8px;
+  background: var(--rosie-fill-secondary);
+  border-radius: var(--rosie-radius-full);
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.rosie-leap-timeline-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rosie-green) 0%, var(--rosie-purple) 100%);
+  border-radius: var(--rosie-radius-full);
+  transition: width 0.3s ease;
+}
+
+.rosie-leap-timeline-marker {
+  position: absolute;
+  top: -6px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rosie-leap-timeline-marker::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  background: var(--rosie-purple);
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(175, 82, 222, 0.4);
+}
+
+.rosie-leap-timeline-marker span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rosie-purple);
+  margin-top: 6px;
+  white-space: nowrap;
+}
+
+.rosie-leap-timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--rosie-text-tertiary);
+  padding-top: 4px;
+}
+
+/* Leap List */
+.rosie-leap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rosie-leap-list-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--rosie-fill-secondary);
+  border: 1px solid var(--rosie-border);
+  border-radius: var(--rosie-radius);
+  cursor: pointer;
+  transition: all var(--rosie-transition);
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.rosie-leap-list-item:hover {
+  background: var(--rosie-fill);
+  border-color: var(--rosie-border-strong);
+}
+
+.rosie-leap-list-item.current {
+  background: linear-gradient(135deg, var(--rosie-purple-light) 0%, rgba(175, 82, 222, 0.1) 100%);
+  border-color: rgba(175, 82, 222, 0.3);
+}
+
+.rosie-leap-list-item.completed {
+  opacity: 0.7;
+}
+
+.rosie-leap-list-number {
+  width: 36px;
+  height: 36px;
+  background: var(--rosie-fill);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--rosie-text-primary);
+  flex-shrink: 0;
+}
+
+.rosie-leap-list-item.current .rosie-leap-list-number {
+  background: var(--rosie-purple);
+  color: white;
+}
+
+.rosie-leap-list-item.completed .rosie-leap-list-number {
+  background: var(--rosie-green);
+  color: white;
+}
+
+.rosie-leap-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.rosie-leap-list-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rosie-text-primary);
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rosie-leap-list-weeks {
+  font-size: 12px;
+  color: var(--rosie-text-secondary);
+  margin: 0;
+}
+
+.rosie-leap-list-status {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: var(--rosie-radius-full);
+  flex-shrink: 0;
+}
+
+.rosie-leap-list-status.upcoming {
+  background: var(--rosie-blue-light);
+  color: var(--rosie-blue);
+}
+
+.rosie-leap-list-status.current {
+  background: var(--rosie-purple);
+  color: white;
+}
+
+.rosie-leap-list-status.completed {
+  background: var(--rosie-green-light);
+  color: var(--rosie-green);
+}
+
+.rosie-leap-list-arrow {
+  font-size: 20px;
+  color: var(--rosie-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* Leap Detail View */
+.rosie-leap-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: var(--rosie-fill-secondary);
+  border: none;
+  border-radius: var(--rosie-radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rosie-text-secondary);
+  cursor: pointer;
+  transition: all var(--rosie-transition);
+  margin-bottom: 20px;
+  font-family: inherit;
+}
+
+.rosie-leap-back-btn:hover {
+  background: var(--rosie-fill);
+  color: var(--rosie-text-primary);
+}
+
+.rosie-leap-detail {
+  background: linear-gradient(180deg, var(--rosie-purple-light) 0%, var(--rosie-bg-card) 20%);
+  border-radius: var(--rosie-radius-lg);
+  padding: 24px;
+  border: 1px solid rgba(175, 82, 222, 0.15);
+}
+
+.rosie-leap-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.rosie-leap-detail-icon {
+  font-size: 32px;
+}
+
+.rosie-leap-detail-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--rosie-text-primary);
+  margin: 0;
+}
+
+.rosie-leap-detail-subtitle {
+  font-size: 14px;
+  color: var(--rosie-purple);
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+.rosie-leap-detail-meta {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.rosie-leap-detail-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  background: var(--rosie-fill-secondary);
+  border-radius: var(--rosie-radius-sm);
+  flex: 1;
+  min-width: 80px;
+}
+
+.rosie-leap-detail-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--rosie-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rosie-leap-detail-meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rosie-text-primary);
+}
+
+.rosie-leap-detail-description {
+  font-size: 15px;
+  color: var(--rosie-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+.rosie-leap-detail-section {
+  margin-bottom: 20px;
+}
+
+.rosie-leap-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.rosie-leap-detail-section h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rosie-text-primary);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rosie-leap-detail-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rosie-leap-detail-section li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--rosie-text-primary);
+  line-height: 1.5;
+}
+
+.rosie-leap-detail-section li:last-child {
+  margin-bottom: 0;
+}
+
+.rosie-leap-detail-section li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rosie-purple);
+}
+
+.rosie-leap-detail-skills li::before {
+  background: var(--rosie-green);
+}
+
+/* Leap Navigation */
+.rosie-leap-nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.rosie-leap-nav-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--rosie-fill-secondary);
+  border: 1px solid var(--rosie-border);
+  border-radius: var(--rosie-radius);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rosie-text-secondary);
+  cursor: pointer;
+  transition: all var(--rosie-transition);
+  font-family: inherit;
+}
+
+.rosie-leap-nav-btn:hover {
+  background: var(--rosie-fill);
+  border-color: var(--rosie-border-strong);
+  color: var(--rosie-text-primary);
+}
+
+.rosie-leap-nav-btn-next {
+  background: linear-gradient(135deg, var(--rosie-purple-light) 0%, rgba(175, 82, 222, 0.12) 100%);
+  border-color: rgba(175, 82, 222, 0.2);
+  color: var(--rosie-purple);
+}
+
+.rosie-leap-nav-btn-next:hover {
+  background: linear-gradient(135deg, rgba(175, 82, 222, 0.2) 0%, rgba(175, 82, 222, 0.25) 100%);
+}

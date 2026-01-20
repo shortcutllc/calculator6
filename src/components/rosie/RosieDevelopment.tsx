@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BabyProfile, DevelopmentalInfo } from './types';
-import { getLeapStatus, LeapStatus } from './leapData';
+import { getLeapStatus, LeapStatus, leaps, LeapInfo } from './leapData';
 import {
   getParentWellnessForWeek,
   getQuickWinsForWeek,
@@ -26,8 +26,32 @@ export const RosieDevelopment: React.FC<RosieDevelopmentProps> = ({ baby, develo
     upcomingChanges,
   } = developmentalInfo;
 
+  // Leap browser state
+  const [showLeapBrowser, setShowLeapBrowser] = useState(false);
+  const [selectedLeap, setSelectedLeap] = useState<LeapInfo | null>(null);
+
   // Get leap status
   const leapStatus: LeapStatus = useMemo(() => getLeapStatus(ageInWeeks), [ageInWeeks]);
+
+  // Helper to get leap status for any leap
+  const getLeapStatusLabel = (leap: LeapInfo): { label: string; className: string } => {
+    if (ageInWeeks < leap.startWeek) {
+      return { label: 'Upcoming', className: 'upcoming' };
+    } else if (ageInWeeks >= leap.startWeek && ageInWeeks <= leap.endWeek) {
+      return { label: 'Current', className: 'current' };
+    } else {
+      return { label: 'Completed', className: 'completed' };
+    }
+  };
+
+  // Format weeks to months display
+  const formatWeeksToAge = (weeks: number): string => {
+    if (weeks < 4) return `${weeks} weeks`;
+    const months = Math.floor(weeks / 4.33);
+    if (months < 1) return `${weeks} weeks`;
+    if (months === 1) return '~1 month';
+    return `~${months} months`;
+  };
 
   // Get parent wellness content
   const wellnessContent: ParentWellnessContent | null = useMemo(
@@ -140,6 +164,12 @@ export const RosieDevelopment: React.FC<RosieDevelopmentProps> = ({ baby, develo
             </div>
           </div>
 
+          {/* Week range info */}
+          <div className="rosie-leap-week-range">
+            <span className="rosie-leap-week-label">Weeks {leapStatus.currentLeap.startWeek}–{leapStatus.currentLeap.endWeek}</span>
+            <span className="rosie-leap-week-age">({formatWeeksToAge(leapStatus.currentLeap.startWeek)} – {formatWeeksToAge(leapStatus.currentLeap.endWeek)})</span>
+          </div>
+
           <p className="rosie-leap-description">{leapStatus.currentLeap.description}</p>
 
           {/* Progress bar */}
@@ -182,6 +212,16 @@ export const RosieDevelopment: React.FC<RosieDevelopmentProps> = ({ baby, develo
               ))}
             </ul>
           </div>
+
+          {/* Browse all leaps button */}
+          <div className="rosie-leap-browse-section">
+            <button
+              className="rosie-leap-browse-btn"
+              onClick={() => setShowLeapBrowser(true)}
+            >
+              View All 10 Leaps
+            </button>
+          </div>
         </div>
       )}
 
@@ -194,8 +234,36 @@ export const RosieDevelopment: React.FC<RosieDevelopmentProps> = ({ baby, develo
           </div>
           <p className="rosie-next-leap-text">
             Enjoy this calmer time! Next leap (Leap {leapStatus.nextLeap.leapNumber}: {leapStatus.nextLeap.name})
-            starts in about {leapStatus.daysUntilNextLeap} days.
+            starts in about {leapStatus.daysUntilNextLeap} days around week {leapStatus.nextLeap.startWeek}.
           </p>
+          <button
+            className="rosie-leap-browse-btn rosie-leap-browse-btn-secondary"
+            onClick={() => setShowLeapBrowser(true)}
+          >
+            View All 10 Leaps
+          </button>
+        </div>
+      )}
+
+      {/* Show leap browser even when not in a leap */}
+      {!leapStatus.isInLeap && !leapStatus.isSunnyPeriod && (
+        <div className="rosie-card rosie-card-leap-overview">
+          <div className="rosie-leap-overview-header">
+            <span className="rosie-leap-overview-icon">🧠</span>
+            <div>
+              <h3 className="rosie-leap-overview-title">Wonder Weeks</h3>
+              <p className="rosie-leap-overview-subtitle">Developmental leaps in the first 20 months</p>
+            </div>
+          </div>
+          <p className="rosie-leap-overview-text">
+            Babies go through 10 major mental "leaps" that can cause temporary fussiness followed by new skills.
+          </p>
+          <button
+            className="rosie-leap-browse-btn"
+            onClick={() => setShowLeapBrowser(true)}
+          >
+            Explore All 10 Leaps
+          </button>
         </div>
       )}
 
@@ -396,6 +464,183 @@ export const RosieDevelopment: React.FC<RosieDevelopmentProps> = ({ baby, develo
       {wellnessContent && (
         <div className="rosie-self-care-footer">
           <p>{wellnessContent.selfCareReminder}</p>
+        </div>
+      )}
+
+      {/* Leap Browser Modal */}
+      {showLeapBrowser && (
+        <div className="rosie-modal-overlay" onClick={() => { setShowLeapBrowser(false); setSelectedLeap(null); }}>
+          <div className="rosie-modal rosie-modal-leap-browser" onClick={e => e.stopPropagation()}>
+            <div className="rosie-modal-header">
+              <h2 className="rosie-modal-title">
+                {selectedLeap ? `Leap ${selectedLeap.leapNumber}` : 'The 10 Wonder Weeks Leaps'}
+              </h2>
+              <button
+                className="rosie-modal-close"
+                onClick={() => { setShowLeapBrowser(false); setSelectedLeap(null); }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="rosie-modal-content">
+              {!selectedLeap ? (
+                // Leap list view
+                <>
+                  <p className="rosie-leap-browser-intro">
+                    Based on "The Wonder Weeks" by Hetty van de Rijt & Frans Plooij.
+                    Each leap represents a major shift in how your baby perceives the world.
+                  </p>
+
+                  {/* Timeline visualization */}
+                  <div className="rosie-leap-timeline">
+                    <div className="rosie-leap-timeline-track">
+                      <div
+                        className="rosie-leap-timeline-progress"
+                        style={{ width: `${Math.min(100, (ageInWeeks / 76) * 100)}%` }}
+                      />
+                      <div
+                        className="rosie-leap-timeline-marker"
+                        style={{ left: `${Math.min(100, (ageInWeeks / 76) * 100)}%` }}
+                      >
+                        <span>Week {weekNumber}</span>
+                      </div>
+                    </div>
+                    <div className="rosie-leap-timeline-labels">
+                      <span>Birth</span>
+                      <span>~20 months</span>
+                    </div>
+                  </div>
+
+                  <div className="rosie-leap-list">
+                    {leaps.map((leap) => {
+                      const status = getLeapStatusLabel(leap);
+                      return (
+                        <button
+                          key={leap.leapNumber}
+                          className={`rosie-leap-list-item ${status.className}`}
+                          onClick={() => setSelectedLeap(leap)}
+                        >
+                          <div className="rosie-leap-list-number">
+                            {status.className === 'completed' ? '✓' : leap.leapNumber}
+                          </div>
+                          <div className="rosie-leap-list-info">
+                            <h4 className="rosie-leap-list-name">{leap.name}</h4>
+                            <p className="rosie-leap-list-weeks">
+                              Weeks {leap.startWeek}–{leap.endWeek} ({formatWeeksToAge(leap.startWeek)} – {formatWeeksToAge(leap.endWeek)})
+                            </p>
+                          </div>
+                          <div className={`rosie-leap-list-status ${status.className}`}>
+                            {status.label}
+                          </div>
+                          <div className="rosie-leap-list-arrow">›</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                // Selected leap detail view
+                <>
+                  <button
+                    className="rosie-leap-back-btn"
+                    onClick={() => setSelectedLeap(null)}
+                  >
+                    ← Back to all leaps
+                  </button>
+
+                  <div className="rosie-leap-detail">
+                    <div className="rosie-leap-detail-header">
+                      <div className="rosie-leap-detail-icon">🧠</div>
+                      <div>
+                        <h3 className="rosie-leap-detail-title">{selectedLeap.name}</h3>
+                        <p className="rosie-leap-detail-subtitle">{selectedLeap.subtitle}</p>
+                      </div>
+                    </div>
+
+                    <div className="rosie-leap-detail-meta">
+                      <div className="rosie-leap-detail-meta-item">
+                        <span className="rosie-leap-detail-meta-label">When</span>
+                        <span className="rosie-leap-detail-meta-value">
+                          Weeks {selectedLeap.startWeek}–{selectedLeap.endWeek}
+                        </span>
+                      </div>
+                      <div className="rosie-leap-detail-meta-item">
+                        <span className="rosie-leap-detail-meta-label">Age</span>
+                        <span className="rosie-leap-detail-meta-value">
+                          {formatWeeksToAge(selectedLeap.startWeek)} – {formatWeeksToAge(selectedLeap.endWeek)}
+                        </span>
+                      </div>
+                      <div className="rosie-leap-detail-meta-item">
+                        <span className="rosie-leap-detail-meta-label">Peak</span>
+                        <span className="rosie-leap-detail-meta-value">
+                          Week {selectedLeap.peakWeek}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="rosie-leap-detail-description">{selectedLeap.description}</p>
+
+                    <div className="rosie-leap-detail-section">
+                      <h4>What Baby Is Learning</h4>
+                      <ul>
+                        {selectedLeap.whatBabyLearns.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="rosie-leap-detail-section">
+                      <h4>Signs You Might Notice</h4>
+                      <ul>
+                        {selectedLeap.signsOfLeap.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="rosie-leap-detail-section">
+                      <h4>How to Help</h4>
+                      <ul>
+                        {selectedLeap.howToHelp.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="rosie-leap-detail-section rosie-leap-detail-skills">
+                      <h4>New Skills After This Leap</h4>
+                      <ul>
+                        {selectedLeap.newSkillsAfter.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Navigation between leaps */}
+                  <div className="rosie-leap-nav">
+                    {selectedLeap.leapNumber > 1 && (
+                      <button
+                        className="rosie-leap-nav-btn"
+                        onClick={() => setSelectedLeap(leaps[selectedLeap.leapNumber - 2])}
+                      >
+                        ← Leap {selectedLeap.leapNumber - 1}
+                      </button>
+                    )}
+                    {selectedLeap.leapNumber < 10 && (
+                      <button
+                        className="rosie-leap-nav-btn rosie-leap-nav-btn-next"
+                        onClick={() => setSelectedLeap(leaps[selectedLeap.leapNumber])}
+                      >
+                        Leap {selectedLeap.leapNumber + 1} →
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
