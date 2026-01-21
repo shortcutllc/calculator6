@@ -38,7 +38,6 @@ const QRCodeSignDisplay = lazy(() => import('./components/QRCodeSignDisplay'));
 const MindfulnessProgramManager = lazy(() => import('./components/MindfulnessProgramManager'));
 const GenericLandingPageManager = lazy(() => import('./components/GenericLandingPageManager'));
 const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
-const RosieAI = lazy(() => import('./components/rosie/RosieAI'));
 
 function App() {
   const location = useLocation();
@@ -60,7 +59,7 @@ function App() {
     location.pathname.startsWith('/qr-code-sign/') ||
     location.pathname.startsWith('/generic-landing-page/') ||
     location.pathname === '/corporatepartnerships' ||
-    location.pathname === '/rosie';
+    location.pathname === '/corporatepartnerships';
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -429,20 +428,6 @@ function App() {
                 }
               />
               
-              {/* Rosie AI - Baby Companion */}
-              <Route
-                path="/rosie"
-                element={
-                  <Suspense fallback={
-                    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
-                      <LoadingSpinner size="large" />
-                    </div>
-                  }>
-                    <RosieAI />
-                  </Suspense>
-                }
-              />
-
               {/* Custom URL Routes */}
               <Route
                 path="/:client/:type/:slug"
