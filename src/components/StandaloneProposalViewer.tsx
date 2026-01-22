@@ -1776,15 +1776,63 @@ export const StandaloneProposalViewer: React.FC = () => {
                             {expandedDates[date] && (
                               <div className="p-8 bg-white">
                                 {dateData.services.map((service: any, serviceIndex: number) => (
-                                  <div 
-                                    key={serviceIndex} 
+                                  <div
+                                    key={serviceIndex}
                                     className={`card-small mb-8 border-2 ${getServiceBorderClass(service.serviceType)}`}
                                   >
-                                    <h4 className="text-xl font-extrabold text-shortcut-blue mb-5 flex items-center">
-                                      <span className="w-3.5 h-3.5 rounded-full bg-shortcut-teal mr-3"></span>
-                                      Service Type: {getServiceDisplayName(service.serviceType)}
-                                    </h4>
-                                    
+                                    <div className="flex items-center justify-between mb-5">
+                                      <h4 className="text-xl font-extrabold text-shortcut-blue flex items-center">
+                                        <span className="w-3.5 h-3.5 rounded-full bg-shortcut-teal mr-3"></span>
+                                        Service Type: {getServiceDisplayName(service.serviceType)}
+                                      </h4>
+                                      {service.isRecurring && service.recurringFrequency && (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                                          Recurring
+                                          <span className="opacity-80">
+                                            ({service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                              service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                              `${service.recurringFrequency.occurrences}x`})
+                                          </span>
+                                          {service.recurringFrequency.occurrences >= 4 && (
+                                            <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">
+                                              {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} off
+                                            </span>
+                                          )}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Recurring Event Details */}
+                                    {service.isRecurring && service.recurringFrequency && (
+                                      <div className="mb-5 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-lg">🔄</span>
+                                          <h5 className="font-bold text-purple-800">Recurring Event</h5>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                          <div>
+                                            <span className="font-bold text-purple-700">Frequency:</span>
+                                            <span className="ml-2 text-purple-900">
+                                              {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                               service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                               'Custom'}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="font-bold text-purple-700">Total Events:</span>
+                                            <span className="ml-2 text-purple-900">{service.recurringFrequency.occurrences}</span>
+                                          </div>
+                                        </div>
+                                        {service.recurringFrequency.occurrences >= 4 && (
+                                          <div className="mt-3 p-2 bg-white/50 rounded-lg">
+                                            <span className="text-sm font-bold text-green-700">
+                                              ✨ {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} Volume Discount Applied
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (
                                       <div className="mb-5 p-6 bg-white rounded-xl border-2 border-shortcut-teal shadow-sm">
@@ -2210,11 +2258,31 @@ export const StandaloneProposalViewer: React.FC = () => {
 
             {/* Event Summary - Dark Blue */}
             <div className="bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue text-white rounded-2xl shadow-xl border-2 border-shortcut-teal border-opacity-30 p-8">
-              <div className="flex items-center space-x-3 mb-8">
-                <div className="w-10 h-10 rounded-full bg-shortcut-teal bg-opacity-20 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-shortcut-teal bg-opacity-20 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
                 </div>
-                <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
+                {/* Check for recurring services */}
+                {(() => {
+                  let recurringCount = 0;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.isRecurring && service.recurringFrequency) {
+                          recurringCount++;
+                        }
+                      });
+                    });
+                  });
+                  return recurringCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                      🔄 {recurringCount} Recurring
+                    </span>
+                  ) : null;
+                })()}
               </div>
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
@@ -2241,6 +2309,35 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span className="font-extrabold text-lg text-white">Total Event Cost:</span>
                   <span className="font-extrabold text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
+                {/* Recurring Savings Display */}
+                {(() => {
+                  let totalSavings = 0;
+                  let hasRecurring = false;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.isRecurring && service.recurringFrequency && service.recurringFrequency.occurrences >= 4) {
+                          hasRecurring = true;
+                          const discount = service.recurringFrequency.occurrences >= 9 ? 0.20 : 0.15;
+                          // Estimate savings based on service cost
+                          const originalCost = service.serviceCost / (1 - discount);
+                          totalSavings += originalCost - service.serviceCost;
+                        }
+                      });
+                    });
+                  });
+                  return hasRecurring && totalSavings > 0 ? (
+                    <div className="mt-4 pt-4 border-t-2 border-shortcut-teal/30">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-white/90 text-lg flex items-center gap-2">
+                          <span className="text-lg">✨</span>
+                          Recurring Savings:
+                        </span>
+                        <span className="font-extrabold text-xl text-green-300">-${formatCurrency(totalSavings)}</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
 
