@@ -26,6 +26,31 @@ import {
   ParticipantBenefitsSection,
   AdditionalResourcesSection
 } from './MindfulnessProposalContent';
+import {
+  MassageWhyShortcutSection,
+  MassageBenefitsSection,
+  MassageWhatsIncludedSection
+} from './MassageProposalContent';
+import {
+  HeadshotWhyShortcutSection,
+  HeadshotBenefitsSection,
+  HeadshotWhatsIncludedSection
+} from './HeadshotProposalContent';
+import {
+  NailsWhyShortcutSection,
+  NailsBenefitsSection,
+  NailsWhatsIncludedSection
+} from './NailsProposalContent';
+import {
+  HairMakeupWhyShortcutSection,
+  HairMakeupBenefitsSection,
+  HairMakeupWhatsIncludedSection
+} from './HairMakeupProposalContent';
+import {
+  FacialWhyShortcutSection,
+  FacialBenefitsSection,
+  FacialWhatsIncludedSection
+} from './FacialProposalContent';
 
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -124,6 +149,40 @@ const hasCLEService = (displayData: any): boolean => {
   const uniqueServiceTypes = getUniqueServiceTypes(displayData);
   return uniqueServiceTypes.some(type =>
     type.toLowerCase() === 'mindfulness-cle'
+  );
+};
+
+// Helper function to check if proposal contains massage services
+const hasMassageService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  return uniqueServiceTypes.some(type => type.toLowerCase() === 'massage');
+};
+
+// Helper function to check if proposal contains headshot services
+const hasHeadshotService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  const headshotTypes = ['headshot', 'headshots', 'headshot-hair-makeup'];
+  return uniqueServiceTypes.some(type => headshotTypes.includes(type.toLowerCase()));
+};
+
+// Helper function to check if proposal contains nail services
+const hasNailsService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  return uniqueServiceTypes.some(type => type.toLowerCase() === 'nails');
+};
+
+// Helper function to check if proposal contains hair/makeup services (excluding headshot-hair-makeup which is covered by headshots)
+const hasHairMakeupService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  const hairMakeupTypes = ['hair-makeup', 'hair', 'makeup'];
+  return uniqueServiceTypes.some(type => hairMakeupTypes.includes(type.toLowerCase()));
+};
+
+// Helper function to check if proposal contains facial services
+const hasFacialService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  return uniqueServiceTypes.some(type =>
+    type.toLowerCase() === 'facial' || type.toLowerCase() === 'facials'
   );
 };
 
@@ -1624,94 +1683,97 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
         ) : (
           <>
-        {/* Summary-First Layout - Key Metrics at Top */}
-        <div className="card-large mb-8 scroll-mt-24">
-          <div className="mb-8">
-              {displayData.clientLogoUrl ? (
-                <div className="flex justify-start mb-6">
+        {/* Compact Hero Header - Inspired by GenericLandingPage */}
+        <div className="relative overflow-hidden rounded-3xl mb-8 scroll-mt-24" style={{ backgroundColor: '#F0F0FF' }}>
+          <div className="relative z-10 px-6 py-8 md:px-10 md:py-12">
+            {/* Top Row: Logo/Name + Total Cost */}
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-6">
+              {/* Client Identity */}
+              <div className="flex items-center gap-4">
+                {displayData.clientLogoUrl ? (
                   <img
                     src={displayData.clientLogoUrl}
                     alt={`${displayData.clientName} Logo`}
-                  className="max-h-20 max-w-full object-contain rounded shadow-sm"
-                    style={{ maxWidth: '300px' }}
+                    className="h-12 md:h-16 max-w-[200px] object-contain"
                     onError={(e) => {
-                      console.error('Logo failed to load:', displayData.clientLogoUrl);
                       e.currentTarget.style.display = 'none';
-                      const fallbackElement = e.currentTarget.nextElementSibling;
-                      if (fallbackElement) {
-                        (fallbackElement as HTMLElement).style.display = 'block';
-                      }
                     }}
                   />
-                <h1 className="h1 mb-4 hidden">
+                ) : (
+                  <h1 className="text-2xl md:text-3xl font-extrabold text-shortcut-navy-blue">
                     {displayData.clientName}
-                </h1>
+                  </h1>
+                )}
+              </div>
+
+              {/* Total Cost - Prominent Display */}
+              <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-5 py-3 shadow-sm border border-white/50">
+                <div className="text-right">
+                  <p className="text-xs font-bold text-shortcut-blue uppercase tracking-wider mb-1">Total Investment</p>
+                  <p className="text-2xl md:text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(displayData.summary?.totalEventCost || 0)}</p>
                 </div>
-              ) : (
-              <h1 className="h1 mb-6">
-                  {displayData.clientName}
-              </h1>
-            )}
-            
-            {/* Note from Shortcut - Clean, readable design */}
+              </div>
+            </div>
+
+            {/* Inline Metrics Row */}
+            <div className="flex flex-wrap gap-3 md:gap-4 mb-6">
+              {/* Event Dates */}
+              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                <Calendar size={16} className="text-shortcut-blue" />
+                <span className="font-semibold text-shortcut-navy-blue">
+                  {Array.isArray(displayData.eventDates)
+                    ? displayData.eventDates.map((date: string) => formatDate(date)).join(', ')
+                    : 'TBD'}
+                </span>
+              </div>
+
+              {/* Locations */}
+              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                <Globe size={16} className="text-shortcut-blue" />
+                <span className="font-semibold text-shortcut-navy-blue">
+                  {Array.isArray(displayData.locations)
+                    ? displayData.locations.join(', ')
+                    : displayData.locations || 'TBD'}
+                </span>
+              </div>
+
+              {/* Total Appointments */}
+              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                <User size={16} className="text-shortcut-blue" />
+                <span className="font-semibold text-shortcut-navy-blue">
+                  {displayData.summary?.totalAppointments || 0} appointments
+                </span>
+              </div>
+
+              {/* Office Location - Compact */}
+              {((displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation) && (
+                <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                  <FileText size={16} className="text-shortcut-blue" />
+                  <span className="font-semibold text-shortcut-navy-blue">
+                    {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0
+                      ? `${Object.keys(displayData.officeLocations).length} office${Object.keys(displayData.officeLocations).length > 1 ? 's' : ''}`
+                      : displayData.officeLocation}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Custom Note - Compact */}
             {displayData.customization?.customNote && (
-              <div className="mt-8 pt-8 border-t-2 border-shortcut-teal border-opacity-20 bg-shortcut-teal bg-opacity-5 rounded-xl p-8">
-                <div className="flex items-center space-x-3 mb-5">
-                  <div className="w-3 h-3 rounded-full bg-shortcut-teal"></div>
-                  <h3 className="text-xl font-extrabold text-shortcut-navy-blue">Note from Shortcut</h3>
+              <div className="bg-white/70 backdrop-blur-sm rounded-xl px-5 py-4 border border-white/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 rounded-full bg-shortcut-teal mt-2 flex-shrink-0"></div>
+                  <p className="text-sm md:text-base text-shortcut-navy-blue leading-relaxed font-medium">
+                    {displayData.customization.customNote.replace('above', 'below')}
+                  </p>
                 </div>
-                <p className="text-lg text-text-dark leading-relaxed font-medium pl-6">
-                  {displayData.customization.customNote.replace('above', 'below')}
-                </p>
               </div>
             )}
           </div>
 
-          {/* Key Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 border-t-2 border-shortcut-teal border-opacity-20">
-            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
-              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Event Dates</p>
-              <p className="text-xl font-extrabold text-shortcut-navy-blue leading-tight">
-                    {Array.isArray(displayData.eventDates) ? 
-                      displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
-                      'No dates available'
-                    }
-                  </p>
-                </div>
-            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
-              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Locations</p>
-              <p className="text-xl font-extrabold text-shortcut-navy-blue leading-tight">
-                {Array.isArray(displayData.locations) 
-                  ? displayData.locations.join(', ') 
-                  : displayData.locations || 'No locations available'}
-              </p>
-                </div>
-            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
-              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Total Appointments</p>
-              <p className="text-4xl font-extrabold text-shortcut-navy-blue">{displayData.summary?.totalAppointments || 0}</p>
-                  </div>
-                {/* Display multiple office locations if available, otherwise show single office location */}
-                {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
-              <div className="md:col-span-3 mt-4 pt-8 border-t-2 border-shortcut-teal border-opacity-20">
-                <div className="p-6 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
-                  <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Office Location(s)</p>
-                  {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0 ? (
-                    <div className="space-y-3">
-                      {Object.entries(displayData.officeLocations).map(([location, address]) => (
-                        <div key={location} className="pb-3 border-b border-shortcut-navy-blue border-opacity-10 last:border-0 last:pb-0">
-                          <p className="text-sm font-bold text-shortcut-navy-blue mb-2">{location}:</p>
-                          <p className="text-lg font-semibold text-text-dark">{String(address)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : displayData.officeLocation ? (
-                    <p className="text-lg font-semibold text-text-dark">{displayData.officeLocation}</p>
-                  ) : null}
-                </div>
-                    </div>
-                ) : null}
-                </div>
-            </div>
+          {/* Subtle decorative element */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-shortcut-teal/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2"></div>
+        </div>
 
         {/* Mobile Layout: Single column with specific order */}
         <div className="lg:grid lg:grid-cols-12 gap-12">
@@ -2133,6 +2195,51 @@ export const StandaloneProposalViewer: React.FC = () => {
             {/* Additional Resources - Show for mindfulness-only proposals in left column */}
             {isMindfulnessOnlyProposal(displayData) && (
               <AdditionalResourcesSection />
+            )}
+
+            {/* Massage-specific sections */}
+            {hasMassageService(displayData) && (
+              <>
+                <MassageWhyShortcutSection />
+                <MassageBenefitsSection />
+                <MassageWhatsIncludedSection />
+              </>
+            )}
+
+            {/* Headshot-specific sections */}
+            {hasHeadshotService(displayData) && (
+              <>
+                <HeadshotWhyShortcutSection />
+                <HeadshotBenefitsSection />
+                <HeadshotWhatsIncludedSection />
+              </>
+            )}
+
+            {/* Nails-specific sections */}
+            {hasNailsService(displayData) && (
+              <>
+                <NailsWhyShortcutSection />
+                <NailsBenefitsSection />
+                <NailsWhatsIncludedSection />
+              </>
+            )}
+
+            {/* Hair & Makeup-specific sections */}
+            {hasHairMakeupService(displayData) && (
+              <>
+                <HairMakeupWhyShortcutSection />
+                <HairMakeupBenefitsSection />
+                <HairMakeupWhatsIncludedSection />
+              </>
+            )}
+
+            {/* Facial-specific sections */}
+            {hasFacialService(displayData) && (
+              <>
+                <FacialWhyShortcutSection />
+                <FacialBenefitsSection />
+                <FacialWhatsIncludedSection />
+              </>
             )}
               </div>
 

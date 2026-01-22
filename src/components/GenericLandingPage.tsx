@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useProposal } from '../contexts/ProposalContext';
 import { prepareProposalFromCalculation } from '../utils/proposalGenerator';
 import ClientProposalBuilder from './ClientProposalBuilder';
+import { Button } from './Button';
 
 interface GenericLandingPageProps {
   genericLandingPageData?: GenericLandingPageType;
@@ -42,6 +43,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
   const [showMessageField, setShowMessageField] = useState(false);
   const shortcutSectionRef = useRef<HTMLElement>(null);
   const [shortcutSectionInView, setShortcutSectionInView] = useState(false);
+  const [commitmentLevel, setCommitmentLevel] = useState<'4plus' | '9plus'>('4plus');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -495,8 +497,8 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       { appointments: 60, eventTime: 6, pros: 5, price: 4050 }
     ],
     mindfulness: [
-      { appointments: 1, eventTime: 0.5, pros: 1, price: 1225, name: 'Mindful Eating & Breathe Awareness', popular: true },
-      { appointments: 1, eventTime: 0.5, pros: 1, price: 1225, name: 'Movement & Scan' },
+      { appointments: 1, eventTime: 0.5, pros: 1, price: 1250, name: 'Mindful Eating & Breathe Awareness', popular: true },
+      { appointments: 1, eventTime: 0.5, pros: 1, price: 1250, name: 'Movement & Scan' },
       { appointments: 1, eventTime: 1, pros: 1, price: 1500, name: 'Speak & Listen' }
     ]
   } as const;
@@ -519,7 +521,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
   const getServiceName = (serviceId: string) => {
     const names = {
       'massage': 'Massage',
-      'hair-makeup': 'Glam',
+      'hair-makeup': 'Hair & Beauty',
       'headshot': 'Headshots',
       'nails': 'Nails',
       'mindfulness': 'Mindfulness'
@@ -537,6 +539,18 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
       'mindfulness': '#FEDC64'
     };
     return colors[serviceId as keyof typeof colors] || '#9EFAFF';
+  };
+
+  // Get service image path
+  const getServiceImagePath = (serviceId: string) => {
+    const images = {
+      'massage': '/QR Code Sign/Service Images/Massage.png',
+      'hair-makeup': '/QR Code Sign/Service Images/Hair & Beauty.png',
+      'headshot': '/QR Code Sign/Service Images/Headshots.png',
+      'nails': '/QR Code Sign/Service Images/Nails.png',
+      'mindfulness': '/QR Code Sign/Service Images/Mindfulness.png'
+    };
+    return images[serviceId as keyof typeof images] || '/QR Code Sign/Service Images/Massage.png';
   };
 
   // Get mindfulness service description
@@ -1471,12 +1485,13 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </div>
       </header>
 
-      {/* HERO */}
+      {/* HERO - Apple/Airbnb Style */}
       <section id="top" className="relative overflow-hidden rounded-b-3xl" style={{ backgroundColor: '#F0F0FF', minHeight: '100vh', paddingTop: 0 }}>
         <div className="relative z-10 flex items-center justify-center min-h-screen">
-          <div className="mx-auto max-w-5xl px-5 lg:px-[90px] py-20 md:py-32 lg:py-40 text-center">
-            {/* Animated Icons Stack - Single visible icon cycling */}
-            <div className="mb-12 md:mb-16 flex justify-center items-center relative mx-auto" style={{ height: '120px', width: '120px' }}>
+          <div className="mx-auto max-w-5xl px-4 md:px-6 py-16 md:py-20 lg:py-32 text-center">
+
+            {/* Animated Icons Stack - Simplified fade transition */}
+            <div className="mb-8 md:mb-12 flex justify-center items-center relative mx-auto" style={{ height: '96px', width: '96px' }}>
               {[
                 '/Generic Landing Page/Icons/Group 633170.png',
                 '/Generic Landing Page/Icons/Group 633171.png',
@@ -1486,17 +1501,17 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               ].map((icon, index) => (
                 <div
                   key={index}
-                  className="absolute inset-0 flex items-center justify-center animated-icon-cycle"
+                  className="absolute inset-0 flex items-center justify-center"
                   style={{
-                    animation: `iconCycle 20s ease-in-out infinite`,
+                    animation: `iconFade 20s ease-out infinite`,
                     animationDelay: `${index * 4}s`,
                     opacity: 0
                   }}
                 >
-                  <img 
-                    src={icon} 
-                    alt="" 
-                    className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 object-contain"
+                  <img
+                    src={icon}
+                    alt=""
+                    className="w-24 h-24 md:w-32 md:h-32 object-contain"
                     loading="lazy"
                   />
                 </div>
@@ -1504,69 +1519,65 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             </div>
 
             {/* Headline */}
-            <div className="mb-6 md:mb-8 flex justify-center">
-              <h1
-                className="h1 text-center"
-                style={{ 
-                  color: '#003756',
-                  maxWidth: '950px'
-                }}
-              >
-                {isReturningClient ? (
-                  <>
-                    <div className="block">
-                      To our friends at {partnerName},
-                    </div>
-                    <div className="block">
-                      let's keep the feel-good moments rolling in 2026.
-                    </div>
-                  </>
-                ) : (
-                  'Wellness that actually works for your team'
-                )}
-              </h1>
-            </div>
-            
+            <h1
+              className="text-3xl md:text-6xl lg:text-7xl font-semibold mb-4 md:mb-6 lg:mb-8 max-w-4xl mx-auto px-2"
+              style={{
+                color: '#003756',
+                letterSpacing: '-0.02em',
+                lineHeight: '1.2'
+              }}
+            >
+              {isReturningClient ? (
+                <>
+                  To our friends at {partnerName}, let's keep the feel-good moments rolling in 2026.
+                </>
+              ) : (
+                'Wellness that actually works for your team'
+              )}
+            </h1>
+
             {/* Subheadline */}
-            <p className="text-base lg:text-lg font-medium mb-10 md:mb-12 max-w-4xl mx-auto" style={{ color: '#003756', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
+            <p className="text-sm md:text-xl lg:text-2xl font-normal mb-6 md:mb-12 max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto px-6" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.7', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
               {isReturningClient ? (
                 'As a thank-you for a great 2025, partners who commit to at least four events in 2026 unlock Premier Partner status — including priority scheduling and 15% off all services.'
               ) : (
                 'We bring the spa, salon, and studio directly to your office. No scheduling headaches, no employee complaints—just wellness that your team actually wants.'
               )}
             </p>
-            
+
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 md:mb-16">
-              <button 
-                onClick={() => isReturningClient ? smoothScrollTo('pricing') : setShowContactForm(true)} 
-                className="inline-flex items-center justify-center rounded-full font-bold px-8 py-3 lg:px-10 lg:py-4 text-sm lg:text-base transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]" 
-                style={{ backgroundColor: '#9efaff', color: '#09364f' }}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10 md:mb-20 max-w-md sm:max-w-none mx-auto">
+              <button
+                onClick={() => setShowProposalBuilder(true)}
+                className="px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 hover:scale-105 w-full sm:w-auto min-h-[48px]"
+                style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
               >
-                {isReturningClient ? 'Build My Quarterly Proposal' : 'Get in touch'}
+                {isReturningClient ? 'Build My 2026 Proposal' : 'Get in touch'}
               </button>
-              
+
               {!isReturningClient && (
-                <button 
-                  onClick={() => smoothScrollTo('services')} 
-                  className="text-sm lg:text-base font-semibold underline underline-offset-2 transition-opacity hover:opacity-80" 
-                  style={{ color: '#FFFFFF' }}
+                <button
+                  onClick={() => smoothScrollTo('services')}
+                  className="px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 hover:scale-105 w-full sm:w-auto min-h-[48px]"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#003756',
+                    border: '2px solid #003756'
+                  }}
                 >
                   Explore Services
                 </button>
               )}
             </div>
 
-            {/* Client Logos Title - Inside Centered Container */}
-            <div className="pt-8 md:pt-12">
-              <div className="text-center mb-8 md:mb-10">
-                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-6 md:mb-8" style={{ color: '#003756' }}>
-                  Top Employers Trust Shortcut
-                </h2>
-              </div>
-              
-              {/* Logo Scroller - Full Width, Breaks Out of Container */}
-              <div className="overflow-hidden py-6 md:py-8 -mx-5 lg:-mx-[90px]">
+            {/* Client Logos Section */}
+            <div className="pt-12 md:pt-16">
+              <p className="text-sm font-semibold uppercase tracking-wider mb-12" style={{ color: '#003756', opacity: 0.6 }}>
+                Trusted by Top Employers
+              </p>
+
+              {/* Logo Scroller */}
+              <div className="overflow-hidden py-8 -mx-6">
                 <div className="logo-track">
                   <div className="logo-set">
                     <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
@@ -1602,199 +1613,447 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           </div>
         </div>
 
-        {/* Animation Styles */}
+        {/* Animation Styles - Simplified Apple-style fade */}
         <style>{`
-          @keyframes iconCycle {
+          @keyframes iconFade {
             0% {
               opacity: 0;
-              transform: rotateY(90deg) scale(0.9);
+              transform: scale(0.95);
             }
             5% {
               opacity: 1;
-              transform: rotateY(0deg) scale(1);
-            }
-            15% {
-              opacity: 1;
-              transform: rotateY(0deg) scale(1);
+              transform: scale(1);
             }
             20% {
+              opacity: 1;
+              transform: scale(1);
+            }
+            25% {
               opacity: 0;
-              transform: rotateY(-90deg) scale(0.9);
+              transform: scale(0.95);
             }
             100% {
               opacity: 0;
-              transform: rotateY(-90deg) scale(0.9);
+              transform: scale(0.95);
             }
-          }
-          
-          .animated-icon-cycle {
-            will-change: opacity, transform;
           }
         `}</style>
       </section>
 
-      {/* SERVICES SECTION */}
-      <section id="services" className="fade-in-section py-16 md:py-20 rounded-t-3xl rounded-b-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
+      {/* WAYS TO SAVE SECTION - Apple/Airbnb Style */}
+      {isReturningClient && (
+        <section id="pricing-section" className="fade-in-section py-20 md:py-32" style={{ backgroundColor: 'white' }}>
+          <div className="mx-auto max-w-6xl px-6">
+            {/* Header */}
+            <div className="text-center mb-12 md:mb-16">
+              {!isGeneric && (
+                <h3 className="text-lg md:text-xl mb-4" style={{ color: '#003756', opacity: 0.6, fontWeight: 400 }}>
+                  A special thank you for our friends at {partnerName}
+                </h3>
+              )}
+              <h2 className="text-4xl md:text-6xl lg:text-7xl font-semibold mb-4 md:mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                Ways to Save
+              </h2>
+              <p className="text-base md:text-xl lg:text-2xl font-normal max-w-2xl mx-auto mb-6 md:mb-8" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.5' }}>
+                Lock in 4+ events and unlock Premier Partner benefits with priority booking and guaranteed availability
+              </p>
+
+              {/* Deadline Timer */}
+              {(() => {
+                const deadline = new Date('2026-02-16T23:59:59');
+                const now = new Date();
+                const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                const isPastDeadline = daysUntil < 0;
+
+                return !isPastDeadline ? (
+                  <div className="inline-flex items-center gap-3 md:gap-4 px-6 py-3 md:px-8 md:py-4 rounded-full" style={{ backgroundColor: '#FEF3C7', border: '1px solid #FCD34D' }}>
+                    <span className="text-xl md:text-2xl">⏰</span>
+                    <div className="text-left">
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#92400E', opacity: 0.8 }}>
+                        Commitment Deadline
+                      </p>
+                      <p className="text-xl md:text-2xl font-semibold" style={{ color: '#92400E' }}>
+                        {daysUntil} {daysUntil === 1 ? 'Day' : 'Days'} Left
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-base md:text-lg font-semibold" style={{ color: '#DC2626' }}>
+                    Deadline Passed - Contact Us for Availability
+                  </p>
+                );
+              })()}
+            </div>
+
+            {/* Commitment Level Selector */}
+            <div className="flex justify-center gap-3 mb-16">
+              <button
+                onClick={() => setCommitmentLevel('4plus')}
+                className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300"
+                style={{
+                  backgroundColor: commitmentLevel === '4plus' ? '#003756' : '#E0F2F7',
+                  color: commitmentLevel === '4plus' ? 'white' : '#003756'
+                }}
+              >
+                4+ Events • Save 15%
+              </button>
+              <button
+                onClick={() => setCommitmentLevel('9plus')}
+                className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300"
+                style={{
+                  backgroundColor: commitmentLevel === '9plus' ? '#003756' : '#E0F2F7',
+                  color: commitmentLevel === '9plus' ? 'white' : '#003756'
+                }}
+              >
+                9+ Events • Save 20%
+              </button>
+            </div>
+
+            {/* Savings Cards Grid */}
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto" style={{
+              justifyItems: commitmentLevel === '4plus' ? 'center' : 'stretch'
+            }}>
+              {/* Single Event */}
+              <div
+                className="relative overflow-hidden rounded-3xl transition-all duration-700 ease-out hover:-translate-y-2"
+                style={{
+                  backgroundColor: '#F8F9FA',
+                  border: '1px solid rgba(0, 55, 86, 0.1)',
+                  width: '100%',
+                  maxWidth: commitmentLevel === '4plus' ? '400px' : '100%'
+                }}
+              >
+                <div className="p-8 md:p-10">
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: '#003756', opacity: 0.6 }}>
+                      Single
+                    </p>
+                    <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                      Pay as you go
+                    </h3>
+                  </div>
+                  <div className="space-y-4 mb-8">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-semibold" style={{ color: '#003756' }}>$0</span>
+                      <span className="text-lg" style={{ color: '#003756', opacity: 0.6 }}>saved</span>
+                    </div>
+                    <p className="text-base" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>
+                      Standard pricing per event
+                    </p>
+                  </div>
+                  <div className="pt-6 border-t" style={{ borderColor: 'rgba(0, 55, 86, 0.15)' }}>
+                    <p className="text-base font-medium" style={{ color: '#003756', opacity: 0.7 }}>
+                      Flexibility • No commitment
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quarterly - 4+ Events - Always visible */}
+              <div
+                className="relative overflow-hidden rounded-3xl transition-all duration-700 ease-out hover:-translate-y-2"
+                style={{
+                  backgroundColor: '#E0F2F7',
+                  border: '2px solid #9EFAFF',
+                  width: '100%',
+                  maxWidth: commitmentLevel === '4plus' ? '400px' : '100%'
+                }}
+              >
+                <div className="absolute top-6 right-6">
+                  <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide" style={{ backgroundColor: '#9EFAFF', color: '#003756' }}>
+                    Premier
+                  </div>
+                </div>
+                <div className="p-8 md:p-10">
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: '#003756', opacity: 0.6 }}>
+                      Quarterly
+                    </p>
+                    <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                      15% off
+                    </h3>
+                  </div>
+                  <div className="space-y-3 mb-8">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-base uppercase tracking-wider font-semibold" style={{ color: '#003756', opacity: 0.6 }}>
+                        4+ Events
+                      </span>
+                    </div>
+
+                    {/* Benefits List */}
+                    <div className="space-y-4 mt-6">
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#003756', fontSize: '1.25rem', fontWeight: 'bold', marginTop: '2px' }}>✓</span>
+                        <p className="text-base" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>
+                          Priority scheduling: First choice on event dates
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#003756', fontSize: '1.25rem', fontWeight: 'bold', marginTop: '2px' }}>✓</span>
+                        <p className="text-base" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>
+                          Additional discount: 15% off Headshot and Mindfulness experiences ✨
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#003756', fontSize: '1.25rem', fontWeight: 'bold', marginTop: '2px' }}>✓</span>
+                        <p className="text-base" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>
+                          Switch it up: Rotate different services throughout the year
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enterprise - 9+ Events - Slides in elegantly when 9+ tab is active */}
+              <div
+                className="relative overflow-hidden rounded-3xl transition-all duration-700 ease-out hover:-translate-y-2"
+                style={{
+                  backgroundColor: '#003756',
+                  border: '2px solid #FF5050',
+                  opacity: commitmentLevel === '9plus' ? 1 : 0,
+                  transform: commitmentLevel === '9plus' ? 'translateX(0) scale(1)' : 'translateX(40px) scale(0.9)',
+                  pointerEvents: commitmentLevel === '9plus' ? 'auto' : 'none',
+                  width: '100%'
+                }}
+              >
+                <div className="absolute top-6 right-6">
+                  <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide" style={{ backgroundColor: '#FF5050', color: 'white' }}>
+                    Best Value
+                  </div>
+                </div>
+                <div className="p-8 md:p-10">
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: 'white', opacity: 0.7 }}>
+                      Monthly
+                    </p>
+                    <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: 'white', letterSpacing: '-0.02em' }}>
+                      20% off
+                    </h3>
+                  </div>
+                  <div className="space-y-3 mb-8">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-base uppercase tracking-wider font-semibold text-white" style={{ opacity: 0.6 }}>
+                        9+ Events
+                      </span>
+                    </div>
+
+                    {/* Benefits List */}
+                    <div className="space-y-4 mt-6">
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#FF5050', fontSize: '1.25rem', marginTop: '2px' }}>✓</span>
+                        <p className="text-base text-white" style={{ opacity: 0.95, lineHeight: '1.6' }}>
+                          Priority scheduling: First choice on event dates
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#FF5050', fontSize: '1.25rem', marginTop: '2px' }}>✓</span>
+                        <p className="text-base text-white" style={{ opacity: 0.95, lineHeight: '1.6' }}>
+                          Additional discount: 15% off Headshot and Mindfulness experiences ✨
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#FF5050', fontSize: '1.25rem', marginTop: '2px' }}>✓</span>
+                        <p className="text-base text-white" style={{ opacity: 0.95, lineHeight: '1.6' }}>
+                          Switch it up: Rotate different services throughout the year
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span style={{ color: '#FEDC64', fontSize: '1.25rem', marginTop: '2px' }}>✓</span>
+                        <p className="text-base font-semibold text-white" style={{ lineHeight: '1.6' }}>
+                          1 free event included
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="text-center mt-16">
+              <button
+                onClick={() => setShowProposalBuilder(true)}
+                className="px-10 py-5 rounded-full text-lg font-medium transition-all duration-300 hover:scale-105"
+                style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
+              >
+                Build My 2026 Proposal
+              </button>
+              <p className="mt-6 text-sm" style={{ color: '#003756', opacity: 0.5 }}>
+                Commit by February 16, 2026 to secure your quarterly program
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* PROMOTIONAL SECTION - For Non-Returning Clients */}
+      {!isReturningClient && (
+        <section id="pricing-section" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
+          <div className="mx-auto max-w-7xl px-4">
+            {/* Header Text */}
+            <div className="text-center mb-12 md:mb-16">
+              {!isGeneric && (
+                <h3 className="text-lg md:text-xl mb-4" style={{ color: '#FFFFFF', fontWeight: 400 }}>
+                  A special gift for our friends at {partnerName}
+                </h3>
+              )}
+              <h2 className="h1 mb-6 md:mb-8" style={{ color: '#FFFFFF' }}>
+                Book your first event for 2026 and save
+              </h2>
+              <p className="text-base lg:text-lg font-medium mb-4 max-w-3xl mx-auto" style={{ color: '#FFFFFF', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
+                Unlock Premium Partner status with Shortcut and make wellness even easier.
+              </p>
+            </div>
+
+            {/* Promotion Cards */}
+            <div className="promotion-cards-wrapper grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
+              {/* Essential Card (Left) */}
+              <div className="promotion-card essential-card-fade">
+                <img
+                  src="/Holiday Proposal/Promotion Section/Essential promotion box.svg"
+                  alt="Essential Partner Promotion"
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
+
+              {/* Animated Arrow Pointer */}
+              <div className="arrow-pointer hidden md:block">
+                →
+              </div>
+
+              {/* Premium Card (Right) */}
+              <div className="promotion-card premium-card-animated">
+                <img
+                  src="/Holiday Proposal/Promotion Section/Premium promotion box.svg"
+                  alt="Premium Partner Promotion"
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+
+                {/* Sparkles */}
+                <div className="sparkle">✨</div>
+                <div className="sparkle">✨</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+
+      {/* SERVICES SECTION - Apple/Airbnb Style */}
+      <section id="services" className="fade-in-section py-20 md:py-32 rounded-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
         {/* Mobile swipe indicator */}
-        <div className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm">
-            <span className="text-xs font-medium" style={{ color: '#003756' }}>
-              Swipe to explore services
+        <div className="md:hidden absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)' }}>
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#003756', opacity: 0.7 }}>
+              Swipe to explore
             </span>
-            <svg className="w-4 h-4" style={{ color: '#003756' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" style={{ color: '#003756', opacity: 0.7 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
             </svg>
           </div>
         </div>
 
-        {/* Service Legend */}
-        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-12 px-4">
-          <button 
+        {/* Service Navigation */}
+        <div className="flex flex-wrap justify-center gap-3 mb-12 md:mb-16 px-4 md:px-6">
+          <button
             onClick={() => scrollToService(0)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#9EFAFF');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-6 py-3 md:px-8 md:py-4 rounded-full text-sm md:text-base font-medium transition-all duration-300 hover:scale-105 min-h-[44px]"
+            style={{
+              backgroundColor: '#9EFAFF',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Massage</span>
+            Massage
           </button>
-          <button 
+          <button
             onClick={() => scrollToService(1)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#FEDC64');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-6 py-3 md:px-8 md:py-4 rounded-full text-sm md:text-base font-medium transition-all duration-300 hover:scale-105 min-h-[44px]"
+            style={{
+              backgroundColor: '#FEDC64',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Glam</span>
+            Glam
           </button>
-          <button 
+          <button
             onClick={() => scrollToService(2)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#9EFAFF');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-6 py-3 md:px-8 md:py-4 rounded-full text-sm md:text-base font-medium transition-all duration-300 hover:scale-105 min-h-[44px]"
+            style={{
+              backgroundColor: '#9EFAFF',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Headshots</span>
+            Headshots
           </button>
-          <button 
+          <button
             onClick={() => scrollToService(3)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#F9CDFF');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-6 py-3 md:px-8 md:py-4 rounded-full text-sm md:text-base font-medium transition-all duration-300 hover:scale-105 min-h-[44px]"
+            style={{
+              backgroundColor: '#F9CDFF',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Nails</span>
+            Nails
           </button>
-          <button 
+          <button
             onClick={() => scrollToService(4)}
-            className="service-legend-item relative px-8 py-4 rounded-full text-lg font-semibold transition-all duration-500 hover:scale-105 overflow-hidden"
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: '#003756',
-              border: '3px solid #003756'
-            }}
-            onMouseEnter={(e) => {
-              const button = e.currentTarget;
-              button.style.setProperty('--fill-color', '#FEDC64');
-              button.classList.add('filling');
-            }}
-            onMouseLeave={(e) => {
-              const button = e.currentTarget;
-              button.classList.remove('filling');
+            className="px-6 py-3 md:px-8 md:py-4 rounded-full text-sm md:text-base font-medium transition-all duration-300 hover:scale-105 min-h-[44px]"
+            style={{
+              backgroundColor: '#FEDC64',
+              color: '#003756'
             }}
           >
-            <span className="relative z-10">Mindfulness</span>
+            Mindfulness
           </button>
         </div>
         
         <div className="flex overflow-x-auto scrollbar-hide services-scroll">
           {/* RESET ZONE SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
-              <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16">
+              <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                 {/* Left Side - Text and Service Options */}
                 <div>
-                  <h2 className="h1 mb-4" style={{ color: '#003756' }}>Reset Zone</h2>
-                  <h3 className="section-subtitle mb-6" style={{ color: '#003756' }}>Relaxing Chair or Table Massages</h3>
-                  
-                  <p className="text-lg md:text-xl leading-relaxed mb-10" style={{ color: '#003756' }}>
+                  <h2 className="text-3xl md:text-5xl font-semibold mb-4 md:mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>Reset Zone</h2>
+                  <p className="text-base md:text-lg font-medium mb-6 md:mb-8" style={{ color: '#003756', opacity: 0.6 }}>Relaxing Chair or Table Massages</p>
+
+                  <p className="text-base md:text-xl mb-8 md:mb-12" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>
                     Treat your team to rejuvenating chair or table massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.
                   </p>
-                  
+
                   {/* Service Options */}
-                  <div className="space-y-5">
+                  <div className="space-y-6">
                     {/* First Row: Sports Massage and Compression */}
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-2 gap-6">
                       <div className="flex items-center gap-3">
                         <img src="/Holiday Proposal/Our Services/Massage/icon.svg" alt="Sports Massage" className="w-12 h-12 flex-shrink-0" loading="lazy" />
-                        <span className="text-base font-bold" style={{ color: '#003756' }}>Sports Massage</span>
+                        <span className="text-base font-semibold" style={{ color: '#003756' }}>Sports Massage</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <img src="/Holiday Proposal/Our Services/Massage/icon-2.svg" alt="Compression" className="w-12 h-12 flex-shrink-0" loading="lazy" />
-                        <span className="text-base font-bold" style={{ color: '#003756' }}>Compression Massage</span>
+                        <span className="text-base font-semibold" style={{ color: '#003756' }}>Compression Massage</span>
                       </div>
                     </div>
-                    
+
                     {/* Second Row: Express Facial */}
                     <div className="flex items-center gap-3">
                       <img src="/Holiday Proposal/Our Services/Massage/icon-1.svg" alt="Express Facial" className="w-12 h-12 flex-shrink-0" loading="lazy" />
-                      <span className="text-base font-bold" style={{ color: '#003756' }}>Express Facial</span>
+                      <span className="text-base font-semibold" style={{ color: '#003756' }}>Express Facial</span>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Right Side - Massage Image */}
                 <div className="relative flex justify-center">
                   <picture>
                     <source srcSet="/Holiday Proposal/Our Services/Massage/masssage 2x.webp" type="image/webp" />
-                    <img 
-                      src="/Holiday Proposal/Our Services/Massage/masssage 2x.png" 
-                      alt="Professional Massage Service" 
-                      className="w-full h-auto rounded-2xl max-w-md"
+                    <img
+                      src="/Holiday Proposal/Our Services/Massage/masssage 2x.png"
+                      alt="Professional Massage Service"
+                      className="w-full h-auto rounded-3xl max-w-md"
                       loading="lazy"
                     />
                   </picture>
@@ -1805,14 +2064,14 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* HAIR & MAKEUP SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
-              <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16">
+              <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
-                  <h2 className="h1 mb-4" style={{ color: '#003756' }}>Hair & Makeup</h2>
-                  <h3 className="section-subtitle mb-6" style={{ color: '#003756' }}>Expert makeup, styling and barber services</h3>
-                  
-                  <p className="text-lg md:text-xl leading-relaxed mb-10" style={{ color: '#003756' }}>
+                  <h2 className="text-3xl md:text-5xl font-semibold mb-4 md:mb-6" style={{ color: '#003756', letterSpacing: '-0.02em' }}>Hair & Makeup</h2>
+                  <p className="text-lg font-medium mb-8" style={{ color: '#003756', opacity: 0.6 }}>Expert makeup, styling and barber services</p>
+
+                  <p className="text-lg md:text-xl mb-12" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>
                     Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.
                   </p>
                   
@@ -1867,7 +2126,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* YEAR END HEADSHOTS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
+            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1916,13 +2175,17 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   {/* CTA Buttons */}
                   <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     {!isReturningClient && (
-                      <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all" style={{ backgroundColor: '#003756', color: '#FFFFFF' }}>
+                      <Button onClick={() => setShowContactForm(true)} variant="primary" size="lg">
                         Get in touch
-                      </button>
+                      </Button>
                     )}
-                    <button onClick={() => smoothScrollTo('pricing')} className={`inline-flex items-center justify-center rounded-full font-bold px-8 py-4 text-base shadow-soft hover:opacity-90 pulse-glow transition-all ${isReturningClient ? '' : 'border-2'}`} style={isReturningClient ? { backgroundColor: '#003756', color: '#FFFFFF' } : { borderColor: '#003756', color: '#003756', backgroundColor: 'transparent' }}>
-                      {isReturningClient ? 'Build My Quarterly Proposal' : 'Pricing'}
-                    </button>
+                    <Button
+                      onClick={() => smoothScrollTo('pricing')}
+                      variant={isReturningClient ? "primary" : "secondary"}
+                      size="lg"
+                    >
+                      {isReturningClient ? 'Build my 2026 Schedule' : 'Pricing'}
+                    </Button>
                   </div>
                 </div>
                 
@@ -1941,7 +2204,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* NAILS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
+            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1991,7 +2254,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
           {/* SEASONAL MINDFULNESS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-16 md:py-20">
+            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -2041,138 +2304,154 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </div>
 
         {/* Packages Section - Integrated Below Services */}
-        {(!genericLandingPage || genericLandingPage.customization.includePricingCalculator) && (
-          <div className="mx-auto container-narrow px-4 py-12 md:py-16 border-t-2 border-shortcut-teal border-opacity-20 mt-8">
-            <div className="text-center mb-12">
-              <h2 className="h1 mb-4" style={{ color: '#003756' }}>
-                Popular {getServiceName(serviceOrder[currentServiceIndex])} Packages
+      </section>
+
+      {/* CHOOSE YOUR PACKAGE SECTION - Apple/Airbnb Style */}
+      {(!genericLandingPage || genericLandingPage.customization.includePricingCalculator) && (
+        <section id="pricing" className="fade-in-section py-20 md:py-32 rounded-3xl" style={{ backgroundColor: 'white' }}>
+          <div className="mx-auto max-w-6xl px-6">
+            {/* Section Header */}
+            <div className="text-center mb-12 md:mb-16">
+              <h2 className="text-4xl md:text-6xl font-semibold mb-6 md:mb-8" style={{ color: '#003756', letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+                Choose Your Perfect Package
               </h2>
-              <p className="text-lg md:text-xl max-w-3xl mx-auto mb-8" style={{ color: '#003756' }}>
-                Choose your perfect wellness experience. All packages include premium service and professional setup.
+              <p className="text-base md:text-xl lg:text-2xl max-w-3xl mx-auto" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.6' }}>
+                Select the {getServiceName(serviceOrder[currentServiceIndex]).toLowerCase()} package that fits your team's needs. All packages include premium service and professional setup.
               </p>
             </div>
 
-            <div className="max-w-5xl mx-auto">
-              {/* Package Selection */}
-              <div className="mb-12">
-                <div className="grid md:grid-cols-3 gap-6">
-                  {SERVICE_PRESETS[serviceOrder[currentServiceIndex] as keyof typeof SERVICE_PRESETS]?.map((preset, index) => {
-                    const currentService = serviceOrder[currentServiceIndex];
-                    const serviceColor = getServiceColor(currentService);
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setSelectedService(currentService);
-                          setSelectedPackageIndex(index);
-                          setPricingConfig((prev: any) => ({ ...prev, totalAppointments: preset.appointments }));
-                        }}
-                        className={`package-button relative p-8 rounded-3xl text-center transition-all duration-300 transform hover:scale-105 overflow-hidden ${
-                          selectedService === currentService && selectedPackageIndex === index
-                            ? 'selected ring-4 ring-offset-4 shadow-2xl scale-105' 
-                            : 'hover:shadow-xl'
-                        }`}
-                        style={{
-                          '--package-color': serviceColor,
-                          backgroundColor: 'white',
-                          color: '#003756',
-                          border: selectedService === currentService && selectedPackageIndex === index ? `3px solid ${serviceColor}` : '2px solid #E5E7EB',
-                          boxShadow: selectedService === currentService && selectedPackageIndex === index ? `0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)` : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                        } as React.CSSProperties}
-                      >
-                        {(preset as any).popular && (
-                          <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#FF5050] to-[#175071] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-10">
-                            MOST POPULAR
-                          </div>
-                        )}
-                        <div className="space-y-6">
-                          {/* Package Title */}
-                          <div className="text-center">
-                            <h3 className="text-2xl font-bold mb-2" style={{ color: '#003756' }}>
-                              {(preset as any).name || `${preset.appointments} Appointments`}
-                            </h3>
-                          </div>
-                          
-                          {/* Package Details */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-center gap-3 text-base">
-                              <span className="text-lg">⏱️</span>
-                              <span className="font-semibold" style={{ color: '#003756' }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
-                            </div>
-                            <div className="flex items-center justify-center gap-3 text-base">
-                              <span className="text-lg">👥</span>
-                              <span className="font-semibold" style={{ color: '#003756' }}>{preset.pros} {getServiceName(currentService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
-                            </div>
-                            
-                            {/* Mindfulness Service Descriptions */}
-                            {currentService === 'mindfulness' && (preset as any).name && (
-                              <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-                                <p className="text-sm leading-relaxed text-center" style={{ color: '#003756' }}>
-                                  {getMindfulnessDescription((preset as any).name)}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Price Section */}
-                          <div className="pt-4 border-t-2" style={{ borderColor: '#E5E7EB' }}>
-                            <div className="text-center">
-                              <div className="text-4xl font-bold mb-1" style={{ color: '#003756' }}>
-                                {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
-                              </div>
-                              <div className="text-sm font-medium opacity-75" style={{ color: '#003756' }}>
-                                {(preset as any).custom ? 'Contact for pricing' : 'per session'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* What's Included Section */}
-              <div className="mb-12">
-                <h3 className="text-xl font-bold mb-6 text-center" style={{ color: '#003756' }}>
-                  What's Included:
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {getWhatsIncluded(serviceOrder[currentServiceIndex]).map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-green-600 text-sm">✓</span>
-                      </div>
-                      <span className="text-gray-700 font-medium">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Build Your Proposal Button */}
-              <div className="text-center mt-12">
-                <button
-                  onClick={() => setShowProposalBuilder(true)}
-                  className="inline-flex items-center justify-center rounded-full font-bold px-10 py-5 text-lg shadow-soft hover:opacity-90 transition-all gap-3 transform hover:scale-105"
-                  style={{ backgroundColor: '#003756', color: '#FFFFFF' }}
-                >
-                  <span>Build Your Proposal</span>
-                  <span className="text-xl">→</span>
-                </button>
-                <p className="text-sm mt-4 opacity-75" style={{ color: '#6b7280' }}>
-                  Select a package above to get started
-                </p>
+            {/* Service Selector Tabs */}
+            <div className="mb-12 md:mb-16">
+              <div className="flex flex-wrap justify-center gap-3">
+                {serviceOrder.map((service, index) => {
+                  const isActive = currentServiceIndex === index;
+                  const serviceColor = getServiceColor(service);
+                  return (
+                    <button
+                      key={service}
+                      onClick={() => setCurrentServiceIndex(index)}
+                      className="px-6 py-3 md:px-8 md:py-4 rounded-full text-sm md:text-base font-medium transition-all duration-300 hover:scale-105 min-h-[44px]"
+                      style={{
+                        backgroundColor: isActive ? serviceColor : 'transparent',
+                        color: isActive ? '#003756' : '#003756',
+                        border: `2px solid ${serviceColor}`
+                      }}
+                    >
+                      {getServiceName(service)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </div>
-        )}
-      </section>
 
-      {/* HIGH PERFORMANCE STARTS HERE - ShortcutSection Style */}
-      <section 
+            {/* Package Selection */}
+            <div className="mb-12 md:mb-16">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                {SERVICE_PRESETS[serviceOrder[currentServiceIndex] as keyof typeof SERVICE_PRESETS]?.map((preset, index) => {
+                  const currentService = serviceOrder[currentServiceIndex];
+                  const serviceColor = getServiceColor(currentService);
+                  const isSelected = selectedService === currentService && selectedPackageIndex === index;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSelectedService(currentService);
+                        setSelectedPackageIndex(index);
+                        setPricingConfig((prev: any) => ({ ...prev, totalAppointments: preset.appointments }));
+                      }}
+                      className="relative p-6 md:p-8 lg:p-10 rounded-3xl text-center transition-all duration-300 hover:-translate-y-2 overflow-hidden"
+                      style={{
+                        backgroundColor: isSelected ? serviceColor : '#F8F9FA',
+                        border: isSelected ? `2px solid ${serviceColor}` : '1px solid rgba(0, 55, 86, 0.1)'
+                      }}
+                    >
+                      {/* Package Title */}
+                      <div className="mb-6">
+                        {(preset as any).popular && (
+                          <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-4" style={{ backgroundColor: '#FF5050', color: 'white' }}>
+                            Most Popular
+                          </div>
+                        )}
+                        <h3 className="text-xl md:text-2xl lg:text-3xl font-semibold" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                          {(preset as any).name || `${preset.appointments} Appointments`}
+                        </h3>
+                      </div>
+
+                      {/* Package Details */}
+                      <div className="space-y-4 mb-8">
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="text-xl">⏱️</span>
+                          <span className="text-base font-medium" style={{ color: '#003756', opacity: 0.9 }}>{preset.eventTime} {preset.eventTime === 1 ? 'hour' : 'hours'}</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="text-xl">👥</span>
+                          <span className="text-base font-medium" style={{ color: '#003756', opacity: 0.9 }}>{preset.pros} {getServiceName(currentService).toLowerCase()} {preset.pros === 1 ? 'pro' : 'pros'}</span>
+                        </div>
+
+                        {/* Mindfulness Service Descriptions */}
+                        {currentService === 'mindfulness' && (preset as any).name && (
+                          <div className="mt-6 p-4 rounded-2xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)' }}>
+                            <p className="text-sm text-center" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>
+                              {getMindfulnessDescription((preset as any).name)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Price Section */}
+                      <div className="pt-6 border-t" style={{ borderColor: 'rgba(0, 55, 86, 0.15)' }}>
+                        <div className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                          {(preset as any).custom ? 'Custom' : `$${preset.price.toLocaleString()}`}
+                        </div>
+                        <p className="text-sm font-medium" style={{ color: '#003756', opacity: 0.6 }}>
+                          {(preset as any).custom ? 'Contact for pricing' : 'per session'}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* What's Included Section */}
+            <div className="mb-12 md:mb-16 p-6 md:p-10 lg:p-12 rounded-3xl" style={{ backgroundColor: '#F8F9FA' }}>
+              <h3 className="text-2xl md:text-3xl lg:text-4xl font-semibold mb-8 md:mb-10 text-center" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                What's Included
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                {getWhatsIncluded(serviceOrder[currentServiceIndex]).map((item, index) => (
+                  <div key={index} className="flex items-start gap-4">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ backgroundColor: getServiceColor(serviceOrder[currentServiceIndex]) }}>
+                      <span className="text-sm font-bold" style={{ color: '#003756' }}>✓</span>
+                    </div>
+                    <span className="text-base" style={{ color: '#003756', opacity: 0.9, lineHeight: '1.6' }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Build Your Proposal Button */}
+            <div className="text-center">
+              <button
+                onClick={() => setShowProposalBuilder(true)}
+                className="px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 hover:scale-105 min-h-[48px]"
+                style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
+              >
+                Build Your Proposal
+              </button>
+              <p className="text-base mt-6 font-medium" style={{ color: '#003756', opacity: 0.5 }}>
+                Free consultation • No commitment required
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* HIGH PERFORMANCE STARTS HERE - Apple/Airbnb Style */}
+      <section
         ref={shortcutSectionRef}
-        className={`fade-in-section py-20 md:py-28 bg-white ${shortcutSectionInView ? 'shortcut-section-in-view' : ''}`}
-        style={{ fontFamily: "'Outfit', sans-serif" }}
+        className={`fade-in-section py-20 md:py-32 ${shortcutSectionInView ? 'shortcut-section-in-view' : ''}`}
+        style={{ backgroundColor: '#F8F9FA' }}
       >
         <style>{`
           .shortcut-section-card {
@@ -2220,10 +2499,10 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           }
           .shortcut-checklist-container[data-card="calm"] .shortcut-checklist-mask {
             background: linear-gradient(to bottom,
-              rgba(240, 240, 255, 1) 0%,
-              rgba(240, 240, 255, 0) 8%,
-              rgba(240, 240, 255, 0) 92%,
-              rgba(240, 240, 255, 1) 100%);
+              rgba(229, 252, 254, 1) 0%,
+              rgba(229, 252, 254, 0) 8%,
+              rgba(229, 252, 254, 0) 92%,
+              rgba(229, 252, 254, 1) 100%);
           }
           .shortcut-checkbox {
             width: 33px;
@@ -2315,19 +2594,19 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           }
         `}</style>
         
-        <div className="max-w-[1200px] mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-6">
           {/* Header */}
-          <div className="text-center mb-12">
-            <h1 
-              className="h1 mb-6 md:mb-8"
-              style={{ color: '#003756' }}
+          <div className="text-center mb-12 md:mb-16">
+            <h2
+              className="text-3xl md:text-5xl lg:text-6xl font-semibold mb-6 md:mb-8"
+              style={{ color: '#003756', letterSpacing: '-0.02em', lineHeight: '1.15' }}
             >
               Slack. Zoom. <span style={{ color: '#FF5050' }}>Shortcut</span>.<br />
               One of these helps your team relax.
-            </h1>
-            <p 
-              className="text-base lg:text-lg font-medium max-w-3xl mx-auto"
-              style={{ color: '#003756', lineHeight: '1.1', letterSpacing: '-0.01em' }}
+            </h2>
+            <p
+              className="text-base md:text-xl lg:text-2xl max-w-3xl mx-auto"
+              style={{ color: '#003756', opacity: 0.7, lineHeight: '1.6' }}
             >
               Real moments of calm at work — felt by employees, effortless for employers.
             </p>
@@ -2441,8 +2720,9 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               </div>
 
               {/* CTA strip */}
-              <div
-                className="rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center"
+              <button
+                onClick={() => smoothScrollTo('services')}
+                className="w-full rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   height: '82px',
                   backgroundColor: '#fab8ff',
@@ -2453,36 +2733,36 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   className="m-0 text-[18px] leading-[26px] font-medium text-center"
                   style={{ color: '#b8337a' }}
                 >
-                  Take a tour →
+                  See Services →
                 </p>
-              </div>
+              </button>
             </div>
 
             {/* Card 2 - Calm, delivered */}
-            <div 
+            <div
               className="shortcut-section-card"
               style={{
-                backgroundColor: '#f0f0ff',
+                backgroundColor: '#E5FCFE',
                 border: '1px solid rgba(0, 31, 31, 0.08)',
               }}
             >
               <div className="border border-solid rounded-[24px] pb-0" style={{ borderColor: 'rgba(0, 31, 31, 0.08)' }}>
                 {/* Title and icon */}
                 <div className="relative px-8 pt-[52px] pb-6">
-                  <h3 
+                  <h3
                     className="text-[37px] leading-[43px] tracking-[-0.95px] m-0 font-medium"
                     style={{ color: '#001f1f' }}
                   >
                     Calm, delivered
                   </h3>
-                  
+
                   {/* Plus icon button */}
                   <button
                     className="absolute right-8 top-8 flex items-center justify-center rounded-[20px]"
                     style={{
                       width: '40px',
                       height: '40px',
-                      backgroundColor: '#7070ff',
+                      backgroundColor: '#018EA2',
                     }}
                     aria-label="Expand Calm, delivered"
                   >
@@ -2517,19 +2797,19 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                           <div
                             className="shortcut-checkbox"
                             style={{
-                              backgroundColor: '#e1e1fa',
-                              borderColor: 'rgba(112, 112, 255, 0.36)',
+                              backgroundColor: '#D4F7FB',
+                              borderColor: 'rgba(1, 142, 162, 0.36)',
                             }}
                           >
                             <div className="shortcut-check-icon">
                               <svg fill="none" viewBox="0 0 14.3715 9.7279">
-                                <path d="M 1.215 4.8045 L 5.06625 8.5125 L 13.15675 1.215" stroke="#4533b8" strokeLinecap="square" strokeWidth="2.43" />
+                                <path d="M 1.215 4.8045 L 5.06625 8.5125 L 13.15675 1.215" stroke="#018EA2" strokeLinecap="square" strokeWidth="2.43" />
                               </svg>
                             </div>
                           </div>
                           <p
                             className="m-0 text-[27px] leading-[36px] font-medium"
-                            style={{ color: '#4533b8' }}
+                            style={{ color: '#018EA2' }}
                           >
                             {item.boldText ? (
                               <>
@@ -2556,7 +2836,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                 <div className="px-8 pb-8">
                   <p
                     className="m-0 text-[19px] leading-[26px] font-normal opacity-64"
-                    style={{ color: '#4533b8' }}
+                    style={{ color: '#018EA2' }}
                   >
                     Operational simplicity and ease that remove friction from your day.
                   </p>
@@ -2564,21 +2844,22 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               </div>
 
               {/* CTA strip */}
-              <div
-                className="rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center"
+              <button
+                onClick={() => smoothScrollTo('pricing')}
+                className="w-full rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   height: '82px',
-                  backgroundColor: '#b8b8ff',
+                  backgroundColor: '#9EFAFF',
                   borderColor: 'rgba(0, 31, 31, 0.08)',
                 }}
               >
                 <p
                   className="m-0 text-[18px] leading-[26px] font-medium text-center"
-                  style={{ color: '#4533b8' }}
+                  style={{ color: '#003756' }}
                 >
-                  Take a tour →
+                  See Pricing →
                 </p>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -2651,95 +2932,6 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </section>
       )}
 
-      {/* PROMOTIONAL SECTION */}
-      <section id="pricing-section" className="fade-in-section promotion-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
-        <div className="mx-auto max-w-7xl px-4">
-          {/* Header Text */}
-          <div className="text-center mb-12 md:mb-16">
-            {!isGeneric && (
-            <h3 className="text-lg md:text-xl mb-4" style={{ color: '#FFFFFF', fontWeight: 400 }}>
-              {isReturningClient 
-                ? `A special thank you for our friends at ${partnerName}`
-                : `A special gift for our friends at ${partnerName}`
-              }
-            </h3>
-            )}
-            <h2 className="h1 mb-6 md:mb-8" style={{ color: '#FFFFFF' }}>
-              {isReturningClient 
-                ? 'Commit to Quarterly Wellness Events and Save 15% on Your 2026 Calendar'
-                : 'Book your first event for 2026 and save'
-              }
-            </h2>
-            <p className="text-base lg:text-lg font-medium mb-4 max-w-3xl mx-auto" style={{ color: '#FFFFFF', lineHeight: '1.1', letterSpacing: '-0.01em' }}>
-              {isReturningClient 
-                ? 'Lock in 4+ events per year and unlock premium partner benefits. Commit by February 16, 2026 to secure your quarterly program.'
-                : 'Unlock Premium Partner status with Shortcut and make wellness even easier.'
-              }
-            </p>
-            {isReturningClient && (() => {
-              const deadline = new Date('2026-02-16T23:59:59');
-              const now = new Date();
-              const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-              const isPastDeadline = daysUntil < 0;
-              
-              return (
-                <div className="bg-yellow-400 bg-opacity-20 border-2 border-yellow-400 rounded-xl p-6 mb-6 max-w-2xl mx-auto">
-                  <div className="flex items-center justify-center gap-4">
-                    <span className="text-3xl animate-pulse">⏰</span>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-white mb-1 uppercase tracking-wider">Commitment Deadline</p>
-                      {!isPastDeadline ? (
-                        <>
-                          <p className="text-3xl md:text-4xl font-bold text-white mb-1">
-                            {daysUntil} {daysUntil === 1 ? 'Day' : 'Days'} Left
-                          </p>
-                          <p className="text-sm text-white text-opacity-90">February 16, 2026</p>
-                        </>
-                      ) : (
-                        <p className="text-xl font-bold text-white">Deadline Passed - Contact Us for Availability</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Promotion Cards */}
-          <div className="promotion-cards-wrapper grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
-            {/* Essential Card (Left) */}
-            <div className="promotion-card essential-card-fade">
-              <img 
-                src="/Holiday Proposal/Promotion Section/Essential promotion box.svg" 
-                alt="Essential Partner Promotion" 
-                className="w-full h-auto"
-                loading="lazy"
-              />
-            </div>
-            
-            {/* Animated Arrow Pointer */}
-            <div className="arrow-pointer hidden md:block">
-              →
-            </div>
-            
-            {/* Premium Card (Right) */}
-            <div className="promotion-card premium-card-animated">
-              <img 
-                src="/Holiday Proposal/Promotion Section/Premium promotion box.svg" 
-                alt="Premium Partner Promotion" 
-                className="w-full h-auto"
-                loading="lazy"
-              />
-              
-              {/* Sparkles */}
-              <div className="sparkle">✨</div>
-              <div className="sparkle">✨</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
       {/* FEEL GREAT SCROLLER */}
       <section id="feel-great" className="fade-in-section py-14 md:py-20 rounded-3xl" style={{ backgroundColor: '#003756' }}>
         <div style={{ padding: '0 8vw' }}>
@@ -2760,112 +2952,146 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         </div>
       </section>
 
-      {/* FAQ SECTION */}
+      {/* FAQ SECTION - Apple/Airbnb Style */}
       {(!genericLandingPage || genericLandingPage.customization.includeFAQ) && (
-        <section className="fade-in-section py-16 md:py-20 bg-gray-50 rounded-3xl">
-        <div className="mx-auto container-narrow px-4">
-          <h2 className="h1 text-center mb-12">Frequently Asked Questions</h2>
-          <div className="max-w-3xl mx-auto space-y-4">
-            {[
-              {
-                q: 'How quickly can you set up services?',
-                a: 'We can typically set up services within 24-48 hours. For urgent requests, we offer same-day service in most major metropolitan areas.'
-              },
-              {
-                q: "What's included in your pricing?",
-                a: 'Our pricing includes all services, equipment, setup, and cleanup. No hidden fees, no surprises. We provide transparent, all-inclusive pricing for every service.'
-              },
-              {
-                q: 'Do you work with remote teams?',
-                a: "Yes! We offer virtual wellness sessions and can coordinate in-person services for distributed teams. We'll work with your team's schedule and location needs."
-              },
-              {
-                q: 'What if we need to cancel or reschedule?',
-                a: "We offer flexible cancellation and rescheduling policies. Just give us 24 hours notice and we'll work with you to find a new time that works for your team."
-              }
-            ].map((faq, idx) => (
-              <div key={idx} className="faq-item bg-white rounded-2xl p-6">
-                <button className="faq-question w-full text-left flex items-center justify-between font-semibold" style={{ color: '#003756' }}>
-                  <span>{faq.q}</span>
-                  <span className="faq-icon text-[#0098AD] text-xl">+</span>
-                </button>
-                <div className="faq-content">
-                  <p className="mt-4 text-gray-700">{faq.a}</p>
+        <section className="fade-in-section py-20 md:py-32 rounded-3xl" style={{ backgroundColor: 'white' }}>
+          <div className="mx-auto max-w-4xl px-6">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-center mb-12 md:mb-16" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+              Frequently Asked Questions
+            </h2>
+            <div className="space-y-6">
+              {[
+                {
+                  q: 'How quickly can you set up services?',
+                  a: 'We can typically set up services within 24-48 hours. For urgent requests, we offer same-day service in most major metropolitan areas.'
+                },
+                {
+                  q: "What's included in your pricing?",
+                  a: 'Our pricing includes all services, equipment, setup, and cleanup. No hidden fees, no surprises. We provide transparent, all-inclusive pricing for every service.'
+                },
+                {
+                  q: 'Do you work with remote teams?',
+                  a: "Yes! We offer virtual wellness sessions and can coordinate in-person services for distributed teams. We'll work with your team's schedule and location needs."
+                },
+                {
+                  q: 'What if we need to cancel or reschedule?',
+                  a: "We offer flexible cancellation and rescheduling policies. Just give us 24 hours notice and we'll work with you to find a new time that works for your team."
+                }
+              ].map((faq, idx) => (
+                <div key={idx} className="faq-item rounded-3xl p-8" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0, 55, 86, 0.1)' }}>
+                  <button className="faq-question w-full text-left flex items-center justify-between text-xl font-semibold" style={{ color: '#003756' }}>
+                    <span>{faq.q}</span>
+                    <span className="faq-icon text-2xl" style={{ color: '#003756', opacity: 0.6 }}>+</span>
+                  </button>
+                  <div className="faq-content">
+                    <p className="mt-6 text-base" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>{faq.a}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       )}
 
 
-      {/* FINAL CTA */}
-      <section id="book" className="fade-in-section py-16 md:py-20 text-white rounded-3xl" style={{ backgroundColor: '#003756' }}>
-        <div className="mx-auto container-narrow px-4 text-center">
-          <h2 className="h1 text-white mb-6">
-            {isReturningClient 
+      {/* FINAL CTA - Apple/Airbnb Style */}
+      <section id="book" className="fade-in-section py-20 md:py-32 rounded-3xl" style={{ backgroundColor: '#003756' }}>
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold mb-6 md:mb-8" style={{ color: 'white', letterSpacing: '-0.02em', lineHeight: '1.15' }}>
+            {isReturningClient
               ? 'Ready to Lock In Your 2026 Quarterly Program?'
               : 'Ready to Transform Your Workplace?'
             }
           </h2>
-          <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
+          <p className="text-base md:text-xl lg:text-2xl mb-8 md:mb-12 max-w-3xl mx-auto" style={{ color: 'white', opacity: 0.8, lineHeight: '1.6' }}>
             {isReturningClient
               ? `As a valued partner, commit to 4+ quarterly events and save 15% while securing priority booking and guaranteed availability on your preferred dates. Commit by February 16, 2026.`
               : 'Join 500+ companies who trust Shortcut to deliver employee happiness. Book a call today and see how easy workplace wellness can be.'
             }
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button onClick={() => setShowContactForm(true)} className="inline-flex items-center justify-center rounded-full font-bold px-8 py-4 shadow-glow hover:opacity-90 pulse-glow" style={{ backgroundColor: '#9EFAFF', color: '#003C5E' }}>
+
+          <div className="flex flex-col items-center gap-4 md:gap-6">
+            <button
+              onClick={() => setShowContactForm(true)}
+              className="px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 hover:scale-105 min-h-[48px] w-full sm:w-auto"
+              style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.3)' }}
+            >
               {isReturningClient ? 'Commit to Quarterly Program & Save 15%' : 'Get in touch'}
             </button>
-            <div className="text-sm text-white/70">
-              <span className="inline-flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0098AD' }}></span>
-                {isReturningClient 
-                  ? 'Schedule commitment call • Lock in your calendar'
-                  : 'Free consultation • No commitment'
-                }
-              </span>
-            </div>
+            <p className="text-sm font-medium" style={{ color: 'white', opacity: 0.6 }}>
+              {isReturningClient
+                ? 'Schedule commitment call • Lock in your calendar'
+                : 'Free consultation • No commitment'
+              }
+            </p>
           </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="py-12" style={{ backgroundColor: '#FF5050' }}>
+      <footer className="py-12" style={{ backgroundColor: 'white' }}>
         <div className="mx-auto container-narrow px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
-              <div className="h1 text-white mb-4">Shortcut</div>
-              <p className="text-white/70 mb-4">Employee happiness delivered. One vendor, effortless logistics.</p>
+              <a href="#top" className="inline-block mb-4" aria-label="Shortcut logo - return to top">
+                <svg viewBox="0 0 192 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-auto">
+                  <path fillRule="evenodd" clipRule="evenodd"
+                    d="M29.6284 21.5003C29.3713 23.7505 28.6818 25.9572 27.3774 27.8371C24.2946 32.28 18.9846 33.7633 13.7386 32.1453C8.56113 30.5486 3.54006 26.0287 0 18.7044L4.84254 16.3639C7.92552 22.7425 11.9483 25.9647 15.3237 27.0057C18.6305 28.0256 21.3824 27.0423 22.9585 24.7709C23.2395 24.366 23.481 23.9084 23.6808 23.4043C23.3774 23.4209 23.0738 23.4262 22.7704 23.4206C19.2805 23.3553 16.0856 21.8408 13.6813 19.7541C11.2932 17.6815 9.45986 14.8481 8.92523 11.8407C8.36688 8.69984 9.26489 5.39496 12.2773 3.08642C13.6869 2.00611 15.2332 1.36494 16.8596 1.24094C18.4816 1.11728 19.9964 1.52212 21.3267 2.23502C23.9138 3.62146 25.9253 6.22268 27.2987 9.01314C28.1685 10.7806 28.8433 12.7443 29.2624 14.7619C31.6786 12.1765 34.3066 10.6389 36.5311 9.77503C37.6804 9.3287 38.7381 9.05577 39.6253 8.91256C40.403 8.78701 41.3422 8.71138 42.1247 8.89196L40.9153 14.1327C41.0086 14.1543 41.0586 14.1618 41.0586 14.1618C41.0583 14.1658 40.8815 14.1579 40.4824 14.2223C39.98 14.3034 39.2871 14.4746 38.4782 14.7887C36.8668 15.4145 34.8583 16.5824 32.995 18.6489C31.9331 19.8266 30.8025 20.7717 29.6284 21.5003ZM24.3046 17.9209C24.1028 15.671 23.4436 13.3605 22.4729 11.3882C21.3666 9.14038 20.0076 7.63027 18.7861 6.97569C18.2121 6.66808 17.7132 6.56999 17.2685 6.60389C16.8283 6.63745 16.255 6.81433 15.5489 7.35549C14.3296 8.28987 13.9682 9.47863 14.2207 10.8994C14.497 12.4535 15.5449 14.2498 17.2067 15.692C18.8522 17.1202 20.8758 18.0057 22.871 18.043C23.3362 18.0517 23.8156 18.0149 24.3046 17.9209Z"
+                    fill="#FF5050" />
+                  <path fillRule="evenodd" clipRule="evenodd"
+                    d="M37.5033 11.1947C34.926 10.3834 32.9956 8.72285 31.3895 6.90729L35.4947 3.27552C36.7809 4.72933 37.9135 5.57753 39.149 5.96641C40.3556 6.34619 42.0247 6.40038 44.5918 5.54394L46.8242 10.5201C44.9245 11.6113 43.8736 13.3885 43.3764 15.227C43.1283 16.1444 43.035 17.0253 43.0393 17.7413C43.0437 18.4635 43.1448 18.831 43.1572 18.8761C43.1582 18.8799 43.1583 18.8806 43.1583 18.8806L38.1127 21.0218C37.7142 20.0827 37.565 18.8953 37.5583 17.7744C37.5511 16.586 37.7026 15.2115 38.0853 13.7961C38.2848 13.0585 38.5517 12.2956 38.8993 11.5353C38.4247 11.4518 37.9596 11.3383 37.5033 11.1947Z"
+                    fill="#FF5050" />
+                  <path d="M182.038 29.4766V5.46692H187.385V29.4766H182.038ZM178.194 17.0349V12.4916H191.23V17.0349H178.194Z"
+                    fill="#175071" />
+                  <path
+                    d="M167.362 29.861C165.801 29.861 164.415 29.5465 163.203 28.9174C162.015 28.265 161.083 27.3797 160.408 26.2613C159.732 25.1197 159.394 23.8149 159.394 22.3471V12.4916H164.741V22.2772C164.741 22.8597 164.834 23.3606 165.021 23.78C165.23 24.1994 165.533 24.5255 165.929 24.7585C166.326 24.9915 166.803 25.108 167.362 25.108C168.154 25.108 168.784 24.8634 169.25 24.3741C169.716 23.8615 169.949 23.1625 169.949 22.2772V12.4916H175.296V22.3121C175.296 23.8033 174.958 25.1197 174.282 26.2613C173.606 27.3797 172.675 28.265 171.486 28.9174C170.298 29.5465 168.923 29.861 167.362 29.861Z"
+                    fill="#175071" />
+                  <path
+                    d="M150.08 29.8609C148.332 29.8609 146.748 29.4765 145.327 28.7076C143.906 27.9388 142.787 26.8787 141.972 25.5273C141.156 24.176 140.749 22.6615 140.749 20.984C140.749 19.2832 141.156 17.7687 141.972 16.4407C142.81 15.0893 143.941 14.0292 145.362 13.2604C146.783 12.4915 148.379 12.1071 150.15 12.1071C151.478 12.1071 152.689 12.34 153.784 12.806C154.903 13.2487 155.893 13.9244 156.755 14.833L153.33 18.258C152.934 17.8153 152.468 17.4891 151.932 17.2794C151.419 17.0698 150.825 16.9649 150.15 16.9649C149.381 16.9649 148.694 17.1396 148.088 17.4891C147.505 17.8153 147.039 18.2813 146.69 18.8871C146.364 19.4696 146.201 20.1569 146.201 20.949C146.201 21.7412 146.364 22.4402 146.69 23.046C147.039 23.6517 147.517 24.1294 148.123 24.4789C148.728 24.8283 149.404 25.0031 150.15 25.0031C150.849 25.0031 151.466 24.8866 152.002 24.6536C152.561 24.3973 153.039 24.0478 153.435 23.6051L156.825 27.0301C155.94 27.9621 154.938 28.6727 153.819 29.162C152.701 29.6279 151.454 29.8609 150.08 29.8609Z"
+                    fill="#175071" />
+                  <path d="M129.93 29.4766V5.46692H135.277V29.4766H129.93ZM126.086 17.0349V12.4916H139.122V17.0349H126.086Z"
+                    fill="#175071" />
+                  <path
+                    d="M110.973 29.4766V12.4916H116.32V29.4766H110.973ZM116.32 20.1453L114.084 18.3979C114.526 16.4175 115.272 14.8797 116.32 13.7847C117.369 12.6896 118.825 12.1421 120.689 12.1421C121.504 12.1421 122.215 12.2702 122.821 12.5265C123.45 12.7595 123.997 13.1323 124.463 13.6449L121.283 17.664C121.05 17.4077 120.759 17.2096 120.409 17.0698C120.06 16.93 119.664 16.8601 119.221 16.8601C118.336 16.8601 117.625 17.1397 117.089 17.6989C116.577 18.2348 116.32 19.0503 116.32 20.1453Z"
+                    fill="#175071" />
+                  <path
+                    d="M99.0146 29.8609C97.2672 29.8609 95.6828 29.4765 94.2616 28.7076C92.8636 27.9155 91.7569 26.8437 90.9415 25.4924C90.126 24.141 89.7183 22.6266 89.7183 20.949C89.7183 19.2715 90.126 17.7687 90.9415 16.4407C91.7569 15.1126 92.8636 14.0642 94.2616 13.2953C95.6595 12.5031 97.2439 12.1071 99.0146 12.1071C100.785 12.1071 102.37 12.4915 103.768 13.2604C105.166 14.0292 106.272 15.0893 107.088 16.4407C107.903 17.7687 108.311 19.2715 108.311 20.949C108.311 22.6266 107.903 24.141 107.088 25.4924C106.272 26.8437 105.166 27.9155 103.768 28.7076C102.37 29.4765 100.785 29.8609 99.0146 29.8609ZM99.0146 25.0031C99.7835 25.0031 100.459 24.84 101.042 24.5138C101.624 24.1643 102.067 23.6867 102.37 23.0809C102.696 22.4518 102.859 21.7412 102.859 20.949C102.859 20.1569 102.696 19.4696 102.37 18.8871C102.043 18.2813 101.589 17.8153 101.007 17.4891C100.447 17.1396 99.7835 16.9649 99.0146 16.9649C98.269 16.9649 97.605 17.1396 97.0225 17.4891C96.44 17.8153 95.9857 18.2813 95.6595 18.8871C95.3333 19.4929 95.1702 20.1918 95.1702 20.984C95.1702 21.7529 95.3333 22.4518 95.6595 23.0809C95.9857 23.6867 96.44 24.1643 97.0225 24.5138C97.605 24.84 98.269 25.0031 99.0146 25.0031Z"
+                    fill="#175071" />
+                  <path
+                    d="M81.6902 29.4766V19.7958C81.6902 18.9104 81.4106 18.1998 80.8514 17.6639C80.3155 17.1048 79.6282 16.8252 78.7894 16.8252C78.207 16.8252 77.6944 16.9533 77.2517 17.2096C76.809 17.4426 76.4595 17.7921 76.2032 18.2581C75.947 18.7007 75.8188 19.2133 75.8188 19.7958L73.7568 18.7823C73.7568 17.4542 74.0364 16.2893 74.5956 15.2874C75.1548 14.2856 75.9353 13.5167 76.9372 12.9808C77.939 12.4216 79.0923 12.1421 80.3971 12.1421C81.7251 12.1421 82.8901 12.4216 83.8919 12.9808C84.8938 13.5167 85.6627 14.2739 86.1985 15.2525C86.7577 16.2077 87.0373 17.3261 87.0373 18.6075V29.4766H81.6902ZM70.4717 29.4766V4.10388H75.8188V29.4766H70.4717Z"
+                    fill="#175071" />
+                  <path
+                    d="M56.5498 29.8609C54.8024 29.8609 53.218 29.4765 51.7968 28.7076C50.3988 27.9155 49.2921 26.8437 48.4767 25.4924C47.6612 24.141 47.2535 22.6266 47.2535 20.949C47.2535 19.2715 47.6612 17.7687 48.4767 16.4407C49.2921 15.1126 50.3988 14.0642 51.7968 13.2953C53.1947 12.5031 54.7791 12.1071 56.5498 12.1071C58.3205 12.1071 59.9049 12.4915 61.3028 13.2604C62.7008 14.0292 63.8075 15.0893 64.623 16.4407C65.4384 17.7687 65.8461 19.2715 65.8461 20.949C65.8461 22.6266 65.4384 24.141 64.623 25.4924C63.8075 26.8437 62.7008 27.9155 61.3028 28.7076C59.9049 29.4765 58.3205 29.8609 56.5498 29.8609ZM56.5498 25.0031C57.3187 25.0031 57.9943 24.84 58.5768 24.5138C59.1593 24.1643 59.6019 23.6867 59.9049 23.0809C60.2311 22.4518 60.3942 21.7412 60.3942 20.949C60.3942 20.1569 60.2311 19.4696 59.9049 18.8871C59.5787 18.2813 59.1243 17.8153 58.5418 17.4891C57.9826 17.1396 57.3187 16.9649 56.5498 16.9649C55.8042 16.9649 55.1403 17.1396 54.5578 17.4891C53.9753 17.8153 53.5209 18.2813 53.1947 18.8871C52.8685 19.4929 52.7054 20.1918 52.7054 20.984C52.7054 21.7529 52.8685 22.4518 53.1947 23.0809C53.5209 23.6867 53.9753 24.1643 54.5578 24.5138C55.1403 24.84 55.8042 25.0031 56.5498 25.0031Z"
+                    fill="#175071" />
+                </svg>
+              </a>
+              <p className="mb-4" style={{ color: '#003756' }}>Employee happiness delivered. One vendor, effortless logistics.</p>
               <div className="flex gap-4">
-                <a href="#" className="text-white/70 hover:text-white">LinkedIn</a>
-                <a href="#" className="text-white/70 hover:text-white">Twitter</a>
-                <a href="#" className="text-white/70 hover:text-white">Instagram</a>
+                <a href="#" style={{ color: '#003756' }} className="hover:opacity-70">LinkedIn</a>
+                <a href="#" style={{ color: '#003756' }} className="hover:opacity-70">Twitter</a>
+                <a href="#" style={{ color: '#003756' }} className="hover:opacity-70">Instagram</a>
               </div>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-white">Services</h3>
-              <ul className="space-y-2 text-white/70">
-                <li><a href="#" className="hover:text-white">Massage</a></li>
-                <li><a href="#" className="hover:text-white">Hair & Beauty</a></li>
-                <li><a href="#" className="hover:text-white">Headshots</a></li>
-                <li><a href="#" className="hover:text-white">Mindfulness</a></li>
+              <h3 className="font-semibold mb-4" style={{ color: '#003756' }}>Services</h3>
+              <ul className="space-y-2">
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Massage</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Hair & Beauty</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Headshots</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Mindfulness</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-white">Company</h3>
-              <ul className="space-y-2 text-white/70">
-                <li><a href="#" className="hover:text-white">About</a></li>
-                <li><a href="#" className="hover:text-white">Contact</a></li>
-                <li><a href="#" className="hover:text-white">Privacy</a></li>
-                <li><a href="#" className="hover:text-white">Terms</a></li>
+              <h3 className="font-semibold mb-4" style={{ color: '#003756' }}>Company</h3>
+              <ul className="space-y-2">
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">About</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Contact</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Privacy</a></li>
+                <li><a href="#" style={{ color: '#003756', opacity: 0.7 }} className="hover:opacity-100">Terms</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/20 mt-8 pt-8 text-center" style={{ color: '#003756' }}>
+          <div className="mt-8 pt-8 text-center" style={{ borderTop: '1px solid rgba(0, 55, 86, 0.2)', color: '#003756' }}>
             <p>&copy; 2025 Shortcut. All rights reserved.</p>
           </div>
         </div>
