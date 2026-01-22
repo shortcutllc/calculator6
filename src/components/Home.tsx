@@ -24,6 +24,12 @@ interface Service {
   fixedPrice?: number;
   // Massage-specific fields
   massageType?: 'chair' | 'table' | 'massage';
+  // Recurring event fields
+  isRecurring?: boolean;
+  recurringFrequency?: {
+    type: 'quarterly' | 'monthly' | 'custom';
+    occurrences: number;
+  };
 }
 
 interface Event {
@@ -44,6 +50,10 @@ interface CalculationResults {
   totalProRevenue: number;
   netProfit: number;
   profitMargin: number;
+  hasRecurringServices?: boolean;
+  recurringServiceCount?: number;
+  totalRecurringSavings?: number;
+  totalOriginalCost?: number;
   locationBreakdown: {
     [key: string]: {
       totalAppointments: number;
@@ -58,6 +68,14 @@ interface CalculationResults {
             numPros: number;
             totalAppointments: number;
             serviceCost: number;
+            isRecurring?: boolean;
+            recurringFrequency?: {
+              type: 'quarterly' | 'monthly' | 'custom';
+              occurrences: number;
+            };
+            recurringDiscount?: number;
+            recurringSavings?: number;
+            originalPrice?: number;
           }>;
         };
       };
@@ -375,6 +393,10 @@ const Home: React.FC = () => {
         totalProRevenue: 0,
         netProfit: 0,
         profitMargin: 0,
+        hasRecurringServices: false,
+        recurringServiceCount: 0,
+        totalRecurringSavings: 0,
+        totalOriginalCost: 0,
         locationBreakdown: {}
       };
 
@@ -400,18 +422,32 @@ const Home: React.FC = () => {
             results.totalAppointments += serviceResults.totalAppointments;
             results.totalCost += serviceResults.serviceCost;
             results.totalProRevenue += serviceResults.proRevenue;
+            results.totalOriginalCost = (results.totalOriginalCost || 0) + serviceResults.originalPrice;
+            results.totalRecurringSavings = (results.totalRecurringSavings || 0) + serviceResults.recurringSavings;
 
             results.locationBreakdown[location].totalAppointments += serviceResults.totalAppointments;
             results.locationBreakdown[location].totalCost += serviceResults.serviceCost;
 
             results.locationBreakdown[location].dateBreakdown[dateKey].totalAppointments += serviceResults.totalAppointments;
             results.locationBreakdown[location].dateBreakdown[dateKey].totalCost += serviceResults.serviceCost;
+
+            // Track recurring services
+            if (service.isRecurring && service.recurringFrequency) {
+              results.hasRecurringServices = true;
+              results.recurringServiceCount = (results.recurringServiceCount || 0) + 1;
+            }
+
             results.locationBreakdown[location].dateBreakdown[dateKey].services.push({
               serviceType: service.serviceType,
               totalHours: service.totalHours,
               numPros: service.numPros,
               totalAppointments: serviceResults.totalAppointments,
-              serviceCost: serviceResults.serviceCost
+              serviceCost: serviceResults.serviceCost,
+              isRecurring: service.isRecurring,
+              recurringFrequency: service.recurringFrequency,
+              recurringDiscount: serviceResults.recurringDiscount,
+              recurringSavings: serviceResults.recurringSavings,
+              originalPrice: serviceResults.originalPrice
             });
           });
         });
@@ -641,6 +677,10 @@ const Home: React.FC = () => {
         totalProRevenue: 0,
         netProfit: 0,
         profitMargin: 0,
+        hasRecurringServices: false,
+        recurringServiceCount: 0,
+        totalRecurringSavings: 0,
+        totalOriginalCost: 0,
         locationBreakdown: {}
       };
 
@@ -666,18 +706,32 @@ const Home: React.FC = () => {
             results.totalAppointments += serviceResults.totalAppointments;
             results.totalCost += serviceResults.serviceCost;
             results.totalProRevenue += serviceResults.proRevenue;
+            results.totalOriginalCost = (results.totalOriginalCost || 0) + serviceResults.originalPrice;
+            results.totalRecurringSavings = (results.totalRecurringSavings || 0) + serviceResults.recurringSavings;
 
             results.locationBreakdown[location].totalAppointments += serviceResults.totalAppointments;
             results.locationBreakdown[location].totalCost += serviceResults.serviceCost;
 
             results.locationBreakdown[location].dateBreakdown[dateKey].totalAppointments += serviceResults.totalAppointments;
             results.locationBreakdown[location].dateBreakdown[dateKey].totalCost += serviceResults.serviceCost;
+
+            // Track recurring services
+            if (service.isRecurring && service.recurringFrequency) {
+              results.hasRecurringServices = true;
+              results.recurringServiceCount = (results.recurringServiceCount || 0) + 1;
+            }
+
             results.locationBreakdown[location].dateBreakdown[dateKey].services.push({
               serviceType: service.serviceType,
               totalHours: service.totalHours,
               numPros: service.numPros,
               totalAppointments: serviceResults.totalAppointments,
-              serviceCost: serviceResults.serviceCost
+              serviceCost: serviceResults.serviceCost,
+              isRecurring: service.isRecurring,
+              recurringFrequency: service.recurringFrequency,
+              recurringDiscount: serviceResults.recurringDiscount,
+              recurringSavings: serviceResults.recurringSavings,
+              originalPrice: serviceResults.originalPrice
             });
           });
         });
@@ -1025,7 +1079,16 @@ const Home: React.FC = () => {
               </p>
               
               <div className="card-small bg-neutral-light-gray mb-6">
-                <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">Quick Summary</h4>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-extrabold text-shortcut-blue">Quick Summary</h4>
+                  {previewResults.hasRecurringServices && (
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1.5 rounded-full">
+                      <span className="text-sm font-bold">
+                        🔄 {previewResults.recurringServiceCount} Recurring Service{previewResults.recurringServiceCount !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                   <div>
                     <span className="text-sm font-bold text-shortcut-blue block mb-1">Total Appointments:</span>
@@ -1044,6 +1107,21 @@ const Home: React.FC = () => {
                     <div className="font-bold text-text-dark text-lg">{previewResults.profitMargin.toFixed(1)}%</div>
                   </div>
                 </div>
+                {/* Recurring Savings Display */}
+                {previewResults.hasRecurringServices && previewResults.totalRecurringSavings && previewResults.totalRecurringSavings > 0 && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">✨</span>
+                        <span className="font-bold text-purple-800">Recurring Discount Savings</span>
+                      </div>
+                      <span className="font-extrabold text-lg text-green-600">-${previewResults.totalRecurringSavings.toFixed(2)}</span>
+                    </div>
+                    <p className="text-sm text-purple-700 mt-1">
+                      Original: ${(previewResults.totalOriginalCost || 0).toFixed(2)} → Final: ${previewResults.totalCost.toFixed(2)}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-6">
@@ -1074,9 +1152,21 @@ const Home: React.FC = () => {
                             <div className="ml-4 space-y-2 pt-2 border-t border-gray-200">
                               {dateData.services.map((service, serviceIndex) => (
                                 <div key={serviceIndex} className="flex justify-between items-center text-sm py-1.5">
-                                  <span className="text-text-dark">
-                                    {service.serviceType} • {service.totalHours}h • {service.numPros} pros • ${service.serviceCost.toFixed(2)}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-text-dark">
+                                      {service.serviceType} • {service.totalHours}h • {service.numPros} pros • ${service.serviceCost.toFixed(2)}
+                                    </span>
+                                    {service.isRecurring && service.recurringFrequency && (
+                                      <span className="inline-flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                                        {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                         service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                         `${service.recurringFrequency.occurrences}x`}
+                                        {service.recurringDiscount && service.recurringDiscount > 0 && (
+                                          <span className="bg-white/20 px-1 rounded ml-1">-{service.recurringDiscount}%</span>
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
                                   <button
                                     onClick={() => removeServiceFromPreview(location, date, serviceIndex)}
                                     className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
@@ -1523,6 +1613,109 @@ const Home: React.FC = () => {
                         </div>
                       </>
                     )}
+                  </div>
+
+                  {/* Recurring Event Section */}
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="space-y-4">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={service.isRecurring || false}
+                          onChange={(e) => {
+                            updateService(index, {
+                              isRecurring: e.target.checked,
+                              recurringFrequency: e.target.checked
+                                ? { type: 'quarterly', occurrences: 4 }
+                                : undefined
+                            });
+                          }}
+                          className="w-5 h-5 border-2 border-gray-200 rounded focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-shortcut-teal"
+                        />
+                        <span className="text-base font-bold text-shortcut-blue">
+                          Make this a recurring event
+                        </span>
+                      </label>
+
+                      {service.isRecurring && (
+                        <div className="ml-8 space-y-4">
+                          <div>
+                            <label className="block text-sm font-bold mb-2 text-shortcut-blue">
+                              Frequency
+                            </label>
+                            <select
+                              value={service.recurringFrequency?.type || 'quarterly'}
+                              onChange={(e) => {
+                                const type = e.target.value as 'quarterly' | 'monthly' | 'custom';
+                                updateService(index, {
+                                  recurringFrequency: {
+                                    type,
+                                    occurrences: type === 'quarterly' ? 4 : type === 'monthly' ? 12 : (service.recurringFrequency?.occurrences || 4)
+                                  }
+                                });
+                              }}
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                            >
+                              <option value="quarterly">Quarterly (4 events)</option>
+                              <option value="monthly">Monthly (12 events)</option>
+                              <option value="custom">Custom</option>
+                            </select>
+                          </div>
+
+                          {service.recurringFrequency?.type === 'custom' && (
+                            <div>
+                              <label className="block text-sm font-bold mb-2 text-shortcut-blue">
+                                Number of Events
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="52"
+                                value={service.recurringFrequency?.occurrences || 4}
+                                onChange={(e) => {
+                                  const occurrences = Math.max(1, Math.min(52, parseInt(e.target.value) || 1));
+                                  updateService(index, {
+                                    recurringFrequency: {
+                                      type: 'custom',
+                                      occurrences
+                                    }
+                                  });
+                                }}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                              />
+                            </div>
+                          )}
+
+                          {/* Volume Discount Info */}
+                          {service.recurringFrequency && (
+                            <div className={`p-4 rounded-xl border-2 ${
+                              service.recurringFrequency.occurrences >= 4
+                                ? 'bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200'
+                                : 'bg-neutral-light-gray border-gray-200'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">
+                                  {service.recurringFrequency.occurrences >= 9 ? '🎉' : service.recurringFrequency.occurrences >= 4 ? '✨' : '💡'}
+                                </span>
+                                <div>
+                                  <p className={`font-bold text-sm ${service.recurringFrequency.occurrences >= 4 ? 'text-purple-800' : 'text-shortcut-blue'}`}>
+                                    {service.recurringFrequency.occurrences >= 9
+                                      ? '20% Volume Discount Applied!'
+                                      : service.recurringFrequency.occurrences >= 4
+                                      ? '15% Volume Discount Applied!'
+                                      : `Add ${4 - service.recurringFrequency.occurrences} more event${4 - service.recurringFrequency.occurrences !== 1 ? 's' : ''} to unlock 15% savings`
+                                    }
+                                  </p>
+                                  <p className="text-xs text-text-dark-60 mt-1">
+                                    {service.recurringFrequency.occurrences} {service.recurringFrequency.occurrences === 1 ? 'event' : 'events'} scheduled
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

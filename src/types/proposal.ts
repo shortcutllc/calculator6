@@ -1,5 +1,13 @@
 import { Database } from './database';
 
+// Recurring event frequency types
+export type RecurringFrequencyType = 'quarterly' | 'monthly' | 'custom';
+
+export interface RecurringFrequency {
+  type: RecurringFrequencyType;
+  occurrences: number; // 4 for quarterly, 12 for monthly, or custom number
+}
+
 export interface Service {
   serviceType: string;
   totalHours: number;
@@ -22,6 +30,10 @@ export interface Service {
   mindfulnessType?: 'intro' | 'drop-in' | 'mindful-movement';
   // Massage-specific fields
   massageType?: 'chair' | 'table' | 'massage';
+  // Recurring event fields
+  isRecurring?: boolean;
+  recurringFrequency?: RecurringFrequency;
+  recurringDiscount?: number; // 15% for 4+, 20% for 9+
 }
 
 export interface DateData {

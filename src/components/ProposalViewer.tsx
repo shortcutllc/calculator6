@@ -2691,15 +2691,32 @@ The Shortcut Team`);
                                   </div>
                                 )}
                                 {dateData.services.map((service: any, serviceIndex: number) => (
-                                  <div 
-                                    key={serviceIndex} 
+                                  <div
+                                    key={serviceIndex}
                                     className="card-small mb-6"
                                   >
                                     <div className="flex items-center justify-between mb-4">
-                                      <h4 className="text-lg font-extrabold text-shortcut-blue flex items-center">
-                                        <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
-                                        Service Type: {getServiceDisplayName(service.serviceType)}
-                                      </h4>
+                                      <div className="flex items-center gap-3">
+                                        <h4 className="text-lg font-extrabold text-shortcut-blue flex items-center">
+                                          <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
+                                          Service Type: {getServiceDisplayName(service.serviceType)}
+                                        </h4>
+                                        {service.isRecurring && service.recurringFrequency && (
+                                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                                            Recurring
+                                            <span className="opacity-80">
+                                              ({service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                                service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                                `${service.recurringFrequency.occurrences}x`})
+                                            </span>
+                                            {service.recurringDiscount > 0 && (
+                                              <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">
+                                                {service.recurringDiscount}% off
+                                              </span>
+                                            )}
+                                          </span>
+                                        )}
+                                      </div>
                                       {isEditing && !isSharedView && (
                                         <div className="flex items-center gap-2">
                                           <select
@@ -2807,7 +2824,38 @@ The Shortcut Team`);
                                         )}
                                       </div>
                                     )}
-                                    
+
+                                    {/* Recurring Event Details */}
+                                    {service.isRecurring && service.recurringFrequency && (
+                                      <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border-2 border-purple-200">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-lg">🔄</span>
+                                          <h5 className="font-bold text-purple-800">Recurring Event</h5>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                          <div>
+                                            <span className="font-bold text-purple-700">Frequency:</span>
+                                            <span className="ml-2 text-purple-900">
+                                              {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                               service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                               'Custom'}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="font-bold text-purple-700">Total Events:</span>
+                                            <span className="ml-2 text-purple-900">{service.recurringFrequency.occurrences}</span>
+                                          </div>
+                                        </div>
+                                        {(service.recurringDiscount > 0 || service.recurringFrequency.occurrences >= 4) && (
+                                          <div className="mt-3 p-2 bg-white/50 rounded-lg">
+                                            <span className="text-sm font-bold text-green-700">
+                                              ✨ {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} Volume Discount Applied
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
                                     <div className="grid gap-0">
                                       {service.serviceType === 'mindfulness' ? (
                                         <div className="flex justify-between items-center py-3 border-b border-gray-200">
@@ -3326,7 +3374,27 @@ The Shortcut Team`);
             )}
 
             <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
-              <h2 className="text-xl font-extrabold mb-6 text-white">Event Summary</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
+                {/* Check for recurring services */}
+                {(() => {
+                  let recurringCount = 0;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.isRecurring && service.recurringFrequency) {
+                          recurringCount++;
+                        }
+                      });
+                    });
+                  });
+                  return recurringCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                      🔄 {recurringCount} Recurring Service{recurringCount !== 1 ? 's' : ''}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-white/20">
                   <span className="font-semibold">Total Appointments:</span>
@@ -3362,6 +3430,35 @@ The Shortcut Team`);
                   <span className="font-semibold">Profit Margin:</span>
                   <span className="font-bold text-lg">{(displayData.summary?.profitMargin || 0).toFixed(1)}%</span>
                 </div>
+                {/* Recurring Savings Display */}
+                {(() => {
+                  let totalSavings = 0;
+                  let hasRecurring = false;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.isRecurring && service.recurringFrequency && service.recurringFrequency.occurrences >= 4) {
+                          hasRecurring = true;
+                          const discount = service.recurringFrequency.occurrences >= 9 ? 0.20 : 0.15;
+                          // Estimate savings based on service cost
+                          const originalCost = service.serviceCost / (1 - discount);
+                          totalSavings += originalCost - service.serviceCost;
+                        }
+                      });
+                    });
+                  });
+                  return hasRecurring && totalSavings > 0 ? (
+                    <div className="mt-4 pt-4 border-t border-white/20">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold flex items-center gap-2">
+                          <span className="text-lg">✨</span>
+                          Recurring Savings:
+                        </span>
+                        <span className="font-bold text-lg text-green-300">-${formatCurrency(totalSavings)}</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
 

@@ -1,6 +1,30 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions } from '../types/proposal';
+import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions, RecurringFrequency } from '../types/proposal';
 import { getProposalUrl } from './url';
+
+// Helper function to calculate recurring discount based on occurrences
+export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
+  if (!frequency) return 0;
+  const occurrences = frequency.occurrences;
+  if (occurrences >= 9) return 20;
+  if (occurrences >= 4) return 15;
+  return 0;
+};
+
+// Helper function to get the frequency label
+export const getFrequencyLabel = (frequency: RecurringFrequency | undefined): string => {
+  if (!frequency) return '';
+  switch (frequency.type) {
+    case 'quarterly':
+      return 'Quarterly (4 events)';
+    case 'monthly':
+      return 'Monthly (12 events)';
+    case 'custom':
+      return `Custom (${frequency.occurrences} events)`;
+    default:
+      return `${frequency.occurrences} events`;
+  }
+};
 
 // Helper function to calculate original price (before discount)
 export const calculateOriginalPrice = (service: any): number => {
@@ -24,7 +48,7 @@ export const calculateOriginalPrice = (service: any): number => {
 
 export const calculateServiceResults = (service: any) => {
   if (!service.appTime || !service.numPros || !service.totalHours) {
-    return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0 };
+    return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0, recurringDiscount: 0, recurringSavings: 0 };
   }
 
   const apptsPerHourPerPro = 60 / service.appTime;
@@ -48,21 +72,35 @@ export const calculateServiceResults = (service: any) => {
     proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
   } else {
     serviceCost = service.totalHours * (service.hourlyRate || 0) * service.numPros;
-    proRevenue = (service.totalHours * service.numPros * (service.proHourly || 0)) + 
+    proRevenue = (service.totalHours * service.numPros * (service.proHourly || 0)) +
                  ((service.earlyArrival || 0) * service.numPros);
   }
 
   const originalPrice = serviceCost;
 
+  // Apply regular discount if present
   if (service.discountPercent > 0) {
     serviceCost = serviceCost * (1 - (service.discountPercent / 100));
+  }
+
+  // Calculate and apply recurring discount
+  let recurringDiscount = 0;
+  let recurringSavings = 0;
+  if (service.isRecurring && service.recurringFrequency) {
+    recurringDiscount = calculateRecurringDiscount(service.recurringFrequency);
+    if (recurringDiscount > 0) {
+      recurringSavings = serviceCost * (recurringDiscount / 100);
+      serviceCost = serviceCost * (1 - (recurringDiscount / 100));
+    }
   }
 
   return {
     totalAppointments: totalAppts,
     serviceCost: Number(serviceCost.toFixed(2)),
     proRevenue: Number(proRevenue.toFixed(2)),
-    originalPrice: Number(originalPrice.toFixed(2))
+    originalPrice: Number(originalPrice.toFixed(2)),
+    recurringDiscount,
+    recurringSavings: Number(recurringSavings.toFixed(2))
   };
 };
 
