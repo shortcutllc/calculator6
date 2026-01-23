@@ -38,6 +38,7 @@ const QRCodeSignDisplay = lazy(() => import('./components/QRCodeSignDisplay'));
 const MindfulnessProgramManager = lazy(() => import('./components/MindfulnessProgramManager'));
 const GenericLandingPageManager = lazy(() => import('./components/GenericLandingPageManager'));
 const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
+const Plan2026 = lazy(() => import('./components/Plan2026'));
 
 function App() {
   const location = useLocation();
@@ -427,6 +428,22 @@ function App() {
                 }
               />
               
+              {/* 2026 Growth Plan */}
+              <Route
+                path="/2026-plan"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <Plan2026 />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+
               {/* Custom URL Routes */}
               <Route
                 path="/:client/:type/:slug"
