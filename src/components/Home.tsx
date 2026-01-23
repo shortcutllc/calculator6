@@ -24,6 +24,12 @@ interface Service {
   fixedPrice?: number;
   // Massage-specific fields
   massageType?: 'chair' | 'table' | 'massage';
+  // Recurring event fields
+  isRecurring?: boolean;
+  recurringFrequency?: {
+    type: 'quarterly' | 'monthly' | 'custom';
+    occurrences: number;
+  };
 }
 
 interface Event {
@@ -44,6 +50,10 @@ interface CalculationResults {
   totalProRevenue: number;
   netProfit: number;
   profitMargin: number;
+  hasRecurringServices?: boolean;
+  recurringServiceCount?: number;
+  totalRecurringSavings?: number;
+  totalOriginalCost?: number;
   locationBreakdown: {
     [key: string]: {
       totalAppointments: number;
@@ -58,6 +68,14 @@ interface CalculationResults {
             numPros: number;
             totalAppointments: number;
             serviceCost: number;
+            isRecurring?: boolean;
+            recurringFrequency?: {
+              type: 'quarterly' | 'monthly' | 'custom';
+              occurrences: number;
+            };
+            recurringDiscount?: number;
+            recurringSavings?: number;
+            originalPrice?: number;
           }>;
         };
       };
@@ -154,16 +172,16 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 40
   },
   mindfulness: {
-    appTime: 40,
-    totalHours: 1,
+    appTime: 45,
+    totalHours: 0.75,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 40,
+    classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1375
   },
   'hair-makeup': {
     appTime: 20,
@@ -217,7 +235,7 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1500
+    fixedPrice: 1375
   },
   'mindfulness-cle': {
     appTime: 60,
@@ -229,7 +247,19 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1875
+  },
+  'mindfulness-pro-reactivity': {
+    appTime: 45,
+    totalHours: 0.75,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 45,
+    participants: 'unlimited',
+    fixedPrice: 1375
   }
 };
 
@@ -276,9 +306,16 @@ const Home: React.FC = () => {
   }, [clientData.events, clientData.name, clientData.locations]);
 
   const calculateServiceResults = (service: Service) => {
+    const isMindfulness = service.serviceType === 'mindfulness' ||
+                          service.serviceType === 'mindfulness-soles' ||
+                          service.serviceType === 'mindfulness-movement' ||
+                          service.serviceType === 'mindfulness-pro' ||
+                          service.serviceType === 'mindfulness-cle' ||
+                          service.serviceType === 'mindfulness-pro-reactivity';
+
     const apptsPerHourPerPro = 60 / service.appTime;
     const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
-    const totalAppts = Math.floor(service.totalHours * totalApptsPerHour);
+    const totalAppts = isMindfulness ? 0 : Math.floor(service.totalHours * totalApptsPerHour);
 
     let serviceCost = 0;
     let proRevenue = 0;
@@ -287,13 +324,9 @@ const Home: React.FC = () => {
       proRevenue = service.totalHours * service.numPros * service.proHourly;
       const retouchingTotal = totalAppts * (service.retouchingCost || 0);
       serviceCost = proRevenue + retouchingTotal;
-    } else if (service.serviceType === 'mindfulness' ||
-               service.serviceType === 'mindfulness-soles' ||
-               service.serviceType === 'mindfulness-movement' ||
-               service.serviceType === 'mindfulness-pro' ||
-               service.serviceType === 'mindfulness-cle') {
+    } else if (isMindfulness) {
       // Mindfulness services use fixed pricing
-      serviceCost = service.fixedPrice || 1350;
+      serviceCost = service.fixedPrice || 1375;
       proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
     } else {
       const totalEarlyArrival = service.earlyArrival * service.numPros;
@@ -375,6 +408,10 @@ const Home: React.FC = () => {
         totalProRevenue: 0,
         netProfit: 0,
         profitMargin: 0,
+        hasRecurringServices: false,
+        recurringServiceCount: 0,
+        totalRecurringSavings: 0,
+        totalOriginalCost: 0,
         locationBreakdown: {}
       };
 
@@ -400,18 +437,32 @@ const Home: React.FC = () => {
             results.totalAppointments += serviceResults.totalAppointments;
             results.totalCost += serviceResults.serviceCost;
             results.totalProRevenue += serviceResults.proRevenue;
+            results.totalOriginalCost = (results.totalOriginalCost || 0) + serviceResults.originalPrice;
+            results.totalRecurringSavings = (results.totalRecurringSavings || 0) + serviceResults.recurringSavings;
 
             results.locationBreakdown[location].totalAppointments += serviceResults.totalAppointments;
             results.locationBreakdown[location].totalCost += serviceResults.serviceCost;
 
             results.locationBreakdown[location].dateBreakdown[dateKey].totalAppointments += serviceResults.totalAppointments;
             results.locationBreakdown[location].dateBreakdown[dateKey].totalCost += serviceResults.serviceCost;
+
+            // Track recurring services
+            if (service.isRecurring && service.recurringFrequency) {
+              results.hasRecurringServices = true;
+              results.recurringServiceCount = (results.recurringServiceCount || 0) + 1;
+            }
+
             results.locationBreakdown[location].dateBreakdown[dateKey].services.push({
               serviceType: service.serviceType,
               totalHours: service.totalHours,
               numPros: service.numPros,
               totalAppointments: serviceResults.totalAppointments,
-              serviceCost: serviceResults.serviceCost
+              serviceCost: serviceResults.serviceCost,
+              isRecurring: service.isRecurring,
+              recurringFrequency: service.recurringFrequency,
+              recurringDiscount: serviceResults.recurringDiscount,
+              recurringSavings: serviceResults.recurringSavings,
+              originalPrice: serviceResults.originalPrice
             });
           });
         });
@@ -641,6 +692,10 @@ const Home: React.FC = () => {
         totalProRevenue: 0,
         netProfit: 0,
         profitMargin: 0,
+        hasRecurringServices: false,
+        recurringServiceCount: 0,
+        totalRecurringSavings: 0,
+        totalOriginalCost: 0,
         locationBreakdown: {}
       };
 
@@ -666,18 +721,32 @@ const Home: React.FC = () => {
             results.totalAppointments += serviceResults.totalAppointments;
             results.totalCost += serviceResults.serviceCost;
             results.totalProRevenue += serviceResults.proRevenue;
+            results.totalOriginalCost = (results.totalOriginalCost || 0) + serviceResults.originalPrice;
+            results.totalRecurringSavings = (results.totalRecurringSavings || 0) + serviceResults.recurringSavings;
 
             results.locationBreakdown[location].totalAppointments += serviceResults.totalAppointments;
             results.locationBreakdown[location].totalCost += serviceResults.serviceCost;
 
             results.locationBreakdown[location].dateBreakdown[dateKey].totalAppointments += serviceResults.totalAppointments;
             results.locationBreakdown[location].dateBreakdown[dateKey].totalCost += serviceResults.serviceCost;
+
+            // Track recurring services
+            if (service.isRecurring && service.recurringFrequency) {
+              results.hasRecurringServices = true;
+              results.recurringServiceCount = (results.recurringServiceCount || 0) + 1;
+            }
+
             results.locationBreakdown[location].dateBreakdown[dateKey].services.push({
               serviceType: service.serviceType,
               totalHours: service.totalHours,
               numPros: service.numPros,
               totalAppointments: serviceResults.totalAppointments,
-              serviceCost: serviceResults.serviceCost
+              serviceCost: serviceResults.serviceCost,
+              isRecurring: service.isRecurring,
+              recurringFrequency: service.recurringFrequency,
+              recurringDiscount: serviceResults.recurringDiscount,
+              recurringSavings: serviceResults.recurringSavings,
+              originalPrice: serviceResults.originalPrice
             });
           });
         });
@@ -1025,7 +1094,16 @@ const Home: React.FC = () => {
               </p>
               
               <div className="card-small bg-neutral-light-gray mb-6">
-                <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">Quick Summary</h4>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-extrabold text-shortcut-blue">Quick Summary</h4>
+                  {previewResults.hasRecurringServices && (
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1.5 rounded-full">
+                      <span className="text-sm font-bold">
+                        🔄 {previewResults.recurringServiceCount} Recurring Service{previewResults.recurringServiceCount !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                   <div>
                     <span className="text-sm font-bold text-shortcut-blue block mb-1">Total Appointments:</span>
@@ -1044,6 +1122,21 @@ const Home: React.FC = () => {
                     <div className="font-bold text-text-dark text-lg">{previewResults.profitMargin.toFixed(1)}%</div>
                   </div>
                 </div>
+                {/* Recurring Savings Display */}
+                {previewResults.hasRecurringServices && previewResults.totalRecurringSavings && previewResults.totalRecurringSavings > 0 && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">✨</span>
+                        <span className="font-bold text-purple-800">Recurring Discount Savings</span>
+                      </div>
+                      <span className="font-extrabold text-lg text-green-600">-${previewResults.totalRecurringSavings.toFixed(2)}</span>
+                    </div>
+                    <p className="text-sm text-purple-700 mt-1">
+                      Original: ${(previewResults.totalOriginalCost || 0).toFixed(2)} → Final: ${previewResults.totalCost.toFixed(2)}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-6">
@@ -1074,9 +1167,21 @@ const Home: React.FC = () => {
                             <div className="ml-4 space-y-2 pt-2 border-t border-gray-200">
                               {dateData.services.map((service, serviceIndex) => (
                                 <div key={serviceIndex} className="flex justify-between items-center text-sm py-1.5">
-                                  <span className="text-text-dark">
-                                    {service.serviceType} • {service.totalHours}h • {service.numPros} pros • ${service.serviceCost.toFixed(2)}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-text-dark">
+                                      {service.serviceType} • {service.totalHours}h • {service.numPros} pros • ${service.serviceCost.toFixed(2)}
+                                    </span>
+                                    {service.isRecurring && service.recurringFrequency && (
+                                      <span className="inline-flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                                        {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                         service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                         `${service.recurringFrequency.occurrences}x`}
+                                        {service.recurringDiscount && service.recurringDiscount > 0 && (
+                                          <span className="bg-white/20 px-1 rounded ml-1">-{service.recurringDiscount}%</span>
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
                                   <button
                                     onClick={() => removeServiceFromPreview(location, date, serviceIndex)}
                                     className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
@@ -1121,15 +1226,49 @@ const Home: React.FC = () => {
       {showEventModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[200]">
           <div className="card-large max-w-4xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="h2">Add Event In {currentLocation}</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[32px] md:text-[40px] font-extrabold text-shortcut-blue leading-tight" style={{ fontWeight: 800 }}>Add Event In {currentLocation}</h2>
               <button
                 onClick={() => setShowEventModal(false)}
                 className="text-text-dark-60 hover:text-shortcut-blue transition-colors p-2 rounded-lg hover:bg-neutral-light-gray"
                 aria-label="Close modal"
               >
-                <X size={24} />
+                <X size={28} />
               </button>
+            </div>
+
+            {/* Add Service Section - Prominent at top */}
+            <div className="mb-8 p-5 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-[24px] border-2 border-shortcut-teal/30">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-shortcut-teal rounded-full flex items-center justify-center flex-shrink-0">
+                  <Plus size={24} className="text-shortcut-navy-blue" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-shortcut-blue" style={{ fontWeight: 700 }}>Add Services to This Event</h3>
+                  <p className="text-sm text-text-dark-60 font-medium">Choose whether services happen on the same day or different days</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => addService('same-day')}
+                  variant="primary"
+                  className="flex-1"
+                  icon={<Plus size={20} />}
+                >
+                  Same Day Service
+                </Button>
+                <Button
+                  onClick={() => addService('new-day')}
+                  variant="green"
+                  className="flex-1"
+                  icon={<Plus size={20} />}
+                >
+                  Different Day Service
+                </Button>
+              </div>
+              <p className="text-xs text-text-dark-60 mt-3 font-medium">
+                💡 <strong>Same Day:</strong> Multiple services on one date (e.g., massage + nails). <strong>Different Day:</strong> Services on separate dates.
+              </p>
             </div>
 
             {services.map((service, index) => {
@@ -1226,6 +1365,7 @@ const Home: React.FC = () => {
                         <option value="mindfulness-movement">Ground & Reset: Cultivating Mindfulness Through Movement and Stillness</option>
                         <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                         <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
+                        <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely</option>
                         <option value="hair-makeup">Hair + Makeup</option>
                         <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                       </select>
@@ -1427,18 +1567,18 @@ const Home: React.FC = () => {
                             value={service.mindfulnessType || (service.classLength === 30 ? 'drop-in' : service.classLength === 60 ? 'mindful-movement' : 'intro')}
                             onChange={(e) => {
                               const selectedType = e.target.value;
-                              let classLength = 40;
-                              let fixedPrice = 1350;
-                              
+                              let classLength = 45;
+                              let fixedPrice = 1375;
+
                               if (selectedType === 'drop-in') {
                                 classLength = 30;
-                                fixedPrice = 1125;
+                                fixedPrice = 1250;
                               } else if (selectedType === 'intro') {
-                                classLength = 40;
-                                fixedPrice = 1350;
+                                classLength = 45;
+                                fixedPrice = 1375;
                               } else {
                                 classLength = 60; // mindful-movement
-                                fixedPrice = 1350;
+                                fixedPrice = 1500;
                               }
                               
                               updateService(index, {
@@ -1512,10 +1652,10 @@ const Home: React.FC = () => {
                           </label>
                           <input
                             type="number"
-                            value={service.fixedPrice || 1350}
+                            value={service.fixedPrice || 1375}
                             onChange={(e) =>
                               updateService(index, {
-                                fixedPrice: parseInt(e.target.value) || 1350
+                                fixedPrice: parseInt(e.target.value) || 1375
                               })
                             }
                             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
@@ -1524,34 +1664,118 @@ const Home: React.FC = () => {
                       </>
                     )}
                   </div>
+
+                  {/* Recurring Event Section */}
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="space-y-4">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={service.isRecurring || false}
+                          onChange={(e) => {
+                            updateService(index, {
+                              isRecurring: e.target.checked,
+                              recurringFrequency: e.target.checked
+                                ? { type: 'quarterly', occurrences: 4 }
+                                : undefined
+                            });
+                          }}
+                          className="w-5 h-5 border-2 border-gray-200 rounded focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-shortcut-teal"
+                        />
+                        <span className="text-base font-bold text-shortcut-blue">
+                          Make this a recurring event
+                        </span>
+                      </label>
+
+                      {service.isRecurring && (
+                        <div className="ml-8 space-y-4">
+                          <div>
+                            <label className="block text-sm font-bold mb-2 text-shortcut-blue">
+                              Frequency
+                            </label>
+                            <select
+                              value={service.recurringFrequency?.type || 'quarterly'}
+                              onChange={(e) => {
+                                const type = e.target.value as 'quarterly' | 'monthly' | 'custom';
+                                updateService(index, {
+                                  recurringFrequency: {
+                                    type,
+                                    occurrences: type === 'quarterly' ? 4 : type === 'monthly' ? 12 : (service.recurringFrequency?.occurrences || 4)
+                                  }
+                                });
+                              }}
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                            >
+                              <option value="quarterly">Quarterly (4 events)</option>
+                              <option value="monthly">Monthly (12 events)</option>
+                              <option value="custom">Custom</option>
+                            </select>
+                          </div>
+
+                          {service.recurringFrequency?.type === 'custom' && (
+                            <div>
+                              <label className="block text-sm font-bold mb-2 text-shortcut-blue">
+                                Number of Events
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="52"
+                                value={service.recurringFrequency?.occurrences || 4}
+                                onChange={(e) => {
+                                  const occurrences = Math.max(1, Math.min(52, parseInt(e.target.value) || 1));
+                                  updateService(index, {
+                                    recurringFrequency: {
+                                      type: 'custom',
+                                      occurrences
+                                    }
+                                  });
+                                }}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                              />
+                            </div>
+                          )}
+
+                          {/* Volume Discount Info */}
+                          {service.recurringFrequency && (
+                            <div className={`p-4 rounded-xl border-2 ${
+                              service.recurringFrequency.occurrences >= 4
+                                ? 'bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200'
+                                : 'bg-neutral-light-gray border-gray-200'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">
+                                  {service.recurringFrequency.occurrences >= 9 ? '🎉' : service.recurringFrequency.occurrences >= 4 ? '✨' : '💡'}
+                                </span>
+                                <div>
+                                  <p className={`font-bold text-sm ${service.recurringFrequency.occurrences >= 4 ? 'text-purple-800' : 'text-shortcut-blue'}`}>
+                                    {service.recurringFrequency.occurrences >= 9
+                                      ? '20% Volume Discount Applied!'
+                                      : service.recurringFrequency.occurrences >= 4
+                                      ? '15% Volume Discount Applied!'
+                                      : `Add ${4 - service.recurringFrequency.occurrences} more event${4 - service.recurringFrequency.occurrences !== 1 ? 's' : ''} to unlock 15% savings`
+                                    }
+                                  </p>
+                                  <p className="text-xs text-text-dark-60 mt-1">
+                                    {service.recurringFrequency.occurrences} {service.recurringFrequency.occurrences === 1 ? 'event' : 'events'} scheduled
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
 
-            <div className="flex gap-4 mt-8 pt-6 border-t border-gray-200">
-              <Button
-                onClick={() => addService('same-day')}
-                variant="primary"
-                className="flex-1"
-                icon={<Plus size={20} />}
-              >
-                Add Same Day Service
-              </Button>
-              <Button
-                onClick={() => addService('new-day')}
-                variant="green"
-                className="flex-1"
-                icon={<Plus size={20} />}
-              >
-                Add New Day Service
-              </Button>
-            </div>
-
-            <div className="mt-6">
+            <div className="mt-8 pt-6 border-t-2 border-gray-200">
               <Button
                 onClick={handleSaveEvent}
                 variant="primary"
-                className="w-full"
+                className="w-full text-lg py-4"
               >
                 Save Event
               </Button>

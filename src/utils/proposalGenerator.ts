@@ -1,6 +1,30 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions } from '../types/proposal';
+import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions, RecurringFrequency } from '../types/proposal';
 import { getProposalUrl } from './url';
+
+// Helper function to calculate recurring discount based on occurrences
+export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
+  if (!frequency) return 0;
+  const occurrences = frequency.occurrences;
+  if (occurrences >= 9) return 20;
+  if (occurrences >= 4) return 15;
+  return 0;
+};
+
+// Helper function to get the frequency label
+export const getFrequencyLabel = (frequency: RecurringFrequency | undefined): string => {
+  if (!frequency) return '';
+  switch (frequency.type) {
+    case 'quarterly':
+      return 'Quarterly (4 events)';
+    case 'monthly':
+      return 'Monthly (12 events)';
+    case 'custom':
+      return `Custom (${frequency.occurrences} events)`;
+    default:
+      return `${frequency.occurrences} events`;
+  }
+};
 
 // Helper function to calculate original price (before discount)
 export const calculateOriginalPrice = (service: any): number => {
@@ -16,53 +40,70 @@ export const calculateOriginalPrice = (service: any): number => {
     const retouchingTotal = totalAppts * (service.retouchingCost || 0);
     return proRevenue + retouchingTotal;
   } else if (service.serviceType === 'mindfulness') {
-    return service.fixedPrice || 1350;
+    return service.fixedPrice || 1375;
   } else {
     return service.totalHours * (service.hourlyRate || 0) * service.numPros;
   }
 };
 
 export const calculateServiceResults = (service: any) => {
-  if (!service.appTime || !service.numPros || !service.totalHours) {
-    return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0 };
+  const isMindfulness = service.serviceType === 'mindfulness' ||
+                        service.serviceType === 'mindfulness-soles' ||
+                        service.serviceType === 'mindfulness-movement' ||
+                        service.serviceType === 'mindfulness-pro' ||
+                        service.serviceType === 'mindfulness-cle' ||
+                        service.serviceType === 'mindfulness-pro-reactivity';
+
+  if (!isMindfulness && (!service.appTime || !service.numPros || !service.totalHours)) {
+    return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0, recurringDiscount: 0, recurringSavings: 0 };
   }
 
-  const apptsPerHourPerPro = 60 / service.appTime;
-  const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
-  const totalAppts = Math.floor(service.totalHours * totalApptsPerHour);
+  const apptsPerHourPerPro = service.appTime ? 60 / service.appTime : 0;
+  const totalApptsPerHour = apptsPerHourPerPro * (service.numPros || 0);
+  const totalAppts = isMindfulness ? 'unlimited' : Math.floor((service.totalHours || 0) * totalApptsPerHour);
 
   let serviceCost = 0;
   let proRevenue = 0;
 
   if (service.serviceType === 'headshot') {
     proRevenue = service.totalHours * service.numPros * (service.proHourly || 0);
-    const retouchingTotal = totalAppts * (service.retouchingCost || 0);
+    const retouchingTotal = (typeof totalAppts === 'number' ? totalAppts : 0) * (service.retouchingCost || 0);
     serviceCost = proRevenue + retouchingTotal;
-  } else if (service.serviceType === 'mindfulness' ||
-             service.serviceType === 'mindfulness-soles' ||
-             service.serviceType === 'mindfulness-movement' ||
-             service.serviceType === 'mindfulness-pro' ||
-             service.serviceType === 'mindfulness-cle') {
+  } else if (isMindfulness) {
     // Mindfulness services use fixed pricing
-    serviceCost = service.fixedPrice || 1350;
+    serviceCost = service.fixedPrice || 1375;
     proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
   } else {
     serviceCost = service.totalHours * (service.hourlyRate || 0) * service.numPros;
-    proRevenue = (service.totalHours * service.numPros * (service.proHourly || 0)) + 
+    proRevenue = (service.totalHours * service.numPros * (service.proHourly || 0)) +
                  ((service.earlyArrival || 0) * service.numPros);
   }
 
   const originalPrice = serviceCost;
 
+  // Apply regular discount if present
   if (service.discountPercent > 0) {
     serviceCost = serviceCost * (1 - (service.discountPercent / 100));
+  }
+
+  // Calculate and apply recurring discount
+  let recurringDiscount = 0;
+  let recurringSavings = 0;
+  if (service.isRecurring && service.recurringFrequency) {
+    recurringDiscount = calculateRecurringDiscount(service.recurringFrequency);
+    if (recurringDiscount > 0) {
+      recurringSavings = serviceCost * (recurringDiscount / 100);
+      serviceCost = serviceCost * (1 - (recurringDiscount / 100));
+    }
   }
 
   return {
     totalAppointments: totalAppts,
     serviceCost: Number(serviceCost.toFixed(2)),
     proRevenue: Number(proRevenue.toFixed(2)),
-    originalPrice: Number(originalPrice.toFixed(2))
+    originalPrice: Number(originalPrice.toFixed(2)),
+    recurringDiscount,
+    recurringSavings: Number(recurringSavings.toFixed(2))
   };
 };
 
@@ -100,7 +141,7 @@ export const createPricingOptions = (
 // Function to calculate totals for pricing options
 export const calculatePricingOptionsTotals = (options: PricingOption[]) => {
   return options.reduce((totals, option) => ({
-    totalAppointments: totals.totalAppointments + option.totalAppointments,
+    totalAppointments: totals.totalAppointments + (typeof option.totalAppointments === 'number' ? option.totalAppointments : 0),
     totalCost: totals.totalCost + option.totalCost,
     totalProRevenue: totals.totalProRevenue + (option.services[0]?.proRevenue || 0)
   }), {
@@ -377,7 +418,7 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
         proposalData.services[location][date] = {
           services,
           totalCost: services.reduce((sum, service) => sum + service.serviceCost, 0),
-          totalAppointments: services.reduce((sum, service) => sum + service.totalAppointments, 0)
+          totalAppointments: services.reduce((sum, service) => sum + (typeof service.totalAppointments === 'number' ? service.totalAppointments : 0), 0)
         };
         
         console.log(`Added ${services.length} services to ${location} on ${date}`);
@@ -469,46 +510,46 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
                 // Ensure classLength and mindfulnessType are synced for mindfulness services
                 if (mappedService.serviceType === 'mindfulness') {
                   // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
-                  let targetClassLength = 40;
-                  let targetFixedPrice = 1350;
+                  let targetClassLength = 45;
+                  let targetFixedPrice = 1375;
                   let targetMindfulnessType = 'intro';
-                  
+
                   // If mindfulnessType exists, use it to determine classLength
                   if (mappedService.mindfulnessType === 'drop-in') {
                     targetClassLength = 30;
-                    targetFixedPrice = 1125;
+                    targetFixedPrice = 1250;
                     targetMindfulnessType = 'drop-in';
                   } else if (mappedService.mindfulnessType === 'mindful-movement') {
                     targetClassLength = 60;
-                    targetFixedPrice = 1350;
+                    targetFixedPrice = 1500;
                     targetMindfulnessType = 'mindful-movement';
                   } else if (mappedService.mindfulnessType === 'intro') {
-                    targetClassLength = 40;
-                    targetFixedPrice = 1350;
+                    targetClassLength = 45;
+                    targetFixedPrice = 1375;
                     targetMindfulnessType = 'intro';
                   } else if (mappedService.classLength) {
                     // No mindfulnessType, infer from classLength
                     if (mappedService.classLength === 30) {
                       targetClassLength = 30;
-                      targetFixedPrice = 1125;
+                      targetFixedPrice = 1250;
                       targetMindfulnessType = 'drop-in';
                     } else if (mappedService.classLength === 60) {
                       targetClassLength = 60;
-                      targetFixedPrice = 1350;
+                      targetFixedPrice = 1500;
                       targetMindfulnessType = 'mindful-movement';
                     } else {
-                      // Default to intro (40 minutes)
-                      targetClassLength = 40;
-                      targetFixedPrice = 1350;
+                      // Default to intro (45 minutes)
+                      targetClassLength = 45;
+                      targetFixedPrice = 1375;
                       targetMindfulnessType = 'intro';
                     }
                   } else {
                     // No mindfulnessType and no classLength, default to intro
-                    targetClassLength = 40;
-                    targetFixedPrice = 1350;
+                    targetClassLength = 45;
+                    targetFixedPrice = 1375;
                     targetMindfulnessType = 'intro';
                   }
-                  
+
                   // Apply the determined values
                   mappedService.classLength = targetClassLength;
                   mappedService.mindfulnessType = targetMindfulnessType;
@@ -559,46 +600,46 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
         // Ensure classLength and mindfulnessType are synced for mindfulness services
         if (service.serviceType === 'mindfulness') {
           // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
-          let targetClassLength = 40;
-          let targetFixedPrice = 1350;
+          let targetClassLength = 45;
+          let targetFixedPrice = 1375;
           let targetMindfulnessType = 'intro';
-          
+
           // If mindfulnessType exists, use it to determine classLength
           if (service.mindfulnessType === 'drop-in') {
             targetClassLength = 30;
-            targetFixedPrice = 1125;
+            targetFixedPrice = 1250;
             targetMindfulnessType = 'drop-in';
           } else if (service.mindfulnessType === 'mindful-movement') {
             targetClassLength = 60;
-            targetFixedPrice = 1350;
+            targetFixedPrice = 1500;
             targetMindfulnessType = 'mindful-movement';
           } else if (service.mindfulnessType === 'intro') {
-            targetClassLength = 40;
-            targetFixedPrice = 1350;
+            targetClassLength = 45;
+            targetFixedPrice = 1375;
             targetMindfulnessType = 'intro';
           } else if (service.classLength) {
             // No mindfulnessType, infer from classLength
             if (service.classLength === 30) {
               targetClassLength = 30;
-              targetFixedPrice = 1125;
+              targetFixedPrice = 1250;
               targetMindfulnessType = 'drop-in';
             } else if (service.classLength === 60) {
               targetClassLength = 60;
-              targetFixedPrice = 1350;
+              targetFixedPrice = 1500;
               targetMindfulnessType = 'mindful-movement';
             } else {
-              // Default to intro (40 minutes)
-              targetClassLength = 40;
-              targetFixedPrice = 1350;
+              // Default to intro (45 minutes)
+              targetClassLength = 45;
+              targetFixedPrice = 1375;
               targetMindfulnessType = 'intro';
             }
           } else {
             // No mindfulnessType and no classLength, default to intro
-            targetClassLength = 40;
-            targetFixedPrice = 1350;
+            targetClassLength = 45;
+            targetFixedPrice = 1375;
             targetMindfulnessType = 'intro';
           }
-          
+
           // Apply the determined values
           (service as any).classLength = targetClassLength;
           (service as any).mindfulnessType = targetMindfulnessType;
@@ -668,13 +709,16 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
         }
         
         dayTotalCost += (service as any).serviceCost;
-        dayTotalAppointments += (service as any).totalAppointments;
+        // Only add numeric appointments, skip 'unlimited'
+        if (typeof (service as any).totalAppointments === 'number') {
+          dayTotalAppointments += (service as any).totalAppointments;
+        }
         // proRevenue is already added in the pricing options logic above
       });
 
       updatedData.services[location][date].totalCost = Number(dayTotalCost.toFixed(2));
       updatedData.services[location][date].totalAppointments = dayTotalAppointments;
-      
+
       updatedData.summary.totalAppointments += dayTotalAppointments;
       updatedData.summary.totalEventCost += dayTotalCost;
       updatedData.summary.totalProRevenue += dayTotalProRevenue;

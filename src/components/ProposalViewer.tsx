@@ -76,16 +76,16 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 40
   },
   mindfulness: {
-    appTime: 40,
-    totalHours: 1,
+    appTime: 45,
+    totalHours: 0.75,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 40,
+    classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1350,
+    fixedPrice: 1375,
     mindfulnessType: 'intro'
   },
   'hair-makeup': {
@@ -140,7 +140,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 0,
     classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1500
+    fixedPrice: 1375
   },
   'mindfulness-cle': {
     appTime: 60,
@@ -152,7 +152,19 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1875
+  },
+  'mindfulness-pro-reactivity': {
+    appTime: 45,
+    totalHours: 0.75,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 45,
+    participants: 'unlimited',
+    fixedPrice: 1375
   }
 };
 
@@ -276,6 +288,16 @@ const getServiceDescription = (service: any): string => {
       return "Experience personalized makeup artistry that enhances natural beauty and creates stunning looks tailored to each individual.";
     case 'mindfulness':
       return getMindfulnessDescription(service);
+    case 'mindfulness-soles':
+      return "Grounding Under Pressure: The Soles of the Feet Practice offers a powerful technique to stay present and composed during high-stress moments, helping attorneys manage pressure with calm and focus.";
+    case 'mindfulness-movement':
+      return "Ground & Reset: Cultivating Mindfulness Through Movement and Stillness combines gentle movement and stillness practices to help attorneys reconnect with the present moment and reduce stress.";
+    case 'mindfulness-pro':
+      return "Mindfulness: PRO Practice introduces the Pause-Relax-Open framework, a practical approach for attorneys to step out of reactivity and respond more skillfully in high-stakes situations.";
+    case 'mindfulness-cle':
+      return "Mindfulness: CLE Ethics Program is an ethics-approved course exploring how mindfulness supports ethical decision-making, emotional regulation, and professional wellbeing for legal professionals.";
+    case 'mindfulness-pro-reactivity':
+      return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants will learn what mindfulness is, explore the neuroscience of stress and emotional regulation, and practice formal PRO (Pause-Relax-Open) techniques alongside informal 'On-the-Spot' practices for everyday legal work.";
     case 'hair-makeup':
       return "Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.";
     case 'headshot-hair-makeup':
@@ -1255,43 +1277,43 @@ const ProposalViewer: React.FC = () => {
             dateData.services?.forEach((service: any) => {
               if (service.serviceType === 'mindfulness') {
                 // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
-                let targetClassLength = 40;
-                let targetFixedPrice = 1350;
+                let targetClassLength = 45;
+                let targetFixedPrice = 1375;
                 let targetMindfulnessType = 'intro';
-                
+
                 // If mindfulnessType exists, use it to determine classLength
                 if (service.mindfulnessType === 'drop-in') {
                   targetClassLength = 30;
-                  targetFixedPrice = 1125;
+                  targetFixedPrice = 1250;
                   targetMindfulnessType = 'drop-in';
                 } else if (service.mindfulnessType === 'mindful-movement') {
                   targetClassLength = 60;
-                  targetFixedPrice = 1350;
+                  targetFixedPrice = 1500;
                   targetMindfulnessType = 'mindful-movement';
                 } else if (service.mindfulnessType === 'intro') {
-                  targetClassLength = 40;
-                  targetFixedPrice = 1350;
+                  targetClassLength = 45;
+                  targetFixedPrice = 1375;
                   targetMindfulnessType = 'intro';
                 } else if (service.classLength) {
                   // No mindfulnessType, infer from classLength
                   if (service.classLength === 30) {
                     targetClassLength = 30;
-                    targetFixedPrice = 1125;
+                    targetFixedPrice = 1250;
                     targetMindfulnessType = 'drop-in';
                   } else if (service.classLength === 60) {
                     targetClassLength = 60;
-                    targetFixedPrice = 1350;
+                    targetFixedPrice = 1500;
                     targetMindfulnessType = 'mindful-movement';
                   } else {
-                    // Default to intro (40 minutes)
-                    targetClassLength = 40;
-                    targetFixedPrice = 1350;
+                    // Default to intro (45 minutes)
+                    targetClassLength = 45;
+                    targetFixedPrice = 1375;
                     targetMindfulnessType = 'intro';
                   }
                 } else {
                   // No mindfulnessType and no classLength, default to intro
-                  targetClassLength = 40;
-                  targetFixedPrice = 1350;
+                  targetClassLength = 45;
+                  targetFixedPrice = 1375;
                   targetMindfulnessType = 'intro';
                 }
                 
@@ -1405,9 +1427,9 @@ const ProposalViewer: React.FC = () => {
       // Set service-specific fields based on type
       massageType: newServiceType === 'massage' ? (currentService.massageType || 'massage') : undefined,
       mindfulnessType: newServiceType === 'mindfulness' ? (currentService.mindfulnessType || 'intro') : undefined,
-      classLength: newServiceType === 'mindfulness' ? (currentService.classLength || 40) : undefined,
+      classLength: newServiceType === 'mindfulness' ? (currentService.classLength || 45) : undefined,
       participants: newServiceType === 'mindfulness' ? (currentService.participants || 'unlimited') : undefined,
-      fixedPrice: newServiceType === 'mindfulness' ? (currentService.fixedPrice || 1350) : undefined
+      fixedPrice: newServiceType === 'mindfulness' ? (currentService.fixedPrice || 1375) : undefined
     };
     
     // Recalculate service totals
@@ -1431,18 +1453,18 @@ const ProposalViewer: React.FC = () => {
     if (!editedData || !isEditing) return;
     
     const currentService = editedData.services[location][date].services[serviceIndex];
-    let classLength = 40;
-    let fixedPrice = 1350;
-    
+    let classLength = 45;
+    let fixedPrice = 1375;
+
     if (newMindfulnessType === 'drop-in') {
       classLength = 30;
-      fixedPrice = 1125;
+      fixedPrice = 1250;
     } else if (newMindfulnessType === 'intro') {
-      classLength = 40;
-      fixedPrice = 1350;
+      classLength = 45;
+      fixedPrice = 1375;
     } else {
       classLength = 60; // mindful-movement
-      fixedPrice = 1350;
+      fixedPrice = 1500;
     }
     
     const updatedService = {
@@ -1537,20 +1559,20 @@ const ProposalViewer: React.FC = () => {
       
       // If we're changing classLength for a mindfulness service, update mindfulnessType to match
       if (path[path.length - 1] === 'classLength' && service.serviceType === 'mindfulness') {
-        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 40 : value;
+        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 45 : value;
         let mindfulnessType = 'intro';
-        let fixedPrice = 1350;
-        
+        let fixedPrice = 1375;
+
         if (classLengthValue === 30) {
           mindfulnessType = 'drop-in';
-          fixedPrice = 1125;
+          fixedPrice = 1250;
         } else if (classLengthValue === 60) {
           mindfulnessType = 'mindful-movement';
-          fixedPrice = 1350;
+          fixedPrice = 1500;
         } else {
-          // Default to intro for 40 or any other value
+          // Default to intro for 45 or any other value
           mindfulnessType = 'intro';
-          fixedPrice = 1350;
+          fixedPrice = 1375;
         }
         
         service.mindfulnessType = mindfulnessType;
@@ -2616,7 +2638,9 @@ The Shortcut Team`);
                 </div>
                 <div>
                   <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
-                  <p className="text-base font-medium text-text-dark">{displayData.summary?.totalAppointments || 0}</p>
+                  <p className="text-base font-medium text-text-dark">
+                    {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
+                  </p>
                   </div>
                 {/* Display multiple office locations if available, otherwise show single office location */}
                 {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
@@ -2691,15 +2715,32 @@ The Shortcut Team`);
                                   </div>
                                 )}
                                 {dateData.services.map((service: any, serviceIndex: number) => (
-                                  <div 
-                                    key={serviceIndex} 
+                                  <div
+                                    key={serviceIndex}
                                     className="card-small mb-6"
                                   >
                                     <div className="flex items-center justify-between mb-4">
-                                      <h4 className="text-lg font-extrabold text-shortcut-blue flex items-center">
-                                        <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
-                                        Service Type: {getServiceDisplayName(service.serviceType)}
-                                      </h4>
+                                      <div className="flex items-center gap-3">
+                                        <h4 className="text-lg font-extrabold text-shortcut-blue flex items-center">
+                                          <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
+                                          Service Type: {getServiceDisplayName(service.serviceType)}
+                                        </h4>
+                                        {service.isRecurring && service.recurringFrequency && (
+                                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                                            Recurring
+                                            <span className="opacity-80">
+                                              ({service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                                service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                                `${service.recurringFrequency.occurrences}x`})
+                                            </span>
+                                            {service.recurringDiscount > 0 && (
+                                              <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">
+                                                {service.recurringDiscount}% off
+                                              </span>
+                                            )}
+                                          </span>
+                                        )}
+                                      </div>
                                       {isEditing && !isSharedView && (
                                         <div className="flex items-center gap-2">
                                           <select
@@ -2718,6 +2759,7 @@ The Shortcut Team`);
                                             <option value="mindfulness-movement">Mindfulness: Ground & Reset</option>
                                             <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                                             <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
+                                            <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely</option>
                                             <option value="hair-makeup">Hair + Makeup</option>
                                             <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                                           </select>
@@ -2764,7 +2806,7 @@ The Shortcut Team`);
                                                 <div>
                                                   <span className="font-bold text-shortcut-navy-blue">Participants:</span>
                                                   <span className="ml-2 text-text-dark">
-                                                    {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
+                                                    {service.participants === 'unlimited' ? '∞' : service.participants}
                                                   </span>
                                                 </div>
                                                 {service.mindfulnessType && (
@@ -2807,7 +2849,38 @@ The Shortcut Team`);
                                         )}
                                       </div>
                                     )}
-                                    
+
+                                    {/* Recurring Event Details */}
+                                    {service.isRecurring && service.recurringFrequency && (
+                                      <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border-2 border-purple-200">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-lg">🔄</span>
+                                          <h5 className="font-bold text-purple-800">Recurring Event</h5>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                          <div>
+                                            <span className="font-bold text-purple-700">Frequency:</span>
+                                            <span className="ml-2 text-purple-900">
+                                              {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                               service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                               'Custom'}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="font-bold text-purple-700">Total Events:</span>
+                                            <span className="ml-2 text-purple-900">{service.recurringFrequency.occurrences}</span>
+                                          </div>
+                                        </div>
+                                        {(service.recurringDiscount > 0 || service.recurringFrequency.occurrences >= 4) && (
+                                          <div className="mt-3 p-2 bg-white/50 rounded-lg">
+                                            <span className="text-sm font-bold text-green-700">
+                                              ✨ {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} Volume Discount Applied
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
                                     <div className="grid gap-0">
                                       {service.serviceType === 'mindfulness' ? (
                                         <div className="flex justify-between items-center py-3 border-b border-gray-200">
@@ -2853,12 +2926,32 @@ The Shortcut Team`);
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-bold text-shortcut-blue">Total Appointments:</span>
-                                        <span className="font-bold text-text-dark">{service.totalAppointments}</span>
+                                        <span className="font-bold text-text-dark">{service.totalAppointments === 'unlimited' ? '∞' : service.totalAppointments}</span>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                         <span className="text-base font-bold text-shortcut-blue">Service Cost:</span>
                                         <div className="text-right">
-                                          {service.discountPercent > 0 ? (
+                                          {(service.serviceType === 'mindfulness' ||
+                                            service.serviceType === 'mindfulness-soles' ||
+                                            service.serviceType === 'mindfulness-movement' ||
+                                            service.serviceType === 'mindfulness-pro' ||
+                                            service.serviceType === 'mindfulness-cle' ||
+                                            service.serviceType === 'mindfulness-pro-reactivity') && isEditing ? (
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-bold text-shortcut-blue">$</span>
+                                              <input
+                                                type="number"
+                                                value={service.serviceCost}
+                                                onChange={(e) => {
+                                                  const newCost = parseFloat(e.target.value) || 0;
+                                                  handleFieldChange(['services', location, date, 'services', serviceIndex, 'serviceCost'], newCost);
+                                                  // Also update fixedPrice to match
+                                                  handleFieldChange(['services', location, date, 'services', serviceIndex, 'fixedPrice'], newCost);
+                                                }}
+                                                className="w-32 px-3 py-2 border-2 border-shortcut-blue rounded-lg font-bold text-shortcut-blue text-lg text-right"
+                                              />
+                                            </div>
+                                          ) : service.discountPercent > 0 ? (
                                             <div className="space-y-1">
                                               <div className="flex items-center gap-2">
                                                 <span className="text-sm text-text-dark-60 line-through">${formatCurrency(calculateOriginalPrice(service))}</span>
@@ -2991,7 +3084,7 @@ The Shortcut Team`);
                                                       Option {optionIndex + 1}
                                                     </h6>
                                                     <p className="text-sm text-text-dark-60">
-                                                      {option.totalAppointments} appointments
+                                                      {option.totalAppointments === 'unlimited' ? '∞' : option.totalAppointments} appointments
                                                     </p>
                                                   </div>
                                                   <div className="text-right">
@@ -3172,7 +3265,9 @@ The Shortcut Team`);
                                   <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
                                       <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Appointments</div>
-                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments || 0}</div>
+                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">
+                                        {dateData.totalAppointments === 0 || dateData.totalAppointments === 'unlimited' ? '∞' : (dateData.totalAppointments || 0)}
+                                      </div>
                                     </div>
                                     <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
                                       <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
@@ -3326,11 +3421,33 @@ The Shortcut Team`);
             )}
 
             <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
-              <h2 className="text-xl font-extrabold mb-6 text-white">Event Summary</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
+                {/* Check for recurring services */}
+                {(() => {
+                  let recurringCount = 0;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.isRecurring && service.recurringFrequency) {
+                          recurringCount++;
+                        }
+                      });
+                    });
+                  });
+                  return recurringCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                      🔄 {recurringCount} Recurring Service{recurringCount !== 1 ? 's' : ''}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-white/20">
                   <span className="font-semibold">Total Appointments:</span>
-                  <span className="font-bold text-lg">{displayData.summary?.totalAppointments}</span>
+                  <span className="font-bold text-lg">
+                    {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
+                  </span>
                 </div>
                 {displayData.gratuityType && displayData.gratuityValue !== null && displayData.gratuityValue !== undefined && (
                   <>
@@ -3362,6 +3479,35 @@ The Shortcut Team`);
                   <span className="font-semibold">Profit Margin:</span>
                   <span className="font-bold text-lg">{(displayData.summary?.profitMargin || 0).toFixed(1)}%</span>
                 </div>
+                {/* Recurring Savings Display */}
+                {(() => {
+                  let totalSavings = 0;
+                  let hasRecurring = false;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.isRecurring && service.recurringFrequency && service.recurringFrequency.occurrences >= 4) {
+                          hasRecurring = true;
+                          const discount = service.recurringFrequency.occurrences >= 9 ? 0.20 : 0.15;
+                          // Estimate savings based on service cost
+                          const originalCost = service.serviceCost / (1 - discount);
+                          totalSavings += originalCost - service.serviceCost;
+                        }
+                      });
+                    });
+                  });
+                  return hasRecurring && totalSavings > 0 ? (
+                    <div className="mt-4 pt-4 border-t border-white/20">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold flex items-center gap-2">
+                          <span className="text-lg">✨</span>
+                          Recurring Savings:
+                        </span>
+                        <span className="font-bold text-lg text-green-300">-${formatCurrency(totalSavings)}</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
 

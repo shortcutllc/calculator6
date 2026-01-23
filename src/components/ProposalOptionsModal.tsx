@@ -258,80 +258,107 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
       <div className="card-large max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="h2">Generate Proposal</h2>
-          <button 
-            onClick={onClose} 
-            className="text-text-dark-60 hover:text-shortcut-blue"
+        {/* Modal Header */}
+        <div className="flex justify-between items-start mb-10">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-shortcut-blue leading-tight mb-2" style={{ fontWeight: 800 }}>
+              Generate Proposal
+            </h2>
+            <p className="text-sm text-text-dark-60">
+              Fill in the details below to create a customized proposal
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-text-dark-60 hover:text-shortcut-blue transition-colors rounded-lg p-2 hover:bg-neutral-light-gray flex-shrink-0"
             disabled={loading}
+            aria-label="Close"
           >
             <X size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-8">
-            <div>
-              <h3 className="text-lg font-extrabold text-shortcut-blue mb-6">Contact Information</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-shortcut-blue mb-2">First Name</label>
-                  <input
-                    type="text"
-                    value={options.customization.contactFirstName}
-                    onChange={(e) => handleFieldChange('customization.contactFirstName', e.target.value)}
-                    onBlur={() => handleBlur('contactFirstName')}
-                    className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                      getFieldError('contactFirstName') ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    disabled={loading}
-                  />
-                  {getFieldError('contactFirstName') && (
-                    <p className="mt-2 text-sm text-red-600">{getFieldError('contactFirstName')}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-shortcut-blue mb-2">Last Name</label>
-                  <input
-                    type="text"
-                    value={options.customization.contactLastName}
-                    onChange={(e) => handleFieldChange('customization.contactLastName', e.target.value)}
-                    onBlur={() => handleBlur('contactLastName')}
-                    className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                      getFieldError('contactLastName') ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    disabled={loading}
-                  />
-                  {getFieldError('contactLastName') && (
-                    <p className="mt-2 text-sm text-red-600">{getFieldError('contactLastName')}</p>
-                  )}
-                </div>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Contact Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-extrabold text-shortcut-blue" style={{ fontWeight: 800 }}>
+              Contact Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={options.customization.contactFirstName}
+                  onChange={(e) => handleFieldChange('customization.contactFirstName', e.target.value)}
+                  onBlur={() => handleBlur('contactFirstName')}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                    getFieldError('contactFirstName') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
+                  }`}
+                  disabled={loading}
+                  placeholder="Enter first name"
+                />
+                {getFieldError('contactFirstName') && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">{getFieldError('contactFirstName')}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={options.customization.contactLastName}
+                  onChange={(e) => handleFieldChange('customization.contactLastName', e.target.value)}
+                  onBlur={() => handleBlur('contactLastName')}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                    getFieldError('contactLastName') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
+                  }`}
+                  disabled={loading}
+                  placeholder="Enter last name"
+                />
+                {getFieldError('contactLastName') && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">{getFieldError('contactLastName')}</p>
+                )}
               </div>
             </div>
+          </div>
 
+          {/* Client Email Section */}
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">Client Email (Optional)</label>
+              <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>
+                Client Email <span className="text-text-dark-60 font-normal">(Optional)</span>
+              </label>
               <input
                 type="email"
                 value={options.clientEmail}
                 onChange={(e) => handleFieldChange('clientEmail', e.target.value)}
                 onBlur={() => handleBlur('clientEmail')}
-                className={`block w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                  getFieldError('clientEmail') ? 'border-red-500' : 'border-gray-200'
+                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                  getFieldError('clientEmail') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'
                 }`}
-                placeholder="Enter client email to share proposal later"
+                placeholder="client@company.com"
                 disabled={loading}
               />
+              <p className="mt-2 text-xs text-text-dark-60">
+                Enter the client's email to share the proposal directly with them
+              </p>
               {getFieldError('clientEmail') && (
-                <p className="mt-2 text-sm text-red-600">{getFieldError('clientEmail')}</p>
+                <p className="mt-2 text-sm text-red-600 font-medium">{getFieldError('clientEmail')}</p>
               )}
             </div>
+          </div>
 
-            {/* Office Locations - Show one input per location if multiple locations exist */}
-            {locations.length > 1 ? (
-              <div>
-                <h3 className="text-lg font-extrabold text-shortcut-blue mb-6">Office Locations (Optional)</h3>
-                <div className="space-y-6">
+          {/* Office Locations - Show one input per location if multiple locations exist */}
+          {locations.length > 1 ? (
+            <div className="space-y-4">
+              <h3 className="text-xl font-extrabold text-shortcut-blue" style={{ fontWeight: 800 }}>
+                Office Locations <span className="text-text-dark-60 font-normal text-base">(Optional)</span>
+              </h3>
+              <div className="space-y-4">
                   {locations.map((location, index) => (
                     <div key={location}>
                       <label className="block text-sm font-bold text-shortcut-blue mb-2">
@@ -474,74 +501,102 @@ const ProposalOptionsModal: React.FC<ProposalOptionsModalProps> = ({ onClose, on
             </div>
             )}
 
-            <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">Client Logo (Optional)</label>
-              <div className="space-y-3">
+          {/* Client Logo Section */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-extrabold text-shortcut-blue" style={{ fontWeight: 800 }}>
+              Client Logo <span className="text-text-dark-60 font-normal text-base">(Optional)</span>
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>
+                  Upload Logo
+                </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleLogoFileChange}
                   disabled={logoUploading || loading}
-                  className="block w-full text-sm text-text-dark-60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-shortcut-teal file:text-shortcut-navy-blue hover:file:bg-shortcut-teal hover:file:bg-opacity-80"
+                  className="block w-full text-sm text-text-dark file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-shortcut-teal file:text-text-button-blue hover:file:bg-opacity-90 file:transition-opacity file:cursor-pointer"
                 />
-                <span className="text-xs text-text-dark-60 block">Max 5MB. PNG, JPG, SVG, etc.</span>
+                <p className="mt-2 text-xs text-text-dark-60">Max 5MB. PNG, JPG, or SVG format</p>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>
+                  Or paste image URL
+                </label>
                 <input
                   type="url"
-                  placeholder="Paste image URL (https://...)"
+                  placeholder="https://example.com/logo.png"
                   value={logoUrl}
                   onChange={handleLogoUrlChange}
-                  className="block w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                   disabled={logoUploading || loading}
                 />
-                {logoUrl && (
-                  <div className="mt-3">
-                    <img src={logoUrl} alt="Client Logo Preview" className="h-20 rounded-lg shadow border border-gray-200" />
-                  </div>
-                )}
-                {logoUploadError && <p className="text-sm text-red-600 mt-2">{logoUploadError}</p>}
               </div>
+              {logoUrl && (
+                <div className="p-4 bg-neutral-light-gray rounded-lg border border-gray-200">
+                  <p className="text-xs font-bold text-shortcut-blue mb-2">Preview:</p>
+                  <img src={logoUrl} alt="Client Logo Preview" className="h-16 rounded-lg object-contain" />
+                </div>
+              )}
+              {logoUploadError && (
+                <p className="text-sm text-red-600 font-medium">{logoUploadError}</p>
+              )}
             </div>
+          </div>
 
+          {/* Custom Note Section */}
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">Note from Shortcut</label>
+              <label className="block text-sm font-bold text-shortcut-blue mb-2" style={{ fontWeight: 700 }}>
+                Custom Note <span className="text-text-dark-60 font-normal">(Optional)</span>
+              </label>
               <textarea
                 value={options.customization.customNote}
                 onChange={(e) => handleFieldChange('customization.customNote', e.target.value)}
                 rows={4}
-                className="block w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal resize-y"
                 placeholder="We are so excited to service your incredible staff! Our team is looking forward to providing an exceptional experience..."
                 disabled={loading}
               />
-            </div>
-
-            <div>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={options.isTest || false}
-                  onChange={(e) => setOptions(prev => ({ ...prev, isTest: e.target.checked }))}
-                  className="w-5 h-5 border-2 border-gray-200 rounded focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-shortcut-teal"
-                  disabled={loading}
-                />
-                <span className="text-sm font-bold text-shortcut-blue">
-                  Mark as Test Proposal
-                </span>
-              </label>
-              <p className="mt-2 text-xs text-text-dark-60 ml-8">
-                Test proposals can be filtered separately on the History page
+              <p className="mt-2 text-xs text-text-dark-60">
+                Add a personal message that will appear in the proposal
               </p>
             </div>
           </div>
 
+          {/* Test Proposal Checkbox */}
+          <div className="p-4 bg-neutral-light-gray rounded-lg border border-gray-200">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={options.isTest || false}
+                onChange={(e) => setOptions(prev => ({ ...prev, isTest: e.target.checked }))}
+                className="mt-0.5 w-5 h-5 border-2 border-gray-300 rounded focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-shortcut-teal cursor-pointer"
+                disabled={loading}
+              />
+              <div>
+                <span className="text-sm font-bold text-shortcut-blue block">
+                  Mark as Test Proposal
+                </span>
+                <p className="mt-1 text-xs text-text-dark-60">
+                  Test proposals can be filtered separately on the History page
+                </p>
+              </div>
+            </label>
+          </div>
+
+          {/* Error Message */}
           {Object.keys(errors).length > 0 && touched.contactFirstName && (
-            <div className="mt-6 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-              <p className="text-sm font-medium text-red-600">
+            <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
+              <p className="text-sm font-bold text-red-700">
                 Please complete all required fields before generating your proposal
               </p>
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-4">
+          {/* Form Actions */}
+          <div className="pt-6 border-t-2 border-gray-200 flex flex-col sm:flex-row justify-end gap-3">
             <Button
               type="button"
               onClick={onClose}
