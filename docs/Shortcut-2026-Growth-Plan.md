@@ -138,127 +138,245 @@ The story is no longer "can this work?"
 
 ## SECTION 3: LEVER 1 — CONTENT STRATEGY
 
-### THE PROBLEM
-
-Most prospects have never bought this category. They don't know:
-
-- What "corporate wellness services" actually means in practice
-- How it differs from digital perks (apps, stipends)
-- What quality looks like
-- How to justify the spend internally
-
-**We're selling something they didn't know they needed. That's an education problem, not a sales problem.**
+**Happiness-First. Proof-Driven. Sales-Accelerating.**
 
 ---
 
-### CONTENT WE NEED
+### HOW WE THINK ABOUT CONTENT AT SHORTCUT
 
-#### Awareness Stage — "What is this?"
+Shortcut is not selling "wellness programs."
 
-| Asset | Purpose | Format |
-|-------|---------|--------|
-| "The In-Person Wellness Playbook" | Define the category. Position Shortcut as the authority. | PDF guide / landing page |
-| "Why Digital Perks Aren't Working" | Challenge the status quo (apps, stipends with low usage). | Blog post / LinkedIn article |
-| "What Happens When Shortcut Shows Up" | Visual, visceral — show the experience. | 60-90 sec video, photo gallery |
-| Client testimonial clips | Social proof from recognizable logos. | 30-sec video snippets |
+We're selling **feel-good moments that make work better** — for employees *and* for the people responsible for them.
 
-#### Consideration Stage — "How does it work?"
+Most buyers:
+- Have never purchased this category
+- Don't know what "good" looks like
+- Worry about effort, chaos, and risk
+- Are unsure whether employees will actually care
 
-| Asset | Purpose | Format |
-|-------|---------|--------|
-| "The HR Leader's Buying Guide" | Walk through procurement, budgeting, internal sell. | PDF / interactive guide |
-| "How BCG Runs Wellness Across 4 Offices" | Case study showing multi-location model. | Written case study + video |
-| "What to Expect: Your First Shortcut Event" | Reduce uncertainty. Show the process. | Email sequence / landing page |
-| ROI Calculator | Let them build their own business case. | Interactive web tool |
+This creates an education gap — but more importantly, a **confidence gap**.
 
-#### Decision Stage — "Why Shortcut?"
+Shortcut's content strategy exists to:
+- Make the experience immediately understandable
+- Make the value feel obvious
+- Make the effort feel minimal
+- Make the decision feel safe
 
-| Asset | Purpose | Format |
-|-------|---------|--------|
-| "Single Vendor vs. Vendor Sprawl" | Competitive positioning. | Comparison one-pager |
-| Service menu + pricing transparency | Remove friction. | PDF / web page |
-| "Ask Us Anything" recorded Q&A | Address objections preemptively. | Video / podcast format |
+The goal is not content volume.
+The goal is **shorter sales cycles and faster "yes" decisions**.
 
 ---
 
-### DISTRIBUTION STRATEGY
+### OUR VOICE (NON-NEGOTIABLE)
 
-| Channel | Content Type | Frequency |
-|---------|--------------|-----------|
-| LinkedIn (company + personal) | Thought leadership, client wins, behind-the-scenes | 3-5x/week |
-| Email newsletter | Curated insights for HR/Workplace leaders | Bi-weekly |
-| Website / SEO | Evergreen guides, case studies | Ongoing |
-| Conference follow-up | Targeted content based on conversation | Event-driven |
+Shortcut's content should always feel:
+
+- Light, human, and optimistic
+- Happiness-forward, not heavy "wellness" language
+- Confident without being salesy
+- Simple, not corporate
+- Reassuring, not instructional
+
+We are **not** trying to sound like:
+- A benefits provider
+- A wellness consultant
+- A mental health platform
+
+We **are** trying to sound like:
+
+> *The easiest, happiest decision an HR or Workplace leader can make.*
 
 ---
 
-## SECTION 4: LEVER 2 — CONFERENCE STRATEGY
+### WHAT CONTENT MUST DO
+
+Every piece of content should quickly answer at least one of these questions:
+
+1. **What does this actually look and feel like?**
+2. **Why is this easier and better than other options?**
+3. **Can I trust this to work at my company — and scale?**
+
+If content doesn't help answer one of these, it's not a priority.
+
+---
+
+### THE THREE CONTENT PILLARS
+
+#### Pillar 1: Make the Happiness Visible
+
+Buyers need to *see* the experience to believe it.
+
+This means:
+- Real events
+- Real offices
+- Real employees
+- Real reactions
+
+Not polished commercials — credible, human proof.
+
+**Outcome:** Removes imagination risk. Shrinks hesitation.
+
+---
+
+#### Pillar 2: Make the Ease Undeniable
+
+HR doesn't fear cost — they fear complexity.
+
+Content must clearly show:
+- How little work HR actually does
+- How signups work
+- How execution runs smoothly
+- How issues are handled
+- How scale happens without friction
+
+**Outcome:** Replaces "this might be work" with "this feels handled."
+
+---
+
+#### Pillar 3: Make the Difference Obvious
+
+Shortcut wins because we are:
+- All-in-one
+- Operationally excellent
+- Consistent
+- Scalable
+- Hospitality-driven
+- Tech-enabled
+
+This differentiation must be **explicit**, not implied.
+
+**Outcome:** Buyers stop comparing vendors and start choosing Shortcut.
+
+---
+
+### THE 10 CONTENT ASSETS THAT MATTER MOST
+
+This is the full 2026 priority list. Anything not on this list is secondary.
+
+| # | Asset | Purpose | Stage |
+|---|-------|---------|-------|
+| 1 | Real Event Recap Videos | Visual proof of happiness (30-60 sec, iPhone fine) | Awareness → Decision |
+| 2 | "What Happens When Shortcut Shows Up" Visual Page | Remove uncertainty (photos + clips, event timeline) | Awareness → Consideration |
+| 3 | Employee Reaction Clips | Emotional validation ("This made my day") | Awareness |
+| 4 | HR / Manager Testimonials (Ease-Focused) | Risk reduction ("We didn't lift a finger") | Consideration → Decision |
+| 5 | All-in-One vs Vendor Sprawl One-Pager | Differentiation (one partner, one platform, one invoice) | Decision |
+| 6 | "How Scaling Works" Explainer | Enterprise confidence (one → multiple offices) | Consideration → Decision |
+| 7 | Multi-Location Case Study (BCG / DraftKings) | Proof of scale (rollout, consistency, scale focus) | Decision |
+| 8 | Signup & Admin Flow Visuals | Ease + tech credibility (screenshots, screen recordings) | Consideration |
+| 9 | "Why Companies Renew Year After Year" Page | Long-term trust (retention stats, quotes) | Decision |
+| 10 | Event Experience Photo Library | Sales acceleration (clean, categorized visuals) | All stages |
+
+---
+
+### CONTENT → GROWTH LEVER MAPPING
+
+| Content Asset | Sales | Conferences | Hosted Events | Enterprise / Healthcare |
+|--------------|-------|-------------|---------------|-------------------------|
+| Event Recap Videos | ✓ | ✓ | ✓ | ✓ |
+| Visual Experience Page | ✓ | ✓ | ✓ | — |
+| Employee Reaction Clips | ✓ | ✓ | ✓ | — |
+| HR Testimonials | ✓ | ✓ | — | ✓ |
+| All-in-One vs Vendor Sprawl | ✓ | ✓ | — | ✓ |
+| Scaling Explainer | ✓ | — | — | ✓ |
+| Multi-Location Case Study | ✓ | ✓ | — | ✓ |
+| Signup Flow Visuals | ✓ | — | — | ✓ |
+| Renewal Proof Page | ✓ | — | — | ✓ |
+| Photo Library | ✓ | ✓ | ✓ | ✓ |
+
+---
+
+### H1 VS H2 FOCUS
+
+#### H1 2026 — Must Ship
+- Event recap videos
+- Visual experience page
+- HR testimonials
+- Vendor sprawl comparison
+- Signup flow visuals
+
+#### H2 2026 — Expansion Content
+- Multi-location case study
+- Scaling explainer
+- Renewal proof page
+- Enterprise-focused testimonials
+
+---
+
+### HOW WE MEASURE SUCCESS
+
+Content is successful if:
+- Sales calls get shorter
+- Fewer questions are asked
+- Buyers say "this feels easy"
+- Buyers reference content unprompted
+- Time-to-yes decreases
+
+If content doesn't do that, it doesn't matter.
+
+---
+
+### BOTTOM LINE
+
+Shortcut's content strategy is about **confidence**, not education.
+
+We show:
+- What it feels like
+- Why it works better
+- How easy it is
+- How well it scales
+
+When buyers can *see* happiness and *trust* the process, decisions happen faster.
+
+---
+
+## SECTION 4: LEVER 2 — CONFERENCE STRATEGY (REVISED)
+
+### STRATEGIC OVERVIEW
+
+Conferences are a high-leverage channel for Shortcut — but only if we treat them as a **sales + marketing + brand play**, not just a booth exercise.
+
+The 2026 conference strategy is structured around two halves of the year with different objectives:
+
+| Half | Objective | Focus |
+|------|-----------|-------|
+| H1 | Pipeline Creation | Meet buyers early in their fiscal year. Build relationships. |
+| H2 | Budget Capture | Re-engage leads when budgets finalize. Close deals. |
+
+---
 
 ### BUDGET CONTEXT
 
 | Half | Budget | Target |
 |------|--------|--------|
-| H1 | $30K | 3 conferences |
-| H2 | $30K | 3 conferences |
+| H1 | ~$33K | 3 conferences |
+| H2 | ~$36K | 4 conferences |
+| **Total** | **~$60K** | **7 conferences** |
+
+*Note: Budgets are flexible. If H1 results are strong, we may shift $5-10K from H2 to double down on what's working.*
 
 ---
 
-### LEAD ESTIMATION METHODOLOGY
+### H1 CONFERENCE PLAN (JAN–JUNE)
 
-#### How We Calculate Expected Leads
+#### Objective: Pipeline Creation
 
-| Variable | Assumption |
-|----------|------------|
-| Attendees in target persona | 30-50% of total (HR, Benefits, Workplace Exp) |
-| Booth traffic rate | 10-15% of relevant attendees visit a given booth |
-| Conversation-to-lead conversion | 50-70% of booth conversations = qualified lead |
-| Speaking/session bonus | +20-30% leads if you have a speaking slot |
+H1 is about **meeting buyers early**, before they've locked in their wellness vendors for the year. The goal is to:
+- Generate 50+ qualified leads
+- Book 20+ demos
+- Build brand awareness in key markets
 
-#### Example: Workhuman (3,000 attendees)
-- Target personas: ~60% = 1,800 relevant
-- Booth traffic: 10% = 180 visits
-- Qualified: 60% = ~108 leads at top end
-- Conservative (no speaking slot): 20-30 leads
+#### H1 Conferences
 
-#### Example: Wellbeing at Work NYC (500 attendees)
-- Target personas: ~80% = 400 relevant (highly curated)
-- Booth/networking capture: 15% = 60 conversations
-- Qualified: 70% = ~40 leads at top end
-- Conservative: 15-25 leads
+| # | Conference | Date | Location | Est. Cost | Expected Leads | Priority |
+|---|------------|------|----------|-----------|----------------|----------|
+| 1 | Wellbeing at Work Summit | March 3-5 | NYC | $5K | 15-25 | **#1** |
+| 2 | Total Rewards (WorldatWork) | April 19-22 | San Antonio | $20K | 20-30 | **#2** |
+| 3 | Workhuman Live | April 28-May 1 | Austin | $8K | 15-25 | **#3** |
+| | **H1 Total** | | | **~$33K** | **50-80** | |
 
-#### Factors That Increase Leads
+#### H1 Conference Details
 
-| Factor | Impact |
-|--------|--------|
-| Speaking slot | +50-100% |
-| Sponsored session/workshop | +30% |
-| Pre-conference outreach list | +20% |
-| On-site activation (demo services) | +25% |
-
----
-
-### NATIONAL CONFERENCES — COMPLETE LIST
-
-| # | Conference | Date | Location | Size | Est. Cost | Buyer Fit | ROI | Priority |
-|---|------------|------|----------|------|-----------|-----------|-----|----------|
-| 1 | Wellbeing at Work Summit | March 3-5 | NYC + Austin | 500+ | $3-8K | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **#1** |
-| 2 | Workhuman Live | April 27-30 | Orlando | 3,000+ | $8-15K | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **#2** |
-| 3 | Total Rewards (WorldatWork) | April 19-22 | San Antonio | 2,000+ | $5-10K | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | **#3** |
-| 4 | Business Group on Health | April 22-24 | New Orleans | 1,000+ | $5-10K | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | #4 |
-| 5 | Transform | March 23-25 | Las Vegas | 2,000+ | $5-10K | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | #5 |
-| 6 | SHRM Annual | June 16-19 | Orlando | 25,000+ | $8-15K | ⭐⭐⭐ | ⭐⭐⭐ | Tier 2 |
-| 7 | ATD International | May 17-20 | Los Angeles | 10,000+ | $15-25K | ⭐⭐⭐ | ⭐⭐⭐ | Tier 2 |
-| 8 | UNLEASH America | March 17-19 | Las Vegas | 3,000+ | $8-15K | ⭐⭐⭐ | ⭐⭐⭐ | Tier 2 |
-| 9 | HR Tech | Oct 20-22 | Las Vegas | 10,000+ | $10-20K | ⭐⭐ | ⭐⭐ | Skip |
-| 10 | IFEBP Annual | Oct 25-28 | New Orleans | 5,000+ | $5-10K | ⭐⭐⭐ | ⭐⭐ | Skip |
-| 11 | GCUC | April 13-16 | NYC | 300-500 | $5-8K | ⭐ | ⭐ | Skip |
-| 12 | i4cp Next Practices | March 30-Apr 2 | Scottsdale | 500 | Premium | ⭐⭐⭐⭐ | ⭐⭐ | Thought leadership only |
-
----
-
-### TOP 3 NATIONAL — DETAILED REASONING
-
-#### #1: Wellbeing at Work Summit (March 3-5, NYC + Austin)
+**1. Wellbeing at Work Summit (March 3-5, NYC) — $5K**
 
 | Factor | Assessment |
 |--------|------------|
@@ -267,121 +385,159 @@ Most prospects have never bought this category. They don't know:
 | Size | Intimate (500ish). You can meet everyone who matters. |
 | Theme Alignment | Literally called "Wellbeing at Work." |
 | Timing | Early March — sets up Q1/Q2 pipeline. |
-| Cost | Lower than big nationals. Better ROI math. |
 
-**Verdict:** No-brainer for H1. Lowest friction, highest alignment, home field advantage.
+**Why it's #1:** Lowest friction, highest alignment, home field advantage. If we can only do one conference, this is it.
 
-#### #2: Workhuman Live (April 27-30, Orlando)
-
-| Factor | Assessment |
-|--------|------------|
-| Audience | Employee Experience, Culture, Engagement leaders — exactly who buys Shortcut |
-| Theme Alignment | Conference is about human-centered workplace strategies. Wellbeing is a core track. |
-| Attendee Intent | People actively investing in employee experience. Not tire-kickers. |
-| Competition | Fewer wellness vendors than SHRM. Less noise. |
-| Vibe | High-energy, values-driven. Matches Shortcut's brand. |
-| ROI Potential | Mid-size (3K) means you can actually connect. Not lost in 25K crowd. |
-
-**Verdict:** Best audience-to-noise ratio of any national conference. If you do one national, do this one.
-
-#### #3: Total Rewards (WorldatWork) (April 19-22, San Antonio)
+**2. Total Rewards (WorldatWork) (April 19-22, San Antonio) — $20K**
 
 | Factor | Assessment |
 |--------|------------|
 | Audience | Compensation & Benefits professionals — the people who control wellness budgets |
 | Theme Alignment | Total rewards = salary + benefits + perks + wellness. You're a line item they manage. |
 | Buyer Type | Budget holders. They sign checks. |
-| Strategic Angle | Position Shortcut as a benefit not an expense. |
-| Timing | Late April — good for H1 pipeline that closes Q2/Q3. |
+| Investment | Higher cost ($20K) but higher ROI potential — these are decision-makers. |
 
-**Verdict:** Workhuman gets you the "culture champion." Total Rewards gets you the "budget holder." You need both.
+**Why it's #2:** Workhuman gets you the "culture champion." Total Rewards gets you the "budget holder." You need both.
 
----
-
-### CONFERENCES NOT RECOMMENDED — REASONING
-
-#### GCUC (April 13-16, NYC) — SKIP
+**3. Workhuman Live (April 28-May 1, Austin) — $8K**
 
 | Factor | Assessment |
 |--------|------------|
-| Audience | Coworking space operators, landlords, flex workspace consultants |
-| Buyer Fit | ⭐ (1/5) — Wrong audience. These aren't corporate HR buyers. |
-| ROI Potential | ⭐ (1/5) — Only relevant if selling B2B2C through coworking spaces. |
+| Audience | Employee Experience, Culture, Engagement leaders — exactly who buys Shortcut |
+| Theme Alignment | Conference is about human-centered workplace strategies. Wellbeing is a core track. |
+| Attendee Intent | People actively investing in employee experience. Not tire-kickers. |
+| Vibe | High-energy, values-driven. Matches Shortcut's brand. |
 
-**Verdict:** Skip. Not your buyer.
-
-#### ATD International (May 17-20, LA) — TIER 2
-
-| Factor | Assessment |
-|--------|------------|
-| Audience | CLOs, L&D Directors, Training Managers |
-| Size | 10,000-13,000 attendees, 400+ exhibitors |
-| Buyer Fit | ⭐⭐⭐ (3/5) — L&D increasingly owns wellbeing, but not primary buyers |
-| Cost | $15-25K (expensive) |
-| Location | LA — covers West Coast market |
-
-**Verdict:** Consider if breaking into West Coast enterprise. Position as "talent development" not just "wellness."
+**Why it's #3:** Best audience-to-noise ratio of any national conference. Mid-size (3K) means you can actually connect.
 
 ---
 
-### NYC/LOCAL CONFERENCES — COMPLETE LIST
+### H2 CONFERENCE PLAN (JULY–DEC)
 
-| # | Event | Timing | Format | Est. Cost | Buyer Fit | ROI | Priority |
-|---|-------|--------|--------|-----------|-----------|-----|----------|
-| 1 | Wellbeing at Work NYC | March 3-5 | Multi-day | $3-5K | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **#1** |
-| 2 | Conference Board Employee Health Care | March 17-18 | 2-day | $3-5K | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **#2** |
-| 3 | From Day One NYC Benefits | TBD 2026 | Half-day | $2-3K | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | **#3** |
-| 4 | From Day One Manhattan Full-Day | TBD 2026 | Full-day | $2-3K | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | #4 |
-| 5 | NYC SHRM Global Wellbeing | Jan 29 | Evening | $500-1K | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | Quick win |
-| 6 | NYC SHRM Monthly | Ongoing | Networking | $50-150/ea | ⭐⭐⭐ | ⭐⭐ | Relationship building |
-| 7 | HR Vision New York | Jan 14-15 | 2-day | $2-3K | ⭐⭐⭐ | ⭐⭐⭐ | Broad HR |
-| 8 | LinkedIn Talent Connect | Sept 2026 | Multi-day | TBD | ⭐⭐⭐ | ⭐⭐⭐ | Talent focus |
-| 9 | CoreNet Global NYC | Varies | Networking | $1-2K | ⭐⭐⭐⭐ | ⭐⭐⭐ | Workplace Exp buyers |
-| 10 | From Day One TA | TBD 2026 | Half-day | $2-3K | ⭐⭐ | ⭐⭐ | Secondary |
+#### Objective: Budget Capture
 
----
+H2 is about **re-engaging leads** from H1 and capturing budget before year-end. The goal is to:
+- Convert 30%+ of H1 pipeline
+- Generate 40+ new leads
+- Close $150K+ in new ARR from conference-sourced leads
 
-### TOP 3 NYC — DETAILED REASONING
+#### H2 Conferences
 
-#### #1: Wellbeing at Work Summit NYC (March 3-5)
-National-caliber event on home turf. See national section above.
+| # | Conference | Date | Location | Est. Cost | Expected Leads | Priority |
+|---|------------|------|----------|-----------|----------------|----------|
+| 1 | Benefits Forum & Expo | Sept 14-17 | Las Vegas | $7K | 15-25 | **#1** |
+| 2 | Conference Board Fall HR | Oct 27-28 | NYC | $6K | 10-20 | **#2** |
+| 3 | WORKTECH26 | Nov (TBD) | NYC | $18K | 20-30 | **#3** |
+| 4 | LinkedIn Talent Connect | Fall (TBD) | TBD | $5K | 10-15 | **#4** |
+| | **H2 Total** | | | **~$36K** | **55-90** | |
 
-#### #2: Conference Board Employee Health Care (March 17-18, Marriott Marquis)
+#### H2 Conference Details
+
+**1. Benefits Forum & Expo (Sept 14-17, Las Vegas) — $7K**
 
 | Factor | Assessment |
 |--------|------------|
-| Audience | Enterprise HR & benefits leaders focused on workforce wellbeing |
+| Audience | Benefits professionals, HR leaders, brokers — all in one place |
+| Timing | September — perfect for Q4 budget discussions |
+| Size | 3,000+ attendees, but highly targeted audience |
+| Opportunity | Re-engage H1 leads who are now finalizing budgets |
+
+**Why it's #1 for H2:** Benefits buyers are making final decisions. This is where you close.
+
+**2. Conference Board Fall HR (Oct 27-28, NYC) — $6K**
+
+| Factor | Assessment |
+|--------|------------|
+| Audience | Enterprise HR & benefits leaders focused on workforce strategy |
 | Credibility | The Conference Board is blue-chip. Attendees are senior. |
-| Content | Sessions on "unified wellbeing strategy" — your exact pitch |
-| Location | Times Square. Easy for your team. |
-| Enterprise Density | This is where you find your next BCG or DraftKings. |
+| Location | NYC. Home turf again. |
+| Timing | Late October — last chance for Q4 closes |
 
-**Verdict:** If you want bigger accounts, this is where they are.
+**Why it's #2:** High-quality enterprise leads. If you want bigger accounts, this is where they are.
 
-#### #3: From Day One NYC Benefits Conference (Half-day, Convene @ 101 Park)
+**3. WORKTECH26 (November, NYC) — $18K**
 
 | Factor | Assessment |
 |--------|------------|
-| Audience | Benefits & Total Rewards leaders — budget holders |
-| Format | Half-day. Efficient. |
-| Location | 5 min from Grand Central. |
-| Cost | Lower than full conferences. |
-| Networking Density | Smaller = more conversations per hour. |
+| Audience | Workplace Experience, Real Estate, HR leaders — intersection of space + people |
+| Theme Alignment | Future of work, hybrid workplace, employee experience — all Shortcut sweet spots |
+| Investment | Higher cost but premium audience quality |
+| Opportunity | Position Shortcut as the "workplace wellbeing" layer in hybrid work strategy |
 
-**Verdict:** High efficiency play. Get in, meet buyers, get out.
+**Why it's #3:** Emerging conference with high-intent audience. Worth the investment if early H2 results are strong.
+
+**4. LinkedIn Talent Connect (Fall, TBD) — $5K**
+
+| Factor | Assessment |
+|--------|------------|
+| Audience | Talent Acquisition, Employer Branding, HR leaders |
+| Theme Alignment | Employer brand = benefits + culture + wellbeing. Shortcut fits. |
+| Cost | Lower cost, good ROI potential |
+| Opportunity | Different buyer persona — TA leaders who influence benefits decisions |
+
+**Why it's #4:** Lower priority but high efficiency. Good for diversifying lead sources.
 
 ---
 
-### RECOMMENDED H1 CONFERENCE PLAN
+### UPGRADE & SCALE LOGIC
 
-| Event | Date | Est. Cost | Expected Leads |
-|-------|------|-----------|----------------|
-| Wellbeing at Work NYC | March 3-5 | $5K | 15-25 |
-| Conference Board NYC | March 17-18 | $5K | 10-20 |
-| Workhuman Live (Orlando) | April 27-30 | $12K (incl. travel) | 20-30 |
-| **Total** | | **$22K** | **45-75 qualified leads** |
+The conference plan is designed to **adapt based on results**:
 
-Leaves $8K buffer for From Day One or opportunistic local events.
+#### If H1 Results Are Strong (50+ qualified leads, 20+ demos)
+- Increase H2 budget by $5-10K
+- Upgrade WORKTECH26 to premium sponsorship
+- Add one additional H2 conference (e.g., HR Tech)
+
+#### If H1 Results Are Weak (<30 leads, <10 demos)
+- Reduce H2 conference spend by $10K
+- Focus on smaller, higher-touch events
+- Shift budget to content marketing or SDR outreach
+
+#### Revenue Signals to Watch
+| Signal | Threshold | Action |
+|--------|-----------|--------|
+| Conference-sourced demos | 20+ in H1 | Increase H2 spend |
+| Conference-sourced pipeline | $200K+ in H1 | Upgrade H2 sponsorships |
+| Close rate on conference leads | >20% | Double down on same events |
+| Cost per qualified lead | <$500 | Scale that conference |
+
+---
+
+### CONFERENCE EXECUTION PLAYBOOK
+
+#### Pre-Conference (4-6 weeks before)
+- [ ] Register and book sponsorship/booth
+- [ ] Identify target accounts attending
+- [ ] Send pre-conference outreach to target list
+- [ ] Prepare collateral (one-pagers, demo videos, swag)
+- [ ] Schedule on-site meetings with key prospects
+
+#### During Conference
+- [ ] Staff booth with 2+ people at all times
+- [ ] Capture leads with consistent qualification criteria
+- [ ] Host or attend networking events
+- [ ] Post daily on LinkedIn with conference content
+- [ ] Book follow-up demos on-site
+
+#### Post-Conference (1-2 weeks after)
+- [ ] Send personalized follow-up emails within 48 hours
+- [ ] Add all leads to CRM with conference source
+- [ ] Schedule demos for qualified leads
+- [ ] Calculate cost per lead and ROI
+- [ ] Document learnings for next event
+
+---
+
+### SUCCESS METRICS
+
+| Metric | H1 Target | H2 Target | Full Year |
+|--------|-----------|-----------|-----------|
+| Qualified Leads | 50-80 | 55-90 | 105-170 |
+| Demos Booked | 20-30 | 25-35 | 45-65 |
+| Pipeline Generated | $200K | $250K | $450K |
+| Closed Revenue | — | $100K+ | $150K+ |
+| Cost per Lead | <$600 | <$600 | <$600 |
+| Conference ROI | — | — | 3x+ |
 
 ---
 

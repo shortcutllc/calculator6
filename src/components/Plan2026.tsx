@@ -12,11 +12,15 @@ export default function Plan2026() {
     'exit-strategy',
     'four-levers',
     'content-strategy',
-    'content-distribution',
+    'content-assets',
     'conference-strategy',
     'conference-leads',
-    'conference-recommendations',
-    'nyc-conferences',
+    'h1-conferences',
+    'h1-conference-details',
+    'h2-conferences',
+    'h2-conference-details',
+    'conference-playbook',
+    'conference-metrics',
     'healthcare-cigna',
     'healthcare-targets',
     'healthcare-brokers',
@@ -669,7 +673,7 @@ export default function Plan2026() {
         {currentSlide === 7 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-12">
+              <div className="text-center mb-10">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6" style={{ backgroundColor: '#E0F2F7' }}>
                   <span>📝</span>
                   <span className="text-sm font-semibold" style={{ color: '#003756' }}>Lever 1</span>
@@ -678,129 +682,205 @@ export default function Plan2026() {
                   Content Strategy
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Lower the education barrier - most companies have never provided this type of wellness
+                  Happiness-First. Proof-Driven. Sales-Accelerating.
                 </p>
               </div>
 
-              {/* Funnel Stages */}
-              <div className="space-y-6 max-w-5xl mx-auto">
-                {/* Awareness Stage */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
+              {/* Philosophy */}
+              <div className="max-w-4xl mx-auto mb-8">
+                <div className="rounded-3xl p-6" style={{ backgroundColor: '#E0F2F7', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <p className="text-center text-lg mb-4" style={{ color: '#003756' }}>
+                    We're selling <strong>feel-good moments that make work better</strong> — for employees <em>and</em> the people responsible for them.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                    {[
+                      'Never purchased this category',
+                      "Don't know what good looks like",
+                      'Worry about effort & risk',
+                      'Unsure if employees will care'
+                    ].map((item, idx) => (
+                      <div key={idx} className="p-2 rounded-xl" style={{ backgroundColor: 'white' }}>
+                        <p className="text-xs" style={{ color: '#003756' }}>{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-center text-sm mt-4" style={{ color: '#003756', opacity: 0.8 }}>
+                    This creates a <strong>confidence gap</strong>. Our content strategy exists to close it.
+                  </p>
+                </div>
+              </div>
+
+              {/* Three Pillars */}
+              <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
                   <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white">Awareness Stage — "What is this?"</h3>
+                    <h3 className="font-semibold text-white text-sm">Pillar 1</h3>
+                    <p className="text-white text-lg font-semibold">Make the Happiness Visible</p>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-4 p-5" style={{ backgroundColor: 'white' }}>
-                    {[
-                      { asset: '"The In-Person Wellness Playbook"', purpose: 'Define the category. Position Shortcut as the authority.', format: 'PDF / landing page' },
-                      { asset: '"Why Digital Perks Aren\'t Working"', purpose: 'Challenge the status quo (apps, stipends with low usage).', format: 'Blog / LinkedIn' },
-                      { asset: '"What Happens When Shortcut Shows Up"', purpose: 'Visual, visceral — show the experience.', format: '60-90 sec video' },
-                      { asset: 'Client testimonial clips', purpose: 'Social proof from recognizable logos.', format: '30-sec video snippets' },
-                    ].map((item, idx) => (
-                      <div key={idx} className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
-                        <p className="font-medium text-sm mb-1" style={{ color: '#003756' }}>{item.asset}</p>
-                        <p className="text-xs mb-1" style={{ color: '#003756', opacity: 0.7 }}>{item.purpose}</p>
-                        <p className="text-xs" style={{ color: '#018EA2' }}>{item.format}</p>
-                      </div>
-                    ))}
+                  <div className="p-4" style={{ backgroundColor: 'white' }}>
+                    <p className="text-xs mb-3" style={{ color: '#003756', opacity: 0.7 }}>Buyers need to <em>see</em> the experience to believe it.</p>
+                    <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                      <p>• Real events, real offices</p>
+                      <p>• Real employees, real reactions</p>
+                      <p>• Credible, human proof</p>
+                    </div>
+                    <div className="mt-3 p-2 rounded-lg" style={{ backgroundColor: '#E0F2F7' }}>
+                      <p className="text-xs" style={{ color: '#018EA2' }}><strong>Outcome:</strong> Removes imagination risk</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Consideration Stage */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #018EA2' }}>
                   <div className="p-4" style={{ backgroundColor: '#018EA2' }}>
-                    <h3 className="font-semibold text-white">Consideration Stage — "How does it work?"</h3>
+                    <h3 className="font-semibold text-white text-sm">Pillar 2</h3>
+                    <p className="text-white text-lg font-semibold">Make the Ease Undeniable</p>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-4 p-5" style={{ backgroundColor: 'white' }}>
-                    {[
-                      { asset: '"The HR Leader\'s Buying Guide"', purpose: 'Walk through procurement, budgeting, internal sell.', format: 'PDF / interactive guide' },
-                      { asset: '"How BCG Runs Wellness Across 4 Offices"', purpose: 'Case study showing multi-location model.', format: 'Written + video' },
-                      { asset: '"What to Expect: Your First Shortcut Event"', purpose: 'Reduce uncertainty. Show the process.', format: 'Email sequence' },
-                      { asset: 'ROI Calculator', purpose: 'Let them build their own business case.', format: 'Interactive web tool' },
-                    ].map((item, idx) => (
-                      <div key={idx} className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
-                        <p className="font-medium text-sm mb-1" style={{ color: '#003756' }}>{item.asset}</p>
-                        <p className="text-xs mb-1" style={{ color: '#003756', opacity: 0.7 }}>{item.purpose}</p>
-                        <p className="text-xs" style={{ color: '#018EA2' }}>{item.format}</p>
-                      </div>
-                    ))}
+                  <div className="p-4" style={{ backgroundColor: 'white' }}>
+                    <p className="text-xs mb-3" style={{ color: '#003756', opacity: 0.7 }}>HR doesn't fear cost — they fear complexity.</p>
+                    <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                      <p>• How little HR actually does</p>
+                      <p>• How signups & execution work</p>
+                      <p>• How scale happens smoothly</p>
+                    </div>
+                    <div className="mt-3 p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs" style={{ color: '#018EA2' }}><strong>Outcome:</strong> "This feels handled"</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Decision Stage */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #FF5050' }}>
                   <div className="p-4" style={{ backgroundColor: '#FF5050' }}>
-                    <h3 className="font-semibold text-white">Decision Stage — "Why Shortcut?"</h3>
+                    <h3 className="font-semibold text-white text-sm">Pillar 3</h3>
+                    <p className="text-white text-lg font-semibold">Make the Difference Obvious</p>
                   </div>
-                  <div className="grid md:grid-cols-3 gap-4 p-5" style={{ backgroundColor: 'white' }}>
-                    {[
-                      { asset: '"Single Vendor vs. Vendor Sprawl"', purpose: 'Competitive positioning.', format: 'Comparison one-pager' },
-                      { asset: 'Service menu + pricing transparency', purpose: 'Remove friction.', format: 'PDF / web page' },
-                      { asset: '"Ask Us Anything" recorded Q&A', purpose: 'Address objections preemptively.', format: 'Video / podcast' },
-                    ].map((item, idx) => (
-                      <div key={idx} className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
-                        <p className="font-medium text-sm mb-1" style={{ color: '#003756' }}>{item.asset}</p>
-                        <p className="text-xs mb-1" style={{ color: '#003756', opacity: 0.7 }}>{item.purpose}</p>
-                        <p className="text-xs" style={{ color: '#018EA2' }}>{item.format}</p>
+                  <div className="p-4" style={{ backgroundColor: 'white' }}>
+                    <p className="text-xs mb-3" style={{ color: '#003756', opacity: 0.7 }}>Differentiation must be <em>explicit</em>, not implied.</p>
+                    <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                      <p>• All-in-one, operationally excellent</p>
+                      <p>• Consistent, scalable</p>
+                      <p>• Hospitality-driven, tech-enabled</p>
+                    </div>
+                    <div className="mt-3 p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs" style={{ color: '#FF5050' }}><strong>Outcome:</strong> Stop comparing, start choosing</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Voice */}
+              <div className="max-w-4xl mx-auto">
+                <div className="rounded-2xl p-4" style={{ backgroundColor: '#003756' }}>
+                  <h4 className="font-semibold text-white text-sm mb-3">Our Voice (Non-Negotiable)</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-white mb-2" style={{ opacity: 0.6 }}>We sound like:</p>
+                      <div className="space-y-1">
+                        {['Light, human, optimistic', 'Happiness-forward', 'Confident without salesy', 'Simple, not corporate'].map((item, idx) => (
+                          <p key={idx} className="text-xs text-white flex items-center gap-2">
+                            <span style={{ color: '#9EFAFF' }}>✓</span> {item}
+                          </p>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                    <div>
+                      <p className="text-xs text-white mb-2" style={{ opacity: 0.6 }}>We don't sound like:</p>
+                      <div className="space-y-1">
+                        {['A benefits provider', 'A wellness consultant', 'A mental health platform', 'Corporate or heavy'].map((item, idx) => (
+                          <p key={idx} className="text-xs text-white flex items-center gap-2">
+                            <span style={{ color: '#FF5050' }}>✗</span> {item}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
                   </div>
+                  <p className="text-sm text-center mt-4 italic" style={{ color: '#9EFAFF' }}>
+                    "The easiest, happiest decision an HR or Workplace leader can make."
+                  </p>
                 </div>
               </div>
             </div>
           </section>
         )}
 
-        {/* ==================== SLIDE 9: CONTENT DISTRIBUTION ==================== */}
+        {/* ==================== SLIDE 9: CONTENT ASSETS ==================== */}
         {currentSlide === 8 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-12">
+              <div className="text-center mb-8">
                 <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
                   Content Strategy
                 </p>
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Distribution Strategy
+                <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                  The 10 Assets That Matter Most
                 </h2>
-                <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Where and how we'll share content to reach target buyers
+                <p className="text-base max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
+                  Anything not on this list is secondary. Goal: shorter sales cycles, faster "yes" decisions.
                 </p>
               </div>
 
-              <div className="max-w-4xl mx-auto">
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white">Distribution Channels</h3>
+              {/* Assets Grid */}
+              <div className="grid md:grid-cols-2 gap-3 max-w-5xl mx-auto mb-6">
+                {[
+                  { num: '1', name: 'Real Event Recap Videos', desc: '30-60 sec, iPhone fine. Visual proof of happiness.', stage: 'Awareness → Decision', h1: true },
+                  { num: '2', name: '"What Happens When Shortcut Shows Up"', desc: 'Photos + clips, event timeline. Remove uncertainty.', stage: 'Awareness → Consideration', h1: true },
+                  { num: '3', name: 'Employee Reaction Clips', desc: '"This made my day." Emotional validation.', stage: 'Awareness', h1: false },
+                  { num: '4', name: 'HR/Manager Testimonials (Ease-Focused)', desc: '"We didn\'t lift a finger." Risk reduction.', stage: 'Consideration → Decision', h1: true },
+                  { num: '5', name: 'All-in-One vs Vendor Sprawl One-Pager', desc: 'One partner, one platform, one invoice.', stage: 'Decision', h1: true },
+                  { num: '6', name: '"How Scaling Works" Explainer', desc: 'One → multiple offices. Enterprise confidence.', stage: 'Consideration → Decision', h1: false },
+                  { num: '7', name: 'Multi-Location Case Study', desc: 'BCG/DraftKings. Rollout, consistency, scale.', stage: 'Decision', h1: false },
+                  { num: '8', name: 'Signup & Admin Flow Visuals', desc: 'Screenshots, recordings. Ease + tech credibility.', stage: 'Consideration', h1: true },
+                  { num: '9', name: '"Why Companies Renew" Page', desc: 'Retention stats, quotes. Long-term trust.', stage: 'Decision', h1: false },
+                  { num: '10', name: 'Event Experience Photo Library', desc: 'Clean, categorized. Sales acceleration.', stage: 'All stages', h1: false },
+                ].map((item, idx) => (
+                  <div key={idx} className="rounded-xl p-3 flex gap-3" style={{ backgroundColor: 'white', border: item.h1 ? '2px solid #9EFAFF' : '1px solid rgba(0,55,86,0.1)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style={{ backgroundColor: item.h1 ? '#003756' : '#F8F9FA', color: item.h1 ? 'white' : '#003756' }}>
+                      {item.num}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm" style={{ color: '#003756' }}>{item.name}</p>
+                      <p className="text-xs" style={{ color: '#003756', opacity: 0.7 }}>{item.desc}</p>
+                      <p className="text-xs mt-1" style={{ color: '#018EA2' }}>{item.stage}</p>
+                    </div>
+                    {item.h1 && (
+                      <span className="text-xs font-semibold px-2 py-1 rounded-full h-fit" style={{ backgroundColor: '#E0F2F7', color: '#003756' }}>H1</span>
+                    )}
                   </div>
-                  <div className="p-5" style={{ backgroundColor: 'white' }}>
-                    <table className="w-full">
-                      <thead>
-                        <tr style={{ borderBottom: '2px solid rgba(0,55,86,0.1)' }}>
-                          <th className="text-left py-3 text-sm font-semibold" style={{ color: '#003756' }}>Channel</th>
-                          <th className="text-left py-3 text-sm font-semibold" style={{ color: '#003756' }}>Content Type</th>
-                          <th className="text-left py-3 text-sm font-semibold" style={{ color: '#003756' }}>Frequency</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { channel: 'LinkedIn (company + personal)', content: 'Thought leadership, client wins, behind-the-scenes', freq: '3-5x/week' },
-                          { channel: 'Email newsletter', content: 'Curated insights for HR/Workplace leaders', freq: 'Bi-weekly' },
-                          { channel: 'Website / SEO', content: 'Evergreen guides, case studies', freq: 'Ongoing' },
-                          { channel: 'Conference follow-up', content: 'Targeted content based on conversation', freq: 'Event-driven' },
-                        ].map((item, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                            <td className="py-3 text-sm font-medium" style={{ color: '#003756' }}>{item.channel}</td>
-                            <td className="py-3 text-sm" style={{ color: '#003756', opacity: 0.8 }}>{item.content}</td>
-                            <td className="py-3 text-sm" style={{ color: '#018EA2' }}>{item.freq}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                ))}
+              </div>
+
+              {/* H1 vs H2 and Success Metrics */}
+              <div className="grid md:grid-cols-2 gap-4 max-w-5xl mx-auto">
+                <div className="rounded-2xl p-4" style={{ backgroundColor: '#003756' }}>
+                  <h4 className="font-semibold text-white text-sm mb-3">H1 2026 — Must Ship</h4>
+                  <div className="space-y-1">
+                    {['Event recap videos', 'Visual experience page', 'HR testimonials', 'Vendor sprawl comparison', 'Signup flow visuals'].map((item, idx) => (
+                      <p key={idx} className="text-xs text-white flex items-center gap-2">
+                        <span style={{ color: '#9EFAFF' }}>→</span> {item}
+                      </p>
+                    ))}
+                  </div>
+                  <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                    <p className="text-xs text-white" style={{ opacity: 0.6 }}>H2: Multi-location case study, scaling explainer, renewal proof, enterprise testimonials</p>
                   </div>
                 </div>
 
-                <div className="mt-6 p-4 rounded-2xl" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <p className="text-sm text-center" style={{ color: '#003756' }}>
-                    <strong>Key insight:</strong> We're selling something they didn't know they needed. That's an education problem, not a sales problem.
+                <div className="rounded-2xl p-4" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <h4 className="font-semibold text-sm mb-3" style={{ color: '#003756' }}>How We Measure Success</h4>
+                  <div className="space-y-2">
+                    {[
+                      'Sales calls get shorter',
+                      'Fewer questions are asked',
+                      'Buyers say "this feels easy"',
+                      'Buyers reference content unprompted',
+                      'Time-to-yes decreases'
+                    ].map((item, idx) => (
+                      <p key={idx} className="text-xs flex items-center gap-2" style={{ color: '#003756' }}>
+                        <span style={{ color: '#018EA2' }}>✓</span> {item}
+                      </p>
+                    ))}
+                  </div>
+                  <p className="text-xs mt-3 pt-3" style={{ color: '#FF5050', borderTop: '1px solid rgba(0,55,86,0.1)' }}>
+                    If content doesn't do that, it doesn't matter.
                   </p>
                 </div>
               </div>
@@ -821,16 +901,16 @@ export default function Plan2026() {
                   Conference Strategy
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  6 conferences per year - direct access to decision-makers
+                  7 conferences across the year - H1 for pipeline creation, H2 for budget capture
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                {/* National Conference Universe */}
-                <div className="md:col-span-2 rounded-3xl overflow-hidden" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+              <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                {/* H1 Conferences */}
+                <div className="rounded-3xl overflow-hidden" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
                   <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white">National Conferences — Priority Ranked</h3>
-                    <p className="text-xs text-white" style={{ opacity: 0.7 }}>H1/H2: $30K budget each</p>
+                    <h3 className="font-semibold text-white">H1: Pipeline Creation (Jan–Jun)</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.7 }}>~$33K budget | 3 conferences</p>
                   </div>
                   <div className="p-3 overflow-x-auto">
                     <table className="w-full text-xs">
@@ -839,70 +919,93 @@ export default function Plan2026() {
                           <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>#</th>
                           <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Conference</th>
                           <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Date</th>
-                          <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Size</th>
                           <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Cost</th>
-                          <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Fit</th>
+                          <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Leads</th>
                         </tr>
                       </thead>
                       <tbody>
                         {[
-                          { rank: '1', name: 'Wellbeing at Work', loc: 'NYC/Austin', date: 'Mar 3-5', size: '500+', cost: '$3-8K', fit: '⭐⭐⭐⭐⭐', highlight: true },
-                          { rank: '2', name: 'Workhuman Live', loc: 'Orlando', date: 'Apr 27-30', size: '3K+', cost: '$8-15K', fit: '⭐⭐⭐⭐⭐', highlight: true },
-                          { rank: '3', name: 'Total Rewards', loc: 'San Antonio', date: 'Apr 19-22', size: '2K+', cost: '$5-10K', fit: '⭐⭐⭐⭐⭐', highlight: true },
-                          { rank: '4', name: 'Business Group on Health', loc: 'New Orleans', date: 'Apr 22-24', size: '1K+', cost: '$5-10K', fit: '⭐⭐⭐⭐' },
-                          { rank: '5', name: 'Transform', loc: 'Las Vegas', date: 'Mar 23-25', size: '2K+', cost: '$5-10K', fit: '⭐⭐⭐⭐' },
-                          { rank: 'T2', name: 'SHRM Annual', loc: 'Orlando', date: 'Jun 16-19', size: '25K+', cost: '$8-15K', fit: '⭐⭐⭐' },
-                          { rank: '—', name: 'HR Tech', loc: 'Las Vegas', date: 'Oct 20-22', size: '10K+', cost: '$10-20K', fit: '⭐⭐', skip: true },
+                          { rank: '1', name: 'Wellbeing at Work', loc: 'NYC', date: 'Mar 3-5', cost: '$5K', leads: '15-25' },
+                          { rank: '2', name: 'Total Rewards', loc: 'San Antonio', date: 'Apr 19-22', cost: '$20K', leads: '20-30' },
+                          { rank: '3', name: 'Workhuman Live', loc: 'Austin', date: 'Apr 28-May 1', cost: '$8K', leads: '15-25' },
                         ].map((conf, idx) => (
-                          <tr key={idx} style={{
-                            borderBottom: '1px solid rgba(0,55,86,0.1)',
-                            backgroundColor: conf.highlight ? '#E0F2F7' : conf.skip ? '#FEF2F2' : 'transparent'
-                          }}>
-                            <td className="py-2 font-bold" style={{ color: conf.highlight ? '#018EA2' : '#003756' }}>{conf.rank}</td>
+                          <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', backgroundColor: '#E0F2F7' }}>
+                            <td className="py-2 font-bold" style={{ color: '#018EA2' }}>{conf.rank}</td>
                             <td className="py-2" style={{ color: '#003756' }}>
                               <div className="font-medium">{conf.name}</div>
                               <div style={{ opacity: 0.6 }}>{conf.loc}</div>
                             </td>
                             <td className="py-2 text-center" style={{ color: '#003756' }}>{conf.date}</td>
-                            <td className="py-2 text-center" style={{ color: '#003756' }}>{conf.size}</td>
                             <td className="py-2 text-center" style={{ color: '#018EA2' }}>{conf.cost}</td>
-                            <td className="py-2 text-center">{conf.fit}</td>
+                            <td className="py-2 text-center" style={{ color: '#003756' }}>{conf.leads}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                  <div className="p-3 text-xs" style={{ backgroundColor: '#F8F9FA', color: '#003756' }}>
+                    <strong>H1 Goal:</strong> 50+ qualified leads, 20+ demos, build brand awareness
+                  </div>
                 </div>
 
-                {/* Target Buyers */}
-                <div className="space-y-4">
-                  <div className="rounded-3xl p-5" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold mb-3 text-white">Target Attendees</h3>
-                    <div className="space-y-2">
-                      {[
-                        'Head of Workplace Experience',
-                        'Head of People/People Ops',
-                        'Director of HR',
-                        'Total Rewards Leaders',
-                        'Employee Experience Manager',
-                        'Benefits Leaders'
-                      ].map((role, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span style={{ color: '#9EFAFF' }}>→</span>
-                          <p className="text-sm text-white">{role}</p>
-                        </div>
-                      ))}
-                    </div>
+                {/* H2 Conferences */}
+                <div className="rounded-3xl overflow-hidden" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <div className="p-4" style={{ backgroundColor: '#018EA2' }}>
+                    <h3 className="font-semibold text-white">H2: Budget Capture (Jul–Dec)</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.7 }}>~$36K budget | 4 conferences</p>
                   </div>
+                  <div className="p-3 overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
+                          <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>#</th>
+                          <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Conference</th>
+                          <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Date</th>
+                          <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Cost</th>
+                          <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Leads</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { rank: '1', name: 'Benefits Forum & Expo', loc: 'Las Vegas', date: 'Sep 14-17', cost: '$7K', leads: '15-25' },
+                          { rank: '2', name: 'Conference Board Fall', loc: 'NYC', date: 'Oct 27-28', cost: '$6K', leads: '10-20' },
+                          { rank: '3', name: 'WORKTECH26', loc: 'NYC', date: 'Nov TBD', cost: '$18K', leads: '20-30' },
+                          { rank: '4', name: 'LinkedIn Talent Connect', loc: 'TBD', date: 'Fall TBD', cost: '$5K', leads: '10-15' },
+                        ].map((conf, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', backgroundColor: '#E0F2F7' }}>
+                            <td className="py-2 font-bold" style={{ color: '#018EA2' }}>{conf.rank}</td>
+                            <td className="py-2" style={{ color: '#003756' }}>
+                              <div className="font-medium">{conf.name}</div>
+                              <div style={{ opacity: 0.6 }}>{conf.loc}</div>
+                            </td>
+                            <td className="py-2 text-center" style={{ color: '#003756' }}>{conf.date}</td>
+                            <td className="py-2 text-center" style={{ color: '#018EA2' }}>{conf.cost}</td>
+                            <td className="py-2 text-center" style={{ color: '#003756' }}>{conf.leads}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="p-3 text-xs" style={{ backgroundColor: '#F8F9FA', color: '#003756' }}>
+                    <strong>H2 Goal:</strong> Convert 30%+ of H1 pipeline, close $150K+ new ARR
+                  </div>
+                </div>
+              </div>
 
-                  <div className="rounded-3xl p-5" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <h3 className="font-semibold mb-3" style={{ color: '#003756' }}>Booth Strategy</h3>
-                    <div className="space-y-2 text-sm" style={{ color: '#003756' }}>
-                      <p>• Live chair massage demos</p>
-                      <p>• Express headshot station</p>
-                      <p>• Lead capture with QR codes</p>
-                      <p>• Branded stress balls/items</p>
-                    </div>
+              {/* Budget Summary */}
+              <div className="max-w-6xl mx-auto mt-6 p-4 rounded-2xl" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold" style={{ color: '#003756' }}>~$60K</p>
+                    <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>Total Conference Budget</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold" style={{ color: '#018EA2' }}>105-170</p>
+                    <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>Expected Qualified Leads</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold" style={{ color: '#FF5050' }}>$450K+</p>
+                    <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>Pipeline Target</p>
                   </div>
                 </div>
               </div>
@@ -995,10 +1098,10 @@ export default function Plan2026() {
                   H1 2026 Priority
                 </p>
                 <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Conference Recommendations
+                  H1 Conferences — Pipeline Creation
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Top 3 picks for H1 based on buyer fit, cost, and timing
+                  Meet buyers early in their fiscal year. Build relationships. Generate 50+ qualified leads.
                 </p>
               </div>
 
@@ -1021,7 +1124,7 @@ export default function Plan2026() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span style={{ color: '#003756', opacity: 0.6 }}>Location</span>
-                        <span className="font-medium" style={{ color: '#003756' }}>NYC + Austin</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>NYC</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span style={{ color: '#003756', opacity: 0.6 }}>Size</span>
@@ -1031,58 +1134,25 @@ export default function Plan2026() {
                         <span style={{ color: '#003756', opacity: 0.6 }}>Est. Cost</span>
                         <span className="font-medium" style={{ color: '#018EA2' }}>$5K</span>
                       </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Expected Leads</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>15-25</span>
+                      </div>
                     </div>
                     <div className="p-3 rounded-xl" style={{ backgroundColor: '#E0F2F7' }}>
                       <p className="text-xs" style={{ color: '#003756' }}>
-                        <strong>Why #1:</strong> NYC home turf. Intimate (500ish). Literally called "Wellbeing at Work." Lowest friction, highest alignment.
+                        <strong>Why #1:</strong> NYC home turf. No travel cost. Intimate (500ish). Literally called "Wellbeing at Work." Lowest friction, highest alignment.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* #2 Workhuman */}
+                {/* #2 Total Rewards */}
                 <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #018EA2' }}>
                   <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#018EA2' }}>
                     <div className="flex items-center gap-2">
                       <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'white', color: '#018EA2' }}>
                         #2
-                      </span>
-                      <h3 className="font-semibold text-white">Workhuman Live</h3>
-                    </div>
-                  </div>
-                  <div className="p-5" style={{ backgroundColor: 'white' }}>
-                    <div className="space-y-3 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span style={{ color: '#003756', opacity: 0.6 }}>Date</span>
-                        <span className="font-medium" style={{ color: '#003756' }}>April 27-30</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span style={{ color: '#003756', opacity: 0.6 }}>Location</span>
-                        <span className="font-medium" style={{ color: '#003756' }}>Orlando</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span style={{ color: '#003756', opacity: 0.6 }}>Size</span>
-                        <span className="font-medium" style={{ color: '#003756' }}>3,000+</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span style={{ color: '#003756', opacity: 0.6 }}>Est. Cost</span>
-                        <span className="font-medium" style={{ color: '#018EA2' }}>$12K (incl. travel)</span>
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
-                      <p className="text-xs" style={{ color: '#003756' }}>
-                        <strong>Why #2:</strong> Best audience-to-noise ratio. Employee Experience, Culture, Engagement leaders — exactly who buys Shortcut.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* #3 Total Rewards */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.2)' }}>
-                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#FF5050' }}>
-                    <div className="flex items-center gap-2">
-                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'white', color: '#FF5050' }}>
-                        #3
                       </span>
                       <h3 className="font-semibold text-white">Total Rewards</h3>
                     </div>
@@ -1103,12 +1173,57 @@ export default function Plan2026() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span style={{ color: '#003756', opacity: 0.6 }}>Est. Cost</span>
-                        <span className="font-medium" style={{ color: '#018EA2' }}>$5K</span>
+                        <span className="font-medium" style={{ color: '#018EA2' }}>$20K</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Expected Leads</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>20-30</span>
                       </div>
                     </div>
                     <div className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
                       <p className="text-xs" style={{ color: '#003756' }}>
-                        <strong>Why #3:</strong> Compensation & Benefits pros — the budget holders. Workhuman gets the "culture champion," Total Rewards gets the "budget holder."
+                        <strong>Why #2:</strong> Compensation & Benefits pros — the budget holders. Higher investment ($20K) but these are the decision-makers who sign checks.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* #3 Workhuman */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.2)' }}>
+                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#FF5050' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'white', color: '#FF5050' }}>
+                        #3
+                      </span>
+                      <h3 className="font-semibold text-white">Workhuman Live</h3>
+                    </div>
+                  </div>
+                  <div className="p-5" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-3 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Date</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>April 28-May 1</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Location</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>Austin</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Size</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>3,000+</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Est. Cost</span>
+                        <span className="font-medium" style={{ color: '#018EA2' }}>$8K</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Expected Leads</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>15-25</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs" style={{ color: '#003756' }}>
+                        <strong>Why #3:</strong> Best audience-to-noise ratio. Employee Experience, Culture, Engagement leaders — exactly who buys Shortcut.
                       </p>
                     </div>
                   </div>
@@ -1118,100 +1233,652 @@ export default function Plan2026() {
               {/* Budget Summary */}
               <div className="max-w-5xl mx-auto p-4 rounded-2xl" style={{ backgroundColor: '#E0F2F7', border: '1px solid rgba(0,55,86,0.1)' }}>
                 <p className="text-sm text-center" style={{ color: '#003756' }}>
-                  <strong>H1 Budget:</strong> $22K total for 3 conferences | <strong>Expected:</strong> 45-75 qualified leads | <strong>Buffer:</strong> $8K for From Day One or opportunistic events
+                  <strong>H1 Budget:</strong> ~$33K for 3 conferences | <strong>Expected:</strong> 50-80 qualified leads | <strong>Full Year:</strong> ~$60K for 7 conferences
                 </p>
               </div>
             </div>
           </section>
         )}
 
-        {/* ==================== SLIDE 13: NYC/LOCAL CONFERENCES ==================== */}
+        {/* ==================== SLIDE 13: H2 CONFERENCES ==================== */}
         {currentSlide === 12 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="text-center mb-10">
+                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#018EA2' }}>
+                  H2 2026 Priority
+                </p>
+                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                  H2 Conferences — Budget Capture
+                </h2>
+                <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
+                  Re-engage H1 leads when budgets finalize. Convert 30%+ of pipeline. Close $150K+ new ARR.
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
+                {/* #1 Benefits Forum & Expo */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '3px solid #9EFAFF' }}>
+                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#003756' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: '#9EFAFF', color: '#003756' }}>
+                        #1
+                      </span>
+                      <h3 className="font-semibold text-white">Benefits Forum & Expo</h3>
+                    </div>
+                  </div>
+                  <div className="p-5" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-3 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Date</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>September 14-17</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Location</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>Las Vegas</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Est. Cost</span>
+                        <span className="font-medium" style={{ color: '#018EA2' }}>$7K</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Expected Leads</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>15-25</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#E0F2F7' }}>
+                      <p className="text-xs" style={{ color: '#003756' }}>
+                        <strong>Why #1:</strong> Benefits buyers making final decisions. Perfect timing for Q4 budget discussions. 3,000+ highly targeted attendees.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* #2 Conference Board Fall */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #018EA2' }}>
+                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#018EA2' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'white', color: '#018EA2' }}>
+                        #2
+                      </span>
+                      <h3 className="font-semibold text-white">Conference Board Fall HR</h3>
+                    </div>
+                  </div>
+                  <div className="p-5" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-3 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Date</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>October 27-28</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Location</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>NYC</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Est. Cost</span>
+                        <span className="font-medium" style={{ color: '#018EA2' }}>$6K</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Expected Leads</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>10-20</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs" style={{ color: '#003756' }}>
+                        <strong>Why #2:</strong> Blue-chip credibility. Enterprise HR & benefits leaders. NYC home turf. Last chance for Q4 closes.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* #3 WORKTECH26 */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.2)' }}>
+                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#FF5050' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'white', color: '#FF5050' }}>
+                        #3
+                      </span>
+                      <h3 className="font-semibold text-white">WORKTECH26</h3>
+                    </div>
+                  </div>
+                  <div className="p-5" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-3 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Date</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>November TBD</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Location</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>NYC</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Est. Cost</span>
+                        <span className="font-medium" style={{ color: '#018EA2' }}>$18K</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Expected Leads</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>20-30</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs" style={{ color: '#003756' }}>
+                        <strong>Why #3:</strong> Workplace Experience + HR intersection. Future of work, hybrid workplace sweet spot. Higher cost but premium audience.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* #4 LinkedIn Talent Connect */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.2)' }}>
+                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#003756', opacity: 0.8 }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'white', color: '#003756' }}>
+                        #4
+                      </span>
+                      <h3 className="font-semibold text-white">LinkedIn Talent Connect</h3>
+                    </div>
+                  </div>
+                  <div className="p-5" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-3 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Date</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>Fall TBD</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Location</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>TBD</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Est. Cost</span>
+                        <span className="font-medium" style={{ color: '#018EA2' }}>$5K</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: '#003756', opacity: 0.6 }}>Expected Leads</span>
+                        <span className="font-medium" style={{ color: '#003756' }}>10-15</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs" style={{ color: '#003756' }}>
+                        <strong>Why #4:</strong> Different buyer persona — TA leaders who influence benefits decisions. Lower cost, good for diversifying lead sources.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Budget Summary */}
+              <div className="max-w-5xl mx-auto p-4 rounded-2xl" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                <p className="text-sm text-center" style={{ color: '#003756' }}>
+                  <strong>H2 Budget:</strong> ~$36K for 4 conferences | <strong>Expected:</strong> 55-90 qualified leads | <strong>H2 Goal:</strong> Close $150K+ new ARR from conference leads
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ==================== SLIDE 14: H1 CONFERENCE DETAILS ==================== */}
+        {currentSlide === 13 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="text-center mb-8">
+                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
+                  H1 Deep Dive
+                </p>
+                <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                  H1 Conference Details
+                </h2>
+              </div>
+
+              <div className="space-y-6 max-w-5xl mx-auto">
+                {/* Wellbeing at Work */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
+                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#003756' }}>
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: '#9EFAFF', color: '#003756' }}>#1</span>
+                      <h3 className="font-semibold text-white text-lg">Wellbeing at Work Summit</h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-white">March 3-5, NYC</p>
+                      <p className="text-xs" style={{ color: '#9EFAFF' }}>$5K total (no travel)</p>
+                    </div>
+                  </div>
+                  <div className="p-4 grid md:grid-cols-2 gap-4" style={{ backgroundColor: 'white' }}>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>Conference Profile</h4>
+                      <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                        <p><strong>Size:</strong> 500+ attendees (intimate)</p>
+                        <p><strong>Audience:</strong> Senior HR, Wellness, Reward leaders — self-selected for this topic</p>
+                        <p><strong>Theme:</strong> Literally called "Wellbeing at Work" — perfect alignment</p>
+                        <p><strong>Expected Leads:</strong> 15-25 qualified</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>Strategy & Costs</h4>
+                      <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                        <p><strong>Booth:</strong> Yes — sponsor booth package</p>
+                        <p><strong>Registration:</strong> ~$3K</p>
+                        <p><strong>Travel:</strong> $0 (NYC home turf)</p>
+                        <p><strong>Activation:</strong> Live demos, QR lead capture</p>
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 p-3 rounded-xl" style={{ backgroundColor: '#E0F2F7' }}>
+                      <p className="text-xs" style={{ color: '#003756' }}>
+                        <strong>Why #1:</strong> Lowest friction, highest alignment, home field advantage. If we can only do one conference, this is it. NYC means easy to activate your network and meet everyone who matters.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Rewards */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #018EA2' }}>
+                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#018EA2' }}>
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'white', color: '#018EA2' }}>#2</span>
+                      <h3 className="font-semibold text-white text-lg">Total Rewards (WorldatWork)</h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-white">April 19-22, San Antonio</p>
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>$20K total (incl. travel)</p>
+                    </div>
+                  </div>
+                  <div className="p-4 grid md:grid-cols-2 gap-4" style={{ backgroundColor: 'white' }}>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>Conference Profile</h4>
+                      <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                        <p><strong>Size:</strong> 2,000+ attendees</p>
+                        <p><strong>Audience:</strong> Compensation & Benefits professionals — the people who control wellness budgets</p>
+                        <p><strong>Theme:</strong> Total rewards = salary + benefits + perks + wellness</p>
+                        <p><strong>Expected Leads:</strong> 20-30 qualified</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>Strategy & Costs</h4>
+                      <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                        <p><strong>Booth:</strong> Yes — exhibitor package</p>
+                        <p><strong>Registration/Booth:</strong> ~$12K</p>
+                        <p><strong>Travel (2 ppl):</strong> ~$4K (flights + hotel)</p>
+                        <p><strong>Meals/Misc:</strong> ~$4K</p>
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs" style={{ color: '#003756' }}>
+                        <strong>Why #2:</strong> Higher investment ($20K) but higher ROI potential — these are decision-makers who sign checks. Workhuman gets you the "culture champion." Total Rewards gets you the "budget holder." You need both.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Workhuman */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #FF5050' }}>
+                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#FF5050' }}>
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'white', color: '#FF5050' }}>#3</span>
+                      <h3 className="font-semibold text-white text-lg">Workhuman Live</h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-white">April 28-May 1, Austin</p>
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>$8K total (incl. travel)</p>
+                    </div>
+                  </div>
+                  <div className="p-4 grid md:grid-cols-2 gap-4" style={{ backgroundColor: 'white' }}>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>Conference Profile</h4>
+                      <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                        <p><strong>Size:</strong> 3,000+ attendees</p>
+                        <p><strong>Audience:</strong> Employee Experience, Culture, Engagement leaders — exactly who buys Shortcut</p>
+                        <p><strong>Theme:</strong> Human-centered workplace strategies. Wellbeing is a core track.</p>
+                        <p><strong>Expected Leads:</strong> 15-25 qualified</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>Strategy & Costs</h4>
+                      <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                        <p><strong>Booth:</strong> Optional — networking focus</p>
+                        <p><strong>Registration:</strong> ~$3K</p>
+                        <p><strong>Travel (2 ppl):</strong> ~$3K (flights + hotel)</p>
+                        <p><strong>Meals/Misc:</strong> ~$2K</p>
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 p-3 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs" style={{ color: '#003756' }}>
+                        <strong>Why #3:</strong> Best audience-to-noise ratio of any national conference. Mid-size (3K) means you can actually connect — not lost in a 25K crowd. High-energy, values-driven vibe matches Shortcut's brand.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ==================== SLIDE 15: H2 CONFERENCE DETAILS ==================== */}
+        {currentSlide === 14 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="text-center mb-8">
+                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#018EA2' }}>
+                  H2 Deep Dive
+                </p>
+                <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                  H2 Conference Details
+                </h2>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 max-w-5xl mx-auto">
+                {/* Benefits Forum */}
+                <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <div className="p-3 flex items-center justify-between" style={{ backgroundColor: '#003756' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#9EFAFF', color: '#003756' }}>#1</span>
+                      <h3 className="font-semibold text-white text-sm">Benefits Forum & Expo</h3>
+                    </div>
+                    <span className="text-xs" style={{ color: '#9EFAFF' }}>$7K</span>
+                  </div>
+                  <div className="p-3 text-xs" style={{ color: '#003756' }}>
+                    <p><strong>Sept 14-17, Las Vegas</strong> | 3,000+ attendees</p>
+                    <p className="mt-1"><strong>Audience:</strong> Benefits professionals, HR leaders, brokers</p>
+                    <p className="mt-1"><strong>Booth:</strong> Yes — exhibitor package (~$4K)</p>
+                    <p><strong>Travel:</strong> ~$3K (flights + hotel for 2)</p>
+                    <p className="mt-2 p-2 rounded" style={{ backgroundColor: '#E0F2F7' }}>
+                      <strong>Why #1:</strong> Benefits buyers making final Q4 decisions. This is where you close.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Conference Board */}
+                <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <div className="p-3 flex items-center justify-between" style={{ backgroundColor: '#018EA2' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'white', color: '#018EA2' }}>#2</span>
+                      <h3 className="font-semibold text-white text-sm">Conference Board Fall HR</h3>
+                    </div>
+                    <span className="text-xs text-white">$6K</span>
+                  </div>
+                  <div className="p-3 text-xs" style={{ color: '#003756' }}>
+                    <p><strong>Oct 27-28, NYC</strong> | Enterprise-focused</p>
+                    <p className="mt-1"><strong>Audience:</strong> Enterprise HR & benefits leaders focused on workforce strategy</p>
+                    <p className="mt-1"><strong>Booth:</strong> No — networking/sponsorship focus</p>
+                    <p><strong>Travel:</strong> $0 (NYC home turf)</p>
+                    <p className="mt-2 p-2 rounded" style={{ backgroundColor: '#F8F9FA' }}>
+                      <strong>Why #2:</strong> Blue-chip credibility. Senior attendees. Last chance for Q4 closes.
+                    </p>
+                  </div>
+                </div>
+
+                {/* WORKTECH26 */}
+                <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <div className="p-3 flex items-center justify-between" style={{ backgroundColor: '#FF5050' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'white', color: '#FF5050' }}>#3</span>
+                      <h3 className="font-semibold text-white text-sm">WORKTECH26</h3>
+                    </div>
+                    <span className="text-xs text-white">$18K</span>
+                  </div>
+                  <div className="p-3 text-xs" style={{ color: '#003756' }}>
+                    <p><strong>November TBD, NYC</strong> | Premium event</p>
+                    <p className="mt-1"><strong>Audience:</strong> Workplace Experience, Real Estate, HR leaders — intersection of space + people</p>
+                    <p className="mt-1"><strong>Booth:</strong> Yes — premium sponsorship (~$15K)</p>
+                    <p><strong>Travel:</strong> ~$3K (activations + setup)</p>
+                    <p className="mt-2 p-2 rounded" style={{ backgroundColor: '#F8F9FA' }}>
+                      <strong>Why #3:</strong> Future of work, hybrid workplace sweet spot. Higher cost but premium audience. Worth it if H1 results are strong.
+                    </p>
+                  </div>
+                </div>
+
+                {/* LinkedIn Talent Connect */}
+                <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <div className="p-3 flex items-center justify-between" style={{ backgroundColor: '#003756', opacity: 0.85 }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'white', color: '#003756' }}>#4</span>
+                      <h3 className="font-semibold text-white text-sm">LinkedIn Talent Connect</h3>
+                    </div>
+                    <span className="text-xs text-white">$5K</span>
+                  </div>
+                  <div className="p-3 text-xs" style={{ color: '#003756' }}>
+                    <p><strong>Fall TBD, TBD</strong> | Talent-focused</p>
+                    <p className="mt-1"><strong>Audience:</strong> Talent Acquisition, Employer Branding, HR leaders</p>
+                    <p className="mt-1"><strong>Booth:</strong> No — networking focus</p>
+                    <p><strong>Travel:</strong> ~$2K (if outside NYC)</p>
+                    <p className="mt-2 p-2 rounded" style={{ backgroundColor: '#F8F9FA' }}>
+                      <strong>Why #4:</strong> Different buyer persona — TA leaders who influence benefits. Lower cost, good for diversifying lead sources.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ==================== SLIDE 16: CONFERENCE EXECUTION PLAYBOOK ==================== */}
+        {currentSlide === 15 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
                 <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
                   Conference Strategy
                 </p>
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  NYC/Local Conferences
+                <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                  Conference Execution Playbook
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Lower cost, higher efficiency events on home turf
+                  Standardized process for every conference to maximize ROI
                 </p>
               </div>
 
-              <div className="rounded-3xl overflow-hidden mb-6" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
-                <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                  <h3 className="font-semibold text-white">NYC/Local Event Priority List</h3>
-                </div>
-                <div className="p-3 overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>#</th>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Event</th>
-                        <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Timing</th>
-                        <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Cost</th>
-                        <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Fit</th>
-                        <th className="text-center py-2 font-semibold" style={{ color: '#003756' }}>Priority</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+              <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                {/* Pre-Conference */}
+                <div className="rounded-3xl overflow-hidden" style={{ backgroundColor: '#003756' }}>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-white mb-1">Pre-Conference</h3>
+                    <p className="text-xs" style={{ color: '#9EFAFF' }}>4-6 weeks before</p>
+                  </div>
+                  <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                    <div className="space-y-2">
                       {[
-                        { rank: '1', name: 'Wellbeing at Work NYC', timing: 'March 3-5', cost: '$3-5K', fit: '⭐⭐⭐⭐⭐', priority: 'TOP PICK', highlight: true },
-                        { rank: '2', name: 'Conference Board Employee Health Care', timing: 'March 17-18', cost: '$3-5K', fit: '⭐⭐⭐⭐⭐', priority: 'TOP PICK', highlight: true },
-                        { rank: '3', name: 'From Day One NYC Benefits', timing: 'TBD 2026', cost: '$2-3K', fit: '⭐⭐⭐⭐⭐', priority: 'TOP PICK', highlight: true },
-                        { rank: '4', name: 'From Day One Manhattan Full-Day', timing: 'TBD 2026', cost: '$2-3K', fit: '⭐⭐⭐⭐', priority: 'Tier 2' },
-                        { rank: '5', name: 'NYC SHRM Global Wellbeing', timing: 'Jan 29', cost: '$500-1K', fit: '⭐⭐⭐⭐⭐', priority: 'Quick win' },
-                        { rank: '6', name: 'NYC SHRM Monthly', timing: 'Ongoing', cost: '$50-150/ea', fit: '⭐⭐⭐', priority: 'Relationship building' },
-                        { rank: '7', name: 'HR Vision New York', timing: 'Jan 14-15', cost: '$2-3K', fit: '⭐⭐⭐', priority: 'Broad HR' },
-                        { rank: '8', name: 'LinkedIn Talent Connect', timing: 'Sept 2026', cost: 'TBD', fit: '⭐⭐⭐', priority: 'Talent focus' },
-                        { rank: '9', name: 'CoreNet Global NYC', timing: 'Varies', cost: '$1-2K', fit: '⭐⭐⭐⭐', priority: 'Workplace Exp buyers' },
-                      ].map((event, idx) => (
-                        <tr key={idx} style={{
-                          borderBottom: '1px solid rgba(0,55,86,0.1)',
-                          backgroundColor: event.highlight ? '#E0F2F7' : 'transparent'
-                        }}>
-                          <td className="py-2 font-bold" style={{ color: event.highlight ? '#018EA2' : '#003756' }}>{event.rank}</td>
-                          <td className="py-2 font-medium" style={{ color: '#003756' }}>{event.name}</td>
-                          <td className="py-2 text-center" style={{ color: '#003756' }}>{event.timing}</td>
-                          <td className="py-2 text-center" style={{ color: '#018EA2' }}>{event.cost}</td>
-                          <td className="py-2 text-center">{event.fit}</td>
-                          <td className="py-2 text-center text-xs" style={{ color: event.highlight ? '#018EA2' : '#003756' }}>{event.priority}</td>
-                        </tr>
+                        'Register and book sponsorship/booth',
+                        'Identify target accounts attending',
+                        'Send pre-conference outreach to target list',
+                        'Prepare collateral (one-pagers, demo videos, swag)',
+                        'Schedule on-site meetings with key prospects'
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className="w-4 h-4 rounded border border-white/30 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-white">{item}</p>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* During Conference */}
+                <div className="rounded-3xl overflow-hidden" style={{ backgroundColor: '#018EA2' }}>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-white mb-1">During Conference</h3>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>On-site execution</p>
+                  </div>
+                  <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                    <div className="space-y-2">
+                      {[
+                        'Staff booth with 2+ people at all times',
+                        'Capture leads with consistent qualification criteria',
+                        'Host or attend networking events',
+                        'Post daily on LinkedIn with conference content',
+                        'Book follow-up demos on-site'
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className="w-4 h-4 rounded border border-white/30 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-white">{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Post-Conference */}
+                <div className="rounded-3xl overflow-hidden" style={{ backgroundColor: '#FF5050' }}>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-white mb-1">Post-Conference</h3>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>1-2 weeks after</p>
+                  </div>
+                  <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                    <div className="space-y-2">
+                      {[
+                        'Send personalized follow-up emails within 48 hours',
+                        'Add all leads to CRM with conference source',
+                        'Schedule demos for qualified leads',
+                        'Calculate cost per lead and ROI',
+                        'Document learnings for next event'
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className="w-4 h-4 rounded border border-white/30 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-white">{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="rounded-2xl p-4" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>#2: Conference Board NYC</h4>
-                  <p className="text-xs" style={{ color: '#003756', opacity: 0.7 }}>
-                    Enterprise HR & benefits leaders focused on workforce wellbeing. The Conference Board is blue-chip — attendees are senior. This is where you find your next BCG or DraftKings.
-                  </p>
-                </div>
-                <div className="rounded-2xl p-4" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>#3: From Day One Benefits</h4>
-                  <p className="text-xs" style={{ color: '#003756', opacity: 0.7 }}>
-                    Benefits & Total Rewards leaders — budget holders. Half-day format. Efficient. 5 min from Grand Central. High efficiency play. Get in, meet buyers, get out.
-                  </p>
-                </div>
-                <div className="rounded-2xl p-4" style={{ backgroundColor: '#003756' }}>
-                  <h4 className="font-semibold text-sm mb-2 text-white">Location Advantage</h4>
-                  <p className="text-xs text-white" style={{ opacity: 0.8 }}>
-                    NYC events = no travel cost, easy to activate your network, can meet everyone who matters. Home field advantage.
-                  </p>
+              {/* Booth Activation Strategy */}
+              <div className="max-w-5xl mx-auto mt-8">
+                <div className="rounded-2xl p-5" style={{ backgroundColor: '#E0F2F7', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <h4 className="font-semibold mb-3" style={{ color: '#003756' }}>Booth Activation Strategy</h4>
+                  <div className="grid md:grid-cols-4 gap-4">
+                    {[
+                      { icon: '💆', title: 'Live Chair Massage Demos', desc: 'Draw traffic and demonstrate service quality' },
+                      { icon: '📸', title: 'Express Headshot Station', desc: 'High-value giveaway that creates engagement' },
+                      { icon: '📱', title: 'QR Code Lead Capture', desc: 'Instant form fill, syncs to CRM' },
+                      { icon: '🎁', title: 'Branded Swag', desc: 'Stress balls, wellness items with logo' }
+                    ].map((item, idx) => (
+                      <div key={idx} className="text-center">
+                        <div className="text-2xl mb-2">{item.icon}</div>
+                        <p className="font-medium text-sm" style={{ color: '#003756' }}>{item.title}</p>
+                        <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </section>
         )}
 
-        {/* ==================== SLIDE 14: HEALTHCARE - CIGNA ==================== */}
-        {currentSlide === 13 && (
+        {/* ==================== SLIDE 17: CONFERENCE SUCCESS METRICS ==================== */}
+        {currentSlide === 16 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="text-center mb-10">
+                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#9EFAFF' }}>
+                  Conference Strategy
+                </p>
+                <h2 className="text-4xl md:text-5xl font-semibold mb-4 text-white" style={{ letterSpacing: '-0.02em' }}>
+                  Success Metrics & Scale Logic
+                </h2>
+                <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  How we measure success and decide when to scale up or down
+                </p>
+              </div>
+
+              {/* Success Metrics Table */}
+              <div className="rounded-3xl overflow-hidden mb-8 max-w-4xl mx-auto" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+                      <th className="text-left p-4 text-sm font-semibold text-white">Metric</th>
+                      <th className="text-center p-4 text-sm font-semibold text-white">H1 Target</th>
+                      <th className="text-center p-4 text-sm font-semibold text-white">H2 Target</th>
+                      <th className="text-center p-4 text-sm font-semibold text-white">Full Year</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { metric: 'Qualified Leads', h1: '50-80', h2: '55-90', year: '105-170' },
+                      { metric: 'Demos Booked', h1: '20-30', h2: '25-35', year: '45-65' },
+                      { metric: 'Pipeline Generated', h1: '$200K', h2: '$250K', year: '$450K' },
+                      { metric: 'Closed Revenue', h1: '—', h2: '$100K+', year: '$150K+' },
+                      { metric: 'Cost per Lead', h1: '<$600', h2: '<$600', year: '<$600' },
+                      { metric: 'Conference ROI', h1: '—', h2: '—', year: '3x+' },
+                    ].map((row, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <td className="p-4 text-sm text-white font-medium">{row.metric}</td>
+                        <td className="p-4 text-sm text-center" style={{ color: '#9EFAFF' }}>{row.h1}</td>
+                        <td className="p-4 text-sm text-center" style={{ color: '#9EFAFF' }}>{row.h2}</td>
+                        <td className="p-4 text-sm text-center font-bold text-white">{row.year}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Scale Logic */}
+              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                {/* Strong Results */}
+                <div className="rounded-2xl p-5" style={{ backgroundColor: 'rgba(158,250,255,0.2)' }}>
+                  <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <span style={{ color: '#9EFAFF' }}>📈</span> If H1 Results Are Strong
+                  </h4>
+                  <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>50+ qualified leads, 20+ demos</p>
+                  <div className="space-y-2">
+                    {[
+                      'Increase H2 budget by $5-10K',
+                      'Upgrade WORKTECH26 to premium sponsorship',
+                      'Add one additional H2 conference (e.g., HR Tech)'
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span style={{ color: '#9EFAFF' }}>+</span>
+                        <p className="text-sm text-white">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Weak Results */}
+                <div className="rounded-2xl p-5" style={{ backgroundColor: 'rgba(255,80,80,0.2)' }}>
+                  <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <span style={{ color: '#FF5050' }}>📉</span> If H1 Results Are Weak
+                  </h4>
+                  <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>&lt;30 leads, &lt;10 demos</p>
+                  <div className="space-y-2">
+                    {[
+                      'Reduce H2 conference spend by $10K',
+                      'Focus on smaller, higher-touch events',
+                      'Shift budget to content marketing or SDR outreach'
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span style={{ color: '#FF5050' }}>−</span>
+                        <p className="text-sm text-white">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Revenue Signals */}
+              <div className="max-w-4xl mx-auto mt-6">
+                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                  <h4 className="font-semibold text-white text-sm mb-3">Revenue Signals to Watch</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                    {[
+                      { signal: 'Conference demos', threshold: '20+ in H1', action: 'Increase H2 spend' },
+                      { signal: 'Pipeline', threshold: '$200K+ in H1', action: 'Upgrade sponsorships' },
+                      { signal: 'Close rate', threshold: '>20%', action: 'Double down same events' },
+                      { signal: 'Cost per lead', threshold: '<$500', action: 'Scale that conference' },
+                    ].map((item, idx) => (
+                      <div key={idx} className="text-center">
+                        <p className="text-white font-medium">{item.signal}</p>
+                        <p style={{ color: '#9EFAFF' }}>{item.threshold}</p>
+                        <p style={{ color: 'rgba(255,255,255,0.5)' }}>{item.action}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ==================== SLIDE 18: HEALTHCARE - CIGNA ==================== */}
+        {currentSlide === 17 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1300,8 +1967,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 15: HEALTHCARE - LSA TARGETS ==================== */}
-        {currentSlide === 14 && (
+        {/* ==================== SLIDE 19: HEALTHCARE - LSA TARGETS ==================== */}
+        {currentSlide === 18 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1386,8 +2053,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 16: HEALTHCARE BROKERS ==================== */}
-        {currentSlide === 15 && (
+        {/* ==================== SLIDE 20: HEALTHCARE BROKERS ==================== */}
+        {currentSlide === 19 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1476,8 +2143,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 17: HEALTHCARE ACTION PLAN ==================== */}
-        {currentSlide === 16 && (
+        {/* ==================== SLIDE 21: HEALTHCARE ACTION PLAN ==================== */}
+        {currentSlide === 20 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1590,8 +2257,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 18: CLE FOR LAWYERS ==================== */}
-        {currentSlide === 17 && (
+        {/* ==================== SLIDE 22: CLE FOR LAWYERS ==================== */}
+        {currentSlide === 21 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1712,8 +2379,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 19: CLE REVENUE POTENTIAL ==================== */}
-        {currentSlide === 18 && (
+        {/* ==================== SLIDE 23: CLE REVENUE POTENTIAL ==================== */}
+        {currentSlide === 22 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1816,8 +2483,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 20: SHORTCUT SESSIONS ==================== */}
-        {currentSlide === 19 && (
+        {/* ==================== SLIDE 24: SHORTCUT SESSIONS ==================== */}
+        {currentSlide === 23 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1930,8 +2597,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 21: SAMPLE INVITATION ==================== */}
-        {currentSlide === 20 && (
+        {/* ==================== SLIDE 25: SAMPLE INVITATION ==================== */}
+        {currentSlide === 24 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-4xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2004,53 +2671,71 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 22: INVESTMENT SUMMARY ==================== */}
-        {currentSlide === 21 && (
+        {/* ==================== SLIDE 26: INVESTMENT SUMMARY ==================== */}
+        {currentSlide === 25 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
                 <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#9EFAFF' }}>
-                  H1 2026
+                  2026 Capitalization Plan
                 </p>
                 <h2 className="text-4xl md:text-6xl font-semibold mb-4 text-white" style={{ letterSpacing: '-0.02em' }}>
                   Investment Summary
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  $40K budget to execute all four levers
+                  $200K minimum capital required to achieve growth targets
                 </p>
               </div>
 
               {/* Budget Breakdown */}
-              <div className="rounded-3xl overflow-hidden mb-8 max-w-3xl mx-auto" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+              <div className="rounded-3xl overflow-hidden mb-8 max-w-4xl mx-auto" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                 <table className="w-full">
                   <thead>
                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
                       <th className="text-left p-4 text-sm font-semibold text-white">Category</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">Budget</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">Expected Return</th>
+                      <th className="text-right p-4 text-sm font-semibold text-white">H1</th>
+                      <th className="text-right p-4 text-sm font-semibold text-white">H2</th>
+                      <th className="text-right p-4 text-sm font-semibold text-white">Year Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[
-                      { cat: 'Conferences (3)', budget: '$22K', notes: '45-75 leads' },
-                      { cat: 'Content production', budget: '$5K', notes: 'Evergreen asset library' },
-                      { cat: 'Hosted events (2)', budget: '$10K', notes: '30-40 leads, 6-8 clients' },
-                      { cat: 'CLE development', budget: '$3K', notes: 'New revenue channel' },
-                      { cat: 'LSA integration', budget: '$0 (time only)', notes: 'New distribution channel' },
+                      { cat: 'New Hire Salaries (Sales, Accounts)', h1: '$35K', h2: '$55K', total: '$90K', note: 'Cash after equity offset' },
+                      { cat: 'Conferences (7 total)', h1: '$33K', h2: '$36K', total: '~$60K', note: '3 in H1, 4 in H2' },
+                      { cat: 'Content & Ad Spend', h1: '$32K', h2: '$18K', total: '$50K', note: 'Marketing investment' },
                     ].map((item, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                        <td className="p-4 text-sm text-white">{item.cat}</td>
-                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.budget}</td>
-                        <td className="p-4 text-sm text-right text-white" style={{ opacity: 0.6 }}>{item.notes}</td>
+                        <td className="p-4 text-sm text-white">
+                          {item.cat}
+                          <span className="block text-xs" style={{ opacity: 0.5 }}>{item.note}</span>
+                        </td>
+                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.h1}</td>
+                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.h2}</td>
+                        <td className="p-4 text-sm text-right font-bold text-white">{item.total}</td>
                       </tr>
                     ))}
                     <tr style={{ backgroundColor: 'rgba(158,250,255,0.2)' }}>
-                      <td className="p-4 text-sm font-bold text-white">Total H1 Investment</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$40K</td>
-                      <td className="p-4 text-sm text-right text-white" style={{ opacity: 0.6 }}>Foundation for +$330K growth</td>
+                      <td className="p-4 text-sm font-bold text-white">Total Required Capital</td>
+                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$100K</td>
+                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$100K</td>
+                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$200K</td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* New Hires Detail */}
+              <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-8">
+                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                  <h4 className="font-semibold text-white mb-2">Head of Sales</h4>
+                  <p className="text-sm" style={{ color: '#9EFAFF' }}>$135K total comp</p>
+                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Includes $50K expected commission + 1.25% equity</p>
+                </div>
+                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                  <h4 className="font-semibold text-white mb-2">Head of Accounts</h4>
+                  <p className="text-sm" style={{ color: '#9EFAFF' }}>$80K total comp</p>
+                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Focus on existing client expansion + 1.0% equity</p>
+                </div>
               </div>
 
               {/* H1 Success Metrics */}
@@ -2072,8 +2757,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 23: Q1 ACTION ITEMS ==================== */}
-        {currentSlide === 22 && (
+        {/* ==================== SLIDE 27: Q1 ACTION ITEMS ==================== */}
+        {currentSlide === 26 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2212,8 +2897,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 24: NEXT STEPS ==================== */}
-        {currentSlide === 23 && (
+        {/* ==================== SLIDE 28: NEXT STEPS ==================== */}
+        {currentSlide === 27 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2312,8 +2997,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 25: APPENDIX - CONFERENCES ==================== */}
-        {currentSlide === 24 && (
+        {/* ==================== SLIDE 29: APPENDIX - CONFERENCES ==================== */}
+        {currentSlide === 28 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2409,8 +3094,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 26: APPENDIX - INSURERS ==================== */}
-        {currentSlide === 25 && (
+        {/* ==================== SLIDE 30: APPENDIX - INSURERS ==================== */}
+        {currentSlide === 29 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2477,8 +3162,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 27: APPENDIX - BROKERS ==================== */}
-        {currentSlide === 26 && (
+        {/* ==================== SLIDE 31: APPENDIX - BROKERS ==================== */}
+        {currentSlide === 30 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
