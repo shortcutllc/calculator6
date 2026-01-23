@@ -1,12 +1,96 @@
 import React, { useState, useEffect } from 'react';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
 import { format, parseISO } from 'date-fns';
-import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight, AlertCircle, Layers, FlaskConical } from 'lucide-react';
+import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight, AlertCircle, Layers, FlaskConical, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProposal } from '../contexts/ProposalContext';
 import { Button } from './Button';
 import { getProposalUrl } from '../utils/url';
 import { supabase } from '../lib/supabaseClient';
+
+// Duplicate Proposal Modal Component
+interface DuplicateModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (newTitle: string) => void;
+  originalTitle: string;
+  isLoading: boolean;
+}
+
+const DuplicateProposalModal: React.FC<DuplicateModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  originalTitle,
+  isLoading
+}) => {
+  const [newTitle, setNewTitle] = useState(`${originalTitle} (Copy)`);
+
+  useEffect(() => {
+    if (isOpen) {
+      setNewTitle(`${originalTitle} (Copy)`);
+    }
+  }, [isOpen, originalTitle]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-extrabold text-shortcut-blue">Duplicate Proposal</h3>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              <X size={20} className="text-gray-500" />
+            </button>
+          </div>
+
+          <p className="text-sm text-text-dark-60 mb-4">
+            Create a copy of this proposal with a new name.
+          </p>
+
+          <div className="mb-6">
+            <label className="block text-sm font-bold text-shortcut-blue mb-2">
+              Proposal Title
+            </label>
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+              placeholder="Enter proposal title"
+              autoFocus
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              onClick={onClose}
+              variant="secondary"
+              className="flex-1"
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => onConfirm(newTitle)}
+              variant="primary"
+              className="flex-1"
+              disabled={!newTitle.trim() || isLoading}
+            >
+              {isLoading ? 'Creating...' : 'Create Duplicate'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface FilterOptions {
   startDate: string;
@@ -19,7 +103,7 @@ interface FilterOptions {
 
 const History: React.FC = () => {
   const navigate = useNavigate();
-  const { proposals, deleteProposal } = useProposal();
+  const { proposals, deleteProposal, duplicateProposal } = useProposal();
   const [sortBy, setSortBy] = useState('date-desc');
   const [filters, setFilters] = useState<FilterOptions>({
     startDate: '',
@@ -35,6 +119,12 @@ const History: React.FC = () => {
   const [surveyResponses, setSurveyResponses] = useState<Record<string, any>>({});
   const [proposalGroupCounts, setProposalGroupCounts] = useState<Record<string, number>>({});
   const [showTestProposals, setShowTestProposals] = useState(false);
+
+  // Duplicate modal state
+  const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+  const [duplicateProposalId, setDuplicateProposalId] = useState<string | null>(null);
+  const [duplicateOriginalTitle, setDuplicateOriginalTitle] = useState('');
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   useEffect(() => {
     const uniqueLocations = new Set<string>();
@@ -347,6 +437,37 @@ const History: React.FC = () => {
     });
   };
 
+  const handleDuplicateClick = (proposalId: string, title: string) => {
+    setDuplicateProposalId(proposalId);
+    setDuplicateOriginalTitle(title);
+    setDuplicateModalOpen(true);
+  };
+
+  const handleDuplicateConfirm = async (newTitle: string) => {
+    if (!duplicateProposalId) return;
+
+    setIsDuplicating(true);
+    try {
+      const newProposalId = await duplicateProposal(duplicateProposalId, newTitle);
+      setDuplicateModalOpen(false);
+      setDuplicateProposalId(null);
+      setDuplicateOriginalTitle('');
+      // Navigate to the new proposal
+      navigate(`/proposal/${newProposalId}`);
+    } catch (error) {
+      console.error('Failed to duplicate proposal:', error);
+      alert('Failed to duplicate proposal. Please try again.');
+    } finally {
+      setIsDuplicating(false);
+    }
+  };
+
+  const handleDuplicateCancel = () => {
+    setDuplicateModalOpen(false);
+    setDuplicateProposalId(null);
+    setDuplicateOriginalTitle('');
+  };
+
   const filteredProposals = filterProposals();
 
   return (
@@ -570,6 +691,13 @@ const History: React.FC = () => {
                         View
                       </Button>
                       <Button
+                        onClick={() => handleDuplicateClick(proposal.id, proposal.data.clientName)}
+                        variant="secondary"
+                        icon={<Copy size={20} />}
+                      >
+                        Duplicate
+                      </Button>
+                      <Button
                         onClick={() => copyToClipboard(shareableLink, proposal.id)}
                         variant="secondary"
                         icon={copiedId === proposal.id ? <CheckCircle2 size={20} /> : <Share2 size={20} />}
@@ -675,6 +803,15 @@ const History: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Duplicate Proposal Modal */}
+      <DuplicateProposalModal
+        isOpen={duplicateModalOpen}
+        onClose={handleDuplicateCancel}
+        onConfirm={handleDuplicateConfirm}
+        originalTitle={duplicateOriginalTitle}
+        isLoading={isDuplicating}
+      />
     </div>
   );
 };

@@ -206,7 +206,7 @@ export const AdditionalResourcesSection: React.FC = () => (
           <h3 className="text-xl font-extrabold text-shortcut-navy-blue">Customized Audio Recordings</h3>
         </div>
         <p className="text-lg text-text-dark leading-relaxed font-medium">
-          Guided meditations designed to reinforce weekly teachings and strengthen present moment awareness.
+          A recording of a guided meditation designed to calm the nervous system and strengthen present moment awareness.
         </p>
       </div>
       <div className="p-8 bg-white border-2 border-shortcut-teal border-opacity-30 rounded-xl shadow-sm hover:shadow-md transition-shadow">
@@ -217,7 +217,7 @@ export const AdditionalResourcesSection: React.FC = () => (
           <h3 className="text-xl font-extrabold text-shortcut-navy-blue">Personalized Handouts & Exercises</h3>
         </div>
         <p className="text-lg text-text-dark leading-relaxed font-medium">
-          Practical tools and activities aligned with weekly session themes that encourage daily mindfulness integration, build sustainable habits and enhance team cohesion and positive workplace culture.
+          Handouts that compliment the session and offer ways to increasingly weave mindfulness into your daily life.
         </p>
       </div>
     </div>

@@ -26,6 +26,31 @@ import {
   ParticipantBenefitsSection,
   AdditionalResourcesSection
 } from './MindfulnessProposalContent';
+import {
+  MassageWhyShortcutSection,
+  MassageBenefitsSection,
+  MassageWhatsIncludedSection
+} from './MassageProposalContent';
+import {
+  HeadshotWhyShortcutSection,
+  HeadshotBenefitsSection,
+  HeadshotWhatsIncludedSection
+} from './HeadshotProposalContent';
+import {
+  NailsWhyShortcutSection,
+  NailsBenefitsSection,
+  NailsWhatsIncludedSection
+} from './NailsProposalContent';
+import {
+  HairMakeupWhyShortcutSection,
+  HairMakeupBenefitsSection,
+  HairMakeupWhatsIncludedSection
+} from './HairMakeupProposalContent';
+import {
+  FacialWhyShortcutSection,
+  FacialBenefitsSection,
+  FacialWhatsIncludedSection
+} from './FacialProposalContent';
 
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -54,6 +79,8 @@ const getServiceDisplayName = (serviceType: string): string => {
       return 'Mindfulness: PRO Practice';
     case 'mindfulness-cle':
       return 'Mindfulness: CLE Ethics Program';
+    case 'mindfulness-pro-reactivity':
+      return 'Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely';
     case 'makeup':
       return 'Makeup';
     default:
@@ -111,7 +138,8 @@ const isMindfulnessOnlyProposal = (displayData: any): boolean => {
     'mindfulness-soles',
     'mindfulness-movement',
     'mindfulness-pro',
-    'mindfulness-cle'
+    'mindfulness-cle',
+    'mindfulness-pro-reactivity'
   ];
 
   return uniqueServiceTypes.every(type =>
@@ -124,6 +152,40 @@ const hasCLEService = (displayData: any): boolean => {
   const uniqueServiceTypes = getUniqueServiceTypes(displayData);
   return uniqueServiceTypes.some(type =>
     type.toLowerCase() === 'mindfulness-cle'
+  );
+};
+
+// Helper function to check if proposal contains massage services
+const hasMassageService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  return uniqueServiceTypes.some(type => type.toLowerCase() === 'massage');
+};
+
+// Helper function to check if proposal contains headshot services
+const hasHeadshotService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  const headshotTypes = ['headshot', 'headshots', 'headshot-hair-makeup'];
+  return uniqueServiceTypes.some(type => headshotTypes.includes(type.toLowerCase()));
+};
+
+// Helper function to check if proposal contains nail services
+const hasNailsService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  return uniqueServiceTypes.some(type => type.toLowerCase() === 'nails');
+};
+
+// Helper function to check if proposal contains hair/makeup services (excluding headshot-hair-makeup which is covered by headshots)
+const hasHairMakeupService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  const hairMakeupTypes = ['hair-makeup', 'hair', 'makeup'];
+  return uniqueServiceTypes.some(type => hairMakeupTypes.includes(type.toLowerCase()));
+};
+
+// Helper function to check if proposal contains facial services
+const hasFacialService = (displayData: any): boolean => {
+  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
+  return uniqueServiceTypes.some(type =>
+    type.toLowerCase() === 'facial' || type.toLowerCase() === 'facials'
   );
 };
 
@@ -150,6 +212,7 @@ const getServiceImagePath = (serviceType: string): string => {
     case 'mindfulness-movement':
     case 'mindfulness-pro':
     case 'mindfulness-cle':
+    case 'mindfulness-pro-reactivity':
       return '/Mindfulness Slider.png';
     case 'hair-makeup':
       return '/Hair Slider.png';
@@ -216,6 +279,8 @@ const getServiceDescription = (service: any): string => {
       return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants learn the PRO (Pause-Relax-Open) practice and an informal \"On-the-Spot\" practice that can be used in the moment - before difficult conversations, emails, or decisions. Includes exploration of the neuroscience of stress, reactivity, and emotional regulation.";
     case 'mindfulness-cle':
       return "This one-hour CLE introduces mindfulness as an evidence-based skill set that supports ethical decision-making, professional responsibility, and sound judgment in legal practice. Participants will understand how stress impacts attention and ethical awareness, learn how mindfulness supports competence and clarity, and practice tools to pause, regulate stress, and respond intentionally. Shortcut manages the full CLE process including accreditation, attendance tracking, and credit reporting.";
+    case 'mindfulness-pro-reactivity':
+      return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants will learn what mindfulness is, explore the neuroscience of stress and emotional regulation, and practice formal PRO (Pause-Relax-Open) techniques alongside informal 'On-the-Spot' practices for everyday legal work.";
     case 'hair-makeup':
       return "Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.";
     case 'headshot-hair-makeup':
@@ -425,10 +490,22 @@ export const StandaloneProposalViewer: React.FC = () => {
         const optionsWithMetrics = data.map((option: any) => {
           const summary = option.data?.summary || {};
           const mindfulnessProgram = option.data?.mindfulnessProgram;
+
+          // Check if this is a mindfulness-only proposal
+          const isMindfulness = isMindfulnessOnlyProposal(option.data);
+
+          // For mindfulness proposals, use 'unlimited' for totalAppointments
+          let totalAppointments = summary.totalAppointments;
+          if (isMindfulness) {
+            totalAppointments = 'unlimited';
+          } else if (totalAppointments === undefined || totalAppointments === null) {
+            totalAppointments = 0;
+          }
+
           return {
             ...option,
             totalCost: summary.totalEventCost || mindfulnessProgram?.pricing?.totalCost || 0,
-            totalAppointments: summary.totalAppointments || 0,
+            totalAppointments: totalAppointments,
             eventDates: option.data?.eventDates || [],
             proposal_type: option.proposal_type || null,
             totalSessions: mindfulnessProgram?.totalSessions || 0
@@ -553,46 +630,46 @@ export const StandaloneProposalViewer: React.FC = () => {
               dateData.services?.forEach((service: any) => {
                 if (service.serviceType === 'mindfulness') {
                   // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
-                  let targetClassLength = 40;
-                  let targetFixedPrice = 1350;
+                  let targetClassLength = 45;
+                  let targetFixedPrice = 1375;
                   let targetMindfulnessType = 'intro';
-                  
+
                   // If mindfulnessType exists, use it to determine classLength
                   if (service.mindfulnessType === 'drop-in') {
                     targetClassLength = 30;
-                    targetFixedPrice = 1125;
+                    targetFixedPrice = 1250;
                     targetMindfulnessType = 'drop-in';
                   } else if (service.mindfulnessType === 'mindful-movement') {
                     targetClassLength = 60;
-                    targetFixedPrice = 1350;
+                    targetFixedPrice = 1500;
                     targetMindfulnessType = 'mindful-movement';
                   } else if (service.mindfulnessType === 'intro') {
-                    targetClassLength = 40;
-                    targetFixedPrice = 1350;
+                    targetClassLength = 45;
+                    targetFixedPrice = 1375;
                     targetMindfulnessType = 'intro';
                   } else if (service.classLength) {
                     // No mindfulnessType, infer from classLength
                     if (service.classLength === 30) {
                       targetClassLength = 30;
-                      targetFixedPrice = 1125;
+                      targetFixedPrice = 1250;
                       targetMindfulnessType = 'drop-in';
                     } else if (service.classLength === 60) {
                       targetClassLength = 60;
-                      targetFixedPrice = 1350;
+                      targetFixedPrice = 1500;
                       targetMindfulnessType = 'mindful-movement';
                     } else {
-                      // Default to intro (40 minutes)
-                      targetClassLength = 40;
-                      targetFixedPrice = 1350;
+                      // Default to intro (45 minutes)
+                      targetClassLength = 45;
+                      targetFixedPrice = 1375;
                       targetMindfulnessType = 'intro';
                     }
                   } else {
                     // No mindfulnessType and no classLength, default to intro
-                    targetClassLength = 40;
-                    targetFixedPrice = 1350;
+                    targetClassLength = 45;
+                    targetFixedPrice = 1375;
                     targetMindfulnessType = 'intro';
                   }
-                  
+
                   // Apply the determined values
                   service.classLength = targetClassLength;
                   service.mindfulnessType = targetMindfulnessType;
@@ -691,20 +768,20 @@ export const StandaloneProposalViewer: React.FC = () => {
       
       // If we're changing classLength for a mindfulness service, update mindfulnessType to match
       if (path[path.length - 1] === 'classLength' && service.serviceType === 'mindfulness') {
-        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 40 : (value || 40);
+        const classLengthValue = typeof value === 'string' ? parseFloat(value) || 45 : (value || 45);
         let mindfulnessType = 'intro';
-        let fixedPrice = 1350;
-        
+        let fixedPrice = 1375;
+
         if (classLengthValue === 30) {
           mindfulnessType = 'drop-in';
-          fixedPrice = 1125;
+          fixedPrice = 1250;
         } else if (classLengthValue === 60) {
           mindfulnessType = 'mindful-movement';
-          fixedPrice = 1350;
+          fixedPrice = 1500;
         } else {
-          // Default to intro for 40 or any other value
+          // Default to intro for 45 or any other value
           mindfulnessType = 'intro';
-          fixedPrice = 1350;
+          fixedPrice = 1375;
         }
         
         service.mindfulnessType = mindfulnessType;
@@ -1588,16 +1665,14 @@ export const StandaloneProposalViewer: React.FC = () => {
                           ${formatCurrency(option.totalCost || 0)}
                         </span>
                       </div>
-                      {option.totalAppointments > 0 && (
-                        <div className="flex justify-between items-center">
-                          <span className={`text-sm font-semibold ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
-                            Total Appointments
-                          </span>
-                          <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-shortcut-blue'}`}>
-                            {option.totalAppointments}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-semibold ${isActive ? 'text-blue-100' : 'text-text-dark-60'}`}>
+                          Total Appointments
+                        </span>
+                        <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-shortcut-blue'}`}>
+                          {option.totalAppointments === 0 || option.totalAppointments === 'unlimited' ? '∞' : option.totalAppointments}
+                        </span>
+                      </div>
                     </div>
                     
                     {/* Active Indicator Bar */}
@@ -1624,94 +1699,97 @@ export const StandaloneProposalViewer: React.FC = () => {
           </div>
         ) : (
           <>
-        {/* Summary-First Layout - Key Metrics at Top */}
-        <div className="card-large mb-8 scroll-mt-24">
-          <div className="mb-8">
-              {displayData.clientLogoUrl ? (
-                <div className="flex justify-start mb-6">
+        {/* Compact Hero Header - Inspired by GenericLandingPage */}
+        <div className="relative overflow-hidden rounded-3xl mb-8 scroll-mt-24" style={{ backgroundColor: '#F0F0FF' }}>
+          <div className="relative z-10 px-6 py-8 md:px-10 md:py-12">
+            {/* Top Row: Logo/Name + Total Cost */}
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-6">
+              {/* Client Identity */}
+              <div className="flex items-center gap-4">
+                {displayData.clientLogoUrl ? (
                   <img
                     src={displayData.clientLogoUrl}
                     alt={`${displayData.clientName} Logo`}
-                  className="max-h-20 max-w-full object-contain rounded shadow-sm"
-                    style={{ maxWidth: '300px' }}
+                    className="h-12 md:h-16 max-w-[200px] object-contain"
                     onError={(e) => {
-                      console.error('Logo failed to load:', displayData.clientLogoUrl);
                       e.currentTarget.style.display = 'none';
-                      const fallbackElement = e.currentTarget.nextElementSibling;
-                      if (fallbackElement) {
-                        (fallbackElement as HTMLElement).style.display = 'block';
-                      }
                     }}
                   />
-                <h1 className="h1 mb-4 hidden">
+                ) : (
+                  <h1 className="text-2xl md:text-3xl font-extrabold text-shortcut-navy-blue">
                     {displayData.clientName}
-                </h1>
+                  </h1>
+                )}
+              </div>
+
+              {/* Total Cost - Prominent Display */}
+              <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-5 py-3 shadow-sm border border-white/50">
+                <div className="text-right">
+                  <p className="text-xs font-bold text-shortcut-blue uppercase tracking-wider mb-1">Total Investment</p>
+                  <p className="text-2xl md:text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(displayData.summary?.totalEventCost || 0)}</p>
                 </div>
-              ) : (
-              <h1 className="h1 mb-6">
-                  {displayData.clientName}
-              </h1>
-            )}
-            
-            {/* Note from Shortcut - Clean, readable design */}
+              </div>
+            </div>
+
+            {/* Inline Metrics Row */}
+            <div className="flex flex-wrap gap-3 md:gap-4 mb-6">
+              {/* Event Dates */}
+              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                <Calendar size={16} className="text-shortcut-blue" />
+                <span className="font-semibold text-shortcut-navy-blue">
+                  {Array.isArray(displayData.eventDates)
+                    ? displayData.eventDates.map((date: string) => formatDate(date)).join(', ')
+                    : 'TBD'}
+                </span>
+              </div>
+
+              {/* Locations */}
+              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                <Globe size={16} className="text-shortcut-blue" />
+                <span className="font-semibold text-shortcut-navy-blue">
+                  {Array.isArray(displayData.locations)
+                    ? displayData.locations.join(', ')
+                    : displayData.locations || 'TBD'}
+                </span>
+              </div>
+
+              {/* Total Appointments */}
+              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                <User size={16} className="text-shortcut-blue" />
+                <span className="font-semibold text-shortcut-navy-blue">
+                  {displayData.summary?.totalAppointments || 0} appointments
+                </span>
+              </div>
+
+              {/* Office Location - Compact */}
+              {((displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation) && (
+                <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                  <FileText size={16} className="text-shortcut-blue" />
+                  <span className="font-semibold text-shortcut-navy-blue">
+                    {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0
+                      ? `${Object.keys(displayData.officeLocations).length} office${Object.keys(displayData.officeLocations).length > 1 ? 's' : ''}`
+                      : displayData.officeLocation}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Custom Note - Compact */}
             {displayData.customization?.customNote && (
-              <div className="mt-8 pt-8 border-t-2 border-shortcut-teal border-opacity-20 bg-shortcut-teal bg-opacity-5 rounded-xl p-8">
-                <div className="flex items-center space-x-3 mb-5">
-                  <div className="w-3 h-3 rounded-full bg-shortcut-teal"></div>
-                  <h3 className="text-xl font-extrabold text-shortcut-navy-blue">Note from Shortcut</h3>
+              <div className="bg-white/70 backdrop-blur-sm rounded-xl px-5 py-4 border border-white/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 rounded-full bg-shortcut-teal mt-2 flex-shrink-0"></div>
+                  <p className="text-sm md:text-base text-shortcut-navy-blue leading-relaxed font-medium">
+                    {displayData.customization.customNote.replace('above', 'below')}
+                  </p>
                 </div>
-                <p className="text-lg text-text-dark leading-relaxed font-medium pl-6">
-                  {displayData.customization.customNote.replace('above', 'below')}
-                </p>
               </div>
             )}
           </div>
 
-          {/* Key Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 border-t-2 border-shortcut-teal border-opacity-20">
-            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
-              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Event Dates</p>
-              <p className="text-xl font-extrabold text-shortcut-navy-blue leading-tight">
-                    {Array.isArray(displayData.eventDates) ? 
-                      displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
-                      'No dates available'
-                    }
-                  </p>
-                </div>
-            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
-              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Locations</p>
-              <p className="text-xl font-extrabold text-shortcut-navy-blue leading-tight">
-                {Array.isArray(displayData.locations) 
-                  ? displayData.locations.join(', ') 
-                  : displayData.locations || 'No locations available'}
-              </p>
-                </div>
-            <div className="p-8 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30 hover:border-opacity-50 transition-all hover:shadow-md">
-              <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Total Appointments</p>
-              <p className="text-4xl font-extrabold text-shortcut-navy-blue">{displayData.summary?.totalAppointments || 0}</p>
-                  </div>
-                {/* Display multiple office locations if available, otherwise show single office location */}
-                {(displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation ? (
-              <div className="md:col-span-3 mt-4 pt-8 border-t-2 border-shortcut-teal border-opacity-20">
-                <div className="p-6 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-30">
-                  <p className="text-xs font-bold text-shortcut-blue mb-4 uppercase tracking-wider">Office Location(s)</p>
-                  {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0 ? (
-                    <div className="space-y-3">
-                      {Object.entries(displayData.officeLocations).map(([location, address]) => (
-                        <div key={location} className="pb-3 border-b border-shortcut-navy-blue border-opacity-10 last:border-0 last:pb-0">
-                          <p className="text-sm font-bold text-shortcut-navy-blue mb-2">{location}:</p>
-                          <p className="text-lg font-semibold text-text-dark">{String(address)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : displayData.officeLocation ? (
-                    <p className="text-lg font-semibold text-text-dark">{displayData.officeLocation}</p>
-                  ) : null}
-                </div>
-                    </div>
-                ) : null}
-                </div>
-            </div>
+          {/* Subtle decorative element */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-shortcut-teal/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2"></div>
+        </div>
 
         {/* Mobile Layout: Single column with specific order */}
         <div className="lg:grid lg:grid-cols-12 gap-12">
@@ -1758,15 +1836,63 @@ export const StandaloneProposalViewer: React.FC = () => {
                             {expandedDates[date] && (
                               <div className="p-8 bg-white">
                                 {dateData.services.map((service: any, serviceIndex: number) => (
-                                  <div 
-                                    key={serviceIndex} 
+                                  <div
+                                    key={serviceIndex}
                                     className={`card-small mb-8 border-2 ${getServiceBorderClass(service.serviceType)}`}
                                   >
-                                    <h4 className="text-xl font-extrabold text-shortcut-blue mb-5 flex items-center">
-                                      <span className="w-3.5 h-3.5 rounded-full bg-shortcut-teal mr-3"></span>
-                                      Service Type: {getServiceDisplayName(service.serviceType)}
-                                    </h4>
-                                    
+                                    <div className="flex items-center justify-between mb-5">
+                                      <h4 className="text-xl font-extrabold text-shortcut-blue flex items-center">
+                                        <span className="w-3.5 h-3.5 rounded-full bg-shortcut-teal mr-3"></span>
+                                        Service Type: {getServiceDisplayName(service.serviceType)}
+                                      </h4>
+                                      {service.isRecurring && service.recurringFrequency && (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                                          Recurring
+                                          <span className="opacity-80">
+                                            ({service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                              service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                              `${service.recurringFrequency.occurrences}x`})
+                                          </span>
+                                          {service.recurringFrequency.occurrences >= 4 && (
+                                            <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">
+                                              {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} off
+                                            </span>
+                                          )}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Recurring Event Details */}
+                                    {service.isRecurring && service.recurringFrequency && (
+                                      <div className="mb-5 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-lg">🔄</span>
+                                          <h5 className="font-bold text-purple-800">Recurring Event</h5>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                          <div>
+                                            <span className="font-bold text-purple-700">Frequency:</span>
+                                            <span className="ml-2 text-purple-900">
+                                              {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
+                                               service.recurringFrequency.type === 'monthly' ? 'Monthly' :
+                                               'Custom'}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="font-bold text-purple-700">Total Events:</span>
+                                            <span className="ml-2 text-purple-900">{service.recurringFrequency.occurrences}</span>
+                                          </div>
+                                        </div>
+                                        {service.recurringFrequency.occurrences >= 4 && (
+                                          <div className="mt-3 p-2 bg-white/50 rounded-lg">
+                                            <span className="text-sm font-bold text-green-700">
+                                              ✨ {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} Volume Discount Applied
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (
                                       <div className="mb-5 p-6 bg-white rounded-xl border-2 border-shortcut-teal shadow-sm">
@@ -1782,7 +1908,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                             <div>
                                               <span className="font-bold text-shortcut-navy-blue">Participants:</span>
                                               <span className="ml-2 text-text-dark">
-                                                {service.participants === 'unlimited' ? 'Unlimited' : service.participants}
+                                                {service.participants === 'unlimited' ? '∞' : service.participants}
                                               </span>
                                             </div>
                                           </div>
@@ -1841,7 +1967,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                       </div>
                                       <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
                                         <span className="text-lg font-bold text-shortcut-blue">Total Appointments:</span>
-                                        <span className="font-bold text-text-dark text-lg">{service.totalAppointments}</span>
+                                        <span className="font-bold text-text-dark text-lg">{service.totalAppointments === 'unlimited' ? '∞' : service.totalAppointments}</span>
                                       </div>
                                       <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
                                         <span className="text-lg font-bold text-shortcut-blue">Service Cost:</span>
@@ -1892,7 +2018,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                                       Option {optionIndex + 1}
                                                     </h6>
                                                     <p className="text-sm text-text-dark-60">
-                                                      {option.totalAppointments} appointments
+                                                      {option.totalAppointments === 'unlimited' ? '∞' : option.totalAppointments} appointments
                                                     </p>
                                                   </div>
                                                   <div className="text-right">
@@ -2054,7 +2180,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                                   <div className="grid grid-cols-2 gap-6">
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Appointments</div>
-                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">{dateData.totalAppointments || 0}</div>
+                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">
+                                        {dateData.totalAppointments === 0 || dateData.totalAppointments === 'unlimited' ? '∞' : (dateData.totalAppointments || 0)}
+                                      </div>
                                     </div>
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Cost</div>
@@ -2085,6 +2213,51 @@ export const StandaloneProposalViewer: React.FC = () => {
             {/* Additional Resources - Show for mindfulness-only proposals in left column */}
             {isMindfulnessOnlyProposal(displayData) && (
               <AdditionalResourcesSection />
+            )}
+
+            {/* Massage-specific sections */}
+            {hasMassageService(displayData) && (
+              <>
+                <MassageWhyShortcutSection />
+                <MassageBenefitsSection />
+                <MassageWhatsIncludedSection />
+              </>
+            )}
+
+            {/* Headshot-specific sections */}
+            {hasHeadshotService(displayData) && (
+              <>
+                <HeadshotWhyShortcutSection />
+                <HeadshotBenefitsSection />
+                <HeadshotWhatsIncludedSection />
+              </>
+            )}
+
+            {/* Nails-specific sections */}
+            {hasNailsService(displayData) && (
+              <>
+                <NailsWhyShortcutSection />
+                <NailsBenefitsSection />
+                <NailsWhatsIncludedSection />
+              </>
+            )}
+
+            {/* Hair & Makeup-specific sections */}
+            {hasHairMakeupService(displayData) && (
+              <>
+                <HairMakeupWhyShortcutSection />
+                <HairMakeupBenefitsSection />
+                <HairMakeupWhatsIncludedSection />
+              </>
+            )}
+
+            {/* Facial-specific sections */}
+            {hasFacialService(displayData) && (
+              <>
+                <FacialWhyShortcutSection />
+                <FacialBenefitsSection />
+                <FacialWhatsIncludedSection />
+              </>
             )}
               </div>
 
@@ -2190,16 +2363,38 @@ export const StandaloneProposalViewer: React.FC = () => {
 
             {/* Event Summary - Dark Blue */}
             <div className="bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue text-white rounded-2xl shadow-xl border-2 border-shortcut-teal border-opacity-30 p-8">
-              <div className="flex items-center space-x-3 mb-8">
-                <div className="w-10 h-10 rounded-full bg-shortcut-teal bg-opacity-20 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-shortcut-teal bg-opacity-20 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
                 </div>
-                <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
+                {/* Check for recurring services */}
+                {(() => {
+                  let recurringCount = 0;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.isRecurring && service.recurringFrequency) {
+                          recurringCount++;
+                        }
+                      });
+                    });
+                  });
+                  return recurringCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                      🔄 {recurringCount} Recurring
+                    </span>
+                  ) : null;
+                })()}
               </div>
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-white/90 text-lg">Total Appointments:</span>
-                  <span className="font-extrabold text-2xl text-white">{displayData.summary?.totalAppointments || 0}</span>
+                  <span className="font-extrabold text-2xl text-white">
+                    {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
+                  </span>
                 </div>
                 {displayData.summary?.subtotalBeforeGratuity !== undefined && displayData.summary?.gratuityAmount !== undefined && displayData.summary.gratuityAmount > 0 && (
                   <>
@@ -2219,6 +2414,35 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span className="font-extrabold text-lg text-white">Total Event Cost:</span>
                   <span className="font-extrabold text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
+                {/* Recurring Savings Display */}
+                {(() => {
+                  let totalSavings = 0;
+                  let hasRecurring = false;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.isRecurring && service.recurringFrequency && service.recurringFrequency.occurrences >= 4) {
+                          hasRecurring = true;
+                          const discount = service.recurringFrequency.occurrences >= 9 ? 0.20 : 0.15;
+                          // Estimate savings based on service cost
+                          const originalCost = service.serviceCost / (1 - discount);
+                          totalSavings += originalCost - service.serviceCost;
+                        }
+                      });
+                    });
+                  });
+                  return hasRecurring && totalSavings > 0 ? (
+                    <div className="mt-4 pt-4 border-t-2 border-shortcut-teal/30">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-white/90 text-lg flex items-center gap-2">
+                          <span className="text-lg">✨</span>
+                          Recurring Savings:
+                        </span>
+                        <span className="font-extrabold text-xl text-green-300">-${formatCurrency(totalSavings)}</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
 
@@ -2545,7 +2769,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-text-dark-60 mb-1">Total Appointments</p>
                     <p className="text-xl font-extrabold text-shortcut-navy-blue">
-                      {displayData?.summary?.totalAppointments || 0}
+                      {displayData?.summary?.totalAppointments === 0 || displayData?.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData?.summary?.totalAppointments || 0)}
                     </p>
                   </div>
                 </div>

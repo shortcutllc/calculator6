@@ -77,16 +77,16 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 40
   },
   mindfulness: {
-    appTime: 40,
-    totalHours: 1,
+    appTime: 45,
+    totalHours: 0.75,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 40,
+    classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1375
   },
   'hair-makeup': {
     appTime: 20,
@@ -140,7 +140,7 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 45,
     participants: 'unlimited',
-    fixedPrice: 1500
+    fixedPrice: 1375
   },
   'mindfulness-cle': {
     appTime: 60,
@@ -152,7 +152,19 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1350
+    fixedPrice: 1875
+  },
+  'mindfulness-pro-reactivity': {
+    appTime: 45,
+    totalHours: 0.75,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 45,
+    participants: 'unlimited',
+    fixedPrice: 1375
   }
 };
 
@@ -203,24 +215,27 @@ const Calculator: React.FC = () => {
   });
 
   const calculateResults = (service: ServiceConfig) => {
+    const isMindfulness = service.serviceType === 'mindfulness' ||
+                          service.serviceType === 'mindfulness-soles' ||
+                          service.serviceType === 'mindfulness-movement' ||
+                          service.serviceType === 'mindfulness-pro' ||
+                          service.serviceType === 'mindfulness-cle' ||
+                          service.serviceType === 'mindfulness-pro-reactivity';
+
     const apptsPerHourPerPro = 60 / service.appTime;
     const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
-    const totalAppts = Math.floor(service.totalHours * totalApptsPerHour);
+    const totalAppts = isMindfulness ? 'unlimited' : Math.floor(service.totalHours * totalApptsPerHour);
 
     let serviceCost = 0;
     let proRevenue = 0;
 
     if (service.serviceType === 'headshot') {
       proRevenue = service.totalHours * service.numPros * service.proHourly;
-      const retouchingTotal = totalAppts * (service.retouchingCost || 0);
+      const retouchingTotal = (typeof totalAppts === 'number' ? totalAppts : 0) * (service.retouchingCost || 0);
       serviceCost = proRevenue + retouchingTotal;
-    } else if (service.serviceType === 'mindfulness' ||
-               service.serviceType === 'mindfulness-soles' ||
-               service.serviceType === 'mindfulness-movement' ||
-               service.serviceType === 'mindfulness-pro' ||
-               service.serviceType === 'mindfulness-cle') {
+    } else if (isMindfulness) {
       // Mindfulness services use fixed pricing
-      serviceCost = service.fixedPrice || 1350;
+      serviceCost = service.fixedPrice || 1375;
       proRevenue = serviceCost * 0.3; // 30% profit margin for mindfulness
     } else {
       const totalEarlyArrival = service.earlyArrival * service.numPros;
@@ -320,6 +335,7 @@ const Calculator: React.FC = () => {
                   <option value="mindfulness-movement">Ground & Reset: Cultivating Mindfulness Through Movement and Stillness</option>
                   <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                   <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
+                  <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely</option>
                   <option value="hair-makeup">Hair + Makeup</option>
                   <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                 </select>
@@ -510,7 +526,7 @@ const Calculator: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-white/20">
                   <span>Total Appointments:</span>
-                  <span className="font-semibold">{results.totalAppointments}</span>
+                  <span className="font-semibold">{results.totalAppointments === 'unlimited' ? '∞' : results.totalAppointments}</span>
                 </div>
                 
                 <div className="flex justify-between items-center py-2 border-b border-white/20">

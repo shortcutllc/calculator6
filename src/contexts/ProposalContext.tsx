@@ -12,6 +12,7 @@ interface ProposalContextType {
   createProposal: (data: ProposalData, customization: ProposalCustomization, clientEmail?: string, isTest?: boolean) => Promise<string>;
   updateProposal: (id: string, updates: Partial<Proposal>) => Promise<void>;
   deleteProposal: (id: string) => Promise<void>;
+  duplicateProposal: (id: string, newTitle: string) => Promise<string>;
 }
 
 const ProposalContext = createContext<ProposalContextType | undefined>(undefined);
@@ -295,6 +296,71 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const duplicateProposal = async (id: string, newTitle: string): Promise<string> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch the original proposal
+      const { data: originalProposal, error: fetchError } = await supabase
+        .from('proposals')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!originalProposal) throw new Error('Original proposal not found');
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You must be logged in to duplicate a proposal');
+
+      // Clone the proposal data with new title
+      const clonedData = {
+        ...originalProposal.data,
+        clientName: newTitle.trim()
+      };
+
+      const newProposalData = {
+        data: clonedData,
+        customization: originalProposal.customization,
+        is_editable: true,
+        user_id: user.id,
+        status: 'draft',
+        pending_review: false,
+        has_changes: false,
+        original_data: clonedData,
+        client_name: newTitle.trim(),
+        client_email: null, // Reset client email for duplicate
+        client_logo_url: originalProposal.client_logo_url,
+        notes: '',
+        is_test: originalProposal.is_test || false,
+        proposal_type: originalProposal.proposal_type || 'event',
+        // Reset group fields - duplicate is independent
+        proposal_group_id: null,
+        option_name: null,
+        option_order: null
+      };
+
+      const { data: newProposal, error: createError } = await supabase
+        .from('proposals')
+        .insert(newProposalData)
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      if (!newProposal) throw new Error('No proposal data returned after duplication');
+
+      await fetchProposals();
+      return newProposal.id;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to duplicate proposal';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value: ProposalContextType = {
     proposals,
     currentProposal,
@@ -304,7 +370,8 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     getProposal,
     createProposal,
     updateProposal,
-    deleteProposal
+    deleteProposal,
+    duplicateProposal
   };
 
   return (
