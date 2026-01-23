@@ -38,6 +38,7 @@ const QRCodeSignDisplay = lazy(() => import('./components/QRCodeSignDisplay'));
 const MindfulnessProgramManager = lazy(() => import('./components/MindfulnessProgramManager'));
 const GenericLandingPageManager = lazy(() => import('./components/GenericLandingPageManager'));
 const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
+const Plan2026 = lazy(() => import('./components/Plan2026'));
 
 function App() {
   const location = useLocation();
@@ -58,7 +59,8 @@ function App() {
     location.pathname === '/social-media-pages/meta' ||
     location.pathname.startsWith('/qr-code-sign/') ||
     location.pathname.startsWith('/generic-landing-page/') ||
-    location.pathname === '/corporatepartnerships';
+    location.pathname === '/corporatepartnerships' ||
+    location.pathname === '/2026-plan';
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -400,7 +402,7 @@ function App() {
                   </PrivateRoute>
                 }
               />
-              <Route 
+              <Route
                 path="/corporatepartnerships"
                 element={
                   <Suspense fallback={
@@ -409,6 +411,18 @@ function App() {
                     </div>
                   }>
                     <GenericLandingPage isGeneric={true} />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/2026-plan"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <Plan2026 />
                   </Suspense>
                 }
               />
