@@ -1006,7 +1006,60 @@ Space is limited. Let me know if you'd like to join.
 
 ---
 
-## Slide 26: Investment Summary
+## Slide 26: Client Entertainment
+
+**Beyond Employee Wellness — Help firms impress their clients with unforgettable experiences**
+
+### The Opportunity
+
+**Problem with Traditional Client Entertainment:**
+- Golf outings and steak dinners are tired, expected, forgettable
+- Experiential purchases create stronger memories than material ones
+- High-net-worth clients value access, trust, and values alignment
+- Everyone's doing the same thing — no differentiation
+
+**The Shortcut Opportunity:**
+- Same services, new buyer (BD/Events vs HR)
+- Higher ACV: $10-25K events vs $2-5K wellness days
+- Differentiated: "The client entertainment that actually gets remembered"
+- Existing relationships: Warm intros from HR to Events teams
+
+### Target Accounts: Wall Street & Professional Services
+
+| Tier | Examples | Use Case |
+|------|----------|----------|
+| Investment Banks | Goldman, Morgan Stanley, JP Morgan | Deal celebrations, investor days |
+| PE & Hedge Funds | Blackstone, KKR, Citadel | LP meetings, annual events |
+| Wealth Management | UBS, Merrill, Rockefeller | Client appreciation |
+| Law & Consulting | Wachtell, BCG (existing!) | Client entertainment |
+
+### Client Entertainment Packages
+
+| Package | Description | Price |
+|---------|-------------|-------|
+| **"The Closer"** — Deal Celebration | Private venue, massage stations, headshots, champagne | $15-25K |
+| **"The LP Experience"** — Investor Day | Morning wellness lounge, afternoon stations, evening cocktails | $20-40K |
+| **"The Cultivator"** — Prospect Entertainment | Intimate 12-20 person wellness dinner experience | $8-15K |
+
+### 2026 Timeline
+
+- **Q1:** Design packages, create landing page, pilot with existing clients (Wachtell, BCG)
+- **Q2:** Launch first client entertainment event, build case study
+- **Q3-Q4:** Outbound to Wall Street targets, scale based on Q2 learnings
+
+### Revenue Potential
+
+| Scenario | Math | Revenue |
+|----------|------|---------|
+| Conservative | 5 clients × $15K × 2 events | $150K |
+| **Moderate** | **15 clients × $18K × 3 events** | **$810K** |
+| Aggressive | 30 clients × $20K × 4 events | $2.4M |
+
+**Could be $500K-$1M+ vertical by 2027**
+
+---
+
+## Slide 27: Investment Summary
 
 **$200K minimum capital required to achieve growth targets**
 
