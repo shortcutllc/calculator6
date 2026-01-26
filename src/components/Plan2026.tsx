@@ -660,9 +660,9 @@ export default function Plan2026() {
                   {
                     num: '4',
                     title: 'Hosted Events',
-                    subtitle: 'Build our own lead-gen machine in NYC',
-                    desc: 'Instead of only attending conferences, we host our own. Small, curated networking events with Shortcut services embedded.',
-                    items: ['Quarterly "Shortcut Sessions"', '40-50 qualified HR leaders per event', '$5K event vs $15K conference booth'],
+                    subtitle: 'Q1 design, Q2-Q4 execute 3 events',
+                    desc: 'We host our own curated events for HR leaders. Q1: design experience + secure sponsors. Launch first event late Q2.',
+                    items: ['3 "Shortcut Sessions" in 2026', 'Sponsors offset costs (venue, drinks)', '40-60 qualified HR leaders per event'],
                     color: '#FF5050'
                   },
                 ].map((lever, idx) => (
@@ -2018,65 +2018,106 @@ export default function Plan2026() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                {/* What We Know Works */}
+              <div className="grid md:grid-cols-3 gap-4 max-w-6xl mx-auto mb-6">
+                {/* Current Services - PROVEN */}
                 <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #22C55E' }}>
                   <div className="p-4" style={{ backgroundColor: '#166534' }}>
-                    <h3 className="font-semibold text-white">Proven Eligible Expenses (Cigna)</h3>
-                    <p className="text-xs text-white" style={{ opacity: 0.8 }}>Direct from Cigna Health Improvement Fund documentation</p>
+                    <h3 className="font-semibold text-white text-sm">Current Services — PROVEN</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.8 }}>Already reimbursed via Cigna/Aetna</p>
                   </div>
                   <div className="p-4" style={{ backgroundColor: 'white' }}>
-                    <div className="space-y-2 text-xs mb-4">
+                    <div className="space-y-3">
                       {[
-                        { text: 'Onsite group exercise classes (yoga, pilates)', match: '← MASSAGE' },
-                        { text: 'Guest speakers on wellness topics (nutrition, behavioral health)', match: '← MINDFULNESS' },
-                        { text: 'Activities and challenges to promote healthy living', match: '← WELLNESS DAYS' },
-                        { text: 'Wellness room amenities (yoga mat, soundscape)', match: '← RELAXATION' },
+                        { service: 'Chair & Table Massage', eligible: '"Onsite group exercise classes"', icon: '💆' },
+                        { service: 'Mindfulness Workshops', eligible: '"Guest speakers on wellness topics"', icon: '🧘' },
                       ].map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#F0FDF4' }}>
-                          <p style={{ color: '#166534' }}>✓ {item.text}</p>
-                          <span className="font-bold text-xs" style={{ color: '#22C55E' }}>{item.match}</span>
+                        <div key={idx} className="p-3 rounded-xl" style={{ backgroundColor: '#F0FDF4' }}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span>{item.icon}</span>
+                            <p className="font-semibold text-sm" style={{ color: '#166534' }}>{item.service}</p>
+                          </div>
+                          <p className="text-xs" style={{ color: '#166534', opacity: 0.8 }}>Cigna category: {item.eligible}</p>
                         </div>
                       ))}
                     </div>
-                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#FEF3C7' }}>
-                      <p className="text-xs font-semibold" style={{ color: '#92400E' }}>⏰ KEY: Unused funds EXPIRE at plan year-end — HR has urgency to spend</p>
+                    <div className="mt-3 p-2 rounded-lg text-center" style={{ backgroundColor: '#DCFCE7' }}>
+                      <p className="text-xs font-bold" style={{ color: '#166534' }}>✅ Clients already using these</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* New Services to Add */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #F59E0B' }}>
+                  <div className="p-4" style={{ backgroundColor: '#92400E' }}>
+                    <h3 className="font-semibold text-white text-sm">New Services to Add</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.8 }}>Expand reimbursable offerings</p>
+                  </div>
+                  <div className="p-4" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-3">
+                      {[
+                        { service: 'Onsite Yoga Classes', eligible: '"Onsite group exercise classes (yoga, pilates)"', icon: '🧘‍♀️', priority: 'HIGH' },
+                        { service: 'Assisted Stretch / Recovery', eligible: '"Activities to promote healthy living"', icon: '🤸', priority: 'HIGH' },
+                        { service: 'Nutrition Workshops', eligible: '"Guest speakers (nutrition, behavioral health)"', icon: '🥗', priority: 'MED' },
+                      ].map((item, idx) => (
+                        <div key={idx} className="p-3 rounded-xl" style={{ backgroundColor: '#FEF3C7' }}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span>{item.icon}</span>
+                              <p className="font-semibold text-sm" style={{ color: '#92400E' }}>{item.service}</p>
+                            </div>
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: item.priority === 'HIGH' ? '#FEE2E2' : '#E0F2F7', color: item.priority === 'HIGH' ? '#DC2626' : '#018EA2' }}>{item.priority}</span>
+                          </div>
+                          <p className="text-xs" style={{ color: '#92400E', opacity: 0.8 }}>{item.eligible}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 p-2 rounded-lg text-center" style={{ backgroundColor: '#FEF3C7' }}>
+                      <p className="text-xs font-bold" style={{ color: '#92400E' }}>🎯 Q2 launch target</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Provider Status */}
-                <div className="space-y-4">
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #003756' }}>
-                    <div className="p-3" style={{ backgroundColor: '#003756' }}>
-                      <h3 className="font-semibold text-white text-sm">Provider Validation Status</h3>
-                    </div>
-                    <div className="p-3" style={{ backgroundColor: 'white' }}>
-                      <table className="w-full text-xs">
-                        <tbody>
-                          {[
-                            { name: 'Cigna', program: 'Health Improvement Fund', status: '✅ CLIENTS USING', color: '#22C55E' },
-                            { name: 'Aetna', program: 'Wellness Fund', status: '✅ CLIENTS USING', color: '#22C55E' },
-                            { name: 'BCBS', program: 'Blue Health & Wellness', status: '🔍 Research Q1', color: '#F59E0B' },
-                            { name: 'UnitedHealthcare', program: 'Wellness Programs', status: '🔍 Research Q1', color: '#F59E0B' },
-                            { name: 'Anthem/Elevance', program: 'Wellbeing Solutions', status: '🔍 Research Q1', color: '#F59E0B' },
-                            { name: 'Humana', program: 'Go365 Business', status: '🔍 Research Q1', color: '#F59E0B' },
-                          ].map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                              <td className="py-2 font-medium" style={{ color: '#003756' }}>{item.name}</td>
-                              <td className="py-2 text-xs" style={{ color: '#003756', opacity: 0.6 }}>{item.program}</td>
-                              <td className="py-2 text-right font-bold text-xs" style={{ color: item.color }}>{item.status}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #003756' }}>
+                  <div className="p-4" style={{ backgroundColor: '#003756' }}>
+                    <h3 className="font-semibold text-white text-sm">Provider Status</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.8 }}>Insurer validation progress</p>
                   </div>
+                  <div className="p-3" style={{ backgroundColor: 'white' }}>
+                    <table className="w-full text-xs">
+                      <tbody>
+                        {[
+                          { name: 'Cigna', status: '✅ USING', color: '#22C55E' },
+                          { name: 'Aetna', status: '✅ USING', color: '#22C55E' },
+                          { name: 'Anthem', status: '🎯 HIGH', color: '#F59E0B' },
+                          { name: 'BCBS', status: '🔍 Q1', color: '#6B7280' },
+                          { name: 'UHC', status: '🔍 Q1', color: '#6B7280' },
+                        ].map((item, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
+                            <td className="py-2 font-medium" style={{ color: '#003756' }}>{item.name}</td>
+                            <td className="py-2 text-right font-bold" style={{ color: item.color }}>{item.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="p-3" style={{ backgroundColor: '#E0F2F7' }}>
+                    <p className="text-xs text-center" style={{ color: '#003756' }}>
+                      <strong>⏰ KEY:</strong> Funds expire at plan year-end
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                  <div className="rounded-3xl p-4" style={{ backgroundColor: '#003756' }}>
-                    <h4 className="font-semibold text-sm mb-2 text-white">Q1 Goal: Map the Landscape</h4>
-                    <p className="text-xs text-white" style={{ opacity: 0.8 }}>Identify equivalent programs at every major insurer. We know Cigna/Aetna work — find the rest.</p>
-                  </div>
+              {/* Bottom: Additional Services Worth Exploring */}
+              <div className="max-w-5xl mx-auto p-4 rounded-2xl" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0,55,86,0.1)' }}>
+                <p className="text-sm text-center mb-3" style={{ color: '#003756' }}>
+                  <strong>Other Eligible Services to Consider:</strong>
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {['Flu Shot Clinics', 'Biometric Screenings', 'CPR/First Aid Training', 'Financial Wellness Speakers', 'Ergonomic Assessments'].map((item, idx) => (
+                    <span key={idx} className="px-3 py-1 rounded-full text-xs" style={{ backgroundColor: 'white', color: '#003756', border: '1px solid rgba(0,55,86,0.2)' }}>{item}</span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -2609,102 +2650,164 @@ export default function Plan2026() {
                   The Shortcut Sessions
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Quarterly evening events for HR leaders - our own lead-gen machine
+                  Q1: Design the experience. Q2-Q4: Launch 3 unforgettable events.
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
+              {/* Timeline: Q1 Design → Q2-Q4 Execute */}
+              <div className="max-w-5xl mx-auto mb-8">
+                <div className="grid md:grid-cols-4 gap-3">
+                  {/* Q1: Design Phase */}
+                  <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #F59E0B' }}>
+                    <div className="p-3 text-center" style={{ backgroundColor: '#F59E0B' }}>
+                      <p className="font-bold text-white">Q1: DESIGN</p>
+                    </div>
+                    <div className="p-4" style={{ backgroundColor: '#FEF3C7' }}>
+                      <div className="space-y-2 text-xs" style={{ color: '#92400E' }}>
+                        <p>• Finalize event concept & brand</p>
+                        <p>• Scout venue partners</p>
+                        <p>• Secure 2-3 sponsors</p>
+                        <p>• Build invite list (200+ targets)</p>
+                        <p>• Design registration flow</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Q2: Event 1 */}
+                  <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #22C55E' }}>
+                    <div className="p-3 text-center" style={{ backgroundColor: '#22C55E' }}>
+                      <p className="font-bold text-white">Q2: EVENT #1</p>
+                      <p className="text-xs text-white" style={{ opacity: 0.8 }}>Late May / Early June</p>
+                    </div>
+                    <div className="p-4" style={{ backgroundColor: '#DCFCE7' }}>
+                      <p className="font-semibold text-sm mb-2" style={{ color: '#166534' }}>"Summer Ready"</p>
+                      <div className="space-y-1 text-xs" style={{ color: '#166534' }}>
+                        <p>🎯 40-50 HR leaders</p>
+                        <p>🍹 Rooftop venue + drinks</p>
+                        <p>💆 Massage + headshot stations</p>
+                        <p>🎤 Panel: "Wellness That Works"</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Q3: Event 2 */}
+                  <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #018EA2' }}>
+                    <div className="p-3 text-center" style={{ backgroundColor: '#018EA2' }}>
+                      <p className="font-bold text-white">Q3: EVENT #2</p>
+                      <p className="text-xs text-white" style={{ opacity: 0.8 }}>Mid-September</p>
+                    </div>
+                    <div className="p-4" style={{ backgroundColor: '#E0F2F7' }}>
+                      <p className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>"The Recharge"</p>
+                      <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                        <p>🎯 50-60 HR leaders</p>
+                        <p>🍷 Wine tasting + wellness</p>
+                        <p>🧘 Live mindfulness demo</p>
+                        <p>🎤 Fireside: Q4 planning tips</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Q4: Event 3 */}
+                  <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #003756' }}>
+                    <div className="p-3 text-center" style={{ backgroundColor: '#003756' }}>
+                      <p className="font-bold text-white">Q4: EVENT #3</p>
+                      <p className="text-xs text-white" style={{ opacity: 0.8 }}>Early November</p>
+                    </div>
+                    <div className="p-4" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>"The Thank You"</p>
+                      <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
+                        <p>🎯 60+ HR leaders</p>
+                        <p>🎄 Holiday cocktail vibes</p>
+                        <p>💅 Full service stations</p>
+                        <p>🎤 Client success stories</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-6">
                 {/* Event Format */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
-                  <div className="p-5" style={{ backgroundColor: '#003756' }}>
+                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <div className="p-4" style={{ backgroundColor: '#003756' }}>
                     <h3 className="font-semibold text-white">Event Format (2.5-3 hours)</h3>
                   </div>
-                  <div className="p-5" style={{ backgroundColor: 'white' }}>
-                    <div className="space-y-3">
-                      {[
-                        { time: '6:00-6:30', activity: 'Arrival, drinks, networking' },
-                        { time: '6:30-7:00', activity: 'Short panel or fireside chat (client + industry speaker)' },
-                        { time: '7:00-8:00', activity: 'Wellness stations rotate (chair massage, express manicures, headshot booth)' },
-                        { time: '8:00-8:30', activity: 'Open networking, dessert' },
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex gap-4 py-2 border-b" style={{ borderColor: 'rgba(0,55,86,0.1)' }}>
-                          <span className="text-xs font-mono px-2 py-1 rounded" style={{ backgroundColor: '#E0F2F7', color: '#003756' }}>
-                            {item.time}
-                          </span>
-                          <p className="text-sm flex-1" style={{ color: '#003756' }}>{item.activity}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Why It Works */}
-                <div className="space-y-4">
-                  <div className="rounded-3xl p-5" style={{ backgroundColor: '#E0F2F7' }}>
-                    <h3 className="font-semibold mb-3" style={{ color: '#003756' }}>Why This Works</h3>
+                  <div className="p-4" style={{ backgroundColor: 'white' }}>
                     <div className="space-y-2">
                       {[
-                        { title: 'We control the room', desc: 'Only qualified buyers, no noise' },
-                        { title: 'Experience IS the pitch', desc: 'They feel what we do, not just hear' },
-                        { title: 'Lower CAC', desc: '$5K event vs $15K conference booth' },
-                        { title: 'Content engine', desc: 'Photos, testimonials, relationships' },
-                        { title: 'Referral flywheel', desc: 'Attendees invite peers' },
+                        { time: '6:00-6:30', activity: '🍸 Arrival, signature cocktails, networking' },
+                        { time: '6:30-7:00', activity: '🎤 20-min panel or fireside chat' },
+                        { time: '7:00-8:00', activity: '💆 Wellness stations (massage, nails, headshots)' },
+                        { time: '8:00-8:30', activity: '🍰 Dessert, open networking, soft close' },
                       ].map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <span style={{ color: '#018EA2' }}>✓</span>
-                          <p className="text-sm" style={{ color: '#003756' }}>
-                            <strong>{item.title}:</strong> {item.desc}
-                          </p>
+                        <div key={idx} className="flex gap-3 py-2 border-b" style={{ borderColor: 'rgba(0,55,86,0.1)' }}>
+                          <span className="text-xs font-mono px-2 py-1 rounded flex-shrink-0" style={{ backgroundColor: '#E0F2F7', color: '#003756' }}>
+                            {item.time}
+                          </span>
+                          <p className="text-sm" style={{ color: '#003756' }}>{item.activity}</p>
                         </div>
                       ))}
                     </div>
                   </div>
+                </div>
 
-                  <div className="rounded-3xl p-5" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold mb-3 text-white">Event Economics</h3>
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div className="text-center p-2 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                        <p className="text-xl font-semibold text-white">$4-6K</p>
-                        <p className="text-xs text-white" style={{ opacity: 0.7 }}>per event</p>
+                {/* Sponsor Strategy */}
+                <div className="space-y-4">
+                  <div className="rounded-3xl p-5" style={{ backgroundColor: '#FEF3C7', border: '2px solid #F59E0B' }}>
+                    <h3 className="font-semibold mb-3" style={{ color: '#92400E' }}>🤝 Sponsor & Partner Strategy</h3>
+                    <div className="space-y-2 text-sm" style={{ color: '#92400E' }}>
+                      <p><strong>Venue Partner:</strong> Trade services for space (WeWork, Convene, hotel rooftops)</p>
+                      <p><strong>Beverage Sponsor:</strong> $1-2K to cover drinks (wine brand, spirits co)</p>
+                      <p><strong>Co-Host Partner:</strong> Complementary HR tech (benefits platform, HRIS)</p>
+                      <p><strong>Content Partner:</strong> HR media outlet for amplification</p>
+                    </div>
+                    <div className="mt-3 p-2 rounded-lg text-center" style={{ backgroundColor: 'white' }}>
+                      <p className="text-xs font-bold" style={{ color: '#92400E' }}>Goal: Reduce event cost to $2-3K net</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl p-4" style={{ backgroundColor: '#003756' }}>
+                    <h3 className="font-semibold mb-2 text-white text-sm">Event Economics (per event)</h3>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                        <p className="text-lg font-bold text-white">$4-6K</p>
+                        <p className="text-xs text-white" style={{ opacity: 0.7 }}>gross cost</p>
                       </div>
-                      <div className="text-center p-2 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                        <p className="text-xl font-semibold text-white">40-50</p>
+                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                        <p className="text-lg font-bold text-white">40-60</p>
                         <p className="text-xs text-white" style={{ opacity: 0.7 }}>attendees</p>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs text-center text-white" style={{ opacity: 0.8 }}>
-                      <div>15-20 leads</div>
-                      <div>8-10 meetings</div>
-                      <div>3-4 clients</div>
+                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'rgba(158,250,255,0.2)' }}>
+                        <p className="text-lg font-bold" style={{ color: '#9EFAFF' }}>3-5</p>
+                        <p className="text-xs" style={{ color: '#9EFAFF' }}>new clients</p>
+                      </div>
                     </div>
                     <div className="mt-3 p-2 rounded-xl text-center" style={{ backgroundColor: 'rgba(158,250,255,0.2)' }}>
-                      <p className="text-sm font-semibold" style={{ color: '#9EFAFF' }}>ROI: $5K → $45K+ = 9x return</p>
+                      <p className="text-sm font-semibold" style={{ color: '#9EFAFF' }}>3 events × 4 clients × $12K avg = $144K pipeline</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Event Calendar */}
-              <div className="max-w-5xl mx-auto grid md:grid-cols-4 gap-3 mb-4">
-                {[
-                  { q: 'Q1', theme: '"The Reset"', desc: 'New year wellness strategy', time: 'Late January' },
-                  { q: 'Q2', theme: '"Summer Ready"', desc: 'Pre-busy-season self-care', time: 'Late May' },
-                  { q: 'Q3', theme: '"The Recharge"', desc: 'Back from summer, prep for Q4', time: 'Mid-September' },
-                  { q: 'Q4', theme: '"The Thank You"', desc: 'Employee appreciation season', time: 'Early November' },
-                ].map((item, idx) => (
-                  <div key={idx} className="p-3 rounded-2xl text-center" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <p className="font-bold text-sm" style={{ color: '#003756' }}>{item.q}</p>
-                    <p className="text-xs font-medium" style={{ color: '#018EA2' }}>{item.theme}</p>
-                    <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>{item.time}</p>
+              {/* Why This Works + Invite Strategy */}
+              <div className="grid md:grid-cols-2 gap-4 max-w-5xl mx-auto">
+                <div className="rounded-2xl p-4" style={{ backgroundColor: '#E0F2F7' }}>
+                  <h4 className="font-semibold mb-2 text-sm" style={{ color: '#003756' }}>Why This Works</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: '#003756' }}>
+                    <p>✓ We control the room</p>
+                    <p>✓ Experience IS the pitch</p>
+                    <p>✓ Lower CAC than conferences</p>
+                    <p>✓ Content engine (photos, video)</p>
+                    <p>✓ Referral flywheel</p>
+                    <p>✓ Sponsors offset costs</p>
                   </div>
-                ))}
-              </div>
-
-              {/* Guest List Strategy */}
-              <div className="max-w-5xl mx-auto p-4 rounded-2xl" style={{ backgroundColor: '#E0F2F7', border: '1px solid rgba(0,55,86,0.1)' }}>
-                <p className="text-sm text-center" style={{ color: '#003756' }}>
-                  <strong>Invite strategy:</strong> "You're invited because you're a senior HR leader at a company we respect" — exclusivity + free $200+ services + peer networking = high attendance
-                </p>
+                </div>
+                <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <h4 className="font-semibold mb-2 text-sm" style={{ color: '#003756' }}>Invite Strategy</h4>
+                  <p className="text-xs" style={{ color: '#003756' }}>
+                    "You're invited because you're a senior HR leader at a company we admire" — <strong>exclusivity + free $200+ wellness services + peer networking + drinks = 60%+ attendance rate</strong>
+                  </p>
+                </div>
               </div>
             </div>
           </section>

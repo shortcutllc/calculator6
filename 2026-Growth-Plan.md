@@ -669,27 +669,40 @@ Anything not on this list is secondary. Goal: shorter sales cycles, faster "yes"
 
 Corporate partners have successfully used Cigna and Aetna wellness funds to pay for massage and mindfulness events. Funds expire at plan year-end — use-it-or-lose-it urgency.
 
-### Proven Eligible Expenses (From Cigna Health Improvement Fund)
+### Current Services — PROVEN ELIGIBLE
 
-| Expense Category | Shortcut Service Match |
-|-----------------|------------------------|
-| Onsite group exercise classes (yoga, pilates) | MASSAGE |
-| Guest speakers on wellness topics (nutrition, behavioral health) | MINDFULNESS |
-| Activities and challenges to promote healthy living | WELLNESS DAYS |
-| Wellness room amenities (yoga mat, soundscape) | RELAXATION |
+| Service | Cigna Category | Status |
+|---------|---------------|--------|
+| 💆 Chair & Table Massage | "Onsite group exercise classes" | ✅ Clients already using |
+| 🧘 Mindfulness Workshops | "Guest speakers on wellness topics" | ✅ Clients already using |
 
-**KEY: Unused funds EXPIRE at plan year-end — HR has urgency to spend**
+### New Services to Add (Q2 Launch Target)
+
+| Service | Cigna Category | Priority |
+|---------|---------------|----------|
+| 🧘‍♀️ Onsite Yoga Classes | "Onsite group exercise classes (yoga, pilates)" | HIGH |
+| 🤸 Assisted Stretch / Recovery | "Activities to promote healthy living" | HIGH |
+| 🥗 Nutrition Workshops | "Guest speakers (nutrition, behavioral health)" | MED |
+
+### Other Eligible Services Worth Exploring
+
+- Flu Shot Clinics
+- Biometric Screenings
+- CPR/First Aid Training
+- Financial Wellness Speakers
+- Ergonomic Assessments
 
 ### Provider Validation Status
 
-| Provider | Program | Status |
-|----------|---------|--------|
-| Cigna | Health Improvement Fund | ✅ CLIENTS USING |
-| Aetna | Wellness Fund | ✅ CLIENTS USING |
-| Anthem | Wellness Fund | 🎯 HIGH - Has formal reimbursement process |
-| BCBS | Varies by state | 🔍 RESEARCH - Well onTarget, state-specific |
-| UnitedHealthcare | Wellness Programs | 🔍 RESEARCH - Rewards-focused, vendor network |
-| Humana | Go365 Business | 🔍 RESEARCH - Exiting employer market |
+| Provider | Status |
+|----------|--------|
+| Cigna | ✅ USING |
+| Aetna | ✅ USING |
+| Anthem | 🎯 HIGH PRIORITY |
+| BCBS | 🔍 Q1 Research |
+| UHC | 🔍 Q1 Research |
+
+**KEY: Unused funds EXPIRE at plan year-end — HR has urgency to spend**
 
 ---
 
@@ -895,47 +908,65 @@ Massage is a passive service, not educational. It cannot be counted toward CLE c
 
 ## Slide 24: The Shortcut Sessions
 
-**Quarterly evening events for HR leaders - our own lead-gen machine**
+**Q1: Design the experience. Q2-Q4: Launch 3 unforgettable events.**
+
+### 2026 Event Timeline
+
+| Quarter | Phase | Event | Timing |
+|---------|-------|-------|--------|
+| **Q1** | DESIGN | Finalize concept, secure sponsors, build invite list | Jan-Mar |
+| **Q2** | EVENT #1 | "Summer Ready" - Rooftop venue + drinks | Late May/Early June |
+| **Q3** | EVENT #2 | "The Recharge" - Wine tasting + wellness | Mid-September |
+| **Q4** | EVENT #3 | "The Thank You" - Holiday cocktails | Early November |
+
+### Q1 Design Phase Checklist
+
+- Finalize event concept & brand
+- Scout venue partners (trade services for space)
+- Secure 2-3 sponsors (beverage, co-host, content)
+- Build invite list (200+ qualified targets)
+- Design registration flow
 
 ### Event Format (2.5-3 hours)
 
 | Time | Activity |
 |------|----------|
-| 6:00-6:30 | Arrival, drinks, networking |
-| 6:30-7:00 | Short panel or fireside chat (client + industry speaker) |
-| 7:00-8:00 | Wellness stations rotate (chair massage, express manicures, headshot booth) |
-| 8:00-8:30 | Open networking, dessert |
+| 6:00-6:30 | 🍸 Arrival, signature cocktails, networking |
+| 6:30-7:00 | 🎤 20-min panel or fireside chat |
+| 7:00-8:00 | 💆 Wellness stations (massage, nails, headshots) |
+| 8:00-8:30 | 🍰 Dessert, open networking, soft close |
 
-### Why This Works
+### Sponsor & Partner Strategy
 
-- **We control the room:** Only qualified buyers, no noise
-- **Experience IS the pitch:** They feel what we do, not just hear
-- **Lower CAC:** $5K event vs $15K conference booth
-- **Content engine:** Photos, testimonials, relationships
-- **Referral flywheel:** Attendees invite peers
+| Partner Type | Role | Benefit |
+|--------------|------|---------|
+| **Venue Partner** | Trade services for space | WeWork, Convene, hotel rooftops |
+| **Beverage Sponsor** | $1-2K to cover drinks | Wine brand, spirits company |
+| **Co-Host Partner** | Complementary HR tech | Benefits platform, HRIS |
+| **Content Partner** | Amplification | HR media outlet |
 
-### Event Economics
+**Goal: Reduce event cost to $2-3K net**
+
+### Event Economics (per event)
 
 | Metric | Value |
 |--------|-------|
-| Cost per event | $4-6K |
-| Attendees | 40-50 |
-| Leads | 15-20 |
-| Meetings | 8-10 |
-| Clients | 3-4 |
+| Gross cost | $4-6K |
+| Attendees | 40-60 |
+| New clients | 3-5 |
 
-**ROI: $5K to $45K+ = 9x return**
+**3 events × 4 clients × $12K avg = $144K pipeline**
 
-### Event Calendar
+### Why This Works
 
-| Quarter | Theme | Description | Timing |
-|---------|-------|-------------|--------|
-| Q1 | "The Reset" | New year wellness strategy | Late January |
-| Q2 | "Summer Ready" | Pre-busy-season self-care | Late May |
-| Q3 | "The Recharge" | Back from summer, prep for Q4 | Mid-September |
-| Q4 | "The Thank You" | Employee appreciation season | Early November |
+- ✓ We control the room
+- ✓ Experience IS the pitch
+- ✓ Lower CAC than conferences
+- ✓ Content engine (photos, video)
+- ✓ Referral flywheel
+- ✓ Sponsors offset costs
 
-**Invite strategy:** "You're invited because you're a senior HR leader at a company we respect" - exclusivity + free $200+ services + peer networking = high attendance
+**Invite strategy:** "You're invited because you're a senior HR leader at a company we admire" — exclusivity + free $200+ wellness services + peer networking + drinks = 60%+ attendance rate
 
 ---
 
