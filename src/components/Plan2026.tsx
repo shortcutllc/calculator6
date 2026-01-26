@@ -11,6 +11,7 @@ export default function Plan2026() {
     '2026-targets',
     'exit-strategy',
     'four-levers',
+    'investment-overview',
     'content-strategy',
     'content-assets',
     'conference-strategy',
@@ -61,7 +62,7 @@ export default function Plan2026() {
       <header className="fixed top-0 left-0 right-0 z-50 py-4 px-6" style={{ backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <img
-            src="/Holiday Proposal/Logo/shortcut logo transparent.png"
+            src="/Holiday Proposal/Shortcut Logo Social Nav Bar.svg"
             alt="Shortcut"
             className="h-8"
           />
@@ -334,6 +335,30 @@ export default function Plan2026() {
                     { client: 'BCG Boston', rev: '$20,880' },
                     { client: 'Cencora', rev: '$19,105' },
                     { client: 'DraftKings NJ', rev: '$18,348' },
+                    { client: 'Wix', rev: '$15,600' },
+                    { client: 'Teads', rev: '$13,480' },
+                    { client: 'BCG LA', rev: '$12,285' },
+                    { client: 'BISNOW', rev: '$11,770' },
+                    { client: 'Wachtell Lipton', rev: '$11,730' },
+                    { client: 'BCG Seattle', rev: '$11,411' },
+                    { client: 'DraftKings Boston', rev: '$10,872' },
+                    { client: 'Barstool Sports', rev: '$9,666' },
+                    { client: 'Datadog', rev: '$9,555' },
+                    { client: 'Culture Amp', rev: '$8,903' },
+                    { client: 'Lockton', rev: '$8,082' },
+                    { client: 'USSA', rev: '$6,085' },
+                    { client: 'Schrödinger Portland', rev: '$4,800' },
+                    { client: 'DeepIntent', rev: '$3,845' },
+                    { client: 'Wigdor', rev: '$3,228' },
+                    { client: 'BCG Brooklyn', rev: '$3,140' },
+                    { client: 'Phoenix AC', rev: '$2,944' },
+                    { client: 'UiPath', rev: '$2,830' },
+                    { client: 'Forter', rev: '$2,760' },
+                    { client: 'Ballard Spahr', rev: '$2,580' },
+                    { client: 'Powin', rev: '$1,972' },
+                    { client: 'Tonal', rev: '$1,890' },
+                    { client: 'Nanolumens', rev: '$1,728' },
+                    { client: 'Archetype', rev: '$1,701' },
                   ].map((item, idx) => (
                     <div key={idx} className="flex justify-between p-2" style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', borderRight: idx % 4 !== 3 ? '1px solid rgba(0,55,86,0.1)' : 'none' }}>
                       <span style={{ color: '#003756' }}>{item.client}</span>
@@ -342,7 +367,7 @@ export default function Plan2026() {
                   ))}
                 </div>
                 <div className="p-2 text-center text-xs" style={{ backgroundColor: '#F8F9FA', color: '#003756', opacity: 0.7 }}>
-                  Pattern: Multi-location expansion (BCG 4 cities, DraftKings 3 locations) is working.
+                  Pattern: Multi-location expansion (BCG 5 cities, DraftKings 4 locations) is working.
                 </div>
               </div>
             </div>
@@ -626,10 +651,10 @@ export default function Plan2026() {
                   },
                   {
                     num: '3',
-                    title: 'Healthcare Channels',
-                    subtitle: 'Unlock employer wellness dollars (Cigna, Aetna, BCBS)',
-                    desc: 'Companies fund wellness through health improvement funds, wellness packages, and LSAs. This is pooled corporate money.',
-                    items: ['Cigna Health Improvement Fund', 'Benefits broker partnerships', 'LSA platform integration'],
+                    title: 'Employer Wellness Funds',
+                    subtitle: 'Unlock corporate wellness dollars already allocated',
+                    desc: 'Health insurers provide company-level wellness funds that HR can use for group events like massage days. Q1 focus: research and understand the market.',
+                    items: ['Insurer wellness funds (Cigna, Aetna, BCBS)', 'Benefits broker referral partnerships', 'Massage confirmed as eligible expense'],
                     color: '#9EFAFF'
                   },
                   {
@@ -669,8 +694,94 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 8: CONTENT STRATEGY ==================== */}
+        {/* ==================== SLIDE 8: INVESTMENT OVERVIEW ==================== */}
         {currentSlide === 7 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="text-center mb-12">
+                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#9EFAFF' }}>
+                  2026 Capitalization Plan
+                </p>
+                <h2 className="text-4xl md:text-6xl font-semibold mb-4 text-white" style={{ letterSpacing: '-0.02em' }}>
+                  Investment Overview
+                </h2>
+                <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  $200K minimum capital required to execute across all four levers
+                </p>
+              </div>
+
+              {/* Budget Breakdown */}
+              <div className="rounded-3xl overflow-hidden mb-8 max-w-4xl mx-auto" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+                      <th className="text-left p-4 text-sm font-semibold text-white">Category</th>
+                      <th className="text-right p-4 text-sm font-semibold text-white">H1</th>
+                      <th className="text-right p-4 text-sm font-semibold text-white">H2</th>
+                      <th className="text-right p-4 text-sm font-semibold text-white">Year Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { cat: 'Team Compensation & Growth', h1: '$35K', h2: '$55K', total: '$90K', note: 'Merit increases for existing team and strategic new hires; subject to adjustment based on H2 performance' },
+                      { cat: 'Conferences (7 total)', h1: '$33K', h2: '$36K', total: '~$60K', note: '3 in H1, 4 in H2' },
+                      { cat: 'Content & Ad Spend', h1: '$32K', h2: '$18K', total: '$50K', note: 'Marketing investment' },
+                    ].map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <td className="p-4 text-sm text-white">
+                          {item.cat}
+                          <span className="block text-xs" style={{ opacity: 0.5 }}>{item.note}</span>
+                        </td>
+                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.h1}</td>
+                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.h2}</td>
+                        <td className="p-4 text-sm text-right font-bold text-white">{item.total}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ backgroundColor: 'rgba(158,250,255,0.2)' }}>
+                      <td className="p-4 text-sm font-bold text-white">Total Required Capital</td>
+                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$100K</td>
+                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$100K</td>
+                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$200K</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Team Investment Detail */}
+              <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-8">
+                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                  <h4 className="font-semibold text-white mb-2">Existing Team</h4>
+                  <p className="text-sm" style={{ color: '#9EFAFF' }}>Merit-based increases</p>
+                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Competitive adjustments to retain and reward top performers</p>
+                </div>
+                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                  <h4 className="font-semibold text-white mb-2">Strategic New Hires</h4>
+                  <p className="text-sm" style={{ color: '#9EFAFF' }}>Sales & Account Management</p>
+                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Allocation subject to increase based on year-end performance</p>
+                </div>
+              </div>
+
+              {/* H1 Success Metrics */}
+              <div className="grid grid-cols-4 gap-4 max-w-4xl mx-auto">
+                {[
+                  { metric: '150+', label: 'Qualified Leads', sub: 'generated' },
+                  { metric: '8-12', label: 'New Clients', sub: 'closed' },
+                  { metric: '$150K+', label: 'New Recurring', sub: 'revenue added' },
+                  { metric: '$975K+', label: 'Run Rate', sub: 'by June 30' },
+                ].map((item, idx) => (
+                  <div key={idx} className="text-center p-4 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                    <p className="text-2xl font-bold text-white">{item.metric}</p>
+                    <p className="text-sm font-medium" style={{ color: '#9EFAFF' }}>{item.label}</p>
+                    <p className="text-xs text-white" style={{ opacity: 0.5 }}>{item.sub}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ==================== SLIDE 9: CONTENT STRATEGY ==================== */}
+        {currentSlide === 8 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -802,8 +913,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 9: CONTENT ASSETS ==================== */}
-        {currentSlide === 8 && (
+        {/* ==================== SLIDE 10: CONTENT ASSETS ==================== */}
+        {currentSlide === 9 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -889,7 +1000,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 10: CONFERENCE STRATEGY ==================== */}
-        {currentSlide === 9 && (
+        {currentSlide === 10 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1014,7 +1125,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 11: LEAD ESTIMATION METHODOLOGY ==================== */}
-        {currentSlide === 10 && (
+        {currentSlide === 11 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1090,7 +1201,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 12: CONFERENCE RECOMMENDATIONS ==================== */}
-        {currentSlide === 11 && (
+        {currentSlide === 12 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1241,7 +1352,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 13: H2 CONFERENCES ==================== */}
-        {currentSlide === 12 && (
+        {currentSlide === 13 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1417,7 +1528,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 14: H1 CONFERENCE DETAILS ==================== */}
-        {currentSlide === 13 && (
+        {currentSlide === 14 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1552,7 +1663,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 15: H2 CONFERENCE DETAILS ==================== */}
-        {currentSlide === 14 && (
+        {currentSlide === 15 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1650,7 +1761,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 16: CONFERENCE EXECUTION PLAYBOOK ==================== */}
-        {currentSlide === 15 && (
+        {currentSlide === 16 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1764,7 +1875,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 17: CONFERENCE SUCCESS METRICS ==================== */}
-        {currentSlide === 16 && (
+        {currentSlide === 17 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1878,7 +1989,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 18: HEALTHCARE - CIGNA ==================== */}
-        {currentSlide === 17 && (
+        {currentSlide === 18 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1887,64 +1998,74 @@ export default function Plan2026() {
                   <span className="text-sm font-semibold" style={{ color: '#003756' }}>Lever 3</span>
                 </div>
                 <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Healthcare Channel: Cigna
+                  Employer Wellness Funds
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Tap into existing employer wellness budgets through insurance programs
+                  Proven channel — clients have already used Cigna and Aetna funds to pay for Shortcut services
                 </p>
               </div>
 
+              {/* PROVEN Validation Box */}
+              <div className="max-w-4xl mx-auto mb-8">
+                <div className="rounded-2xl p-5" style={{ backgroundColor: '#DCFCE7', border: '3px solid #22C55E' }}>
+                  <div className="flex items-center gap-4">
+                    <span className="text-4xl">✅</span>
+                    <div>
+                      <p className="font-bold text-lg" style={{ color: '#166534' }}>ALREADY VALIDATED — This Is Real Revenue</p>
+                      <p className="text-sm" style={{ color: '#166534' }}>Corporate partners have successfully used Cigna and Aetna wellness funds to pay for massage and mindfulness events. Funds expire at plan year-end — use-it-or-lose-it urgency.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                {/* Cigna Health Improvement Fund - The Model */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
-                  <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white">Cigna Health Improvement Fund</h3>
-                    <p className="text-xs text-white" style={{ opacity: 0.7 }}>Company-level wellness budget provided to employer clients</p>
+                {/* What We Know Works */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #22C55E' }}>
+                  <div className="p-4" style={{ backgroundColor: '#166534' }}>
+                    <h3 className="font-semibold text-white">Proven Eligible Expenses (Cigna)</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.8 }}>Direct from Cigna Health Improvement Fund documentation</p>
                   </div>
                   <div className="p-4" style={{ backgroundColor: 'white' }}>
-                    <h4 className="font-semibold text-sm mb-3" style={{ color: '#003756' }}>How It Works</h4>
                     <div className="space-y-2 text-xs mb-4">
                       {[
-                        'Health Engagement team meets with employer to personalize strategy',
-                        'Employer discusses expense requests BEFORE spending',
-                        'Employer makes purchase, submits invoices/receipts',
-                        'Cigna reimburses the employer (45-60 days)',
-                      ].map((step, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <span className="font-bold" style={{ color: '#018EA2' }}>{idx + 1}.</span>
-                          <p style={{ color: '#003756' }}>{step}</p>
+                        { text: 'Onsite group exercise classes (yoga, pilates)', match: '← MASSAGE' },
+                        { text: 'Guest speakers on wellness topics (nutrition, behavioral health)', match: '← MINDFULNESS' },
+                        { text: 'Activities and challenges to promote healthy living', match: '← WELLNESS DAYS' },
+                        { text: 'Wellness room amenities (yoga mat, soundscape)', match: '← RELAXATION' },
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#F0FDF4' }}>
+                          <p style={{ color: '#166534' }}>✓ {item.text}</p>
+                          <span className="font-bold text-xs" style={{ color: '#22C55E' }}>{item.match}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#DCFCE7' }}>
-                      <p className="text-xs font-semibold mb-1" style={{ color: '#166534' }}>✅ ELIGIBLE — Shortcut Services Fit:</p>
-                      <p className="text-xs" style={{ color: '#166534' }}>
-                        "Activities and challenges to promote healthy living" • "Guest speakers on wellness" • "Onsite group classes (yoga, mindfulness)"
-                      </p>
+                    <div className="p-3 rounded-xl" style={{ backgroundColor: '#FEF3C7' }}>
+                      <p className="text-xs font-semibold" style={{ color: '#92400E' }}>⏰ KEY: Unused funds EXPIRE at plan year-end — HR has urgency to spend</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Insurer Target List & The Play */}
+                {/* Provider Status */}
                 <div className="space-y-4">
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #003756' }}>
                     <div className="p-3" style={{ backgroundColor: '#003756' }}>
-                      <h3 className="font-semibold text-white text-sm">Healthcare Provider Target List</h3>
+                      <h3 className="font-semibold text-white text-sm">Provider Validation Status</h3>
                     </div>
                     <div className="p-3" style={{ backgroundColor: 'white' }}>
                       <table className="w-full text-xs">
                         <tbody>
                           {[
-                            { rank: '1', name: 'Cigna', program: 'Health Improvement Fund', status: '✅ Confirmed' },
-                            { rank: '2', name: 'BCBS TX/IL/OK', program: 'Wellbeing Network', status: '✅ Lists massage' },
-                            { rank: '3', name: 'Aetna', program: 'Premier Wellness', status: '✅ Group events' },
-                            { rank: '4', name: 'UnitedHealthcare', program: 'UHC Hub', status: '⚠️ Vendor network' },
-                            { rank: '5', name: 'Anthem/Elevance', program: 'Wellbeing Solutions', status: '⚠️ Preventive focus' },
+                            { name: 'Cigna', program: 'Health Improvement Fund', status: '✅ CLIENTS USING', color: '#22C55E' },
+                            { name: 'Aetna', program: 'Wellness Fund', status: '✅ CLIENTS USING', color: '#22C55E' },
+                            { name: 'BCBS', program: 'Blue Health & Wellness', status: '🔍 Research Q1', color: '#F59E0B' },
+                            { name: 'UnitedHealthcare', program: 'Wellness Programs', status: '🔍 Research Q1', color: '#F59E0B' },
+                            { name: 'Anthem/Elevance', program: 'Wellbeing Solutions', status: '🔍 Research Q1', color: '#F59E0B' },
+                            { name: 'Humana', program: 'Go365 Business', status: '🔍 Research Q1', color: '#F59E0B' },
                           ].map((item, idx) => (
                             <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                              <td className="py-1.5 font-bold" style={{ color: '#018EA2' }}>{item.rank}</td>
-                              <td className="py-1.5 font-medium" style={{ color: '#003756' }}>{item.name}</td>
-                              <td className="py-1.5 text-right" style={{ color: '#003756', opacity: 0.7 }}>{item.status}</td>
+                              <td className="py-2 font-medium" style={{ color: '#003756' }}>{item.name}</td>
+                              <td className="py-2 text-xs" style={{ color: '#003756', opacity: 0.6 }}>{item.program}</td>
+                              <td className="py-2 text-right font-bold text-xs" style={{ color: item.color }}>{item.status}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1952,14 +2073,9 @@ export default function Plan2026() {
                     </div>
                   </div>
 
-                  <div className="rounded-3xl p-4" style={{ backgroundColor: '#E0F2F7' }}>
-                    <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>The Shortcut Play</h4>
-                    <p className="text-xs mb-2" style={{ color: '#003756' }}>Package services as "wellness events" — not standalone massage:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {['"Employee Appreciation Wellness Day"', '"Health Awareness Event"', '"Stress Reduction Program"'].map((item, idx) => (
-                        <span key={idx} className="px-2 py-1 rounded-full text-xs" style={{ backgroundColor: 'white', color: '#003756' }}>{item}</span>
-                      ))}
-                    </div>
+                  <div className="rounded-3xl p-4" style={{ backgroundColor: '#003756' }}>
+                    <h4 className="font-semibold text-sm mb-2 text-white">Q1 Goal: Map the Landscape</h4>
+                    <p className="text-xs text-white" style={{ opacity: 0.8 }}>Identify equivalent programs at every major insurer. We know Cigna/Aetna work — find the rest.</p>
                   </div>
                 </div>
               </div>
@@ -1967,43 +2083,42 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 19: HEALTHCARE - LSA TARGETS ==================== */}
-        {currentSlide === 18 && (
+        {/* ==================== SLIDE 19: HOW IT WORKS ==================== */}
+        {currentSlide === 19 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
                 <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#018EA2' }}>
-                  Healthcare Channel
+                  Employer Wellness Funds
                 </p>
                 <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  LSA Platform Partnerships
+                  How It Works
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Lifestyle Spending Accounts are the fastest-growing benefits category
+                  Company-level funds for group wellness events — not individual employee spending
                 </p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
-                {/* LSA Platforms */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
+                {/* The Flow */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
                   <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white">Target LSA Platforms</h3>
+                    <h3 className="font-semibold text-white">The Reimbursement Flow</h3>
                   </div>
                   <div className="p-5" style={{ backgroundColor: 'white' }}>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {[
-                        { name: 'Forma', desc: '300+ customers, 110+ countries' },
-                        { name: 'Benepass', desc: 'Card-first, zero out-of-pocket' },
-                        { name: 'Espresa', desc: 'Wellness challenges + ERGs' },
-                        { name: 'Fringe', desc: 'Powers Alight Marketplace' },
-                        { name: 'Compt', desc: '90% participation rate' },
-                        { name: 'Truemed', desc: 'HSA/FSA enablement via LMN' },
-                      ].map((platform, idx) => (
-                        <div key={idx} className="flex items-start gap-3 py-2 border-b" style={{ borderColor: 'rgba(0,55,86,0.1)' }}>
-                          <span style={{ color: '#9EFAFF' }}>→</span>
+                        { step: '1', title: 'HR Books Shortcut', desc: 'Company decides to bring in Shortcut for a wellness day, massage event, or ongoing program' },
+                        { step: '2', title: 'Shortcut Delivers & Invoices', desc: 'We deliver the service and invoice the company directly (B2B transaction)' },
+                        { step: '3', title: 'Company Pays Shortcut', desc: 'Company pays our invoice from their operating budget' },
+                        { step: '4', title: 'Company Submits for Reimbursement', desc: 'HR submits invoice/receipt to their insurer wellness fund' },
+                        { step: '5', title: 'Insurer Reimburses Company', desc: 'Company gets reimbursed (typically 45-60 days)' },
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <span className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ backgroundColor: '#E0F2F7', color: '#003756' }}>{item.step}</span>
                           <div>
-                            <p className="font-medium text-sm" style={{ color: '#003756' }}>{platform.name}</p>
-                            <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>{platform.desc}</p>
+                            <p className="font-medium text-sm" style={{ color: '#003756' }}>{item.title}</p>
+                            <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>{item.desc}</p>
                           </div>
                         </div>
                       ))}
@@ -2011,41 +2126,34 @@ export default function Plan2026() {
                   </div>
                 </div>
 
-                {/* Market Stats */}
+                {/* Key Distinctions */}
                 <div className="space-y-4">
-                  <div className="rounded-3xl p-5" style={{ backgroundColor: '#E0F2F7' }}>
-                    <h3 className="font-semibold mb-4" style={{ color: '#003756' }}>Market Opportunity</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {[
-                        { stat: '$1,029', label: 'Avg LSA/employee', sub: '2025 average' },
-                        { stat: '99%', label: 'LSAs include wellness', sub: 'Category coverage' },
-                        { stat: '74%', label: 'Companies increasing', sub: 'Wellness spending' },
-                        { stat: '38%', label: 'Considering LSAs', sub: 'New adopters' },
-                      ].map((item, idx) => (
-                        <div key={idx} className="text-center p-3 rounded-xl" style={{ backgroundColor: 'white' }}>
-                          <p className="text-xl font-bold" style={{ color: '#003756' }}>{item.stat}</p>
-                          <p className="text-xs font-medium" style={{ color: '#003756' }}>{item.label}</p>
-                          <p className="text-xs" style={{ color: '#003756', opacity: 0.5 }}>{item.sub}</p>
-                        </div>
-                      ))}
+                  <div className="rounded-3xl p-5" style={{ backgroundColor: '#DCFCE7' }}>
+                    <h3 className="font-semibold mb-3" style={{ color: '#166534' }}>✓ This IS Our Model</h3>
+                    <div className="space-y-2 text-sm" style={{ color: '#166534' }}>
+                      <p>• <strong>Company-level decision</strong> — HR/benefits team books us</p>
+                      <p>• <strong>Group service delivery</strong> — massage day for the office</p>
+                      <p>• <strong>B2B invoice</strong> — we bill the company directly</p>
+                      <p>• <strong>Pooled corporate funds</strong> — not individual employee accounts</p>
+                      <p>• <strong>Massage is eligible</strong> — confirmed as qualifying wellness activity</p>
                     </div>
                   </div>
 
-                  <div className="rounded-3xl p-5" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold mb-3 text-white">Action Items</h3>
-                    <div className="space-y-2">
-                      {[
-                        'Apply to Forma vendor marketplace',
-                        'Contact Benepass partnership team',
-                        'Explore Truemed HSA enablement',
-                        'Build API for platform integration',
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <input type="checkbox" className="mt-1" style={{ accentColor: '#9EFAFF' }} />
-                          <p className="text-sm text-white">{item}</p>
-                        </div>
-                      ))}
+                  <div className="rounded-3xl p-5" style={{ backgroundColor: '#FEF2F2' }}>
+                    <h3 className="font-semibold mb-3" style={{ color: '#DC2626' }}>✗ This is NOT Our Model</h3>
+                    <div className="space-y-2 text-sm" style={{ color: '#DC2626' }}>
+                      <p>• Individual employee LSA/HSA/FSA spending</p>
+                      <p>• Employees browsing a marketplace to book</p>
+                      <p>• Per-employee reimbursement or cards</p>
+                      <p>• Consumer-facing transactions</p>
                     </div>
+                  </div>
+
+                  <div className="rounded-3xl p-4" style={{ backgroundColor: '#003756' }}>
+                    <h4 className="font-semibold text-white text-sm mb-2">Why This Matters</h4>
+                    <p className="text-xs text-white" style={{ opacity: 0.8 }}>
+                      LSA platforms like Forma and Benepass are for individual employee spending — not relevant to our B2B model. Our focus should be on helping companies access their <strong>insurer wellness funds</strong> and connecting with <strong>benefits brokers</strong> who recommend vendors.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -2054,15 +2162,15 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 20: HEALTHCARE BROKERS ==================== */}
-        {currentSlide === 19 && (
+        {currentSlide === 20 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
                 <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
-                  Healthcare Channel
+                  Employer Wellness Funds
                 </p>
                 <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Benefits Broker Targets
+                  Channel 2: Benefits Brokers
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
                   Brokers recommend wellness vendors to their employer clients
@@ -2144,112 +2252,117 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 21: HEALTHCARE ACTION PLAN ==================== */}
-        {currentSlide === 20 && (
+        {currentSlide === 21 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
-                  Healthcare Channel
+                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#22C55E' }}>
+                  Employer Wellness Funds — Systematic Capture Strategy
                 </p>
                 <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Action Plan
+                  Three Attack Vectors
                 </h2>
                 <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Tiered approach to unlocking healthcare channel revenue
+                  We know Cigna and Aetna work. Now systematically capture revenue across ALL major insurers.
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                {/* Tier 1 & 2 */}
-                <div className="space-y-4">
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
-                    <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                      <h3 className="font-semibold text-white">Tier 1: Fastest Path (Now)</h3>
-                    </div>
-                    <div className="p-4" style={{ backgroundColor: 'white' }}>
-                      <div className="space-y-2 text-sm">
-                        {[
-                          { action: 'Create "How to Use Your Wellness Dollars" one-pager', timeline: '2 weeks' },
-                          { action: 'Train sales to ask "Who is your health insurance provider?"', timeline: 'Immediate' },
-                          { action: 'Build list of Cigna/Aetna/BCBS employer clients', timeline: '2 weeks' },
-                          { action: 'Outreach to existing clients re: Health Improvement Fund', timeline: '2 weeks' },
-                        ].map((item, idx) => (
-                          <div key={idx} className="flex justify-between py-2" style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                            <span style={{ color: '#003756' }}>{item.action}</span>
-                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#E0F2F7', color: '#018EA2' }}>{item.timeline}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+              <div className="grid md:grid-cols-3 gap-4 max-w-6xl mx-auto mb-6">
+                {/* Attack Vector 1: Provider Direct */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #22C55E' }}>
+                  <div className="p-4" style={{ backgroundColor: '#166534' }}>
+                    <h3 className="font-semibold text-white text-sm">Vector 1: Provider Direct</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.7 }}>Get on insurer vendor lists</p>
                   </div>
-
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <div className="p-4" style={{ backgroundColor: '#018EA2' }}>
-                      <h3 className="font-semibold text-white">Tier 2: Broker Channel (Q1-Q2)</h3>
-                    </div>
-                    <div className="p-4" style={{ backgroundColor: 'white' }}>
-                      <div className="space-y-2 text-sm">
-                        {[
-                          { action: 'Identify top 10 benefits brokers in NYC', timeline: '4 weeks' },
-                          { action: 'Create broker partnership deck', timeline: '6 weeks' },
-                          { action: 'Consider BenefitsPRO Broker Expo (April, Chicago)', timeline: 'April' },
-                        ].map((item, idx) => (
-                          <div key={idx} className="flex justify-between py-2" style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                            <span style={{ color: '#003756' }}>{item.action}</span>
-                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#E0F2F7', color: '#018EA2' }}>{item.timeline}</span>
-                          </div>
-                        ))}
+                  <div className="p-4" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-2 text-xs">
+                      <p style={{ color: '#166534' }}><strong>Goal:</strong> Become an approved vendor that insurers recommend to employer clients</p>
+                      <div className="mt-3 space-y-1">
+                        <p style={{ color: '#003756' }}>• Contact Health Engagement teams at each insurer</p>
+                        <p style={{ color: '#003756' }}>• Apply to vendor/partner programs</p>
+                        <p style={{ color: '#003756' }}>• Get listed in their wellness directories</p>
+                      </div>
+                      <div className="mt-3 p-2 rounded-lg" style={{ backgroundColor: '#DCFCE7' }}>
+                        <p style={{ color: '#166534' }}><strong>Targets:</strong> Cigna, Aetna, Anthem, BCBS, UHC</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Tier 3 & 4 */}
-                <div className="space-y-4">
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <div className="p-4" style={{ backgroundColor: '#FF5050' }}>
-                      <h3 className="font-semibold text-white">Tier 3: Direct Insurer Registration (Q2)</h3>
-                    </div>
-                    <div className="p-4" style={{ backgroundColor: 'white' }}>
-                      <div className="space-y-2 text-sm">
-                        {[
-                          { action: 'Register on Cigna Supplier Portal', timeline: 'Q2' },
-                          { action: 'Register on CVS/Aetna Supplier Portal', timeline: 'Q2' },
-                          { action: 'Connect with Health Engagement Consultants via LinkedIn', timeline: 'Q2' },
-                        ].map((item, idx) => (
-                          <div key={idx} className="flex justify-between py-2" style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                            <span style={{ color: '#003756' }}>{item.action}</span>
-                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#FEF2F2', color: '#DC2626' }}>{item.timeline}</span>
-                          </div>
-                        ))}
+                {/* Attack Vector 2: HR Direct */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #018EA2' }}>
+                  <div className="p-4" style={{ backgroundColor: '#018EA2' }}>
+                    <h3 className="font-semibold text-white text-sm">Vector 2: HR Direct</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.7 }}>Help clients unlock their existing funds</p>
+                  </div>
+                  <div className="p-4" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-2 text-xs">
+                      <p style={{ color: '#018EA2' }}><strong>Goal:</strong> Proactively tell every client/prospect they may have wellness funds available</p>
+                      <div className="mt-3 space-y-1">
+                        <p style={{ color: '#003756' }}>• Audit all clients for insurer coverage</p>
+                        <p style={{ color: '#003756' }}>• Create "Did You Know?" one-pager</p>
+                        <p style={{ color: '#003756' }}>• Add wellness fund question to sales process</p>
+                      </div>
+                      <div className="mt-3 p-2 rounded-lg" style={{ backgroundColor: '#E0F2F7' }}>
+                        <p style={{ color: '#018EA2' }}><strong>Key:</strong> "Funds expire end of plan year — use or lose it"</p>
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                      <h3 className="font-semibold text-white">Tier 4: LSA Platform Integration (Q2-Q3)</h3>
-                    </div>
-                    <div className="p-4" style={{ backgroundColor: 'white' }}>
-                      <div className="space-y-2 text-sm">
-                        {[
-                          { action: 'Apply to Forma vendor network', timeline: 'Q2' },
-                          { action: 'Apply to Benepass vendor network', timeline: 'Q2' },
-                          { action: 'Apply to Compt vendor network', timeline: 'Q2' },
-                        ].map((item, idx) => (
-                          <div key={idx} className="flex justify-between py-2" style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                            <span style={{ color: '#003756' }}>{item.action}</span>
-                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#E0F2F7', color: '#018EA2' }}>{item.timeline}</span>
-                          </div>
-                        ))}
+                {/* Attack Vector 3: Broker Channel */}
+                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #003756' }}>
+                  <div className="p-4" style={{ backgroundColor: '#003756' }}>
+                    <h3 className="font-semibold text-white text-sm">Vector 3: Broker Channel</h3>
+                    <p className="text-xs text-white" style={{ opacity: 0.7 }}>Brokers recommend us to their clients</p>
+                  </div>
+                  <div className="p-4" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-2 text-xs">
+                      <p style={{ color: '#003756' }}><strong>Goal:</strong> Become preferred vendor for benefits brokers who advise employer clients</p>
+                      <div className="mt-3 space-y-1">
+                        <p style={{ color: '#003756' }}>• Target Gallagher, Lockton, USI, Mercer</p>
+                        <p style={{ color: '#003756' }}>• Position: "Help your clients use their funds"</p>
+                        <p style={{ color: '#003756' }}>• Attend BenefitsPRO Broker Expo (April)</p>
+                      </div>
+                      <div className="mt-3 p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                        <p style={{ color: '#003756' }}><strong>Pitch:</strong> "90% of your clients have unused wellness $"</p>
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <div className="p-4 rounded-2xl" style={{ backgroundColor: '#E0F2F7' }}>
-                    <p className="text-xs text-center" style={{ color: '#003756' }}>
-                      <strong>Key insight:</strong> This is NOT individual HSA/FSA. This is pooled corporate money that HR can use to pay for Shortcut services.
-                    </p>
+              {/* Bottom Row: Revenue Target + Insurer Map */}
+              <div className="grid md:grid-cols-2 gap-4 max-w-5xl mx-auto">
+                <div className="rounded-3xl p-5" style={{ backgroundColor: '#003756' }}>
+                  <h4 className="font-semibold text-white mb-3">2026 Revenue Target</h4>
+                  <p className="text-3xl font-bold mb-2" style={{ color: '#9EFAFF' }}>$30-40K</p>
+                  <div className="space-y-1 text-xs text-white" style={{ opacity: 0.8 }}>
+                    <p>• 6-8 clients actively using wellness funds @ ~$5K avg</p>
+                    <p>• Proven with Cigna/Aetna — replicate across insurers</p>
+                    <p>• Q4 urgency play: "Use your funds before year-end"</p>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <div className="p-3" style={{ backgroundColor: '#E0F2F7' }}>
+                    <h4 className="font-semibold text-sm" style={{ color: '#003756' }}>Insurer Program Status (Research Findings)</h4>
+                  </div>
+                  <div className="p-3" style={{ backgroundColor: 'white' }}>
+                    <div className="space-y-1 text-xs">
+                      {[
+                        { name: 'Cigna', program: 'Health Improvement Fund', status: '✅ PROVEN', note: 'Reimbursement confirmed' },
+                        { name: 'Aetna/CVS', program: 'Wellness Fund', status: '✅ PROVEN', note: 'Clients already using' },
+                        { name: 'Anthem', program: 'Wellness Fund', status: '🎯 HIGH', note: 'Has formal reimbursement process' },
+                        { name: 'BCBS', program: 'Varies by state', status: '🔍 RESEARCH', note: 'Well onTarget, state-specific' },
+                        { name: 'UHC', program: 'Wellness Programs', status: '🔍 RESEARCH', note: 'Rewards-focused, vendor network' },
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between py-1" style={{ borderBottom: '1px solid rgba(0,55,86,0.05)' }}>
+                          <span className="font-medium" style={{ color: '#003756' }}>{item.name}</span>
+                          <span style={{ color: '#003756', opacity: 0.5 }}>{item.note}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2258,7 +2371,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 22: CLE FOR LAWYERS ==================== */}
-        {currentSlide === 21 && (
+        {currentSlide === 22 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2380,7 +2493,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 23: CLE REVENUE POTENTIAL ==================== */}
-        {currentSlide === 22 && (
+        {currentSlide === 23 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2484,7 +2597,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 24: SHORTCUT SESSIONS ==================== */}
-        {currentSlide === 23 && (
+        {currentSlide === 24 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2598,7 +2711,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 25: SAMPLE INVITATION ==================== */}
-        {currentSlide === 24 && (
+        {currentSlide === 25 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-4xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2672,7 +2785,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 26: INVESTMENT SUMMARY ==================== */}
-        {currentSlide === 25 && (
+        {currentSlide === 26 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -2700,7 +2813,7 @@ export default function Plan2026() {
                   </thead>
                   <tbody>
                     {[
-                      { cat: 'New Hire Salaries (Sales, Accounts)', h1: '$35K', h2: '$55K', total: '$90K', note: 'Cash after equity offset' },
+                      { cat: 'Team Compensation & Growth', h1: '$35K', h2: '$55K', total: '$90K', note: 'Merit increases for existing team and strategic new hires; subject to adjustment based on H2 performance' },
                       { cat: 'Conferences (7 total)', h1: '$33K', h2: '$36K', total: '~$60K', note: '3 in H1, 4 in H2' },
                       { cat: 'Content & Ad Spend', h1: '$32K', h2: '$18K', total: '$50K', note: 'Marketing investment' },
                     ].map((item, idx) => (
@@ -2724,17 +2837,17 @@ export default function Plan2026() {
                 </table>
               </div>
 
-              {/* New Hires Detail */}
+              {/* Team Investment Detail */}
               <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-8">
                 <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                  <h4 className="font-semibold text-white mb-2">Head of Sales</h4>
-                  <p className="text-sm" style={{ color: '#9EFAFF' }}>$135K total comp</p>
-                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Includes $50K expected commission + 1.25% equity</p>
+                  <h4 className="font-semibold text-white mb-2">Existing Team</h4>
+                  <p className="text-sm" style={{ color: '#9EFAFF' }}>Merit-based increases</p>
+                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Competitive adjustments to retain and reward top performers</p>
                 </div>
                 <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                  <h4 className="font-semibold text-white mb-2">Head of Accounts</h4>
-                  <p className="text-sm" style={{ color: '#9EFAFF' }}>$80K total comp</p>
-                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Focus on existing client expansion + 1.0% equity</p>
+                  <h4 className="font-semibold text-white mb-2">Strategic New Hires</h4>
+                  <p className="text-sm" style={{ color: '#9EFAFF' }}>Sales & Account Management</p>
+                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Allocation subject to increase based on year-end performance</p>
                 </div>
               </div>
 
@@ -2758,7 +2871,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 27: Q1 ACTION ITEMS ==================== */}
-        {currentSlide === 26 && (
+        {currentSlide === 27 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2898,7 +3011,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 28: NEXT STEPS ==================== */}
-        {currentSlide === 27 && (
+        {currentSlide === 28 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2998,7 +3111,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 29: APPENDIX - CONFERENCES ==================== */}
-        {currentSlide === 28 && (
+        {currentSlide === 29 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -3095,7 +3208,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 30: APPENDIX - INSURERS ==================== */}
-        {currentSlide === 29 && (
+        {currentSlide === 30 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -3163,7 +3276,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 31: APPENDIX - BROKERS ==================== */}
-        {currentSlide === 30 && (
+        {currentSlide === 31 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">

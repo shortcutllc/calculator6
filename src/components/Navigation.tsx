@@ -51,9 +51,9 @@ export const Navigation: React.FC = () => {
           onClick={() => navigate('/')}
           className="hover:opacity-80 transition-opacity"
         >
-          <img 
-            src="/shortcut-logo blue.svg" 
-            alt="Shortcut Logo" 
+          <img
+            src="/shortcut-logo-blue.svg"
+            alt="Shortcut Logo"
             className="h-6 sm:h-8 w-auto"
           />
         </button>
