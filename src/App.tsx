@@ -441,22 +441,6 @@ function App() {
                 }
               />
               
-              {/* 2026 Growth Plan */}
-              <Route
-                path="/2026-plan"
-                element={
-                  <PrivateRoute>
-                    <Suspense fallback={
-                      <div className="min-h-screen flex items-center justify-center">
-                        <LoadingSpinner size="large" />
-                      </div>
-                    }>
-                      <Plan2026 />
-                    </Suspense>
-                  </PrivateRoute>
-                }
-              />
-
               {/* Custom URL Routes */}
               <Route
                 path="/:client/:type/:slug"
