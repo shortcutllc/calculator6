@@ -26,31 +26,7 @@ import {
   ParticipantBenefitsSection,
   AdditionalResourcesSection
 } from './MindfulnessProposalContent';
-import {
-  MassageWhyShortcutSection,
-  MassageBenefitsSection,
-  MassageWhatsIncludedSection
-} from './MassageProposalContent';
-import {
-  HeadshotWhyShortcutSection,
-  HeadshotBenefitsSection,
-  HeadshotWhatsIncludedSection
-} from './HeadshotProposalContent';
-import {
-  NailsWhyShortcutSection,
-  NailsBenefitsSection,
-  NailsWhatsIncludedSection
-} from './NailsProposalContent';
-import {
-  HairMakeupWhyShortcutSection,
-  HairMakeupBenefitsSection,
-  HairMakeupWhatsIncludedSection
-} from './HairMakeupProposalContent';
-import {
-  FacialWhyShortcutSection,
-  FacialBenefitsSection,
-  FacialWhatsIncludedSection
-} from './FacialProposalContent';
+import { UnifiedServiceSections } from './UnifiedProposalSections';
 
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -152,40 +128,6 @@ const hasCLEService = (displayData: any): boolean => {
   const uniqueServiceTypes = getUniqueServiceTypes(displayData);
   return uniqueServiceTypes.some(type =>
     type.toLowerCase() === 'mindfulness-cle'
-  );
-};
-
-// Helper function to check if proposal contains massage services
-const hasMassageService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  return uniqueServiceTypes.some(type => type.toLowerCase() === 'massage');
-};
-
-// Helper function to check if proposal contains headshot services
-const hasHeadshotService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  const headshotTypes = ['headshot', 'headshots', 'headshot-hair-makeup'];
-  return uniqueServiceTypes.some(type => headshotTypes.includes(type.toLowerCase()));
-};
-
-// Helper function to check if proposal contains nail services
-const hasNailsService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  return uniqueServiceTypes.some(type => type.toLowerCase() === 'nails');
-};
-
-// Helper function to check if proposal contains hair/makeup services (excluding headshot-hair-makeup which is covered by headshots)
-const hasHairMakeupService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  const hairMakeupTypes = ['hair-makeup', 'hair', 'makeup'];
-  return uniqueServiceTypes.some(type => hairMakeupTypes.includes(type.toLowerCase()));
-};
-
-// Helper function to check if proposal contains facial services
-const hasFacialService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  return uniqueServiceTypes.some(type =>
-    type.toLowerCase() === 'facial' || type.toLowerCase() === 'facials'
   );
 };
 
@@ -2215,49 +2157,13 @@ export const StandaloneProposalViewer: React.FC = () => {
               <AdditionalResourcesSection />
             )}
 
-            {/* Massage-specific sections */}
-            {hasMassageService(displayData) && (
-              <>
-                <MassageWhyShortcutSection />
-                <MassageBenefitsSection />
-                <MassageWhatsIncludedSection />
-              </>
-            )}
-
-            {/* Headshot-specific sections */}
-            {hasHeadshotService(displayData) && (
-              <>
-                <HeadshotWhyShortcutSection />
-                <HeadshotBenefitsSection />
-                <HeadshotWhatsIncludedSection />
-              </>
-            )}
-
-            {/* Nails-specific sections */}
-            {hasNailsService(displayData) && (
-              <>
-                <NailsWhyShortcutSection />
-                <NailsBenefitsSection />
-                <NailsWhatsIncludedSection />
-              </>
-            )}
-
-            {/* Hair & Makeup-specific sections */}
-            {hasHairMakeupService(displayData) && (
-              <>
-                <HairMakeupWhyShortcutSection />
-                <HairMakeupBenefitsSection />
-                <HairMakeupWhatsIncludedSection />
-              </>
-            )}
-
-            {/* Facial-specific sections */}
-            {hasFacialService(displayData) && (
-              <>
-                <FacialWhyShortcutSection />
-                <FacialBenefitsSection />
-                <FacialWhatsIncludedSection />
-              </>
+            {/* Unified Service Sections - Why Shortcut + Collapsible Service Details */}
+            {/* Only show for non-mindfulness proposals (mindfulness has its own sections above) */}
+            {!isMindfulnessOnlyProposal(displayData) && uniqueServiceTypes.length > 0 && (
+              <UnifiedServiceSections
+                serviceTypes={uniqueServiceTypes}
+                showWhyShortcut={true}
+              />
             )}
               </div>
 
