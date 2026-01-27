@@ -5,7 +5,6 @@ export default function Plan2026() {
 
   const slides = [
     'title',
-    'agenda',
     '2025-summary',
     'customer-base',
     '2025-challenges',
@@ -159,91 +158,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 2: AGENDA ==================== */}
+        {/* ==================== SLIDE 2: 2025 SUMMARY ==================== */}
         {currentSlide === 1 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-8">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
-                  January 2026 Planning Session
-                </p>
-                <h2 className="text-4xl md:text-5xl font-semibold mb-2" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Meeting Agenda
-                </h2>
-                <p className="text-lg" style={{ color: '#003756', opacity: 0.6 }}>Full-Day Strategic Planning</p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                {/* Morning Session */}
-                <div className="rounded-3xl p-6" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl">☀️</span>
-                    <h3 className="text-xl font-semibold" style={{ color: '#003756' }}>Morning Session</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      { time: '9:00 - 9:30', topic: 'Welcome & Context Setting', desc: 'Goals, ground rules, expectations' },
-                      { time: '9:30 - 10:15', topic: '2025 Summary & 2026 Targets', desc: 'Where we are, where we\'re going' },
-                      { time: '10:15 - 11:00', topic: 'Lever 1: Content Strategy', desc: 'Educational content to lower barrier to entry' },
-                      { time: '11:00 - 11:45', topic: 'Lever 2: Conference Strategy', desc: 'H1/H2 conference playbook & metrics' },
-                      { time: '11:45 - 12:00', topic: 'Q&A / Buffer', desc: 'Morning wrap-up' },
-                      { time: '12:00 - 1:00', topic: 'Lunch Break', desc: '', highlight: true },
-                    ].map((item, idx) => (
-                      <div key={idx} className={`flex gap-4 p-3 rounded-xl ${item.highlight ? 'bg-white' : ''}`}>
-                        <span className="text-sm font-mono font-medium whitespace-nowrap" style={{ color: '#018EA2', minWidth: '100px' }}>{item.time}</span>
-                        <div>
-                          <p className="font-medium text-sm" style={{ color: '#003756' }}>{item.topic}</p>
-                          {item.desc && <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>{item.desc}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Afternoon Session */}
-                <div className="rounded-3xl p-6" style={{ backgroundColor: '#E0F2F7', border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl">🌙</span>
-                    <h3 className="text-xl font-semibold" style={{ color: '#003756' }}>Afternoon Session</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      { time: '1:00 - 1:45', topic: 'Lever 3: Employer Wellness Funds', desc: 'Cigna/Aetna proven • Current + new services • 3 attack vectors', highlight: true },
-                      { time: '1:45 - 2:15', topic: 'CLE Mindfulness for Lawyers', desc: 'High-margin vertical expansion' },
-                      { time: '2:15 - 2:45', topic: 'Lever 4: Hosted Events', desc: 'Q1 design → Q2-Q4 execute 3 events • Sponsor strategy' },
-                      { time: '2:45 - 3:15', topic: 'Client Entertainment Vertical', desc: 'Wall Street firms • Q1 design → Q2 launch', isNew: true },
-                      { time: '3:15 - 3:30', topic: 'Break', desc: '' },
-                      { time: '3:30 - 4:15', topic: 'Capitalization & Hiring', desc: 'Investment needs, team growth' },
-                      { time: '4:15 - 4:45', topic: 'Q1 Actions & Risk Mitigation', desc: 'Immediate priorities' },
-                      { time: '4:45 - 5:00', topic: 'Next Steps & Closing', desc: 'Commitments and follow-ups' },
-                    ].map((item, idx) => (
-                      <div key={idx} className={`flex gap-4 p-3 rounded-xl ${item.highlight ? 'bg-white/60' : ''} ${item.isNew ? 'ring-2 ring-offset-1' : ''}`} style={item.isNew ? { ringColor: '#FF5050' } : {}}>
-                        <span className="text-sm font-mono font-medium whitespace-nowrap" style={{ color: '#018EA2', minWidth: '100px' }}>{item.time}</span>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm" style={{ color: '#003756' }}>{item.topic}</p>
-                            {item.isNew && <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#FF5050', color: 'white' }}>NEW</span>}
-                          </div>
-                          {item.desc && <p className="text-xs" style={{ color: '#003756', opacity: 0.6 }}>{item.desc}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Key Focus Areas */}
-              <div className="mt-8 text-center">
-                <p className="text-sm font-medium" style={{ color: '#003756', opacity: 0.6 }}>
-                  Key Focus: Four Growth Levers • Healthcare Services Expansion • Client Entertainment Launch
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ==================== SLIDE 3: 2025 SUMMARY ==================== */}
-        {currentSlide === 2 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -329,8 +245,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 4: CUSTOMER BASE ==================== */}
-        {currentSlide === 3 && (
+        {/* ==================== SLIDE 3: CUSTOMER BASE ==================== */}
+        {currentSlide === 2 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -459,8 +375,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 5: 2025 CHALLENGES ==================== */}
-        {currentSlide === 4 && (
+        {/* ==================== SLIDE 4: 2025 CHALLENGES ==================== */}
+        {currentSlide === 3 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -551,8 +467,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 6: 2026 TARGETS ==================== */}
-        {currentSlide === 5 && (
+        {/* ==================== SLIDE 5: 2026 TARGETS ==================== */}
+        {currentSlide === 4 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -625,8 +541,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 7: EXIT STRATEGY ==================== */}
-        {currentSlide === 6 && (
+        {/* ==================== SLIDE 6: EXIT STRATEGY ==================== */}
+        {currentSlide === 5 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -700,8 +616,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 8: FOUR LEVERS ==================== */}
-        {currentSlide === 7 && (
+        {/* ==================== SLIDE 7: FOUR LEVERS ==================== */}
+        {currentSlide === 6 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -779,8 +695,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 9: INVESTMENT OVERVIEW ==================== */}
-        {currentSlide === 8 && (
+        {/* ==================== SLIDE 8: INVESTMENT OVERVIEW ==================== */}
+        {currentSlide === 7 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -865,8 +781,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 10: CONTENT STRATEGY ==================== */}
-        {currentSlide === 9 && (
+        {/* ==================== SLIDE 9: CONTENT STRATEGY ==================== */}
+        {currentSlide === 8 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -998,8 +914,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 11: CONTENT ASSETS ==================== */}
-        {currentSlide === 10 && (
+        {/* ==================== SLIDE 10: CONTENT ASSETS ==================== */}
+        {currentSlide === 9 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1084,8 +1000,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 12: CONFERENCE STRATEGY ==================== */}
-        {currentSlide === 11 && (
+        {/* ==================== SLIDE 11: CONFERENCE STRATEGY ==================== */}
+        {currentSlide === 10 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1209,8 +1125,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 13: LEAD ESTIMATION METHODOLOGY ==================== */}
-        {currentSlide === 12 && (
+        {/* ==================== SLIDE 12: LEAD ESTIMATION METHODOLOGY ==================== */}
+        {currentSlide === 11 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1285,8 +1201,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 14: CONFERENCE RECOMMENDATIONS ==================== */}
-        {currentSlide === 13 && (
+        {/* ==================== SLIDE 13: CONFERENCE RECOMMENDATIONS ==================== */}
+        {currentSlide === 12 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1436,8 +1352,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 15: H2 CONFERENCES ==================== */}
-        {currentSlide === 14 && (
+        {/* ==================== SLIDE 14: H2 CONFERENCES ==================== */}
+        {currentSlide === 13 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1612,8 +1528,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 16: H1 CONFERENCE DETAILS ==================== */}
-        {currentSlide === 15 && (
+        {/* ==================== SLIDE 15: H1 CONFERENCE DETAILS ==================== */}
+        {currentSlide === 14 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1747,8 +1663,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 17: H2 CONFERENCE DETAILS ==================== */}
-        {currentSlide === 16 && (
+        {/* ==================== SLIDE 16: H2 CONFERENCE DETAILS ==================== */}
+        {currentSlide === 15 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1845,8 +1761,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 18: CONFERENCE EXECUTION PLAYBOOK ==================== */}
-        {currentSlide === 17 && (
+        {/* ==================== SLIDE 17: CONFERENCE EXECUTION PLAYBOOK ==================== */}
+        {currentSlide === 16 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1959,8 +1875,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 19: CONFERENCE SUCCESS METRICS ==================== */}
-        {currentSlide === 18 && (
+        {/* ==================== SLIDE 18: CONFERENCE SUCCESS METRICS ==================== */}
+        {currentSlide === 17 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2073,8 +1989,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 20: HEALTHCARE - CIGNA ==================== */}
-        {currentSlide === 19 && (
+        {/* ==================== SLIDE 19: HEALTHCARE - CIGNA ==================== */}
+        {currentSlide === 18 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2209,8 +2125,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 21: HOW IT WORKS ==================== */}
-        {currentSlide === 20 && (
+        {/* ==================== SLIDE 20: HOW IT WORKS ==================== */}
+        {currentSlide === 19 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2287,8 +2203,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 22: HEALTHCARE BROKERS ==================== */}
-        {currentSlide === 21 && (
+        {/* ==================== SLIDE 21: HEALTHCARE BROKERS ==================== */}
+        {currentSlide === 20 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2377,8 +2293,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 23: HEALTHCARE ACTION PLAN ==================== */}
-        {currentSlide === 22 && (
+        {/* ==================== SLIDE 22: HEALTHCARE ACTION PLAN ==================== */}
+        {currentSlide === 21 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2496,8 +2412,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 24: CLE FOR LAWYERS ==================== */}
-        {currentSlide === 23 && (
+        {/* ==================== SLIDE 23: CLE FOR LAWYERS ==================== */}
+        {currentSlide === 22 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2618,8 +2534,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 25: CLE REVENUE POTENTIAL ==================== */}
-        {currentSlide === 24 && (
+        {/* ==================== SLIDE 24: CLE REVENUE POTENTIAL ==================== */}
+        {currentSlide === 23 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2722,8 +2638,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 26: SHORTCUT SESSIONS ==================== */}
-        {currentSlide === 25 && (
+        {/* ==================== SLIDE 25: SHORTCUT SESSIONS ==================== */}
+        {currentSlide === 24 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2898,8 +2814,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 27: SAMPLE INVITATION ==================== */}
-        {currentSlide === 26 && (
+        {/* ==================== SLIDE 26: SAMPLE INVITATION ==================== */}
+        {currentSlide === 25 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-4xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2972,8 +2888,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 28: CLIENT ENTERTAINMENT ==================== */}
-        {currentSlide === 27 && (
+        {/* ==================== SLIDE 27: CLIENT ENTERTAINMENT ==================== */}
+        {currentSlide === 26 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -3083,8 +2999,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 29: INVESTMENT SUMMARY ==================== */}
-        {currentSlide === 28 && (
+        {/* ==================== SLIDE 28: INVESTMENT SUMMARY ==================== */}
+        {currentSlide === 27 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -3169,8 +3085,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 30: Q1 ACTION ITEMS ==================== */}
-        {currentSlide === 29 && (
+        {/* ==================== SLIDE 29: Q1 ACTION ITEMS ==================== */}
+        {currentSlide === 28 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -3309,8 +3225,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 31: NEXT STEPS ==================== */}
-        {currentSlide === 30 && (
+        {/* ==================== SLIDE 30: NEXT STEPS ==================== */}
+        {currentSlide === 29 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -3409,8 +3325,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 32: APPENDIX - CONFERENCES ==================== */}
-        {currentSlide === 31 && (
+        {/* ==================== SLIDE 31: APPENDIX - CONFERENCES ==================== */}
+        {currentSlide === 30 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -3506,8 +3422,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 33: APPENDIX - INSURERS ==================== */}
-        {currentSlide === 32 && (
+        {/* ==================== SLIDE 32: APPENDIX - INSURERS ==================== */}
+        {currentSlide === 31 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -3574,8 +3490,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 34: APPENDIX - BROKERS ==================== */}
-        {currentSlide === 33 && (
+        {/* ==================== SLIDE 33: APPENDIX - BROKERS ==================== */}
+        {currentSlide === 32 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
