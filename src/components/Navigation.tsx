@@ -389,6 +389,16 @@ export const Navigation: React.FC = () => {
                         <TrendingUp size={16} className="text-text-dark-60" />
                         2026 Growth Plan
                       </button>
+                      <button
+                        onClick={() => {
+                          navigate('/2026-plan-ml');
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                      >
+                        <TrendingUp size={16} className="text-text-dark-60" />
+                        2026 Plan ML
+                      </button>
                     </div>
                   </div>
 

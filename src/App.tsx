@@ -39,6 +39,7 @@ const MindfulnessProgramManager = lazy(() => import('./components/MindfulnessPro
 const GenericLandingPageManager = lazy(() => import('./components/GenericLandingPageManager'));
 const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
 const Plan2026 = lazy(() => import('./components/Plan2026'));
+const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
 
 function App() {
   const location = useLocation();
@@ -60,7 +61,8 @@ function App() {
     location.pathname.startsWith('/qr-code-sign/') ||
     location.pathname.startsWith('/generic-landing-page/') ||
     location.pathname === '/corporatepartnerships' ||
-    location.pathname === '/2026-plan';
+    location.pathname === '/2026-plan' ||
+    location.pathname === '/2026-plan-ml';
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -426,7 +428,19 @@ function App() {
                   </Suspense>
                 }
               />
-              <Route 
+              <Route
+                path="/2026-plan-ml"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <Plan2026ML />
+                  </Suspense>
+                }
+              />
+              <Route
                 path="/generic-landing-page/:id"
                 element={
                   <GenericLandingPageProvider>
