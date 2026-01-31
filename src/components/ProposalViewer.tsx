@@ -3452,6 +3452,59 @@ The Shortcut Team`);
               </div>
             )}
 
+            {/* Auto-Recurring Discount Section - Only show in edit mode */}
+            {isEditing && !isSharedView && (
+              <div className="card-large">
+                <h2 className="text-xl font-extrabold text-shortcut-blue mb-4">Recurring Discount</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-shortcut-blue mb-2">
+                      Discount Amount
+                      <span className="font-normal text-gray-500 ml-2">
+                        (Auto-applied: 15% for 4-8 dates, 20% for 9+ dates)
+                      </span>
+                    </label>
+                    <select
+                      value={editedData?.isAutoRecurring ? String(editedData.autoRecurringDiscount || 0) : '0'}
+                      onChange={(e) => {
+                        const discountValue = parseInt(e.target.value) || 0;
+                        const newData = { ...editedData };
+
+                        if (discountValue === 0) {
+                          // Clear auto-recurring
+                          newData.isAutoRecurring = false;
+                          newData.autoRecurringDiscount = undefined;
+                          newData.autoRecurringSavings = undefined;
+                        } else {
+                          // Set manual auto-recurring discount
+                          newData.isAutoRecurring = true;
+                          newData.autoRecurringDiscount = discountValue;
+                          // Savings will be calculated by recalculateServiceTotals
+                        }
+
+                        const recalculated = recalculateServiceTotals(newData);
+                        setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                        setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                      }}
+                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                    >
+                      <option value="0">No Recurring Discount</option>
+                      <option value="15">15% Recurring Discount</option>
+                      <option value="20">20% Recurring Discount</option>
+                    </select>
+                  </div>
+                  {editedData?.isAutoRecurring && editedData.autoRecurringDiscount && (
+                    <div className="flex items-center gap-2 text-green-600 font-semibold">
+                      <span>✨</span>
+                      <span>
+                        {editedData.autoRecurringDiscount}% discount will save ${((editedData.autoRecurringSavings || 0)).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-extrabold text-white">Event Summary</h2>

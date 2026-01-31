@@ -764,10 +764,30 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     });
   });
 
-  // Apply auto-recurring if 4+ dates and no manual recurring
-  if (uniqueDateCount >= 4 && !hasManualRecurring) {
-    // Calculate discount rate: 15% for 4-8 dates, 20% for 9+ dates
-    const autoRecurringDiscount = uniqueDateCount >= 9 ? 20 : 15;
+  // Check if auto-recurring is explicitly set (from ProposalViewer edit)
+  // If isAutoRecurring is explicitly false, user has disabled it - don't auto-calculate
+  const isExplicitlyDisabled = updatedData.isAutoRecurring === false && updatedData.autoRecurringDiscount === undefined;
+  const hasManualAutoRecurring = updatedData.isAutoRecurring === true && updatedData.autoRecurringDiscount !== undefined;
+
+  // Determine auto-recurring discount:
+  // 1. If explicitly disabled, don't apply
+  // 2. If manually set to a specific value, use that
+  // 3. Otherwise, calculate from date count (if 4+ dates and no service-level recurring)
+  let autoRecurringDiscount: number | undefined;
+
+  if (isExplicitlyDisabled) {
+    // User explicitly turned off recurring discount
+    autoRecurringDiscount = undefined;
+  } else if (hasManualAutoRecurring) {
+    // Use manually set value
+    autoRecurringDiscount = updatedData.autoRecurringDiscount;
+  } else if (uniqueDateCount >= 4 && !hasManualRecurring) {
+    // Auto-calculate: 15% for 4-8 dates, 20% for 9+ dates
+    autoRecurringDiscount = uniqueDateCount >= 9 ? 20 : 15;
+  }
+
+  // Apply auto-recurring if applicable
+  if (autoRecurringDiscount && autoRecurringDiscount > 0 && !hasManualRecurring) {
     const discountMultiplier = autoRecurringDiscount / 100;
 
     // Calculate savings from auto-recurring discount
