@@ -3287,7 +3287,21 @@ The Shortcut Team`);
                                     </div>
                                     <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
                                       <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
-                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                      {displayData.isAutoRecurring && displayData.autoRecurringDiscount ? (
+                                        <div>
+                                          <div className="text-lg font-semibold text-shortcut-navy-blue/60 line-through">
+                                            ${formatCurrency(dateData.totalCost || 0)}
+                                          </div>
+                                          <div className="text-2xl font-extrabold text-green-600">
+                                            ${formatCurrency((dateData.totalCost || 0) * (1 - displayData.autoRecurringDiscount / 100))}
+                                          </div>
+                                          <div className="text-xs text-green-600 font-bold mt-1">
+                                            {displayData.autoRecurringDiscount}% discount
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -3356,10 +3370,12 @@ The Shortcut Team`);
             })()}
 
             {Object.entries(displayData.services || {}).map(([location, locationData]) => (
-              <LocationSummary 
+              <LocationSummary
                 key={`${location}-${updateCounter}`}
                 location={location}
                 services={locationData}
+                isAutoRecurring={displayData.isAutoRecurring}
+                autoRecurringDiscount={displayData.autoRecurringDiscount}
               />
             ))}
 
@@ -3439,7 +3455,7 @@ The Shortcut Team`);
             <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
-                {/* Check for recurring services */}
+                {/* Check for recurring services or auto-recurring */}
                 {(() => {
                   let recurringCount = 0;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {
@@ -3451,6 +3467,17 @@ The Shortcut Team`);
                       });
                     });
                   });
+
+                  // Show auto-recurring badge if applicable
+                  if (displayData.isAutoRecurring && displayData.autoRecurringDiscount) {
+                    return (
+                      <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white whitespace-nowrap">
+                        <span>✨</span>
+                        <span>{displayData.autoRecurringDiscount}% Recurring Discount</span>
+                      </span>
+                    );
+                  }
+
                   return recurringCount > 0 ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
                       🔄 {recurringCount} Recurring Service{recurringCount !== 1 ? 's' : ''}
@@ -3495,8 +3522,27 @@ The Shortcut Team`);
                   <span className="font-semibold">Profit Margin:</span>
                   <span className="font-bold text-lg">{(displayData.summary?.profitMargin || 0).toFixed(1)}%</span>
                 </div>
-                {/* Recurring Savings Display */}
+                {/* Recurring Savings Display (manual or auto) */}
                 {(() => {
+                  // Check for auto-recurring savings first
+                  if (displayData.isAutoRecurring && displayData.autoRecurringSavings && displayData.autoRecurringSavings > 0) {
+                    return (
+                      <div className="mt-4 pt-4 border-t border-white/20">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold flex items-center gap-2">
+                            <span className="text-lg">✨</span>
+                            Recurring Discount ({displayData.autoRecurringDiscount}%):
+                          </span>
+                          <span className="font-bold text-lg text-green-300">-${formatCurrency(displayData.autoRecurringSavings)}</span>
+                        </div>
+                        <p className="text-sm text-white/60 mt-2">
+                          Applied automatically for {displayData.eventDates?.filter((d: string) => d !== 'TBD').length}+ event dates
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // Check for manual recurring savings
                   let totalSavings = 0;
                   let hasRecurring = false;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {

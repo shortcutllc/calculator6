@@ -748,5 +748,66 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
   if (gratuityType) updatedData.gratuityType = gratuityType;
   if (gratuityValue !== null) updatedData.gratuityValue = gratuityValue;
 
+  // Auto-recurring: Apply recurring discount when 4+ unique dates exist
+  // Only apply if no services are already manually marked as recurring
+  const uniqueDateCount = updatedData.eventDates.filter(d => d !== 'TBD').length;
+  let hasManualRecurring = false;
+
+  // Check if any service is already marked as recurring
+  Object.values(updatedData.services || {}).forEach((locationData: any) => {
+    Object.values(locationData || {}).forEach((dateData: any) => {
+      (dateData.services || []).forEach((service: any) => {
+        if (service.isRecurring && service.recurringFrequency) {
+          hasManualRecurring = true;
+        }
+      });
+    });
+  });
+
+  // Apply auto-recurring if 4+ dates and no manual recurring
+  if (uniqueDateCount >= 4 && !hasManualRecurring) {
+    // Calculate discount rate: 15% for 4-8 dates, 20% for 9+ dates
+    const autoRecurringDiscount = uniqueDateCount >= 9 ? 20 : 15;
+    const discountMultiplier = autoRecurringDiscount / 100;
+
+    // Calculate savings from auto-recurring discount
+    // The discount applies to the subtotal before gratuity
+    const autoRecurringSavings = Number((subtotalBeforeGratuity * discountMultiplier).toFixed(2));
+    const discountedSubtotal = Number((subtotalBeforeGratuity - autoRecurringSavings).toFixed(2));
+
+    // Recalculate gratuity based on discounted subtotal
+    let newGratuityAmount = 0;
+    if (updatedData.gratuityType && updatedData.gratuityValue) {
+      if (updatedData.gratuityType === 'percentage') {
+        newGratuityAmount = discountedSubtotal * (updatedData.gratuityValue / 100);
+      } else if (updatedData.gratuityType === 'dollar') {
+        newGratuityAmount = updatedData.gratuityValue;
+      }
+      newGratuityAmount = Number(newGratuityAmount.toFixed(2));
+    }
+
+    // Update totals with discount applied
+    updatedData.summary.subtotalBeforeGratuity = discountedSubtotal;
+    updatedData.summary.gratuityAmount = newGratuityAmount;
+    updatedData.summary.totalEventCost = Number((discountedSubtotal + newGratuityAmount).toFixed(2));
+
+    // Recalculate profit margin based on discounted amounts
+    const newNetProfit = discountedSubtotal - updatedData.summary.totalProRevenue;
+    updatedData.summary.netProfit = Number(newNetProfit.toFixed(2));
+    updatedData.summary.profitMargin = discountedSubtotal > 0
+      ? Number(((newNetProfit / discountedSubtotal) * 100).toFixed(2))
+      : 0;
+
+    // Store auto-recurring info
+    updatedData.isAutoRecurring = true;
+    updatedData.autoRecurringDiscount = autoRecurringDiscount;
+    updatedData.autoRecurringSavings = autoRecurringSavings;
+  } else {
+    // Clear auto-recurring flags if not applicable
+    updatedData.isAutoRecurring = false;
+    updatedData.autoRecurringDiscount = undefined;
+    updatedData.autoRecurringSavings = undefined;
+  }
+
   return updatedData;
 };

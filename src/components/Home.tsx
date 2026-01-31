@@ -54,6 +54,11 @@ interface CalculationResults {
   recurringServiceCount?: number;
   totalRecurringSavings?: number;
   totalOriginalCost?: number;
+  // Auto-recurring fields
+  isAutoRecurring?: boolean;
+  autoRecurringDiscount?: number;
+  autoRecurringSavings?: number;
+  uniqueDateCount?: number;
   locationBreakdown: {
     [key: string]: {
       totalAppointments: number;
@@ -122,7 +127,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 139,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -131,7 +136,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 139,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -140,7 +145,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 6,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 139,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -149,7 +154,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 6,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 139,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -158,7 +163,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 139,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -188,7 +193,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 139,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -197,7 +202,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 139,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -269,7 +274,7 @@ const DEFAULT_SERVICE: Service = {
   appTime: 20,
   numPros: 2,
   proHourly: 50,
-  hourlyRate: 135,
+  hourlyRate: 139,
   earlyArrival: 25,
   discountPercent: 0,
   date: '',
@@ -378,6 +383,32 @@ const Home: React.FC = () => {
 
       results.netProfit = results.totalCost - results.totalProRevenue;
       results.profitMargin = results.totalCost > 0 ? ((results.totalCost - results.totalProRevenue) / results.totalCost) * 100 : 0;
+
+      // Calculate auto-recurring: if 4+ unique dates and no manual recurring services
+      const allDates = new Set<string>();
+      Object.values(results.locationBreakdown).forEach(locationData => {
+        Object.keys(locationData.dateBreakdown).forEach(date => {
+          if (date !== 'TBD') {
+            allDates.add(date);
+          }
+        });
+      });
+      results.uniqueDateCount = allDates.size;
+
+      // Apply auto-recurring if 4+ dates and no manual recurring services
+      if (allDates.size >= 4 && !results.hasRecurringServices) {
+        results.isAutoRecurring = true;
+        results.autoRecurringDiscount = allDates.size >= 9 ? 20 : 15;
+        const discountMultiplier = results.autoRecurringDiscount / 100;
+        results.autoRecurringSavings = results.totalCost * discountMultiplier;
+
+        // Apply discount to total cost
+        results.totalCost = results.totalCost - results.autoRecurringSavings;
+
+        // Recalculate profit with discounted cost
+        results.netProfit = results.totalCost - results.totalProRevenue;
+        results.profitMargin = results.totalCost > 0 ? ((results.totalCost - results.totalProRevenue) / results.totalCost) * 100 : 0;
+      }
 
       setPreviewResults(results);
       setShowPreview(true);
@@ -557,6 +588,32 @@ const Home: React.FC = () => {
 
       results.netProfit = results.totalCost - results.totalProRevenue;
       results.profitMargin = results.totalCost > 0 ? ((results.totalCost - results.totalProRevenue) / results.totalCost) * 100 : 0;
+
+      // Calculate auto-recurring: if 4+ unique dates and no manual recurring services
+      const allDates = new Set<string>();
+      Object.values(results.locationBreakdown).forEach(locationData => {
+        Object.keys(locationData.dateBreakdown).forEach(date => {
+          if (date !== 'TBD') {
+            allDates.add(date);
+          }
+        });
+      });
+      results.uniqueDateCount = allDates.size;
+
+      // Apply auto-recurring if 4+ dates and no manual recurring services
+      if (allDates.size >= 4 && !results.hasRecurringServices) {
+        results.isAutoRecurring = true;
+        results.autoRecurringDiscount = allDates.size >= 9 ? 20 : 15;
+        const discountMultiplier = results.autoRecurringDiscount / 100;
+        results.autoRecurringSavings = results.totalCost * discountMultiplier;
+
+        // Apply discount to total cost
+        results.totalCost = results.totalCost - results.autoRecurringSavings;
+
+        // Recalculate profit with discounted cost
+        results.netProfit = results.totalCost - results.totalProRevenue;
+        results.profitMargin = results.totalCost > 0 ? ((results.totalCost - results.totalProRevenue) / results.totalCost) * 100 : 0;
+      }
 
       return results;
     };
@@ -1191,7 +1248,12 @@ const Home: React.FC = () => {
               <div className="card-small bg-neutral-light-gray mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-extrabold text-shortcut-blue">Quick Summary</h4>
-                  {previewResults.hasRecurringServices && (
+                  {previewResults.isAutoRecurring && previewResults.autoRecurringDiscount ? (
+                    <div className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1.5 rounded-full whitespace-nowrap">
+                      <span>✨</span>
+                      <span className="text-sm font-bold">{previewResults.autoRecurringDiscount}% Recurring Discount</span>
+                    </div>
+                  ) : previewResults.hasRecurringServices && (
                     <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1.5 rounded-full">
                       <span className="text-sm font-bold">
                         🔄 {previewResults.recurringServiceCount} Recurring Service{previewResults.recurringServiceCount !== 1 ? 's' : ''}
@@ -1217,8 +1279,21 @@ const Home: React.FC = () => {
                     <div className="font-bold text-text-dark text-lg">{previewResults.profitMargin.toFixed(1)}%</div>
                   </div>
                 </div>
-                {/* Recurring Savings Display */}
-                {previewResults.hasRecurringServices && previewResults.totalRecurringSavings && previewResults.totalRecurringSavings > 0 && (
+                {/* Recurring Savings Display (auto or manual) */}
+                {previewResults.isAutoRecurring && previewResults.autoRecurringSavings && previewResults.autoRecurringSavings > 0 ? (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">✨</span>
+                        <span className="font-bold text-green-800">Recurring Discount ({previewResults.autoRecurringDiscount}%)</span>
+                      </div>
+                      <span className="font-extrabold text-lg text-green-600">-${previewResults.autoRecurringSavings.toFixed(2)}</span>
+                    </div>
+                    <p className="text-sm text-green-700 mt-1">
+                      Applied automatically for {previewResults.uniqueDateCount}+ event dates
+                    </p>
+                  </div>
+                ) : previewResults.hasRecurringServices && previewResults.totalRecurringSavings && previewResults.totalRecurringSavings > 0 && (
                   <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

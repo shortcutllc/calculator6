@@ -2144,7 +2144,21 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     </div>
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Cost</div>
-                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                      {displayData.isAutoRecurring && displayData.autoRecurringDiscount ? (
+                                        <div>
+                                          <div className="text-xl font-semibold text-shortcut-navy-blue/60 line-through">
+                                            ${formatCurrency(dateData.totalCost || 0)}
+                                          </div>
+                                          <div className="text-3xl font-extrabold text-green-600">
+                                            ${formatCurrency((dateData.totalCost || 0) * (1 - displayData.autoRecurringDiscount / 100))}
+                                          </div>
+                                          <div className="text-xs text-green-600 font-bold mt-1">
+                                            {displayData.autoRecurringDiscount}% discount
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -2276,10 +2290,12 @@ export const StandaloneProposalViewer: React.FC = () => {
 
             {/* City Summary (LocationSummary) - Light Blue */}
             {Object.entries(displayData.services || {}).map(([location, locationData]) => (
-              <LocationSummary 
+              <LocationSummary
                 key={location}
                 location={location}
                 services={locationData}
+                isAutoRecurring={displayData.isAutoRecurring}
+                autoRecurringDiscount={displayData.autoRecurringDiscount}
               />
             ))}
 
@@ -2292,7 +2308,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                   </div>
                   <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
                 </div>
-                {/* Check for recurring services */}
+                {/* Check for recurring services or auto-recurring */}
                 {(() => {
                   let recurringCount = 0;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {
@@ -2304,6 +2320,17 @@ export const StandaloneProposalViewer: React.FC = () => {
                       });
                     });
                   });
+
+                  // Show auto-recurring badge if applicable
+                  if (displayData.isAutoRecurring && displayData.autoRecurringDiscount) {
+                    return (
+                      <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white whitespace-nowrap">
+                        <span>✨</span>
+                        <span>{displayData.autoRecurringDiscount}% Recurring Discount</span>
+                      </span>
+                    );
+                  }
+
                   return recurringCount > 0 ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
                       🔄 {recurringCount} Recurring
@@ -2336,8 +2363,27 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span className="font-extrabold text-lg text-white">Total Event Cost:</span>
                   <span className="font-extrabold text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
-                {/* Recurring Savings Display */}
+                {/* Recurring Savings Display (manual or auto) */}
                 {(() => {
+                  // Check for auto-recurring savings first
+                  if (displayData.isAutoRecurring && displayData.autoRecurringSavings && displayData.autoRecurringSavings > 0) {
+                    return (
+                      <div className="mt-4 pt-4 border-t-2 border-shortcut-teal/30">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-white/90 text-lg flex items-center gap-2">
+                            <span className="text-lg">✨</span>
+                            Recurring Discount ({displayData.autoRecurringDiscount}%):
+                          </span>
+                          <span className="font-extrabold text-xl text-green-300">-${formatCurrency(displayData.autoRecurringSavings)}</span>
+                        </div>
+                        <p className="text-sm text-white/60 mt-2">
+                          Applied automatically for {displayData.eventDates?.filter((d: string) => d !== 'TBD').length}+ event dates
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // Check for manual recurring savings
                   let totalSavings = 0;
                   let hasRecurring = false;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {
