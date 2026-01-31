@@ -136,7 +136,7 @@ const QRCodeSignDisplay: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px', gap: '32px' }}>
             <div style={{ flex: '0 0 auto', maxWidth: '35%' }}>
               <img
-                src="/shortcut-logo blue.svg"
+                src="/shortcut-logo-blue.svg"
                 alt="Shortcut Logo"
                 style={{ display: 'block', height: '44px', width: 'auto', maxWidth: '100%', objectFit: 'contain', objectPosition: 'left center' }}
               />

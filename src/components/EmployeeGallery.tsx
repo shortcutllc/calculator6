@@ -643,7 +643,7 @@ const EmployeeGallery: React.FC = () => {
               <div className="flex items-center justify-center mb-3">
                 <span className="text-gray-600 font-medium">Powered by</span>
                 <img 
-                  src="/shortcut-logo blue.svg" 
+                  src="/shortcut-logo-blue.svg" 
                   alt="Shortcut" 
                   className="h-6 w-auto ml-1"
                 />

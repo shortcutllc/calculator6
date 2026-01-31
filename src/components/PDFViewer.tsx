@@ -105,7 +105,7 @@ const PDFViewer: React.FC = () => {
             </Button>
           )}
           <img 
-            src="/shortcut-logo blue.svg" 
+            src="/shortcut-logo-blue.svg" 
             alt="Shortcut Logo" 
             className="h-6 sm:h-8 w-auto"
           />

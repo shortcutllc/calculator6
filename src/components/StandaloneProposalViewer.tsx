@@ -551,20 +551,34 @@ export const StandaloneProposalViewer: React.FC = () => {
         }
 
         // Ensure data has required structure for regular proposals
-        if (!data.data || !data.data.services) {
-          throw new Error('Invalid proposal data structure');
+        if (!data.data) {
+          console.error('[StandaloneProposalViewer] ERROR: data.data is missing');
+          throw new Error('Invalid proposal data structure - no data');
         }
+
+        if (!data.data.services) {
+          console.error('[StandaloneProposalViewer] ERROR: data.data.services is missing');
+          console.error('[StandaloneProposalViewer] data.data:', JSON.stringify(data.data, null, 2));
+          throw new Error('Invalid proposal data structure - no services');
+        }
+
+        const serviceCount = Object.values(data.data.services).reduce((count: number, locationData: any) => {
+          return count + Object.values(locationData).reduce((locCount: number, dateData: any) => {
+            return locCount + (dateData.services?.length || 0);
+          }, 0);
+        }, 0);
+        console.log(`[StandaloneProposalViewer] Total services in data.data: ${serviceCount}`);
 
         // Preserve gratuity fields from proposal data before recalculation
         const gratuityType = data.data?.gratuityType || null;
         const gratuityValue = data.data?.gratuityValue || null;
-        
+
         const calculatedData = recalculateServiceTotals(data.data);
-        
+
         // Restore gratuity fields after recalculation
         if (gratuityType) calculatedData.gratuityType = gratuityType;
         if (gratuityValue !== null) calculatedData.gratuityValue = gratuityValue;
-        
+
         // Ensure classLength and mindfulnessType are set correctly for mindfulness services
         if (calculatedData.services) {
           Object.values(calculatedData.services).forEach((locationData: any) => {
@@ -1382,7 +1396,7 @@ export const StandaloneProposalViewer: React.FC = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <img 
-                src="/shortcut-logo blue.svg" 
+                src="/shortcut-logo-blue.svg" 
                 alt="Shortcut Logo" 
                 className="h-8 w-auto"
               />
@@ -1805,35 +1819,37 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     </div>
 
                                     {/* Recurring Event Details */}
-                                    {service.isRecurring && service.recurringFrequency && (
-                                      <div className="mb-5 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <span className="text-lg">🔄</span>
-                                          <h5 className="font-bold text-purple-800">Recurring Event</h5>
+                                    {service.isRecurring && service.recurringFrequency && (() => {
+                                      const occurrences = service.recurringFrequency.occurrences;
+                                      const discountRate = occurrences >= 9 ? 0.20 : occurrences >= 4 ? 0.15 : 0;
+                                      // service.serviceCost is THIS event's cost (already discounted)
+                                      const thisEventDiscounted = service.serviceCost;
+                                      const thisEventOriginal = discountRate > 0 ? thisEventDiscounted / (1 - discountRate) : thisEventDiscounted;
+                                      const thisEventSavings = thisEventOriginal - thisEventDiscounted;
+
+                                      return (
+                                        <div className="mb-5 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-base">🔄</span>
+                                              <span className="font-semibold text-purple-800 text-sm">Recurring Partner</span>
+                                              <span className="text-purple-600 text-sm">({occurrences} events total)</span>
+                                            </div>
+                                            {discountRate > 0 && (
+                                              <span className="text-green-700 font-semibold text-sm">
+                                                ✨ {discountRate * 100}% discount applied
+                                              </span>
+                                            )}
+                                          </div>
+                                          {discountRate > 0 && (
+                                            <div className="mt-2 pt-2 border-t border-purple-200 flex justify-between text-sm">
+                                              <span className="text-purple-700">This event savings:</span>
+                                              <span className="font-bold text-green-700">-${formatCurrency(thisEventSavings)}</span>
+                                            </div>
+                                          )}
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                          <div>
-                                            <span className="font-bold text-purple-700">Frequency:</span>
-                                            <span className="ml-2 text-purple-900">
-                                              {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
-                                               service.recurringFrequency.type === 'monthly' ? 'Monthly' :
-                                               'Custom'}
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <span className="font-bold text-purple-700">Total Events:</span>
-                                            <span className="ml-2 text-purple-900">{service.recurringFrequency.occurrences}</span>
-                                          </div>
-                                        </div>
-                                        {service.recurringFrequency.occurrences >= 4 && (
-                                          <div className="mt-3 p-2 bg-white/50 rounded-lg">
-                                            <span className="text-sm font-bold text-green-700">
-                                              ✨ {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} Volume Discount Applied
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
 
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (

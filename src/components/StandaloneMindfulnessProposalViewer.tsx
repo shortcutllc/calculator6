@@ -637,7 +637,7 @@ We understand the importance of offering impactful wellness solutions that respe
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-4">
               <img 
-                src="/shortcut-logo blue.svg" 
+                src="/shortcut-logo-blue.svg" 
                 alt="Shortcut Logo" 
                 className="h-7 sm:h-8 w-auto"
               />

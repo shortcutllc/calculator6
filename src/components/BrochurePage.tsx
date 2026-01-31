@@ -91,7 +91,7 @@ const BrochurePage: React.FC = () => {
             </a>
           </div>
           <img 
-            src="/shortcut-logo blue.svg" 
+            src="/shortcut-logo-blue.svg" 
             alt="Shortcut Logo" 
             className="h-6 sm:h-8 w-auto"
           />

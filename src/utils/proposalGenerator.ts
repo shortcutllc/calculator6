@@ -291,8 +291,6 @@ const normalizeDate = (dateInput: string | Date): string => {
 };
 
 export const prepareProposalFromCalculation = (currentClient: any): ProposalData => {
-  console.log('Original client data:', currentClient);
-  
   const proposalData: ProposalData = {
     clientName: currentClient.name,
     eventDates: [],
@@ -309,54 +307,40 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
 
   // First, collect and sort all unique dates
   const allDates = new Set<string>();
-  
-  console.log('Collecting all dates from services...');
-  
+
   Object.values(currentClient.events).forEach((locationEvents: any) => {
     locationEvents.forEach((event: any) => {
-      console.log('Processing event:', event);
-      
       event.services.forEach((service: any) => {
-        console.log('Service date before normalization:', service.date);
-        
         if (service.date) {
           const normalizedDate = normalizeDate(service.date);
           if (normalizedDate) {
             allDates.add(normalizedDate);
-            console.log('Normalized date:', normalizedDate);
-          } else {
-            console.warn('Failed to normalize date:', service.date);
           }
         }
       });
     });
   });
-  
+
   proposalData.eventDates = Array.from(allDates)
     .sort((a, b) => {
-      // Handle TBD dates - put them at the end
       if (a === 'TBD' && b === 'TBD') return 0;
       if (a === 'TBD') return 1;
       if (b === 'TBD') return -1;
-      
-      // Sort actual dates normally
       return new Date(a).getTime() - new Date(b).getTime();
     });
-  
-  console.log('All unique event dates:', proposalData.eventDates);
 
   // Process each location
   Object.entries(currentClient.events).forEach(([location, locationEvents]: [string, any]) => {
     proposalData.services[location] = {};
-    
+
     // Create a flat list of all services for this location
     const allLocationServices: any[] = [];
-    
+
     locationEvents.forEach((event: any) => {
       event.services.forEach((service: any) => {
         if (service.date) {
           const normalizedDate = normalizeDate(service.date);
-          
+
           if (normalizedDate) {
             // Push each service individually with normalized date
             allLocationServices.push({
@@ -382,7 +366,7 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
     
     // Group services by date
     const servicesByDate: { [date: string]: any[] } = {};
-    
+
     allLocationServices.forEach((service: any) => {
       const date = service.date;
       if (!servicesByDate[date]) {
@@ -391,8 +375,6 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
       servicesByDate[date].push(service);
     });
     
-    console.log(`Location ${location} has services on dates:`, Object.keys(servicesByDate));
-
     // Sort dates and create day data
     Object.keys(servicesByDate)
       .sort((a, b) => {
@@ -420,31 +402,19 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
           totalCost: services.reduce((sum, service) => sum + service.serviceCost, 0),
           totalAppointments: services.reduce((sum, service) => sum + (typeof service.totalAppointments === 'number' ? service.totalAppointments : 0), 0)
         };
-        
-        console.log(`Added ${services.length} services to ${location} on ${date}`);
       });
-  });
-
-  console.log('Final service structure before recalculation:');
-  Object.entries(proposalData.services).forEach(([location, dates]: [string, any]) => {
-    console.log(`Location: ${location}`);
-    Object.entries(dates).forEach(([date, data]: [string, any]) => {
-      console.log(`  Date: ${date}, Services: ${data.services.length}`);
-    });
   });
 
   return recalculateServiceTotals(proposalData);
 };
 
 export const recalculateServiceTotals = (proposalData: ProposalData): ProposalData => {
-  console.log('Input data structure:', proposalData);
-  
   // Preserve gratuity fields
   const gratuityType = proposalData.gratuityType || null;
   const gratuityValue = proposalData.gratuityValue || null;
-  
+
   const updatedData = { ...proposalData };
-  
+
   updatedData.summary = {
     totalAppointments: 0,
     totalEventCost: 0,
@@ -495,71 +465,79 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
           }
         });
       } else {
-        // Normalize dates in existing structure
-        Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
-          const normalizedDate = normalizeDate(date);
-          if (normalizedDate) {
-            transformedServices[location][normalizedDate] = {
-              ...dateData,
-              services: dateData.services.map((service: any) => {
-                const mappedService = {
-                  ...service,
-                  date: normalizedDate
-                };
-                
-                // Ensure classLength and mindfulnessType are synced for mindfulness services
-                if (mappedService.serviceType === 'mindfulness') {
-                  // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
-                  let targetClassLength = 45;
-                  let targetFixedPrice = 1375;
-                  let targetMindfulnessType = 'intro';
+        // Regroup services by their individual dates (fixes old proposals with incorrect grouping)
+        // First, collect all services and map them with correct dates
+        const allServicesForLocation: any[] = [];
 
-                  // If mindfulnessType exists, use it to determine classLength
-                  if (mappedService.mindfulnessType === 'drop-in') {
-                    targetClassLength = 30;
-                    targetFixedPrice = 1250;
-                    targetMindfulnessType = 'drop-in';
-                  } else if (mappedService.mindfulnessType === 'mindful-movement') {
-                    targetClassLength = 60;
-                    targetFixedPrice = 1500;
-                    targetMindfulnessType = 'mindful-movement';
-                  } else if (mappedService.mindfulnessType === 'intro') {
-                    targetClassLength = 45;
-                    targetFixedPrice = 1375;
-                    targetMindfulnessType = 'intro';
-                  } else if (mappedService.classLength) {
-                    // No mindfulnessType, infer from classLength
-                    if (mappedService.classLength === 30) {
-                      targetClassLength = 30;
-                      targetFixedPrice = 1250;
-                      targetMindfulnessType = 'drop-in';
-                    } else if (mappedService.classLength === 60) {
-                      targetClassLength = 60;
-                      targetFixedPrice = 1500;
-                      targetMindfulnessType = 'mindful-movement';
-                    } else {
-                      // Default to intro (45 minutes)
-                      targetClassLength = 45;
-                      targetFixedPrice = 1375;
-                      targetMindfulnessType = 'intro';
-                    }
-                  } else {
-                    // No mindfulnessType and no classLength, default to intro
-                    targetClassLength = 45;
-                    targetFixedPrice = 1375;
-                    targetMindfulnessType = 'intro';
-                  }
+        Object.entries(locationData).forEach(([structureDate, dateData]: [string, any]) => {
+          const fallbackDate = normalizeDate(structureDate);
 
-                  // Apply the determined values
-                  mappedService.classLength = targetClassLength;
-                  mappedService.mindfulnessType = targetMindfulnessType;
-                  mappedService.fixedPrice = targetFixedPrice;
+          dateData.services?.forEach((service: any) => {
+            // Use the service's own date if it has one, otherwise use the structure date
+            const serviceDate = service.date ? normalizeDate(service.date) || fallbackDate : fallbackDate;
+
+            const mappedService = {
+              ...service,
+              date: serviceDate
+            };
+
+            // Ensure classLength and mindfulnessType are synced for mindfulness services
+            if (mappedService.serviceType === 'mindfulness') {
+              let targetClassLength = 45;
+              let targetFixedPrice = 1375;
+              let targetMindfulnessType = 'intro';
+
+              if (mappedService.mindfulnessType === 'drop-in') {
+                targetClassLength = 30;
+                targetFixedPrice = 1250;
+                targetMindfulnessType = 'drop-in';
+              } else if (mappedService.mindfulnessType === 'mindful-movement') {
+                targetClassLength = 60;
+                targetFixedPrice = 1500;
+                targetMindfulnessType = 'mindful-movement';
+              } else if (mappedService.mindfulnessType === 'intro') {
+                targetClassLength = 45;
+                targetFixedPrice = 1375;
+                targetMindfulnessType = 'intro';
+              } else if (mappedService.classLength) {
+                if (mappedService.classLength === 30) {
+                  targetClassLength = 30;
+                  targetFixedPrice = 1250;
+                  targetMindfulnessType = 'drop-in';
+                } else if (mappedService.classLength === 60) {
+                  targetClassLength = 60;
+                  targetFixedPrice = 1500;
+                  targetMindfulnessType = 'mindful-movement';
+                } else {
+                  targetClassLength = 45;
+                  targetFixedPrice = 1375;
+                  targetMindfulnessType = 'intro';
                 }
-                
-                return mappedService;
-              })
+              }
+
+              mappedService.classLength = targetClassLength;
+              mappedService.mindfulnessType = targetMindfulnessType;
+              mappedService.fixedPrice = targetFixedPrice;
+            }
+
+            allServicesForLocation.push(mappedService);
+          });
+        });
+
+        // Now group services by their actual dates
+        allServicesForLocation.forEach((service: any) => {
+          const serviceDate = service.date;
+          if (!serviceDate) return;
+
+          if (!transformedServices[location][serviceDate]) {
+            transformedServices[location][serviceDate] = {
+              services: [],
+              totalCost: 0,
+              totalAppointments: 0
             };
           }
+
+          transformedServices[location][serviceDate].services.push(service);
         });
       }
     });
@@ -647,10 +625,10 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
         }
         
         let { totalAppointments, serviceCost, proRevenue: baseProRevenue } = calculateServiceResults(service);
-        
+
         (service as any).totalAppointments = totalAppointments;
         (service as any).serviceCost = serviceCost;
-        (service as any).date = date;
+        // Keep service.date as-is - don't overwrite with structure date
         
         // Handle pricing options if they exist
         if (service.pricingOptions && service.pricingOptions.length > 0) {
@@ -770,6 +748,5 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
   if (gratuityType) updatedData.gratuityType = gratuityType;
   if (gratuityValue !== null) updatedData.gratuityValue = gratuityValue;
 
-  console.log('Output data structure:', updatedData);
   return updatedData;
 };

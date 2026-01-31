@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash, X, Calculator } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProposal } from '../contexts/ProposalContext';
@@ -291,19 +291,98 @@ const Home: React.FC = () => {
     locations: [],
     events: {}
   });
+
+  // Ref to always have the latest clientData for callbacks
+  const clientDataRef = useRef<ClientData>(clientData);
+  useEffect(() => {
+    clientDataRef.current = clientData;
+  }, [clientData]);
+
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null);
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [previewResults, setPreviewResults] = useState<CalculationResults | null>(null);
+  const [shouldGeneratePreview, setShouldGeneratePreview] = useState(false);
 
-  // Clear preview when services or client data changes
+  // Generate preview when flag is set (after saving event)
   useEffect(() => {
-    if (showPreview) {
-      setShowPreview(false);
-      setPreviewResults(null);
+    if (shouldGeneratePreview && clientData.name && clientData.locations.length > 0) {
+      setShouldGeneratePreview(false);
+      // Generate preview with current clientData
+      const results: CalculationResults = {
+        totalAppointments: 0,
+        totalCost: 0,
+        totalProRevenue: 0,
+        netProfit: 0,
+        profitMargin: 0,
+        hasRecurringServices: false,
+        recurringServiceCount: 0,
+        totalRecurringSavings: 0,
+        totalOriginalCost: 0,
+        locationBreakdown: {}
+      };
+
+      Object.entries(clientData.events).forEach(([location, events]) => {
+        results.locationBreakdown[location] = {
+          totalAppointments: 0,
+          totalCost: 0,
+          dateBreakdown: {}
+        };
+
+        events.forEach((event) => {
+          event.services.forEach((service) => {
+            const dateKey = service.date || event.date || 'TBD';
+
+            if (!results.locationBreakdown[location].dateBreakdown[dateKey]) {
+              results.locationBreakdown[location].dateBreakdown[dateKey] = {
+                totalAppointments: 0,
+                totalCost: 0,
+                services: []
+              };
+            }
+
+            const serviceResults = calculateServiceResults(service);
+            results.totalAppointments += serviceResults.totalAppointments;
+            results.totalCost += serviceResults.serviceCost;
+            results.totalProRevenue += serviceResults.proRevenue;
+            results.totalOriginalCost = (results.totalOriginalCost || 0) + serviceResults.originalPrice;
+            results.totalRecurringSavings = (results.totalRecurringSavings || 0) + serviceResults.recurringSavings;
+
+            results.locationBreakdown[location].totalAppointments += serviceResults.totalAppointments;
+            results.locationBreakdown[location].totalCost += serviceResults.serviceCost;
+
+            results.locationBreakdown[location].dateBreakdown[dateKey].totalAppointments += serviceResults.totalAppointments;
+            results.locationBreakdown[location].dateBreakdown[dateKey].totalCost += serviceResults.serviceCost;
+
+            if (service.isRecurring && service.recurringFrequency) {
+              results.hasRecurringServices = true;
+              results.recurringServiceCount = (results.recurringServiceCount || 0) + 1;
+            }
+
+            results.locationBreakdown[location].dateBreakdown[dateKey].services.push({
+              serviceType: service.serviceType,
+              totalHours: service.totalHours,
+              numPros: service.numPros,
+              totalAppointments: serviceResults.totalAppointments,
+              serviceCost: serviceResults.serviceCost,
+              isRecurring: service.isRecurring,
+              recurringFrequency: service.recurringFrequency,
+              recurringDiscount: serviceResults.recurringDiscount,
+              recurringSavings: serviceResults.recurringSavings,
+              originalPrice: serviceResults.originalPrice
+            });
+          });
+        });
+      });
+
+      results.netProfit = results.totalCost - results.totalProRevenue;
+      results.profitMargin = results.totalCost > 0 ? ((results.totalCost - results.totalProRevenue) / results.totalCost) * 100 : 0;
+
+      setPreviewResults(results);
+      setShowPreview(true);
     }
-  }, [clientData.events, clientData.name, clientData.locations]);
+  }, [shouldGeneratePreview, clientData]);
 
   const calculateServiceResults = (service: Service) => {
     const isMindfulness = service.serviceType === 'mindfulness' ||
@@ -356,43 +435,49 @@ const Home: React.FC = () => {
       // Update clientData.events to match the preview modifications
       const updatedClientData = { ...clientData };
       updatedClientData.events = {};
-      
-      // Rebuild events from preview results
+
+      // Collect all original services from all events for this location
+      const allOriginalServices: { [location: string]: Service[] } = {};
+      Object.entries(clientData.events).forEach(([location, events]) => {
+        allOriginalServices[location] = [];
+        events.forEach(event => {
+          event.services.forEach(service => {
+            allOriginalServices[location].push(service);
+          });
+        });
+      });
+
+      // Rebuild events from preview results, grouping by date
       Object.entries(previewResults.locationBreakdown).forEach(([location, locationData]) => {
         updatedClientData.events[location] = [];
-        
+
         Object.entries(locationData.dateBreakdown).forEach(([date, dateData]) => {
-          // Find the original event for this date/location
-          const originalEvent = clientData.events[location]?.find(event => event.date === date);
-          
-          if (originalEvent) {
-            // Create a new event with only the services that remain in the preview
-            const remainingServices: Service[] = [];
-            
-            dateData.services.forEach((serviceData) => {
-              // Find the original service with all its data
-              const originalService = originalEvent.services.find(service => 
-                service.serviceType === serviceData.serviceType &&
-                service.totalHours === serviceData.totalHours &&
-                service.numPros === serviceData.numPros
-              );
-              
-              if (originalService) {
-                remainingServices.push(originalService);
-              }
-            });
-            
-            if (remainingServices.length > 0) {
-              updatedClientData.events[location].push({
-                clientName: clientData.name,
-                date: date,
-                services: remainingServices
-              });
+          const remainingServices: Service[] = [];
+
+          dateData.services.forEach((serviceData) => {
+            // Find the original service by matching service type, hours, pros, AND date
+            const originalService = allOriginalServices[location]?.find(service =>
+              service.serviceType === serviceData.serviceType &&
+              service.totalHours === serviceData.totalHours &&
+              service.numPros === serviceData.numPros &&
+              service.date === date
+            );
+
+            if (originalService) {
+              remainingServices.push(originalService);
             }
+          });
+
+          if (remainingServices.length > 0) {
+            updatedClientData.events[location].push({
+              clientName: clientData.name,
+              date: date,
+              services: remainingServices
+            });
           }
         });
       });
-      
+
       setClientData(updatedClientData);
       setCalculationResults(previewResults);
       setShowResults(true);
@@ -423,16 +508,18 @@ const Home: React.FC = () => {
         };
 
         events.forEach((event) => {
-          const dateKey = event.date || 'TBD';
-          if (!results.locationBreakdown[location].dateBreakdown[dateKey]) {
-            results.locationBreakdown[location].dateBreakdown[dateKey] = {
-              totalAppointments: 0,
-              totalCost: 0,
-              services: []
-            };
-          }
-
           event.services.forEach((service) => {
+            // Use each service's individual date, not the event date
+            const dateKey = service.date || event.date || 'TBD';
+
+            if (!results.locationBreakdown[location].dateBreakdown[dateKey]) {
+              results.locationBreakdown[location].dateBreakdown[dateKey] = {
+                totalAppointments: 0,
+                totalCost: 0,
+                services: []
+              };
+            }
+
             const serviceResults = calculateServiceResults(service);
             results.totalAppointments += serviceResults.totalAppointments;
             results.totalCost += serviceResults.serviceCost;
@@ -491,25 +578,30 @@ const Home: React.FC = () => {
       return;
     }
 
-    const updatedClientData = { ...clientData };
-    if (!updatedClientData.events[currentLocation]) {
-      updatedClientData.events[currentLocation] = [];
-    }
+    // Deep copy services to avoid reference issues
+    const servicesCopy = services.map(s => ({ ...s }));
 
     const event: Event = {
       clientName: clientData.name,
-      date: services[0].date,
-      services: services
+      date: servicesCopy[0].date,
+      services: servicesCopy
     };
 
-    updatedClientData.events[currentLocation].push(event);
+    // Deep copy the entire clientData structure to ensure React state updates properly
+    const updatedClientData: ClientData = {
+      ...clientData,
+      events: {
+        ...clientData.events,
+        [currentLocation]: [
+          ...(clientData.events[currentLocation] || []),
+          event
+        ]
+      }
+    };
+
     setClientData(updatedClientData);
     setShowEventModal(false);
-    
-    // Automatically generate preview after saving event
-    setTimeout(() => {
-      generatePreview();
-    }, 100); // Small delay to ensure state is updated
+    setShouldGeneratePreview(true);
   };
 
   const handleGenerateProposal = async (options: any) => {
@@ -518,19 +610,22 @@ const Home: React.FC = () => {
         throw new Error('Calculation results are required to generate a proposal');
       }
 
-      if (!clientData.name || clientData.name.trim() === '') {
+      // Use ref to get the latest clientData (avoids stale closure)
+      const latestClientData = clientDataRef.current;
+
+      if (!latestClientData.name || latestClientData.name.trim() === '') {
         throw new Error('Client name is required');
       }
 
       if (!options.customization.customNote?.trim()) {
-        options.customization.customNote = `We are so excited to service the incredible staff at ${clientData.name}! Our team is looking forward to providing an exceptional experience for everyone involved. Please review the details above and let us know if you need any adjustments.`;
+        options.customization.customNote = `We are so excited to service the incredible staff at ${latestClientData.name}! Our team is looking forward to providing an exceptional experience for everyone involved. Please review the details above and let us know if you need any adjustments.`;
       }
 
       // Create the client data structure expected by prepareProposalFromCalculation
       const currentClient = {
-        name: clientData.name.trim(),
-        locations: clientData.locations,
-        events: clientData.events
+        name: latestClientData.name.trim(),
+        locations: latestClientData.locations,
+        events: latestClientData.events
       };
 
       // Use the proper proposal generation function
@@ -611,12 +706,14 @@ const Home: React.FC = () => {
   };
 
   const addService = (type: 'same-day' | 'new-day' = 'same-day') => {
+    const dateValue = type === 'same-day' && services.length > 0 ? services[0].date : '';
+
     const newService: Service = {
       ...DEFAULT_SERVICE,
-      date: type === 'same-day' && services.length > 0 ? services[0].date : '',
+      date: dateValue,
       location: currentLocation
     };
-    setServices([...services, newService]);
+    setServices(prevServices => [...prevServices, newService]);
   };
 
   const removeService = (index: number) => {
@@ -663,7 +760,7 @@ const Home: React.FC = () => {
     } else {
       updatedServices[index] = { ...updatedServices[index], ...updates };
     }
-    
+
     setServices(updatedServices);
   };
 
@@ -707,16 +804,18 @@ const Home: React.FC = () => {
         };
 
         events.forEach((event) => {
-          const dateKey = event.date || 'TBD';
-          if (!results.locationBreakdown[location].dateBreakdown[dateKey]) {
-            results.locationBreakdown[location].dateBreakdown[dateKey] = {
-              totalAppointments: 0,
-              totalCost: 0,
-              services: []
-            };
-          }
-
           event.services.forEach((service) => {
+            // Use each service's individual date, not the event date
+            const dateKey = service.date || event.date || 'TBD';
+
+            if (!results.locationBreakdown[location].dateBreakdown[dateKey]) {
+              results.locationBreakdown[location].dateBreakdown[dateKey] = {
+                totalAppointments: 0,
+                totalCost: 0,
+                services: []
+              };
+            }
+
             const serviceResults = calculateServiceResults(service);
             results.totalAppointments += serviceResults.totalAppointments;
             results.totalCost += serviceResults.serviceCost;
@@ -770,10 +869,7 @@ const Home: React.FC = () => {
 
   const removeServiceFromPreview = (location: string, date: string, serviceIndex: number) => {
     if (!previewResults) return;
-    
-    console.log('Removing service from preview:', { location, date, serviceIndex });
-    console.log('Before removal:', previewResults);
-    
+
     const updatedResults = { ...previewResults };
     if (updatedResults.locationBreakdown) {
       const locationData = updatedResults.locationBreakdown[location];
@@ -808,8 +904,7 @@ const Home: React.FC = () => {
     updatedResults.totalCost = Object.values(updatedResults.locationBreakdown).reduce((sum, l) => sum + l.totalCost, 0);
     updatedResults.netProfit = updatedResults.totalCost - updatedResults.totalProRevenue;
     updatedResults.profitMargin = updatedResults.totalCost > 0 ? ((updatedResults.totalCost - updatedResults.totalProRevenue) / updatedResults.totalCost) * 100 : 0;
-    
-    console.log('After removal:', updatedResults);
+
     setPreviewResults(updatedResults);
   };
 
