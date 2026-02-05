@@ -288,3 +288,234 @@ export async function lookupClient(
     `?action=client&name=${encodeURIComponent(clientName)}`
   );
 }
+
+// ============================================================
+// PROPOSAL DUPLICATION
+// ============================================================
+
+export interface DuplicateProposalRequest {
+  proposalId: string;
+  newTitle?: string;
+  notes?: string;
+  recalculate?: boolean;
+}
+
+export interface DuplicateProposalResponse {
+  id: string;
+  url: string;
+  clientName: string;
+  status: string;
+  summary: ProposalSummary | null;
+  duplicatedFrom: string;
+  slackNotified: boolean;
+}
+
+/**
+ * Duplicate an existing proposal.
+ */
+export async function duplicateProposal(
+  request: DuplicateProposalRequest
+): Promise<DuplicateProposalResponse> {
+  const result = await apiRequest<{ success: boolean; proposal: DuplicateProposalResponse }>(
+    'POST',
+    '?action=duplicate',
+    request
+  );
+  return result.proposal;
+}
+
+// ============================================================
+// PROPOSAL LINKING (GROUPS)
+// ============================================================
+
+export interface ProposalOption {
+  id: string;
+  clientName: string;
+  optionName: string;
+  optionOrder: number;
+  status: string;
+  summary?: ProposalSummary | null;
+}
+
+/**
+ * Create a new option by duplicating a proposal into a group.
+ */
+export async function createOption(
+  proposalId: string,
+  optionName?: string
+): Promise<{
+  newProposal: { id: string; url: string; clientName: string; optionName: string; optionOrder: number };
+  groupId: string;
+  optionCount: number;
+}> {
+  return await apiRequest('POST', '?action=create-option', { proposalId, optionName });
+}
+
+/**
+ * Link existing proposals together into a group.
+ */
+export async function linkProposalsApi(
+  sourceProposalId: string,
+  proposalIds: string[]
+): Promise<{
+  groupId: string;
+  linkedCount: number;
+  options: ProposalOption[];
+}> {
+  return await apiRequest('POST', '?action=link', { sourceProposalId, proposalIds });
+}
+
+/**
+ * Remove a proposal from its group.
+ */
+export async function unlinkProposal(
+  proposalId: string
+): Promise<{
+  unlinked: boolean;
+  remainingOptions: ProposalOption[];
+}> {
+  return await apiRequest('POST', '?action=unlink', { proposalId });
+}
+
+/**
+ * Rename an option in a group.
+ */
+export async function renameOption(
+  proposalId: string,
+  optionName: string
+): Promise<{ updated: ProposalOption }> {
+  return await apiRequest('POST', '?action=rename-option', { proposalId, optionName });
+}
+
+/**
+ * Reorder an option in a group.
+ */
+export async function reorderOption(
+  proposalId: string,
+  optionOrder: number
+): Promise<{ updated: ProposalOption }> {
+  return await apiRequest('POST', '?action=reorder-option', { proposalId, optionOrder });
+}
+
+/**
+ * Get all options in a proposal's group.
+ */
+export async function getGroupOptions(
+  proposalId: string
+): Promise<{
+  groupId: string | null;
+  options: ProposalOption[];
+}> {
+  return await apiRequest('GET', `?action=group-options&id=${encodeURIComponent(proposalId)}`);
+}
+
+// ============================================================
+// LANDING PAGES
+// ============================================================
+
+export interface LandingPageCustomization {
+  contactFirstName?: string;
+  contactLastName?: string;
+  customNote?: string;
+  includePricingCalculator?: boolean;
+  includeTestimonials?: boolean;
+  includeFAQ?: boolean;
+  theme?: 'default' | 'corporate';
+}
+
+export interface CreateLandingPageRequest {
+  partnerName: string;
+  partnerLogoUrl?: string;
+  partnerLogoColor?: string;
+  clientEmail?: string;
+  customMessage?: string;
+  customization?: LandingPageCustomization;
+  isReturningClient?: boolean;
+  status?: 'draft' | 'published';
+  storeLogoCopy?: boolean;
+}
+
+export interface LandingPageResponse {
+  id: string;
+  url: string;
+  uniqueToken?: string;
+  partnerName: string;
+  status: string;
+}
+
+export interface LandingPageDetail {
+  id: string;
+  url: string;
+  data: {
+    partnerName: string;
+    partnerLogoUrl?: string;
+    partnerLogoColor?: string;
+    clientEmail?: string;
+    customMessage?: string;
+    isActive: boolean;
+  };
+  customization: LandingPageCustomization;
+  status: string;
+  isReturningClient: boolean;
+  uniqueToken: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Create a new generic landing page.
+ */
+export async function createLandingPage(
+  request: CreateLandingPageRequest
+): Promise<LandingPageResponse> {
+  const result = await apiRequest<{ success: boolean; landingPage: LandingPageResponse }>(
+    'POST',
+    '?action=create-landing-page',
+    request
+  );
+  return result.landingPage;
+}
+
+/**
+ * Update an existing landing page.
+ */
+export async function updateLandingPage(
+  pageId: string,
+  updates: Partial<CreateLandingPageRequest> & {
+    data?: Record<string, unknown>;
+    isEditable?: boolean;
+  }
+): Promise<LandingPageResponse> {
+  const result = await apiRequest<{ success: boolean; landingPage: LandingPageResponse }>(
+    'PATCH',
+    '?action=update-landing-page',
+    { pageId, ...updates }
+  );
+  return result.landingPage;
+}
+
+/**
+ * Get a landing page by ID.
+ */
+export async function getLandingPage(
+  pageId: string
+): Promise<LandingPageDetail> {
+  const result = await apiRequest<{ success: boolean; landingPage: LandingPageDetail }>(
+    'GET',
+    `?action=landing-page&id=${encodeURIComponent(pageId)}`
+  );
+  return result.landingPage;
+}
+
+/**
+ * Search landing pages by partner name.
+ */
+export async function searchLandingPages(
+  searchTerm: string
+): Promise<LandingPageResponse[]> {
+  const result = await apiRequest<{ success: boolean; results: LandingPageResponse[] }>(
+    'GET',
+    `?action=search-landing-pages&search=${encodeURIComponent(searchTerm)}`
+  );
+  return result.results;
+}

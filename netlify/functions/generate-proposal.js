@@ -2,12 +2,29 @@
  * Generate Proposal API — main Netlify serverless function handler.
  *
  * Endpoints (single function, routed by method + query params):
- *   POST                          → Create a new proposal
- *   PATCH                         → Edit an existing proposal (operations array)
- *   GET  ?search=<term>           → Search proposals by client name
- *   GET  ?id=<uuid>               → Retrieve a single proposal
- *   POST ?action=calculate        → Reverse calculator (target appointments → options)
- *   GET  ?action=client&name=<n>  → Client lookup from past proposals
+ *
+ *   PROPOSALS:
+ *   POST                              → Create a new proposal
+ *   PATCH                             → Edit an existing proposal (operations array)
+ *   GET  ?search=<term>               → Search proposals by client name
+ *   GET  ?id=<uuid>                   → Retrieve a single proposal
+ *   POST ?action=calculate            → Reverse calculator (target appointments → options)
+ *   GET  ?action=client&name=<n>      → Client lookup from past proposals
+ *   POST ?action=duplicate            → Duplicate an existing proposal
+ *
+ *   PROPOSAL LINKING (GROUPS):
+ *   POST ?action=create-option        → Create a new option (duplicate into group)
+ *   POST ?action=link                 → Link existing proposals into a group
+ *   POST ?action=unlink               → Remove a proposal from its group
+ *   POST ?action=rename-option        → Rename an option
+ *   POST ?action=reorder-option       → Reorder an option
+ *   GET  ?action=group-options&id=<>  → Get all options in a group
+ *
+ *   LANDING PAGES:
+ *   POST ?action=create-landing-page  → Create a generic landing page
+ *   PATCH ?action=update-landing-page → Update a landing page
+ *   GET  ?action=landing-page&id=<>   → Get a landing page by ID
+ *   GET  ?action=search-landing-pages&search=<> → Search landing pages
  *
  * Auth: Supabase JWT in Authorization header (Bearer token)
  */
@@ -19,6 +36,9 @@ import { calculateEventOptions } from './lib/reverse-calculator.js';
 import { searchClients, getClientByName, searchProposals } from './lib/client-lookup.js';
 import { fetchAndStoreLogo, storeProvidedLogo, fetchLogoUrl } from './lib/logo-fetcher.js';
 import { notifyProposalCreated, notifyProposalEdited } from './lib/slack-notifier.js';
+import { duplicateProposal } from './lib/proposal-duplicator.js';
+import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption, getGroupOptions } from './lib/proposal-linker.js';
+import { createLandingPage, updateLandingPage, getLandingPage, searchLandingPages } from './lib/landing-page-assembler.js';
 
 // --- CORS ---
 
@@ -72,6 +92,16 @@ async function validateAuth(event) {
   return { user, supabase };
 }
 
+// --- Helper: Parse JSON body ---
+
+function parseBody(event) {
+  try {
+    return JSON.parse(event.body);
+  } catch (e) {
+    return null;
+  }
+}
+
 // --- Main Handler ---
 
 export const handler = async (event, context) => {
@@ -91,25 +121,28 @@ export const handler = async (event, context) => {
     // Route based on method + action
     switch (event.httpMethod) {
       case 'POST':
-        if (action === 'calculate') {
-          return await handleCalculate(event);
-        }
+        if (action === 'calculate') return await handleCalculate(event);
+        if (action === 'duplicate') return await handleDuplicate(event, user, supabase);
+        if (action === 'create-option') return await handleCreateOption(event, user, supabase);
+        if (action === 'link') return await handleLink(event, supabase);
+        if (action === 'unlink') return await handleUnlink(event, supabase);
+        if (action === 'rename-option') return await handleRenameOption(event, supabase);
+        if (action === 'reorder-option') return await handleReorderOption(event, supabase);
+        if (action === 'create-landing-page') return await handleCreateLandingPage(event, user, supabase);
         return await handleCreate(event, user, supabase);
 
       case 'PATCH':
+        if (action === 'update-landing-page') return await handleUpdateLandingPage(event, supabase);
         return await handleEdit(event, user, supabase);
 
       case 'GET':
-        if (action === 'client') {
-          return await handleClientLookup(params, supabase);
-        }
-        if (params.search) {
-          return await handleSearch(params, supabase);
-        }
-        if (params.id) {
-          return await handleGetById(params, supabase);
-        }
-        return errorResponse(400, 'GET requires ?search=, ?id=, or ?action=client&name=', 'VALIDATION_ERROR');
+        if (action === 'client') return await handleClientLookup(params, supabase);
+        if (action === 'group-options') return await handleGetGroupOptions(params, supabase);
+        if (action === 'landing-page') return await handleGetLandingPage(params, supabase);
+        if (action === 'search-landing-pages') return await handleSearchLandingPages(params, supabase);
+        if (params.search) return await handleSearch(params, supabase);
+        if (params.id) return await handleGetById(params, supabase);
+        return errorResponse(400, 'GET requires ?search=, ?id=, or a valid ?action=', 'VALIDATION_ERROR');
 
       default:
         return errorResponse(405, `Method ${event.httpMethod} not allowed`, 'METHOD_NOT_ALLOWED');
@@ -125,17 +158,16 @@ export const handler = async (event, context) => {
   }
 };
 
+// ============================================================
+// PROPOSAL HANDLERS
+// ============================================================
+
 // --- POST: Create Proposal ---
 
 async function handleCreate(event, user, supabase) {
-  let body;
-  try {
-    body = JSON.parse(event.body);
-  } catch (e) {
-    return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
-  }
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
-  // Validate required fields
   if (!body.clientName) {
     return errorResponse(400, 'clientName is required', 'VALIDATION_ERROR');
   }
@@ -144,22 +176,18 @@ async function handleCreate(event, user, supabase) {
   }
 
   try {
-    // Assemble the proposal data
     const { proposalData, customization, proposalType } = assembleProposal(body);
 
-    // Handle logo: if a URL is provided but not yet stored, store it
+    // Handle logo storage
     if (body.clientLogoUrl && body.storeLogoCopy !== false) {
       try {
         const { logoUrl, stored } = await storeProvidedLogo(supabase, body.clientLogoUrl, body.clientName);
-        if (stored) {
-          proposalData.clientLogoUrl = logoUrl;
-        }
+        if (stored) proposalData.clientLogoUrl = logoUrl;
       } catch (logoErr) {
         console.warn('Logo storage failed, using provided URL:', logoErr.message);
       }
     }
 
-    // Insert into Supabase (matches ProposalContext.tsx createProposal pattern)
     const proposalInsert = {
       data: proposalData,
       customization,
@@ -187,7 +215,7 @@ async function handleCreate(event, user, supabase) {
       return errorResponse(500, `Failed to create proposal: ${error.message}`, 'DB_INSERT_FAILED');
     }
 
-    // Send Slack notification (non-blocking)
+    // Slack notification (non-blocking)
     let slackResult = { slackNotified: false };
     try {
       slackResult = await notifyProposalCreated(newProposal, proposalData);
@@ -195,7 +223,6 @@ async function handleCreate(event, user, supabase) {
       console.warn('Slack notification failed:', slackErr.message);
     }
 
-    // Build response
     const proposalUrl = `https://proposals.getshortcut.co/proposal/${newProposal.id}?shared=true`;
 
     return jsonResponse(201, {
@@ -221,12 +248,8 @@ async function handleCreate(event, user, supabase) {
 // --- PATCH: Edit Proposal ---
 
 async function handleEdit(event, user, supabase) {
-  let body;
-  try {
-    body = JSON.parse(event.body);
-  } catch (e) {
-    return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
-  }
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.proposalId) {
     return errorResponse(400, 'proposalId is required', 'VALIDATION_ERROR');
@@ -236,7 +259,6 @@ async function handleEdit(event, user, supabase) {
   }
 
   try {
-    // Fetch the existing proposal
     const { data: existing, error: fetchError } = await supabase
       .from('proposals')
       .select('*')
@@ -247,7 +269,6 @@ async function handleEdit(event, user, supabase) {
       return errorResponse(404, `Proposal ${body.proposalId} not found`, 'NOT_FOUND');
     }
 
-    // Apply operations
     const proposalData = existing.data;
     const customization = existing.customization || {};
     const proposalRecord = {
@@ -260,7 +281,6 @@ async function handleEdit(event, user, supabase) {
     const { proposalData: updatedData, customization: updatedCustomization, proposalRecord: updatedRecord, changesSummary } =
       applyOperations(proposalData, customization, proposalRecord, body.operations);
 
-    // Build the update object
     const updatePayload = {
       data: updatedData,
       customization: updatedCustomization,
@@ -269,21 +289,11 @@ async function handleEdit(event, user, supabase) {
       change_source: 'staff'
     };
 
-    // Apply record-level changes (status, client info)
-    if (updatedRecord.status !== existing.status) {
-      updatePayload.status = updatedRecord.status;
-    }
-    if (updatedRecord.client_name !== existing.client_name) {
-      updatePayload.client_name = updatedRecord.client_name;
-    }
-    if (updatedRecord.client_email !== existing.client_email) {
-      updatePayload.client_email = updatedRecord.client_email;
-    }
-    if (updatedRecord.client_logo_url !== existing.client_logo_url) {
-      updatePayload.client_logo_url = updatedRecord.client_logo_url;
-    }
+    if (updatedRecord.status !== existing.status) updatePayload.status = updatedRecord.status;
+    if (updatedRecord.client_name !== existing.client_name) updatePayload.client_name = updatedRecord.client_name;
+    if (updatedRecord.client_email !== existing.client_email) updatePayload.client_email = updatedRecord.client_email;
+    if (updatedRecord.client_logo_url !== existing.client_logo_url) updatePayload.client_logo_url = updatedRecord.client_logo_url;
 
-    // Save to Supabase
     const { data: updated, error: updateError } = await supabase
       .from('proposals')
       .update(updatePayload)
@@ -296,7 +306,6 @@ async function handleEdit(event, user, supabase) {
       return errorResponse(500, `Failed to update proposal: ${updateError.message}`, 'DB_UPDATE_FAILED');
     }
 
-    // Send Slack notification (non-blocking)
     let slackResult = { slackNotified: false };
     try {
       slackResult = await notifyProposalEdited(updated, updatedData, changesSummary);
@@ -326,6 +335,309 @@ async function handleEdit(event, user, supabase) {
     return errorResponse(422, err.message, 'VALIDATION_ERROR');
   }
 }
+
+// --- POST ?action=duplicate: Duplicate Proposal ---
+
+async function handleDuplicate(event, user, supabase) {
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  if (!body.proposalId) {
+    return errorResponse(400, 'proposalId is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const { proposal, url } = await duplicateProposal(supabase, body.proposalId, user.id, {
+      newTitle: body.newTitle,
+      notes: body.notes,
+      recalculate: body.recalculate || false
+    });
+
+    // Slack notification
+    let slackResult = { slackNotified: false };
+    try {
+      slackResult = await notifyProposalCreated(proposal, proposal.data);
+    } catch (slackErr) {
+      console.warn('Slack notification failed:', slackErr.message);
+    }
+
+    return jsonResponse(201, {
+      success: true,
+      proposal: {
+        id: proposal.id,
+        url,
+        clientName: proposal.client_name,
+        status: proposal.status,
+        summary: proposal.data?.summary || null,
+        duplicatedFrom: body.proposalId,
+        slackNotified: slackResult.slackNotified
+      }
+    });
+  } catch (err) {
+    console.error('Duplicate proposal error:', err);
+    return errorResponse(422, err.message, 'DUPLICATE_FAILED');
+  }
+}
+
+// ============================================================
+// PROPOSAL LINKING HANDLERS
+// ============================================================
+
+// --- POST ?action=create-option ---
+
+async function handleCreateOption(event, user, supabase) {
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  if (!body.proposalId) {
+    return errorResponse(400, 'proposalId is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await createOption(supabase, body.proposalId, user.id, {
+      optionName: body.optionName
+    });
+
+    return jsonResponse(201, {
+      success: true,
+      newProposal: {
+        id: result.newProposal.id,
+        url: result.url,
+        clientName: result.newProposal.client_name,
+        optionName: result.newProposal.option_name,
+        optionOrder: result.newProposal.option_order
+      },
+      groupId: result.groupId,
+      optionCount: result.optionCount
+    });
+  } catch (err) {
+    console.error('Create option error:', err);
+    return errorResponse(422, err.message, 'CREATE_OPTION_FAILED');
+  }
+}
+
+// --- POST ?action=link ---
+
+async function handleLink(event, supabase) {
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  if (!body.sourceProposalId) {
+    return errorResponse(400, 'sourceProposalId is required', 'VALIDATION_ERROR');
+  }
+  if (!body.proposalIds || !Array.isArray(body.proposalIds) || body.proposalIds.length === 0) {
+    return errorResponse(400, 'proposalIds array is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await linkProposals(supabase, body.sourceProposalId, body.proposalIds);
+
+    return jsonResponse(200, {
+      success: true,
+      groupId: result.groupId,
+      linkedCount: result.linkedCount,
+      options: result.options
+    });
+  } catch (err) {
+    console.error('Link proposals error:', err);
+    return errorResponse(422, err.message, 'LINK_FAILED');
+  }
+}
+
+// --- POST ?action=unlink ---
+
+async function handleUnlink(event, supabase) {
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  if (!body.proposalId) {
+    return errorResponse(400, 'proposalId is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await unlinkProposal(supabase, body.proposalId);
+
+    return jsonResponse(200, {
+      success: true,
+      unlinked: result.unlinked,
+      remainingOptions: result.remainingOptions
+    });
+  } catch (err) {
+    console.error('Unlink proposal error:', err);
+    return errorResponse(422, err.message, 'UNLINK_FAILED');
+  }
+}
+
+// --- POST ?action=rename-option ---
+
+async function handleRenameOption(event, supabase) {
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  if (!body.proposalId) {
+    return errorResponse(400, 'proposalId is required', 'VALIDATION_ERROR');
+  }
+  if (!body.optionName) {
+    return errorResponse(400, 'optionName is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await renameOption(supabase, body.proposalId, body.optionName);
+    return jsonResponse(200, { success: true, ...result });
+  } catch (err) {
+    console.error('Rename option error:', err);
+    return errorResponse(422, err.message, 'RENAME_FAILED');
+  }
+}
+
+// --- POST ?action=reorder-option ---
+
+async function handleReorderOption(event, supabase) {
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  if (!body.proposalId) {
+    return errorResponse(400, 'proposalId is required', 'VALIDATION_ERROR');
+  }
+  if (body.optionOrder === undefined) {
+    return errorResponse(400, 'optionOrder is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await reorderOption(supabase, body.proposalId, Number(body.optionOrder));
+    return jsonResponse(200, { success: true, ...result });
+  } catch (err) {
+    console.error('Reorder option error:', err);
+    return errorResponse(422, err.message, 'REORDER_FAILED');
+  }
+}
+
+// --- GET ?action=group-options&id=<proposalId> ---
+
+async function handleGetGroupOptions(params, supabase) {
+  if (!params.id) {
+    return errorResponse(400, 'id parameter is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await getGroupOptions(supabase, params.id);
+    return jsonResponse(200, { success: true, ...result });
+  } catch (err) {
+    console.error('Get group options error:', err);
+    return errorResponse(500, err.message, 'GROUP_OPTIONS_FAILED');
+  }
+}
+
+// ============================================================
+// LANDING PAGE HANDLERS
+// ============================================================
+
+// --- POST ?action=create-landing-page ---
+
+async function handleCreateLandingPage(event, user, supabase) {
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  if (!body.partnerName) {
+    return errorResponse(400, 'partnerName is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await createLandingPage(supabase, user.id, body);
+
+    return jsonResponse(201, {
+      success: true,
+      landingPage: {
+        id: result.page.id,
+        url: result.url,
+        uniqueToken: result.uniqueToken,
+        partnerName: body.partnerName,
+        status: result.page.status
+      }
+    });
+  } catch (err) {
+    console.error('Create landing page error:', err);
+    return errorResponse(422, err.message, 'LANDING_PAGE_CREATE_FAILED');
+  }
+}
+
+// --- PATCH ?action=update-landing-page ---
+
+async function handleUpdateLandingPage(event, supabase) {
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  if (!body.pageId) {
+    return errorResponse(400, 'pageId is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await updateLandingPage(supabase, body.pageId, body);
+
+    return jsonResponse(200, {
+      success: true,
+      landingPage: {
+        id: result.page.id,
+        url: result.url,
+        partnerName: result.page.data?.partnerName,
+        status: result.page.status
+      }
+    });
+  } catch (err) {
+    console.error('Update landing page error:', err);
+    return errorResponse(422, err.message, 'LANDING_PAGE_UPDATE_FAILED');
+  }
+}
+
+// --- GET ?action=landing-page&id=<pageId> ---
+
+async function handleGetLandingPage(params, supabase) {
+  if (!params.id) {
+    return errorResponse(400, 'id parameter is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await getLandingPage(supabase, params.id);
+
+    return jsonResponse(200, {
+      success: true,
+      landingPage: {
+        id: result.page.id,
+        url: result.url,
+        data: result.page.data,
+        customization: result.page.customization,
+        status: result.page.status,
+        isReturningClient: result.page.is_returning_client,
+        uniqueToken: result.page.unique_token,
+        createdAt: result.page.created_at,
+        updatedAt: result.page.updated_at
+      }
+    });
+  } catch (err) {
+    console.error('Get landing page error:', err);
+    return errorResponse(500, err.message, 'LANDING_PAGE_GET_FAILED');
+  }
+}
+
+// --- GET ?action=search-landing-pages&search=<term> ---
+
+async function handleSearchLandingPages(params, supabase) {
+  if (!params.search) {
+    return errorResponse(400, 'search parameter is required', 'VALIDATION_ERROR');
+  }
+
+  try {
+    const result = await searchLandingPages(supabase, params.search);
+    return jsonResponse(200, { success: true, ...result });
+  } catch (err) {
+    console.error('Search landing pages error:', err);
+    return errorResponse(500, err.message, 'LANDING_PAGE_SEARCH_FAILED');
+  }
+}
+
+// ============================================================
+// EXISTING HANDLERS (Search, Get, Calculate, Client Lookup)
+// ============================================================
 
 // --- GET: Search Proposals ---
 
@@ -368,7 +680,10 @@ async function handleGetById(params, supabase) {
       isEditable: proposal.is_editable,
       pendingReview: proposal.pending_review,
       hasChanges: proposal.has_changes,
-      notes: proposal.notes
+      notes: proposal.notes,
+      proposalGroupId: proposal.proposal_group_id,
+      optionName: proposal.option_name,
+      optionOrder: proposal.option_order
     }
   });
 }
@@ -376,12 +691,8 @@ async function handleGetById(params, supabase) {
 // --- POST ?action=calculate: Reverse Calculator ---
 
 async function handleCalculate(event) {
-  let body;
-  try {
-    body = JSON.parse(event.body);
-  } catch (e) {
-    return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
-  }
+  const body = parseBody(event);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.serviceType) {
     return errorResponse(400, 'serviceType is required', 'VALIDATION_ERROR');
@@ -424,7 +735,6 @@ async function handleClientLookup(params, supabase) {
     const searchResult = await searchClients(supabase, clientName);
 
     if (searchResult.found && searchResult.results.length > 0) {
-      // Return the best match
       return jsonResponse(200, {
         success: true,
         found: true,
