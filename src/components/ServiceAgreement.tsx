@@ -62,7 +62,7 @@ const ServiceAgreement: React.FC = () => {
             <section>
               <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">5. PAYMENT TERMS</h4>
               <div className="pl-4 space-y-2">
-                <p className="text-text-dark">5.1 Shortcut will issue an prior to each scheduled event. Payment is due 48 hours prior to the first scheduled event.</p>
+                <p className="text-text-dark">5.1 Shortcut will issue an invoice prior to each scheduled event. Payment is due 48 hours prior to the first scheduled event.</p>
                 <p className="text-text-dark">5.2 Late payments beyond the grace period may incur a 5% late fee.</p>
                 <p className="text-text-dark">5.3 Partner shall provide all necessary vendor registration, payment portal access, or other payment processing requirements within 48 hours of executing this Agreement.</p>
                 <p className="text-text-dark">5.4 Any delay in providing payment processing access may result in postponement of scheduled services.</p>
@@ -81,8 +81,10 @@ const ServiceAgreement: React.FC = () => {
                 <p className="text-text-dark mb-2">6.2 Cancellation Policy:</p>
                 <ul className="list-disc pl-8 space-y-1 text-text-dark">
                   <li>72+ hours notice: No penalty</li>
-                  <li>Less than 72 hours: No guaranteed rescheduling</li>
+                  <li>48-72 hours notice: May be subject to a 25% service charge</li>
+                  <li>Less than 24 hours notice: May be subject to a 50% service charge</li>
                 </ul>
+                <p className="text-text-dark mt-2">Service charges are at Shortcut's discretion and may be waived with an agreement to reschedule the event.</p>
               </div>
             </section>
 
@@ -122,7 +124,7 @@ const ServiceAgreement: React.FC = () => {
             <section>
               <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">10. TERM AND TERMINATION</h4>
               <div className="pl-4 space-y-2">
-                <p className="text-text-dark">10.1 This Agreement shall commence on the Effective Date and shall continue until December 31, 2025 whereupon the retainer of Shortcut by Partner will terminate, unless earlier terminated by either party pursuant to the provisions herein.</p>
+                <p className="text-text-dark">10.1 This Agreement shall commence on the Effective Date and shall continue until December 31, 2026 whereupon the retainer of Shortcut by Partner will terminate, unless earlier terminated by either party pursuant to the provisions herein.</p>
                 <p className="text-text-dark">10.2 Either party may terminate this Agreement with 15 days written notice (email sufficient).</p>
                 <p className="text-text-dark">10.3 Partner shall pay for all services rendered through the termination date.</p>
                 <p className="text-text-dark">10.4 Sections regarding confidentiality, intellectual property, and indemnification shall survive termination.</p>
