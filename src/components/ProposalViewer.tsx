@@ -1256,20 +1256,34 @@ const ProposalViewer: React.FC = () => {
       }
 
       // Ensure data has required structure for regular proposals
-      if (!proposal.data || !proposal.data.services) {
-        throw new Error('Invalid proposal data structure');
+      if (!proposal.data) {
+        console.error('[ProposalViewer] ERROR: proposal.data is missing');
+        throw new Error('Invalid proposal data structure - no data');
       }
+
+      if (!proposal.data.services) {
+        console.error('[ProposalViewer] ERROR: proposal.data.services is missing');
+        console.error('[ProposalViewer] proposal.data:', JSON.stringify(proposal.data, null, 2));
+        throw new Error('Invalid proposal data structure - no services');
+      }
+
+      const serviceCount = Object.values(proposal.data.services).reduce((count: number, locationData: any) => {
+        return count + Object.values(locationData).reduce((locCount: number, dateData: any) => {
+          return locCount + (dateData.services?.length || 0);
+        }, 0);
+      }, 0);
+      console.log(`[ProposalViewer] Total services in proposal.data: ${serviceCount}`);
       
       // Preserve gratuity fields from proposal data before recalculation
       const gratuityType = proposal.data?.gratuityType || null;
       const gratuityValue = proposal.data?.gratuityValue || null;
-      
+
       const calculatedData = recalculateServiceTotals(proposal.data);
-      
+
       // Restore gratuity fields after recalculation
       if (gratuityType) calculatedData.gratuityType = gratuityType;
       if (gratuityValue !== null) calculatedData.gratuityValue = gratuityValue;
-      
+
       // Ensure classLength and mindfulnessType are set correctly for mindfulness services
       if (calculatedData.services) {
         Object.values(calculatedData.services).forEach((locationData: any) => {
@@ -2851,35 +2865,37 @@ The Shortcut Team`);
                                     )}
 
                                     {/* Recurring Event Details */}
-                                    {service.isRecurring && service.recurringFrequency && (
-                                      <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border-2 border-purple-200">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <span className="text-lg">🔄</span>
-                                          <h5 className="font-bold text-purple-800">Recurring Event</h5>
+                                    {service.isRecurring && service.recurringFrequency && (() => {
+                                      const occurrences = service.recurringFrequency.occurrences;
+                                      const discountRate = occurrences >= 9 ? 0.20 : occurrences >= 4 ? 0.15 : 0;
+                                      // service.serviceCost is THIS event's cost (already discounted)
+                                      const thisEventDiscounted = service.serviceCost;
+                                      const thisEventOriginal = discountRate > 0 ? thisEventDiscounted / (1 - discountRate) : thisEventDiscounted;
+                                      const thisEventSavings = thisEventOriginal - thisEventDiscounted;
+
+                                      return (
+                                        <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-base">🔄</span>
+                                              <span className="font-semibold text-purple-800 text-sm">Recurring Partner</span>
+                                              <span className="text-purple-600 text-sm">({occurrences} events total)</span>
+                                            </div>
+                                            {discountRate > 0 && (
+                                              <span className="text-green-700 font-semibold text-sm">
+                                                ✨ {discountRate * 100}% discount applied
+                                              </span>
+                                            )}
+                                          </div>
+                                          {discountRate > 0 && (
+                                            <div className="mt-2 pt-2 border-t border-purple-200 flex justify-between text-sm">
+                                              <span className="text-purple-700">This event savings:</span>
+                                              <span className="font-bold text-green-700">-${formatCurrency(thisEventSavings)}</span>
+                                            </div>
+                                          )}
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                          <div>
-                                            <span className="font-bold text-purple-700">Frequency:</span>
-                                            <span className="ml-2 text-purple-900">
-                                              {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
-                                               service.recurringFrequency.type === 'monthly' ? 'Monthly' :
-                                               'Custom'}
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <span className="font-bold text-purple-700">Total Events:</span>
-                                            <span className="ml-2 text-purple-900">{service.recurringFrequency.occurrences}</span>
-                                          </div>
-                                        </div>
-                                        {(service.recurringDiscount > 0 || service.recurringFrequency.occurrences >= 4) && (
-                                          <div className="mt-3 p-2 bg-white/50 rounded-lg">
-                                            <span className="text-sm font-bold text-green-700">
-                                              ✨ {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} Volume Discount Applied
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
 
                                     <div className="grid gap-0">
                                       {service.serviceType === 'mindfulness' ? (
@@ -3271,7 +3287,21 @@ The Shortcut Team`);
                                     </div>
                                     <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
                                       <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
-                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                      {displayData.isAutoRecurring && displayData.autoRecurringDiscount ? (
+                                        <div>
+                                          <div className="text-lg font-semibold text-shortcut-navy-blue/60 line-through">
+                                            ${formatCurrency(dateData.totalCost || 0)}
+                                          </div>
+                                          <div className="text-2xl font-extrabold text-green-600">
+                                            ${formatCurrency((dateData.totalCost || 0) * (1 - displayData.autoRecurringDiscount / 100))}
+                                          </div>
+                                          <div className="text-xs text-green-600 font-bold mt-1">
+                                            {displayData.autoRecurringDiscount}% discount
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -3340,10 +3370,12 @@ The Shortcut Team`);
             })()}
 
             {Object.entries(displayData.services || {}).map(([location, locationData]) => (
-              <LocationSummary 
+              <LocationSummary
                 key={`${location}-${updateCounter}`}
                 location={location}
                 services={locationData}
+                isAutoRecurring={displayData.isAutoRecurring}
+                autoRecurringDiscount={displayData.autoRecurringDiscount}
               />
             ))}
 
@@ -3420,10 +3452,63 @@ The Shortcut Team`);
               </div>
             )}
 
+            {/* Auto-Recurring Discount Section - Only show in edit mode */}
+            {isEditing && !isSharedView && (
+              <div className="card-large">
+                <h2 className="text-xl font-extrabold text-shortcut-blue mb-4">Recurring Discount</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-shortcut-blue mb-2">
+                      Discount Amount
+                      <span className="font-normal text-gray-500 ml-2">
+                        (Auto-applied: 15% for 4-8 dates, 20% for 9+ dates)
+                      </span>
+                    </label>
+                    <select
+                      value={editedData?.isAutoRecurring ? String(editedData.autoRecurringDiscount || 0) : '0'}
+                      onChange={(e) => {
+                        const discountValue = parseInt(e.target.value) || 0;
+                        const newData = { ...editedData };
+
+                        if (discountValue === 0) {
+                          // Clear auto-recurring
+                          newData.isAutoRecurring = false;
+                          newData.autoRecurringDiscount = undefined;
+                          newData.autoRecurringSavings = undefined;
+                        } else {
+                          // Set manual auto-recurring discount
+                          newData.isAutoRecurring = true;
+                          newData.autoRecurringDiscount = discountValue;
+                          // Savings will be calculated by recalculateServiceTotals
+                        }
+
+                        const recalculated = recalculateServiceTotals(newData);
+                        setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                        setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                      }}
+                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                    >
+                      <option value="0">No Recurring Discount</option>
+                      <option value="15">15% Recurring Discount</option>
+                      <option value="20">20% Recurring Discount</option>
+                    </select>
+                  </div>
+                  {editedData?.isAutoRecurring && editedData.autoRecurringDiscount && (
+                    <div className="flex items-center gap-2 text-green-600 font-semibold">
+                      <span>✨</span>
+                      <span>
+                        {editedData.autoRecurringDiscount}% discount will save ${((editedData.autoRecurringSavings || 0)).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
-                {/* Check for recurring services */}
+                {/* Check for recurring services or auto-recurring */}
                 {(() => {
                   let recurringCount = 0;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {
@@ -3435,6 +3520,17 @@ The Shortcut Team`);
                       });
                     });
                   });
+
+                  // Show auto-recurring badge if applicable
+                  if (displayData.isAutoRecurring && displayData.autoRecurringDiscount) {
+                    return (
+                      <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white whitespace-nowrap">
+                        <span>✨</span>
+                        <span>{displayData.autoRecurringDiscount}% Recurring Discount</span>
+                      </span>
+                    );
+                  }
+
                   return recurringCount > 0 ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
                       🔄 {recurringCount} Recurring Service{recurringCount !== 1 ? 's' : ''}
@@ -3479,8 +3575,27 @@ The Shortcut Team`);
                   <span className="font-semibold">Profit Margin:</span>
                   <span className="font-bold text-lg">{(displayData.summary?.profitMargin || 0).toFixed(1)}%</span>
                 </div>
-                {/* Recurring Savings Display */}
+                {/* Recurring Savings Display (manual or auto) */}
                 {(() => {
+                  // Check for auto-recurring savings first
+                  if (displayData.isAutoRecurring && displayData.autoRecurringSavings && displayData.autoRecurringSavings > 0) {
+                    return (
+                      <div className="mt-4 pt-4 border-t border-white/20">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold flex items-center gap-2">
+                            <span className="text-lg">✨</span>
+                            Recurring Discount ({displayData.autoRecurringDiscount}%):
+                          </span>
+                          <span className="font-bold text-lg text-green-300">-${formatCurrency(displayData.autoRecurringSavings)}</span>
+                        </div>
+                        <p className="text-sm text-white/60 mt-2">
+                          Applied automatically for {displayData.eventDates?.filter((d: string) => d !== 'TBD').length}+ event dates
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // Check for manual recurring savings
                   let totalSavings = 0;
                   let hasRecurring = false;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {

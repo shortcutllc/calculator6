@@ -26,31 +26,7 @@ import {
   ParticipantBenefitsSection,
   AdditionalResourcesSection
 } from './MindfulnessProposalContent';
-import {
-  MassageWhyShortcutSection,
-  MassageBenefitsSection,
-  MassageWhatsIncludedSection
-} from './MassageProposalContent';
-import {
-  HeadshotWhyShortcutSection,
-  HeadshotBenefitsSection,
-  HeadshotWhatsIncludedSection
-} from './HeadshotProposalContent';
-import {
-  NailsWhyShortcutSection,
-  NailsBenefitsSection,
-  NailsWhatsIncludedSection
-} from './NailsProposalContent';
-import {
-  HairMakeupWhyShortcutSection,
-  HairMakeupBenefitsSection,
-  HairMakeupWhatsIncludedSection
-} from './HairMakeupProposalContent';
-import {
-  FacialWhyShortcutSection,
-  FacialBenefitsSection,
-  FacialWhatsIncludedSection
-} from './FacialProposalContent';
+import { UnifiedServiceSections } from './UnifiedProposalSections';
 
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -152,40 +128,6 @@ const hasCLEService = (displayData: any): boolean => {
   const uniqueServiceTypes = getUniqueServiceTypes(displayData);
   return uniqueServiceTypes.some(type =>
     type.toLowerCase() === 'mindfulness-cle'
-  );
-};
-
-// Helper function to check if proposal contains massage services
-const hasMassageService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  return uniqueServiceTypes.some(type => type.toLowerCase() === 'massage');
-};
-
-// Helper function to check if proposal contains headshot services
-const hasHeadshotService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  const headshotTypes = ['headshot', 'headshots', 'headshot-hair-makeup'];
-  return uniqueServiceTypes.some(type => headshotTypes.includes(type.toLowerCase()));
-};
-
-// Helper function to check if proposal contains nail services
-const hasNailsService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  return uniqueServiceTypes.some(type => type.toLowerCase() === 'nails');
-};
-
-// Helper function to check if proposal contains hair/makeup services (excluding headshot-hair-makeup which is covered by headshots)
-const hasHairMakeupService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  const hairMakeupTypes = ['hair-makeup', 'hair', 'makeup'];
-  return uniqueServiceTypes.some(type => hairMakeupTypes.includes(type.toLowerCase()));
-};
-
-// Helper function to check if proposal contains facial services
-const hasFacialService = (displayData: any): boolean => {
-  const uniqueServiceTypes = getUniqueServiceTypes(displayData);
-  return uniqueServiceTypes.some(type =>
-    type.toLowerCase() === 'facial' || type.toLowerCase() === 'facials'
   );
 };
 
@@ -609,20 +551,34 @@ export const StandaloneProposalViewer: React.FC = () => {
         }
 
         // Ensure data has required structure for regular proposals
-        if (!data.data || !data.data.services) {
-          throw new Error('Invalid proposal data structure');
+        if (!data.data) {
+          console.error('[StandaloneProposalViewer] ERROR: data.data is missing');
+          throw new Error('Invalid proposal data structure - no data');
         }
+
+        if (!data.data.services) {
+          console.error('[StandaloneProposalViewer] ERROR: data.data.services is missing');
+          console.error('[StandaloneProposalViewer] data.data:', JSON.stringify(data.data, null, 2));
+          throw new Error('Invalid proposal data structure - no services');
+        }
+
+        const serviceCount = Object.values(data.data.services).reduce((count: number, locationData: any) => {
+          return count + Object.values(locationData).reduce((locCount: number, dateData: any) => {
+            return locCount + (dateData.services?.length || 0);
+          }, 0);
+        }, 0);
+        console.log(`[StandaloneProposalViewer] Total services in data.data: ${serviceCount}`);
 
         // Preserve gratuity fields from proposal data before recalculation
         const gratuityType = data.data?.gratuityType || null;
         const gratuityValue = data.data?.gratuityValue || null;
-        
+
         const calculatedData = recalculateServiceTotals(data.data);
-        
+
         // Restore gratuity fields after recalculation
         if (gratuityType) calculatedData.gratuityType = gratuityType;
         if (gratuityValue !== null) calculatedData.gratuityValue = gratuityValue;
-        
+
         // Ensure classLength and mindfulnessType are set correctly for mindfulness services
         if (calculatedData.services) {
           Object.values(calculatedData.services).forEach((locationData: any) => {
@@ -1440,7 +1396,7 @@ export const StandaloneProposalViewer: React.FC = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <img 
-                src="/shortcut-logo blue.svg" 
+                src="/shortcut-logo-blue.svg" 
                 alt="Shortcut Logo" 
                 className="h-8 w-auto"
               />
@@ -1863,35 +1819,37 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     </div>
 
                                     {/* Recurring Event Details */}
-                                    {service.isRecurring && service.recurringFrequency && (
-                                      <div className="mb-5 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <span className="text-lg">🔄</span>
-                                          <h5 className="font-bold text-purple-800">Recurring Event</h5>
+                                    {service.isRecurring && service.recurringFrequency && (() => {
+                                      const occurrences = service.recurringFrequency.occurrences;
+                                      const discountRate = occurrences >= 9 ? 0.20 : occurrences >= 4 ? 0.15 : 0;
+                                      // service.serviceCost is THIS event's cost (already discounted)
+                                      const thisEventDiscounted = service.serviceCost;
+                                      const thisEventOriginal = discountRate > 0 ? thisEventDiscounted / (1 - discountRate) : thisEventDiscounted;
+                                      const thisEventSavings = thisEventOriginal - thisEventDiscounted;
+
+                                      return (
+                                        <div className="mb-5 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-base">🔄</span>
+                                              <span className="font-semibold text-purple-800 text-sm">Recurring Partner</span>
+                                              <span className="text-purple-600 text-sm">({occurrences} events total)</span>
+                                            </div>
+                                            {discountRate > 0 && (
+                                              <span className="text-green-700 font-semibold text-sm">
+                                                ✨ {discountRate * 100}% discount applied
+                                              </span>
+                                            )}
+                                          </div>
+                                          {discountRate > 0 && (
+                                            <div className="mt-2 pt-2 border-t border-purple-200 flex justify-between text-sm">
+                                              <span className="text-purple-700">This event savings:</span>
+                                              <span className="font-bold text-green-700">-${formatCurrency(thisEventSavings)}</span>
+                                            </div>
+                                          )}
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                          <div>
-                                            <span className="font-bold text-purple-700">Frequency:</span>
-                                            <span className="ml-2 text-purple-900">
-                                              {service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
-                                               service.recurringFrequency.type === 'monthly' ? 'Monthly' :
-                                               'Custom'}
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <span className="font-bold text-purple-700">Total Events:</span>
-                                            <span className="ml-2 text-purple-900">{service.recurringFrequency.occurrences}</span>
-                                          </div>
-                                        </div>
-                                        {service.recurringFrequency.occurrences >= 4 && (
-                                          <div className="mt-3 p-2 bg-white/50 rounded-lg">
-                                            <span className="text-sm font-bold text-green-700">
-                                              ✨ {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} Volume Discount Applied
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
 
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (
@@ -2186,7 +2144,21 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     </div>
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Cost</div>
-                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                      {displayData.isAutoRecurring && displayData.autoRecurringDiscount ? (
+                                        <div>
+                                          <div className="text-xl font-semibold text-shortcut-navy-blue/60 line-through">
+                                            ${formatCurrency(dateData.totalCost || 0)}
+                                          </div>
+                                          <div className="text-3xl font-extrabold text-green-600">
+                                            ${formatCurrency((dateData.totalCost || 0) * (1 - displayData.autoRecurringDiscount / 100))}
+                                          </div>
+                                          <div className="text-xs text-green-600 font-bold mt-1">
+                                            {displayData.autoRecurringDiscount}% discount
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -2215,49 +2187,13 @@ export const StandaloneProposalViewer: React.FC = () => {
               <AdditionalResourcesSection />
             )}
 
-            {/* Massage-specific sections */}
-            {hasMassageService(displayData) && (
-              <>
-                <MassageWhyShortcutSection />
-                <MassageBenefitsSection />
-                <MassageWhatsIncludedSection />
-              </>
-            )}
-
-            {/* Headshot-specific sections */}
-            {hasHeadshotService(displayData) && (
-              <>
-                <HeadshotWhyShortcutSection />
-                <HeadshotBenefitsSection />
-                <HeadshotWhatsIncludedSection />
-              </>
-            )}
-
-            {/* Nails-specific sections */}
-            {hasNailsService(displayData) && (
-              <>
-                <NailsWhyShortcutSection />
-                <NailsBenefitsSection />
-                <NailsWhatsIncludedSection />
-              </>
-            )}
-
-            {/* Hair & Makeup-specific sections */}
-            {hasHairMakeupService(displayData) && (
-              <>
-                <HairMakeupWhyShortcutSection />
-                <HairMakeupBenefitsSection />
-                <HairMakeupWhatsIncludedSection />
-              </>
-            )}
-
-            {/* Facial-specific sections */}
-            {hasFacialService(displayData) && (
-              <>
-                <FacialWhyShortcutSection />
-                <FacialBenefitsSection />
-                <FacialWhatsIncludedSection />
-              </>
+            {/* Unified Service Sections - Why Shortcut + Collapsible Service Details */}
+            {/* Only show for non-mindfulness proposals (mindfulness has its own sections above) */}
+            {!isMindfulnessOnlyProposal(displayData) && uniqueServiceTypes.length > 0 && (
+              <UnifiedServiceSections
+                serviceTypes={uniqueServiceTypes}
+                showWhyShortcut={true}
+              />
             )}
               </div>
 
@@ -2354,10 +2290,12 @@ export const StandaloneProposalViewer: React.FC = () => {
 
             {/* City Summary (LocationSummary) - Light Blue */}
             {Object.entries(displayData.services || {}).map(([location, locationData]) => (
-              <LocationSummary 
+              <LocationSummary
                 key={location}
                 location={location}
                 services={locationData}
+                isAutoRecurring={displayData.isAutoRecurring}
+                autoRecurringDiscount={displayData.autoRecurringDiscount}
               />
             ))}
 
@@ -2370,7 +2308,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                   </div>
                   <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
                 </div>
-                {/* Check for recurring services */}
+                {/* Check for recurring services or auto-recurring */}
                 {(() => {
                   let recurringCount = 0;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {
@@ -2382,6 +2320,17 @@ export const StandaloneProposalViewer: React.FC = () => {
                       });
                     });
                   });
+
+                  // Show auto-recurring badge if applicable
+                  if (displayData.isAutoRecurring && displayData.autoRecurringDiscount) {
+                    return (
+                      <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white whitespace-nowrap">
+                        <span>✨</span>
+                        <span>{displayData.autoRecurringDiscount}% Recurring Discount</span>
+                      </span>
+                    );
+                  }
+
                   return recurringCount > 0 ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
                       🔄 {recurringCount} Recurring
@@ -2414,8 +2363,27 @@ export const StandaloneProposalViewer: React.FC = () => {
                   <span className="font-extrabold text-lg text-white">Total Event Cost:</span>
                   <span className="font-extrabold text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
-                {/* Recurring Savings Display */}
+                {/* Recurring Savings Display (manual or auto) */}
                 {(() => {
+                  // Check for auto-recurring savings first
+                  if (displayData.isAutoRecurring && displayData.autoRecurringSavings && displayData.autoRecurringSavings > 0) {
+                    return (
+                      <div className="mt-4 pt-4 border-t-2 border-shortcut-teal/30">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-white/90 text-lg flex items-center gap-2">
+                            <span className="text-lg">✨</span>
+                            Recurring Discount ({displayData.autoRecurringDiscount}%):
+                          </span>
+                          <span className="font-extrabold text-xl text-green-300">-${formatCurrency(displayData.autoRecurringSavings)}</span>
+                        </div>
+                        <p className="text-sm text-white/60 mt-2">
+                          Applied automatically for {displayData.eventDates?.filter((d: string) => d !== 'TBD').length}+ event dates
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // Check for manual recurring savings
                   let totalSavings = 0;
                   let hasRecurring = false;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {

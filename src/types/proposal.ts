@@ -94,6 +94,10 @@ export interface ProposalData {
   summary: ProposalSummary;
   // New field for pricing options support
   hasPricingOptions?: boolean;
+  // Auto-recurring: automatically applied when 4+ unique dates exist
+  isAutoRecurring?: boolean;
+  autoRecurringDiscount?: number; // 15% for 4-8 dates, 20% for 9+ dates
+  autoRecurringSavings?: number; // Total savings from auto-recurring discount
   // Gratuity fields
   gratuityType?: 'percentage' | 'dollar' | null;
   gratuityValue?: number | null;

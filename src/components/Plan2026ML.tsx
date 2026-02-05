@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 
-export default function Plan2026() {
+export default function Plan2026ML() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const slides = [
     'title',
-    '2025-summary',
+    // '2025-summary' - REMOVED
     'customer-base',
-    '2025-challenges',
-    '2026-targets',
-    'exit-strategy',
+    // '2025-challenges' - REMOVED
+    // '2026-targets' - REMOVED
+    // 'exit-strategy' - REMOVED
     'four-levers',
-    'investment-overview',
+    // 'investment-overview' - REMOVED
     'content-strategy',
     'content-assets',
     'conference-strategy',
@@ -31,12 +31,17 @@ export default function Plan2026() {
     'shortcut-sessions',
     'shortcut-invitation',
     'client-entertainment',
-    'investment-summary',
-    'q1-action-items',
-    'next-steps',
-    'appendix-conferences',
-    'appendix-insurers',
-    'appendix-brokers'
+    // ML-specific slides
+    'ml-copy-direction',
+    'ml-standalone-proposals',
+    'ml-priorities',
+    'ml-style-guide',
+    // 'investment-summary' - REMOVED
+    // 'q1-action-items' - REMOVED
+    // 'next-steps' - REMOVED
+    // 'appendix-conferences' - REMOVED
+    // 'appendix-insurers' - REMOVED
+    // 'appendix-brokers' - REMOVED
   ];
 
   const goToSlide = (index: number) => {
@@ -158,95 +163,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 2: 2025 SUMMARY ==================== */}
-        {currentSlide === 1 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-12">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
-                  Where We Are
-                </p>
-                <h2 className="text-4xl md:text-6xl font-semibold" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  2025 Summary
-                </h2>
-              </div>
-
-              {/* Key Metrics */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10 max-w-5xl mx-auto">
-                {[
-                  { value: '$752K', label: 'Gross Revenue', sub: '+19% YoY' },
-                  { value: '$825K', label: 'Exit Run Rate', sub: 'Q4 pace' },
-                  { value: '~$920K', label: 'Normalized', sub: 'With late onboards', highlight: true },
-                  { value: '~$78K', label: 'Gap to $1M', sub: 'Goal miss' },
-                  { value: '$206K', label: 'Q4 Revenue', sub: '+15.1% vs Q3' },
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-5 rounded-2xl text-center"
-                    style={{
-                      backgroundColor: item.highlight ? '#E0F2F7' : '#F8F9FA',
-                      border: item.highlight ? '2px solid #9EFAFF' : '1px solid rgba(0,55,86,0.1)'
-                    }}
-                  >
-                    <p className="text-2xl md:text-3xl font-semibold mb-1" style={{ color: '#003756' }}>{item.value}</p>
-                    <p className="text-xs font-medium" style={{ color: '#003756', opacity: 0.8 }}>{item.label}</p>
-                    <p className="text-xs" style={{ color: item.highlight ? '#018EA2' : '#003756', opacity: item.highlight ? 1 : 0.5 }}>{item.sub}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                {/* Highlights */}
-                <div className="rounded-3xl p-6" style={{ backgroundColor: '#E0F2F7', border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#003756' }}>
-                    <span className="text-xl">✅</span> What Worked
-                  </h3>
-                  <div className="space-y-3">
-                    {[
-                      { title: 'Q4 Momentum', desc: 'Strongest quarter ($206K), +15.1% vs Q3' },
-                      { title: 'Enterprise Expansion', desc: 'BCG multi-city, DraftKings multi-location' },
-                      { title: 'High-Value Retention', desc: '35 clients, 15 spending $10K+/year' },
-                      { title: 'Ops Scaled Cleanly', desc: 'Holiday execution without issues' },
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <span style={{ color: '#018EA2' }}>✓</span>
-                        <p className="text-sm" style={{ color: '#003756' }}>
-                          <strong>{item.title}:</strong> {item.desc}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Challenges */}
-                <div className="rounded-3xl p-6" style={{ backgroundColor: '#FEF2F2', border: '1px solid rgba(220,38,38,0.2)' }}>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#003756' }}>
-                    <span className="text-xl">⚠️</span> What Didn't
-                  </h3>
-                  <div className="space-y-3">
-                    {[
-                      { title: 'Missed $1M exit goal', desc: 'Ended at $825K run rate vs $1M target' },
-                      { title: 'Slow partner acquisition', desc: 'Net-new recurring partners didn\'t compound quickly enough' },
-                      { title: 'Revenue quality', desc: 'Some growth was one-time events vs recurring contracts' },
-                      { title: 'Visibility gaps', desc: 'Revenue timing made forecasting difficult' },
-                      { title: 'Concentration risk', desc: 'DraftKings LV = 15%+ of gross revenue' },
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <span style={{ color: '#DC2626' }}>!</span>
-                        <p className="text-sm" style={{ color: '#003756' }}>
-                          <strong>{item.title}:</strong> {item.desc}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* ==================== SLIDE 3: CUSTOMER BASE ==================== */}
-        {currentSlide === 2 && (
+        {currentSlide === 1 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -258,26 +176,7 @@ export default function Plan2026() {
                 </h2>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
-                {/* Client Breakdown */}
-                <div className="rounded-3xl p-6" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <h3 className="font-semibold mb-4" style={{ color: '#003756' }}>35 Active Clients</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'rgba(0,55,86,0.1)' }}>
-                      <span className="text-sm" style={{ color: '#003756' }}>Spending $10K+/year</span>
-                      <span className="text-lg font-semibold" style={{ color: '#018EA2' }}>15</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'rgba(0,55,86,0.1)' }}>
-                      <span className="text-sm" style={{ color: '#003756' }}>Spending $5-10K/year</span>
-                      <span className="text-lg font-semibold" style={{ color: '#003756' }}>8</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-sm" style={{ color: '#003756' }}>Spending {"<"}$5K/year</span>
-                      <span className="text-lg font-semibold" style={{ color: '#003756', opacity: 0.5 }}>12</span>
-                    </div>
-                  </div>
-                </div>
-
+              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-8">
                 {/* Target Profile */}
                 <div className="rounded-3xl p-6" style={{ backgroundColor: '#003756' }}>
                   <h3 className="font-semibold mb-4 text-white">Ideal Client Profile</h3>
@@ -324,46 +223,45 @@ export default function Plan2026() {
               {/* Top Accounts Table */}
               <div className="max-w-5xl mx-auto rounded-3xl overflow-hidden" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
                 <div className="p-3" style={{ backgroundColor: '#003756' }}>
-                  <h3 className="font-semibold text-white text-sm text-center">Top Accounts by 2025 Revenue</h3>
+                  <h3 className="font-semibold text-white text-sm text-center">Top Accounts</h3>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-0 text-xs">
                   {[
-                    { client: 'DraftKings LV', rev: '$115,200' },
-                    { client: 'Betterment', rev: '$31,190' },
-                    { client: 'DraftKings NY', rev: '$29,908' },
-                    { client: 'BCG NYC', rev: '$26,725' },
-                    { client: 'Celonis', rev: '$23,895' },
-                    { client: 'BCG Boston', rev: '$20,880' },
-                    { client: 'Cencora', rev: '$19,105' },
-                    { client: 'DraftKings NJ', rev: '$18,348' },
-                    { client: 'Wix', rev: '$15,600' },
-                    { client: 'Teads', rev: '$13,480' },
-                    { client: 'BCG LA', rev: '$12,285' },
-                    { client: 'BISNOW', rev: '$11,770' },
-                    { client: 'Wachtell Lipton', rev: '$11,730' },
-                    { client: 'BCG Seattle', rev: '$11,411' },
-                    { client: 'DraftKings Boston', rev: '$10,872' },
-                    { client: 'Barstool Sports', rev: '$9,666' },
-                    { client: 'Datadog', rev: '$9,555' },
-                    { client: 'Culture Amp', rev: '$8,903' },
-                    { client: 'Lockton', rev: '$8,082' },
-                    { client: 'USSA', rev: '$6,085' },
-                    { client: 'Schrödinger Portland', rev: '$4,800' },
-                    { client: 'DeepIntent', rev: '$3,845' },
-                    { client: 'Wigdor', rev: '$3,228' },
-                    { client: 'BCG Brooklyn', rev: '$3,140' },
-                    { client: 'Phoenix AC', rev: '$2,944' },
-                    { client: 'UiPath', rev: '$2,830' },
-                    { client: 'Forter', rev: '$2,760' },
-                    { client: 'Ballard Spahr', rev: '$2,580' },
-                    { client: 'Powin', rev: '$1,972' },
-                    { client: 'Tonal', rev: '$1,890' },
-                    { client: 'Nanolumens', rev: '$1,728' },
-                    { client: 'Archetype', rev: '$1,701' },
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex justify-between p-2" style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', borderRight: idx % 4 !== 3 ? '1px solid rgba(0,55,86,0.1)' : 'none' }}>
-                      <span style={{ color: '#003756' }}>{item.client}</span>
-                      <span className="font-semibold" style={{ color: '#018EA2' }}>{item.rev}</span>
+                    'DraftKings LV',
+                    'Betterment',
+                    'DraftKings NY',
+                    'BCG NYC',
+                    'Celonis',
+                    'BCG Boston',
+                    'Cencora',
+                    'DraftKings NJ',
+                    'Wix',
+                    'Teads',
+                    'BCG LA',
+                    'BISNOW',
+                    'Wachtell Lipton',
+                    'BCG Seattle',
+                    'DraftKings Boston',
+                    'Barstool Sports',
+                    'Datadog',
+                    'Culture Amp',
+                    'Lockton',
+                    'USSA',
+                    'Schrödinger Portland',
+                    'DeepIntent',
+                    'Wigdor',
+                    'BCG Brooklyn',
+                    'Phoenix AC',
+                    'UiPath',
+                    'Forter',
+                    'Ballard Spahr',
+                    'Powin',
+                    'Tonal',
+                    'Nanolumens',
+                    'Archetype',
+                  ].map((client, idx) => (
+                    <div key={idx} className="p-2 text-center" style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', borderRight: idx % 4 !== 3 ? '1px solid rgba(0,55,86,0.1)' : 'none' }}>
+                      <span style={{ color: '#003756' }}>{client}</span>
                     </div>
                   ))}
                 </div>
@@ -375,249 +273,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 4: 2025 CHALLENGES ==================== */}
-        {currentSlide === 3 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-12">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
-                  The 2026 Question
-                </p>
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  2025 Challenges
-                </h2>
-                <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  These are go-to-market tuning issues, not product or execution failures. The model works.
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
-                {/* Quarterly Breakdown */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white">Quarterly Breakdown</h3>
-                  </div>
-                  <div className="p-4" style={{ backgroundColor: 'white' }}>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr style={{ borderBottom: '2px solid rgba(0,55,86,0.1)' }}>
-                          <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Quarter</th>
-                          <th className="text-right py-2 font-semibold" style={{ color: '#003756' }}>Revenue</th>
-                          <th className="text-right py-2 font-semibold" style={{ color: '#003756' }}>QoQ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { q: 'Q1', rev: '$175,172', change: '—' },
-                          { q: 'Q2', rev: '$160,369', change: '-8.5%', down: true },
-                          { q: 'Q3', rev: '$179,104', change: '+11.7%' },
-                          { q: 'Q4', rev: '$206,194', change: '+15.1%', highlight: true },
-                        ].map((item, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', backgroundColor: item.highlight ? '#E0F2F7' : 'transparent' }}>
-                            <td className="py-2" style={{ color: '#003756' }}>{item.q}</td>
-                            <td className="py-2 text-right font-medium" style={{ color: '#003756' }}>{item.rev}</td>
-                            <td className="py-2 text-right" style={{ color: item.down ? '#DC2626' : item.highlight ? '#018EA2' : '#003756' }}>{item.change}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div className="mt-4 p-3 rounded-xl" style={{ backgroundColor: '#E0F2F7' }}>
-                      <p className="text-xs" style={{ color: '#003756' }}>
-                        <strong>Holiday season (Nov 1 - Dec 25):</strong> $112,922 — validating Shortcut as a "pressure valve" for high-stress periods.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Challenges List */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #FF5050' }}>
-                  <div className="p-4" style={{ backgroundColor: '#FF5050' }}>
-                    <h3 className="font-semibold text-white">Key Challenges</h3>
-                  </div>
-                  <div className="p-5" style={{ backgroundColor: 'white' }}>
-                    <div className="space-y-4">
-                      {[
-                        { challenge: 'Missed $1M exit goal', impact: 'Ended at $825K run rate vs $1M target' },
-                        { challenge: 'Slow partner acquisition', impact: 'Net-new recurring partners didn\'t compound quickly enough' },
-                        { challenge: 'Revenue quality', impact: 'Some growth was one-time events vs recurring contracts' },
-                        { challenge: 'Visibility gaps', impact: 'Revenue timing made forecasting difficult' },
-                        { challenge: 'Concentration risk', impact: 'DraftKings LV = 15%+ of gross revenue' },
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-3 pb-3" style={{ borderBottom: idx < 4 ? '1px solid rgba(0,55,86,0.1)' : 'none' }}>
-                          <span className="text-lg">⚠️</span>
-                          <div>
-                            <p className="font-medium text-sm" style={{ color: '#003756' }}>{item.challenge}</p>
-                            <p className="text-xs" style={{ color: '#003756', opacity: 0.7 }}>{item.impact}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* The Big Question */}
-              <div className="max-w-3xl mx-auto text-center p-6 rounded-3xl" style={{ backgroundColor: '#003756' }}>
-                <p className="text-lg text-white mb-2">The story is no longer "can this work?"</p>
-                <p className="text-2xl font-semibold" style={{ color: '#9EFAFF' }}>
-                  It's how quickly Shortcut compounds what already works.
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ==================== SLIDE 5: 2026 TARGETS ==================== */}
-        {currentSlide === 4 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-12">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
-                  Financial Projections
-                </p>
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  2026 Targets
-                </h2>
-                <p className="text-lg" style={{ color: '#003756', opacity: 0.7 }}>
-                  +40% growth = $330K incremental revenue needed
-                </p>
-              </div>
-
-              {/* Revenue Trajectory Table */}
-              <div className="rounded-3xl overflow-hidden mb-8 max-w-4xl mx-auto" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ backgroundColor: '#003756' }}>
-                      <th className="text-left p-4 text-sm font-semibold text-white">Year-End</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">Run Rate</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">Growth</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">Est. Gross Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                      <td className="p-4 text-sm font-medium" style={{ color: '#003756' }}>2025 (Actual)</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756' }}>$825K</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756' }}>+19%</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756' }}>$750K</td>
-                    </tr>
-                    <tr style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', backgroundColor: '#E0F2F7' }}>
-                      <td className="p-4 text-sm font-bold" style={{ color: '#003756' }}>2026 Target</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#003756' }}>$1,155K</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#018EA2' }}>+40%</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#003756' }}>$1,039K</td>
-                    </tr>
-                    <tr style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                      <td className="p-4 text-sm" style={{ color: '#003756', opacity: 0.6 }}>2027</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756', opacity: 0.6 }}>$1,617K</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756', opacity: 0.6 }}>+40%</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756', opacity: 0.6 }}>$1,455K</td>
-                    </tr>
-                    <tr>
-                      <td className="p-4 text-sm" style={{ color: '#003756', opacity: 0.6 }}>2028 (Exit)</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756', opacity: 0.6 }}>$2,100K</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756', opacity: 0.6 }}>+30%</td>
-                      <td className="p-4 text-sm text-right" style={{ color: '#003756', opacity: 0.6 }}>$1,891K</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* What $330K looks like */}
-              <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                {[
-                  { metric: '~$27.5K', label: 'per month incremental', desc: 'or $6.3K/week new business' },
-                  { metric: '15-20', label: 'new $15K+ clients', desc: 'at average $18K/year' },
-                  { metric: '~$1K/day', label: 'in new business', desc: 'consistent lead flow needed' },
-                ].map((item, idx) => (
-                  <div key={idx} className="text-center p-5 rounded-2xl" style={{ backgroundColor: '#F8F9FA' }}>
-                    <p className="text-2xl font-bold" style={{ color: '#003756' }}>{item.metric}</p>
-                    <p className="text-sm font-medium" style={{ color: '#003756' }}>{item.label}</p>
-                    <p className="text-xs" style={{ color: '#003756', opacity: 0.5 }}>{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ==================== SLIDE 6: EXIT STRATEGY ==================== */}
-        {currentSlide === 5 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-12">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
-                  Long-Term Vision
-                </p>
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Exit Strategy
-                </h2>
-                <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Start acquirer search mid-2028, close by end of 2028
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                {/* Acquisition Metrics */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
-                  <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white">Acquisition Metrics at Exit</h3>
-                  </div>
-                  <div className="p-5" style={{ backgroundColor: 'white' }}>
-                    <table className="w-full text-sm">
-                      <tbody>
-                        {[
-                          { metric: 'Annual Sales', value: '$2.8M' },
-                          { metric: 'Service Provider Cost', value: '$1.16M' },
-                          { metric: 'Gross Margin', value: '65%', highlight: true },
-                          { metric: 'Gross Profit', value: '$1.64M' },
-                          { metric: 'Annual Expenses', value: '$600K' },
-                          { metric: 'EBITDA', value: '$1.0M', highlight: true },
-                          { metric: 'EBITDA Margin', value: '36%' },
-                        ].map((item, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                            <td className="py-2" style={{ color: '#003756' }}>{item.metric}</td>
-                            <td className="py-2 text-right font-semibold" style={{ color: item.highlight ? '#018EA2' : '#003756' }}>{item.value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Target Value & Timeline */}
-                <div className="space-y-4">
-                  <div className="rounded-3xl p-6 text-center" style={{ backgroundColor: '#003756' }}>
-                    <p className="text-sm text-white mb-2" style={{ opacity: 0.7 }}>Target Purchase Value</p>
-                    <p className="text-5xl font-bold" style={{ color: '#9EFAFF' }}>$15-20M</p>
-                  </div>
-
-                  <div className="rounded-3xl p-5" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <h4 className="font-semibold mb-4" style={{ color: '#003756' }}>Timeline to Exit</h4>
-                    <div className="space-y-3">
-                      {[
-                        { year: '2026', milestone: 'Hit $1.155M run rate (+40%)' },
-                        { year: '2027', milestone: 'Scale to $1.617M run rate (+40%)' },
-                        { year: '2028 H1', milestone: 'Reach $2.1M run rate (+30%)' },
-                        { year: '2028 H2', milestone: 'Start acquirer search, close deal' },
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
-                          <span className="px-2 py-1 rounded text-xs font-mono" style={{ backgroundColor: '#E0F2F7', color: '#003756' }}>
-                            {item.year}
-                          </span>
-                          <p className="text-sm" style={{ color: '#003756' }}>{item.milestone}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* ==================== SLIDE 7: FOUR LEVERS ==================== */}
-        {currentSlide === 6 && (
+        {currentSlide === 2 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-12">
@@ -695,94 +352,8 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 8: INVESTMENT OVERVIEW ==================== */}
-        {currentSlide === 7 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-12">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#9EFAFF' }}>
-                  2026 Capitalization Plan
-                </p>
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4 text-white" style={{ letterSpacing: '-0.02em' }}>
-                  Investment Overview
-                </h2>
-                <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  $200K minimum capital required to execute across all four levers
-                </p>
-              </div>
-
-              {/* Budget Breakdown */}
-              <div className="rounded-3xl overflow-hidden mb-8 max-w-4xl mx-auto" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
-                      <th className="text-left p-4 text-sm font-semibold text-white">Category</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">H1</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">H2</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">Year Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { cat: 'Team Compensation & Growth', h1: '$35K', h2: '$55K', total: '$90K', note: 'Merit increases for existing team and strategic new hires; subject to adjustment based on H2 performance' },
-                      { cat: 'Conferences (7 total)', h1: '$33K', h2: '$36K', total: '~$60K', note: '3 in H1, 4 in H2' },
-                      { cat: 'Content & Ad Spend', h1: '$32K', h2: '$18K', total: '$50K', note: 'Marketing investment' },
-                    ].map((item, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                        <td className="p-4 text-sm text-white">
-                          {item.cat}
-                          <span className="block text-xs" style={{ opacity: 0.5 }}>{item.note}</span>
-                        </td>
-                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.h1}</td>
-                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.h2}</td>
-                        <td className="p-4 text-sm text-right font-bold text-white">{item.total}</td>
-                      </tr>
-                    ))}
-                    <tr style={{ backgroundColor: 'rgba(158,250,255,0.2)' }}>
-                      <td className="p-4 text-sm font-bold text-white">Total Required Capital</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$100K</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$100K</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$200K</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Team Investment Detail */}
-              <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-8">
-                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                  <h4 className="font-semibold text-white mb-2">Existing Team</h4>
-                  <p className="text-sm" style={{ color: '#9EFAFF' }}>Merit-based increases</p>
-                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Competitive adjustments to retain and reward top performers</p>
-                </div>
-                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                  <h4 className="font-semibold text-white mb-2">Strategic New Hires</h4>
-                  <p className="text-sm" style={{ color: '#9EFAFF' }}>Sales & Account Management</p>
-                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Allocation subject to increase based on year-end performance</p>
-                </div>
-              </div>
-
-              {/* H1 Success Metrics */}
-              <div className="grid grid-cols-4 gap-4 max-w-4xl mx-auto">
-                {[
-                  { metric: '150+', label: 'Qualified Leads', sub: 'generated' },
-                  { metric: '8-12', label: 'New Clients', sub: 'closed' },
-                  { metric: '$150K+', label: 'New Recurring', sub: 'revenue added' },
-                  { metric: '$975K+', label: 'Run Rate', sub: 'by June 30' },
-                ].map((item, idx) => (
-                  <div key={idx} className="text-center p-4 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                    <p className="text-2xl font-bold text-white">{item.metric}</p>
-                    <p className="text-sm font-medium" style={{ color: '#9EFAFF' }}>{item.label}</p>
-                    <p className="text-xs text-white" style={{ opacity: 0.5 }}>{item.sub}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* ==================== SLIDE 9: CONTENT STRATEGY ==================== */}
-        {currentSlide === 8 && (
+        {currentSlide === 3 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -915,7 +486,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 10: CONTENT ASSETS ==================== */}
-        {currentSlide === 9 && (
+        {currentSlide === 4 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1001,7 +572,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 11: CONFERENCE STRATEGY ==================== */}
-        {currentSlide === 10 && (
+        {currentSlide === 5 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1126,7 +697,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 12: LEAD ESTIMATION METHODOLOGY ==================== */}
-        {currentSlide === 11 && (
+        {currentSlide === 6 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1202,7 +773,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 13: CONFERENCE RECOMMENDATIONS ==================== */}
-        {currentSlide === 12 && (
+        {currentSlide === 7 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1353,7 +924,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 14: H2 CONFERENCES ==================== */}
-        {currentSlide === 13 && (
+        {currentSlide === 8 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1529,7 +1100,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 15: H1 CONFERENCE DETAILS ==================== */}
-        {currentSlide === 14 && (
+        {currentSlide === 9 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1664,7 +1235,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 16: H2 CONFERENCE DETAILS ==================== */}
-        {currentSlide === 15 && (
+        {currentSlide === 10 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1762,7 +1333,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 17: CONFERENCE EXECUTION PLAYBOOK ==================== */}
-        {currentSlide === 16 && (
+        {currentSlide === 11 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1876,7 +1447,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 18: CONFERENCE SUCCESS METRICS ==================== */}
-        {currentSlide === 17 && (
+        {currentSlide === 12 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1990,7 +1561,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 19: HEALTHCARE - CIGNA ==================== */}
-        {currentSlide === 18 && (
+        {currentSlide === 13 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2126,7 +1697,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 20: HOW IT WORKS ==================== */}
-        {currentSlide === 19 && (
+        {currentSlide === 14 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2204,7 +1775,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 21: HEALTHCARE BROKERS ==================== */}
-        {currentSlide === 20 && (
+        {currentSlide === 15 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2294,7 +1865,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 22: HEALTHCARE ACTION PLAN ==================== */}
-        {currentSlide === 21 && (
+        {currentSlide === 16 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2413,7 +1984,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 23: CLE FOR LAWYERS ==================== */}
-        {currentSlide === 22 && (
+        {currentSlide === 17 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2535,7 +2106,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 24: CLE REVENUE POTENTIAL ==================== */}
-        {currentSlide === 23 && (
+        {currentSlide === 18 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2639,7 +2210,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 25: SHORTCUT SESSIONS ==================== */}
-        {currentSlide === 24 && (
+        {currentSlide === 19 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2815,7 +2386,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 26: SAMPLE INVITATION ==================== */}
-        {currentSlide === 25 && (
+        {currentSlide === 20 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-4xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -2889,7 +2460,7 @@ export default function Plan2026() {
         )}
 
         {/* ==================== SLIDE 27: CLIENT ENTERTAINMENT ==================== */}
-        {currentSlide === 26 && (
+        {currentSlide === 21 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#E0F2F7' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -2999,85 +2570,43 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 28: INVESTMENT SUMMARY ==================== */}
-        {currentSlide === 27 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#003756' }}>
+        {/* ==================== SLIDE 23: ML COPY DIRECTION ==================== */}
+        {currentSlide === 22 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-12">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#9EFAFF' }}>
-                  2026 Capitalization Plan
-                </p>
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4 text-white" style={{ letterSpacing: '-0.02em' }}>
-                  Investment Summary
-                </h2>
-                <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  $200K minimum capital required to achieve growth targets
-                </p>
+              <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
+                Copy Direction
+              </p>
+              <h2 className="text-4xl md:text-5xl font-semibold mb-6" style={{ color: '#003756' }}>
+                Brand Messaging Examples
+              </h2>
+              <p className="text-lg mb-10 max-w-3xl" style={{ color: '#003756', opacity: 0.7 }}>
+                Short, punchy taglines that emphasize convenience, wellness integration, and the unique value of on-site services.
+              </p>
+
+              {/* Image Grid - 7 examples */}
+              <div className="grid md:grid-cols-4 gap-4 mb-8">
+                <img src="/2026-Plan-ML/Frame 1278964.png" alt="Copy example 1" className="rounded-xl shadow-lg w-full" />
+                <img src="/2026-Plan-ML/Frame 1278965.png" alt="Copy example 2" className="rounded-xl shadow-lg w-full" />
+                <img src="/2026-Plan-ML/Frame 1278971.png" alt="Copy example 3" className="rounded-xl shadow-lg w-full" />
+                <img src="/2026-Plan-ML/Frame 1278972.png" alt="Copy example 4" className="rounded-xl shadow-lg w-full" />
+              </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                <img src="/2026-Plan-ML/Frame 1278973.png" alt="Copy example 5" className="rounded-xl shadow-lg w-full" />
+                <img src="/2026-Plan-ML/Frame 1278976.png" alt="Copy example 6" className="rounded-xl shadow-lg w-full" />
+                <img src="/2026-Plan-ML/Frame 1278977.png" alt="Copy example 7" className="rounded-xl shadow-lg w-full" />
               </div>
 
-              {/* Budget Breakdown */}
-              <div className="rounded-3xl overflow-hidden mb-8 max-w-4xl mx-auto" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
-                      <th className="text-left p-4 text-sm font-semibold text-white">Category</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">H1</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">H2</th>
-                      <th className="text-right p-4 text-sm font-semibold text-white">Year Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { cat: 'Team Compensation & Growth', h1: '$35K', h2: '$55K', total: '$90K', note: 'Merit increases for existing team and strategic new hires; subject to adjustment based on H2 performance' },
-                      { cat: 'Conferences (7 total)', h1: '$33K', h2: '$36K', total: '~$60K', note: '3 in H1, 4 in H2' },
-                      { cat: 'Content & Ad Spend', h1: '$32K', h2: '$18K', total: '$50K', note: 'Marketing investment' },
-                    ].map((item, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                        <td className="p-4 text-sm text-white">
-                          {item.cat}
-                          <span className="block text-xs" style={{ opacity: 0.5 }}>{item.note}</span>
-                        </td>
-                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.h1}</td>
-                        <td className="p-4 text-sm text-right font-semibold" style={{ color: '#9EFAFF' }}>{item.h2}</td>
-                        <td className="p-4 text-sm text-right font-bold text-white">{item.total}</td>
-                      </tr>
-                    ))}
-                    <tr style={{ backgroundColor: 'rgba(158,250,255,0.2)' }}>
-                      <td className="p-4 text-sm font-bold text-white">Total Required Capital</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$100K</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$100K</td>
-                      <td className="p-4 text-sm text-right font-bold" style={{ color: '#9EFAFF' }}>$200K</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Team Investment Detail */}
-              <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-8">
-                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                  <h4 className="font-semibold text-white mb-2">Existing Team</h4>
-                  <p className="text-sm" style={{ color: '#9EFAFF' }}>Merit-based increases</p>
-                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Competitive adjustments to retain and reward top performers</p>
-                </div>
-                <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                  <h4 className="font-semibold text-white mb-2">Strategic New Hires</h4>
-                  <p className="text-sm" style={{ color: '#9EFAFF' }}>Sales & Account Management</p>
-                  <p className="text-xs text-white" style={{ opacity: 0.6 }}>Allocation subject to increase based on year-end performance</p>
-                </div>
-              </div>
-
-              {/* H1 Success Metrics */}
-              <div className="grid grid-cols-4 gap-4 max-w-4xl mx-auto">
+              {/* Copy Guidelines */}
+              <div className="mt-10 grid md:grid-cols-3 gap-4">
                 {[
-                  { metric: '150+', label: 'Qualified Leads', sub: 'generated' },
-                  { metric: '8-12', label: 'New Clients', sub: 'closed' },
-                  { metric: '$150K+', label: 'New Recurring', sub: 'revenue added' },
-                  { metric: '$975K+', label: 'Run Rate', sub: 'by June 30' },
+                  { label: 'Tone', desc: 'Approachable, professional, slightly playful' },
+                  { label: 'Length', desc: 'Short punchy headlines (5-10 words)' },
+                  { label: 'Focus', desc: 'Convenience, reset, productivity benefits' },
                 ].map((item, idx) => (
-                  <div key={idx} className="text-center p-4 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                    <p className="text-2xl font-bold text-white">{item.metric}</p>
-                    <p className="text-sm font-medium" style={{ color: '#9EFAFF' }}>{item.label}</p>
-                    <p className="text-xs text-white" style={{ opacity: 0.5 }}>{item.sub}</p>
+                  <div key={idx} className="p-4 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                    <p className="font-semibold text-sm" style={{ color: '#003756' }}>{item.label}</p>
+                    <p className="text-sm" style={{ color: '#003756', opacity: 0.7 }}>{item.desc}</p>
                   </div>
                 ))}
               </div>
@@ -3085,404 +2614,164 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 29: Q1 ACTION ITEMS ==================== */}
-        {currentSlide === 28 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
+        {/* ==================== SLIDE 24: ML STANDALONE PROPOSALS ==================== */}
+        {currentSlide === 23 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-10">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
-                  Execution Plan
-                </p>
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Q1 2026 Action Items
-                </h2>
-                <p className="text-lg max-w-2xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
-                  Specific deliverables with owners and deadlines
-                </p>
-              </div>
+              <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
+                Proposal Examples
+              </p>
+              <h2 className="text-4xl md:text-5xl font-semibold mb-6" style={{ color: '#003756' }}>
+                Standalone Proposal Pages
+              </h2>
+              <p className="text-lg mb-10 max-w-3xl" style={{ color: '#003756', opacity: 0.7 }}>
+                Our interactive proposal system allows custom client-facing pages with pricing, service details, and booking options.
+              </p>
 
-              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                {/* Content & Conferences */}
-                <div className="space-y-4">
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <div className="p-3" style={{ backgroundColor: '#003756' }}>
-                      <h3 className="font-semibold text-white text-sm">Content</h3>
-                    </div>
-                    <div className="p-3" style={{ backgroundColor: 'white' }}>
-                      <table className="w-full text-xs">
-                        <tbody>
-                          {[
-                            { action: '"In-Person Wellness Playbook" + 3 client video clips', deadline: 'Feb 28' },
-                            { action: 'BCG case study + "What to Expect" email sequence', deadline: 'March 31' },
-                          ].map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                              <td className="py-2" style={{ color: '#003756' }}>{item.action}</td>
-                              <td className="py-2 text-right" style={{ color: '#018EA2' }}>{item.deadline}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <div className="p-3" style={{ backgroundColor: '#018EA2' }}>
-                      <h3 className="font-semibold text-white text-sm">Conferences</h3>
-                    </div>
-                    <div className="p-3" style={{ backgroundColor: 'white' }}>
-                      <table className="w-full text-xs">
-                        <tbody>
-                          {[
-                            { action: 'Wellbeing at Work NYC', deadline: 'March 3-5' },
-                            { action: 'Conference Board NYC', deadline: 'March 17-18' },
-                            { action: 'Workhuman Live', deadline: 'April 27-30' },
-                          ].map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                              <td className="py-2" style={{ color: '#003756' }}>{item.action}</td>
-                              <td className="py-2 text-right" style={{ color: '#018EA2' }}>{item.deadline}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <div className="p-3" style={{ backgroundColor: '#FF5050' }}>
-                      <h3 className="font-semibold text-white text-sm">CLE</h3>
-                    </div>
-                    <div className="p-3" style={{ backgroundColor: 'white' }}>
-                      <table className="w-full text-xs">
-                        <tbody>
-                          {[
-                            { action: 'State accreditation applications (NY, CA, FL, IL, TX)', deadline: 'Feb 15' },
-                            { action: 'First law firm pilot', deadline: 'March 31' },
-                          ].map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                              <td className="py-2" style={{ color: '#003756' }}>{item.action}</td>
-                              <td className="py-2 text-right" style={{ color: '#FF5050' }}>{item.deadline}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Healthcare & Events */}
-                <div className="space-y-4">
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
-                    <div className="p-3" style={{ backgroundColor: '#003756' }}>
-                      <h3 className="font-semibold text-white text-sm">Healthcare Channels</h3>
-                    </div>
-                    <div className="p-3" style={{ backgroundColor: 'white' }}>
-                      <table className="w-full text-xs">
-                        <tbody>
-                          {[
-                            { action: '"How to Use Your Wellness Dollars" one-pager', deadline: 'Feb 15' },
-                            { action: 'Train sales on insurance discovery questions', deadline: 'Immediate' },
-                            { action: 'Register on Cigna/Aetna supplier portals', deadline: 'Q2' },
-                            { action: 'Apply to Forma, Benepass, Compt', deadline: 'Q2' },
-                          ].map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                              <td className="py-2" style={{ color: '#003756' }}>{item.action}</td>
-                              <td className="py-2 text-right" style={{ color: item.deadline === 'Immediate' ? '#FF5050' : '#018EA2' }}>{item.deadline}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                    <div className="p-3" style={{ backgroundColor: '#FEF3C7' }}>
-                      <h3 className="font-semibold text-sm" style={{ color: '#92400E' }}>Hosted Events</h3>
-                    </div>
-                    <div className="p-3" style={{ backgroundColor: 'white' }}>
-                      <table className="w-full text-xs">
-                        <tbody>
-                          <tr style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                            <td className="py-2" style={{ color: '#003756' }}>Q1 "The Reset" event</td>
-                            <td className="py-2 text-right" style={{ color: '#92400E' }}>Late January</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="rounded-3xl p-4" style={{ backgroundColor: '#E0F2F7' }}>
-                    <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>Owner Assignments Needed</h4>
-                    <div className="space-y-1 text-xs" style={{ color: '#003756' }}>
-                      <p>• Content production — freelancer/agency or in-house?</p>
-                      <p>• LSA platform vendor applications</p>
-                      <p>• Broker outreach and insurer registration</p>
-                      <p>• CLE state accreditation filings</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ==================== SLIDE 30: NEXT STEPS ==================== */}
-        {currentSlide === 29 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-10">
-                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Next Steps
-                </h2>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                {/* Immediate (This Week) */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#FF5050' }}>
-                    <h3 className="font-semibold text-white">This Week</h3>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'white', color: '#FF5050' }}>
-                      Priority
-                    </span>
-                  </div>
-                  <div className="p-5 space-y-4" style={{ backgroundColor: 'white' }}>
-                    {[
-                      'Validate assumptions in this plan',
-                      'Finalize H1 conference selections',
-                      'Begin CLE provider applications',
-                      'Schedule Shortcut Sessions venue scouting',
-                      'Draft first blog post outline',
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <input type="checkbox" className="mt-1" style={{ accentColor: '#FF5050' }} />
-                        <p className="text-sm" style={{ color: '#003756' }}>{item}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* This Month */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <div className="p-4 flex items-center justify-between" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white">This Month</h3>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#9EFAFF', color: '#003756' }}>
-                      January
-                    </span>
-                  </div>
-                  <div className="p-5 space-y-4" style={{ backgroundColor: 'white' }}>
-                    {[
-                      'Book first conference booth',
-                      'Contact Forma + Benepass re: vendor partnerships',
-                      'Publish first HR blog post',
-                      'Identify CWMF certification path',
-                      'Create conference booth design brief',
-                      'Plan first Shortcut Sessions guest list',
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <input type="checkbox" className="mt-1" style={{ accentColor: '#003756' }} />
-                        <p className="text-sm" style={{ color: '#003756' }}>{item}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Open Questions */}
-              <div className="mt-8 max-w-5xl mx-auto p-5 rounded-3xl" style={{ backgroundColor: '#FEF3C7', border: '1px solid #FCD34D' }}>
-                <h3 className="font-semibold mb-3" style={{ color: '#92400E' }}>Open Questions for Team</h3>
-                <div className="grid md:grid-cols-2 gap-3 text-sm" style={{ color: '#92400E' }}>
-                  <p>1. <strong>Content ownership:</strong> Who leads production? Hire freelancer/agency or build in-house?</p>
-                  <p>2. <strong>Conference attendance:</strong> Who goes to Workhuman? Just Will, or bring someone?</p>
-                  <p>3. <strong>CLE pilot:</strong> Which law firm first? Wachtell? New target?</p>
-                  <p>4. <strong>Hosted events:</strong> Ready for Q1, or start Q2?</p>
-                  <p>5. <strong>LSA platforms:</strong> Who owns vendor applications?</p>
-                  <p>6. <strong>Healthcare channel:</strong> Who owns broker outreach and insurer registration?</p>
-                </div>
-              </div>
-
-              {/* CTA */}
-              <div className="mt-10 text-center">
-                <p className="text-lg font-semibold mb-6" style={{ color: '#003756' }}>
-                  Let's execute.
-                </p>
-                <div className="flex gap-4 justify-center">
+              {/* Three Proposal Cards */}
+              <div className="grid md:grid-cols-3 gap-6">
+                {[
+                  {
+                    name: 'Burberry',
+                    url: 'https://proposals.getshortcut.co/proposal/0ed57e15-4e0e-4764-939f-ded00c6a5c31?shared=true',
+                    desc: 'Fashion/Retail client proposal',
+                    color: '#D4A574'
+                  },
+                  {
+                    name: 'Davis Polk',
+                    url: 'https://proposals.getshortcut.co/proposal/26f350c5-7896-44c4-8218-1015bcbb2ff9?shared=true',
+                    desc: 'Law firm client proposal',
+                    color: '#003756'
+                  },
+                  {
+                    name: 'BCG',
+                    url: 'https://proposals.getshortcut.co/proposal/126ce4fe-ac30-44c1-bd60-d4efd431b8b0?shared=true',
+                    desc: 'Consulting firm client proposal',
+                    color: '#2E8B57'
+                  },
+                ].map((proposal, idx) => (
                   <a
-                    href="mailto:will@getshortcut.co"
-                    className="inline-block px-8 py-4 rounded-full text-lg font-medium transition-all hover:scale-105"
-                    style={{ backgroundColor: '#003756', color: 'white' }}
+                    key={idx}
+                    href={proposal.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-2xl overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1"
+                    style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}
                   >
-                    Schedule Review
+                    <div className="h-32 flex items-center justify-center" style={{ backgroundColor: proposal.color }}>
+                      <span className="text-3xl font-bold text-white">{proposal.name}</span>
+                    </div>
+                    <div className="p-5">
+                      <h3 className="font-semibold text-lg mb-2" style={{ color: '#003756' }}>{proposal.name}</h3>
+                      <p className="text-sm mb-3" style={{ color: '#003756', opacity: 0.7 }}>{proposal.desc}</p>
+                      <span className="text-sm font-medium inline-flex items-center gap-1" style={{ color: '#018EA2' }}>
+                        View Proposal →
+                      </span>
+                    </div>
                   </a>
-                  <button
-                    onClick={() => goToSlide(0)}
-                    className="inline-block px-8 py-4 rounded-full text-lg font-medium transition-all hover:scale-105"
-                    style={{ backgroundColor: '#E0F2F7', color: '#003756' }}
-                  >
-                    Back to Start
-                  </button>
+                ))}
+              </div>
+
+              {/* Features List */}
+              <div className="mt-10 p-6 rounded-2xl" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                <h3 className="font-semibold mb-4" style={{ color: '#003756' }}>Proposal System Features</h3>
+                <div className="grid md:grid-cols-4 gap-4">
+                  {[
+                    'Custom branding per client',
+                    'Interactive pricing calculator',
+                    'Service descriptions & images',
+                    'Shareable links for decision makers',
+                  ].map((feature, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span style={{ color: '#018EA2' }}>✓</span>
+                      <span className="text-sm" style={{ color: '#003756' }}>{feature}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           </section>
         )}
 
-        {/* ==================== SLIDE 31: APPENDIX - CONFERENCES ==================== */}
-        {currentSlide === 30 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
+        {/* ==================== SLIDE 25: ML PRIORITIES ==================== */}
+        {currentSlide === 24 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-10">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
-                  Appendix A
-                </p>
-                <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Full Conference Reference
-                </h2>
-              </div>
+              <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
+                Marketing Priorities
+              </p>
+              <h2 className="text-4xl md:text-5xl font-semibold mb-6" style={{ color: '#003756' }}>
+                2026 Creative Priorities
+              </h2>
+              <p className="text-lg mb-10 max-w-3xl" style={{ color: '#003756', opacity: 0.7 }}>
+                Two key projects where we need creative support to elevate our brand presence.
+              </p>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* National */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <div className="p-3" style={{ backgroundColor: '#003756' }}>
-                    <h3 className="font-semibold text-white text-sm">National Conferences</h3>
+              {/* Two Priority Cards */}
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Homepage Redesign */}
+                <div className="rounded-2xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
+                  <div className="p-6" style={{ backgroundColor: '#003756' }}>
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#FF5050', color: 'white' }}>
+                      Priority 1
+                    </span>
+                    <h3 className="text-2xl font-semibold text-white mt-4">Homepage Redesign</h3>
                   </div>
-                  <div className="p-2 overflow-x-auto" style={{ backgroundColor: 'white' }}>
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                          <th className="text-left py-1 font-semibold" style={{ color: '#003756' }}>Conference</th>
-                          <th className="text-center py-1 font-semibold" style={{ color: '#003756' }}>Date</th>
-                          <th className="text-center py-1 font-semibold" style={{ color: '#003756' }}>Cost</th>
-                          <th className="text-center py-1 font-semibold" style={{ color: '#003756' }}>Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { name: 'Wellbeing at Work', date: 'Mar 3-5', cost: '$3-8K', notes: 'TOP PICK', top: true },
-                          { name: 'Workhuman Live', date: 'Apr 27-30', cost: '$8-15K', notes: 'TOP PICK', top: true },
-                          { name: 'Total Rewards', date: 'Apr 19-22', cost: '$5-10K', notes: 'TOP PICK', top: true },
-                          { name: 'Business Group Health', date: 'Apr 22-24', cost: '$5-10K', notes: 'Enterprise' },
-                          { name: 'Transform', date: 'Mar 23-25', cost: '$5-10K', notes: 'Innovation' },
-                          { name: 'SHRM Annual', date: 'Jun 16-19', cost: '$8-15K', notes: 'Broad, noisy' },
-                          { name: 'ATD International', date: 'May 17-20', cost: '$15-25K', notes: 'L&D focus' },
-                          { name: 'UNLEASH America', date: 'Mar 17-19', cost: '$8-15K', notes: 'Strategic' },
-                          { name: 'HR Tech', date: 'Oct 20-22', cost: '$10-20K', notes: 'Skip', skip: true },
-                          { name: 'GCUC', date: 'Apr 13-16', cost: '$5-8K', notes: 'SKIP', skip: true },
-                        ].map((conf, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', backgroundColor: conf.top ? '#E0F2F7' : conf.skip ? '#FEF2F2' : 'transparent' }}>
-                            <td className="py-1" style={{ color: '#003756' }}>{conf.name}</td>
-                            <td className="py-1 text-center" style={{ color: '#003756' }}>{conf.date}</td>
-                            <td className="py-1 text-center" style={{ color: '#018EA2' }}>{conf.cost}</td>
-                            <td className="py-1 text-center" style={{ color: conf.top ? '#018EA2' : conf.skip ? '#DC2626' : '#003756' }}>{conf.notes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* NYC/Local */}
-                <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                  <div className="p-3" style={{ backgroundColor: '#018EA2' }}>
-                    <h3 className="font-semibold text-white text-sm">NYC/Local Conferences</h3>
-                  </div>
-                  <div className="p-2 overflow-x-auto" style={{ backgroundColor: 'white' }}>
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                          <th className="text-left py-1 font-semibold" style={{ color: '#003756' }}>Event</th>
-                          <th className="text-center py-1 font-semibold" style={{ color: '#003756' }}>Timing</th>
-                          <th className="text-center py-1 font-semibold" style={{ color: '#003756' }}>Cost</th>
-                          <th className="text-center py-1 font-semibold" style={{ color: '#003756' }}>Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { name: 'Wellbeing at Work NYC', timing: 'Mar 3-5', cost: '$3-5K', notes: 'TOP PICK', top: true },
-                          { name: 'Conference Board NYC', timing: 'Mar 17-18', cost: '$3-5K', notes: 'TOP PICK', top: true },
-                          { name: 'From Day One Benefits', timing: 'TBD', cost: '$2-3K', notes: 'TOP PICK', top: true },
-                          { name: 'From Day One Full-Day', timing: 'TBD', cost: '$2-3K', notes: 'Broader HR' },
-                          { name: 'NYC SHRM Wellbeing', timing: 'Jan 29', cost: '$500-1K', notes: 'Quick win' },
-                          { name: 'NYC SHRM Monthly', timing: 'Ongoing', cost: '$50-150', notes: 'Relationships' },
-                          { name: 'HR Vision NY', timing: 'Jan 14-15', cost: '$2-3K', notes: 'Broad' },
-                          { name: 'LinkedIn Talent', timing: 'Sept', cost: 'TBD', notes: 'Talent' },
-                          { name: 'CoreNet NYC', timing: 'Varies', cost: '$1-2K', notes: 'Workplace Exp' },
-                        ].map((event, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)', backgroundColor: event.top ? '#E0F2F7' : 'transparent' }}>
-                            <td className="py-1" style={{ color: '#003756' }}>{event.name}</td>
-                            <td className="py-1 text-center" style={{ color: '#003756' }}>{event.timing}</td>
-                            <td className="py-1 text-center" style={{ color: '#018EA2' }}>{event.cost}</td>
-                            <td className="py-1 text-center" style={{ color: event.top ? '#018EA2' : '#003756' }}>{event.notes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ==================== SLIDE 32: APPENDIX - INSURERS ==================== */}
-        {currentSlide === 31 && (
-          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-10">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
-                  Appendix B
-                </p>
-                <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Insurer Contact Reference
-                </h2>
-              </div>
-
-              <div className="rounded-3xl overflow-hidden max-w-4xl mx-auto" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                  <h3 className="font-semibold text-white">Healthcare Provider Contact Information</h3>
-                </div>
-                <div className="p-4" style={{ backgroundColor: 'white' }}>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid rgba(0,55,86,0.1)' }}>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Insurer</th>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Program</th>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Registration Portal</th>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Key Contact</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <div className="p-6" style={{ backgroundColor: 'white' }}>
+                    <p className="mb-4" style={{ color: '#003756', opacity: 0.8 }}>
+                      Our current website doesn't reflect the quality of our services or our premium positioning.
+                    </p>
+                    <h4 className="font-semibold mb-2" style={{ color: '#003756' }}>Goals</h4>
+                    <ul className="space-y-2 mb-4">
                       {[
-                        { insurer: 'Cigna', program: 'Health Improvement Fund', portal: 'cigna.supplierone.co', contact: 'Health Engagement Consultants' },
-                        { insurer: 'Aetna/CVS', program: 'Premier Wellness', portal: 'cvshealth.supplierone.co', contact: 'SupplierEngagement@CVSHealth.com' },
-                        { insurer: 'Elevance/Anthem', program: 'Wellbeing Solutions', portal: 'Ariba Network', contact: 'Global Supply Chain' },
-                        { insurer: 'UnitedHealthcare', program: 'UHC Hub', portal: 'No public portal', contact: 'UHC Hub team' },
-                        { insurer: 'BCBS', program: 'Varies', portal: 'Regional', contact: 'Regional wellness team' },
-                      ].map((item, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                          <td className="py-2 font-medium" style={{ color: '#003756' }}>{item.insurer}</td>
-                          <td className="py-2" style={{ color: '#003756' }}>{item.program}</td>
-                          <td className="py-2 text-xs" style={{ color: '#018EA2' }}>{item.portal}</td>
-                          <td className="py-2 text-xs" style={{ color: '#003756', opacity: 0.7 }}>{item.contact}</td>
-                        </tr>
+                        'Modern, clean design that conveys premium wellness',
+                        'Clear value proposition above the fold',
+                        'Easy navigation to services & booking',
+                        'Mobile-first responsive design',
+                        'Trust signals (client logos, testimonials)',
+                      ].map((goal, idx) => (
+                        <li key={idx} className="text-sm flex items-start gap-2" style={{ color: '#003756', opacity: 0.8 }}>
+                          <span style={{ color: '#018EA2' }}>•</span> {goal}
+                        </li>
                       ))}
-                    </tbody>
-                  </table>
+                    </ul>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                      <span className="text-xs font-semibold" style={{ color: '#003756' }}>Current: </span>
+                      <a href="https://getshortcut.co" target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: '#018EA2' }}>getshortcut.co</a>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-6 max-w-4xl mx-auto p-4 rounded-2xl" style={{ backgroundColor: '#E0F2F7' }}>
-                <h4 className="font-semibold text-sm mb-2" style={{ color: '#003756' }}>Requirements to Qualify as Vendor</h4>
-                <div className="grid md:grid-cols-3 gap-4 text-xs" style={{ color: '#003756' }}>
-                  <div>
-                    <p>• General Liability Insurance: $1-2M</p>
-                    <p>• Professional Liability (E&O): $1M</p>
+                {/* Conference Booth Design */}
+                <div className="rounded-2xl overflow-hidden" style={{ border: '2px solid #9EFAFF' }}>
+                  <div className="p-6" style={{ backgroundColor: '#003756' }}>
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#FF5050', color: 'white' }}>
+                      Priority 2
+                    </span>
+                    <h3 className="text-2xl font-semibold text-white mt-4">Conference Visual Presence</h3>
                   </div>
-                  <div>
-                    <p>• Workers' Comp: State-required</p>
-                    <p>• HIPAA Compliance: Documented</p>
-                  </div>
-                  <div>
-                    <p>• Background Checks: All staff</p>
-                    <p>• References: 3+ employer clients</p>
+                  <div className="p-6" style={{ backgroundColor: 'white' }}>
+                    <p className="mb-4" style={{ color: '#003756', opacity: 0.8 }}>
+                      We're sponsoring 8+ conferences in 2026. We need cohesive booth/banner designs that stand out.
+                    </p>
+                    <h4 className="font-semibold mb-2" style={{ color: '#003756' }}>Deliverables Needed</h4>
+                    <ul className="space-y-2 mb-4">
+                      {[
+                        'Pull-up banner designs (various sizes)',
+                        'Table backdrop graphics',
+                        'Branded tablecloth design',
+                        'Business card refresh',
+                        'Swag/giveaway item designs',
+                      ].map((item, idx) => (
+                        <li key={idx} className="text-sm flex items-start gap-2" style={{ color: '#003756', opacity: 0.8 }}>
+                          <span style={{ color: '#018EA2' }}>•</span> {item}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                      <span className="text-xs font-semibold" style={{ color: '#003756' }}>First event: </span>
+                      <span className="text-xs" style={{ color: '#003756', opacity: 0.7 }}>March 2026 (SHRM)</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3490,63 +2779,115 @@ export default function Plan2026() {
           </section>
         )}
 
-        {/* ==================== SLIDE 33: APPENDIX - BROKERS ==================== */}
-        {currentSlide === 32 && (
+        {/* ==================== SLIDE 26: ML STYLE GUIDE ==================== */}
+        {currentSlide === 25 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
-              <div className="text-center mb-10">
-                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#003756', opacity: 0.6 }}>
-                  Appendix C
-                </p>
-                <h2 className="text-4xl md:text-5xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                  Broker Reference
-                </h2>
-              </div>
+              <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
+                Brand Guidelines
+              </p>
+              <h2 className="text-4xl md:text-5xl font-semibold mb-6" style={{ color: '#003756' }}>
+                Style Guide
+              </h2>
+              <p className="text-lg mb-10 max-w-3xl" style={{ color: '#003756', opacity: 0.7 }}>
+                Core brand elements to maintain consistency across all marketing materials.
+              </p>
 
-              <div className="rounded-3xl overflow-hidden max-w-4xl mx-auto mb-6" style={{ border: '1px solid rgba(0,55,86,0.1)' }}>
-                <div className="p-4" style={{ backgroundColor: '#003756' }}>
-                  <h3 className="font-semibold text-white">Benefits Broker/Consultant Target List</h3>
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Colors */}
+                <div className="rounded-2xl p-6" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <h3 className="font-semibold text-lg mb-4" style={{ color: '#003756' }}>Brand Colors</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { name: 'Navy Blue', hex: '#003756', textColor: 'white' },
+                      { name: 'Coral/Red', hex: '#FF5050', textColor: 'white' },
+                      { name: 'Teal', hex: '#018EA2', textColor: 'white' },
+                      { name: 'Mint', hex: '#9EFAFF', textColor: '#003756' },
+                      { name: 'Pink', hex: '#FFB8D9', textColor: '#003756' },
+                      { name: 'Yellow', hex: '#FFD966', textColor: '#003756' },
+                    ].map((color, idx) => (
+                      <div key={idx} className="rounded-xl p-4 text-center" style={{ backgroundColor: color.hex, color: color.textColor }}>
+                        <p className="font-semibold text-sm">{color.name}</p>
+                        <p className="text-xs opacity-80">{color.hex}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="p-4" style={{ backgroundColor: 'white' }}>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid rgba(0,55,86,0.1)' }}>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Firm</th>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Focus</th>
-                        <th className="text-left py-2 font-semibold" style={{ color: '#003756' }}>Entry Point</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { firm: 'Gallagher', focus: 'Mid-market to enterprise', entry: 'Holistic Wellbeing team' },
-                        { firm: 'Lockton', focus: 'Mid-market', entry: 'Mind Your Health program' },
-                        { firm: 'USI', focus: 'Mid-market', entry: 'Wellness vendor network' },
-                        { firm: 'Mercer', focus: 'Enterprise', entry: 'Workplace Health practice' },
-                        { firm: 'WTW', focus: 'Enterprise', entry: 'Integrated Wellbeing Solution' },
-                        { firm: 'Aon', focus: 'Enterprise', entry: 'Health Solutions practice' },
-                      ].map((item, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid rgba(0,55,86,0.1)' }}>
-                          <td className="py-2 font-medium" style={{ color: '#003756' }}>{item.firm}</td>
-                          <td className="py-2" style={{ color: '#003756', opacity: 0.7 }}>{item.focus}</td>
-                          <td className="py-2" style={{ color: '#018EA2' }}>{item.entry}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
 
-              <div className="max-w-4xl mx-auto text-center">
-                <p className="text-lg font-semibold mb-6" style={{ color: '#003756' }}>
-                  End of Document
-                </p>
-                <button
-                  onClick={() => goToSlide(0)}
-                  className="inline-block px-8 py-4 rounded-full text-lg font-medium transition-all hover:scale-105"
-                  style={{ backgroundColor: '#003756', color: 'white' }}
-                >
-                  Back to Start
-                </button>
+                {/* Typography */}
+                <div className="rounded-2xl p-6" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <h3 className="font-semibold text-lg mb-4" style={{ color: '#003756' }}>Typography</h3>
+                  <div className="space-y-4">
+                    {/* Outfit - Primary */}
+                    <div className="p-4 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs uppercase tracking-wider mb-2" style={{ color: '#003756', opacity: 0.5 }}>Primary Font</p>
+                      <p className="text-3xl font-bold mb-1" style={{ color: '#003756', fontFamily: 'Outfit, sans-serif' }}>Outfit</p>
+                      <p className="text-sm mb-3" style={{ color: '#003756', opacity: 0.7 }}>Headlines & Body Copy</p>
+                      <div className="space-y-2">
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-xs w-20" style={{ color: '#003756', opacity: 0.5 }}>Bold (700)</span>
+                          <span className="text-xl font-bold" style={{ color: '#003756', fontFamily: 'Outfit, sans-serif' }}>Revitalize Your Workplace.</span>
+                        </div>
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-xs w-20" style={{ color: '#003756', opacity: 0.5 }}>SemiBold (600)</span>
+                          <span className="text-lg font-semibold" style={{ color: '#003756', fontFamily: 'Outfit, sans-serif' }}>Employee Happiness Delivered!</span>
+                        </div>
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-xs w-20" style={{ color: '#003756', opacity: 0.5 }}>Regular (400)</span>
+                          <span className="text-sm" style={{ color: '#003756', fontFamily: 'Outfit, sans-serif' }}>Our services transform workplace culture so you can focus on what matters.</span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Inter - Secondary */}
+                    <div className="p-4 rounded-xl" style={{ backgroundColor: '#F8F9FA' }}>
+                      <p className="text-xs uppercase tracking-wider mb-2" style={{ color: '#003756', opacity: 0.5 }}>Secondary Font</p>
+                      <p className="text-2xl font-bold mb-1" style={{ color: '#003756', fontFamily: 'Inter, sans-serif' }}>Inter</p>
+                      <p className="text-sm mb-3" style={{ color: '#003756', opacity: 0.7 }}>Buttons & CTAs</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs" style={{ color: '#003756', opacity: 0.5 }}>Bold (700)</span>
+                        <span className="px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ backgroundColor: '#003756', fontFamily: 'Inter, sans-serif' }}>Book now</span>
+                        <span className="px-4 py-2 rounded-lg text-sm font-bold" style={{ backgroundColor: '#9EFAFF', color: '#003756', fontFamily: 'Inter, sans-serif' }}>Learn more</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Logo */}
+                <div className="rounded-2xl p-6" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <h3 className="font-semibold text-lg mb-4" style={{ color: '#003756' }}>Logo Usage</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-6 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#003756' }}>
+                      <img src="/Holiday Proposal/Shortcut Logo Social Nav Bar.svg" alt="Logo on dark" className="h-8" style={{ filter: 'brightness(0) invert(1)' }} />
+                    </div>
+                    <div className="p-6 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F8F9FA' }}>
+                      <img src="/Holiday Proposal/Shortcut Logo Social Nav Bar.svg" alt="Logo on light" className="h-8" />
+                    </div>
+                  </div>
+                  <p className="text-xs mt-3" style={{ color: '#003756', opacity: 0.6 }}>
+                    Logo should always have adequate padding and never be stretched or distorted.
+                  </p>
+                </div>
+
+                {/* Imagery Style */}
+                <div className="rounded-2xl p-6" style={{ backgroundColor: 'white', border: '1px solid rgba(0,55,86,0.1)' }}>
+                  <h3 className="font-semibold text-lg mb-4" style={{ color: '#003756' }}>Imagery Style</h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Photography', desc: 'Bright, natural lighting. Professional but approachable.' },
+                      { label: 'People', desc: 'Diverse, relaxed expressions. Real moments, not staged.' },
+                      { label: 'Settings', desc: 'Modern office environments. Clean, minimal backgrounds.' },
+                      { label: 'Services', desc: 'Action shots of services being performed.' },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex gap-3 p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                        <span className="text-sm" style={{ color: '#018EA2' }}>•</span>
+                        <div>
+                          <p className="font-semibold text-sm" style={{ color: '#003756' }}>{item.label}</p>
+                          <p className="text-xs" style={{ color: '#003756', opacity: 0.7 }}>{item.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </section>
