@@ -418,13 +418,56 @@ async function handleUnlinkProposal(params, supabase) {
 async function handleCreateLandingPage(params, supabase, userId) {
   if (!params.partnerName) return { error: 'partnerName is required' };
 
+  // Auto-search for a logo if none provided
+  let logoUrl = params.partnerLogoUrl || null;
+  let logoSource = null;
+  if (!logoUrl) {
+    try {
+      // Check existing proposals first
+      const { data: existingProposals } = await supabase
+        .from('proposals')
+        .select('client_logo_url')
+        .ilike('client_name', params.partnerName.trim())
+        .not('client_logo_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (existingProposals && existingProposals.length > 0 && existingProposals[0].client_logo_url) {
+        const isValid = await verifyLogoUrl(existingProposals[0].client_logo_url);
+        if (isValid) {
+          logoUrl = existingProposals[0].client_logo_url;
+          logoSource = 'existing_proposal';
+        }
+      }
+
+      // If no existing logo, search via Brave/Clearbit
+      if (!logoUrl) {
+        const searchResult = await searchLogoViaBrave(params.partnerName);
+        if (searchResult.logoUrl) {
+          const { logoUrl: storedUrl, stored } = await storeProvidedLogo(supabase, searchResult.logoUrl, params.partnerName);
+          logoUrl = storedUrl;
+          logoSource = searchResult.source;
+        }
+      }
+    } catch (e) {
+      console.warn('Auto logo search for landing page failed:', e.message);
+    }
+
+    if (logoUrl) {
+      params.partnerLogoUrl = logoUrl;
+    }
+  }
+
   const result = await createLandingPage(supabase, userId, params);
   return {
     success: true,
     pageId: result.page.id,
     url: result.url,
     partnerName: params.partnerName,
-    uniqueToken: result.uniqueToken
+    uniqueToken: result.uniqueToken,
+    logoApplied: !!logoUrl,
+    logoUrl: logoUrl || null,
+    logoSource
   };
 }
 
