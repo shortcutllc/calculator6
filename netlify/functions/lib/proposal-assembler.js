@@ -98,6 +98,11 @@ function applyServiceDefaults(event) {
   if (event.fixedPrice !== undefined) service.fixedPrice = Number(event.fixedPrice);
   if (event.participants !== undefined) service.participants = event.participants;
 
+  // Massage type (chair, table, or general massage)
+  if (serviceType === 'massage' && event.massageType) {
+    service.massageType = event.massageType;
+  }
+
   // Recurring settings
   if (event.isRecurring) {
     service.isRecurring = true;

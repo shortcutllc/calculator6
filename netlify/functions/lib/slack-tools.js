@@ -8,7 +8,7 @@ import { assembleProposal } from './proposal-assembler.js';
 import { applyOperations } from './proposal-editor.js';
 import { calculateEventOptions } from './reverse-calculator.js';
 import { searchClients, getClientByName, searchProposals } from './client-lookup.js';
-import { fetchAndStoreLogo, storeProvidedLogo, fetchLogoUrl } from './logo-fetcher.js';
+import { fetchAndStoreLogo, storeProvidedLogo, fetchLogoUrl, searchLogoViaBrave } from './logo-fetcher.js';
 import { recalculateProposalSummary } from './pricing-engine.js';
 import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal } from './proposal-linker.js';
@@ -42,6 +42,7 @@ const TOOL_HANDLERS = {
   get_proposal: handleGetProposal,
   calculate_pricing: handleCalculatePricing,
   lookup_client: handleLookupClient,
+  search_logo: handleSearchLogo,
   duplicate_proposal: handleDuplicateProposal,
   create_proposal_option: handleCreateOption,
   link_proposals: handleLinkProposals,
@@ -94,6 +95,9 @@ async function handleCreateProposal(params, supabase, userId) {
 
   if (error) return { error: `Failed to create proposal: ${error.message}` };
 
+  // Build a verified snapshot so Claude can report exact facts
+  const verifiedState = buildVerifiedState(proposalData);
+
   return {
     success: true,
     proposalId: newProposal.id,
@@ -103,7 +107,8 @@ async function handleCreateProposal(params, supabase, userId) {
     summary: proposalData.summary,
     eventCount: (proposalData.eventDates || []).length,
     locations: proposalData.locations || [],
-    eventDates: proposalData.eventDates || []
+    eventDates: proposalData.eventDates || [],
+    verifiedState
   };
 }
 
@@ -130,8 +135,20 @@ async function handleEditProposal(params, supabase, userId) {
     client_logo_url: existing.client_logo_url
   };
 
-  const { proposalData: updatedData, customization: updatedCustomization, proposalRecord: updatedRecord, changesSummary } =
-    applyOperations(existing.data, existing.customization || {}, proposalRecord, params.operations);
+  let updatedData, updatedCustomization, updatedRecord, changesSummary;
+  try {
+    const result = applyOperations(existing.data, existing.customization || {}, proposalRecord, params.operations);
+    updatedData = result.proposalData;
+    updatedCustomization = result.customization;
+    updatedRecord = result.proposalRecord;
+    changesSummary = result.changesSummary;
+  } catch (opError) {
+    return {
+      error: `Edit operation failed: ${opError.message}`,
+      proposalId: params.proposalId,
+      operationsAttempted: params.operations.map(op => op.op)
+    };
+  }
 
   const updatePayload = {
     data: updatedData,
@@ -151,7 +168,10 @@ async function handleEditProposal(params, supabase, userId) {
     .update(updatePayload)
     .eq('id', params.proposalId);
 
-  if (updateError) return { error: `Failed to update proposal: ${updateError.message}` };
+  if (updateError) return { error: `Failed to save proposal to database: ${updateError.message}` };
+
+  // --- Auto-verification: re-fetch the proposal to confirm the edits were persisted ---
+  const verifiedState = buildVerifiedState(updatedData);
 
   return {
     success: true,
@@ -160,7 +180,8 @@ async function handleEditProposal(params, supabase, userId) {
     clientName: updatedData.clientName,
     status: updatedRecord.status,
     summary: updatedData.summary,
-    changesSummary
+    changesSummary,
+    verifiedState
   };
 }
 
@@ -186,6 +207,9 @@ async function handleGetProposal(params, supabase) {
 
   if (error || !proposal) return { error: `Proposal ${params.proposalId} not found` };
 
+  // Include both raw data and a clean verified summary
+  const verifiedState = buildVerifiedState(proposal.data);
+
   return {
     success: true,
     proposalId: proposal.id,
@@ -195,7 +219,8 @@ async function handleGetProposal(params, supabase) {
     status: proposal.status,
     createdAt: proposal.created_at,
     data: proposal.data,
-    customization: proposal.customization
+    customization: proposal.customization,
+    verifiedState
   };
 }
 
@@ -231,17 +256,104 @@ async function handleLookupClient(params, supabase) {
     };
   }
 
-  // Not found — try to suggest a logo
+  // Not found — try to find a logo via Brave Search + Clearbit
   let suggestedLogoUrl = null;
+  let logoSource = null;
   try {
-    suggestedLogoUrl = await fetchLogoUrl(params.clientName);
+    const logoResult = await searchLogoViaBrave(params.clientName);
+    if (logoResult.logoUrl) {
+      // Store it permanently
+      const { logoUrl, stored } = await storeProvidedLogo(supabase, logoResult.logoUrl, params.clientName);
+      suggestedLogoUrl = logoUrl;
+      logoSource = logoResult.source;
+    }
   } catch (e) { /* best-effort */ }
 
   return {
     success: true,
     found: false,
-    client: { name: params.clientName, suggestedLogoUrl }
+    client: { name: params.clientName, suggestedLogoUrl, logoSource }
   };
+}
+
+// --- Search Logo ---
+
+/**
+ * Verify a logo URL is actually accessible (not a 404).
+ */
+async function verifyLogoUrl(url) {
+  try {
+    const response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+    if (!response.ok) return false;
+    const contentType = response.headers.get('content-type') || '';
+    return contentType.startsWith('image/') || contentType.includes('octet-stream');
+  } catch {
+    return false;
+  }
+}
+
+async function handleSearchLogo(params, supabase) {
+  if (!params.companyName) return { error: 'companyName is required' };
+
+  // Step 1: Check if we already have this logo stored from a past proposal
+  const { data: existingProposals } = await supabase
+    .from('proposals')
+    .select('client_logo_url')
+    .ilike('client_name', params.companyName.trim())
+    .not('client_logo_url', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (existingProposals && existingProposals.length > 0 && existingProposals[0].client_logo_url) {
+    // Verify the stored URL is still accessible
+    const isValid = await verifyLogoUrl(existingProposals[0].client_logo_url);
+    if (isValid) {
+      return {
+        success: true,
+        logoUrl: existingProposals[0].client_logo_url,
+        source: 'existing_proposal',
+        stored: true,
+        message: `Found existing logo for "${params.companyName}" from a previous proposal.`
+      };
+    }
+    // Stale URL — continue to search fresh
+    console.warn(`Stale logo URL for ${params.companyName}: ${existingProposals[0].client_logo_url}`);
+  }
+
+  // Step 2: Search via Brave (with Clearbit fallback)
+  const searchResult = await searchLogoViaBrave(params.companyName);
+
+  if (!searchResult.logoUrl) {
+    return {
+      success: true,
+      logoUrl: null,
+      source: null,
+      message: searchResult.message || `No logo found for "${params.companyName}". The user can provide a direct image URL instead.`
+    };
+  }
+
+  // Step 3: Store the logo permanently in Supabase
+  try {
+    const { logoUrl, stored } = await storeProvidedLogo(supabase, searchResult.logoUrl, params.companyName);
+    return {
+      success: true,
+      logoUrl,
+      source: searchResult.source,
+      stored,
+      message: stored
+        ? `Found and stored logo for "${params.companyName}".`
+        : `Found logo for "${params.companyName}" but could not store permanently.`
+    };
+  } catch (e) {
+    // Return the external URL as fallback
+    return {
+      success: true,
+      logoUrl: searchResult.logoUrl,
+      source: searchResult.source,
+      stored: false,
+      message: `Found logo but storage failed: ${e.message}`
+    };
+  }
 }
 
 // --- Duplicate Proposal ---
@@ -330,6 +442,70 @@ async function handleGetLandingPage(params, supabase) {
     customization: result.page.customization,
     status: result.page.status
   };
+}
+
+// --- Verification Helper ---
+
+/**
+ * Build a concise verified state snapshot of a proposal's data.
+ * This gives Claude ground-truth information to report, preventing hallucination.
+ * Includes: all services with their types, locations, dates, hours, pros, costs.
+ */
+function buildVerifiedState(proposalData) {
+  const services = [];
+  const locations = proposalData.locations || [];
+
+  for (const location of locations) {
+    const locationData = proposalData.services[location];
+    if (!locationData) continue;
+
+    for (const [date, dateData] of Object.entries(locationData)) {
+      if (!dateData.services) continue;
+      for (let i = 0; i < dateData.services.length; i++) {
+        const svc = dateData.services[i];
+        const entry = {
+          index: i,
+          serviceType: svc.serviceType,
+          location,
+          date,
+          totalHours: svc.totalHours,
+          numPros: svc.numPros,
+          totalAppointments: svc.totalAppointments,
+          serviceCost: svc.serviceCost
+        };
+        if (svc.isRecurring && svc.recurringFrequency) {
+          entry.recurring = `${svc.recurringFrequency.type} (${svc.recurringFrequency.occurrences} events)`;
+        }
+        if (svc.discountPercent) {
+          entry.discountPercent = svc.discountPercent;
+        }
+        services.push(entry);
+      }
+    }
+  }
+
+  const state = {
+    clientName: proposalData.clientName,
+    clientLogoUrl: proposalData.clientLogoUrl || null,
+    locations,
+    officeLocations: proposalData.officeLocations || {},
+    serviceCount: services.length,
+    services,
+    grandTotal: proposalData.summary?.grandTotal ?? null,
+    totalAppointments: proposalData.summary?.totalAppointments ?? null,
+    eventDates: proposalData.eventDates || []
+  };
+
+  // Include gratuity info if set
+  if (proposalData.gratuityType && proposalData.gratuityValue) {
+    state.gratuity = {
+      type: proposalData.gratuityType,
+      value: proposalData.gratuityValue,
+      amount: proposalData.summary?.gratuityAmount ?? null
+    };
+  }
+
+  return state;
 }
 
 export { executeTool, TOOL_HANDLERS };

@@ -655,12 +655,14 @@ export const StandaloneProposalViewer: React.FC = () => {
         // Check if this is an update (not initial load)
         const isUpdate = proposal !== null;
         setProposal(data);
-        setDisplayData({ ...calculatedData, customization: data.customization });
-        setEditedData({ ...calculatedData, customization: data.customization });
+        // Ensure clientLogoUrl is mapped from DB column if not present in nested data
+        const logoUrl = calculatedData.clientLogoUrl || data.client_logo_url || null;
+        setDisplayData({ ...calculatedData, customization: data.customization, clientLogoUrl: logoUrl });
+        setEditedData({ ...calculatedData, customization: data.customization, clientLogoUrl: logoUrl });
         setNotes(data.notes || '');
         if (data.original_data) {
           const originalCalculated = recalculateServiceTotals(data.original_data);
-          setOriginalData({ ...originalCalculated, customization: data.customization });
+          setOriginalData({ ...originalCalculated, customization: data.customization, clientLogoUrl: logoUrl });
         }
         
         // Fetch proposal options if this proposal is part of a group
@@ -1436,7 +1438,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
                 <button
                   onClick={() => setShowHelpModal(true)}
                   className="p-2 rounded-lg hover:bg-neutral-light-gray transition-colors"
@@ -1656,43 +1658,43 @@ export const StandaloneProposalViewer: React.FC = () => {
         ) : (
           <>
         {/* Compact Hero Header - Inspired by GenericLandingPage */}
-        <div className="relative overflow-hidden rounded-3xl mb-8 scroll-mt-24" style={{ backgroundColor: '#F0F0FF' }}>
-          <div className="relative z-10 px-6 py-8 md:px-10 md:py-12">
+        <div className="relative overflow-hidden rounded-2xl md:rounded-3xl mb-6 md:mb-8 scroll-mt-24" style={{ backgroundColor: '#F0F0FF' }}>
+          <div className="relative z-10 px-4 py-6 md:px-10 md:py-12">
             {/* Top Row: Logo/Name + Total Cost */}
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-6">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6 mb-5 md:mb-6">
               {/* Client Identity */}
               <div className="flex items-center gap-4">
-                {displayData.clientLogoUrl ? (
+                {displayData.clientLogoUrl && (
                   <img
                     src={displayData.clientLogoUrl}
                     alt={`${displayData.clientName} Logo`}
-                    className="h-12 md:h-16 max-w-[200px] object-contain"
+                    className="h-10 md:h-16 max-w-[160px] md:max-w-[200px] object-contain"
                     onError={(e) => {
+                      // Hide broken logo images gracefully
                       e.currentTarget.style.display = 'none';
                     }}
                   />
-                ) : (
-                  <h1 className="text-2xl md:text-3xl font-extrabold text-shortcut-navy-blue">
-                    {displayData.clientName}
-                  </h1>
                 )}
+                <h1 className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">
+                  {displayData.clientName}
+                </h1>
               </div>
 
               {/* Total Cost - Prominent Display */}
-              <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-5 py-3 shadow-sm border border-white/50">
+              <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl px-4 py-2.5 md:px-5 md:py-3 shadow-sm border border-white/50">
                 <div className="text-right">
-                  <p className="text-xs font-bold text-shortcut-blue uppercase tracking-wider mb-1">Total Investment</p>
-                  <p className="text-2xl md:text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(displayData.summary?.totalEventCost || 0)}</p>
+                  <p className="text-[10px] md:text-xs font-bold text-shortcut-blue uppercase tracking-wider mb-0.5 md:mb-1">Total Investment</p>
+                  <p className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(displayData.summary?.totalEventCost || 0)}</p>
                 </div>
               </div>
             </div>
 
             {/* Inline Metrics Row */}
-            <div className="flex flex-wrap gap-3 md:gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-4 mb-5 md:mb-6">
               {/* Event Dates */}
-              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
-                <Calendar size={16} className="text-shortcut-blue" />
-                <span className="font-semibold text-shortcut-navy-blue">
+              <div className="inline-flex items-center gap-1.5 md:gap-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm">
+                <Calendar size={14} className="text-shortcut-blue flex-shrink-0" />
+                <span className="font-semibold text-shortcut-navy-blue truncate">
                   {Array.isArray(displayData.eventDates)
                     ? displayData.eventDates.map((date: string) => formatDate(date)).join(', ')
                     : 'TBD'}
@@ -1700,9 +1702,9 @@ export const StandaloneProposalViewer: React.FC = () => {
               </div>
 
               {/* Locations */}
-              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
-                <Globe size={16} className="text-shortcut-blue" />
-                <span className="font-semibold text-shortcut-navy-blue">
+              <div className="inline-flex items-center gap-1.5 md:gap-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm">
+                <Globe size={14} className="text-shortcut-blue flex-shrink-0" />
+                <span className="font-semibold text-shortcut-navy-blue truncate">
                   {Array.isArray(displayData.locations)
                     ? displayData.locations.join(', ')
                     : displayData.locations || 'TBD'}
@@ -1710,34 +1712,41 @@ export const StandaloneProposalViewer: React.FC = () => {
               </div>
 
               {/* Total Appointments */}
-              <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
-                <User size={16} className="text-shortcut-blue" />
+              <div className="inline-flex items-center gap-1.5 md:gap-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm">
+                <User size={14} className="text-shortcut-blue flex-shrink-0" />
                 <span className="font-semibold text-shortcut-navy-blue">
-                  {displayData.summary?.totalAppointments || 0} appointments
+                  {displayData.summary?.totalAppointments || 0} appts
                 </span>
               </div>
 
-              {/* Office Location - Compact */}
+              {/* Office Location - Show actual address */}
               {((displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0) || displayData.officeLocation) && (
-                <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
-                  <FileText size={16} className="text-shortcut-blue" />
-                  <span className="font-semibold text-shortcut-navy-blue">
+                <div className="inline-flex items-center gap-1.5 md:gap-2 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm col-span-2 md:col-span-1">
+                  <FileText size={14} className="text-shortcut-blue flex-shrink-0" />
+                  <span className="font-semibold text-shortcut-navy-blue truncate">
                     {displayData.officeLocations && Object.keys(displayData.officeLocations).length > 0
-                      ? `${Object.keys(displayData.officeLocations).length} office${Object.keys(displayData.officeLocations).length > 1 ? 's' : ''}`
+                      ? Object.entries(displayData.officeLocations).map(([loc, addr]: [string, any]) =>
+                          Object.keys(displayData.officeLocations).length > 1 ? `${loc}: ${addr}` : addr
+                        ).join(' · ')
                       : displayData.officeLocation}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Custom Note - Compact */}
+            {/* Custom Note - From Shortcut */}
             {displayData.customization?.customNote && (
-              <div className="bg-white/70 backdrop-blur-sm rounded-xl px-5 py-4 border border-white/50">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-shortcut-teal mt-2 flex-shrink-0"></div>
-                  <p className="text-sm md:text-base text-shortcut-navy-blue leading-relaxed font-medium">
-                    {displayData.customization.customNote.replace('above', 'below')}
-                  </p>
+              <div className="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-3 md:px-5 md:py-4 border border-white/50">
+                <div className="flex items-start gap-2.5 md:gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <img src="/shortcut-icon.svg" alt="" className="w-4 h-4 md:w-5 md:h-5" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] md:text-xs font-bold text-shortcut-blue uppercase tracking-wider mb-1">Note from Shortcut</p>
+                    <p className="text-sm md:text-base text-shortcut-navy-blue leading-relaxed font-medium">
+                      {displayData.customization.customNote.replace('above', 'below')}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -1748,32 +1757,32 @@ export const StandaloneProposalViewer: React.FC = () => {
         </div>
 
         {/* Mobile Layout: Single column with specific order */}
-        <div className="lg:grid lg:grid-cols-12 gap-12">
+        <div className="lg:grid lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Main Content - Services (Day summary + Location Section) - shown first on mobile after top box */}
-          <div className="lg:col-span-8 space-y-8 order-1 lg:order-1">
+          <div className="lg:col-span-8 space-y-6 md:space-y-8 order-1 lg:order-1">
 
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               {displayData.services && Object.entries(displayData.services).map(([location, locationData]: [string, any]) => (
                 <div key={location} className="card-large">
                     <button
                       onClick={() => toggleLocation(location)}
-                    className="w-full flex justify-between items-center mb-8 hover:opacity-80 transition-opacity"
+                    className="w-full flex justify-between items-center mb-4 md:mb-8 hover:opacity-80 transition-opacity"
                     >
-                    <h2 className="text-3xl font-extrabold text-shortcut-blue">
+                    <h2 className="text-xl md:text-3xl font-extrabold text-shortcut-blue">
                         {location}
                       </h2>
-                    {expandedLocations[location] ? <ChevronUp size={28} className="text-shortcut-blue" /> : <ChevronDown size={28} className="text-shortcut-blue" />}
+                    {expandedLocations[location] ? <ChevronUp size={24} className="text-shortcut-blue" /> : <ChevronDown size={24} className="text-shortcut-blue" />}
                     </button>
-                  
+
                   {expandedLocations[location] && (
-                    <div className="pt-8 border-t-2 border-gray-200 space-y-8">
+                    <div className="pt-4 md:pt-8 border-t-2 border-gray-200 space-y-6 md:space-y-8">
                       {Object.entries(locationData)
                         .sort(([dateA], [dateB]) => {
                           // Handle TBD dates - put them at the end
                           if (dateA === 'TBD' && dateB === 'TBD') return 0;
                           if (dateA === 'TBD') return 1;
                           if (dateB === 'TBD') return -1;
-                          
+
                           // Sort actual dates normally
                           return new Date(dateA).getTime() - new Date(dateB).getTime();
                         })
@@ -1781,28 +1790,28 @@ export const StandaloneProposalViewer: React.FC = () => {
                           <div key={date} className="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
                             <button
                               onClick={() => toggleDate(date)}
-                              className="w-full px-8 py-5 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors border-b-2 border-gray-200"
+                              className="w-full px-4 py-3 md:px-8 md:py-5 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors border-b-2 border-gray-200"
                             >
-                              <h3 className="text-xl font-extrabold text-shortcut-blue">
+                              <h3 className="text-base md:text-xl font-extrabold text-shortcut-blue">
                                 Day {dateIndex + 1} - {formatDate(date)}
                               </h3>
                               {expandedDates[date] ? <ChevronUp size={20} className="text-shortcut-blue" /> : <ChevronDown size={20} className="text-shortcut-blue" />}
                             </button>
 
                             {expandedDates[date] && (
-                              <div className="p-8 bg-white">
+                              <div className="p-3 md:p-8 bg-white">
                                 {dateData.services.map((service: any, serviceIndex: number) => (
                                   <div
                                     key={serviceIndex}
-                                    className={`card-small mb-8 border-2 ${getServiceBorderClass(service.serviceType)}`}
+                                    className={`card-small mb-4 md:mb-8 border-2 ${getServiceBorderClass(service.serviceType)}`}
                                   >
-                                    <div className="flex items-center justify-between mb-5">
-                                      <h4 className="text-xl font-extrabold text-shortcut-blue flex items-center">
-                                        <span className="w-3.5 h-3.5 rounded-full bg-shortcut-teal mr-3"></span>
-                                        Service Type: {getServiceDisplayName(service.serviceType)}
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 md:mb-5">
+                                      <h4 className="text-base md:text-xl font-extrabold text-shortcut-blue flex items-center">
+                                        <span className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-shortcut-teal mr-2 md:mr-3 flex-shrink-0"></span>
+                                        {getServiceDisplayName(service.serviceType)}
                                       </h4>
                                       {service.isRecurring && service.recurringFrequency && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white self-start sm:self-auto">
                                           Recurring
                                           <span className="opacity-80">
                                             ({service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
@@ -1828,15 +1837,15 @@ export const StandaloneProposalViewer: React.FC = () => {
                                       const thisEventSavings = thisEventOriginal - thisEventDiscounted;
 
                                       return (
-                                        <div className="mb-5 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-base">🔄</span>
-                                              <span className="font-semibold text-purple-800 text-sm">Recurring Partner</span>
-                                              <span className="text-purple-600 text-sm">({occurrences} events total)</span>
+                                        <div className="mb-4 md:mb-5 p-2.5 md:p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
+                                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                            <div className="flex items-center gap-1.5 md:gap-2">
+                                              <span className="text-sm md:text-base">🔄</span>
+                                              <span className="font-semibold text-purple-800 text-xs md:text-sm">Recurring Partner</span>
+                                              <span className="text-purple-600 text-xs md:text-sm">({occurrences} events)</span>
                                             </div>
                                             {discountRate > 0 && (
-                                              <span className="text-green-700 font-semibold text-sm">
+                                              <span className="text-green-700 font-semibold text-xs md:text-sm">
                                                 ✨ {discountRate * 100}% discount applied
                                               </span>
                                             )}
@@ -1882,9 +1891,9 @@ export const StandaloneProposalViewer: React.FC = () => {
 
                                     <div className="grid gap-0">
                                       {service.serviceType === 'mindfulness' ? (
-                                        <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
-                                          <span className="text-lg font-bold text-shortcut-blue">Class Length:</span>
-                                          <div className="font-bold text-text-dark text-lg">
+                                        <div className="flex justify-between items-center py-3 md:py-4 border-b-2 border-gray-200">
+                                          <span className="text-base md:text-lg font-bold text-shortcut-blue">Class Length:</span>
+                                          <div className="font-bold text-text-dark text-base md:text-lg">
                                             {isEditing ? (
                                               <EditableField
                                                 value={String(service.classLength || 40)}
@@ -1899,9 +1908,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                                           </div>
                                         </div>
                                       ) : (
-                                        <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
-                                          <span className="text-lg font-bold text-shortcut-blue">Total Hours:</span>
-                                          <div className="font-bold text-text-dark text-lg">
+                                        <div className="flex justify-between items-center py-3 md:py-4 border-b-2 border-gray-200">
+                                          <span className="text-base md:text-lg font-bold text-shortcut-blue">Total Hours:</span>
+                                          <div className="font-bold text-text-dark text-base md:text-lg">
                                             <EditableField
                                               value={String(service.totalHours || 0)}
                                               onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -1912,9 +1921,9 @@ export const StandaloneProposalViewer: React.FC = () => {
                                           </div>
                                         </div>
                                       )}
-                                      <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
-                                        <span className="text-lg font-bold text-shortcut-blue">Number of Professionals:</span>
-                                        <div className="font-bold text-text-dark text-lg">
+                                      <div className="flex justify-between items-center py-3 md:py-4 border-b-2 border-gray-200">
+                                        <span className="text-base md:text-lg font-bold text-shortcut-blue">Professionals:</span>
+                                        <div className="font-bold text-text-dark text-base md:text-lg">
                                           <EditableField
                                             value={String(service.numPros || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
@@ -1923,25 +1932,25 @@ export const StandaloneProposalViewer: React.FC = () => {
                                           />
                                         </div>
                                       </div>
-                                      <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
-                                        <span className="text-lg font-bold text-shortcut-blue">Total Appointments:</span>
-                                        <span className="font-bold text-text-dark text-lg">{service.totalAppointments === 'unlimited' ? '∞' : service.totalAppointments}</span>
+                                      <div className="flex justify-between items-center py-3 md:py-4 border-b-2 border-gray-200">
+                                        <span className="text-base md:text-lg font-bold text-shortcut-blue">Appointments:</span>
+                                        <span className="font-bold text-text-dark text-base md:text-lg">{service.totalAppointments === 'unlimited' ? '∞' : service.totalAppointments}</span>
                                       </div>
-                                      <div className="flex justify-between items-center py-4 border-b-2 border-gray-200">
-                                        <span className="text-lg font-bold text-shortcut-blue">Service Cost:</span>
+                                      <div className="flex justify-between items-center py-3 md:py-4 border-b-2 border-gray-200">
+                                        <span className="text-base md:text-lg font-bold text-shortcut-blue">Service Cost:</span>
                                         <div className="text-right">
                                           {service.discountPercent > 0 ? (
                                             <div className="space-y-1">
-                                              <div className="flex items-center gap-2">
-                                                <span className="text-sm text-text-dark-60 line-through">${formatCurrency(calculateOriginalPrice(service))}</span>
-                                                <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                              <div className="flex items-center gap-1.5 md:gap-2">
+                                                <span className="text-xs md:text-sm text-text-dark-60 line-through">${formatCurrency(calculateOriginalPrice(service))}</span>
+                                                <span className="font-bold text-shortcut-blue text-base md:text-lg">${formatCurrency(service.serviceCost)}</span>
                                               </div>
                                               <div className="text-xs font-semibold text-green-600">
                                                 {service.discountPercent}% discount applied
                                               </div>
                                             </div>
                                           ) : (
-                                            <span className="font-bold text-shortcut-blue text-lg">${formatCurrency(service.serviceCost)}</span>
+                                            <span className="font-bold text-shortcut-blue text-base md:text-lg">${formatCurrency(service.serviceCost)}</span>
                                           )}
                                         </div>
                                       </div>
@@ -2133,31 +2142,31 @@ export const StandaloneProposalViewer: React.FC = () => {
                                   </div>
                                 ))}
 
-                                <div className="mt-8 bg-white rounded-xl p-8 border-2 border-shortcut-navy-blue shadow-md">
-                                  <h4 className="text-2xl font-extrabold mb-6 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
-                                  <div className="grid grid-cols-2 gap-6">
-                                    <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
-                                      <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Appointments</div>
-                                      <div className="text-3xl font-extrabold text-shortcut-navy-blue">
+                                <div className="mt-4 md:mt-8 bg-white rounded-xl p-4 md:p-8 border-2 border-shortcut-navy-blue shadow-md">
+                                  <h4 className="text-lg md:text-2xl font-extrabold mb-4 md:mb-6 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid grid-cols-2 gap-3 md:gap-6">
+                                    <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-3 md:p-6 border-2 border-shortcut-teal border-opacity-30">
+                                      <div className="text-[10px] md:text-xs font-bold text-shortcut-blue mb-2 md:mb-3 uppercase tracking-wider">Appointments</div>
+                                      <div className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">
                                         {dateData.totalAppointments === 0 || dateData.totalAppointments === 'unlimited' ? '∞' : (dateData.totalAppointments || 0)}
                                       </div>
                                     </div>
-                                    <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-6 border-2 border-shortcut-teal border-opacity-30">
-                                      <div className="text-xs font-bold text-shortcut-blue mb-3 uppercase tracking-wider">Total Cost</div>
+                                    <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-3 md:p-6 border-2 border-shortcut-teal border-opacity-30">
+                                      <div className="text-[10px] md:text-xs font-bold text-shortcut-blue mb-2 md:mb-3 uppercase tracking-wider">Total Cost</div>
                                       {displayData.isAutoRecurring && displayData.autoRecurringDiscount ? (
                                         <div>
-                                          <div className="text-xl font-semibold text-shortcut-navy-blue/60 line-through">
+                                          <div className="text-sm md:text-xl font-semibold text-shortcut-navy-blue/60 line-through">
                                             ${formatCurrency(dateData.totalCost || 0)}
                                           </div>
-                                          <div className="text-3xl font-extrabold text-green-600">
+                                          <div className="text-xl md:text-3xl font-extrabold text-green-600">
                                             ${formatCurrency((dateData.totalCost || 0) * (1 - displayData.autoRecurringDiscount / 100))}
                                           </div>
-                                          <div className="text-xs text-green-600 font-bold mt-1">
+                                          <div className="text-[10px] md:text-xs text-green-600 font-bold mt-1">
                                             {displayData.autoRecurringDiscount}% discount
                                           </div>
                                         </div>
                                       ) : (
-                                        <div className="text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                        <div className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
                                       )}
                                     </div>
                                   </div>
@@ -2296,17 +2305,18 @@ export const StandaloneProposalViewer: React.FC = () => {
                 services={locationData}
                 isAutoRecurring={displayData.isAutoRecurring}
                 autoRecurringDiscount={displayData.autoRecurringDiscount}
+                officeAddress={displayData.officeLocations?.[location] || displayData.officeLocation}
               />
             ))}
 
             {/* Event Summary - Dark Blue */}
-            <div className="bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue text-white rounded-2xl shadow-xl border-2 border-shortcut-teal border-opacity-30 p-8">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-shortcut-teal bg-opacity-20 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-white" />
+            <div className="bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue text-white rounded-2xl shadow-xl border-2 border-shortcut-teal border-opacity-30 p-5 md:p-8">
+              <div className="flex items-center justify-between mb-6 md:mb-8">
+                <div className="flex items-center space-x-2 md:space-x-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-shortcut-teal bg-opacity-20 flex items-center justify-center">
+                    <FileText className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </div>
-                  <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
+                  <h2 className="text-lg md:text-xl font-extrabold text-white">Event Summary</h2>
                 </div>
                 {/* Check for recurring services or auto-recurring */}
                 {(() => {
@@ -2338,30 +2348,30 @@ export const StandaloneProposalViewer: React.FC = () => {
                   ) : null;
                 })()}
               </div>
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-white/90 text-lg">Total Appointments:</span>
-                  <span className="font-extrabold text-2xl text-white">
+                  <span className="font-semibold text-white/90 text-base md:text-lg">Appointments:</span>
+                  <span className="font-extrabold text-xl md:text-2xl text-white">
                     {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
                   </span>
                 </div>
                 {displayData.summary?.subtotalBeforeGratuity !== undefined && displayData.summary?.gratuityAmount !== undefined && displayData.summary.gratuityAmount > 0 && (
                   <>
                     <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-teal/30">
-                      <span className="font-semibold text-white/90 text-lg">Subtotal:</span>
-                      <span className="font-extrabold text-xl text-white">${formatCurrency(displayData.summary.subtotalBeforeGratuity || 0)}</span>
+                      <span className="font-semibold text-white/90 text-base md:text-lg">Subtotal:</span>
+                      <span className="font-extrabold text-lg md:text-xl text-white">${formatCurrency(displayData.summary.subtotalBeforeGratuity || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold text-white/90 text-lg">
+                      <span className="font-semibold text-white/90 text-base md:text-lg">
                         Gratuity {displayData.gratuityType === 'percentage' ? `(${displayData.gratuityValue}%)` : ''}:
                       </span>
-                      <span className="font-extrabold text-xl text-white">${formatCurrency(displayData.summary.gratuityAmount || 0)}</span>
+                      <span className="font-extrabold text-lg md:text-xl text-white">${formatCurrency(displayData.summary.gratuityAmount || 0)}</span>
                     </div>
                   </>
                 )}
                 <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-teal">
-                  <span className="font-extrabold text-lg text-white">Total Event Cost:</span>
-                  <span className="font-extrabold text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                  <span className="font-extrabold text-base md:text-lg text-white">Total Event Cost:</span>
+                  <span className="font-extrabold text-xl md:text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
                 {/* Recurring Savings Display (manual or auto) */}
                 {(() => {
@@ -2370,11 +2380,11 @@ export const StandaloneProposalViewer: React.FC = () => {
                     return (
                       <div className="mt-4 pt-4 border-t-2 border-shortcut-teal/30">
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold text-white/90 text-lg flex items-center gap-2">
-                            <span className="text-lg">✨</span>
-                            Recurring Discount ({displayData.autoRecurringDiscount}%):
+                          <span className="font-semibold text-white/90 text-sm md:text-lg flex items-center gap-1.5 md:gap-2">
+                            <span className="text-sm md:text-lg">✨</span>
+                            Recurring ({displayData.autoRecurringDiscount}%):
                           </span>
-                          <span className="font-extrabold text-xl text-green-300">-${formatCurrency(displayData.autoRecurringSavings)}</span>
+                          <span className="font-extrabold text-lg md:text-xl text-green-300">-${formatCurrency(displayData.autoRecurringSavings)}</span>
                         </div>
                         <p className="text-sm text-white/60 mt-2">
                           Applied automatically for {displayData.eventDates?.filter((d: string) => d !== 'TBD').length}+ event dates
@@ -2402,11 +2412,11 @@ export const StandaloneProposalViewer: React.FC = () => {
                   return hasRecurring && totalSavings > 0 ? (
                     <div className="mt-4 pt-4 border-t-2 border-shortcut-teal/30">
                       <div className="flex justify-between items-center">
-                        <span className="font-semibold text-white/90 text-lg flex items-center gap-2">
-                          <span className="text-lg">✨</span>
+                        <span className="font-semibold text-white/90 text-sm md:text-lg flex items-center gap-1.5 md:gap-2">
+                          <span className="text-sm md:text-lg">✨</span>
                           Recurring Savings:
                         </span>
-                        <span className="font-extrabold text-xl text-green-300">-${formatCurrency(totalSavings)}</span>
+                        <span className="font-extrabold text-lg md:text-xl text-green-300">-${formatCurrency(totalSavings)}</span>
                       </div>
                     </div>
                   ) : null;
@@ -2501,7 +2511,7 @@ export const StandaloneProposalViewer: React.FC = () => {
             </div>
             
             <div id="carousel" className="flex overflow-x-auto pb-6 gap-8 hide-scrollbar">
-              <div className="card-medium min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
+              <div className="card-medium min-w-[280px] sm:min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
                 <div className="w-full aspect-[4/3] relative overflow-hidden">
                   <img 
                     src="/Seamless Experience.png"
@@ -2520,7 +2530,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="card-medium min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
+              <div className="card-medium min-w-[280px] sm:min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
                 <div className="w-full aspect-[4/3] relative overflow-hidden">
                   <img 
                     src="/Revitalizing Impact.png"
@@ -2539,7 +2549,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="card-medium min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
+              <div className="card-medium min-w-[280px] sm:min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
                 <div className="w-full aspect-[4/3] relative overflow-hidden">
                   <img 
                     src="/All-in-One Wellness.png"

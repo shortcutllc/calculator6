@@ -7,6 +7,7 @@ interface LocationSummaryProps {
   services: any;
   isAutoRecurring?: boolean;
   autoRecurringDiscount?: number;
+  officeAddress?: string;
 }
 
 // Helper function to format date for display
@@ -33,7 +34,7 @@ const formatDate = (dateString: string): string => {
   }
 };
 
-const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, isAutoRecurring, autoRecurringDiscount }) => {
+const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, isAutoRecurring, autoRecurringDiscount, officeAddress }) => {
   const [showAllDates, setShowAllDates] = useState(false);
   const dates = Object.keys(services).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
@@ -67,21 +68,27 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
 
   return (
     <div className="card-large bg-gradient-to-br from-shortcut-teal/20 to-shortcut-teal/10 border-2 border-shortcut-teal border-opacity-30">
-      <h3 className="text-xl font-extrabold mb-8 text-shortcut-navy-blue">{location} Summary</h3>
-      <div className="space-y-6">
+      <h3 className="text-lg md:text-xl font-extrabold mb-6 md:mb-8 text-shortcut-navy-blue">{location} Summary</h3>
+      <div className="space-y-4 md:space-y-6">
+        {officeAddress && (
+          <div className="flex justify-between items-start">
+            <span className="font-semibold text-shortcut-navy-blue text-base md:text-lg flex-shrink-0">Address:</span>
+            <span className="text-shortcut-navy-blue font-medium text-sm md:text-base text-right ml-4">{officeAddress}</span>
+          </div>
+        )}
         <div className="flex justify-between items-start">
-          <span className="font-semibold text-shortcut-navy-blue text-lg flex-shrink-0">Date(s):</span>
+          <span className="font-semibold text-shortcut-navy-blue text-base md:text-lg flex-shrink-0">Date(s):</span>
           <div className="text-right ml-4">
             {dates.length <= MAX_VISIBLE_DATES ? (
               // Few dates - show inline
-              <span className="text-shortcut-navy-blue font-semibold text-lg">
+              <span className="text-shortcut-navy-blue font-semibold text-base md:text-lg">
                 {dates.map(date => formatDate(date)).join(', ')}
               </span>
             ) : (
               // Many dates - show as expandable list
               <div className="space-y-1">
                 {visibleDates.map((date, index) => (
-                  <div key={date} className="text-shortcut-navy-blue font-semibold text-lg">
+                  <div key={date} className="text-shortcut-navy-blue font-semibold text-base md:text-lg">
                     {formatDate(date)}
                   </div>
                 ))}
@@ -108,26 +115,26 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
           </div>
         </div>
         <div className="flex justify-between items-center">
-          <span className="font-semibold text-shortcut-navy-blue text-lg">Service(s):</span>
-          <span className="text-shortcut-navy-blue font-semibold text-lg text-right">
+          <span className="font-semibold text-shortcut-navy-blue text-base md:text-lg">Service(s):</span>
+          <span className="text-shortcut-navy-blue font-semibold text-sm md:text-lg text-right ml-4 capitalize">
             {Array.from(uniqueServices).join(', ')}
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="font-semibold text-shortcut-navy-blue text-lg">Appointments:</span>
-          <span className="text-shortcut-navy-blue font-extrabold text-2xl">
+          <span className="font-semibold text-shortcut-navy-blue text-base md:text-lg">Appointments:</span>
+          <span className="text-shortcut-navy-blue font-extrabold text-xl md:text-2xl">
             {totalAppointments === 0 ? '∞' : totalAppointments}
           </span>
         </div>
         <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-navy-blue">
-          <span className="font-extrabold text-shortcut-navy-blue text-lg">Total Cost:</span>
+          <span className="font-extrabold text-shortcut-navy-blue text-base md:text-lg">Total Cost:</span>
           <div className="text-right">
             {isAutoRecurring && autoRecurringDiscount ? (
               <>
-                <span className="text-shortcut-navy-blue/60 font-semibold text-lg line-through mr-2">
+                <span className="text-shortcut-navy-blue/60 font-semibold text-base md:text-lg line-through mr-2">
                   ${totalCost.toFixed(2)}
                 </span>
-                <span className="text-green-600 font-extrabold text-2xl">
+                <span className="text-green-600 font-extrabold text-xl md:text-2xl">
                   ${discountedCost.toFixed(2)}
                 </span>
                 <div className="text-xs text-green-600 font-bold mt-1">
@@ -135,7 +142,7 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
                 </div>
               </>
             ) : (
-              <span className="text-shortcut-navy-blue font-extrabold text-2xl">${totalCost.toFixed(2)}</span>
+              <span className="text-shortcut-navy-blue font-extrabold text-xl md:text-2xl">${totalCost.toFixed(2)}</span>
             )}
           </div>
         </div>

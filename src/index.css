@@ -229,6 +229,14 @@
     }
   }
 
+  @media (max-width: 420px) {
+    .card,
+    .card-large {
+      padding: 24px 16px; /* Small phones */
+      border-radius: 20px;
+    }
+  }
+
   .card:hover,
   .card-large:hover {
     transform: translateY(-2px);
@@ -279,6 +287,13 @@
   @media (max-width: 768px) {
     .card-small {
       padding: 20px; /* Mobile */
+    }
+  }
+
+  @media (max-width: 420px) {
+    .card-small {
+      padding: 16px; /* Small phones */
+      border-radius: 16px;
     }
   }
 

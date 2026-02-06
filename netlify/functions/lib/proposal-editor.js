@@ -212,7 +212,8 @@ function handleUpdateService(proposalData, customization, proposalRecord, op) {
   const allowedFields = [
     'totalHours', 'numPros', 'appTime', 'proHourly', 'hourlyRate',
     'earlyArrival', 'retouchingCost', 'discountPercent', 'classLength',
-    'fixedPrice', 'participants', 'mindfulnessType', 'headshotTier'
+    'fixedPrice', 'participants', 'mindfulnessType', 'headshotTier',
+    'massageType'
   ];
 
   const appliedUpdates = [];

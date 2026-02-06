@@ -169,9 +169,86 @@ async function storeProvidedLogo(supabase, imageUrl, companyName) {
   };
 }
 
+/**
+ * Search for a company logo using Brave Search API.
+ * Falls back to Clearbit if Brave is unavailable.
+ *
+ * @param {string} companyName - Company name to search for
+ * @returns {object} { logoUrl, source } or { logoUrl: null }
+ */
+async function searchLogoViaBrave(companyName) {
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY;
+  if (!apiKey) {
+    console.warn('BRAVE_SEARCH_API_KEY not set — falling back to Clearbit');
+    const clearbitUrl = await fetchLogoUrl(companyName);
+    return clearbitUrl
+      ? { logoUrl: clearbitUrl, source: 'clearbit' }
+      : { logoUrl: null, source: null, message: 'No Brave API key and Clearbit found nothing.' };
+  }
+
+  try {
+    // Search for the company logo using Brave Image Search
+    const query = `${companyName} company logo transparent png`;
+    const url = `https://api.search.brave.com/res/v1/images/search?q=${encodeURIComponent(query)}&count=5&safesearch=strict`;
+
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip',
+        'X-Subscription-Token': apiKey
+      }
+    });
+
+    if (!response.ok) {
+      console.warn(`Brave Search API error: ${response.status}`);
+      // Fallback to Clearbit
+      const clearbitUrl = await fetchLogoUrl(companyName);
+      return clearbitUrl
+        ? { logoUrl: clearbitUrl, source: 'clearbit' }
+        : { logoUrl: null, source: null };
+    }
+
+    const data = await response.json();
+    const results = data.results || [];
+
+    // Filter for actual logo images — prefer PNG, avoid tiny images
+    for (const result of results) {
+      const src = result.properties?.url || result.url;
+      if (!src) continue;
+
+      // Skip obviously non-logo sources
+      const lowerSrc = src.toLowerCase();
+      if (lowerSrc.includes('favicon') && !lowerSrc.includes('apple-touch')) continue;
+
+      // Prefer images that look like logos
+      const title = (result.title || '').toLowerCase();
+      const isLikelyLogo = title.includes('logo') || lowerSrc.includes('logo');
+
+      if (isLikelyLogo || results.indexOf(result) === 0) {
+        return { logoUrl: src, source: 'brave_search' };
+      }
+    }
+
+    // If no good match from Brave, try Clearbit as fallback
+    const clearbitUrl = await fetchLogoUrl(companyName);
+    return clearbitUrl
+      ? { logoUrl: clearbitUrl, source: 'clearbit' }
+      : { logoUrl: null, source: null, message: `No logo found for "${companyName}" via Brave Search or Clearbit.` };
+
+  } catch (err) {
+    console.warn(`Brave Search error for ${companyName}:`, err.message);
+    // Fallback to Clearbit
+    const clearbitUrl = await fetchLogoUrl(companyName);
+    return clearbitUrl
+      ? { logoUrl: clearbitUrl, source: 'clearbit' }
+      : { logoUrl: null, source: null };
+  }
+}
+
 export {
   fetchLogoUrl,
   storeLogo,
   fetchAndStoreLogo,
-  storeProvidedLogo
+  storeProvidedLogo,
+  searchLogoViaBrave
 };
