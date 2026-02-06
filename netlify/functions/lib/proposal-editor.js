@@ -77,7 +77,9 @@ const OPERATION_HANDLERS = {
   update_client_info: handleUpdateClientInfo,
   set_status: handleSetStatus,
   add_location: handleAddLocation,
-  remove_location: handleRemoveLocation
+  remove_location: handleRemoveLocation,
+  rename_location: handleRenameLocation,
+  change_date: handleChangeDate
 };
 
 /**
@@ -85,8 +87,9 @@ const OPERATION_HANDLERS = {
  * If the location or date doesn't exist yet, creates it.
  */
 function handleAddService(proposalData, customization, proposalRecord, op) {
-  const location = op.location;
-  const date = normalizeDate(op.date || 'TBD');
+  // Support location from op.location, op.service.locationName, or op.service.location
+  const location = op.location || (op.service && (op.service.locationName || op.service.location));
+  const date = normalizeDate(op.date || (op.service && op.service.date) || 'TBD');
 
   if (!op.service || !op.service.serviceType) {
     throw new Error('add_service requires a "service" object with "serviceType"');
@@ -532,9 +535,17 @@ function handleAddLocation(proposalData, customization, proposalRecord, op) {
     proposalData.locations.push(op.location);
   }
 
+  // Store office address if provided
+  if (op.officeAddress) {
+    if (!proposalData.officeLocations) {
+      proposalData.officeLocations = {};
+    }
+    proposalData.officeLocations[op.location] = op.officeAddress;
+  }
+
   return {
     op: 'add_location',
-    description: `Added location: ${op.location}`
+    description: `Added location: ${op.location}${op.officeAddress ? ` (${op.officeAddress})` : ''}`
   };
 }
 
@@ -570,6 +581,108 @@ function handleRemoveLocation(proposalData, customization, proposalRecord, op) {
   return {
     op: 'remove_location',
     description: `Removed location "${op.location}" (${servicesRemoved} service${servicesRemoved !== 1 ? 's' : ''} removed)`
+  };
+}
+
+/**
+ * Rename a location (move all services to new key).
+ */
+function handleRenameLocation(proposalData, customization, proposalRecord, op) {
+  const oldName = op.oldName || op.location;
+  const newName = op.newName;
+
+  if (!oldName || !newName) {
+    throw new Error('rename_location requires "oldName" (or "location") and "newName"');
+  }
+
+  if (!proposalData.services[oldName]) {
+    throw new Error(`Location "${oldName}" not found in proposal. Available: ${Object.keys(proposalData.services).join(', ')}`);
+  }
+
+  if (proposalData.services[newName]) {
+    throw new Error(`Location "${newName}" already exists in proposal`);
+  }
+
+  // Move all services from old key to new key
+  proposalData.services[newName] = proposalData.services[oldName];
+  delete proposalData.services[oldName];
+
+  // Update the location name on each service object
+  Object.values(proposalData.services[newName]).forEach(dateData => {
+    dateData.services.forEach(service => {
+      service.location = newName;
+    });
+  });
+
+  // Update locations array
+  proposalData.locations = proposalData.locations.map(l => l === oldName ? newName : l);
+
+  // Update officeLocations map if it exists
+  if (proposalData.officeLocations && proposalData.officeLocations[oldName]) {
+    proposalData.officeLocations[newName] = proposalData.officeLocations[oldName];
+    delete proposalData.officeLocations[oldName];
+  }
+
+  return {
+    op: 'rename_location',
+    description: `Renamed location "${oldName}" to "${newName}"`
+  };
+}
+
+/**
+ * Change the date for all services at a location from oldDate to newDate.
+ */
+function handleChangeDate(proposalData, customization, proposalRecord, op) {
+  const location = op.location;
+  const oldDate = normalizeDate(op.oldDate || op.date);
+  const newDate = normalizeDate(op.newDate);
+
+  if (!location || !oldDate || !newDate) {
+    throw new Error('change_date requires "location", "oldDate" (or "date"), and "newDate"');
+  }
+
+  if (!proposalData.services[location]) {
+    throw new Error(`Location "${location}" not found in proposal. Available: ${Object.keys(proposalData.services).join(', ')}`);
+  }
+
+  if (!proposalData.services[location][oldDate]) {
+    throw new Error(`Date "${oldDate}" not found at location "${location}". Available: ${Object.keys(proposalData.services[location]).join(', ')}`);
+  }
+
+  // Move all services from old date to new date
+  const movingServices = proposalData.services[location][oldDate];
+
+  if (proposalData.services[location][newDate]) {
+    // Merge into existing date entry
+    proposalData.services[location][newDate].services.push(...movingServices.services);
+  } else {
+    // Create new date entry
+    proposalData.services[location][newDate] = movingServices;
+  }
+
+  // Update date on each service object
+  proposalData.services[location][newDate].services.forEach(service => {
+    service.date = newDate;
+  });
+
+  // Remove old date entry
+  delete proposalData.services[location][oldDate];
+
+  // Rebuild eventDates array
+  const allDates = new Set();
+  Object.values(proposalData.services).forEach(locData => {
+    Object.keys(locData).forEach(date => allDates.add(date));
+  });
+  proposalData.eventDates = Array.from(allDates).sort((a, b) => {
+    if (a === 'TBD' && b === 'TBD') return 0;
+    if (a === 'TBD') return 1;
+    if (b === 'TBD') return -1;
+    return new Date(a).getTime() - new Date(b).getTime();
+  });
+
+  return {
+    op: 'change_date',
+    description: `Changed date from ${oldDate} to ${newDate} at ${location}`
   };
 }
 

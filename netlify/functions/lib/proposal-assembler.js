@@ -43,9 +43,12 @@ function applyServiceDefaults(event) {
     retouchingCost: defaults.retouchingCost || 0,
     discountPercent: 0,
     isRecurring: false,
-    // Carry through location and date
-    location: event.location || 'Main Office',
-    date: normalizeDate(event.date || 'TBD')
+    // Carry through location name and date
+    // locationName takes priority; fall back to location for backwards compatibility
+    location: event.locationName || event.location || 'Main Office',
+    date: normalizeDate(event.date || 'TBD'),
+    // Store office address separately if provided
+    officeAddress: event.officeAddress || null
   };
 
   // Apply headshot tier overrides
@@ -179,6 +182,7 @@ function buildProposalData(input) {
   const servicesByLocation = {};
   const allLocations = new Set();
   const allDates = new Set();
+  const officeLocations = {}; // Map of locationName → officeAddress
 
   services.forEach(service => {
     const location = service.location;
@@ -186,6 +190,11 @@ function buildProposalData(input) {
 
     allLocations.add(location);
     allDates.add(date);
+
+    // Track office addresses keyed by location name
+    if (service.officeAddress && !officeLocations[location]) {
+      officeLocations[location] = service.officeAddress;
+    }
 
     if (!servicesByLocation[location]) {
       servicesByLocation[location] = {};
@@ -223,6 +232,8 @@ function buildProposalData(input) {
     eventDates: sortedDates,
     locations: Array.from(allLocations),
     services: servicesByLocation,
+    // Store office addresses mapped to location names (e.g., { "NYC": "350 5th Ave, New York NY" })
+    officeLocations: Object.keys(officeLocations).length > 0 ? officeLocations : undefined,
     summary: {
       totalAppointments: 0,
       totalEventCost: 0,

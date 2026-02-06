@@ -2309,8 +2309,8 @@ The Shortcut Team`);
                   : 'Office Location'}
               </h3>
               <div className="space-y-4">
-                {/* Multiple Office Locations - Show all locations from proposal */}
-                {displayData.locations && displayData.locations.length > 1 ? (
+                {/* Office Locations - Show per-location editor when officeLocations map exists or multiple locations */}
+                {displayData.locations && (displayData.locations.length > 1 || displayData.officeLocations) ? (
                   displayData.locations.map((location) => {
                     const address = displayData.officeLocations?.[location] || displayData.officeLocation || '';
                     const isEditingThis = editingOfficeLocation === location;
@@ -2599,9 +2599,25 @@ The Shortcut Team`);
                     </h1>
                 </div>
               ) : (
-                  <h1 className="h1 mb-6">
-                  {displayData.clientName}
-                  </h1>
+                  isEditing && !isSharedView ? (
+                    <input
+                      type="text"
+                      defaultValue={displayData.clientName}
+                      onBlur={(e) => {
+                        const newName = e.target.value.trim();
+                        if (!newName || !editedData) return;
+                        const updatedData = { ...editedData, clientName: newName };
+                        setEditedData(updatedData);
+                        setDisplayData({ ...updatedData, customization: currentProposal?.customization });
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                      className="h1 mb-6 w-full border-b-2 border-gray-300 focus:border-shortcut-teal focus:outline-none bg-transparent"
+                    />
+                  ) : (
+                    <h1 className="h1 mb-6">
+                      {displayData.clientName}
+                    </h1>
+                  )
                 )}
                 
                 {/* Note from Shortcut - Clean, readable design */}
@@ -2680,15 +2696,51 @@ The Shortcut Team`);
             <div className="space-y-8">
               {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
                 <div key={location} className="card-large">
-                    <button
-                      onClick={() => toggleLocation(location)}
-                    className="w-full flex justify-between items-center mb-6 hover:opacity-80 transition-opacity"
-                    >
-                    <h2 className="text-2xl font-extrabold text-shortcut-blue">
-                        {location}
-                      </h2>
-                    {expandedLocations[location] ? <ChevronUp size={24} className="text-shortcut-blue" /> : <ChevronDown size={24} className="text-shortcut-blue" />}
-                    </button>
+                    <div className="w-full flex justify-between items-center mb-6">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => toggleLocation(location)}
+                          className="hover:opacity-80 transition-opacity"
+                        >
+                          <h2 className="text-2xl font-extrabold text-shortcut-blue">
+                            {location}
+                          </h2>
+                        </button>
+                        {isEditing && !isSharedView && (
+                          <input
+                            type="text"
+                            defaultValue={location}
+                            onBlur={(e) => {
+                              const newName = e.target.value.trim();
+                              if (!newName || newName === location || !editedData) return;
+                              const updatedData = { ...editedData };
+                              // Rename the location key in services
+                              updatedData.services[newName] = updatedData.services[location];
+                              delete updatedData.services[location];
+                              // Update location name on each service object
+                              Object.values(updatedData.services[newName]).forEach((dateData: any) => {
+                                dateData.services.forEach((s: any) => { s.location = newName; });
+                              });
+                              // Update locations array
+                              updatedData.locations = (updatedData.locations || []).map((l: string) => l === location ? newName : l);
+                              // Update officeLocations map
+                              if (updatedData.officeLocations && updatedData.officeLocations[location]) {
+                                updatedData.officeLocations[newName] = updatedData.officeLocations[location];
+                                delete updatedData.officeLocations[location];
+                              }
+                              const recalculatedData = recalculateServiceTotals(updatedData);
+                              setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+                              setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+                            }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                            className="px-2 py-1 text-lg font-bold border border-gray-300 rounded-md focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          />
+                        )}
+                      </div>
+                      <button onClick={() => toggleLocation(location)} className="hover:opacity-80 transition-opacity">
+                        {expandedLocations[location] ? <ChevronUp size={24} className="text-shortcut-blue" /> : <ChevronDown size={24} className="text-shortcut-blue" />}
+                      </button>
+                    </div>
                   
                   {expandedLocations[location] && (
                     <div className="pt-6 border-t border-gray-200 space-y-6">
@@ -2704,15 +2756,69 @@ The Shortcut Team`);
                         })
                         .map(([date, dateData]: [string, any], dateIndex: number) => (
                           <div key={date} className="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                            <button
-                              onClick={() => toggleDate(date)}
-                              className="w-full px-6 py-4 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors border-b border-gray-200"
-                            >
-                              <h3 className="text-lg font-extrabold text-shortcut-blue">
-                                Day {dateIndex + 1} - {formatDate(date)}
-                              </h3>
-                              {expandedDates[date] ? <ChevronUp size={16} className="text-shortcut-blue" /> : <ChevronDown size={16} className="text-shortcut-blue" />}
-                            </button>
+                            <div className="w-full px-6 py-4 flex justify-between items-center bg-white border-b border-gray-200">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => toggleDate(date)}
+                                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                >
+                                  <h3 className="text-lg font-extrabold text-shortcut-blue">
+                                    Day {dateIndex + 1} - {formatDate(date)}
+                                  </h3>
+                                </button>
+                                {isEditing && !isSharedView && (
+                                  <input
+                                    type="date"
+                                    value={formatDateForInput(date)}
+                                    onChange={(e) => {
+                                      if (!editedData) return;
+                                      const newDate = e.target.value || 'TBD';
+                                      if (newDate === date) return;
+
+                                      const updatedData = { ...editedData };
+
+                                      // Create new date entry if needed
+                                      if (!updatedData.services[location][newDate]) {
+                                        updatedData.services[location][newDate] = {
+                                          services: [],
+                                          totalCost: 0,
+                                          totalAppointments: 0
+                                        };
+                                      }
+
+                                      // Move ALL services from old date to new date
+                                      const movingServices = updatedData.services[location][date].services.map(
+                                        (s: any) => ({ ...s, date: newDate })
+                                      );
+                                      updatedData.services[location][newDate].services.push(...movingServices);
+
+                                      // Remove old date entry
+                                      delete updatedData.services[location][date];
+
+                                      // Rebuild eventDates
+                                      const allDates = new Set<string>();
+                                      Object.values(updatedData.services || {}).forEach((locData: any) => {
+                                        Object.keys(locData).forEach((d: string) => allDates.add(d));
+                                      });
+                                      updatedData.eventDates = Array.from(allDates).sort((a, b) => {
+                                        if (a === 'TBD' && b === 'TBD') return 0;
+                                        if (a === 'TBD') return 1;
+                                        if (b === 'TBD') return -1;
+                                        return new Date(a).getTime() - new Date(b).getTime();
+                                      });
+
+                                      const recalculatedData = recalculateServiceTotals(updatedData);
+                                      setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+                                      setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+                                    }}
+                                    className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                                  />
+                                )}
+                              </div>
+                              <button onClick={() => toggleDate(date)} className="hover:opacity-80 transition-opacity">
+                                {expandedDates[date] ? <ChevronUp size={16} className="text-shortcut-blue" /> : <ChevronDown size={16} className="text-shortcut-blue" />}
+                              </button>
+                            </div>
 
                             {expandedDates[date] && (
                               <div className="p-6 bg-white">

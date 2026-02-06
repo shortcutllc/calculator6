@@ -41,13 +41,21 @@ Appointments per pro per hour = 60 / appTime.
 - 9+ occurrences (monthly): 20% discount
 Discounts apply to the service cost.
 
+## Locations
+- locationName is a SHORT label like "NYC", "SF Office", "LA HQ", "Main Office" — NOT a street address.
+- officeAddress is the full street address like "350 5th Ave, New York NY 10118".
+- When a user says "at 123 Main St in Chicago", use locationName: "Chicago" and officeAddress: "123 Main St, Chicago IL".
+- When a user mentions a city or area, infer a short locationName from it. Never put a full address as the locationName.
+- When adding a service to an existing proposal, use the SAME locationName and date that already exist on the proposal. Call get_proposal first if you're unsure.
+
 ## Key Behaviors
 1. When a client name is mentioned, ALWAYS call lookup_client first to check for existing data (logo, locations, past proposals).
 2. When the user says "X appointments" but doesn't specify hours and pros, call calculate_pricing to show staffing options.
 3. When ambiguous, ask a clarifying question — don't guess service type, staffing, or dates.
-4. After creating or editing a proposal, always include the proposal link in your response.
+4. After creating or editing a proposal or landing page, always include the EXACT URL returned by the tool. Never rewrite, shorten, or reformat URLs — copy them exactly as returned.
 5. Remember the proposal context within this thread. If the user says "make it recurring," apply it to the proposal you just created or last discussed.
 6. For edit operations, you need to know the proposal's location, date, and service index. If you're not sure, call get_proposal first to see the current structure.
+7. When adding a new service to an existing proposal, ALWAYS call get_proposal first to get the existing location names and dates, then use those same values in your add_service operation.
 
 ## Edit Operations
 When editing proposals, use these operations:
@@ -62,6 +70,8 @@ When editing proposals, use these operations:
 - update_client_info: Update client name, email, or logo
 - add_location: Add a new office location
 - remove_location: Remove a location and all its services
+- rename_location: Rename a location (oldName, newName)
+- change_date: Move all services from one date to another at a location (location, oldDate, newDate)
 - set_status: Change status (draft, pending, approved)
 - update_customization: Update proposal display settings
 
@@ -89,7 +99,8 @@ const TOOLS = [
             type: 'object',
             properties: {
               serviceType: { type: 'string', enum: ['massage', 'facial', 'nails', 'hair', 'makeup', 'hair-makeup', 'headshot', 'mindfulness'] },
-              location: { type: 'string', description: 'Office address for this event' },
+              locationName: { type: 'string', description: 'Short location name like "NYC", "SF Office", "LA HQ" — NOT a full street address' },
+              officeAddress: { type: 'string', description: 'Full office street address (e.g., "350 5th Ave, New York NY 10118")' },
               date: { type: 'string', description: 'Event date in YYYY-MM-DD format' },
               totalHours: { type: 'number', description: 'Hours of service' },
               numPros: { type: 'integer', description: 'Number of professionals' },
@@ -104,7 +115,7 @@ const TOOLS = [
               },
               discountPercent: { type: 'number', description: 'Discount percentage (0-100)' }
             },
-            required: ['serviceType', 'location', 'date', 'totalHours', 'numPros']
+            required: ['serviceType', 'locationName', 'date', 'totalHours', 'numPros']
           }
         },
         notes: { type: 'string', description: 'Internal notes about this proposal' }
@@ -125,7 +136,7 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              op: { type: 'string', description: 'Operation type: add_service, remove_service, update_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, set_status, update_customization' },
+              op: { type: 'string', description: 'Operation type: add_service, remove_service, update_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization' },
               location: { type: 'string' },
               date: { type: 'string' },
               serviceIndex: { type: 'integer' },
@@ -139,7 +150,12 @@ const TOOLS = [
               clientName: { type: 'string', description: 'For update_client_info' },
               clientEmail: { type: 'string', description: 'For update_client_info' },
               clientLogoUrl: { type: 'string', description: 'For update_client_info' },
-              customization: { type: 'object', description: 'For update_customization' }
+              customization: { type: 'object', description: 'For update_customization' },
+              oldName: { type: 'string', description: 'For rename_location: current location name' },
+              newName: { type: 'string', description: 'For rename_location: new location name' },
+              oldDate: { type: 'string', description: 'For change_date: current date in YYYY-MM-DD format' },
+              newDate: { type: 'string', description: 'For change_date: new date in YYYY-MM-DD format' },
+              officeAddress: { type: 'string', description: 'For add_location: office street address' }
             },
             required: ['op']
           }
