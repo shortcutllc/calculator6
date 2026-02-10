@@ -40,6 +40,7 @@ const GenericLandingPageManager = lazy(() => import('./components/GenericLanding
 const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
 const Plan2026 = lazy(() => import('./components/Plan2026'));
 const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
+const CLELandingPage = lazy(() => import('./components/CLELandingPage'));
 
 function App() {
   const location = useLocation();
@@ -62,7 +63,8 @@ function App() {
     location.pathname.startsWith('/generic-landing-page/') ||
     location.pathname === '/corporatepartnerships' ||
     location.pathname === '/2026-plan' ||
-    location.pathname === '/2026-plan-ml';
+    location.pathname === '/2026-plan-ml' ||
+    location.pathname === '/cle';
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -437,6 +439,18 @@ function App() {
                     </div>
                   }>
                     <Plan2026ML />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/cle"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <CLELandingPage />
                   </Suspense>
                 }
               />
