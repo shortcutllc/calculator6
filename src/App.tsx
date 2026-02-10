@@ -64,7 +64,8 @@ function App() {
     location.pathname === '/corporatepartnerships' ||
     location.pathname === '/2026-plan' ||
     location.pathname === '/2026-plan-ml' ||
-    location.pathname === '/cle';
+    location.pathname === '/cle' ||
+    location.pathname.startsWith('/cle/');
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -454,6 +455,21 @@ function App() {
                   </Suspense>
                 }
               />
+              {['PA','CA','TX','FL'].map((st) => (
+                <Route
+                  key={st}
+                  path={`/cle/${st.toLowerCase()}`}
+                  element={
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <CLELandingPage stateCode={st} />
+                    </Suspense>
+                  }
+                />
+              ))}
               <Route
                 path="/generic-landing-page/:id"
                 element={

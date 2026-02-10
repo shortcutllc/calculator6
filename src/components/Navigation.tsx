@@ -160,16 +160,28 @@ export const Navigation: React.FC = () => {
                       <Smartphone size={16} className="text-text-dark-60" />
                       Social
                     </button>
-                    <button
-                      onClick={() => {
-                        navigate('/cle');
-                        setLandingPagesDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                    >
-                      <Scale size={16} className="text-text-dark-60" />
-                      CLE Program
-                    </button>
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <p className="px-4 py-1 text-[10px] font-bold text-text-dark-60 uppercase tracking-wider">CLE Program</p>
+                      {[
+                        { label: 'New York', path: '/cle' },
+                        { label: 'Pennsylvania', path: '/cle/pa' },
+                        { label: 'California', path: '/cle/ca' },
+                        { label: 'Texas', path: '/cle/tx' },
+                        { label: 'Florida', path: '/cle/fl' },
+                      ].map((item) => (
+                        <button
+                          key={item.path}
+                          onClick={() => {
+                            navigate(item.path);
+                            setLandingPagesDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
+                        >
+                          <Scale size={16} className="text-text-dark-60" />
+                          CLE — {item.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -332,16 +344,32 @@ export const Navigation: React.FC = () => {
                         <Smartphone size={16} className="text-text-dark-60" />
                         Social
                       </button>
-                      <button
-                        onClick={() => {
-                          navigate('/cle');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Scale size={16} className="text-text-dark-60" />
-                        CLE Program
-                      </button>
+                    </div>
+                  </div>
+
+                  {/* CLE Program Section */}
+                  <div className="px-4 py-2 border-t border-gray-100">
+                    <div className="text-xs font-extrabold text-shortcut-blue uppercase tracking-wider mb-2">CLE Program</div>
+                    <div className="space-y-1">
+                      {[
+                        { label: 'New York', path: '/cle' },
+                        { label: 'Pennsylvania', path: '/cle/pa' },
+                        { label: 'California', path: '/cle/ca' },
+                        { label: 'Texas', path: '/cle/tx' },
+                        { label: 'Florida', path: '/cle/fl' },
+                      ].map((item) => (
+                        <button
+                          key={item.path}
+                          onClick={() => {
+                            navigate(item.path);
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                        >
+                          <Scale size={16} className="text-text-dark-60" />
+                          {item.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 

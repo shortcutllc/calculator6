@@ -1,7 +1,72 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-const CLELandingPage: React.FC = () => {
+/* ── Per-state configuration ── */
+interface StateConfig {
+  code: string;          // e.g. 'NY'
+  name: string;          // e.g. 'New York'
+  creditLabel: string;   // e.g. '1.0 NY Ethics & Professionalism Credit'
+  creditDesc: string;    // e.g. '1.0 New York Ethics & Professionalism credit'
+  boardName: string;     // e.g. 'the New York CLE Board'
+  abbr: string;          // e.g. 'NY'
+  sealImage: string;     // path to state seal
+  sealAlt: string;       // alt text for seal
+}
+
+const STATE_CONFIGS: Record<string, StateConfig> = {
+  NY: {
+    code: 'NY', name: 'New York',
+    creditLabel: '1.0 NY Ethics & Professionalism Credit',
+    creditDesc: '1.0 New York CLE credit in Ethics & Professionalism',
+    boardName: 'the New York CLE Board',
+    abbr: 'NY',
+    sealImage: '/ny-state-seal.png',
+    sealAlt: 'Seal of the State of New York',
+  },
+  PA: {
+    code: 'PA', name: 'Pennsylvania',
+    creditLabel: '1.0 PA Ethics & Professionalism Credit',
+    creditDesc: '1.0 Pennsylvania CLE credit in Ethics & Professionalism',
+    boardName: 'the Pennsylvania CLE Board',
+    abbr: 'PA',
+    sealImage: '/pa-state-seal.png',
+    sealAlt: 'Seal of the Commonwealth of Pennsylvania',
+  },
+  CA: {
+    code: 'CA', name: 'California',
+    creditLabel: '1.0 CA Ethics & Professionalism Credit',
+    creditDesc: '1.0 California CLE credit in Ethics & Professionalism',
+    boardName: 'the California State Bar',
+    abbr: 'CA',
+    sealImage: '/ca-state-seal.png',
+    sealAlt: 'Seal of the State of California',
+  },
+  TX: {
+    code: 'TX', name: 'Texas',
+    creditLabel: '1.0 TX Ethics & Professionalism Credit',
+    creditDesc: '1.0 Texas CLE credit in Ethics & Professionalism',
+    boardName: 'the Texas State Bar CLE Committee',
+    abbr: 'TX',
+    sealImage: '/tx-state-seal.png',
+    sealAlt: 'Seal of the State of Texas',
+  },
+  FL: {
+    code: 'FL', name: 'Florida',
+    creditLabel: '1.0 FL Ethics & Professionalism Credit',
+    creditDesc: '1.0 Florida CLE credit in Ethics & Professionalism',
+    boardName: 'the Florida Bar',
+    abbr: 'FL',
+    sealImage: '/fl-state-seal.png',
+    sealAlt: 'Seal of the State of Florida',
+  },
+};
+
+interface CLELandingPageProps {
+  stateCode?: string;
+}
+
+const CLELandingPage: React.FC<CLELandingPageProps> = ({ stateCode = 'NY' }) => {
+  const cfg = STATE_CONFIGS[stateCode] || STATE_CONFIGS.NY;
   const [activePackage, setActivePackage] = useState<'cle' | 'wellness'>('wellness');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
@@ -105,7 +170,7 @@ const CLELandingPage: React.FC = () => {
             <div className="lg:col-span-7">
               <div className="inline-flex items-center gap-2 bg-white/60 px-3.5 py-1.5 rounded-full mb-5 border border-shortcut-blue/[.08]">
                 <span className="w-1.5 h-1.5 rounded-full bg-shortcut-teal" />
-                <span className="text-[11px] font-bold text-shortcut-blue tracking-wide uppercase">1.0 NY Ethics & Professionalism Credit</span>
+                <span className="text-[11px] font-bold text-shortcut-blue tracking-wide uppercase">{cfg.creditLabel}</span>
               </div>
 
               <h1 className="text-[2.5rem] md:text-[3.25rem] lg:text-[3.75rem] font-extrabold text-shortcut-blue leading-[1.06] tracking-[-0.025em] mb-4">
@@ -222,11 +287,11 @@ const CLELandingPage: React.FC = () => {
                 CLE credit that actually counts
               </h3>
               <p className="text-[15px] font-medium text-[#3D4F5F] leading-[1.7] mb-6">
-                Approved for 1.0 New York Ethics & Professionalism credit. Shortcut is the accredited provider — we handle material submission, attendance tracking, and credit reporting. Zero admin burden on your firm.
+                Approved for {cfg.creditDesc}. Shortcut is the accredited provider — we handle material submission, attendance tracking, and credit reporting. Zero admin burden on your firm.
               </p>
               <div className="space-y-3">
                 {[
-                  'Material submission to the NY CLE Board',
+                  `Material submission to ${cfg.boardName}`,
                   'Attendance tracking for all participants',
                   'Credit reporting — your firm handles nothing',
                 ].map((item,i) => (
@@ -240,7 +305,7 @@ const CLELandingPage: React.FC = () => {
             <div className="order-1 lg:order-2">
               <div className="rounded-2xl overflow-hidden bg-[#F7F6F3] flex items-center justify-center" style={{ boxShadow: '0 16px 40px rgba(0,55,86,.08)' }}>
                 <div className="aspect-[4/3] w-full flex items-center justify-center p-10 lg:p-14">
-                  <img src="/ny-state-seal.png" alt="Seal of the State of New York" className="w-full max-w-[260px] lg:max-w-[300px] h-auto" loading="lazy" />
+                  <img src={cfg.sealImage} alt={cfg.sealAlt} className="w-full max-w-[260px] lg:max-w-[300px] h-auto" loading="lazy" />
                 </div>
               </div>
             </div>
@@ -343,7 +408,7 @@ const CLELandingPage: React.FC = () => {
               <div className="space-y-3 mb-7">
                 {[
                   '60-minute accredited session',
-                  '1.0 NY Ethics & Professionalism credit',
+                  `1.0 ${cfg.abbr} Ethics & Professionalism credit`,
                   'Led by Courtney Schulnick',
                   'Full CLE Board administration',
                   'Attendance tracking & reporting',
@@ -483,13 +548,13 @@ const CLELandingPage: React.FC = () => {
 
               <div className="bg-shortcut-teal/[.06] rounded-xl p-6 border border-shortcut-teal/10 mb-8">
                 <p className="text-[15px] font-medium text-[#3D4F5F] leading-[1.7]">
-                  Approved for <strong className="text-shortcut-blue font-bold">1.0 New York CLE credit in Ethics & Professionalism</strong>. Shortcut is the accredited provider — your firm handles nothing.
+                  Approved for <strong className="text-shortcut-blue font-bold">{cfg.creditDesc}</strong>. Shortcut is the accredited provider — your firm handles nothing.
                 </p>
               </div>
 
               <div className="space-y-4">
                 {[
-                  ['Material submission', 'to the New York CLE Board'],
+                  ['Material submission', `to ${cfg.boardName}`],
                   ['Attendance tracking', 'for all participants'],
                   ['Credit reporting', 'no admin burden on your firm'],
                 ].map(([bold, rest], i) => (
@@ -556,7 +621,7 @@ const CLELandingPage: React.FC = () => {
                     last_name: formData.lastName,
                     email: formData.email,
                     company: formData.company,
-                    service_type: formData.packageInterest === 'wellness' ? 'cle-wellness' : 'cle',
+                    service_type: formData.packageInterest === 'wellness' ? `cle-wellness-${cfg.code}` : `cle-${cfg.code}`,
                     event_date: formData.preferredDate || null,
                     message: [
                       formData.teamSize ? `Team size: ${formData.teamSize}` : '',
