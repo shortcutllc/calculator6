@@ -1278,15 +1278,17 @@ const ProposalViewer: React.FC = () => {
       }, 0);
       console.log(`[ProposalViewer] Total services in proposal.data: ${serviceCount}`);
       
-      // Preserve gratuity fields from proposal data before recalculation
+      // Preserve gratuity fields and custom line items from proposal data before recalculation
       const gratuityType = proposal.data?.gratuityType || null;
       const gratuityValue = proposal.data?.gratuityValue || null;
+      const customLineItems = proposal.data?.customLineItems || [];
 
       const calculatedData = recalculateServiceTotals(proposal.data);
 
-      // Restore gratuity fields after recalculation
+      // Restore gratuity fields and custom line items after recalculation
       if (gratuityType) calculatedData.gratuityType = gratuityType;
       if (gratuityValue !== null) calculatedData.gratuityValue = gratuityValue;
+      if (customLineItems.length > 0) calculatedData.customLineItems = customLineItems;
 
       // Ensure classLength and mindfulnessType are set correctly for mindfulness services
       if (calculatedData.services) {
@@ -1739,15 +1741,17 @@ const ProposalViewer: React.FC = () => {
     
     try {
       setIsSavingChanges(true);
-      // Preserve gratuity fields before recalculation
+      // Preserve gratuity fields and custom line items before recalculation
       const gratuityType = editedData?.gratuityType || null;
       const gratuityValue = editedData?.gratuityValue || null;
-      
+      const customLineItems = editedData?.customLineItems || [];
+
       const recalculatedData = recalculateServiceTotals(editedData);
-      
-      // Restore gratuity fields after recalculation
+
+      // Restore gratuity fields and custom line items after recalculation
       if (gratuityType) recalculatedData.gratuityType = gratuityType;
       if (gratuityValue !== null) recalculatedData.gratuityValue = gratuityValue;
+      if (customLineItems.length > 0) recalculatedData.customLineItems = customLineItems;
       
       // Clean up officeLocations to only include addresses for current locations
       if (recalculatedData.officeLocations && recalculatedData.locations) {
@@ -3652,6 +3656,110 @@ The Shortcut Team`);
               </div>
             )}
 
+            {/* Custom Line Items Section - Only show in edit mode */}
+            {isEditing && !isSharedView && (
+              <div className="card-large">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-extrabold text-shortcut-blue">Custom Line Items</h2>
+                  <button
+                    onClick={() => {
+                      const newData = { ...editedData };
+                      const newItems = [...(newData.customLineItems || [])];
+                      newItems.push({
+                        id: crypto.randomUUID(),
+                        name: '',
+                        description: '',
+                        amount: 0,
+                      });
+                      newData.customLineItems = newItems;
+                      const recalculated = recalculateServiceTotals(newData);
+                      setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                      setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                    }}
+                    className="px-3 py-1.5 bg-shortcut-teal text-white rounded-lg text-sm font-bold hover:bg-shortcut-teal/90 transition-colors"
+                  >
+                    + Add Item
+                  </button>
+                </div>
+                {(!editedData?.customLineItems || editedData.customLineItems.length === 0) && (
+                  <p className="text-sm text-gray-500">No custom line items. Add catering, equipment rental, or other charges.</p>
+                )}
+                {editedData?.customLineItems && editedData.customLineItems.length > 0 && (
+                  <div className="space-y-3">
+                    {editedData.customLineItems.map((item, idx) => (
+                      <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex-1 space-y-2">
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => {
+                              const newData = { ...editedData };
+                              const newItems = [...(newData.customLineItems || [])];
+                              newItems[idx] = { ...newItems[idx], name: e.target.value };
+                              newData.customLineItems = newItems;
+                              setEditedData({ ...newData, customization: currentProposal?.customization });
+                              setDisplayData({ ...newData, customization: currentProposal?.customization });
+                            }}
+                            placeholder="Item name (e.g. Catering)"
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          />
+                          <input
+                            type="text"
+                            value={item.description || ''}
+                            onChange={(e) => {
+                              const newData = { ...editedData };
+                              const newItems = [...(newData.customLineItems || [])];
+                              newItems[idx] = { ...newItems[idx], description: e.target.value };
+                              newData.customLineItems = newItems;
+                              setEditedData({ ...newData, customization: currentProposal?.customization });
+                              setDisplayData({ ...newData, customization: currentProposal?.customization });
+                            }}
+                            placeholder="Description (optional)"
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            <span className="text-sm font-bold text-gray-500 mr-1">$</span>
+                            <input
+                              type="number"
+                              value={item.amount || ''}
+                              onChange={(e) => {
+                                const newData = { ...editedData };
+                                const newItems = [...(newData.customLineItems || [])];
+                                newItems[idx] = { ...newItems[idx], amount: parseFloat(e.target.value) || 0 };
+                                newData.customLineItems = newItems;
+                                const recalculated = recalculateServiceTotals(newData);
+                                setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                                setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                              }}
+                              placeholder="0"
+                              className="w-24 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                            />
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newData = { ...editedData };
+                              const newItems = [...(newData.customLineItems || [])];
+                              newItems.splice(idx, 1);
+                              newData.customLineItems = newItems;
+                              const recalculated = recalculateServiceTotals(newData);
+                              setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                              setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                            }}
+                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Remove item"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
@@ -3692,6 +3800,13 @@ The Shortcut Team`);
                     {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
                   </span>
                 </div>
+                {/* Custom Line Items in summary */}
+                {displayData.customLineItems && displayData.customLineItems.length > 0 && displayData.customLineItems.map((item: any) => (
+                  <div key={item.id} className="flex justify-between items-center py-3 border-b border-white/20">
+                    <span className="font-semibold">{item.name || 'Custom Item'}:</span>
+                    <span className="font-bold text-lg">${formatCurrency(item.amount || 0)}</span>
+                  </div>
+                ))}
                 {displayData.gratuityType && displayData.gratuityValue !== null && displayData.gratuityValue !== undefined && (
                   <>
                     <div className="flex justify-between items-center py-3 border-b border-white/20">

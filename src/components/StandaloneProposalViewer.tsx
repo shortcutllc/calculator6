@@ -2428,6 +2428,22 @@ export const StandaloneProposalViewer: React.FC = () => {
                     {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
                   </span>
                 </div>
+                {/* Custom Line Items */}
+                {displayData.customLineItems && displayData.customLineItems.length > 0 && (
+                  <>
+                    {displayData.customLineItems.map((item: any) => (
+                      <div key={item.id} className="flex justify-between items-center pt-3 border-t border-shortcut-teal/20">
+                        <div>
+                          <span className="font-semibold text-white/90 text-base md:text-lg">{item.name || 'Custom Item'}</span>
+                          {item.description && (
+                            <p className="text-xs text-white/50 mt-0.5">{item.description}</p>
+                          )}
+                        </div>
+                        <span className="font-extrabold text-lg md:text-xl text-white">${formatCurrency(item.amount || 0)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
                 {displayData.summary?.subtotalBeforeGratuity !== undefined && displayData.summary?.gratuityAmount !== undefined && displayData.summary.gratuityAmount > 0 && (
                   <>
                     <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-teal/30">

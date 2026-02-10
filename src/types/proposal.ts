@@ -72,6 +72,13 @@ export interface LocationDataWithOptions {
   [date: string]: DateDataWithOptions;
 }
 
+export interface CustomLineItem {
+  id: string;
+  name: string;
+  description?: string;
+  amount: number;
+}
+
 export interface ProposalSummary {
   totalAppointments: number;
   totalEventCost: number;
@@ -103,6 +110,8 @@ export interface ProposalData {
   // Gratuity fields
   gratuityType?: 'percentage' | 'dollar' | null;
   gratuityValue?: number | null;
+  // Custom line items (e.g. catering, equipment rental)
+  customLineItems?: CustomLineItem[];
   // Mindfulness program specific data
   mindfulnessProgram?: {
     programId: string;

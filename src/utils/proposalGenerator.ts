@@ -409,9 +409,10 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
 };
 
 export const recalculateServiceTotals = (proposalData: ProposalData): ProposalData => {
-  // Preserve gratuity fields
+  // Preserve gratuity fields and custom line items
   const gratuityType = proposalData.gratuityType || null;
   const gratuityValue = proposalData.gratuityValue || null;
+  const customLineItems = proposalData.customLineItems || [];
 
   const updatedData = { ...proposalData };
 
@@ -717,6 +718,13 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     // Sort actual dates normally
     return new Date(a).getTime() - new Date(b).getTime();
   });
+
+  // Add custom line items to the total (before gratuity)
+  if (customLineItems && customLineItems.length > 0) {
+    const customLineItemsTotal = customLineItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    updatedData.summary.totalEventCost = Number((updatedData.summary.totalEventCost + customLineItemsTotal).toFixed(2));
+  }
+  updatedData.customLineItems = customLineItems;
 
   // Calculate gratuity if specified
   let gratuityAmount = 0;
