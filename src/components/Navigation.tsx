@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogIn, LogOut, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users, Handshake, Eye, Gift, Smartphone, Brain, QrCode, TrendingUp } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users, Handshake, Eye, Gift, Smartphone, Brain, QrCode, TrendingUp, Scale } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -159,6 +159,16 @@ export const Navigation: React.FC = () => {
                     >
                       <Smartphone size={16} className="text-text-dark-60" />
                       Social
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/cle');
+                        setLandingPagesDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
+                    >
+                      <Scale size={16} className="text-text-dark-60" />
+                      CLE Program
                     </button>
                   </div>
                 )}
@@ -321,6 +331,16 @@ export const Navigation: React.FC = () => {
                       >
                         <Smartphone size={16} className="text-text-dark-60" />
                         Social
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/cle');
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                      >
+                        <Scale size={16} className="text-text-dark-60" />
+                        CLE Program
                       </button>
                     </div>
                   </div>
