@@ -3215,10 +3215,16 @@ The Shortcut Team`);
                                             <span className="text-base font-bold text-shortcut-blue">Pricing Options:</span>
                                             <button
                                               onClick={() => {
+                                                if (!editedData || !isEditing) return;
+                                                const updatedData = { ...editedData };
                                                 const pricingOptions = generatePricingOptionsForService(service);
-                                                handleFieldChange(['services', location, date, 'services', serviceIndex, 'pricingOptions'], pricingOptions);
-                                                handleFieldChange(['services', location, date, 'services', serviceIndex, 'selectedOption'], 0);
-                                                handleFieldChange(['hasPricingOptions'], true);
+                                                updatedData.services[location][date].services[serviceIndex].pricingOptions = pricingOptions;
+                                                updatedData.services[location][date].services[serviceIndex].selectedOption = 0;
+                                                updatedData.hasPricingOptions = true;
+                                                const recalculated = recalculateServiceTotals(updatedData);
+                                                setEditedData({ ...recalculated, customization: currentProposal?.customization });
+                                                setDisplayData({ ...recalculated, customization: currentProposal?.customization });
+                                                setUpdateCounter(prev => prev + 1);
                                               }}
                                               className="px-4 py-2 bg-shortcut-navy-blue text-white hover:bg-shortcut-dark-blue rounded-md font-medium transition-colors"
                                             >
@@ -3676,7 +3682,7 @@ The Shortcut Team`);
                       setEditedData({ ...recalculated, customization: currentProposal?.customization });
                       setDisplayData({ ...recalculated, customization: currentProposal?.customization });
                     }}
-                    className="px-3 py-1.5 bg-shortcut-teal text-white rounded-lg text-sm font-bold hover:bg-shortcut-teal/90 transition-colors"
+                    className="px-3 py-1.5 bg-shortcut-teal text-shortcut-blue rounded-lg text-sm font-bold hover:bg-shortcut-teal/90 transition-colors"
                   >
                     + Add Item
                   </button>
