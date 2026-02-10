@@ -1,9 +1,23 @@
 import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 const CLELandingPage: React.FC = () => {
   const [activePackage, setActivePackage] = useState<'cle' | 'wellness'>('wellness');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [formSuccess, setFormSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    company: '',
+    teamSize: '',
+    preferredDate: '',
+    packageInterest: 'cle',
+    message: '',
+  });
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -75,7 +89,7 @@ const CLELandingPage: React.FC = () => {
               </button>
             ))}
           </nav>
-          <button onClick={() => scrollTo('contact')} className="btn-primary !py-2 !px-5 !min-w-0 !text-[13px]">
+          <button onClick={() => { setFormData(prev => ({ ...prev, packageInterest: 'cle' })); setShowContactForm(true); }} className="btn-primary !py-2 !px-5 !min-w-0 !text-[13px]">
             <span>Request a Date</span>
           </button>
         </div>
@@ -95,7 +109,7 @@ const CLELandingPage: React.FC = () => {
               </div>
 
               <h1 className="text-[2.5rem] md:text-[3.25rem] lg:text-[3.75rem] font-extrabold text-shortcut-blue leading-[1.06] tracking-[-0.025em] mb-4">
-                Your attorneys need ethics credits. Make this one they thank you for.
+                Your attorneys need ethics credits. Make this the one they thank you for.
               </h1>
 
               <p className="text-[15px] lg:text-base font-medium text-[#3D4F5F] leading-[1.65] mb-7 max-w-[480px]">
@@ -343,7 +357,7 @@ const CLELandingPage: React.FC = () => {
                 ))}
               </div>
 
-              <button onClick={(e) => { e.stopPropagation(); scrollTo('contact'); }} className={activePackage === 'cle' ? 'btn-primary w-full !text-[13px]' : 'btn-secondary w-full !text-[13px]'}>
+              <button onClick={(e) => { e.stopPropagation(); setFormData(prev => ({ ...prev, packageInterest: 'cle' })); setShowContactForm(true); }} className={activePackage === 'cle' ? 'btn-primary w-full !text-[13px]' : 'btn-secondary w-full !text-[13px]'}>
                 <span>Request a Date</span>
               </button>
             </div>
@@ -380,7 +394,7 @@ const CLELandingPage: React.FC = () => {
                 ))}
               </div>
 
-              <button onClick={(e) => { e.stopPropagation(); scrollTo('contact'); }} className={activePackage === 'wellness' ? 'btn-primary w-full !text-[13px]' : 'btn-secondary w-full !text-[13px]'}>
+              <button onClick={(e) => { e.stopPropagation(); setFormData(prev => ({ ...prev, packageInterest: 'wellness' })); setShowContactForm(true); }} className={activePackage === 'wellness' ? 'btn-primary w-full !text-[13px]' : 'btn-secondary w-full !text-[13px]'}>
                 <span>Get a Quote</span>
               </button>
             </div>
@@ -508,11 +522,207 @@ const CLELandingPage: React.FC = () => {
           <p className="text-[14px] font-medium text-white/60 leading-[1.65] mb-7 max-w-sm mx-auto">
             Tell us your preferred date and team size. We'll send a proposal within 24 hours.
           </p>
-          <a href="mailto:wellness@getshortcut.co?subject=CLE%20Program%20Inquiry" className="btn-primary inline-flex !text-[13px]" style={{ textDecoration: 'none' }}>
+          <button onClick={() => { setFormData(prev => ({ ...prev, packageInterest: 'cle' })); setShowContactForm(true); }} className="btn-primary inline-flex !text-[13px]">
             <span>Request a Date</span>
-          </a>
+          </button>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════
+          CONTACT FORM MODAL
+      ═══════════════════════════════════════════ */}
+      {showContactForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4" onClick={() => { if (!formSubmitting) { setShowContactForm(false); setFormSuccess(false); } }}>
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 24px 60px rgba(0,55,86,.18)' }} onClick={(e) => e.stopPropagation()}>
+
+            {formSuccess ? (
+              <div className="p-8 lg:p-10 text-center">
+                <div className="w-14 h-14 rounded-full bg-shortcut-teal/10 flex items-center justify-center mx-auto mb-5">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="#003756" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <h3 className="text-2xl font-extrabold text-shortcut-blue mb-2">Thank you!</h3>
+                <p className="text-[14px] font-medium text-[#5A6F7F] leading-[1.65] mb-6">We'll be in touch within 24 hours with a proposal tailored to your firm.</p>
+                <button onClick={() => { setShowContactForm(false); setFormSuccess(false); }} className="btn-primary !text-[13px]">
+                  <span>Close</span>
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setFormSubmitting(true);
+                try {
+                  const contactData: Record<string, unknown> = {
+                    first_name: formData.firstName,
+                    last_name: formData.lastName,
+                    email: formData.email,
+                    company: formData.company,
+                    service_type: formData.packageInterest === 'wellness' ? 'cle-wellness' : 'cle',
+                    event_date: formData.preferredDate || null,
+                    message: [
+                      formData.teamSize ? `Team size: ${formData.teamSize}` : '',
+                      formData.packageInterest === 'wellness' ? 'Package: CLE + Wellness Day' : 'Package: CLE Session',
+                      formData.message || '',
+                    ].filter(Boolean).join(' | '),
+                    created_at: new Date().toISOString(),
+                  };
+
+                  const { error } = await supabase
+                    .from('contact_requests')
+                    .insert([contactData]);
+
+                  if (error) {
+                    console.error('Error saving contact request:', error);
+                    alert('There was an error submitting your request. Please try again.');
+                  } else {
+                    setFormSuccess(true);
+                    setFormData({ firstName: '', lastName: '', email: '', company: '', teamSize: '', preferredDate: '', packageInterest: 'cle', message: '' });
+                  }
+                } catch (err) {
+                  console.error('Error:', err);
+                  alert('There was an error submitting your request. Please try again.');
+                } finally {
+                  setFormSubmitting(false);
+                }
+              }}>
+                <div className="p-8 lg:p-10">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-2xl font-extrabold text-shortcut-blue leading-[1.1] tracking-[-0.02em]">
+                        {formData.packageInterest === 'wellness' ? 'Get a Custom Quote' : 'Request a Date'}
+                      </h3>
+                      <p className="text-[13px] font-medium text-[#5A6F7F] mt-1.5">We'll respond within 24 hours.</p>
+                    </div>
+                    <button type="button" onClick={() => setShowContactForm(false)} className="text-[#5A6F7F] hover:text-shortcut-blue transition-colors p-1 -mr-1 -mt-1">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[12px] font-bold text-shortcut-blue/60 uppercase tracking-wider mb-1.5">First Name *</label>
+                        <input
+                          type="text"
+                          value={formData.firstName}
+                          onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-lg border border-black/[.08] bg-[#F8F8FA] text-[14px] text-shortcut-blue placeholder-[#5A6F7F]/40 focus:outline-none focus:ring-2 focus:ring-shortcut-teal/30 focus:border-shortcut-teal/40 transition-all"
+                          placeholder="Jane"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-bold text-shortcut-blue/60 uppercase tracking-wider mb-1.5">Last Name *</label>
+                        <input
+                          type="text"
+                          value={formData.lastName}
+                          onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-lg border border-black/[.08] bg-[#F8F8FA] text-[14px] text-shortcut-blue placeholder-[#5A6F7F]/40 focus:outline-none focus:ring-2 focus:ring-shortcut-teal/30 focus:border-shortcut-teal/40 transition-all"
+                          placeholder="Smith"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-bold text-shortcut-blue/60 uppercase tracking-wider mb-1.5">Work Email *</label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-black/[.08] bg-[#F8F8FA] text-[14px] text-shortcut-blue placeholder-[#5A6F7F]/40 focus:outline-none focus:ring-2 focus:ring-shortcut-teal/30 focus:border-shortcut-teal/40 transition-all"
+                        placeholder="jane@firm.com"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-bold text-shortcut-blue/60 uppercase tracking-wider mb-1.5">Firm / Company *</label>
+                      <input
+                        type="text"
+                        value={formData.company}
+                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-black/[.08] bg-[#F8F8FA] text-[14px] text-shortcut-blue placeholder-[#5A6F7F]/40 focus:outline-none focus:ring-2 focus:ring-shortcut-teal/30 focus:border-shortcut-teal/40 transition-all"
+                        placeholder="Your firm name"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[12px] font-bold text-shortcut-blue/60 uppercase tracking-wider mb-1.5">Team Size</label>
+                        <select
+                          value={formData.teamSize}
+                          onChange={(e) => setFormData({ ...formData, teamSize: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-lg border border-black/[.08] bg-[#F8F8FA] text-[14px] text-shortcut-blue focus:outline-none focus:ring-2 focus:ring-shortcut-teal/30 focus:border-shortcut-teal/40 transition-all"
+                        >
+                          <option value="">Select</option>
+                          <option value="10-25">10–25</option>
+                          <option value="25-50">25–50</option>
+                          <option value="50-100">50–100</option>
+                          <option value="100-200">100–200</option>
+                          <option value="200+">200+</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-bold text-shortcut-blue/60 uppercase tracking-wider mb-1.5">Preferred Date</label>
+                        <input
+                          type="date"
+                          value={formData.preferredDate}
+                          onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-lg border border-black/[.08] bg-[#F8F8FA] text-[14px] text-shortcut-blue focus:outline-none focus:ring-2 focus:ring-shortcut-teal/30 focus:border-shortcut-teal/40 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-bold text-shortcut-blue/60 uppercase tracking-wider mb-1.5">Package</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, packageInterest: 'cle' })}
+                          className={`px-3.5 py-2.5 rounded-lg border text-[13px] font-semibold transition-all ${formData.packageInterest === 'cle' ? 'border-shortcut-teal bg-shortcut-teal/[.06] text-shortcut-blue' : 'border-black/[.08] bg-[#F8F8FA] text-[#5A6F7F] hover:border-black/[.15]'}`}
+                        >
+                          CLE Session
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, packageInterest: 'wellness' })}
+                          className={`px-3.5 py-2.5 rounded-lg border text-[13px] font-semibold transition-all ${formData.packageInterest === 'wellness' ? 'border-shortcut-teal bg-shortcut-teal/[.06] text-shortcut-blue' : 'border-black/[.08] bg-[#F8F8FA] text-[#5A6F7F] hover:border-black/[.15]'}`}
+                        >
+                          CLE + Wellness Day
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-bold text-shortcut-blue/60 uppercase tracking-wider mb-1.5">Message <span className="font-medium normal-case tracking-normal">(optional)</span></label>
+                      <textarea
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        rows={3}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-black/[.08] bg-[#F8F8FA] text-[14px] text-shortcut-blue placeholder-[#5A6F7F]/40 focus:outline-none focus:ring-2 focus:ring-shortcut-teal/30 focus:border-shortcut-teal/40 transition-all resize-none"
+                        placeholder="Anything else we should know?"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={formSubmitting}
+                    className="btn-primary w-full !text-[13px] mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <span>{formSubmitting ? 'Submitting…' : formData.packageInterest === 'wellness' ? 'Get a Quote' : 'Request a Date'}</span>
+                  </button>
+
+                  <p className="text-[11px] font-medium text-[#5A6F7F]/50 text-center mt-4">
+                    We'll respond within 24 hours. No spam, ever.
+                  </p>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─── FOOTER ─── */}
       <footer className="py-7">
