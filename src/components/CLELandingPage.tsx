@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 const CLELandingPage: React.FC = () => {
   const [activePackage, setActivePackage] = useState<'cle' | 'wellness'>('wellness');
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [scheduleExpanded, setScheduleExpanded] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -94,7 +95,7 @@ const CLELandingPage: React.FC = () => {
               </div>
 
               <h1 className="text-[2.5rem] md:text-[3.25rem] lg:text-[3.75rem] font-extrabold text-shortcut-blue leading-[1.06] tracking-[-0.025em] mb-4">
-                Your attorneys need ethics credits. Make one actually matter.
+                Your attorneys need ethics credits. Make this one they thank you for.
               </h1>
 
               <p className="text-[15px] lg:text-base font-medium text-[#3D4F5F] leading-[1.65] mb-7 max-w-[480px]">
@@ -310,7 +311,7 @@ const CLELandingPage: React.FC = () => {
               Choose what works for your firm
             </h2>
             <p className="text-[14px] font-medium text-[#3D4F5F] leading-[1.65] max-w-md mx-auto">
-              Both include full accreditation, attendance tracking, and credit reporting. The only question is how much of an impact you want to make.
+              Start with the CLE. Add wellness services to make it a full day your team looks forward to.
             </p>
           </div>
 
@@ -333,7 +334,7 @@ const CLELandingPage: React.FC = () => {
                   'Full CLE Board administration',
                   'Attendance tracking & reporting',
                   'Custom audio recordings & handouts',
-                  'Catered food & refreshments',
+                  'Guided breathwork & meditation tools',
                 ].map((item,i) => (
                   <div key={i} className="flex items-center gap-2.5">
                     <Check />
@@ -357,16 +358,17 @@ const CLELandingPage: React.FC = () => {
               </div>
 
               <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5A6F7F] mb-3">CLE + Wellness Day</p>
-              <span className="text-[2.5rem] font-extrabold text-shortcut-blue tracking-[-0.03em] leading-none block">$5,000</span>
-              <p className="text-[13px] font-medium text-[#5A6F7F] mt-1 mb-7">Flat rate — CLE, massage & catering</p>
+              <span className="text-[2.5rem] font-extrabold text-shortcut-blue tracking-[-0.03em] leading-none block">Let's Build Yours</span>
+              <p className="text-[13px] font-medium text-[#5A6F7F] mt-1 mb-7">CLE + massage, catering & more — priced by team size</p>
 
               <div className="space-y-3 mb-7">
                 {[
                   { text: 'Everything in CLE Session', bold: true },
-                  { text: 'On-site chair massage on CLE day' },
+                  { text: 'On-site chair massage' },
                   { text: 'Licensed, insured therapists' },
                   { text: 'Full spa ambiance setup' },
                   { text: 'Catered food & refreshments' },
+                  { text: 'Flexible add-ons by team size' },
                   { text: 'One vendor, one day, zero logistics' },
                 ].map((item,i) => (
                   <div key={i} className="flex items-center gap-2.5">
@@ -379,86 +381,118 @@ const CLELandingPage: React.FC = () => {
               </div>
 
               <button onClick={(e) => { e.stopPropagation(); scrollTo('contact'); }} className={activePackage === 'wellness' ? 'btn-primary w-full !text-[13px]' : 'btn-secondary w-full !text-[13px]'}>
-                <span>Request a Date</span>
+                <span>Get a Quote</span>
               </button>
             </div>
           </div>
 
           <p className="text-center text-[11px] font-medium text-shortcut-blue/30 mt-5 max-w-sm mx-auto">
-            Both packages include catered food and refreshments for your team.
+            Wellness day pricing depends on team size and services. We'll build a custom package for your firm.
           </p>
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════
-          DETAILS ACCORDION  — clean, readable
+          PROGRAM SCHEDULE & ACCREDITATION
       ═══════════════════════════════════════════ */}
       <section className="pb-20 lg:pb-28">
-        <div className="cle-fade-in max-w-[780px] mx-auto px-6 lg:px-10">
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-10">
 
-          <div className="text-center mb-10">
+          <div className="cle-fade-in text-center mb-14 lg:mb-20">
             <p className="text-[11px] font-bold uppercase tracking-[.15em] text-shortcut-blue/40 mb-4">Details</p>
-            <h2 className="text-2xl md:text-[2rem] font-extrabold text-shortcut-blue leading-[1.1] tracking-[-0.02em]">
+            <h2 className="text-3xl md:text-[2.5rem] lg:text-[2.75rem] font-extrabold text-shortcut-blue leading-[1.08] tracking-[-0.025em] max-w-xl mx-auto">
               Program schedule & accreditation
             </h2>
           </div>
 
-          <div className="border border-black/[.06] rounded-2xl overflow-hidden">
-            <button onClick={() => setDetailsOpen(!detailsOpen)} className="w-full text-left px-6 lg:px-8 py-5 flex items-center justify-between hover:bg-black/[.015] transition-colors">
-              <span className="text-[15px] font-bold text-shortcut-blue">60-Minute Timed Agenda</span>
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className={`transition-transform duration-300 flex-shrink-0 ml-4 ${detailsOpen ? 'rotate-180' : ''}`}>
-                <path d="M5 8L10 13L15 8" stroke="#003756" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity=".4"/>
-              </svg>
-            </button>
+          <div className="cle-fade-in grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
 
-            <div className={`details-body ${detailsOpen ? 'open' : ''}`}>
-              <div className="px-6 lg:px-8 pb-8">
-                <div className="border-t border-black/[.06] pt-6">
+            {/* Left — 60-minute agenda */}
+            <div>
+              <h3 className="text-xl md:text-2xl font-extrabold text-shortcut-blue leading-[1.15] tracking-[-0.02em] mb-6">
+                60-minute timed agenda
+              </h3>
 
-                  <div className="space-y-0 mb-10">
-                    {[
-                      ['0:00 – 4:00', 'Welcome & Course Overview'],
-                      ['4:00 – 8:00', 'What Is Mindfulness?'],
-                      ['8:00 – 13:00', 'Distraction, Autopilot & Ethical Risk'],
-                      ['13:00 – 18:00', 'Competence, Ethics & Well-Being'],
-                      ['18:00 – 24:00', 'The Overextended Lawyer'],
-                      ['24:00 – 30:00', 'Mindfulness & Ethical Decision-Making'],
-                      ['30:00 – 36:00', 'Stress, Perception & Choice'],
-                      ['36:00 – 46:00', 'PRO Practice (Pause – Relax – Open)'],
-                      ['46:00 – 52:00', 'On-the-Spot Practices'],
-                      ['52:00 – 58:00', 'Ethical Application & Integration'],
-                      ['58:00 – 60:00', 'Closing & Key Takeaways'],
-                    ].map(([time, title], i) => (
-                      <div key={i} className={`flex items-center gap-5 py-3 px-4 ${i % 2 === 0 ? 'bg-[#F8F8FA]' : ''} ${i === 0 ? 'rounded-t-lg' : ''} ${i === 10 ? 'rounded-b-lg' : ''}`}>
-                        <span className="text-[12px] font-semibold text-shortcut-blue/35 w-[80px] flex-shrink-0 tabular-nums tracking-tight">{time}</span>
-                        <span className="text-[14px] font-medium text-[#3D4F5F]">{title}</span>
-                      </div>
-                    ))}
+              {(() => {
+                const agenda = [
+                  ['0:00 – 4:00', 'Welcome & Course Overview'],
+                  ['4:00 – 8:00', 'What Is Mindfulness?'],
+                  ['8:00 – 13:00', 'Distraction, Autopilot & Ethical Risk'],
+                  ['13:00 – 18:00', 'Competence, Ethics & Well-Being'],
+                  ['18:00 – 24:00', 'The Overextended Lawyer'],
+                  ['24:00 – 30:00', 'Mindfulness & Ethical Decision-Making'],
+                  ['30:00 – 36:00', 'Stress, Perception & Choice'],
+                  ['36:00 – 46:00', 'PRO Practice (Pause – Relax – Open)'],
+                  ['46:00 – 52:00', 'On-the-Spot Practices'],
+                  ['52:00 – 58:00', 'Ethical Application & Integration'],
+                  ['58:00 – 60:00', 'Closing & Key Takeaways'],
+                ];
+                const visible = scheduleExpanded ? agenda : agenda.slice(0, 5);
+                return (
+                  <>
+                    <div className="space-y-0">
+                      {visible.map(([time, title], i) => (
+                        <div key={i} className={`flex items-center gap-5 py-3.5 px-4 ${i % 2 === 0 ? 'bg-[#F8F8FA]' : ''} ${i === 0 ? 'rounded-t-xl' : ''} ${(scheduleExpanded && i === 10) || (!scheduleExpanded && i === 4) ? 'rounded-b-xl' : ''}`}>
+                          <span className="text-[13px] font-semibold text-shortcut-blue/30 w-[88px] flex-shrink-0 tabular-nums">{time}</span>
+                          <span className="text-[15px] font-medium text-[#3D4F5F]">{title}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {!scheduleExpanded && (
+                      <button
+                        onClick={() => setScheduleExpanded(true)}
+                        className="mt-4 text-[13px] font-semibold text-shortcut-blue/60 hover:text-shortcut-blue transition-colors flex items-center gap-1.5"
+                      >
+                        View full agenda
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 8L10 13L15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    )}
+                    {scheduleExpanded && (
+                      <button
+                        onClick={() => setScheduleExpanded(false)}
+                        className="mt-4 text-[13px] font-semibold text-shortcut-blue/60 hover:text-shortcut-blue transition-colors flex items-center gap-1.5"
+                      >
+                        Show less
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="rotate-180"><path d="M5 8L10 13L15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Right — Accreditation */}
+            <div>
+              <h3 className="text-xl md:text-2xl font-extrabold text-shortcut-blue leading-[1.15] tracking-[-0.02em] mb-6">
+                Accreditation
+              </h3>
+
+              <div className="bg-shortcut-teal/[.06] rounded-xl p-6 border border-shortcut-teal/10 mb-8">
+                <p className="text-[15px] font-medium text-[#3D4F5F] leading-[1.7]">
+                  Approved for <strong className="text-shortcut-blue font-bold">1.0 New York CLE credit in Ethics & Professionalism</strong>. Shortcut is the accredited provider — your firm handles nothing.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  ['Material submission', 'to the New York CLE Board'],
+                  ['Attendance tracking', 'for all participants'],
+                  ['Credit reporting', 'no admin burden on your firm'],
+                ].map(([bold, rest], i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <Check />
+                    <p className="text-[15px] font-medium text-[#3D4F5F] leading-snug"><strong className="text-shortcut-blue font-semibold">{bold}</strong> — {rest}</p>
                   </div>
+                ))}
+              </div>
 
-                  <div className="h-px bg-black/[.06] mb-8" />
-
-                  <p className="text-[12px] font-bold uppercase tracking-[.15em] text-shortcut-blue/35 mb-5">Accreditation</p>
-                  <div className="bg-shortcut-teal/[.06] rounded-xl p-6 border border-shortcut-teal/10 mb-6">
-                    <p className="text-[14px] font-medium text-[#3D4F5F] leading-relaxed">
-                      Approved for <strong className="text-shortcut-blue font-bold">1.0 New York CLE credit in Ethics & Professionalism</strong>. Shortcut is the accredited provider — your firm handles nothing.
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      ['Material submission', 'to the New York CLE Board'],
-                      ['Attendance tracking', 'for all participants'],
-                      ['Credit reporting', 'no admin burden on your firm'],
-                    ].map(([bold, rest], i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-shortcut-teal/50 flex-shrink-0" />
-                        <p className="text-[14px] font-medium text-[#3D4F5F]"><strong className="text-shortcut-blue font-semibold">{bold}</strong> — {rest}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <div className="mt-8 p-5 bg-[#F8F8FA] rounded-xl">
+                <p className="text-[13px] font-medium text-[#5A6F7F] leading-[1.65]">
+                  Every attendee receives custom audio recordings and handouts to continue their practice after the session.
+                </p>
               </div>
             </div>
+
           </div>
         </div>
       </section>
