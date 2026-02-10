@@ -24,7 +24,9 @@ import {
   WhyShortcutSection,
   CLEWhyShortcutSection,
   ParticipantBenefitsSection,
-  AdditionalResourcesSection
+  AdditionalResourcesSection,
+  CLEClassOutlineSection,
+  CLEAccreditationSection
 } from './MindfulnessProposalContent';
 import { UnifiedServiceSections } from './UnifiedProposalSections';
 
@@ -36,7 +38,7 @@ const formatCurrency = (value: number | string): string => {
 // Helper function to get display name for service type
 const getServiceDisplayName = (serviceType: string): string => {
   if (!serviceType) return '';
-  
+
   switch (serviceType.toLowerCase()) {
     case 'hair-makeup':
       return 'Hair + Makeup';
@@ -48,20 +50,38 @@ const getServiceDisplayName = (serviceType: string): string => {
     case 'mindfulness':
       return 'Mindfulness';
     case 'mindfulness-soles':
-      return 'Grounding Under Pressure: The Soles of the Feet Practice';
+      return 'Mindfulness: Soles of the Feet';
     case 'mindfulness-movement':
-      return 'Ground & Reset: Cultivating Mindfulness Through Movement and Stillness';
+      return 'Mindfulness: Movement & Stillness';
     case 'mindfulness-pro':
       return 'Mindfulness: PRO Practice';
     case 'mindfulness-cle':
-      return 'Mindfulness: CLE Ethics Program';
+      return 'CLE Ethics: Mindfulness for Legal Practice';
     case 'mindfulness-pro-reactivity':
-      return 'Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely';
+      return 'Mindfulness: Stepping Out of Reactivity';
     case 'makeup':
       return 'Makeup';
     default:
       // For other services, capitalize first letter and make rest lowercase
       return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
+  }
+};
+
+// Returns full course name as subtitle for services with long names, or null if no subtitle needed
+const getServiceSubtitle = (serviceType: string): string | null => {
+  if (!serviceType) return null;
+
+  switch (serviceType.toLowerCase()) {
+    case 'mindfulness-soles':
+      return 'Grounding Under Pressure: The Soles of the Feet Practice';
+    case 'mindfulness-movement':
+      return 'Ground & Reset: Cultivating Mindfulness Through Movement and Stillness';
+    case 'mindfulness-cle':
+      return 'Pause, Breathe, Lead: Mindfulness for Ethical Decision-Making in Legal Practice';
+    case 'mindfulness-pro-reactivity':
+      return 'Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely';
+    default:
+      return null;
   }
 };
 
@@ -201,6 +221,10 @@ const getServiceDescription = (service: any): string => {
         return "Treat your team to rejuvenating chair or table massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.";
       }
     case 'nails':
+      const nailsType = service.nailsType || 'nails';
+      if (nailsType === 'nails-hand-massage') {
+        return "Experience a manicure and hand massage that combine expert care with calming touch, leaving employees relaxed, refreshed, and confidently polished.";
+      }
       return "Experience manicures and pedicures that blend relaxation with elegance, offering a pampered escape that leaves employees refreshed and polished.";
     case 'hair':
       return "Our office hair services menu offers precision cuts, professional styling, and grooming essentials, designed to keep employees looking sharp and feeling confident right at the workplace.";
@@ -220,7 +244,7 @@ const getServiceDescription = (service: any): string => {
     case 'mindfulness-pro':
       return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants learn the PRO (Pause-Relax-Open) practice and an informal \"On-the-Spot\" practice that can be used in the moment - before difficult conversations, emails, or decisions. Includes exploration of the neuroscience of stress, reactivity, and emotional regulation.";
     case 'mindfulness-cle':
-      return "This one-hour CLE introduces mindfulness as an evidence-based skill set that supports ethical decision-making, professional responsibility, and sound judgment in legal practice. Participants will understand how stress impacts attention and ethical awareness, learn how mindfulness supports competence and clarity, and practice tools to pause, regulate stress, and respond intentionally. Shortcut manages the full CLE process including accreditation, attendance tracking, and credit reporting.";
+      return "This one-hour, accredited ethics CLE introduces mindfulness as an evidence-based skill set that supports ethical decision-making, professional responsibility, and sound judgment in legal practice. Drawing on neuroscience, legal ethics principles, and practical application, the program explores how mindfulness helps attorneys pause, recognize internal stress responses, and respond more intentionally rather than react automatically during challenging professional situations. Through instruction, discussion, and guided experiential practice, participants will learn how mindfulness supports competence, reduces the risk of error, enhances focus and clarity, and strengthens the capacity to act in alignment with professional and ethical obligations.";
     case 'mindfulness-pro-reactivity':
       return "This deeper-dive session focuses on helping attorneys step out of automatic reactivity and respond more wisely - especially in high-stakes, emotionally charged interactions. Participants will learn what mindfulness is, explore the neuroscience of stress and emotional regulation, and practice formal PRO (Pause-Relax-Open) techniques alongside informal 'On-the-Spot' practices for everyday legal work.";
     case 'hair-makeup':
@@ -253,7 +277,8 @@ export const StandaloneProposalViewer: React.FC = () => {
   const [expandedLocations, setExpandedLocations] = useState<{[key: string]: boolean}>({});
   const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
   const [isCustomNoteExpanded, setIsCustomNoteExpanded] = useState(false);
-  
+  const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
+
   // Change tracking state
   const [changeSets, setChangeSets] = useState<ProposalChangeSet[]>([]);
   const [showChangeHistory, setShowChangeHistory] = useState(false);
@@ -544,8 +569,9 @@ export const StandaloneProposalViewer: React.FC = () => {
         if (error) throw error;
         if (!data) throw new Error('Proposal not found');
 
-        // Check if this is a mindfulness proposal - if so, redirect to mindfulness viewer
-        if (data.proposal_type === 'mindfulness-program' || data.data?.mindfulnessProgram) {
+        // Check if this is a full mindfulness program proposal (with programId/sessions structure)
+        // API-created mindfulness proposals use the standard event structure and should stay here
+        if (data.data?.mindfulnessProgram && data.data.mindfulnessProgram.programId) {
           navigate(`/proposal/${id}${location.search}`, { replace: true });
           return;
         }
@@ -1650,8 +1676,8 @@ export const StandaloneProposalViewer: React.FC = () => {
           ? (showSurveyCTA ? 'pt-8' : 'pt-8') 
           : (showSurveyCTA ? 'pt-24' : 'pt-16')
       } pb-12`} id="proposal-content">
-        {/* Safety check: Don't render if this is a mindfulness proposal */}
-        {displayData?.mindfulnessProgram ? (
+        {/* Safety check: Don't render if this is a full mindfulness program with programId */}
+        {displayData?.mindfulnessProgram?.programId ? (
           <div className="text-center py-12">
             <p className="text-lg text-text-dark-60">Redirecting to mindfulness proposal viewer...</p>
           </div>
@@ -1805,11 +1831,18 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     key={serviceIndex}
                                     className={`card-small mb-4 md:mb-8 border-2 ${getServiceBorderClass(service.serviceType)}`}
                                   >
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 md:mb-5">
-                                      <h4 className="text-base md:text-xl font-extrabold text-shortcut-blue flex items-center">
-                                        <span className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-shortcut-teal mr-2 md:mr-3 flex-shrink-0"></span>
-                                        {getServiceDisplayName(service.serviceType)}
-                                      </h4>
+                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-4 md:mb-5">
+                                      <div className="flex-1">
+                                        <h4 className="text-base md:text-xl font-extrabold text-shortcut-blue flex items-center">
+                                          <span className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-shortcut-teal mr-2 md:mr-3 flex-shrink-0"></span>
+                                          {getServiceDisplayName(service.serviceType)}
+                                        </h4>
+                                        {getServiceSubtitle(service.serviceType) && (
+                                          <p className="text-sm md:text-base text-text-dark-60 font-medium mt-1 ml-5 md:ml-[26px] italic">
+                                            {getServiceSubtitle(service.serviceType)}
+                                          </p>
+                                        )}
+                                      </div>
                                       {service.isRecurring && service.recurringFrequency && (
                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white self-start sm:self-auto">
                                           Recurring
@@ -1861,11 +1894,34 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     })()}
 
                                     {/* Service Description */}
-                                    {getServiceDescription(service) && (
-                                      <div className="mb-5 p-6 bg-white rounded-xl border-2 border-shortcut-teal shadow-sm">
-                                        <p className="text-text-dark text-base leading-relaxed font-medium">
-                                          {getServiceDescription(service)}
+                                    {getServiceDescription(service) && (() => {
+                                      const fullDescription = getServiceDescription(service);
+                                      const descKey = `${location}-${date}-${serviceIndex}`;
+                                      const isDescExpanded = expandedDescriptions[descKey];
+                                      // Truncate after ~200 chars at a sentence boundary for long descriptions
+                                      const isLongDescription = fullDescription.length > 250;
+                                      let truncatedDescription = fullDescription;
+                                      if (isLongDescription && !isDescExpanded) {
+                                        // Find the end of the second sentence
+                                        const sentences = fullDescription.match(/[^.!?]+[.!?]+/g) || [];
+                                        if (sentences.length > 2) {
+                                          truncatedDescription = sentences.slice(0, 2).join('').trim();
+                                        }
+                                      }
+                                      return (
+                                      <div className="mb-5 p-4 md:p-6 bg-white rounded-xl border-2 border-shortcut-teal shadow-sm">
+                                        <p className="text-text-dark text-sm md:text-base leading-relaxed font-medium">
+                                          {isLongDescription && !isDescExpanded ? truncatedDescription : fullDescription}
                                         </p>
+                                        {isLongDescription && (
+                                          <button
+                                            onClick={() => setExpandedDescriptions(prev => ({ ...prev, [descKey]: !prev[descKey] }))}
+                                            className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-shortcut-blue hover:text-shortcut-navy-blue transition-colors"
+                                          >
+                                            {isDescExpanded ? 'Show less' : 'Read more'}
+                                            {isDescExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                          </button>
+                                        )}
                                         {service.serviceType === 'mindfulness' && (
                                           <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                                             <div>
@@ -1886,8 +1942,15 @@ export const StandaloneProposalViewer: React.FC = () => {
                                             <span className="ml-2 text-text-dark capitalize">{service.massageType}</span>
                                           </div>
                                         )}
+                                        {service.serviceType === 'nails' && service.nailsType && (
+                                          <div className="mt-3 text-sm">
+                                            <span className="font-bold text-shortcut-navy-blue">Nails Type:</span>
+                                            <span className="ml-2 text-text-dark">{service.nailsType === 'nails-hand-massage' ? 'Nails + Hand Massages' : 'Classic Nails'}</span>
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
+                                      );
+                                    })()}
 
                                     <div className="grid gap-0">
                                       {service.serviceType === 'mindfulness' ? (
@@ -2184,6 +2247,16 @@ export const StandaloneProposalViewer: React.FC = () => {
             {/* Why Shortcut Section - Show CLE version if CLE present, otherwise regular */}
             {isMindfulnessOnlyProposal(displayData) && (
               hasCLEService(displayData) ? <CLEWhyShortcutSection /> : <WhyShortcutSection />
+            )}
+
+            {/* CLE Class Outline - Show only for CLE proposals */}
+            {hasCLEService(displayData) && (
+              <CLEClassOutlineSection />
+            )}
+
+            {/* CLE Accreditation & Administration - Show only for CLE proposals */}
+            {hasCLEService(displayData) && (
+              <CLEAccreditationSection />
             )}
 
             {/* Participant Benefits - Show for mindfulness-only proposals in left column */}

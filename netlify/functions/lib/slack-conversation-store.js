@@ -3,7 +3,7 @@
  * Keyed by (channel_id, thread_ts). Prunes to MAX_MESSAGES to control token usage.
  */
 
-const MAX_MESSAGES = 20;
+const MAX_MESSAGES = 10;
 
 /**
  * Load conversation history for a Slack thread.

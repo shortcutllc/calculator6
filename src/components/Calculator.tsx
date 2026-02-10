@@ -19,6 +19,8 @@ interface ServiceConfig {
   fixedPrice?: number;
   // Massage-specific fields
   massageType?: 'chair' | 'table' | 'massage';
+  // Nails-specific fields
+  nailsType?: 'nails' | 'nails-hand-massage';
 }
 
 const SERVICE_DEFAULTS = {
@@ -152,7 +154,7 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1875
+    fixedPrice: 3000
   },
   'mindfulness-pro-reactivity': {
     appTime: 45,
@@ -390,6 +392,29 @@ const Calculator: React.FC = () => {
                     <option value="massage">General Massage</option>
                     <option value="chair">Chair Massage</option>
                     <option value="table">Table Massage</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Nails Type */}
+              {config.serviceType === 'nails' && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    Nails Type
+                  </label>
+                  <select
+                    value={config.nailsType || 'nails'}
+                    onChange={(e) => {
+                      const nailsType = e.target.value as 'nails' | 'nails-hand-massage';
+                      updateConfig({
+                        nailsType,
+                        appTime: nailsType === 'nails-hand-massage' ? 35 : 30
+                      });
+                    }}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent font-medium"
+                  >
+                    <option value="nails">Classic Nails</option>
+                    <option value="nails-hand-massage">Nails + Hand Massages</option>
                   </select>
                 </div>
               )}

@@ -30,6 +30,8 @@ export interface Service {
   mindfulnessType?: 'intro' | 'drop-in' | 'mindful-movement';
   // Massage-specific fields
   massageType?: 'chair' | 'table' | 'massage';
+  // Nails-specific fields
+  nailsType?: 'nails' | 'nails-hand-massage';
   // Recurring event fields
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;

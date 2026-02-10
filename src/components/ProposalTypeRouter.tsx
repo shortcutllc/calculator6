@@ -45,10 +45,11 @@ export const ProposalTypeRouter: React.FC = () => {
         if (fetchError) throw fetchError;
         if (!data) throw new Error('Proposal not found');
 
-        // Check if it's a mindfulness program
-        const isMindfulness = 
-          data.proposal_type === 'mindfulness-program' || 
-          data.data?.mindfulnessProgram;
+        // Check if it's a full mindfulness program (with programId/sessions structure)
+        // API-created mindfulness proposals use standard event structure and should use the event viewer
+        const isMindfulness =
+          (data.proposal_type === 'mindfulness-program' || data.data?.mindfulnessProgram) &&
+          data.data?.mindfulnessProgram?.programId;
 
         setProposalType(isMindfulness ? 'mindfulness-program' : 'event');
 

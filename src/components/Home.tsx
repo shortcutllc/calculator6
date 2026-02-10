@@ -24,6 +24,8 @@ interface Service {
   fixedPrice?: number;
   // Massage-specific fields
   massageType?: 'chair' | 'table' | 'massage';
+  // Nails-specific fields
+  nailsType?: 'nails' | 'nails-hand-massage';
   // Recurring event fields
   isRecurring?: boolean;
   recurringFrequency?: {
@@ -252,7 +254,7 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1875
+    fixedPrice: 3000
   },
   'mindfulness-pro-reactivity': {
     appTime: 45,
@@ -811,7 +813,9 @@ const Home: React.FC = () => {
           location: updatedServices[index].location,
           discountPercent: updatedServices[index].discountPercent || 0,
           // Preserve massageType if switching to massage, otherwise clear it
-          massageType: updates.serviceType === 'massage' ? (updatedServices[index].massageType || 'massage') : undefined
+          massageType: updates.serviceType === 'massage' ? (updatedServices[index].massageType || 'massage') : undefined,
+          // Preserve nailsType if switching to nails, otherwise clear it
+          nailsType: updates.serviceType === 'nails' ? (updatedServices[index].nailsType || 'nails') : undefined
         };
       }
     } else {
@@ -1586,6 +1590,28 @@ const Home: React.FC = () => {
                           <option value="massage">General Massage</option>
                           <option value="chair">Chair Massage</option>
                           <option value="table">Table Massage</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {service.serviceType === 'nails' && (
+                      <div>
+                        <label className="block text-shortcut-blue text-sm font-bold mb-2">
+                          Nails Type
+                        </label>
+                        <select
+                          value={service.nailsType || 'nails'}
+                          onChange={(e) => {
+                            const nailsType = e.target.value as 'nails' | 'nails-hand-massage';
+                            updateService(index, {
+                              nailsType,
+                              appTime: nailsType === 'nails-hand-massage' ? 35 : 30
+                            });
+                          }}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                        >
+                          <option value="nails">Classic Nails</option>
+                          <option value="nails-hand-massage">Nails + Hand Massages</option>
                         </select>
                       </div>
                     )}

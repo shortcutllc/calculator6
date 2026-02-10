@@ -11,12 +11,26 @@ const MODEL = 'claude-sonnet-4-20250514';
 const MAX_TOOL_ROUNDS = 8; // Safety limit on tool call loops
 
 // --- System Prompt ---
+// Wrapped in an array of content blocks for prompt caching.
+// cache_control on the last block tells Anthropic to cache tools + system prompt.
 
-const SYSTEM_PROMPT = `You are Pro, Shortcut's internal proposal assistant on Slack.
+const SYSTEM_PROMPT_TEXT = `You are Pro, Shortcut's internal proposal assistant on Slack.
 
 Shortcut is a corporate wellness company that delivers in-person wellness experiences — chair massage, facials, nails, hair styling, makeup, headshots, and mindfulness workshops — to offices. You help the team create, edit, search, and manage proposals.
 
-Be concise, calm, and practical. Respond in Slack formatting: use *bold* for emphasis, bullet points for lists, and format dollar amounts with commas (e.g., $1,350.00). Keep responses short — one sentence of context, then bullet points.
+Be concise, calm, and practical. Format your responses for easy reading in Slack:
+- Use *bold* for labels, client names, totals, and key info.
+- Use bullet points for lists — keep each bullet to one line when possible.
+- Format dollar amounts with commas (e.g., $1,350.00).
+- When showing proposal search results, format each proposal as a clear block:
+  *Proposal Name/Client* — Status
+  • *Total:* $X,XXX | *Appts:* XX
+  • *Services:* massage, nails, etc.
+  • *Date:* Month DD, YYYY | *Location:* City
+  • *ID:* proposal-uuid
+  Add a blank line between proposals for readability.
+- When confirming what you're about to create, use a clear summary block with bold labels.
+- When reporting a completed action, lead with the result and link, then details below.
 
 ## CRITICAL RULES — Read These First
 
@@ -53,6 +67,7 @@ When a user mentions a client:
 | massage | 20 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
 | facial | 20 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
 | nails | 30 min | 6 hrs | 2 | $135/hr | $50/hr | $25 |
+| nails (hand massage) | 35 min | 6 hrs | 2 | $135/hr | $50/hr | $25 |
 | hair | 30 min | 6 hrs | 2 | $135/hr | $50/hr | $25 |
 | makeup | 30 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
 | hair-makeup | 20 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
@@ -63,6 +78,12 @@ Massage services have an optional massageType field: "chair", "table", or "massa
 - Pass massageType in the event object when creating, or in updates when editing.
 - If user says "chair massage" → serviceType: "massage", massageType: "chair"
 - If user says "table massage" → serviceType: "massage", massageType: "table"
+
+### Nails Types
+Nails services have an optional nailsType field: "nails" (classic, 30 min) or "nails-hand-massage" (35 min).
+- Pass nailsType in the event object when creating, or in updates when editing.
+- If user says "nails" or "manicure" → serviceType: "nails", nailsType: "nails"
+- If user says "nails and hand massage" or "mani with hand massage" → serviceType: "nails", nailsType: "nails-hand-massage"
 
 ### Headshot Tiers
 | Tier | Pro Rate | Retouching | Appt Time | Default Hours |
@@ -81,7 +102,7 @@ Pass headshotTier: "basic", "premium", or "executive" to set the tier.
 | mindfulness-soles | Soles of the Feet | 30 min | $1,250 |
 | mindfulness-movement | Mindful Movement | 30 min | $1,250 |
 | mindfulness-pro | Pro Mindfulness | 45 min | $1,375 |
-| mindfulness-cle | CLE Mindfulness (for lawyers) | 60 min | $1,875 |
+| mindfulness-cle | Pause, Breathe, Lead: Mindfulness for Ethical Decision-Making (CLE Ethics, 1.0 credit) | 60 min | $3,000 |
 | mindfulness-pro-reactivity | Pro Reactivity | 45 min | $1,375 |
 
 Each mindfulness type is a SEPARATE serviceType value — use the full string (e.g., "mindfulness-cle", NOT "mindfulness" with a sub-type).
@@ -161,10 +182,26 @@ When editing proposals, use these operations:
 - update_customization: Update proposal display settings
 
 Field aliases for update_service: appointmentTime→appTime, hours→totalHours, pros→numPros, rate→hourlyRate, discount→discountPercent
-update_service also accepts: massageType ("chair"|"table"|"massage"), headshotTier ("basic"|"premium"|"executive"), mindfulnessType ("intro"|"drop-in"|"mindful-movement")
+update_service also accepts: massageType ("chair"|"table"|"massage"), nailsType ("nails"|"nails-hand-massage"), headshotTier ("basic"|"premium"|"executive"), mindfulnessType ("intro"|"drop-in"|"mindful-movement")
 
 ## Date Format
-Always use YYYY-MM-DD format for dates (e.g., 2026-02-18).`;
+Always use YYYY-MM-DD format for dates (e.g., 2026-02-18).
+
+## TBD Dates
+When a user says the date is "TBD", "to be determined", "not yet confirmed", or asks to "check the date TBD box":
+- Use the string "TBD" as the date value when creating a proposal (e.g., date: "TBD").
+- To change an existing date to TBD, use change_date with newDate: "TBD".
+- To change a TBD date to a real date, use change_date with oldDate: "TBD" and newDate: "2026-03-15".
+- "TBD" is a fully supported date value — never ask the user for a placeholder date when they say TBD.`;
+
+// Array format for prompt caching — cache_control on the last block
+const SYSTEM_PROMPT = [
+  {
+    type: 'text',
+    text: SYSTEM_PROMPT_TEXT,
+    cache_control: { type: 'ephemeral' }  // Cache breakpoint 2: system prompt
+  }
+];
 
 // --- Tool Definitions ---
 
@@ -186,10 +223,11 @@ const TOOLS = [
             properties: {
               serviceType: { type: 'string', enum: ['massage', 'facial', 'nails', 'hair', 'makeup', 'hair-makeup', 'headshot-hair-makeup', 'headshot', 'mindfulness', 'mindfulness-soles', 'mindfulness-movement', 'mindfulness-pro', 'mindfulness-cle', 'mindfulness-pro-reactivity'], description: 'Service type. For CLE mindfulness use "mindfulness-cle". For soles of the feet use "mindfulness-soles".' },
               massageType: { type: 'string', enum: ['chair', 'table', 'massage'], description: 'For massage services only: chair, table, or general massage' },
+              nailsType: { type: 'string', enum: ['nails', 'nails-hand-massage'], description: 'For nails services only: classic nails (30 min) or nails + hand massages (35 min)' },
               headshotTier: { type: 'string', enum: ['basic', 'premium', 'executive'], description: 'For headshot services only: basic ($400/hr), premium ($500/hr), executive ($600/hr)' },
               locationName: { type: 'string', description: 'Short location name like "NYC", "SF Office", "LA HQ" — NOT a full street address' },
               officeAddress: { type: 'string', description: 'Full office street address (e.g., "350 5th Ave, New York NY 10118")' },
-              date: { type: 'string', description: 'Event date in YYYY-MM-DD format' },
+              date: { type: 'string', description: 'Event date in YYYY-MM-DD format, or "TBD" if the date is not yet confirmed' },
               totalHours: { type: 'number', description: 'Hours of service' },
               numPros: { type: 'integer', description: 'Number of professionals' },
               appTime: { type: 'integer', description: 'Appointment time in minutes (optional, uses service default)' },
@@ -241,8 +279,8 @@ const TOOLS = [
               customization: { type: 'object', description: 'For update_customization' },
               oldName: { type: 'string', description: 'For rename_location: current location name' },
               newName: { type: 'string', description: 'For rename_location: new location name' },
-              oldDate: { type: 'string', description: 'For change_date: current date in YYYY-MM-DD format' },
-              newDate: { type: 'string', description: 'For change_date: new date in YYYY-MM-DD format' },
+              oldDate: { type: 'string', description: 'For change_date: current date in YYYY-MM-DD format or "TBD"' },
+              newDate: { type: 'string', description: 'For change_date: new date in YYYY-MM-DD format or "TBD"' },
               officeAddress: { type: 'string', description: 'For add_location: office street address' }
             },
             required: ['op']
@@ -395,7 +433,8 @@ const TOOLS = [
         pageId: { type: 'string', description: 'UUID of the landing page' }
       },
       required: ['pageId']
-    }
+    },
+    cache_control: { type: 'ephemeral' }  // Cache breakpoint 1: all tool definitions
   }
 ];
 
@@ -444,6 +483,10 @@ async function processSlackMessage({ supabase, userId, channelId, threadTs, user
       tools: TOOLS,
       messages: currentMessages
     });
+
+    // Log cache performance metrics
+    const usage = response.usage || {};
+    console.log(`Pro [round ${round + 1}]: tokens — input: ${usage.input_tokens || 0}, cache_read: ${usage.cache_read_input_tokens || 0}, cache_create: ${usage.cache_creation_input_tokens || 0}, output: ${usage.output_tokens || 0}`);
 
     // Check if Claude wants to use tools
     const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
@@ -552,4 +595,4 @@ function buildSaveableHistory(messages, finalResponse) {
   return simplified;
 }
 
-export { processSlackMessage, SYSTEM_PROMPT, TOOLS };
+export { processSlackMessage, SYSTEM_PROMPT, SYSTEM_PROMPT_TEXT, TOOLS };

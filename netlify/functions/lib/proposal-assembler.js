@@ -103,6 +103,14 @@ function applyServiceDefaults(event) {
     service.massageType = event.massageType;
   }
 
+  // Nails type (classic nails or nails + hand massages)
+  if (serviceType === 'nails' && event.nailsType) {
+    service.nailsType = event.nailsType;
+    if (event.nailsType === 'nails-hand-massage' && !event.appTime) {
+      service.appTime = 35;
+    }
+  }
+
   // Recurring settings
   if (event.isRecurring) {
     service.isRecurring = true;
@@ -295,8 +303,10 @@ function assembleProposal(input) {
   };
 
   // Determine proposal type
-  const hasMindfulness = input.events.some(e => isMindfulnessService(e.serviceType));
-  const proposalType = input.proposalType || (hasMindfulness ? 'mindfulness-program' : 'event');
+  // Note: 'mindfulness-program' type is reserved for proposals linked to a full
+  // MindfulnessProgram record (with sessions, programId, etc.). API-created proposals
+  // with mindfulness services use the standard 'event' type and render in StandaloneProposalViewer.
+  const proposalType = input.proposalType || 'event';
 
   return {
     proposalData,

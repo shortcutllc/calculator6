@@ -152,7 +152,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1875
+    fixedPrice: 3000
   },
   'mindfulness-pro-reactivity': {
     appTime: 45,
@@ -276,6 +276,10 @@ const getServiceDescription = (service: any): string => {
         return "Treat your team to rejuvenating chair or table massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.";
       }
     case 'nails':
+      const nailsType = service.nailsType || 'nails';
+      if (nailsType === 'nails-hand-massage') {
+        return "Experience a manicure and hand massage that combine expert care with calming touch, leaving employees relaxed, refreshed, and confidently polished.";
+      }
       return "Experience manicures and pedicures that blend relaxation with elegance, offering a pampered escape that leaves employees refreshed and polished.";
     case 'hair':
       return "Our office hair services menu offers precision cuts, professional styling, and grooming essentials, designed to keep employees looking sharp and feeling confident right at the workplace.";
@@ -1440,6 +1444,7 @@ const ProposalViewer: React.FC = () => {
       discountPercent: currentService.discountPercent || 0,
       // Set service-specific fields based on type
       massageType: newServiceType === 'massage' ? (currentService.massageType || 'massage') : undefined,
+      nailsType: newServiceType === 'nails' ? (currentService.nailsType || 'nails') : undefined,
       mindfulnessType: newServiceType === 'mindfulness' ? (currentService.mindfulnessType || 'intro') : undefined,
       classLength: newServiceType === 'mindfulness' ? (currentService.classLength || 45) : undefined,
       participants: newServiceType === 'mindfulness' ? (currentService.participants || 'unlimited') : undefined,
@@ -1460,6 +1465,23 @@ const ProposalViewer: React.FC = () => {
   const handleMassageTypeChange = (location: string, date: string, serviceIndex: number, newMassageType: string) => {
     if (!editedData || !isEditing) return;
     handleFieldChange(['services', location, date, 'services', serviceIndex, 'massageType'], newMassageType);
+  };
+
+  // Handle changing nails type sub-category
+  const handleNailsTypeChange = (location: string, date: string, serviceIndex: number, newNailsType: string) => {
+    if (!editedData || !isEditing) return;
+    const currentService = editedData.services[location][date].services[serviceIndex];
+    const newAppTime = newNailsType === 'nails-hand-massage' ? 35 : 30;
+    const updatedService = {
+      ...currentService,
+      nailsType: newNailsType,
+      appTime: newAppTime
+    };
+    const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(updatedService);
+    updatedService.totalAppointments = totalAppointments;
+    updatedService.serviceCost = serviceCost;
+    updatedService.proRevenue = proRevenue;
+    handleFieldChange(['services', location, date, 'services', serviceIndex], updatedService);
   };
 
   // Handle changing mindfulness type sub-category
@@ -2963,6 +2985,25 @@ The Shortcut Team`);
                                                  service.massageType === 'chair' ? 'Chair' :
                                                  service.massageType === 'table' ? 'Table' :
                                                  'Massage'}
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                        {service.serviceType === 'nails' && (
+                                          <div className="mt-3 text-sm">
+                                            <span className="font-bold text-shortcut-navy-blue">Nails Type:</span>
+                                            {isEditing ? (
+                                              <select
+                                                value={service.nailsType || 'nails'}
+                                                onChange={(e) => handleNailsTypeChange(location, date, serviceIndex, e.target.value)}
+                                                className="ml-2 px-2 py-1 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                                              >
+                                                <option value="nails">Classic Nails</option>
+                                                <option value="nails-hand-massage">Nails + Hand Massages</option>
+                                              </select>
+                                            ) : (
+                                              <span className="ml-2 text-text-dark">
+                                                {service.nailsType === 'nails-hand-massage' ? 'Nails + Hand Massages' : 'Classic Nails'}
                                               </span>
                                             )}
                                           </div>

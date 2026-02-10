@@ -42,6 +42,15 @@ const SERVICE_DEFAULTS = {
     earlyArrival: 25,
     retouchingCost: 0
   },
+  'nails-hand-massage': {
+    appTime: 35,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 135,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
   makeup: {
     appTime: 30,
     totalHours: 4,
@@ -136,7 +145,7 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     classLength: 60,
     participants: 'unlimited',
-    fixedPrice: 1875
+    fixedPrice: 3000
   },
   'mindfulness-pro-reactivity': {
     appTime: 45,

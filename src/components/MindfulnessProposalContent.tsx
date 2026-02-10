@@ -134,7 +134,7 @@ export const CLEWhyShortcutSection: React.FC = () => (
         <div>
           <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Ethics & Professionalism Credit</p>
           <p className="text-base font-medium text-text-dark leading-relaxed">
-            This program qualifies for Ethics & Professionalism CLE credit, with New York accreditation actively being pursued.
+            This program qualifies for 1.0 Ethics & Professionalism CLE credit, accredited for the state of New York.
           </p>
         </div>
       </div>
@@ -223,6 +223,125 @@ export const AdditionalResourcesSection: React.FC = () => (
     </div>
   </div>
 );
+
+// Helper component for CLE Class Outline Section (collapsible)
+export const CLEClassOutlineSection: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const outlineItems = [
+    { time: '0:00 – 4:00', title: 'Welcome & Course Overview', bullets: ['Purpose of the program', 'Relevance of mindfulness to ethical lawyering and professional judgment', 'Framing mindfulness as a professional skill, not a wellness add-on'] },
+    { time: '4:00 – 8:00', title: 'What Is Mindfulness?', bullets: ['Definition of mindfulness and present-moment awareness', 'Mindfulness as an innate capacity that can be strengthened', 'Why this matters in demanding legal environments'] },
+    { time: '8:00 – 13:00', title: 'Distraction, Autopilot, and Ethical Risk', bullets: ['Why attorneys become distracted and cognitively overloaded', 'How "autopilot mode" increases the risk of errors, miscommunication, and reactive behavior', 'Connection between distraction, stress, and ethical lapses'] },
+    { time: '13:00 – 18:00', title: 'Competence, Ethics, and Attorney Well-Being', bullets: ['Ethical obligations under New York Rules of Professional Conduct', 'The relationship between competence, judgment, and an attorney\'s mental and emotional state', 'Why chronic stress undermines ethical awareness'] },
+    { time: '18:00 – 24:00', title: 'The Overextended Lawyer', bullets: ['Research and data on attorney stress, burnout, and overwork', 'Cultural norms in large law firms and their ethical implications', 'Why self-regulation is an ethical skill, not a personal indulgence'] },
+    { time: '24:00 – 30:00', title: 'How Mindfulness Supports Ethical Decision-Making', bullets: ['Improving focus, attention, and clarity', 'Reducing reactivity in difficult conversations and high-pressure moments', 'Strengthening discernment versus judgment'] },
+    { time: '30:00 – 36:00', title: 'Stress, Perception, and Choice', bullets: ['Distinguishing between stressors and stress', 'The role of perception in ethical responses', 'How mindfulness increases choice in challenging situations'] },
+    { time: '36:00 – 46:00', title: 'PRO Practice (Pause – Relax – Open)', bullets: ['Explanation of the PRO framework', 'Guided formal mindfulness practice', 'Noticing present-moment experience without judgment'] },
+    { time: '46:00 – 52:00', title: 'On-the-Spot Practices for the Workday', bullets: ['Brief, discreet practices attorneys can use immediately', 'Integrating mindfulness into meetings, transitions, and decision points'] },
+    { time: '52:00 – 58:00', title: 'Ethical Application & Integration', bullets: ['Applying mindfulness to client interactions, negotiations, and internal collaboration', 'Maintaining professionalism under pressure', 'Reducing risk through awareness and intentional response'] },
+    { time: '58:00 – 60:00', title: 'Closing & Key Takeaways', bullets: ['Final reflections and Q&A', 'Resources for continued practice'] },
+  ];
+
+  return (
+    <div className="card-large">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between text-left"
+      >
+        <h2 className="h2 text-shortcut-navy-blue">Class Outline & Timed Agenda</h2>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isExpanded ? 'bg-shortcut-teal/20' : 'bg-gray-100 hover:bg-gray-200'}`}>
+          {isExpanded ? <ChevronUp className="w-5 h-5 text-shortcut-blue" /> : <ChevronDown className="w-5 h-5 text-shortcut-blue" />}
+        </div>
+      </button>
+      {!isExpanded && (
+        <p className="text-base text-text-dark-60 font-medium mt-3">
+          60-minute timed agenda covering ethics, mindfulness practices, and professional application
+        </p>
+      )}
+      {isExpanded && (
+        <div className="mt-6 space-y-1">
+          {outlineItems.map((item, index) => (
+            <div key={index} className={`py-4 px-4 rounded-lg ${index % 2 === 0 ? 'bg-gradient-to-r from-shortcut-teal/5 to-transparent' : 'bg-white'}`}>
+              <div className="flex items-start gap-4">
+                <span className="text-sm font-bold text-shortcut-blue whitespace-nowrap mt-0.5 min-w-[90px]">
+                  {item.time}
+                </span>
+                <div className="flex-1">
+                  <p className="text-base font-extrabold text-shortcut-navy-blue mb-2">{item.title}</p>
+                  <ul className="space-y-1">
+                    {item.bullets.map((bullet, bIndex) => (
+                      <li key={bIndex} className="flex items-start gap-2 text-sm text-text-dark leading-relaxed">
+                        <span className="w-1.5 h-1.5 rounded-full bg-shortcut-teal mt-1.5 flex-shrink-0"></span>
+                        {bullet}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Helper component for CLE Accreditation & Administration Section (collapsible)
+export const CLEAccreditationSection: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="card-large">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between text-left"
+      >
+        <h2 className="h2 text-shortcut-navy-blue">CLE Accreditation & Administration</h2>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isExpanded ? 'bg-shortcut-teal/20' : 'bg-gray-100 hover:bg-gray-200'}`}>
+          {isExpanded ? <ChevronUp className="w-5 h-5 text-shortcut-blue" /> : <ChevronDown className="w-5 h-5 text-shortcut-blue" />}
+        </div>
+      </button>
+      {!isExpanded && (
+        <p className="text-base text-text-dark-60 font-medium mt-3">
+          Accredited for 1.0 Ethics CLE credit — Shortcut handles all administration
+        </p>
+      )}
+      {isExpanded && (
+        <div className="mt-6 space-y-6">
+          <div className="p-6 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-20">
+            <p className="text-lg font-medium text-text-dark leading-relaxed">
+              This program is offered as an accredited Continuing Legal Education (CLE) course, approved for <strong className="text-shortcut-navy-blue">1.0 New York CLE credit in Ethics & Professionalism</strong>.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-base font-extrabold text-shortcut-navy-blue mb-4">Shortcut manages the entire CLE accreditation process, including:</p>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-shortcut-teal mt-1.5 flex-shrink-0"></div>
+                <p className="text-base font-medium text-text-dark leading-relaxed">
+                  <strong className="text-shortcut-navy-blue">Submission of materials</strong> to the New York CLE Board
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-shortcut-teal mt-1.5 flex-shrink-0"></div>
+                <p className="text-base font-medium text-text-dark leading-relaxed">
+                  <strong className="text-shortcut-navy-blue">Attendance tracking</strong> for all participants
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-shortcut-teal mt-1.5 flex-shrink-0"></div>
+                <p className="text-base font-medium text-text-dark leading-relaxed">
+                  <strong className="text-shortcut-navy-blue">CLE credit reporting</strong> — the firm does not need to handle CLE paperwork or administrative follow-up
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Helper component for Cost Breakdown Section
 const CostBreakdownSection: React.FC<{ program: any; data: ProposalData }> = ({ program, data }) => {
