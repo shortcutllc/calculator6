@@ -2008,8 +2008,8 @@ The Shortcut Team`);
     <div className="min-h-screen bg-neutral-light-gray">
       <header className="bg-white shadow-sm sticky top-0 z-50 rounded-b-3xl">
         {/* Action Buttons Section - Distinguished with background */}
-        <div className="bg-neutral-light-gray py-3 px-4 sm:px-8">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-3">
+        <div className="bg-neutral-light-gray py-2 md:py-3 px-3 sm:px-8">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 md:gap-3">
             <Button
               onClick={handleDownload}
               variant="secondary"
@@ -2598,12 +2598,12 @@ The Shortcut Team`);
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto py-6 px-4" id="proposal-content">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-8">
+      <main className="max-w-7xl mx-auto py-4 md:py-6 px-3 md:px-4" id="proposal-content">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-12">
+          <div className="lg:col-span-2 space-y-6 md:space-y-8">
             {/* Summary-First Layout - Key Metrics at Top */}
-            <div className="card-large mb-8">
-              <div className="mb-8">
+            <div className="card-large mb-4 md:mb-8">
+              <div className="mb-6 md:mb-8">
               {displayData.clientLogoUrl ? (
                 <div className="flex justify-start mb-6">
                   <img
@@ -2674,10 +2674,10 @@ The Shortcut Team`);
               </div>
 
               {/* Key Metrics Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pt-4 md:pt-6 border-t border-gray-200">
                 <div>
-                  <p className="text-sm font-bold text-shortcut-blue mb-1">Event Dates</p>
-                  <p className="text-base font-medium text-text-dark">
+                  <p className="text-xs md:text-sm font-bold text-shortcut-blue mb-1">Event Dates</p>
+                  <p className="text-sm md:text-base font-medium text-text-dark">
                     {Array.isArray(displayData.eventDates) ? 
                       displayData.eventDates.map((date: string) => formatDate(date)).join(', ') :
                       'No dates available'
@@ -2685,16 +2685,16 @@ The Shortcut Team`);
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-shortcut-blue mb-1">Locations</p>
-                  <p className="text-base font-medium text-text-dark">
+                  <p className="text-xs md:text-sm font-bold text-shortcut-blue mb-1">Locations</p>
+                  <p className="text-sm md:text-base font-medium text-text-dark">
                     {Array.isArray(displayData.locations) 
                       ? displayData.locations.join(', ') 
                       : displayData.locations || 'No locations available'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
-                  <p className="text-base font-medium text-text-dark">
+                  <p className="text-xs md:text-sm font-bold text-shortcut-blue mb-1">Total Appointments</p>
+                  <p className="text-sm md:text-base font-medium text-text-dark">
                     {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
                   </p>
                   </div>
@@ -2722,13 +2722,13 @@ The Shortcut Team`);
             <div className="space-y-8">
               {Object.entries(displayData.services || {}).map(([location, locationData]: [string, any]) => (
                 <div key={location} className="card-large">
-                    <div className="w-full flex justify-between items-center mb-6">
-                      <div className="flex items-center gap-3">
+                    <div className="w-full flex justify-between items-center mb-4 md:mb-6">
+                      <div className="flex items-center gap-2 md:gap-3">
                         <button
                           onClick={() => toggleLocation(location)}
                           className="hover:opacity-80 transition-opacity"
                         >
-                          <h2 className="text-2xl font-extrabold text-shortcut-blue">
+                          <h2 className="text-xl md:text-2xl font-extrabold text-shortcut-blue">
                             {location}
                           </h2>
                         </button>
@@ -2782,13 +2782,13 @@ The Shortcut Team`);
                         })
                         .map(([date, dateData]: [string, any], dateIndex: number) => (
                           <div key={date} className="border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                            <div className="w-full px-6 py-4 flex justify-between items-center bg-white border-b border-gray-200">
-                              <div className="flex items-center gap-3">
+                            <div className="w-full px-4 md:px-6 py-3 md:py-4 flex justify-between items-center bg-white border-b border-gray-200">
+                              <div className="flex items-center gap-2 md:gap-3">
                                 <button
                                   onClick={() => toggleDate(date)}
                                   className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                                 >
-                                  <h3 className="text-lg font-extrabold text-shortcut-blue">
+                                  <h3 className="text-base md:text-lg font-extrabold text-shortcut-blue">
                                     Day {dateIndex + 1} - {formatDate(date)}
                                   </h3>
                                 </button>
@@ -3051,7 +3051,7 @@ The Shortcut Team`);
                                     <div className="grid gap-0">
                                       {service.serviceType === 'mindfulness' ? (
                                         <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                          <span className="text-base font-bold text-shortcut-blue">Class Length:</span>
+                                          <span className="text-sm md:text-base font-bold text-shortcut-blue">Class Length:</span>
                                           <div className="font-bold text-text-dark">
                                             {isEditing ? (
                                               <EditableField
@@ -3068,7 +3068,7 @@ The Shortcut Team`);
                                         </div>
                                       ) : (
                                         <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                          <span className="text-base font-bold text-shortcut-blue">Total Hours:</span>
+                                          <span className="text-sm md:text-base font-bold text-shortcut-blue">Total Hours:</span>
                                           <div className="font-bold text-text-dark">
                                             <EditableField
                                               value={String(service.totalHours || 0)}
@@ -3081,7 +3081,7 @@ The Shortcut Team`);
                                         </div>
                                       )}
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Number of Professionals:</span>
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Professionals:</span>
                                         <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.numPros || 0)}
@@ -3092,11 +3092,11 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Total Appointments:</span>
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Appointments:</span>
                                         <span className="font-bold text-text-dark">{service.totalAppointments === 'unlimited' ? '∞' : service.totalAppointments}</span>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Service Cost:</span>
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Service Cost:</span>
                                         <div className="text-right">
                                           {(service.serviceType === 'mindfulness' ||
                                             service.serviceType === 'mindfulness-soles' ||
@@ -3134,7 +3134,7 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Appointment Time:</span>
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Appt Time:</span>
                                         <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.appTime ?? 20)}
@@ -3146,7 +3146,7 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Professional Hourly Rate:</span>
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Pro Hourly:</span>
                                         <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.proHourly ?? 0)}
@@ -3158,7 +3158,7 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Service Hourly Rate:</span>
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Hourly Rate:</span>
                                         <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.hourlyRate ?? 0)}
@@ -3170,7 +3170,7 @@ The Shortcut Team`);
                                         </div>
                                       </div>
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Early Arrival Fee:</span>
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Early Arrival:</span>
                                         <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.earlyArrival ?? 0)}
@@ -3183,7 +3183,7 @@ The Shortcut Team`);
                                       </div>
                                       {service.serviceType === 'headshot' && (
                                         <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                          <span className="text-base font-bold text-shortcut-blue">Retouching Cost per Photo:</span>
+                                          <span className="text-sm md:text-base font-bold text-shortcut-blue">Retouching/Photo:</span>
                                           <div className="font-bold text-text-dark">
                                             <EditableField
                                               value={String(service.retouchingCost ?? 0)}
@@ -3196,7 +3196,7 @@ The Shortcut Team`);
                                         </div>
                                       )}
                                       <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                        <span className="text-base font-bold text-shortcut-blue">Discount Percentage:</span>
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Discount:</span>
                                         <div className="font-bold text-text-dark">
                                           <EditableField
                                             value={String(service.discountPercent ?? 0)}
@@ -3433,23 +3433,23 @@ The Shortcut Team`);
                                   </div>
                                 ))}
 
-                                <div className="mt-6 bg-white rounded-xl p-6 border-2 border-shortcut-navy-blue shadow-md">
-                                  <h4 className="text-xl font-extrabold mb-4 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
-                                      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Appointments</div>
-                                      <div className="text-2xl font-extrabold text-shortcut-navy-blue">
+                                <div className="mt-4 md:mt-6 bg-white rounded-xl p-4 md:p-6 border-2 border-shortcut-navy-blue shadow-md">
+                                  <h4 className="text-lg md:text-xl font-extrabold mb-3 md:mb-4 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
+                                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-3 md:p-4 border border-shortcut-teal">
+                                      <div className="text-[10px] md:text-sm font-bold text-shortcut-navy-blue mb-1">Appointments</div>
+                                      <div className="text-xl md:text-2xl font-extrabold text-shortcut-navy-blue">
                                         {dateData.totalAppointments === 0 || dateData.totalAppointments === 'unlimited' ? '∞' : (dateData.totalAppointments || 0)}
                                       </div>
                                     </div>
-                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-4 border border-shortcut-teal">
-                                      <div className="text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
+                                    <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-3 md:p-4 border border-shortcut-teal">
+                                      <div className="text-[10px] md:text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
                                       {displayData.isAutoRecurring && displayData.autoRecurringDiscount ? (
                                         <div>
-                                          <div className="text-lg font-semibold text-shortcut-navy-blue/60 line-through">
+                                          <div className="text-sm md:text-lg font-semibold text-shortcut-navy-blue/60 line-through">
                                             ${formatCurrency(dateData.totalCost || 0)}
                                           </div>
-                                          <div className="text-2xl font-extrabold text-green-600">
+                                          <div className="text-xl md:text-2xl font-extrabold text-green-600">
                                             ${formatCurrency((dateData.totalCost || 0) * (1 - displayData.autoRecurringDiscount / 100))}
                                           </div>
                                           <div className="text-xs text-green-600 font-bold mt-1">
@@ -3457,7 +3457,7 @@ The Shortcut Team`);
                                           </div>
                                         </div>
                                       ) : (
-                                        <div className="text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
+                                        <div className="text-xl md:text-2xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
                                       )}
                                     </div>
                                   </div>
@@ -3475,7 +3475,7 @@ The Shortcut Team`);
             <ServiceAgreement />
           </div>
 
-          <div className="lg:sticky lg:top-24 space-y-8 self-start">
+          <div className="lg:sticky lg:top-24 space-y-6 md:space-y-8 self-start">
             {/* Service Image Slider */}
             {(() => {
               const uniqueServiceTypes = getUniqueServiceTypes(displayData);
@@ -3539,7 +3539,7 @@ The Shortcut Team`);
             {/* Gratuity Section - Only show in edit mode */}
             {isEditing && !isSharedView && (
               <div className="card-large">
-                <h2 className="text-xl font-extrabold text-shortcut-blue mb-4">Gratuity</h2>
+                <h2 className="text-lg md:text-xl font-extrabold text-shortcut-blue mb-3 md:mb-4">Gratuity</h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-bold text-shortcut-blue mb-2">Gratuity Type</label>
@@ -3612,7 +3612,7 @@ The Shortcut Team`);
             {/* Auto-Recurring Discount Section - Only show in edit mode */}
             {isEditing && !isSharedView && (
               <div className="card-large">
-                <h2 className="text-xl font-extrabold text-shortcut-blue mb-4">Recurring Discount</h2>
+                <h2 className="text-lg md:text-xl font-extrabold text-shortcut-blue mb-3 md:mb-4">Recurring Discount</h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-bold text-shortcut-blue mb-2">
@@ -3666,7 +3666,7 @@ The Shortcut Team`);
             {isEditing && !isSharedView && (
               <div className="card-large">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-extrabold text-shortcut-blue">Custom Line Items</h2>
+                  <h2 className="text-lg md:text-xl font-extrabold text-shortcut-blue">Custom Line Items</h2>
                   <button
                     onClick={() => {
                       const newData = { ...editedData };
@@ -3693,8 +3693,8 @@ The Shortcut Team`);
                 {editedData?.customLineItems && editedData.customLineItems.length > 0 && (
                   <div className="space-y-3">
                     {editedData.customLineItems.map((item, idx) => (
-                      <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex-1 space-y-2">
+                      <div key={item.id} className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex-1 w-full space-y-2">
                           <input
                             type="text"
                             value={item.name}
@@ -3724,8 +3724,8 @@ The Shortcut Team`);
                             className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                           />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <div className="flex items-center flex-1 sm:flex-none">
                             <span className="text-sm font-bold text-gray-500 mr-1">$</span>
                             <input
                               type="number"
@@ -3740,7 +3740,7 @@ The Shortcut Team`);
                                 setDisplayData({ ...recalculated, customization: currentProposal?.customization });
                               }}
                               placeholder="0"
-                              className="w-24 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                              className="w-full sm:w-24 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                             />
                           </div>
                           <button
@@ -3766,9 +3766,9 @@ The Shortcut Team`);
               </div>
             )}
 
-            <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-extrabold text-white">Event Summary</h2>
+            <div className="bg-shortcut-navy-blue text-white rounded-2xl shadow-lg border border-shortcut-navy-blue border-opacity-20 p-5 md:p-8">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-lg md:text-xl font-extrabold text-white">Event Summary</h2>
                 {/* Check for recurring services or auto-recurring */}
                 {(() => {
                   let recurringCount = 0;
@@ -3799,49 +3799,49 @@ The Shortcut Team`);
                   ) : null;
                 })()}
               </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-3 border-b border-white/20">
-                  <span className="font-semibold">Total Appointments:</span>
-                  <span className="font-bold text-lg">
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
+                  <span className="font-semibold text-sm md:text-base">Appointments:</span>
+                  <span className="font-bold text-base md:text-lg">
                     {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
                   </span>
                 </div>
                 {/* Custom Line Items in summary */}
                 {displayData.customLineItems && displayData.customLineItems.length > 0 && displayData.customLineItems.map((item: any) => (
-                  <div key={item.id} className="flex justify-between items-center py-3 border-b border-white/20">
-                    <span className="font-semibold">{item.name || 'Custom Item'}:</span>
-                    <span className="font-bold text-lg">${formatCurrency(item.amount || 0)}</span>
+                  <div key={item.id} className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
+                    <span className="font-semibold text-sm md:text-base">{item.name || 'Custom Item'}:</span>
+                    <span className="font-bold text-base md:text-lg">${formatCurrency(item.amount || 0)}</span>
                   </div>
                 ))}
                 {displayData.gratuityType && displayData.gratuityValue !== null && displayData.gratuityValue !== undefined && (
                   <>
-                    <div className="flex justify-between items-center py-3 border-b border-white/20">
-                      <span className="font-semibold">Subtotal:</span>
-                      <span className="font-bold text-lg">${formatCurrency(displayData.summary?.subtotalBeforeGratuity ?? displayData.summary?.totalEventCost ?? 0)}</span>
+                    <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
+                      <span className="font-semibold text-sm md:text-base">Subtotal:</span>
+                      <span className="font-bold text-base md:text-lg">${formatCurrency(displayData.summary?.subtotalBeforeGratuity ?? displayData.summary?.totalEventCost ?? 0)}</span>
                     </div>
-                    <div className="flex justify-between items-center py-3 border-b border-white/20">
-                      <span className="font-semibold">
+                    <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
+                      <span className="font-semibold text-sm md:text-base">
                         Gratuity {displayData.gratuityType === 'percentage' ? `(${displayData.gratuityValue}%)` : ''}:
                       </span>
-                      <span className="font-bold text-lg">${formatCurrency(displayData.summary?.gratuityAmount || 0)}</span>
+                      <span className="font-bold text-base md:text-lg">${formatCurrency(displayData.summary?.gratuityAmount || 0)}</span>
                     </div>
                   </>
                 )}
-                <div className="flex justify-between items-center py-3 border-b border-white/20">
-                  <span className="font-semibold">Total Event Cost:</span>
-                  <span className="font-bold text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
+                  <span className="font-semibold text-sm md:text-base">Total Event Cost:</span>
+                  <span className="font-bold text-base md:text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-white/20">
-                  <span className="font-semibold">Professional Revenue:</span>
-                  <span className="font-bold text-lg">${formatCurrency(displayData.summary?.totalProRevenue || 0)}</span>
+                <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
+                  <span className="font-semibold text-sm md:text-base">Pro Revenue:</span>
+                  <span className="font-bold text-base md:text-lg">${formatCurrency(displayData.summary?.totalProRevenue || 0)}</span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-white/20">
-                  <span className="font-semibold">Net Profit:</span>
-                  <span className="font-bold text-lg">${formatCurrency(displayData.summary?.netProfit || 0)}</span>
+                <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
+                  <span className="font-semibold text-sm md:text-base">Net Profit:</span>
+                  <span className="font-bold text-base md:text-lg">${formatCurrency(displayData.summary?.netProfit || 0)}</span>
                 </div>
-                <div className="flex justify-between items-center py-3">
-                  <span className="font-semibold">Profit Margin:</span>
-                  <span className="font-bold text-lg">{(displayData.summary?.profitMargin || 0).toFixed(1)}%</span>
+                <div className="flex justify-between items-center py-2 md:py-3">
+                  <span className="font-semibold text-sm md:text-base">Profit Margin:</span>
+                  <span className="font-bold text-base md:text-lg">{(displayData.summary?.profitMargin || 0).toFixed(1)}%</span>
                 </div>
                 {/* Recurring Savings Display (manual or auto) */}
                 {(() => {
