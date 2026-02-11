@@ -16,6 +16,8 @@ import {
   recalculateProposalSummary
 } from './pricing-engine.js';
 
+import { getCLEStateConfig } from './cle-state-configs.js';
+
 /**
  * Apply service defaults to an event, filling in any missing fields.
  * Handles headshot tiers and mindfulness types as special cases.
@@ -118,6 +120,27 @@ function applyServiceDefaults(event) {
   }
 
   return service;
+}
+
+/**
+ * Infer CLE state from office addresses.
+ * Matches state abbreviations (", NY ") or full state names in address strings.
+ * Returns the first match or null.
+ */
+function inferCLEState(officeLocations) {
+  const statePatterns = [
+    { code: 'NY', patterns: [/,\s*NY\b/, /New York/i] },
+    { code: 'PA', patterns: [/,\s*PA\b/, /Pennsylvania/i] },
+    { code: 'CA', patterns: [/,\s*CA\b/, /California/i] },
+    { code: 'TX', patterns: [/,\s*TX\b/, /Texas/i] },
+    { code: 'FL', patterns: [/,\s*FL\b/, /Florida/i] },
+  ];
+  const addresses = Object.values(officeLocations || {}).join(' ');
+  if (!addresses) return null;
+  for (const { code, patterns } of statePatterns) {
+    if (patterns.some(p => p.test(addresses))) return code;
+  }
+  return null;
 }
 
 /**
@@ -257,6 +280,12 @@ function buildProposalData(input) {
     gratuityType: gratuityType || null,
     gratuityValue: gratuityValue || null
   };
+
+  // Determine CLE state if any CLE service is present
+  const hasCLE = services.some(s => s.serviceType === 'mindfulness-cle');
+  if (hasCLE) {
+    proposalData.cleState = input.cleState || inferCLEState(officeLocations) || 'NY';
+  }
 
   // Run full recalculation to ensure all totals are consistent
   return recalculateProposalSummary(proposalData);

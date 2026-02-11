@@ -1,72 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-
-/* ── Per-state configuration ── */
-interface StateConfig {
-  code: string;          // e.g. 'NY'
-  name: string;          // e.g. 'New York'
-  creditLabel: string;   // e.g. '1.0 NY Ethics & Professionalism Credit'
-  creditDesc: string;    // e.g. '1.0 New York Ethics & Professionalism credit'
-  boardName: string;     // e.g. 'the New York CLE Board'
-  abbr: string;          // e.g. 'NY'
-  sealImage: string;     // path to state seal
-  sealAlt: string;       // alt text for seal
-}
-
-const STATE_CONFIGS: Record<string, StateConfig> = {
-  NY: {
-    code: 'NY', name: 'New York',
-    creditLabel: '1.0 NY Ethics & Professionalism Credit',
-    creditDesc: '1.0 New York CLE credit in Ethics & Professionalism',
-    boardName: 'the New York CLE Board',
-    abbr: 'NY',
-    sealImage: '/ny-state-seal.png',
-    sealAlt: 'Seal of the State of New York',
-  },
-  PA: {
-    code: 'PA', name: 'Pennsylvania',
-    creditLabel: '1.0 PA Ethics & Professionalism Credit',
-    creditDesc: '1.0 Pennsylvania CLE credit in Ethics & Professionalism',
-    boardName: 'the Pennsylvania CLE Board',
-    abbr: 'PA',
-    sealImage: '/pa-state-seal.png',
-    sealAlt: 'Seal of the Commonwealth of Pennsylvania',
-  },
-  CA: {
-    code: 'CA', name: 'California',
-    creditLabel: '1.0 CA Ethics & Professionalism Credit',
-    creditDesc: '1.0 California CLE credit in Ethics & Professionalism',
-    boardName: 'the California State Bar',
-    abbr: 'CA',
-    sealImage: '/ca-state-seal.png',
-    sealAlt: 'Seal of the State of California',
-  },
-  TX: {
-    code: 'TX', name: 'Texas',
-    creditLabel: '1.0 TX Ethics & Professionalism Credit',
-    creditDesc: '1.0 Texas CLE credit in Ethics & Professionalism',
-    boardName: 'the Texas State Bar CLE Committee',
-    abbr: 'TX',
-    sealImage: '/tx-state-seal.png',
-    sealAlt: 'Seal of the State of Texas',
-  },
-  FL: {
-    code: 'FL', name: 'Florida',
-    creditLabel: '1.0 FL Ethics & Professionalism Credit',
-    creditDesc: '1.0 Florida CLE credit in Ethics & Professionalism',
-    boardName: 'the Florida Bar',
-    abbr: 'FL',
-    sealImage: '/fl-state-seal.png',
-    sealAlt: 'Seal of the State of Florida',
-  },
-};
+import { CLE_STATE_CONFIGS } from '../config/cleStateConfigs';
 
 interface CLELandingPageProps {
   stateCode?: string;
 }
 
 const CLELandingPage: React.FC<CLELandingPageProps> = ({ stateCode = 'NY' }) => {
-  const cfg = STATE_CONFIGS[stateCode] || STATE_CONFIGS.NY;
+  const cfg = CLE_STATE_CONFIGS[stateCode] || CLE_STATE_CONFIGS.NY;
   const [activePackage, setActivePackage] = useState<'cle' | 'wellness'>('wellness');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);

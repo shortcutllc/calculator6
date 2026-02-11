@@ -539,6 +539,11 @@ function buildVerifiedState(proposalData) {
     eventDates: proposalData.eventDates || []
   };
 
+  // Include CLE state if set
+  if (proposalData.cleState) {
+    state.cleState = proposalData.cleState;
+  }
+
   // Include gratuity info if set
   if (proposalData.gratuityType && proposalData.gratuityValue) {
     state.gratuity = {

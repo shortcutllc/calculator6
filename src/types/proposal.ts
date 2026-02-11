@@ -112,6 +112,8 @@ export interface ProposalData {
   gratuityValue?: number | null;
   // Custom line items (e.g. catering, equipment rental)
   customLineItems?: CustomLineItem[];
+  // CLE state for mindfulness-cle proposals (e.g. 'NY', 'PA', 'CA', 'TX', 'FL')
+  cleState?: string;
   // Mindfulness program specific data
   mindfulnessProgram?: {
     programId: string;

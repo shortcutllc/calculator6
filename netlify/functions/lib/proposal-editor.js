@@ -79,7 +79,8 @@ const OPERATION_HANDLERS = {
   add_location: handleAddLocation,
   remove_location: handleRemoveLocation,
   rename_location: handleRenameLocation,
-  change_date: handleChangeDate
+  change_date: handleChangeDate,
+  set_cle_state: handleSetCLEState
 };
 
 /**
@@ -518,6 +519,24 @@ function handleSetStatus(proposalData, customization, proposalRecord, op) {
   return {
     op: 'set_status',
     description: `Status changed to ${op.status}`
+  };
+}
+
+/**
+ * Set the CLE accreditation state for mindfulness-cle proposals.
+ */
+function handleSetCLEState(proposalData, customization, proposalRecord, op) {
+  const validStates = ['NY', 'PA', 'CA', 'TX', 'FL'];
+  const code = (op.cleState || '').toUpperCase();
+  if (!code || !validStates.includes(code)) {
+    throw new Error(`set_cle_state requires "cleState" to be one of: ${validStates.join(', ')}`);
+  }
+
+  proposalData.cleState = code;
+
+  return {
+    op: 'set_cle_state',
+    description: `CLE accreditation state set to ${code}`
   };
 }
 

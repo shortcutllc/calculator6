@@ -110,6 +110,9 @@ When a user says "CLE course" or "CLE mindfulness" → use serviceType: "mindful
 When a user says "soles of the feet" → use serviceType: "mindfulness-soles".
 When a user says "mindful movement" → use serviceType: "mindfulness-movement".
 
+### CLE State Accreditation
+For CLE proposals, set cleState to the state where accreditation applies (NY, PA, CA, TX, FL). This determines which state's CLE board is referenced in the proposal. If not specified, the system infers from the office address or defaults to NY. Use set_cle_state edit operation to change it on existing proposals.
+
 ### Pricing Formulas
 - Standard services: cost = numPros × totalHours × hourlyRate + earlyArrival.
 - Headshots: cost = (numPros × totalHours × proHourly) + (totalAppointments × retouchingCost).
@@ -244,7 +247,8 @@ const TOOLS = [
             required: ['serviceType', 'locationName', 'date', 'totalHours', 'numPros']
           }
         },
-        notes: { type: 'string', description: 'Internal notes about this proposal' }
+        notes: { type: 'string', description: 'Internal notes about this proposal' },
+        cleState: { type: 'string', enum: ['NY', 'PA', 'CA', 'TX', 'FL'], description: 'For CLE proposals: which state\'s CLE accreditation applies. Inferred from office address if not set. Defaults to NY.' }
       },
       required: ['clientName', 'events']
     }
@@ -262,7 +266,7 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              op: { type: 'string', description: 'Operation type: add_service, remove_service, update_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization' },
+              op: { type: 'string', description: 'Operation type: add_service, remove_service, update_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state' },
               location: { type: 'string' },
               date: { type: 'string' },
               serviceIndex: { type: 'integer' },
@@ -281,7 +285,8 @@ const TOOLS = [
               newName: { type: 'string', description: 'For rename_location: new location name' },
               oldDate: { type: 'string', description: 'For change_date: current date in YYYY-MM-DD format or "TBD"' },
               newDate: { type: 'string', description: 'For change_date: new date in YYYY-MM-DD format or "TBD"' },
-              officeAddress: { type: 'string', description: 'For add_location: office street address' }
+              officeAddress: { type: 'string', description: 'For add_location: office street address' },
+              cleState: { type: 'string', enum: ['NY', 'PA', 'CA', 'TX', 'FL'], description: 'For set_cle_state: which state\'s CLE accreditation applies' }
             },
             required: ['op']
           }

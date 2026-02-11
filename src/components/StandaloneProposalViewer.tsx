@@ -2246,17 +2246,17 @@ export const StandaloneProposalViewer: React.FC = () => {
 
             {/* Why Shortcut Section - Show CLE version if CLE present, otherwise regular */}
             {isMindfulnessOnlyProposal(displayData) && (
-              hasCLEService(displayData) ? <CLEWhyShortcutSection /> : <WhyShortcutSection />
+              hasCLEService(displayData) ? <CLEWhyShortcutSection cleState={displayData?.cleState} /> : <WhyShortcutSection />
             )}
 
             {/* CLE Class Outline - Show only for CLE proposals */}
             {hasCLEService(displayData) && (
-              <CLEClassOutlineSection />
+              <CLEClassOutlineSection cleState={displayData?.cleState} />
             )}
 
             {/* CLE Accreditation & Administration - Show only for CLE proposals */}
             {hasCLEService(displayData) && (
-              <CLEAccreditationSection />
+              <CLEAccreditationSection cleState={displayData?.cleState} />
             )}
 
             {/* Participant Benefits - Show for mindfulness-only proposals in left column */}

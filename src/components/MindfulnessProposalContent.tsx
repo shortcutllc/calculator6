@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, Video, FileText, Heart, Brain, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { ProposalData } from '../types/proposal';
+import { getCLEStateConfig } from '../config/cleStateConfigs';
 
 interface MindfulnessProposalContentProps {
   data: ProposalData;
@@ -95,7 +96,9 @@ export const WhyShortcutSection: React.FC = () => (
 );
 
 // Helper component for CLE-specific Why Shortcut Section
-export const CLEWhyShortcutSection: React.FC = () => (
+export const CLEWhyShortcutSection: React.FC<{ cleState?: string }> = ({ cleState }) => {
+  const cfg = getCLEStateConfig(cleState);
+  return (
   <div className="card-large bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 border-2 border-shortcut-teal border-opacity-20">
     <h2 className="h2 mb-8 text-shortcut-navy-blue">Why Shortcut?</h2>
     <p className="text-lg font-medium text-text-dark mb-6 leading-relaxed">
@@ -134,7 +137,7 @@ export const CLEWhyShortcutSection: React.FC = () => (
         <div>
           <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Ethics & Professionalism Credit</p>
           <p className="text-base font-medium text-text-dark leading-relaxed">
-            This program qualifies for 1.0 Ethics & Professionalism CLE credit, accredited for the state of New York.
+            This program qualifies for {cfg.creditDesc}, accredited for the state of {cfg.name}.
           </p>
         </div>
       </div>
@@ -149,7 +152,8 @@ export const CLEWhyShortcutSection: React.FC = () => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // Helper component for Participant Benefits Section
 export const ParticipantBenefitsSection: React.FC = () => (
@@ -225,14 +229,15 @@ export const AdditionalResourcesSection: React.FC = () => (
 );
 
 // Helper component for CLE Class Outline Section (collapsible)
-export const CLEClassOutlineSection: React.FC = () => {
+export const CLEClassOutlineSection: React.FC<{ cleState?: string }> = ({ cleState }) => {
+  const cfg = getCLEStateConfig(cleState);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const outlineItems = [
     { time: '0:00 – 4:00', title: 'Welcome & Course Overview', bullets: ['Purpose of the program', 'Relevance of mindfulness to ethical lawyering and professional judgment', 'Framing mindfulness as a professional skill, not a wellness add-on'] },
     { time: '4:00 – 8:00', title: 'What Is Mindfulness?', bullets: ['Definition of mindfulness and present-moment awareness', 'Mindfulness as an innate capacity that can be strengthened', 'Why this matters in demanding legal environments'] },
     { time: '8:00 – 13:00', title: 'Distraction, Autopilot, and Ethical Risk', bullets: ['Why attorneys become distracted and cognitively overloaded', 'How "autopilot mode" increases the risk of errors, miscommunication, and reactive behavior', 'Connection between distraction, stress, and ethical lapses'] },
-    { time: '13:00 – 18:00', title: 'Competence, Ethics, and Attorney Well-Being', bullets: ['Ethical obligations under New York Rules of Professional Conduct', 'The relationship between competence, judgment, and an attorney\'s mental and emotional state', 'Why chronic stress undermines ethical awareness'] },
+    { time: '13:00 – 18:00', title: 'Competence, Ethics, and Attorney Well-Being', bullets: [`Ethical obligations under ${cfg.rulesName}`, 'The relationship between competence, judgment, and an attorney\'s mental and emotional state', 'Why chronic stress undermines ethical awareness'] },
     { time: '18:00 – 24:00', title: 'The Overextended Lawyer', bullets: ['Research and data on attorney stress, burnout, and overwork', 'Cultural norms in large law firms and their ethical implications', 'Why self-regulation is an ethical skill, not a personal indulgence'] },
     { time: '24:00 – 30:00', title: 'How Mindfulness Supports Ethical Decision-Making', bullets: ['Improving focus, attention, and clarity', 'Reducing reactivity in difficult conversations and high-pressure moments', 'Strengthening discernment versus judgment'] },
     { time: '30:00 – 36:00', title: 'Stress, Perception, and Choice', bullets: ['Distinguishing between stressors and stress', 'The role of perception in ethical responses', 'How mindfulness increases choice in challenging situations'] },
@@ -287,7 +292,8 @@ export const CLEClassOutlineSection: React.FC = () => {
 };
 
 // Helper component for CLE Accreditation & Administration Section (collapsible)
-export const CLEAccreditationSection: React.FC = () => {
+export const CLEAccreditationSection: React.FC<{ cleState?: string }> = ({ cleState }) => {
+  const cfg = getCLEStateConfig(cleState);
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -303,14 +309,14 @@ export const CLEAccreditationSection: React.FC = () => {
       </button>
       {!isExpanded && (
         <p className="text-base text-text-dark-60 font-medium mt-3">
-          Accredited for 1.0 Ethics CLE credit — Shortcut handles all administration
+          Accredited for {cfg.creditLabel} — Shortcut handles all administration
         </p>
       )}
       {isExpanded && (
         <div className="mt-6 space-y-6">
           <div className="p-6 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl border-2 border-shortcut-teal border-opacity-20">
             <p className="text-lg font-medium text-text-dark leading-relaxed">
-              This program is offered as an accredited Continuing Legal Education (CLE) course, approved for <strong className="text-shortcut-navy-blue">1.0 New York CLE credit in Ethics & Professionalism</strong>.
+              This program is offered as an accredited Continuing Legal Education (CLE) course, approved for <strong className="text-shortcut-navy-blue">{cfg.creditDesc}</strong>.
             </p>
           </div>
 
@@ -320,7 +326,7 @@ export const CLEAccreditationSection: React.FC = () => {
               <div className="flex items-start gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-shortcut-teal mt-1.5 flex-shrink-0"></div>
                 <p className="text-base font-medium text-text-dark leading-relaxed">
-                  <strong className="text-shortcut-navy-blue">Submission of materials</strong> to the New York CLE Board
+                  <strong className="text-shortcut-navy-blue">Submission of materials</strong> to {cfg.boardName}
                 </p>
               </div>
               <div className="flex items-start gap-3">
