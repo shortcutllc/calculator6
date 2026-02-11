@@ -108,17 +108,17 @@ const EditableField: React.FC<EditableFieldProps> = ({
   }
   
   return (
-    <div className="flex items-center justify-end">
-      {prefix && <span className="mr-1">{prefix}</span>}
+    <div className="flex items-center">
+      {prefix && <span className="mr-1 text-sm font-medium text-gray-500 shrink-0">{prefix}</span>}
       <input
         type={type}
         value={typeof fieldValue === 'number' ? String(fieldValue) : fieldValue}
         onChange={handleChange}
-        className={`w-32 px-4 py-3 text-right border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${className}`}
+        className={`w-full px-3 py-2 text-right border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${className}`}
         min={type === 'number' ? 0 : undefined}
         step={type === 'number' ? 'any' : undefined}
       />
-      {suffix && <span className="ml-1">{suffix}</span>}
+      {suffix && <span className="ml-1 text-sm font-medium text-gray-500 shrink-0">{suffix}</span>}
       {renderChangeIndicator()}
     </div>
   );

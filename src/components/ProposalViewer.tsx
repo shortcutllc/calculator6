@@ -3286,14 +3286,14 @@ The Shortcut Team`);
                                                 
                                                 {/* Editable fields for each option */}
                                                 {isEditing && !isSharedView && (
-                                                  <div className="mt-3 space-y-2 border-t pt-3">
-                                                    <div className="grid grid-cols-2 gap-2">
+                                                  <div className="mt-3 border-t pt-3">
+                                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                                                       <div>
-                                                        <label className="text-xs font-bold text-shortcut-blue">Total Hours:</label>
+                                                        <label className="block text-xs font-bold text-shortcut-blue mb-1">Total Hours:</label>
                                                         <EditableField
                                                           value={String(option.totalHours || service.totalHours)}
                                                           onChange={(value) => handleFieldChange(
-                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'totalHours'], 
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'totalHours'],
                                                             parseFloat(value) || service.totalHours
                                                           )}
                                                           isEditing={isEditing}
@@ -3301,11 +3301,11 @@ The Shortcut Team`);
                                                         />
                                                       </div>
                                                       <div>
-                                                        <label className="text-xs font-bold text-shortcut-blue">Hourly Rate:</label>
+                                                        <label className="block text-xs font-bold text-shortcut-blue mb-1">Hourly Rate:</label>
                                                         <EditableField
                                                           value={String(option.hourlyRate || service.hourlyRate)}
                                                           onChange={(value) => handleFieldChange(
-                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'hourlyRate'], 
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'hourlyRate'],
                                                             parseFloat(value) || service.hourlyRate
                                                           )}
                                                           isEditing={isEditing}
@@ -3313,34 +3313,34 @@ The Shortcut Team`);
                                                           prefix="$"
                                                         />
                                                       </div>
-                                                    </div>
-                                                    <div>
-                                                      <label className="text-xs font-bold text-shortcut-blue">Number of Pros:</label>
-                                                      <EditableField
-                                                        value={String(option.numPros || service.numPros || 1)}
-                                                        onChange={(value) => handleFieldChange(
-                                                          ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'numPros'], 
-                                                          parseFloat(value) || 1
-                                                        )}
-                                                        isEditing={isEditing}
-                                                        type="number"
-                                                      />
-                                                    </div>
-                                                    <div>
-                                                      <label className="text-xs font-bold text-shortcut-blue">Discount %:</label>
-                                                      <EditableField
-                                                        value={String(option.discountPercent !== undefined ? option.discountPercent : (service.discountPercent || 0))}
-                                                        onChange={(value) => {
-                                                          const discountValue = parseFloat(value) || 0;
-                                                          handleFieldChange(
-                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'discountPercent'], 
-                                                            discountValue
-                                                          );
-                                                        }}
-                                                        isEditing={isEditing}
-                                                        type="number"
-                                                        suffix="%"
-                                                      />
+                                                      <div>
+                                                        <label className="block text-xs font-bold text-shortcut-blue mb-1">Number of Pros:</label>
+                                                        <EditableField
+                                                          value={String(option.numPros || service.numPros || 1)}
+                                                          onChange={(value) => handleFieldChange(
+                                                            ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'numPros'],
+                                                            parseFloat(value) || 1
+                                                          )}
+                                                          isEditing={isEditing}
+                                                          type="number"
+                                                        />
+                                                      </div>
+                                                      <div>
+                                                        <label className="block text-xs font-bold text-shortcut-blue mb-1">Discount %:</label>
+                                                        <EditableField
+                                                          value={String(option.discountPercent !== undefined ? option.discountPercent : (service.discountPercent || 0))}
+                                                          onChange={(value) => {
+                                                            const discountValue = parseFloat(value) || 0;
+                                                            handleFieldChange(
+                                                              ['services', location, date, 'services', serviceIndex, 'pricingOptions', optionIndex, 'discountPercent'],
+                                                              discountValue
+                                                            );
+                                                          }}
+                                                          isEditing={isEditing}
+                                                          type="number"
+                                                          suffix="%"
+                                                        />
+                                                      </div>
                                                     </div>
                                                   </div>
                                                 )}
