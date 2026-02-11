@@ -295,54 +295,114 @@ async function verifyLogoUrl(url) {
 async function handleSearchLogo(params, supabase) {
   if (!params.companyName) return { error: 'companyName is required' };
 
-  // Step 1: Check if we already have this logo stored from a past proposal
-  const { data: existingProposals } = await supabase
+  const searchName = params.companyName.trim();
+
+  // Step 1: Check existing proposals — try exact match first, then partial
+  let existingMatch = null;
+
+  // 1a: Exact match
+  const { data: exactProposals } = await supabase
     .from('proposals')
-    .select('client_logo_url')
-    .ilike('client_name', params.companyName.trim())
+    .select('client_name, client_logo_url')
+    .ilike('client_name', searchName)
     .not('client_logo_url', 'is', null)
     .order('created_at', { ascending: false })
-    .limit(1);
+    .limit(5);
 
-  if (existingProposals && existingProposals.length > 0 && existingProposals[0].client_logo_url) {
-    // Verify the stored URL is still accessible
-    const isValid = await verifyLogoUrl(existingProposals[0].client_logo_url);
-    if (isValid) {
-      return {
-        success: true,
-        logoUrl: existingProposals[0].client_logo_url,
-        source: 'existing_proposal',
-        stored: true,
-        message: `Found existing logo for "${params.companyName}" from a previous proposal.`
-      };
+  if (exactProposals && exactProposals.length > 0) {
+    for (const p of exactProposals) {
+      if (p.client_logo_url && await verifyLogoUrl(p.client_logo_url)) {
+        existingMatch = { logoUrl: p.client_logo_url, clientName: p.client_name };
+        break;
+      }
     }
-    // Stale URL — continue to search fresh
-    console.warn(`Stale logo URL for ${params.companyName}: ${existingProposals[0].client_logo_url}`);
   }
 
-  // Step 2: Search via Brave (with Clearbit fallback)
-  const searchResult = await searchLogoViaBrave(params.companyName);
+  // 1b: Partial match — catches abbreviations like "BCG" matching "Boston Consulting Group"
+  if (!existingMatch) {
+    const { data: partialProposals } = await supabase
+      .from('proposals')
+      .select('client_name, client_logo_url')
+      .ilike('client_name', `%${searchName}%`)
+      .not('client_logo_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (partialProposals && partialProposals.length > 0) {
+      // Group by client name and find the one with the most proposals (most likely match)
+      const nameCounts = {};
+      for (const p of partialProposals) {
+        const name = p.client_name.trim();
+        if (!nameCounts[name]) nameCounts[name] = { count: 0, logoUrl: null };
+        nameCounts[name].count++;
+        if (!nameCounts[name].logoUrl && p.client_logo_url) {
+          nameCounts[name].logoUrl = p.client_logo_url;
+        }
+      }
+
+      // Pick the client with the most proposals
+      const sorted = Object.entries(nameCounts).sort((a, b) => b[1].count - a[1].count);
+      for (const [name, data] of sorted) {
+        if (data.logoUrl && await verifyLogoUrl(data.logoUrl)) {
+          existingMatch = { logoUrl: data.logoUrl, clientName: name };
+          break;
+        }
+      }
+
+      // If multiple distinct clients matched, include them all for the AI to report
+      if (sorted.length > 1 && existingMatch) {
+        const alternateMatches = sorted
+          .filter(([name]) => name !== existingMatch.clientName)
+          .map(([name, data]) => ({ name, proposalCount: data.count, hasLogo: !!data.logoUrl }));
+        if (alternateMatches.length > 0) {
+          return {
+            success: true,
+            logoUrl: existingMatch.logoUrl,
+            source: 'existing_proposal',
+            stored: true,
+            resolvedName: existingMatch.clientName,
+            alternateMatches,
+            message: `Found existing logo for "${existingMatch.clientName}" from a previous proposal. Also found other matches: ${alternateMatches.map(m => m.name).join(', ')}.`
+          };
+        }
+      }
+    }
+  }
+
+  if (existingMatch) {
+    return {
+      success: true,
+      logoUrl: existingMatch.logoUrl,
+      source: 'existing_proposal',
+      stored: true,
+      resolvedName: existingMatch.clientName,
+      message: `Found existing logo for "${existingMatch.clientName}" from a previous proposal.`
+    };
+  }
+
+  // Step 2: Search via Brave (with Clearbit fallback) — pass domain if provided
+  const searchResult = await searchLogoViaBrave(searchName, params.domain);
 
   if (!searchResult.logoUrl) {
     return {
       success: true,
       logoUrl: null,
       source: null,
-      message: searchResult.message || `No logo found for "${params.companyName}". The user can provide a direct image URL instead.`
+      message: searchResult.message || `No logo found for "${searchName}". The user can provide a direct image URL instead.`
     };
   }
 
   // Step 3: Store the logo permanently in Supabase
   try {
-    const { logoUrl, stored } = await storeProvidedLogo(supabase, searchResult.logoUrl, params.companyName);
+    const { logoUrl, stored } = await storeProvidedLogo(supabase, searchResult.logoUrl, searchName);
     return {
       success: true,
       logoUrl,
       source: searchResult.source,
       stored,
       message: stored
-        ? `Found and stored logo for "${params.companyName}".`
-        : `Found logo for "${params.companyName}" but could not store permanently.`
+        ? `Found and stored logo for "${searchName}".`
+        : `Found logo for "${searchName}" but could not store permanently.`
     };
   } catch (e) {
     // Return the external URL as fallback

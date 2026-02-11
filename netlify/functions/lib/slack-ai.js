@@ -132,10 +132,24 @@ Discounts apply to the service cost.
 - When adding a service to an existing proposal, use the SAME locationName and date that already exist on the proposal. Call get_proposal first if you're unsure.
 
 ## Logos
-- ALWAYS use the search_logo tool to get a verified logo URL. It checks existing proposals first, then Brave Search, then Clearbit — and validates the URL is accessible.
-- When creating a proposal: call search_logo first, then use the returned logoUrl as clientLogoUrl in create_proposal.
-- When a user asks to "add the logo" on an existing proposal: call search_logo, then use edit_proposal with update_client_info setting clientLogoUrl to the URL from search_logo.
-- Do NOT blindly use a logoUrl from lookup_client without calling search_logo — old URLs may be stale/broken.
+
+### Step 1: Resolve the company name
+- ALWAYS call lookup_client FIRST to check if the company exists in our system. Users often use abbreviations (e.g. "BCG" for "Boston Consulting Group", "PwC" for "PricewaterhouseCoopers").
+- If lookup_client finds a match, use the FULL company name from our system for all subsequent steps.
+- If lookup_client returns multiple matches, pick the one with the most proposals (most likely the intended client).
+
+### Step 2: Find the logo
+- Call search_logo with the FULL resolved company name (never abbreviations).
+- If you know the company's website domain, pass it as the "domain" parameter (e.g. domain: "bcg.com") — this gives the most reliable results.
+- search_logo checks existing proposals first (partial match), then Clearbit, then Brave Search.
+
+### Step 3: Preview before applying — MANDATORY
+- NEVER auto-apply a logo. After finding a logo URL, ALWAYS show it to the user and ask for confirmation.
+- Format: "I found this logo for [Company]: [URL] — should I apply it?"
+- Do NOT pass clientLogoUrl in create_proposal. Create the proposal first WITHOUT a logo, then search for the logo separately.
+- Only apply the logo via edit_proposal with update_client_info AFTER the user confirms.
+
+### Step 4: Verify
 - After editing a logo, check verifiedState.clientLogoUrl to confirm it was actually set. If it's null, tell the user the logo wasn't applied.
 - NEVER claim a logo was added unless verifiedState.clientLogoUrl contains a URL.
 
@@ -346,7 +360,8 @@ const TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        companyName: { type: 'string', description: 'Company name to search for (e.g., "Burberry", "Goldman Sachs")' }
+        companyName: { type: 'string', description: 'Company name to search for — use the FULL resolved name, not abbreviations (e.g., "Boston Consulting Group" not "BCG")' },
+        domain: { type: 'string', description: 'Optional company website domain (e.g. "bcg.com", "burberry.com"). If provided, uses Clearbit directly for the most reliable results.' }
       },
       required: ['companyName']
     }

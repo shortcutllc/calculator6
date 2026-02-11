@@ -176,7 +176,15 @@ async function storeProvidedLogo(supabase, imageUrl, companyName) {
  * @param {string} companyName - Company name to search for
  * @returns {object} { logoUrl, source } or { logoUrl: null }
  */
-async function searchLogoViaBrave(companyName) {
+async function searchLogoViaBrave(companyName, domain) {
+  // If a domain is provided, try Clearbit directly first — most reliable for known companies
+  if (domain) {
+    const directUrl = await fetchLogoUrl(companyName, domain);
+    if (directUrl) {
+      return { logoUrl: directUrl, source: 'clearbit' };
+    }
+  }
+
   const apiKey = process.env.BRAVE_SEARCH_API_KEY;
   if (!apiKey) {
     console.warn('BRAVE_SEARCH_API_KEY not set — falling back to Clearbit');
