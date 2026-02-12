@@ -23,8 +23,8 @@ export const CLE_STATE_CONFIGS: Record<string, StateConfig> = {
   },
   PA: {
     code: 'PA', name: 'Pennsylvania',
-    creditLabel: '1.0 PA Ethics & Professionalism Credit',
-    creditDesc: '1.0 Pennsylvania CLE credit in Ethics & Professionalism',
+    creditLabel: '1.0 PA Ethics Credit',
+    creditDesc: '1.0 Pennsylvania CLE credit in Ethics',
     boardName: 'the Pennsylvania CLE Board',
     abbr: 'PA',
     sealImage: '/pa-state-seal.png',
