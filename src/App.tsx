@@ -18,6 +18,7 @@ import { ProposalProvider } from './contexts/ProposalContext';
 import { HolidayPageProvider } from './contexts/HolidayPageContext';
 import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
 import { QRCodeSignProvider } from './contexts/QRCodeSignContext';
+import { ClientEmailProvider } from './contexts/ClientEmailContext';
 import { GenericLandingPageProvider } from './contexts/GenericLandingPageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -41,6 +42,7 @@ const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'))
 const Plan2026 = lazy(() => import('./components/Plan2026'));
 const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
 const CLELandingPage = lazy(() => import('./components/CLELandingPage'));
+const ClientEmailManager = lazy(() => import('./components/ClientEmailManager'));
 
 function App() {
   const location = useLocation();
@@ -348,6 +350,22 @@ function App() {
                         <QRCodeSignManager />
                       </Suspense>
                     </QRCodeSignProvider>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/client-emails"
+                element={
+                  <PrivateRoute>
+                    <ClientEmailProvider>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <ClientEmailManager />
+                      </Suspense>
+                    </ClientEmailProvider>
                   </PrivateRoute>
                 }
               />

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogIn, LogOut, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users, Handshake, Eye, Gift, Smartphone, Brain, QrCode, TrendingUp, Scale } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users, Handshake, Eye, Gift, Smartphone, Brain, QrCode, TrendingUp, Scale, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -426,6 +426,16 @@ export const Navigation: React.FC = () => {
                       >
                         <QrCode size={16} className="text-text-dark-60" />
                         QR Codes
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/client-emails');
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                      >
+                        <Mail size={16} className="text-text-dark-60" />
+                        Client Emails
                       </button>
                       <button
                         onClick={() => {
