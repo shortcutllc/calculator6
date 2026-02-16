@@ -21,7 +21,7 @@ export default defineConfig({
   // Completely remove optimizeDeps to let Vite handle it naturally
   // This should prevent the 504 errors by not forcing pre-bundling
   build: {
-    sourcemap: true,
+    sourcemap: false,
     outDir: 'dist',
     assetsDir: 'assets',
     rollupOptions: {
