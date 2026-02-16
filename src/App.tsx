@@ -43,6 +43,7 @@ const Plan2026 = lazy(() => import('./components/Plan2026'));
 const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
 const CLELandingPage = lazy(() => import('./components/CLELandingPage'));
 const ClientEmailManager = lazy(() => import('./components/ClientEmailManager'));
+const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 
 function App() {
   const location = useLocation();
@@ -67,7 +68,8 @@ function App() {
     location.pathname === '/2026-plan' ||
     location.pathname === '/2026-plan-ml' ||
     location.pathname === '/cle' ||
-    location.pathname.startsWith('/cle/');
+    location.pathname.startsWith('/cle/') ||
+    location.pathname === '/195-nassau';
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -488,6 +490,18 @@ function App() {
                   }
                 />
               ))}
+              <Route
+                path="/195-nassau"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <NassauBudgetReview />
+                  </Suspense>
+                }
+              />
               <Route
                 path="/generic-landing-page/:id"
                 element={
