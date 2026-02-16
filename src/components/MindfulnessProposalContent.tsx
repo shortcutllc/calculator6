@@ -69,7 +69,7 @@ export const WhyShortcutSection: React.FC = () => (
         <div>
           <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Dedicated Facilitator</p>
           <p className="text-base font-medium text-text-dark leading-relaxed">
-            Courtney Schulnick, who brings over a decade of experience and will guide every session to ensure continuity and reliability.
+            Courtney Schulnick, who brings over two decades of experience and will guide every session to ensure continuity and reliability.
           </p>
         </div>
       </div>
@@ -110,7 +110,7 @@ export const CLEWhyShortcutSection: React.FC<{ cleState?: string }> = ({ cleStat
         <div>
           <p className="text-lg font-extrabold text-shortcut-navy-blue mb-2">Dedicated Facilitator</p>
           <p className="text-base font-medium text-text-dark leading-relaxed">
-            Courtney Schulnick, who brings over a decade of experience and will guide every session to ensure continuity and reliability.
+            Courtney Schulnick, who brings over two decades of experience and will guide every session to ensure continuity and reliability.
           </p>
         </div>
       </div>
