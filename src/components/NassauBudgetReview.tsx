@@ -144,6 +144,41 @@ export default function NassauBudgetReview() {
     }
   };
 
+  // Table of contents tracking — must be before any early returns (Rules of Hooks)
+  useEffect(() => {
+    if (!authenticated) return;
+    const sections = document.querySelectorAll('[data-toc]');
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) setActiveSection(e.target.id);
+        });
+      },
+      { rootMargin: '-20% 0px -60% 0px' }
+    );
+    sections.forEach((s) => obs.observe(s));
+    return () => obs.disconnect();
+  }, [authenticated]);
+
+  const tocItems = [
+    { id: 'opening', label: 'Opening Statement' },
+    { id: 'property', label: 'Property Profile' },
+    { id: 'affordable', label: 'Affordable Housing' },
+    { id: 'submitted', label: 'Submitted Budget' },
+    { id: 'critique', label: 'Strategic Critique' },
+    { id: 'cac-ltv', label: 'CAC / LTV Analysis' },
+    { id: 'outreach', label: 'Outreach Plan' },
+    { id: 'absorption', label: 'Absorption Model' },
+    { id: 'recommended', label: 'Revised Budget' },
+    { id: 'reporting', label: 'Monthly Reporting' },
+    { id: 'clarification', label: 'Greystar Clarification' },
+    { id: 'vacancy', label: 'Vacancy vs. Marketing' },
+    { id: 'bottom-line', label: 'Bottom Line' },
+    { id: 'ab-test', label: 'Local Team Test' },
+    { id: 'questions', label: 'Follow-Up Questions' },
+  ];
+
+  // Password gate — after all hooks to satisfy Rules of Hooks
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-white font-['Outfit',system-ui,sans-serif] flex items-center justify-center">
@@ -178,39 +213,6 @@ export default function NassauBudgetReview() {
       </div>
     );
   }
-
-  // Table of contents tracking
-  useEffect(() => {
-    const sections = document.querySelectorAll('[data-toc]');
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) setActiveSection(e.target.id);
-        });
-      },
-      { rootMargin: '-20% 0px -60% 0px' }
-    );
-    sections.forEach((s) => obs.observe(s));
-    return () => obs.disconnect();
-  }, []);
-
-  const tocItems = [
-    { id: 'opening', label: 'Opening Statement' },
-    { id: 'property', label: 'Property Profile' },
-    { id: 'affordable', label: 'Affordable Housing' },
-    { id: 'submitted', label: 'Submitted Budget' },
-    { id: 'critique', label: 'Strategic Critique' },
-    { id: 'cac-ltv', label: 'CAC / LTV Analysis' },
-    { id: 'outreach', label: 'Outreach Plan' },
-    { id: 'absorption', label: 'Absorption Model' },
-    { id: 'recommended', label: 'Revised Budget' },
-    { id: 'reporting', label: 'Monthly Reporting' },
-    { id: 'clarification', label: 'Greystar Clarification' },
-    { id: 'vacancy', label: 'Vacancy vs. Marketing' },
-    { id: 'bottom-line', label: 'Bottom Line' },
-    { id: 'ab-test', label: 'Local Team Test' },
-    { id: 'questions', label: 'Follow-Up Questions' },
-  ];
 
   return (
     <div className="min-h-screen bg-white font-['Outfit',system-ui,sans-serif]">
