@@ -161,9 +161,9 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
     setErrors({});
   }, [proposals]);
 
-  // Regenerate title from current selected services
+  // Regenerate title from current selected services + company name
   const handleRegenerateTitle = () => {
-    const titles = getAvailableTitles(selectedServices);
+    const titles = getAvailableTitles(selectedServices, options.partnerName || undefined);
     // Pick a random title that's different from current
     const available = titles.filter(t => t !== options.title);
     if (available.length > 0) {
