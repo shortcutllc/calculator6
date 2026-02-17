@@ -5,6 +5,8 @@ export interface QRCodeSignData {
   eventDetails: string;
   qrCodeUrl: string;
   serviceType: ServiceType;
+  serviceTypes?: ServiceType[]; // Multi-service support (up to 3)
+  proposalId?: string; // Linked proposal ID
   partnerName?: string;
   partnerLogoUrl?: string;
   partnerLogoColor?: string; // For SVG color customization
@@ -36,10 +38,10 @@ export interface QRCodeSignOptions {
   eventDetails: string;
   qrCodeUrl: string;
   serviceType: ServiceType;
+  serviceTypes?: ServiceType[]; // Multi-service support
+  proposalId?: string; // Linked proposal ID
   partnerName?: string;
   partnerLogoFile?: File;
   partnerLogoUrl?: string;
   customization: QRCodeSignCustomization;
 }
-
-

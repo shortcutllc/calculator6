@@ -1,12 +1,193 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQRCodeSign } from '../contexts/QRCodeSignContext';
-import { QRCodeSign } from '../types/qrCodeSign';
+import { QRCodeSign, ServiceType } from '../types/qrCodeSign';
 import { generateQRCodeDataURL } from '../utils/qrCodeGenerator';
-import { getServiceImagePath, getServiceDisplayName, getServiceIconPath } from '../utils/qrCodeSignUtils';
+import { getServiceImagePath, getServiceDisplayName, getServiceIconPath, getMultiServiceDisplayName } from '../utils/qrCodeSignUtils';
 import { LoadingSpinner } from './LoadingSpinner';
 import { Button } from './Button';
 import { ArrowRight } from 'lucide-react';
+
+/**
+ * Card color per service type — matches Figma design system.
+ * Primary service gets teal, secondary gets coral, etc.
+ */
+const CARD_COLORS: Record<ServiceType, { bg: string; text: string }> = {
+  'massage': { bg: '#9EFAFF', text: '#003756' },
+  'hair-beauty': { bg: '#FF5050', text: '#FFFFFF' },
+  'nails': { bg: '#FF5050', text: '#FFFFFF' },
+  'headshot': { bg: '#003756', text: '#FFFFFF' },
+  'mindfulness': { bg: '#9EFAFF', text: '#003756' },
+  'facial': { bg: '#FF5050', text: '#FFFFFF' },
+};
+
+/**
+ * Phone mockup component — recreated from Figma design.
+ * Shows a realistic iPhone frame with service booking cards.
+ */
+const PhoneMockup: React.FC<{
+  serviceTypes: ServiceType[];
+  serviceImagePath: string;
+}> = ({ serviceTypes, serviceImagePath }) => {
+  const primary = serviceTypes[0];
+  const secondary = serviceTypes[1];
+  const primaryColor = CARD_COLORS[primary] || CARD_COLORS.massage;
+  const secondaryColor = secondary ? (CARD_COLORS[secondary] || CARD_COLORS.nails) : null;
+
+  return (
+    <div
+      style={{
+        width: '140px',
+        height: '280px',
+        backgroundColor: '#E8E8E8',
+        borderRadius: '28px',
+        padding: '4px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)',
+      }}
+    >
+      {/* Phone screen */}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: '#FFF',
+          borderRadius: '24px',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {/* Status bar — pink/blush like Figma */}
+        <div
+          style={{
+            height: '28px',
+            backgroundColor: '#F8E0E0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 10px',
+            position: 'relative',
+          }}
+        >
+          <span style={{ fontSize: '8px', fontWeight: 600, color: '#1A1A1A', fontFamily: 'system-ui' }}>9:41</span>
+          {/* Dynamic Island */}
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '6px',
+              transform: 'translateX(-50%)',
+              width: '44px',
+              height: '14px',
+              backgroundColor: '#1A1A1A',
+              borderRadius: '10px',
+            }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            {/* Signal bars */}
+            <svg width="12" height="8" viewBox="0 0 12 8">
+              <rect x="0" y="5" width="2" height="3" fill="#1A1A1A" />
+              <rect x="3" y="3" width="2" height="5" fill="#1A1A1A" />
+              <rect x="6" y="1" width="2" height="7" fill="#1A1A1A" />
+              <rect x="9" y="0" width="2" height="8" fill="#1A1A1A" />
+            </svg>
+            {/* WiFi */}
+            <svg width="10" height="8" viewBox="0 0 10 8">
+              <path d="M5 7.5a0.8 0.8 0 1 0 0-1.6 0.8 0.8 0 0 0 0 1.6z" fill="#1A1A1A" />
+              <path d="M2.5 5c1.4-1.4 3.6-1.4 5 0" stroke="#1A1A1A" strokeWidth="1" fill="none" />
+              <path d="M0.8 3c2.3-2.3 6.1-2.3 8.4 0" stroke="#1A1A1A" strokeWidth="1" fill="none" />
+            </svg>
+            {/* Battery */}
+            <div style={{ width: '16px', height: '7px', border: '1px solid #1A1A1A', borderRadius: '2px', position: 'relative' }}>
+              <div style={{ position: 'absolute', inset: '1px', backgroundColor: '#1A1A1A', borderRadius: '1px' }} />
+              <div style={{ position: 'absolute', right: '-3px', top: '1.5px', width: '2px', height: '4px', backgroundColor: '#1A1A1A', borderRadius: '0 1px 1px 0' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Content area */}
+        <div style={{ padding: '8px 8px 0', backgroundColor: '#FFF' }}>
+          {/* "Choose a service" heading */}
+          <p style={{
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '10px',
+            fontWeight: 800,
+            color: '#003756',
+            textAlign: 'center',
+            margin: '4px 0 8px',
+            letterSpacing: '-0.02em',
+          }}>
+            Choose a service
+          </p>
+
+          {/* Primary service card */}
+          <div
+            style={{
+              backgroundColor: primaryColor.bg,
+              borderRadius: '10px',
+              padding: '8px',
+              marginBottom: secondary ? '6px' : '0',
+            }}
+          >
+            <p style={{
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '10px',
+              fontWeight: 800,
+              color: primaryColor.text,
+              lineHeight: '1.1',
+              marginBottom: '4px',
+            }}>
+              Book<br />{getServiceDisplayName(primary)}
+            </p>
+            <div style={{ borderRadius: '6px', overflow: 'hidden', marginBottom: '4px' }}>
+              <img
+                src={serviceImagePath}
+                alt={getServiceDisplayName(primary)}
+                style={{ width: '100%', height: '48px', objectFit: 'cover', display: 'block' }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '6px', fontFamily: 'Outfit, sans-serif', color: primaryColor.text, opacity: 0.8 }}>Choose a service</span>
+              <ArrowRight size={7} style={{ color: primaryColor.text }} />
+            </div>
+          </div>
+
+          {/* Secondary service card (if multi-service) */}
+          {secondary && secondaryColor && (
+            <div
+              style={{
+                backgroundColor: secondaryColor.bg,
+                borderRadius: '10px',
+                padding: '8px',
+              }}
+            >
+              <p style={{
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '10px',
+                fontWeight: 800,
+                color: secondaryColor.text,
+                lineHeight: '1.1',
+                marginBottom: '4px',
+              }}>
+                Book<br />{getServiceDisplayName(secondary)}
+              </p>
+              <div style={{ borderRadius: '6px', overflow: 'hidden', marginBottom: '4px' }}>
+                <img
+                  src={getServiceImagePath(secondary)}
+                  alt={getServiceDisplayName(secondary)}
+                  style={{ width: '100%', height: '48px', objectFit: 'cover', display: 'block' }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '6px', fontFamily: 'Outfit, sans-serif', color: secondaryColor.text, opacity: 0.8 }}>Choose a service</span>
+                <ArrowRight size={7} style={{ color: secondaryColor.text }} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const QRCodeSignDisplay: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,9 +261,17 @@ const QRCodeSignDisplay: React.FC = () => {
     );
   }
 
-  const serviceImagePath = getServiceImagePath(qrCodeSign.data.serviceType);
-  const serviceDisplayName = getServiceDisplayName(qrCodeSign.data.serviceType);
-  const serviceIconPath = getServiceIconPath(qrCodeSign.data.serviceType);
+  // Resolve service types — use serviceTypes array if available, fall back to single serviceType
+  const allServiceTypes: ServiceType[] = qrCodeSign.data.serviceTypes?.length
+    ? qrCodeSign.data.serviceTypes
+    : [qrCodeSign.data.serviceType];
+  const primaryServiceType = allServiceTypes[0];
+
+  const serviceImagePath = getServiceImagePath(primaryServiceType);
+  const serviceDisplayName = allServiceTypes.length > 1
+    ? getMultiServiceDisplayName(allServiceTypes)
+    : getServiceDisplayName(primaryServiceType);
+  const primaryIconPath = getServiceIconPath(primaryServiceType);
 
   // Parse event details
   const parseEventDetails = (details: string): { date?: string, time?: string, location?: string, serviceType?: string } => {
@@ -191,23 +380,34 @@ const QRCodeSignDisplay: React.FC = () => {
 
             {/* Right Column: Event Details with Icons */}
             <div className="flex flex-col justify-center" style={{ gap: '32px', display: 'flex' }}>
-              {/* Service Type */}
+              {/* Service Type(s) */}
               <div className="flex items-center" style={{ gap: '16px' }}>
-                <div
-                  className="flex-shrink-0 flex items-center justify-center"
-                  style={{
-                    width: '56px',
-                    height: '56px'
-                  }}
-                >
-                  <img
-                    src={serviceIconPath}
-                    alt="Service Icon"
-                    style={{ width: '56px', height: '56px', objectFit: 'contain' }}
-                  />
+                <div className="flex-shrink-0 flex items-center" style={{ gap: '4px' }}>
+                  {allServiceTypes.length > 1 ? (
+                    // Show multiple service icons stacked/overlapping
+                    allServiceTypes.map((st, i) => (
+                      <img
+                        key={st}
+                        src={getServiceIconPath(st)}
+                        alt={getServiceDisplayName(st)}
+                        style={{
+                          width: allServiceTypes.length > 2 ? '40px' : '48px',
+                          height: allServiceTypes.length > 2 ? '40px' : '48px',
+                          objectFit: 'contain',
+                          marginLeft: i > 0 ? '-8px' : '0',
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <img
+                      src={primaryIconPath}
+                      alt="Service Icon"
+                      style={{ width: '56px', height: '56px', objectFit: 'contain' }}
+                    />
+                  )}
                 </div>
                 <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '20px', fontWeight: 500, color: '#003756', lineHeight: '1.25', letterSpacing: '-0.01em' }}>
-                  <div style={{ fontWeight: 700, marginBottom: '2px' }}>Service Type</div>
+                  <div style={{ fontWeight: 700, marginBottom: '2px' }}>Service{allServiceTypes.length > 1 ? 's' : ''}</div>
                   <div>{eventInfo.serviceType || serviceDisplayName}</div>
                 </div>
               </div>
@@ -296,65 +496,12 @@ const QRCodeSignDisplay: React.FC = () => {
               gap: '32px'
             }}
           >
-            {/* Left: Phone Mockup */}
+            {/* Left: Phone Mockup — matches Figma design */}
             <div style={{ flex: '0 0 auto' }}>
-              <div
-                className="relative"
-                style={{
-                  width: '140px',
-                  height: '260px',
-                  backgroundColor: 'white',
-                  borderRadius: '24px',
-                  border: '8px solid #003756',
-                  overflow: 'hidden',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.18)'
-                }}
-              >
-                {/* Phone Screen */}
-                <div
-                  className="absolute bg-white overflow-hidden"
-                  style={{
-                    top: '3px',
-                    left: '3px',
-                    right: '3px',
-                    bottom: '3px',
-                    borderRadius: '17px'
-                  }}
-                >
-                  {/* Status Bar */}
-                  <div className="h-5 bg-white flex items-center justify-between px-2 text-[9px] font-semibold">
-                    <span>9:41</span>
-                    <div className="flex items-center space-x-1">
-                      <div className="w-3 h-2.5 bg-black rounded-sm"></div>
-                    </div>
-                  </div>
-
-                  {/* App Content */}
-                  <div className="px-2 py-1 bg-gray-50" style={{ minHeight: '220px' }}>
-                    <p className="text-[9px] font-bold mb-1" style={{ fontFamily: 'Outfit, sans-serif', color: '#003756' }}>
-                      Choose a service
-                    </p>
-                    <div
-                      className="rounded-lg p-1.5"
-                      style={{ backgroundColor: '#9EFAFF' }}
-                    >
-                      <p className="text-[9px] font-bold mb-0.5" style={{ fontFamily: 'Outfit, sans-serif', color: '#003756' }}>Book</p>
-                      <p className="text-[9px] font-bold mb-1" style={{ fontFamily: 'Outfit, sans-serif', color: '#003756' }}>{serviceDisplayName}</p>
-                      <div className="rounded overflow-hidden mb-1">
-                        <img
-                          src={serviceImagePath}
-                          alt={serviceDisplayName}
-                          className="w-full h-12 object-cover"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[7px]" style={{ fontFamily: 'Outfit, sans-serif', color: '#003756' }}>Choose a service</p>
-                        <ArrowRight size={8} style={{ color: '#003756' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <PhoneMockup
+                serviceTypes={allServiceTypes}
+                serviceImagePath={serviceImagePath}
+              />
             </div>
 
             {/* Center: Scan to Book */}
@@ -395,7 +542,7 @@ const QRCodeSignDisplay: React.FC = () => {
         {/* Info Section - Hidden on Print */}
         <div className="mt-8 text-base font-medium print:hidden max-w-[8.5in] mx-auto">
           <div className="card-small">
-            <p className="text-shortcut-navy-blue mb-2"><span className="font-bold">Service Type:</span> {serviceDisplayName}</p>
+            <p className="text-shortcut-navy-blue mb-2"><span className="font-bold">Service{allServiceTypes.length > 1 ? 's' : ''}:</span> {serviceDisplayName}</p>
             <p className="text-shortcut-navy-blue mb-2"><span className="font-bold">Created:</span> {new Date(qrCodeSign.createdAt).toLocaleDateString()}</p>
             {qrCodeSign.data.qrCodeUrl && (
               <p className="text-shortcut-navy-blue">

@@ -36,4 +36,57 @@ export const getServiceDisplayName = (serviceType: ServiceType): string => {
   return displayNames[serviceType] || 'Service';
 };
 
+/**
+ * Get a combined display name for multiple service types.
+ * e.g., ['massage', 'nails'] → "Massage & Nails"
+ * e.g., ['massage', 'nails', 'facial'] → "Massage, Nails & Facials"
+ */
+export const getMultiServiceDisplayName = (serviceTypes: ServiceType[]): string => {
+  if (serviceTypes.length === 0) return 'Service';
+  if (serviceTypes.length === 1) return getServiceDisplayName(serviceTypes[0]);
 
+  const names = serviceTypes.map(t => getServiceDisplayName(t));
+  if (names.length === 2) return `${names[0]} & ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
+};
+
+/**
+ * Get the phone mockup image path for a service type.
+ * Falls back to a generic phone image if no service-specific one exists.
+ */
+export const getPhoneImagePath = (serviceType: ServiceType): string => {
+  const phoneMap: Record<ServiceType, string> = {
+    'massage': '/QR Code Sign/Phone/massage.png',
+    'hair-beauty': '/QR Code Sign/Phone/hair-beauty.png',
+    'headshot': '/QR Code Sign/Phone/headshot.png',
+    'nails': '/QR Code Sign/Phone/nails.png',
+    'mindfulness': '/QR Code Sign/Phone/mindfulness.png',
+    'facial': '/QR Code Sign/Phone/facial.png'
+  };
+  return phoneMap[serviceType] || phoneMap.massage;
+};
+
+/**
+ * Map a proposal service type string to a QR code sign ServiceType.
+ * Proposal services use different naming conventions than QR sign types.
+ */
+export const mapProposalServiceToQRType = (proposalType: string): ServiceType => {
+  const map: Record<string, ServiceType> = {
+    'massage': 'massage',
+    'chair': 'massage',
+    'chair-massage': 'massage',
+    'table-massage': 'massage',
+    'hair': 'hair-beauty',
+    'blowout': 'hair-beauty',
+    'grooming': 'hair-beauty',
+    'headshots': 'headshot',
+    'nails': 'nails',
+    'nails-hand-massage': 'nails',
+    'manicure': 'nails',
+    'facials': 'facial',
+    'facial': 'facial',
+    'mindfulness': 'mindfulness',
+    'mindfulness-cle': 'mindfulness',
+  };
+  return map[proposalType] || 'massage';
+};

@@ -195,6 +195,8 @@ export const QRCodeSignProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         eventDetails: options.eventDetails || '',
         qrCodeUrl: options.qrCodeUrl.trim(),
         serviceType: options.serviceType,
+        serviceTypes: options.serviceTypes || [options.serviceType],
+        proposalId: options.proposalId || undefined,
         partnerLogoUrl: logoUrl || undefined,
         partnerName: options.partnerName || undefined,
         isActive: true,

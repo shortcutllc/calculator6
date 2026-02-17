@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQRCodeSign } from '../contexts/QRCodeSignContext';
-import { QRCodeSignCustomization } from '../types/qrCodeSign';
+import { useProposal } from '../contexts/ProposalContext';
+import { QRCodeSignCustomization, ServiceType } from '../types/qrCodeSign';
+import { mapProposalServiceToQRType, getMultiServiceDisplayName } from '../utils/qrCodeSignUtils';
+import { getServiceTypesFromProposal, formatDateAmerican } from '../utils/proposalUtils';
+import { generateSignTitle, getAvailableTitles } from '../utils/qrSignTitleGenerator';
 import { Button } from './Button';
+import { RefreshCw } from 'lucide-react';
 
 interface QRCodeSignCreatorProps {
   onClose?: () => void;
   editingSign?: any; // QR code sign to edit (if provided)
 }
 
+const SERVICE_TYPE_OPTIONS: { value: ServiceType; label: string }[] = [
+  { value: 'massage', label: 'Massage' },
+  { value: 'hair-beauty', label: 'Hair + Beauty' },
+  { value: 'headshot', label: 'Headshots' },
+  { value: 'nails', label: 'Nails' },
+  { value: 'mindfulness', label: 'Mindfulness' },
+  { value: 'facial', label: 'Facials' },
+];
+
 const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingSign }) => {
   const navigate = useNavigate();
   const { createQRCodeSign, updateQRCodeSign, uploadPartnerLogo } = useQRCodeSign();
+  const { proposals } = useProposal();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedProposalId, setSelectedProposalId] = useState<string>(editingSign?.data?.proposalId || '');
 
   // Parse existing event details if editing
   const parseEventDetails = (details: string) => {
@@ -37,6 +53,15 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
   };
 
   const existingDetails = editingSign ? parseEventDetails(editingSign.data?.eventDetails) : null;
+
+  // Initialize selectedServices from existing sign data
+  const getInitialServices = (): ServiceType[] => {
+    if (editingSign?.data?.serviceTypes?.length) return editingSign.data.serviceTypes;
+    if (editingSign?.data?.serviceType) return [editingSign.data.serviceType];
+    return [];
+  };
+
+  const [selectedServices, setSelectedServices] = useState<ServiceType[]>(getInitialServices());
 
   const [options, setOptions] = useState({
     title: editingSign?.data?.title || '',
@@ -70,11 +95,94 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
         customization: editingSign.customization || {}
       });
       setUpdatedLogoUrl(null);
+      if (editingSign.data?.serviceTypes?.length) {
+        setSelectedServices(editingSign.data.serviceTypes);
+      } else if (editingSign.data?.serviceType) {
+        setSelectedServices([editingSign.data.serviceType]);
+      }
+      setSelectedProposalId(editingSign.data?.proposalId || '');
     }
   }, [editingSign]);
 
   const [logoInputType, setLogoInputType] = useState<'file' | 'url'>('file');
   const [updatedLogoUrl, setUpdatedLogoUrl] = useState<string | null>(null);
+
+  // Sort proposals by most recent, exclude test proposals
+  const sortedProposals = useMemo(() => {
+    return [...proposals]
+      .filter(p => !p.data.clientName?.toLowerCase().includes('test'))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [proposals]);
+
+  // Handle service checkbox toggle
+  const handleServiceToggle = (serviceType: ServiceType) => {
+    setSelectedServices(prev => {
+      if (prev.includes(serviceType)) {
+        return prev.filter(s => s !== serviceType);
+      }
+      if (prev.length >= 3) return prev; // Max 3
+      return [...prev, serviceType];
+    });
+  };
+
+  // Handle proposal selection and auto-fill
+  const handleProposalSelect = useCallback((proposalId: string) => {
+    setSelectedProposalId(proposalId);
+    if (!proposalId) return;
+
+    const proposal = proposals.find(p => p.id === proposalId);
+    if (!proposal) return;
+
+    // Extract service types from proposal
+    const proposalServiceTypes = getServiceTypesFromProposal(proposal);
+    const mappedTypes = [...new Set(proposalServiceTypes.map(mapProposalServiceToQRType))];
+    const limitedTypes = mappedTypes.slice(0, 3); // Max 3
+
+    // Set selected services
+    setSelectedServices(limitedTypes);
+
+    // Auto-generate title
+    const title = generateSignTitle(limitedTypes as ServiceType[], proposal.data.clientName);
+
+    // Auto-fill fields
+    setOptions(prev => ({
+      ...prev,
+      title,
+      serviceType: limitedTypes[0] || prev.serviceType,
+      serviceTypeText: getMultiServiceDisplayName(limitedTypes as ServiceType[]),
+      partnerName: proposal.data.clientName || '',
+      partnerLogoUrl: proposal.data.clientLogoUrl || '',
+      qrCodeUrl: `${window.location.origin}/shared/${proposal.id}`,
+      eventDate: proposal.data.eventDates?.[0] ? formatDateAmerican(proposal.data.eventDates[0]) : '',
+      location: proposal.data.locations?.[0] || '',
+    }));
+
+    // Clear errors on auto-fill
+    setErrors({});
+  }, [proposals]);
+
+  // Regenerate title from current selected services
+  const handleRegenerateTitle = () => {
+    const titles = getAvailableTitles(selectedServices);
+    // Pick a random title that's different from current
+    const available = titles.filter(t => t !== options.title);
+    if (available.length > 0) {
+      const randomTitle = available[Math.floor(Math.random() * available.length)];
+      setOptions(prev => ({ ...prev, title: randomTitle }));
+    }
+  };
+
+  // Auto-update service type text when services change
+  React.useEffect(() => {
+    if (selectedServices.length > 0) {
+      const displayName = getMultiServiceDisplayName(selectedServices);
+      setOptions(prev => ({
+        ...prev,
+        serviceType: selectedServices[0],
+        serviceTypeText: displayName,
+      }));
+    }
+  }, [selectedServices]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -83,10 +191,13 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
       newErrors.title = 'Title is required';
     }
 
+    if (options.title.length > 60) {
+      newErrors.title = 'Title must be 60 characters or less';
+    }
+
     if (!options.qrCodeUrl.trim()) {
       newErrors.qrCodeUrl = 'QR code URL is required';
     } else {
-      // Basic URL validation
       try {
         new URL(options.qrCodeUrl);
       } catch {
@@ -94,11 +205,10 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
       }
     }
 
-    if (!options.serviceType) {
-      newErrors.serviceType = 'Service type is required';
+    if (selectedServices.length === 0) {
+      newErrors.serviceType = 'Select at least one service type';
     }
 
-    // Validate logo URL if provided
     if (options.partnerLogoUrl && !validateLogoUrl(options.partnerLogoUrl)) {
       // Error already set in validateLogoUrl function
     }
@@ -135,7 +245,6 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
   const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.includes('svg') && !file.type.includes('image/')) {
         setErrors(prev => ({
           ...prev,
@@ -144,7 +253,6 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
         return;
       }
 
-      // Validate file size (5MB limit)
       if (file.size > 5 * 1024 * 1024) {
         setErrors(prev => ({
           ...prev,
@@ -153,12 +261,11 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
         return;
       }
 
-      // Clear any previous errors and reset URL when uploading file
       setErrors(prev => ({ ...prev, partnerLogoFile: '', partnerLogoUrl: '' }));
       setOptions(prev => ({
         ...prev,
         partnerLogoFile: file,
-        partnerLogoUrl: '' // Clear URL when uploading file
+        partnerLogoUrl: ''
       }));
     }
   };
@@ -168,23 +275,22 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
     setOptions(prev => ({
       ...prev,
       partnerLogoUrl: url,
-      partnerLogoFile: null // Clear file when using URL
+      partnerLogoFile: null
     }));
     setErrors(prev => ({ ...prev, partnerLogoUrl: '' }));
   };
 
   const validateLogoUrl = (url: string): boolean => {
-    if (!url) return true; // URL is optional
+    if (!url) return true;
 
     try {
       new URL(url);
-      // Check if it's an image URL
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'];
       const hasImageExtension = imageExtensions.some(ext =>
         url.toLowerCase().includes(ext)
       );
 
-      if (!hasImageExtension && !url.includes('data:image/')) {
+      if (!hasImageExtension && !url.includes('data:image/') && !url.includes('supabase')) {
         setErrors(prev => ({
           ...prev,
           partnerLogoUrl: 'Please enter a valid image URL'
@@ -232,7 +338,9 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
         title: options.title.trim(),
         eventDetails: eventDetails,
         qrCodeUrl: options.qrCodeUrl.trim(),
-        serviceType: options.serviceType,
+        serviceType: selectedServices[0] || options.serviceType,
+        serviceTypes: selectedServices,
+        proposalId: selectedProposalId || undefined,
         partnerLogoFile: options.partnerLogoFile || undefined,
         partnerLogoUrl: options.partnerLogoUrl || undefined,
         partnerName: options.partnerName.trim() || undefined,
@@ -242,23 +350,22 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
       let qrCodeSignId;
 
       if (editingSign) {
-        // Update existing sign
         let logoUrl = editingSign.data.partnerLogoUrl || '';
 
-        // Upload new logo if provided (file takes precedence over URL)
         if (options.partnerLogoFile) {
           logoUrl = await uploadPartnerLogo(options.partnerLogoFile);
         } else if (options.partnerLogoUrl && options.partnerLogoUrl !== editingSign.data.partnerLogoUrl) {
           logoUrl = options.partnerLogoUrl;
         }
 
-        // Update the sign data
         const updateData = {
           ...editingSign.data,
           title: options.title.trim(),
           eventDetails: eventDetails,
           qrCodeUrl: options.qrCodeUrl.trim(),
-          serviceType: options.serviceType,
+          serviceType: selectedServices[0] || options.serviceType,
+          serviceTypes: selectedServices,
+          proposalId: selectedProposalId || undefined,
           partnerLogoUrl: logoUrl,
           partnerName: options.partnerName.trim() || undefined,
           updatedAt: new Date().toISOString()
@@ -272,7 +379,6 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
         qrCodeSignId = editingSign.id;
         setUpdatedLogoUrl(logoUrl);
       } else {
-        // Create new sign
         qrCodeSignId = await createQRCodeSign(qrCodeSignOptions);
       }
 
@@ -288,15 +394,6 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
       setLoading(false);
     }
   };
-
-  const serviceTypes = [
-    { value: 'massage', label: 'Massage' },
-    { value: 'hair-beauty', label: 'Hair + Beauty' },
-    { value: 'headshot', label: 'Headshots' },
-    { value: 'nails', label: 'Nails' },
-    { value: 'mindfulness', label: 'Mindfulness' },
-    { value: 'facial', label: 'Facials' }
-  ];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -316,50 +413,108 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
+
+          {/* Proposal Link (Optional) */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl lg:text-2xl font-extrabold text-shortcut-navy-blue">Link to Proposal</h3>
+              <span className="text-sm font-medium text-shortcut-navy-blue opacity-40">Optional</span>
+            </div>
+            <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium">
+              Select a proposal to auto-fill sign details (company, services, date, location, QR code link)
+            </p>
+            <select
+              value={selectedProposalId}
+              onChange={(e) => handleProposalSelect(e.target.value)}
+              className="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all"
+            >
+              <option value="">— Select a proposal —</option>
+              {sortedProposals.map(p => {
+                const date = p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                return (
+                  <option key={p.id} value={p.id}>
+                    {p.data.clientName || 'Untitled'} — {p.status} — {date}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
           {/* Sign Content */}
           <div className="space-y-6">
             <h3 className="text-xl lg:text-2xl font-extrabold text-shortcut-navy-blue">Sign Content</h3>
 
+            {/* Event Title with character count and regenerate */}
             <div>
               <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
                 Event Title *
               </label>
-              <input
-                type="text"
-                value={options.title}
-                onChange={(e) => handleFieldChange('title', e.target.value)}
-                className={`w-full px-4 py-3 text-base font-medium border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
-                  errors.title ? 'border-accent-coral' : 'border-gray-300'
-                }`}
-                placeholder="e.g., Complimentary Massage Services for Powin PDX Employees"
-              />
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={options.title}
+                    onChange={(e) => handleFieldChange('title', e.target.value)}
+                    maxLength={60}
+                    className={`w-full px-4 py-3 text-base font-medium border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
+                      errors.title ? 'border-accent-coral' : 'border-gray-300'
+                    }`}
+                    placeholder="e.g., Your Massage Break Awaits"
+                  />
+                  <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                    options.title.length > 55 ? 'text-accent-coral' : 'text-shortcut-navy-blue opacity-40'
+                  }`}>
+                    {options.title.length}/60
+                  </span>
+                </div>
+                {selectedServices.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleRegenerateTitle}
+                    className="px-3 py-3 border-2 border-gray-300 rounded-lg hover:border-shortcut-teal hover:bg-shortcut-teal/5 transition-all"
+                    title="Generate a new title"
+                  >
+                    <RefreshCw size={18} className="text-shortcut-navy-blue opacity-60" />
+                  </button>
+                )}
+              </div>
               {errors.title && (
                 <p className="text-accent-coral text-sm font-medium mt-2">{errors.title}</p>
               )}
             </div>
 
+            {/* Service Types — Multi-select checkboxes */}
             <div>
               <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
-                Service Type (Category) *
+                Service Type(s) * <span className="font-medium opacity-60">(select up to 3)</span>
               </label>
-              <select
-                value={options.serviceType}
-                onChange={(e) => handleFieldChange('serviceType', e.target.value)}
-                className={`w-full px-4 py-3 text-base font-medium border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all ${
-                  errors.serviceType ? 'border-accent-coral' : 'border-gray-300'
-                }`}
-              >
-                {serviceTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {SERVICE_TYPE_OPTIONS.map((type) => {
+                  const isSelected = selectedServices.includes(type.value);
+                  const isDisabled = !isSelected && selectedServices.length >= 3;
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => !isDisabled && handleServiceToggle(type.value)}
+                      className={`px-4 py-3 rounded-lg border-2 text-sm font-bold transition-all ${
+                        isSelected
+                          ? 'border-shortcut-teal bg-shortcut-teal/10 text-shortcut-navy-blue'
+                          : isDisabled
+                            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                            : 'border-gray-300 text-shortcut-navy-blue hover:border-shortcut-teal/50'
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  );
+                })}
+              </div>
               {errors.serviceType && (
                 <p className="text-accent-coral text-sm font-medium mt-2">{errors.serviceType}</p>
               )}
               <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium mt-2">
-                This determines which image appears on the sign
+                The first selected service determines the hero image on the sign
               </p>
             </div>
 
@@ -401,7 +556,7 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
                 placeholder="e.g., Compression & Sports"
               />
               <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium mt-2">
-                Optional custom text for service type (will use category if left blank)
+                Auto-generated from selected services. Override if you want custom text.
               </p>
             </div>
 
@@ -479,7 +634,7 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
                       src={currentLogoUrl}
                       alt="Current logo"
                       className="h-12 w-auto object-contain"
-                      onError={(e) => console.error('❌ Logo image failed to load:', currentLogoUrl)}
+                      onError={(e) => console.error('Logo image failed to load:', currentLogoUrl)}
                     />
                     <p className="text-xs font-medium text-shortcut-navy-blue opacity-60 mt-2">Upload a new file or paste a URL to replace this logo</p>
                   </div>
