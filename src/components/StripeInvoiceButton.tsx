@@ -1,71 +1,92 @@
 import React, { useState } from 'react';
-import { Receipt } from 'lucide-react';
+import { Receipt, ExternalLink, CheckCircle } from 'lucide-react';
 import { Button } from './Button';
 import { supabase } from '../lib/supabaseClient';
 
 interface StripeInvoiceButtonProps {
+  proposalId: string;
   proposalData: any;
+  pricingOptions?: any;
+  selectedOptions?: any;
+  clientEmail?: string;
+  existingInvoiceUrl?: string | null;
+  onSuccess?: (invoiceUrl: string) => void;
 }
 
-export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ proposalData }) => {
+export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
+  proposalId,
+  proposalData,
+  pricingOptions,
+  selectedOptions,
+  clientEmail,
+  existingInvoiceUrl,
+  onSuccess
+}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(existingInvoiceUrl || null);
+
+  // If already invoiced, show view-only state
+  if (invoiceUrl) {
+    return (
+      <div className="flex items-center gap-2">
+        <CheckCircle size={16} className="text-green-600 shrink-0" />
+        <a
+          href={invoiceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-shortcut-blue hover:text-shortcut-teal transition-colors"
+        >
+          View Invoice
+          <ExternalLink size={14} />
+        </a>
+      </div>
+    );
+  }
 
   const handleCreateInvoice = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      if (!proposalData || !proposalData.clientName) {
-        throw new Error('Invalid proposal data: Missing client information');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/.netlify/functions/create-stripe-invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          proposalId,
+          proposalData,
+          pricingOptions: pricingOptions || null,
+          selectedOptions: selectedOptions || null,
+          clientEmail: clientEmail || null
+        })
+      });
+
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error(`Server returned invalid response (${response.status}): ${text.slice(0, 200)}`);
       }
 
-      console.log('Creating customer for proposal:', proposalData.id);
-      
-      // First create or get customer
-      const { data: customerData, error: customerError } = await supabase
-        .functions
-        .invoke('create-customer', {
-          body: { proposalData }
-        });
-
-      if (customerError) {
-        console.error('Customer creation error:', customerError);
-        throw new Error('Failed to create customer');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create invoice');
       }
 
-      if (!customerData?.customerId) {
-        throw new Error('Customer creation failed: No customer ID returned');
-      }
+      setInvoiceUrl(result.invoiceUrl);
+      onSuccess?.(result.invoiceUrl);
 
-      console.log('Customer created successfully:', customerData.customerId);
-
-      // Then create invoice with customer ID
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .functions
-        .invoke('create-invoice', {
-          body: { 
-            proposalData,
-            customerId: customerData.customerId
-          }
-        });
-
-      if (invoiceError) {
-        console.error('Invoice creation error:', invoiceError);
-        throw new Error('Failed to create invoice');
-      }
-
-      if (!invoiceData?.invoiceUrl) {
-        throw new Error('Invoice creation failed: No invoice URL returned');
-      }
-
-      console.log('Invoice created successfully:', invoiceData.invoiceId);
-
-      // Open invoice in new tab
-      window.open(invoiceData.invoiceUrl, '_blank');
-    } catch (error) {
-      console.error('Error creating invoice:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create invoice');
+      // Open Stripe hosted invoice in new tab
+      window.open(result.invoiceUrl, '_blank');
+    } catch (err) {
+      console.error('Error creating invoice:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create invoice');
     } finally {
       setLoading(false);
     }
@@ -75,7 +96,7 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ propos
     <div>
       <Button
         onClick={handleCreateInvoice}
-        variant="primary"
+        variant="secondary"
         icon={<Receipt size={18} />}
         loading={loading}
         disabled={loading}
@@ -83,9 +104,7 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({ propos
         {loading ? 'Creating Invoice...' : 'Create Invoice'}
       </Button>
       {error && (
-        <p className="text-red-600 text-sm mt-2">
-          {error}
-        </p>
+        <p className="text-red-600 text-sm mt-1">{error}</p>
       )}
     </div>
   );

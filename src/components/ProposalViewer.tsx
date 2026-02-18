@@ -16,6 +16,7 @@ import LocationSummary from './LocationSummary';
 import ShareProposalModal from './ShareProposalModal';
 import { ProposalChangeSet, ProposalChange } from '../types/proposal';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
+import { StripeInvoiceButton } from './StripeInvoiceButton';
 import { trackProposalChanges, getChangeDisplayInfo } from '../utils/changeTracker';
 
 // Service defaults for applying when changing service type
@@ -2055,6 +2056,20 @@ The Shortcut Team`);
                     {showCopied ? 'Copied!' : 'Copy Link'}
                   </Button>
                 </div>
+                {currentProposal?.status === 'approved' && (
+                  <StripeInvoiceButton
+                    proposalId={id!}
+                    proposalData={displayData}
+                    pricingOptions={currentProposal.pricingOptions}
+                    selectedOptions={currentProposal.selectedOptions}
+                    clientEmail={currentProposal.clientEmail}
+                    existingInvoiceUrl={currentProposal.stripeInvoiceId ? undefined : null}
+                    onSuccess={async () => {
+                      // Refresh proposal to pick up stripe_invoice_id
+                      if (id) await getProposal(id);
+                    }}
+                  />
+                )}
               </>
             )}
           </div>

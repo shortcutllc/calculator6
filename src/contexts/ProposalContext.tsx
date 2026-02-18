@@ -58,7 +58,9 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Test proposal flag
     isTest: dbProposal.is_test || false,
     // Proposal type
-    proposal_type: dbProposal.proposal_type || 'event'
+    proposal_type: dbProposal.proposal_type || 'event',
+    // Stripe invoice
+    stripeInvoiceId: dbProposal.stripe_invoice_id || null
   });
 
   const fetchProposals = async () => {

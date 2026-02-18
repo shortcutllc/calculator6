@@ -204,6 +204,8 @@ export interface Proposal {
   isTest?: boolean;
   // Proposal type
   proposal_type?: 'event' | 'mindfulness-program';
+  // Stripe invoice
+  stripeInvoiceId?: string | null;
 }
 
 // Change tracking interfaces

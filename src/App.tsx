@@ -19,6 +19,7 @@ import { HolidayPageProvider } from './contexts/HolidayPageContext';
 import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
 import { QRCodeSignProvider } from './contexts/QRCodeSignContext';
 import { ClientEmailProvider } from './contexts/ClientEmailContext';
+import { InvoiceProvider } from './contexts/InvoiceContext';
 import { GenericLandingPageProvider } from './contexts/GenericLandingPageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -43,6 +44,7 @@ const Plan2026 = lazy(() => import('./components/Plan2026'));
 const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
 const CLELandingPage = lazy(() => import('./components/CLELandingPage'));
 const ClientEmailManager = lazy(() => import('./components/ClientEmailManager'));
+const InvoiceManager = lazy(() => import('./components/InvoiceManager'));
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 
 function App() {
@@ -368,6 +370,22 @@ function App() {
                         <ClientEmailManager />
                       </Suspense>
                     </ClientEmailProvider>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/invoices"
+                element={
+                  <PrivateRoute>
+                    <InvoiceProvider>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <InvoiceManager />
+                      </Suspense>
+                    </InvoiceProvider>
                   </PrivateRoute>
                 }
               />
