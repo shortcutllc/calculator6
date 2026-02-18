@@ -1621,14 +1621,15 @@ export const StandaloneProposalViewer: React.FC = () => {
                     alt={`${displayData.clientName} Logo`}
                     className="h-10 md:h-16 max-w-[160px] md:max-w-[200px] object-contain"
                     onError={(e) => {
-                      // Hide broken logo images gracefully
                       e.currentTarget.style.display = 'none';
                     }}
                   />
                 )}
-                <h1 className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">
-                  {displayData.clientName}
-                </h1>
+                {!displayData.clientLogoUrl && (
+                  <h1 className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">
+                    {displayData.clientName}
+                  </h1>
+                )}
               </div>
 
               {/* Total Cost - Prominent Display */}
