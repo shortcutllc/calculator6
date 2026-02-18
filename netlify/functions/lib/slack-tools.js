@@ -48,7 +48,11 @@ const TOOL_HANDLERS = {
   link_proposals: handleLinkProposals,
   unlink_proposal: handleUnlinkProposal,
   create_landing_page: handleCreateLandingPage,
-  get_landing_page: handleGetLandingPage
+  get_landing_page: handleGetLandingPage,
+  create_qr_code_sign: handleCreateQRCodeSign,
+  get_qr_code_sign: handleGetQRCodeSign,
+  list_qr_code_signs: handleListQRCodeSigns,
+  edit_qr_code_sign: handleEditQRCodeSign
 };
 
 // --- Create Proposal ---
@@ -544,6 +548,230 @@ async function handleGetLandingPage(params, supabase) {
     data: result.page.data,
     customization: result.page.customization,
     status: result.page.status
+  };
+}
+
+// --- QR Code Sign Tools ---
+
+const QR_SIGN_BASE_URL = 'https://proposals.getshortcut.co/qr-code-sign';
+
+function generateUniqueToken() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+async function handleCreateQRCodeSign(params, supabase, userId) {
+  if (!params.title) return { error: 'title is required' };
+  if (!params.serviceTypes || !Array.isArray(params.serviceTypes) || params.serviceTypes.length === 0) {
+    return { error: 'serviceTypes is required (array of 1-3 service types)' };
+  }
+  if (!params.qrCodeUrl) return { error: 'qrCodeUrl is required' };
+
+  let partnerName = params.partnerName || null;
+  let partnerLogoUrl = params.partnerLogoUrl || null;
+  let serviceTypes = params.serviceTypes;
+
+  // If proposalId provided, fetch proposal to auto-fill missing fields
+  if (params.proposalId) {
+    try {
+      const { data: proposal } = await supabase
+        .from('proposals')
+        .select('data')
+        .eq('id', params.proposalId)
+        .single();
+
+      if (proposal?.data) {
+        if (!partnerName) partnerName = proposal.data.clientName || null;
+        if (!partnerLogoUrl) partnerLogoUrl = proposal.data.clientLogoUrl || null;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch linked proposal:', e.message);
+    }
+  }
+
+  // Auto-search for logo if we have a partner name but no logo
+  if (partnerName && !partnerLogoUrl) {
+    try {
+      const { data: existingProposals } = await supabase
+        .from('proposals')
+        .select('client_logo_url')
+        .ilike('client_name', partnerName.trim())
+        .not('client_logo_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (existingProposals?.[0]?.client_logo_url) {
+        partnerLogoUrl = existingProposals[0].client_logo_url;
+      }
+    } catch (e) {
+      console.warn('Auto logo search for QR sign failed:', e.message);
+    }
+  }
+
+  const uniqueToken = generateUniqueToken();
+  const now = new Date().toISOString();
+
+  const signData = {
+    data: {
+      title: params.title.trim(),
+      eventDetails: params.eventDetails || '',
+      qrCodeUrl: params.qrCodeUrl.trim(),
+      serviceType: serviceTypes[0],
+      serviceTypes,
+      proposalId: params.proposalId || null,
+      partnerName,
+      partnerLogoUrl,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now
+    },
+    customization: {},
+    is_editable: true,
+    user_id: userId,
+    status: 'published',
+    unique_token: uniqueToken,
+    custom_url: null
+  };
+
+  const { data: created, error } = await supabase
+    .from('qr_code_signs')
+    .insert(signData)
+    .select()
+    .single();
+
+  if (error) return { error: `Failed to create QR code sign: ${error.message}` };
+
+  const url = `${QR_SIGN_BASE_URL}/${uniqueToken}`;
+
+  return {
+    success: true,
+    signId: created.id,
+    url,
+    title: params.title.trim(),
+    serviceTypes,
+    partnerName,
+    logoApplied: !!partnerLogoUrl,
+    uniqueToken
+  };
+}
+
+async function handleGetQRCodeSign(params, supabase) {
+  if (!params.signId) return { error: 'signId is required' };
+
+  // Try UUID first
+  let { data: sign, error } = await supabase
+    .from('qr_code_signs')
+    .select('*')
+    .eq('id', params.signId)
+    .single();
+
+  // Fall back to unique_token
+  if (!sign) {
+    ({ data: sign, error } = await supabase
+      .from('qr_code_signs')
+      .select('*')
+      .eq('unique_token', params.signId)
+      .single());
+  }
+
+  if (!sign) return { error: 'QR code sign not found' };
+
+  return {
+    success: true,
+    signId: sign.id,
+    url: `${QR_SIGN_BASE_URL}/${sign.unique_token}`,
+    title: sign.data.title,
+    serviceTypes: sign.data.serviceTypes || [sign.data.serviceType],
+    eventDetails: sign.data.eventDetails,
+    qrCodeUrl: sign.data.qrCodeUrl,
+    partnerName: sign.data.partnerName,
+    partnerLogoUrl: sign.data.partnerLogoUrl,
+    proposalId: sign.data.proposalId,
+    status: sign.status,
+    createdAt: sign.created_at
+  };
+}
+
+async function handleListQRCodeSigns(params, supabase) {
+  const limit = params?.limit || 10;
+
+  let query = supabase
+    .from('qr_code_signs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (params?.searchTerm) {
+    const term = `%${params.searchTerm}%`;
+    query = query.or(`data->>title.ilike.${term},data->>partnerName.ilike.${term}`);
+  }
+
+  const { data: signs, error } = await query;
+
+  if (error) return { error: `Failed to list QR code signs: ${error.message}` };
+
+  return {
+    success: true,
+    count: signs.length,
+    signs: signs.map(sign => ({
+      signId: sign.id,
+      url: `${QR_SIGN_BASE_URL}/${sign.unique_token}`,
+      title: sign.data.title,
+      serviceTypes: sign.data.serviceTypes || [sign.data.serviceType],
+      partnerName: sign.data.partnerName || null,
+      status: sign.status,
+      createdAt: sign.created_at
+    }))
+  };
+}
+
+async function handleEditQRCodeSign(params, supabase) {
+  if (!params.signId) return { error: 'signId is required' };
+
+  // Fetch existing sign
+  const { data: existing, error: fetchError } = await supabase
+    .from('qr_code_signs')
+    .select('*')
+    .eq('id', params.signId)
+    .single();
+
+  if (!existing) return { error: 'QR code sign not found' };
+
+  // Merge updates into existing data
+  const updatedData = { ...existing.data };
+  if (params.title) updatedData.title = params.title.trim();
+  if (params.eventDetails !== undefined) updatedData.eventDetails = params.eventDetails;
+  if (params.qrCodeUrl) updatedData.qrCodeUrl = params.qrCodeUrl.trim();
+  if (params.serviceTypes) {
+    updatedData.serviceTypes = params.serviceTypes;
+    updatedData.serviceType = params.serviceTypes[0];
+  }
+  if (params.partnerName !== undefined) updatedData.partnerName = params.partnerName;
+  if (params.partnerLogoUrl !== undefined) updatedData.partnerLogoUrl = params.partnerLogoUrl;
+  updatedData.updatedAt = new Date().toISOString();
+
+  const updatePayload = {
+    data: updatedData,
+    updated_at: new Date().toISOString()
+  };
+  if (params.status) updatePayload.status = params.status;
+
+  const { data: updated, error: updateError } = await supabase
+    .from('qr_code_signs')
+    .update(updatePayload)
+    .eq('id', params.signId)
+    .select()
+    .single();
+
+  if (updateError) return { error: `Failed to update QR code sign: ${updateError.message}` };
+
+  return {
+    success: true,
+    signId: updated.id,
+    url: `${QR_SIGN_BASE_URL}/${updated.unique_token}`,
+    title: updated.data.title,
+    serviceTypes: updated.data.serviceTypes || [updated.data.serviceType],
+    partnerName: updated.data.partnerName,
+    status: updated.status
   };
 }
 

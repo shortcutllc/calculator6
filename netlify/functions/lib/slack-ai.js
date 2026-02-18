@@ -170,6 +170,19 @@ Discounts apply to the service cost.
 - If the user says "mark them as a returning/recurring client", set isReturningClient: true.
 - After creating the landing page, report whether a logo was found. If logoApplied is false, tell the user: "I couldn't find a logo — if you have one, send me the URL and I can update the page."
 
+## QR Code Signs
+- When a user says "create a QR code sign", "make a sign", "QR sign", or similar → call create_qr_code_sign.
+- QR code signs are physical print signs (8.5" × 11") with a title, service image, event details, phone mockup, and QR code linking to a booking page.
+- Service types for signs: massage, hair-beauty, headshot, nails, mindfulness, facial (max 3 per sign).
+- When linking to a proposal, pass the proposalId — the tool will auto-fill partner name, logo, and services from the proposal.
+- If the user provides a company name, event date, time, or location, build the eventDetails string with the format:
+  "Service Type: Massage\\nDate: March 5th\\nTime: 1:00 PM - 5:00 PM\\nLocation: Quiet Room"
+- The qrCodeUrl is the URL that the QR code will link to — typically a proposal link or booking page.
+- Sign URLs follow the format: https://proposals.getshortcut.co/qr-code-sign/{uniqueToken}
+- NEVER fabricate a sign URL. ALWAYS use the exact "url" field returned by the tool.
+- After creating a sign, share the URL so the user can view/print it.
+- To see existing signs, use list_qr_code_signs. To view a specific sign, use get_qr_code_sign.
+
 ## Key Behaviors
 1. When a client name is mentioned, ALWAYS call lookup_client first to check for existing data (logo, locations, past proposals).
 2. When the user says "X appointments" but doesn't specify hours and pros, call calculate_pricing to show staffing options.
@@ -453,6 +466,73 @@ const TOOLS = [
         pageId: { type: 'string', description: 'UUID of the landing page' }
       },
       required: ['pageId']
+    }
+  },
+  // --- QR Code Sign Tools ---
+  {
+    name: 'create_qr_code_sign',
+    description: 'Create a QR code sign for an event. Returns the sign ID and URL for viewing/printing. Can optionally link to an existing proposal to auto-fill partner info and services.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Event title for the sign (e.g., "Powin PDX Team, Your Massage Day Is Here")' },
+        serviceTypes: {
+          type: 'array',
+          items: { type: 'string', enum: ['massage', 'hair-beauty', 'headshot', 'nails', 'mindfulness', 'facial'] },
+          description: 'Array of 1-3 service types for the sign'
+        },
+        qrCodeUrl: { type: 'string', description: 'URL the QR code links to (e.g., proposal URL or booking page)' },
+        eventDetails: { type: 'string', description: 'Multi-line event details. Format: "Service Type: Massage\\nDate: March 5th\\nTime: 1:00 PM - 5:00 PM\\nLocation: Quiet Room"' },
+        partnerName: { type: 'string', description: 'Company/partner name' },
+        partnerLogoUrl: { type: 'string', description: 'URL to partner logo' },
+        proposalId: { type: 'string', description: 'UUID of a proposal to link — auto-fills partner info and services if not provided' }
+      },
+      required: ['title', 'serviceTypes', 'qrCodeUrl']
+    }
+  },
+  {
+    name: 'get_qr_code_sign',
+    description: 'Get details of a specific QR code sign by ID or unique token.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        signId: { type: 'string', description: 'UUID or unique token of the QR code sign' }
+      },
+      required: ['signId']
+    }
+  },
+  {
+    name: 'list_qr_code_signs',
+    description: 'List QR code signs, optionally filtered by search term or service type.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        searchTerm: { type: 'string', description: 'Filter by title or partner name' },
+        serviceType: { type: 'string', enum: ['massage', 'hair-beauty', 'headshot', 'nails', 'mindfulness', 'facial'], description: 'Filter by service type' },
+        limit: { type: 'integer', description: 'Max results to return (default 10)' }
+      }
+    }
+  },
+  {
+    name: 'edit_qr_code_sign',
+    description: 'Update an existing QR code sign. Only pass the fields you want to change.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        signId: { type: 'string', description: 'UUID of the QR code sign to edit' },
+        title: { type: 'string', description: 'New event title' },
+        eventDetails: { type: 'string', description: 'New event details' },
+        qrCodeUrl: { type: 'string', description: 'New QR code URL' },
+        serviceTypes: {
+          type: 'array',
+          items: { type: 'string', enum: ['massage', 'hair-beauty', 'headshot', 'nails', 'mindfulness', 'facial'] },
+          description: 'New service types (1-3)'
+        },
+        partnerName: { type: 'string', description: 'New partner name' },
+        partnerLogoUrl: { type: 'string', description: 'New partner logo URL' },
+        status: { type: 'string', enum: ['draft', 'published', 'archived'], description: 'New status' }
+      },
+      required: ['signId']
     },
     cache_control: { type: 'ephemeral' }  // Cache breakpoint 1: all tool definitions
   }
