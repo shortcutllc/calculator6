@@ -595,76 +595,11 @@ export const StandaloneProposalViewer: React.FC = () => {
         }, 0);
         console.log(`[StandaloneProposalViewer] Total services in data.data: ${serviceCount}`);
 
-        // Preserve gratuity fields from proposal data before recalculation
-        const gratuityType = data.data?.gratuityType || null;
-        const gratuityValue = data.data?.gratuityValue || null;
-
-        const calculatedData = recalculateServiceTotals(data.data);
-
-        // Restore gratuity fields after recalculation
-        if (gratuityType) calculatedData.gratuityType = gratuityType;
-        if (gratuityValue !== null) calculatedData.gratuityValue = gratuityValue;
-
-        // Ensure classLength and mindfulnessType are set correctly for mindfulness services
-        if (calculatedData.services) {
-          Object.values(calculatedData.services).forEach((locationData: any) => {
-            Object.values(locationData).forEach((dateData: any) => {
-              dateData.services?.forEach((service: any) => {
-                if (service.serviceType === 'mindfulness') {
-                  // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
-                  let targetClassLength = 45;
-                  let targetFixedPrice = 1375;
-                  let targetMindfulnessType = 'intro';
-
-                  // If mindfulnessType exists, use it to determine classLength
-                  if (service.mindfulnessType === 'drop-in') {
-                    targetClassLength = 30;
-                    targetFixedPrice = 1250;
-                    targetMindfulnessType = 'drop-in';
-                  } else if (service.mindfulnessType === 'mindful-movement') {
-                    targetClassLength = 60;
-                    targetFixedPrice = 1500;
-                    targetMindfulnessType = 'mindful-movement';
-                  } else if (service.mindfulnessType === 'intro') {
-                    targetClassLength = 45;
-                    targetFixedPrice = 1375;
-                    targetMindfulnessType = 'intro';
-                  } else if (service.classLength) {
-                    // No mindfulnessType, infer from classLength
-                    if (service.classLength === 30) {
-                      targetClassLength = 30;
-                      targetFixedPrice = 1250;
-                      targetMindfulnessType = 'drop-in';
-                    } else if (service.classLength === 60) {
-                      targetClassLength = 60;
-                      targetFixedPrice = 1500;
-                      targetMindfulnessType = 'mindful-movement';
-                    } else {
-                      // Default to intro (45 minutes)
-                      targetClassLength = 45;
-                      targetFixedPrice = 1375;
-                      targetMindfulnessType = 'intro';
-                    }
-                  } else {
-                    // No mindfulnessType and no classLength, default to intro
-                    targetClassLength = 45;
-                    targetFixedPrice = 1375;
-                    targetMindfulnessType = 'intro';
-                  }
-
-                  // Apply the determined values
-                  service.classLength = targetClassLength;
-                  service.mindfulnessType = targetMindfulnessType;
-                  service.fixedPrice = targetFixedPrice;
-                }
-              });
-            });
-          });
-        }
-        
-        // Load pricing options from the database
-        if (data.pricing_options && data.selected_options) {
-          Object.entries(calculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+        // Attach pricing options to data.data BEFORE recalculation so
+        // recalculateServiceTotals uses the selected option's cost in the summary.
+        if (data.pricing_options && data.selected_options && data.data.services) {
+          Object.entries(data.data.services).forEach(([location, locationData]: [string, any]) => {
+            if (Array.isArray(locationData)) return; // skip array-format (handled by recalc transform)
             Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
               dateData.services?.forEach((service: any, serviceIndex: number) => {
                 const key = `${location}-${date}-${serviceIndex}`;
@@ -675,8 +610,18 @@ export const StandaloneProposalViewer: React.FC = () => {
               });
             });
           });
-          calculatedData.hasPricingOptions = data.has_pricing_options || false;
+          data.data.hasPricingOptions = data.has_pricing_options || false;
         }
+
+        // Preserve gratuity fields from proposal data before recalculation
+        const gratuityType = data.data?.gratuityType || null;
+        const gratuityValue = data.data?.gratuityValue || null;
+
+        const calculatedData = recalculateServiceTotals(data.data);
+
+        // Restore gratuity fields after recalculation
+        if (gratuityType) calculatedData.gratuityType = gratuityType;
+        if (gratuityValue !== null) calculatedData.gratuityValue = gratuityValue;
         
         // Check if this is an update (not initial load)
         const isUpdate = proposal !== null;
@@ -805,20 +750,11 @@ export const StandaloneProposalViewer: React.FC = () => {
           if (selectedOption) {
             service.totalAppointments = selectedOption.totalAppointments;
             service.serviceCost = selectedOption.serviceCost;
-            // Update totalHours, numPros, and hourlyRate to match the selected option
-            if (selectedOption.totalHours !== undefined) {
-              service.totalHours = selectedOption.totalHours;
-            }
-            if (selectedOption.numPros !== undefined) {
-              service.numPros = selectedOption.numPros;
-            }
-            if (selectedOption.hourlyRate !== undefined) {
-              service.hourlyRate = selectedOption.hourlyRate;
-            }
-            // Preserve discountPercent from selected option
             if (selectedOption.discountPercent !== undefined) {
               service.discountPercent = selectedOption.discountPercent;
             }
+            // DO NOT copy totalHours/numPros/hourlyRate — they are option-specific
+            // and copying them contaminates the base service for future recalculations
           }
         } else {
           // We're editing a base service parameter (totalHours, numPros, etc.)
@@ -851,17 +787,6 @@ export const StandaloneProposalViewer: React.FC = () => {
           if (selectedOption) {
             service.totalAppointments = selectedOption.totalAppointments;
             service.serviceCost = selectedOption.serviceCost;
-            // Update totalHours, numPros, and hourlyRate to match the selected option
-            if (selectedOption.totalHours !== undefined) {
-              service.totalHours = selectedOption.totalHours;
-            }
-            if (selectedOption.numPros !== undefined) {
-              service.numPros = selectedOption.numPros;
-            }
-            if (selectedOption.hourlyRate !== undefined) {
-              service.hourlyRate = selectedOption.hourlyRate;
-            }
-            // Preserve discountPercent from selected option
             if (selectedOption.discountPercent !== undefined) {
               service.discountPercent = selectedOption.discountPercent;
             }

@@ -1278,6 +1278,24 @@ const ProposalViewer: React.FC = () => {
       }, 0);
       console.log(`[ProposalViewer] Total services in proposal.data: ${serviceCount}`);
       
+      // Attach pricing options to proposal.data BEFORE recalculation so
+      // recalculateServiceTotals uses the selected option's cost in the summary.
+      if (proposal.pricingOptions && proposal.selectedOptions && proposal.data?.services) {
+        Object.entries(proposal.data.services).forEach(([location, locationData]: [string, any]) => {
+          if (Array.isArray(locationData)) return; // skip array-format (handled by recalc transform)
+          Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+            dateData.services?.forEach((service: any, serviceIndex: number) => {
+              const key = `${location}-${date}-${serviceIndex}`;
+              if (proposal.pricingOptions?.[key]) {
+                service.pricingOptions = proposal.pricingOptions[key];
+                service.selectedOption = proposal.selectedOptions?.[key] || 0;
+              }
+            });
+          });
+        });
+        proposal.data.hasPricingOptions = proposal.hasPricingOptions || false;
+      }
+
       // Preserve gratuity fields and custom line items from proposal data before recalculation
       const gratuityType = proposal.data?.gratuityType || null;
       const gratuityValue = proposal.data?.gratuityValue || null;
@@ -1360,20 +1378,10 @@ const ProposalViewer: React.FC = () => {
           : undefined;
       }
       
-      // Load pricing options from the database
-      if (proposal.pricingOptions && proposal.selectedOptions) {
-        Object.entries(calculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
-          Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
-            dateData.services?.forEach((service: any, serviceIndex: number) => {
-              const key = `${location}-${date}-${serviceIndex}`;
-              if (proposal.pricingOptions?.[key]) {
-                service.pricingOptions = proposal.pricingOptions[key];
-                service.selectedOption = proposal.selectedOptions?.[key] || 0;
-              }
-            });
-          });
-        });
-        calculatedData.hasPricingOptions = proposal.hasPricingOptions || false;
+      // Pricing options were already attached before recalculation above.
+      // Just ensure hasPricingOptions is set on calculatedData.
+      if (proposal.hasPricingOptions) {
+        calculatedData.hasPricingOptions = true;
       }
       
       setEditedData({ ...calculatedData, customization: proposal.customization });
@@ -1650,20 +1658,10 @@ const ProposalViewer: React.FC = () => {
           if (selectedOption) {
             service.totalAppointments = selectedOption.totalAppointments;
             service.serviceCost = selectedOption.serviceCost;
-            // Update totalHours, numPros, and hourlyRate to match the selected option
-            if (selectedOption.totalHours !== undefined) {
-              service.totalHours = selectedOption.totalHours;
-            }
-            if (selectedOption.numPros !== undefined) {
-              service.numPros = selectedOption.numPros;
-            }
-            if (selectedOption.hourlyRate !== undefined) {
-              service.hourlyRate = selectedOption.hourlyRate;
-            }
-            // Preserve discountPercent from selected option
             if (selectedOption.discountPercent !== undefined) {
               service.discountPercent = selectedOption.discountPercent;
             }
+            // DO NOT copy totalHours/numPros/hourlyRate — they are option-specific
           }
         } else {
           // We're editing a base service parameter (totalHours, numPros, etc.)
@@ -1696,17 +1694,6 @@ const ProposalViewer: React.FC = () => {
           if (selectedOption) {
             service.totalAppointments = selectedOption.totalAppointments;
             service.serviceCost = selectedOption.serviceCost;
-            // Update totalHours, numPros, and hourlyRate to match the selected option
-            if (selectedOption.totalHours !== undefined) {
-              service.totalHours = selectedOption.totalHours;
-            }
-            if (selectedOption.numPros !== undefined) {
-              service.numPros = selectedOption.numPros;
-            }
-            if (selectedOption.hourlyRate !== undefined) {
-              service.hourlyRate = selectedOption.hourlyRate;
-            }
-            // Preserve discountPercent from selected option
             if (selectedOption.discountPercent !== undefined) {
               service.discountPercent = selectedOption.discountPercent;
             }

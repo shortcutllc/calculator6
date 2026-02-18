@@ -663,20 +663,11 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
           if (selectedOption) {
             (service as any).serviceCost = selectedOption.serviceCost;
             (service as any).totalAppointments = selectedOption.totalAppointments;
-            // Update totalHours, numPros, and hourlyRate to match the selected option
-            if (selectedOption.totalHours !== undefined) {
-              (service as any).totalHours = selectedOption.totalHours;
-            }
-            if (selectedOption.numPros !== undefined) {
-              (service as any).numPros = selectedOption.numPros;
-            }
-            if (selectedOption.hourlyRate !== undefined) {
-              (service as any).hourlyRate = selectedOption.hourlyRate;
-            }
-            // Preserve discountPercent from selected option
             if (selectedOption.discountPercent !== undefined) {
               (service as any).discountPercent = selectedOption.discountPercent;
             }
+            // DO NOT copy totalHours/numPros/hourlyRate — they are option-specific
+            // and copying them contaminates the base service for future recalculations
             // Use the selected option's proRevenue
             dayTotalProRevenue += selectedOption.proRevenue || baseProRevenue;
           } else {
