@@ -102,7 +102,9 @@ async function createOption(supabase, proposalId, userId, options = {}) {
     newProposal: created,
     groupId,
     optionCount: nextOrder,
-    url: `https://proposals.getshortcut.co/proposal/${created.id}?shared=true`
+    url: created.slug
+      ? `https://proposals.getshortcut.co/p/${created.slug}`
+      : `https://proposals.getshortcut.co/proposal/${created.id}?shared=true`
   };
 }
 

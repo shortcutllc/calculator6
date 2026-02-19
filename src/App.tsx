@@ -14,6 +14,7 @@ import PhotographerDashboard from './components/PhotographerDashboard';
 import PhotographerEventManager from './components/PhotographerEventManager';
 import { HeadshotsPage } from './components/HeadshotsPage';
 import { CustomUrlResolver } from './components/CustomUrlResolver';
+import { SlugResolver } from './components/SlugResolver';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { HolidayPageProvider } from './contexts/HolidayPageContext';
 import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
@@ -71,7 +72,8 @@ function App() {
     location.pathname === '/2026-plan-ml' ||
     location.pathname === '/cle' ||
     location.pathname.startsWith('/cle/') ||
-    location.pathname === '/195-nassau';
+    location.pathname === '/195-nassau' ||
+    location.pathname.startsWith('/p/');
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -168,7 +170,11 @@ function App() {
                   )
                 } 
               />
-              <Route 
+              <Route
+                path="/p/:slug"
+                element={<SlugResolver />}
+              />
+              <Route
                 path="/shared/:id"
                 element={<ProposalTypeRouter />}
               />

@@ -15,6 +15,12 @@ import { createOption, linkProposals, unlinkProposal } from './proposal-linker.j
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
 
 const PROPOSAL_BASE_URL = 'https://proposals.getshortcut.co/proposal';
+const PROPOSAL_SHORT_URL = 'https://proposals.getshortcut.co/p';
+
+function getProposalShareUrl(id, slug) {
+  if (slug) return `${PROPOSAL_SHORT_URL}/${slug}`;
+  return `${PROPOSAL_BASE_URL}/${id}?shared=true`;
+}
 
 /**
  * Execute a tool call from Claude and return the result.
@@ -108,7 +114,7 @@ async function handleCreateProposal(params, supabase, userId) {
   return {
     success: true,
     proposalId: newProposal.id,
-    url: `${PROPOSAL_BASE_URL}/${newProposal.id}?shared=true`,
+    url: getProposalShareUrl(newProposal.id, newProposal.slug),
     clientName: proposalData.clientName,
     status: 'draft',
     summary: proposalData.summary,
@@ -183,7 +189,7 @@ async function handleEditProposal(params, supabase, userId) {
   return {
     success: true,
     proposalId: params.proposalId,
-    url: `${PROPOSAL_BASE_URL}/${params.proposalId}?shared=true`,
+    url: getProposalShareUrl(params.proposalId, existing.slug),
     clientName: updatedData.clientName,
     status: updatedRecord.status,
     summary: updatedData.summary,
@@ -220,7 +226,7 @@ async function handleGetProposal(params, supabase) {
   return {
     success: true,
     proposalId: proposal.id,
-    url: `${PROPOSAL_BASE_URL}/${proposal.id}?shared=true`,
+    url: getProposalShareUrl(proposal.id, proposal.slug),
     clientName: proposal.client_name,
     clientEmail: proposal.client_email,
     status: proposal.status,

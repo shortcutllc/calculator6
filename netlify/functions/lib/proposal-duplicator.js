@@ -81,7 +81,9 @@ async function duplicateProposal(supabase, proposalId, userId, options = {}) {
 
   return {
     proposal: created,
-    url: `https://proposals.getshortcut.co/proposal/${created.id}?shared=true`
+    url: created.slug
+      ? `https://proposals.getshortcut.co/p/${created.slug}`
+      : `https://proposals.getshortcut.co/proposal/${created.id}?shared=true`
   };
 }
 

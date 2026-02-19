@@ -993,7 +993,7 @@ We understand the importance of offering impactful wellness solutions that respe
   const copyShareLink = async () => {
     if (!id) return;
     try {
-      const shareUrl = getProposalUrl(id, true);
+      const shareUrl = getProposalUrl(id, true, currentProposal?.slug);
       await navigator.clipboard.writeText(shareUrl);
       setShowCopied(true);
       setTimeout(() => setShowCopied(false), 2000);

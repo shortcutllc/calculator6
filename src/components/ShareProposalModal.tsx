@@ -4,15 +4,17 @@ import { getProposalUrl } from '../utils/url';
 
 interface ShareProposalModalProps {
   proposalId: string;
+  slug?: string | null;
   onClose: () => void;
 }
 
 const ShareProposalModal: React.FC<ShareProposalModalProps> = ({
   proposalId,
+  slug,
   onClose,
 }) => {
   const [copied, setCopied] = useState(false);
-  const proposalUrl = getProposalUrl(proposalId, true);
+  const proposalUrl = getProposalUrl(proposalId, true, slug);
   
   const copyToClipboard = async (text: string) => {
     try {

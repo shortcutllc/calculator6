@@ -1863,7 +1863,7 @@ const ProposalViewer: React.FC = () => {
   };
 
   const copyShareLink = async () => {
-    const shareUrl = getProposalUrl(id!, true);
+    const shareUrl = getProposalUrl(id!, true, currentProposal?.slug);
     try {
       await navigator.clipboard.writeText(shareUrl);
       setShowCopied(true);

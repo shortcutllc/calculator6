@@ -349,8 +349,8 @@ const History: React.FC = () => {
     };
   };
 
-  const getShareableLink = (id: string) => {
-    return getProposalUrl(id, true);
+  const getShareableLink = (id: string, slug?: string | null) => {
+    return getProposalUrl(id, true, slug);
   };
 
   const copyToClipboard = async (text: string, id: string) => {
@@ -657,7 +657,7 @@ const History: React.FC = () => {
               const totalCost = calculateTotalCost(proposal);
               const totalEvents = calculateTotalEvents(proposal);
               const locations = Object.keys(proposal.data.services || {});
-              const shareableLink = getShareableLink(proposal.id);
+              const shareableLink = getShareableLink(proposal.id, proposal.slug);
 
               return (
                 <div key={proposal.id} className="card-medium">

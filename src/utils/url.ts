@@ -15,7 +15,11 @@ export const createUrl = (path: string, params?: Record<string, string>) => {
   return url.toString();
 };
 
-export const getProposalUrl = (id: string, shared = false) => {
+export const getProposalUrl = (id: string, shared = false, slug?: string | null) => {
+  // Use short slug URL for shared links when slug is available
+  if (shared && slug) {
+    return createUrl(`/p/${slug}`);
+  }
   const path = `/proposal/${id}`;
   return createUrl(path, shared ? { shared: 'true' } : undefined);
 };

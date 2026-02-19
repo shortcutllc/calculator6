@@ -60,7 +60,9 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Proposal type
     proposal_type: dbProposal.proposal_type || 'event',
     // Stripe invoice
-    stripeInvoiceId: dbProposal.stripe_invoice_id || null
+    stripeInvoiceId: dbProposal.stripe_invoice_id || null,
+    // Short URL slug
+    slug: dbProposal.slug || null
   });
 
   const fetchProposals = async () => {

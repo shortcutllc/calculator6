@@ -223,7 +223,9 @@ async function handleCreate(event, user, supabase) {
       console.warn('Slack notification failed:', slackErr.message);
     }
 
-    const proposalUrl = `https://proposals.getshortcut.co/proposal/${newProposal.id}?shared=true`;
+    const proposalUrl = newProposal.slug
+      ? `https://proposals.getshortcut.co/p/${newProposal.slug}`
+      : `https://proposals.getshortcut.co/proposal/${newProposal.id}?shared=true`;
 
     return jsonResponse(201, {
       success: true,
@@ -313,7 +315,9 @@ async function handleEdit(event, user, supabase) {
       console.warn('Slack notification failed:', slackErr.message);
     }
 
-    const proposalUrl = `https://proposals.getshortcut.co/proposal/${updated.id}?shared=true`;
+    const proposalUrl = updated.slug
+      ? `https://proposals.getshortcut.co/p/${updated.slug}`
+      : `https://proposals.getshortcut.co/proposal/${updated.id}?shared=true`;
 
     return jsonResponse(200, {
       success: true,
