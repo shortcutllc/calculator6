@@ -209,14 +209,14 @@ export const Navigation: React.FC = () => {
                 Headshots
               </Button>
 
-              {/* Mindfulness Programs - Direct Button */}
-              <Button 
-                onClick={() => navigate('/mindfulness-programs')} 
+              {/* Invoices - Direct Button */}
+              <Button
+                onClick={() => navigate('/invoices')}
                 variant="secondary"
-                icon={<Brain size={18} />}
+                icon={<Receipt size={18} />}
                 className="hidden sm:flex"
               >
-                Mindfulness
+                Invoices
               </Button>
 
               {/* Users - Only visible to master account */}

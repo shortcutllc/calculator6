@@ -137,31 +137,42 @@ function buildLineItems(proposalData, pricingOptions, selectedOptions) {
 // --- Handlers ---
 
 async function handleCreateInvoice(body, stripe, supabase, user) {
-  const { proposalId, proposalData, pricingOptions, selectedOptions, clientEmail } = body;
+  const { proposalId, proposalData, pricingOptions, selectedOptions, clientEmail, clientName, daysUntilDue } = body;
 
-  if (!proposalData?.clientName) {
-    return errorResponse(400, 'proposalData.clientName is required', 'VALIDATION_ERROR');
+  const resolvedName = clientName || proposalData?.clientName;
+  if (!resolvedName) {
+    return errorResponse(400, 'Client name is required', 'VALIDATION_ERROR');
   }
-  if (!proposalData?.services) {
-    return errorResponse(400, 'proposalData.services is required', 'VALIDATION_ERROR');
+  if (!clientEmail) {
+    return errorResponse(400, 'Client email is required to send an invoice', 'VALIDATION_ERROR');
   }
 
   // Step 1: Create Stripe customer
   const customerParams = {
-    name: proposalData.clientName,
+    name: resolvedName,
+    email: clientEmail,
     metadata: { proposalId: proposalId || 'unknown' }
   };
-  if (clientEmail) {
-    customerParams.email = clientEmail;
-  }
 
   const customer = await stripe.customers.create(customerParams);
 
-  // Step 2: Build line items
-  const lineItems = buildLineItems(proposalData, pricingOptions, selectedOptions);
+  // Step 2: Use pre-built line items if provided, otherwise build from proposal data
+  let lineItems;
+  if (body.lineItems && Array.isArray(body.lineItems) && body.lineItems.length > 0) {
+    lineItems = body.lineItems.map(item => ({
+      description: item.description || 'Line item',
+      amount: Math.round((item.amount || 0) * 100), // dollars → cents
+      quantity: 1
+    }));
+  } else {
+    if (!proposalData?.services) {
+      return errorResponse(400, 'proposalData.services is required', 'VALIDATION_ERROR');
+    }
+    lineItems = buildLineItems(proposalData, pricingOptions, selectedOptions);
+  }
 
   if (lineItems.length === 0) {
-    return errorResponse(400, 'No services found to invoice', 'VALIDATION_ERROR');
+    return errorResponse(400, 'No line items to invoice', 'VALIDATION_ERROR');
   }
 
   const totalCents = lineItems.reduce((sum, item) => sum + item.amount, 0);
@@ -170,7 +181,7 @@ async function handleCreateInvoice(body, stripe, supabase, user) {
   const invoice = await stripe.invoices.create({
     customer: customer.id,
     collection_method: 'send_invoice',
-    days_until_due: 30,
+    days_until_due: daysUntilDue || 30,
     metadata: { proposalId: proposalId || 'unknown' }
   });
 
@@ -198,7 +209,7 @@ async function handleCreateInvoice(body, stripe, supabase, user) {
       invoice_url: sentInvoice.hosted_invoice_url,
       status: sentInvoice.status || 'sent',
       amount_cents: totalCents,
-      client_name: proposalData.clientName,
+      client_name: resolvedName,
       created_by_user_id: user.id
     });
 

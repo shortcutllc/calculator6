@@ -387,6 +387,10 @@ const ProposalViewer: React.FC = () => {
   const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSavingChanges, setIsSavingChanges] = useState(false);
+
+  // Invoice status
+  const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
   const [showSendToClientModal, setShowSendToClientModal] = useState(false);
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -425,6 +429,29 @@ const ProposalViewer: React.FC = () => {
       setLogoUrl('');
     }
   }, [displayData?.clientLogoUrl]);
+
+  // Fetch invoice status when proposal has a stripe invoice
+  useEffect(() => {
+    const fetchInvoiceStatus = async () => {
+      if (!currentProposal?.stripeInvoiceId || !id) return;
+      try {
+        const { data } = await supabase
+          .from('stripe_invoices')
+          .select('status, invoice_url')
+          .eq('proposal_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        if (data) {
+          setInvoiceStatus(data.status);
+          setInvoiceUrl(data.invoice_url);
+        }
+      } catch {
+        // Non-critical — just won't show status
+      }
+    };
+    fetchInvoiceStatus();
+  }, [currentProposal?.stripeInvoiceId, id]);
 
   // Initialize Google Maps autocomplete for edit mode
   useEffect(() => {
@@ -2056,20 +2083,18 @@ The Shortcut Team`);
                     {showCopied ? 'Copied!' : 'Copy Link'}
                   </Button>
                 </div>
-                {currentProposal?.status === 'approved' && (
-                  <StripeInvoiceButton
-                    proposalId={id!}
-                    proposalData={displayData}
-                    pricingOptions={currentProposal.pricingOptions}
-                    selectedOptions={currentProposal.selectedOptions}
-                    clientEmail={currentProposal.clientEmail}
-                    existingInvoiceUrl={currentProposal.stripeInvoiceId ? undefined : null}
-                    onSuccess={async () => {
-                      // Refresh proposal to pick up stripe_invoice_id
-                      if (id) await getProposal(id);
-                    }}
-                  />
-                )}
+                <StripeInvoiceButton
+                  proposalId={id!}
+                  proposalData={displayData}
+                  pricingOptions={currentProposal?.pricingOptions}
+                  selectedOptions={currentProposal?.selectedOptions}
+                  clientEmail={currentProposal?.clientEmail}
+                  existingInvoiceUrl={invoiceUrl}
+                  invoiceStatus={invoiceStatus}
+                  onSuccess={async () => {
+                    if (id) await getProposal(id);
+                  }}
+                />
               </>
             )}
           </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
 import { format, parseISO } from 'date-fns';
-import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight, AlertCircle, Layers, FlaskConical, X } from 'lucide-react';
+import { FileText, Trash2, Eye, Search, Calendar, DollarSign, Share2, CheckCircle2, XCircle as XCircle2, Clock, Lock, Copy, ArrowRight, AlertCircle, Layers, FlaskConical, X, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProposal } from '../contexts/ProposalContext';
 import { Button } from './Button';
@@ -119,6 +119,34 @@ const History: React.FC = () => {
   const [surveyResponses, setSurveyResponses] = useState<Record<string, any>>({});
   const [proposalGroupCounts, setProposalGroupCounts] = useState<Record<string, number>>({});
   const [showTestProposals, setShowTestProposals] = useState(false);
+  const [invoiceStatuses, setInvoiceStatuses] = useState<Record<string, string>>({});
+
+  // Fetch invoice statuses for proposals that have stripe invoices
+  useEffect(() => {
+    const proposalIds = proposals
+      .filter(p => p.stripeInvoiceId)
+      .map(p => p.id);
+    if (proposalIds.length === 0) return;
+
+    const fetchStatuses = async () => {
+      try {
+        const { data } = await supabase
+          .from('stripe_invoices')
+          .select('proposal_id, status')
+          .in('proposal_id', proposalIds);
+        if (data) {
+          const map: Record<string, string> = {};
+          data.forEach((row: any) => {
+            if (row.proposal_id) map[row.proposal_id] = row.status;
+          });
+          setInvoiceStatuses(map);
+        }
+      } catch {
+        // Non-critical
+      }
+    };
+    fetchStatuses();
+  }, [proposals]);
 
   // Duplicate modal state
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
@@ -656,6 +684,17 @@ const History: React.FC = () => {
                             size="sm"
                           />
                         )}
+                        {(proposal.stripeInvoiceId || invoiceStatuses[proposal.id]) && (() => {
+                          const status = invoiceStatuses[proposal.id];
+                          const statusLabel = status === 'paid' ? 'Paid' : status === 'sent' ? 'Sent' : status === 'open' ? 'Open' : status === 'void' ? 'Void' : 'Invoice';
+                          const statusClass = status === 'paid' ? 'text-green-700 bg-green-100' : status === 'void' ? 'text-gray-500 bg-gray-100' : 'text-[#635BFF] bg-[#635BFF]/10';
+                          return (
+                            <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm font-semibold ${statusClass}`}>
+                              <Receipt size={14} />
+                              {statusLabel}
+                            </span>
+                          );
+                        })()}
                         {proposal.proposalGroupId && (
                           <span className="flex items-center gap-1 text-shortcut-navy-blue bg-shortcut-teal bg-opacity-20 px-2 py-1 rounded-full text-sm font-semibold">
                             <Layers size={14} />
