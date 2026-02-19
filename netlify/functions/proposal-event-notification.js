@@ -20,10 +20,10 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { eventType, proposalId, clientName, clientEmail, proposalType, totalCost, eventDates, locations, surveyResults } = JSON.parse(event.body);
-    
-    if (!eventType || !proposalId) {
-      throw new Error('eventType and proposalId are required');
+    const { eventType, proposalId, clientName, clientEmail, proposalType, totalCost, eventDates, locations, surveyResults, invoiceUrl, invoiceAmount } = JSON.parse(event.body);
+
+    if (!eventType) {
+      throw new Error('eventType is required');
     }
 
     // Get Slack webhook URL from environment variable
@@ -70,22 +70,65 @@ exports.handler = async (event, context) => {
         headerText = 'Post-Event Survey Completed';
         color = '#8b5cf6'; // Purple
         break;
+      case 'invoice_created':
+        emoji = '💳';
+        headerText = 'Invoice Sent';
+        color = '#635BFF'; // Stripe indigo
+        break;
+      case 'invoice_paid':
+        emoji = '💰';
+        headerText = 'Invoice Paid!';
+        color = '#10b981'; // Green
+        break;
       default:
         emoji = '📄';
         headerText = 'Proposal Event';
         color = '#6b7280'; // Gray
     }
 
-    // Format dates and locations
-    const datesFormatted = Array.isArray(eventDates) && eventDates.length > 0
-      ? eventDates.slice(0, 3).join(', ') + (eventDates.length > 3 ? ` +${eventDates.length - 3} more` : '')
-      : 'TBD';
-    
-    const locationsFormatted = Array.isArray(locations) && locations.length > 0
-      ? locations.slice(0, 2).join(', ') + (locations.length > 2 ? ` +${locations.length - 2} more` : '')
-      : 'TBD';
+    const isInvoiceEvent = eventType === 'invoice_created' || eventType === 'invoice_paid';
 
-    // Build Slack message - match working slack-notification.js format exactly
+    // Build fields based on event type
+    let fields;
+    if (isInvoiceEvent) {
+      const amount = invoiceAmount !== undefined && invoiceAmount !== null
+        ? `$${Number(invoiceAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : 'N/A';
+      fields = [
+        { type: 'mrkdwn', text: `*Client:* ${clientName || 'Unknown'}` },
+        { type: 'mrkdwn', text: `*Email:* ${clientEmail || 'N/A'}` },
+        { type: 'mrkdwn', text: `*Amount:* ${amount}` }
+      ];
+      if (invoiceUrl) {
+        fields.push({ type: 'mrkdwn', text: `*Invoice:* <${invoiceUrl}|View Invoice>` });
+      }
+      if (proposalId) {
+        const proposalUrl = `https://proposals.getshortcut.co/proposal/${proposalId}`;
+        fields.push({ type: 'mrkdwn', text: `*Proposal:* <${proposalUrl}|View Proposal>` });
+      }
+    } else {
+      // Format dates and locations for proposal events
+      const datesFormatted = Array.isArray(eventDates) && eventDates.length > 0
+        ? eventDates.slice(0, 3).join(', ') + (eventDates.length > 3 ? ` +${eventDates.length - 3} more` : '')
+        : 'TBD';
+      const locationsFormatted = Array.isArray(locations) && locations.length > 0
+        ? locations.slice(0, 2).join(', ') + (locations.length > 2 ? ` +${locations.length - 2} more` : '')
+        : 'TBD';
+
+      fields = [
+        { type: 'mrkdwn', text: `*Client:* ${clientName || 'Unknown'}` },
+        { type: 'mrkdwn', text: `*Email:* ${clientEmail || 'N/A'}` },
+        { type: 'mrkdwn', text: `*Proposal Type:* ${proposalType === 'mindfulness-program' ? 'Mindfulness Program' : 'Event Proposal'}` },
+        { type: 'mrkdwn', text: `*Event:* ${eventType}` },
+        { type: 'mrkdwn', text: `*Total Cost:* $${totalCost !== undefined && totalCost !== null ? Number(totalCost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}` },
+        { type: 'mrkdwn', text: `*Dates:* ${datesFormatted}` }
+      ];
+      if (locationsFormatted && locationsFormatted !== 'TBD') {
+        fields.push({ type: 'mrkdwn', text: `*Locations:* ${locationsFormatted}` });
+      }
+    }
+
+    // Build Slack message
     const slackMessage = {
       text: `${emoji} ${headerText}: ${clientName || 'Unknown Client'}`,
       blocks: [
@@ -98,43 +141,10 @@ exports.handler = async (event, context) => {
         },
         {
           type: 'section',
-          fields: [
-            {
-              type: 'mrkdwn',
-              text: `*Client:* ${clientName || 'Unknown'}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Email:* ${clientEmail || 'N/A'}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Proposal Type:* ${proposalType === 'mindfulness-program' ? 'Mindfulness Program' : 'Event Proposal'}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Event:* ${eventType}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Total Cost:* $${totalCost !== undefined && totalCost !== null ? Number(totalCost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Dates:* ${datesFormatted}`
-            }
-          ]
+          fields
         }
       ]
     };
-
-    // Add locations in same section if we have space (max 10 fields per section)
-    if (locationsFormatted && locationsFormatted !== 'TBD') {
-      slackMessage.blocks[1].fields.push({
-        type: 'mrkdwn',
-        text: `*Locations:* ${locationsFormatted}`
-      });
-    }
 
     // Add survey results section if this is a survey_completed event
     if (eventType === 'survey_completed' && surveyResults) {

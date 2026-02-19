@@ -134,6 +134,42 @@ function buildLineItems(proposalData, pricingOptions, selectedOptions) {
   return lineItems;
 }
 
+// --- Slack Notification ---
+
+async function notifyInvoiceCreated({ clientName, clientEmail, amountCents, invoiceUrl, proposalId }) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL_PROPOSALS;
+  if (!webhookUrl) return;
+
+  const amount = `$${(amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fields = [
+    { type: 'mrkdwn', text: `*Client:* ${clientName || 'Unknown'}` },
+    { type: 'mrkdwn', text: `*Email:* ${clientEmail || 'N/A'}` },
+    { type: 'mrkdwn', text: `*Amount:* ${amount}` }
+  ];
+  if (invoiceUrl) {
+    fields.push({ type: 'mrkdwn', text: `*Invoice:* <${invoiceUrl}|View Invoice>` });
+  }
+  if (proposalId) {
+    fields.push({ type: 'mrkdwn', text: `*Proposal:* <https://proposals.getshortcut.co/proposal/${proposalId}|View Proposal>` });
+  }
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `💳 Invoice Sent: ${clientName || 'Unknown Client'}`,
+        blocks: [
+          { type: 'header', text: { type: 'plain_text', text: '💳 Invoice Sent' } },
+          { type: 'section', fields }
+        ]
+      })
+    });
+  } catch (err) {
+    console.error('Slack notification failed (non-fatal):', err.message);
+  }
+}
+
 // --- Handlers ---
 
 async function handleCreateInvoice(body, stripe, supabase, user) {
@@ -218,7 +254,16 @@ async function handleCreateInvoice(body, stripe, supabase, user) {
     // Non-fatal: invoice was created in Stripe
   }
 
-  // Step 7: Update proposal with stripe_invoice_id
+  // Step 7: Send Slack notification (non-fatal)
+  await notifyInvoiceCreated({
+    clientName: resolvedName,
+    clientEmail,
+    amountCents: totalCents,
+    invoiceUrl: sentInvoice.hosted_invoice_url,
+    proposalId: proposalId || null
+  });
+
+  // Step 8: Update proposal with stripe_invoice_id
   if (proposalId) {
     const { error: updateError } = await supabase
       .from('proposals')

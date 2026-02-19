@@ -52,7 +52,10 @@ const TOOL_HANDLERS = {
   create_qr_code_sign: handleCreateQRCodeSign,
   get_qr_code_sign: handleGetQRCodeSign,
   list_qr_code_signs: handleListQRCodeSigns,
-  edit_qr_code_sign: handleEditQRCodeSign
+  edit_qr_code_sign: handleEditQRCodeSign,
+  create_invoice: handleCreateInvoice,
+  search_invoices: handleSearchInvoices,
+  get_invoice: handleGetInvoice
 };
 
 // --- Create Proposal ---
@@ -782,6 +785,212 @@ async function handleEditQRCodeSign(params, supabase) {
  * This gives Claude ground-truth information to report, preventing hallucination.
  * Includes: all services with their types, locations, dates, hours, pros, costs.
  */
+
+// --- Invoice Tools ---
+
+async function handleCreateInvoice(params, supabase, userId) {
+  if (!params.clientEmail) return { error: 'clientEmail is required' };
+  if (!params.lineItems || !Array.isArray(params.lineItems) || params.lineItems.length === 0) {
+    return { error: 'lineItems array is required and must not be empty' };
+  }
+
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) return { error: 'Stripe not configured on server' };
+
+  const Stripe = (await import('stripe')).default;
+  const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+
+  // Resolve client name — from params or from linked proposal
+  let clientName = params.clientName;
+  if (!clientName && params.proposalId) {
+    const { data: proposal } = await supabase
+      .from('proposals')
+      .select('client_name')
+      .eq('id', params.proposalId)
+      .single();
+    clientName = proposal?.client_name;
+  }
+  if (!clientName) clientName = 'Unknown';
+
+  // Create Stripe customer
+  const customer = await stripe.customers.create({
+    name: clientName,
+    email: params.clientEmail,
+    metadata: { proposalId: params.proposalId || 'standalone' }
+  });
+
+  // Create invoice
+  const invoice = await stripe.invoices.create({
+    customer: customer.id,
+    collection_method: 'send_invoice',
+    days_until_due: params.daysUntilDue || 30,
+    metadata: { proposalId: params.proposalId || 'standalone' }
+  });
+
+  // Add line items
+  let totalCents = 0;
+  for (const item of params.lineItems) {
+    const amountCents = Math.round((item.amount || 0) * 100);
+    totalCents += amountCents;
+    await stripe.invoiceItems.create({
+      customer: customer.id,
+      invoice: invoice.id,
+      description: item.description || 'Line item',
+      amount: amountCents,
+      currency: 'usd'
+    });
+  }
+
+  // Finalize and send
+  const sentInvoice = await stripe.invoices.sendInvoice(invoice.id);
+
+  // Save to DB
+  const { error: insertError } = await supabase
+    .from('stripe_invoices')
+    .insert({
+      proposal_id: params.proposalId || null,
+      stripe_invoice_id: sentInvoice.id,
+      stripe_customer_id: customer.id,
+      invoice_url: sentInvoice.hosted_invoice_url,
+      status: sentInvoice.status || 'sent',
+      amount_cents: totalCents,
+      client_name: clientName,
+      created_by_user_id: userId
+    });
+
+  if (insertError) {
+    console.error('Failed to save invoice record:', insertError);
+  }
+
+  // Link to proposal if applicable
+  if (params.proposalId) {
+    await supabase
+      .from('proposals')
+      .update({ stripe_invoice_id: sentInvoice.id })
+      .eq('id', params.proposalId);
+  }
+
+  // Send Slack notification
+  const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL_PROPOSALS;
+  if (slackWebhookUrl) {
+    const amount = `$${(totalCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const fields = [
+      { type: 'mrkdwn', text: `*Client:* ${clientName}` },
+      { type: 'mrkdwn', text: `*Email:* ${params.clientEmail}` },
+      { type: 'mrkdwn', text: `*Amount:* ${amount}` },
+      { type: 'mrkdwn', text: `*Invoice:* <${sentInvoice.hosted_invoice_url}|View Invoice>` }
+    ];
+    if (params.proposalId) {
+      fields.push({ type: 'mrkdwn', text: `*Proposal:* <https://proposals.getshortcut.co/proposal/${params.proposalId}|View Proposal>` });
+    }
+    try {
+      await fetch(slackWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: `💳 Invoice Sent via Pro: ${clientName}`,
+          blocks: [
+            { type: 'header', text: { type: 'plain_text', text: '💳 Invoice Sent' } },
+            { type: 'section', fields }
+          ]
+        })
+      });
+    } catch (err) {
+      console.error('Slack notification failed (non-fatal):', err.message);
+    }
+  }
+
+  return {
+    success: true,
+    invoiceId: sentInvoice.id,
+    invoiceUrl: sentInvoice.hosted_invoice_url,
+    amountDollars: totalCents / 100,
+    clientName,
+    clientEmail: params.clientEmail,
+    status: sentInvoice.status || 'sent',
+    proposalId: params.proposalId || null
+  };
+}
+
+async function handleSearchInvoices(params, supabase) {
+  let query = supabase
+    .from('stripe_invoices')
+    .select('id, stripe_invoice_id, client_name, status, amount_cents, invoice_url, proposal_id, created_at');
+
+  if (params.clientName) {
+    query = query.ilike('client_name', `%${params.clientName.trim()}%`);
+  }
+  if (params.status) {
+    query = query.eq('status', params.status);
+  }
+  if (params.proposalId) {
+    query = query.eq('proposal_id', params.proposalId);
+  }
+
+  query = query.order('created_at', { ascending: false }).limit(params.limit || 10);
+
+  const { data: invoices, error } = await query;
+
+  if (error) return { error: `Database query failed: ${error.message}` };
+
+  const results = (invoices || []).map(inv => ({
+    id: inv.id,
+    stripeInvoiceId: inv.stripe_invoice_id,
+    clientName: inv.client_name,
+    status: inv.status,
+    amountDollars: (inv.amount_cents || 0) / 100,
+    invoiceUrl: inv.invoice_url,
+    proposalId: inv.proposal_id,
+    createdAt: inv.created_at
+  }));
+
+  return { success: true, results, resultCount: results.length };
+}
+
+async function handleGetInvoice(params, supabase) {
+  if (!params.invoiceId) return { error: 'invoiceId is required' };
+
+  const isStripeId = params.invoiceId.startsWith('in_');
+  const column = isStripeId ? 'stripe_invoice_id' : 'id';
+
+  const { data: invoice, error } = await supabase
+    .from('stripe_invoices')
+    .select('*')
+    .eq(column, params.invoiceId)
+    .single();
+
+  if (error || !invoice) return { error: `Invoice ${params.invoiceId} not found` };
+
+  // Fetch linked proposal name if available
+  let proposalName = null;
+  if (invoice.proposal_id) {
+    const { data: proposal } = await supabase
+      .from('proposals')
+      .select('client_name, status')
+      .eq('id', invoice.proposal_id)
+      .single();
+    if (proposal) {
+      proposalName = proposal.client_name;
+    }
+  }
+
+  return {
+    success: true,
+    id: invoice.id,
+    stripeInvoiceId: invoice.stripe_invoice_id,
+    clientName: invoice.client_name,
+    status: invoice.status,
+    amountDollars: (invoice.amount_cents || 0) / 100,
+    invoiceUrl: invoice.invoice_url,
+    proposalId: invoice.proposal_id,
+    proposalName,
+    createdAt: invoice.created_at,
+    updatedAt: invoice.updated_at
+  };
+}
+
+// --- Verified State ---
+
 function buildVerifiedState(proposalData) {
   const services = [];
   const locations = proposalData.locations || [];

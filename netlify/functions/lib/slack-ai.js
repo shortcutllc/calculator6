@@ -16,7 +16,7 @@ const MAX_TOOL_ROUNDS = 8; // Safety limit on tool call loops
 
 const SYSTEM_PROMPT_TEXT = `You are Pro, Shortcut's internal proposal assistant on Slack.
 
-Shortcut is a corporate wellness company that delivers in-person wellness experiences — chair massage, facials, nails, hair styling, makeup, headshots, and mindfulness workshops — to offices. You help the team create, edit, search, and manage proposals.
+Shortcut is a corporate wellness company that delivers in-person wellness experiences — chair massage, facials, nails, hair styling, makeup, headshots, and mindfulness workshops — to offices. You help the team create, edit, search, and manage proposals. You can also create and manage Stripe invoices — create invoices linked to proposals or standalone, search invoice history, and check payment status.
 
 Be concise, calm, and practical. Format your responses for easy reading in Slack:
 - Use *bold* for labels, client names, totals, and key info.
@@ -533,6 +533,56 @@ const TOOLS = [
         status: { type: 'string', enum: ['draft', 'published', 'archived'], description: 'New status' }
       },
       required: ['signId']
+    }
+  },
+  {
+    name: 'create_invoice',
+    description: 'Create and send a Stripe invoice to a client. Can be linked to an existing proposal or created standalone. Always confirm line items and amount with the user before calling this tool.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        proposalId: { type: 'string', description: 'UUID of proposal to invoice (optional — omit for standalone invoices)' },
+        clientName: { type: 'string', description: 'Client company name' },
+        clientEmail: { type: 'string', description: 'Client email address for invoice delivery' },
+        lineItems: {
+          type: 'array',
+          description: 'Line items for the invoice',
+          items: {
+            type: 'object',
+            properties: {
+              description: { type: 'string', description: 'Line item description' },
+              amount: { type: 'number', description: 'Amount in dollars (e.g. 1500.00)' }
+            },
+            required: ['description', 'amount']
+          }
+        },
+        daysUntilDue: { type: 'integer', description: 'Payment due in N days (default 30)' }
+      },
+      required: ['clientEmail', 'lineItems']
+    }
+  },
+  {
+    name: 'search_invoices',
+    description: 'Search for Stripe invoices by client name, status, or linked proposal ID. Returns a list of matching invoices.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        clientName: { type: 'string', description: 'Client name to search (partial match)' },
+        status: { type: 'string', enum: ['draft', 'open', 'sent', 'paid', 'uncollectible', 'void'], description: 'Filter by invoice status' },
+        proposalId: { type: 'string', description: 'Filter by linked proposal UUID' },
+        limit: { type: 'integer', description: 'Max results to return (default 10)' }
+      }
+    }
+  },
+  {
+    name: 'get_invoice',
+    description: 'Get full details of a specific invoice by its database ID or Stripe invoice ID (starts with "in_").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        invoiceId: { type: 'string', description: 'Database UUID or Stripe invoice ID' }
+      },
+      required: ['invoiceId']
     },
     cache_control: { type: 'ephemeral' }  // Cache breakpoint 1: all tool definitions
   }
