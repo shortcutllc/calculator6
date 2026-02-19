@@ -381,9 +381,9 @@ const QRCodeSignDisplay: React.FC = () => {
                     />
                   )}
                 </div>
-                <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '24px', color: '#003c5e', lineHeight: 1.05, letterSpacing: '-0.48px', margin: 0 }}>
+                <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   <span style={{ fontWeight: 700 }}>Service Type: </span>
-                  <span style={{ fontWeight: 500 }}>{eventInfo.serviceType || serviceDisplayName}</span>
+                  <span style={{ fontWeight: 400 }}>{eventInfo.serviceType || serviceDisplayName}</span>
                 </p>
               </div>
 
@@ -397,7 +397,7 @@ const QRCodeSignDisplay: React.FC = () => {
                       style={{ width: '36px', height: '36px', objectFit: 'contain' }}
                     />
                   </div>
-                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '24px', color: '#003c5e', lineHeight: 1.05, letterSpacing: '-0.48px', margin: 0 }}>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <span style={{ fontWeight: 700 }}>Event Date: </span>
                     <span style={{ fontWeight: 400 }}>{eventInfo.date}</span>
                   </p>
@@ -414,7 +414,7 @@ const QRCodeSignDisplay: React.FC = () => {
                       style={{ width: '36px', height: '36px', objectFit: 'contain' }}
                     />
                   </div>
-                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '24px', color: '#003c5e', lineHeight: 1.05, letterSpacing: '-0.48px', margin: 0 }}>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <span style={{ fontWeight: 700 }}>Event Time: </span>
                     <span style={{ fontWeight: 400 }}>{eventInfo.time}</span>
                   </p>
@@ -431,7 +431,7 @@ const QRCodeSignDisplay: React.FC = () => {
                       style={{ width: '36px', height: '36px', objectFit: 'contain' }}
                     />
                   </div>
-                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '24px', color: '#003c5e', lineHeight: 1.05, letterSpacing: '-0.48px', margin: 0 }}>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <span style={{ fontWeight: 700 }}>Location: </span>
                     <span style={{ fontWeight: 400 }}>{eventInfo.location}</span>
                   </p>
