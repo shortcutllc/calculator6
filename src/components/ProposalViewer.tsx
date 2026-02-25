@@ -391,6 +391,7 @@ const ProposalViewer: React.FC = () => {
   // Invoice status
   const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
+  const [invoicePdf, setInvoicePdf] = useState<string | null>(null);
   const [showSendToClientModal, setShowSendToClientModal] = useState(false);
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -437,7 +438,7 @@ const ProposalViewer: React.FC = () => {
       try {
         const { data } = await supabase
           .from('stripe_invoices')
-          .select('status, invoice_url')
+          .select('status, invoice_url, invoice_pdf')
           .eq('proposal_id', id)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -445,6 +446,7 @@ const ProposalViewer: React.FC = () => {
         if (data) {
           setInvoiceStatus(data.status);
           setInvoiceUrl(data.invoice_url);
+          setInvoicePdf(data.invoice_pdf || null);
         }
       } catch {
         // Non-critical — just won't show status
@@ -2090,6 +2092,7 @@ The Shortcut Team`);
                   selectedOptions={currentProposal?.selectedOptions}
                   clientEmail={currentProposal?.clientEmail}
                   existingInvoiceUrl={invoiceUrl}
+                  existingInvoicePdf={invoicePdf}
                   invoiceStatus={invoiceStatus}
                   onSuccess={async () => {
                     if (id) await getProposal(id);

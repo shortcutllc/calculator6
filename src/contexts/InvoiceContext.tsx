@@ -8,6 +8,7 @@ interface InvoiceContextType {
   error: string | null;
   fetchInvoices: () => Promise<void>;
   syncInvoiceStatus: (stripeInvoiceId: string) => Promise<void>;
+  sendInvoiceToClient: (stripeInvoiceId: string) => Promise<void>;
 }
 
 const InvoiceContext = createContext<InvoiceContextType | undefined>(undefined);
@@ -33,6 +34,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     stripeInvoiceId: row.stripe_invoice_id,
     stripeCustomerId: row.stripe_customer_id,
     invoiceUrl: row.invoice_url,
+    invoicePdf: row.invoice_pdf || null,
+    sentToClient: row.sent_to_client ?? true,
     status: row.status,
     amountCents: row.amount_cents,
     clientName: row.client_name,
@@ -96,6 +99,32 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const sendInvoiceToClient = async (stripeInvoiceId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/.netlify/functions/create-stripe-invoice?action=send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ stripeInvoiceId })
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send invoice');
+      }
+
+      await fetchInvoices();
+    } catch (err) {
+      console.error('Failed to send invoice:', err);
+      throw err;
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => { fetchInvoices().catch(() => {}); }, 0);
     return () => clearTimeout(timer);
@@ -107,6 +136,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     error,
     fetchInvoices,
     syncInvoiceStatus,
+    sendInvoiceToClient,
   };
 
   return (

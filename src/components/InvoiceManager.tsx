@@ -3,7 +3,7 @@ import { useInvoice } from '../contexts/InvoiceContext';
 import { useProposal } from '../contexts/ProposalContext';
 import { StripeInvoice, StripeInvoiceStatus } from '../types/stripeInvoice';
 import { LoadingSpinner } from './LoadingSpinner';
-import { Search, ExternalLink, RefreshCw, Receipt, FileText, Plus, Link, FileEdit } from 'lucide-react';
+import { Search, ExternalLink, RefreshCw, Receipt, FileText, Plus, Link, FileEdit, Copy, Download, Send, Check } from 'lucide-react';
 import { Button } from './Button';
 import { format } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
@@ -23,13 +23,15 @@ const formatDollars = (cents: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 
 const InvoiceManager: React.FC = () => {
-  const { invoices, loading, error, fetchInvoices, syncInvoiceStatus } = useInvoice();
+  const { invoices, loading, error, fetchInvoices, syncInvoiceStatus, sendInvoiceToClient } = useInvoice();
   const { proposals } = useProposal();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   // Create invoice modal state
   const [showCreateMenu, setShowCreateMenu] = useState(false);
@@ -98,6 +100,27 @@ const InvoiceManager: React.FC = () => {
     }
   };
 
+  const handleCopyLink = async (invoice: StripeInvoice) => {
+    try {
+      await navigator.clipboard.writeText(invoice.invoiceUrl);
+      setCopiedId(invoice.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      window.open(invoice.invoiceUrl, '_blank');
+    }
+  };
+
+  const handleSendToClient = async (invoice: StripeInvoice) => {
+    try {
+      setSendingId(invoice.id);
+      await sendInvoiceToClient(invoice.stripeInvoiceId);
+    } catch (err) {
+      console.error('Failed to send:', err);
+    } finally {
+      setSendingId(null);
+    }
+  };
+
   const handleCreateFresh = () => {
     setModalInitialName('');
     setModalInitialEmail('');
@@ -156,6 +179,7 @@ const InvoiceManager: React.FC = () => {
     lineItems: InvoiceLineItem[];
     daysUntilDue: number;
     proposalId?: string;
+    sendToClient?: boolean;
   }) => {
     try {
       setCreateLoading(true);
@@ -178,7 +202,8 @@ const InvoiceManager: React.FC = () => {
             description: item.description,
             amount: item.amount
           })),
-          daysUntilDue: data.daysUntilDue
+          daysUntilDue: data.daysUntilDue,
+          sendToClient: data.sendToClient ?? true
         })
       });
 
@@ -410,6 +435,11 @@ const InvoiceManager: React.FC = () => {
                       <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusConfig.className}`}>
                         {statusConfig.label}
                       </span>
+                      {!invoice.sentToClient && (
+                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-600 border border-amber-200">
+                          Not Sent
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-text-dark-60">
                       <span className="font-semibold text-shortcut-blue text-base">
@@ -432,6 +462,37 @@ const InvoiceManager: React.FC = () => {
 
                   {/* Right: Actions */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {!invoice.sentToClient && (
+                      <button
+                        onClick={() => handleSendToClient(invoice)}
+                        disabled={sendingId === invoice.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors border border-amber-200"
+                        title="Send this invoice to the client via email"
+                      >
+                        <Send size={12} />
+                        {sendingId === invoice.id ? 'Sending...' : 'Send to Client'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleCopyLink(invoice)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold hover:bg-gray-200 transition-colors"
+                      title="Copy shareable invoice link"
+                    >
+                      {copiedId === invoice.id ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
+                      {copiedId === invoice.id ? 'Copied!' : 'Copy Link'}
+                    </button>
+                    {invoice.invoicePdf && (
+                      <a
+                        href={invoice.invoicePdf}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold hover:bg-gray-200 transition-colors"
+                        title="Download invoice as PDF"
+                      >
+                        <Download size={12} />
+                        PDF
+                      </a>
+                    )}
                     <Button
                       onClick={() => handleSync(invoice)}
                       variant="secondary"
@@ -446,7 +507,7 @@ const InvoiceManager: React.FC = () => {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#635BFF] text-white text-sm font-semibold hover:bg-[#4B45C6] transition-colors"
                     >
-                      View Invoice
+                      View
                       <ExternalLink size={14} />
                     </a>
                   </div>

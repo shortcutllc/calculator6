@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Receipt, ExternalLink, CheckCircle } from 'lucide-react';
+import { Receipt, ExternalLink, CheckCircle, Copy, Download, Check } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { InvoiceConfirmationModal, InvoiceLineItem } from './InvoiceConfirmationModal';
 
@@ -125,6 +125,7 @@ interface StripeInvoiceButtonProps {
   selectedOptions?: any;
   clientEmail?: string;
   existingInvoiceUrl?: string | null;
+  existingInvoicePdf?: string | null;
   invoiceStatus?: string | null;
   onSuccess?: (invoiceUrl: string) => void;
 }
@@ -136,19 +137,33 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
   selectedOptions,
   clientEmail,
   existingInvoiceUrl,
+  existingInvoicePdf,
   invoiceStatus,
   onSuccess
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(existingInvoiceUrl || null);
+  const [invoicePdf, setInvoicePdf] = useState<string | null>(existingInvoicePdf || null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // If already invoiced, show view-only state with status
   if (invoiceUrl) {
     const statusConfig = invoiceStatus ? INVOICE_STATUS_CONFIG[invoiceStatus] : null;
+
+    const handleCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(invoiceUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        window.open(invoiceUrl, '_blank');
+      }
+    };
+
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <CheckCircle size={16} className="text-green-600 shrink-0" />
         <a
           href={invoiceUrl}
@@ -159,6 +174,26 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
           View Invoice
           <ExternalLink size={14} />
         </a>
+        <button
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+          title="Copy shareable link"
+        >
+          {copied ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
+          {copied ? 'Copied' : 'Copy Link'}
+        </button>
+        {invoicePdf && (
+          <a
+            href={invoicePdf}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+            title="Download PDF"
+          >
+            <Download size={12} />
+            PDF
+          </a>
+        )}
         {statusConfig && (
           <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${statusConfig.className}`}>
             {statusConfig.label}
@@ -178,6 +213,7 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
     clientEmail: string;
     lineItems: InvoiceLineItem[];
     daysUntilDue: number;
+    sendToClient?: boolean;
   }) => {
     try {
       setLoading(true);
@@ -200,7 +236,8 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
             description: item.description,
             amount: item.amount
           })),
-          daysUntilDue: data.daysUntilDue
+          daysUntilDue: data.daysUntilDue,
+          sendToClient: data.sendToClient ?? true
         })
       });
 
@@ -217,6 +254,7 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
       }
 
       setInvoiceUrl(result.invoiceUrl);
+      setInvoicePdf(result.invoicePdf || null);
       setShowConfirmation(false);
       onSuccess?.(result.invoiceUrl);
 

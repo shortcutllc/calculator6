@@ -8,6 +8,8 @@ export interface StripeInvoice {
   stripeInvoiceId: string;
   stripeCustomerId: string;
   invoiceUrl: string;
+  invoicePdf: string | null;
+  sentToClient: boolean;
   status: StripeInvoiceStatus;
   amountCents: number;
   clientName: string;

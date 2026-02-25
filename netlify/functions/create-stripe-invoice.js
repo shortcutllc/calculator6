@@ -3,6 +3,7 @@
  *
  * POST                    → Create customer + invoice from proposal data
  * POST ?action=sync       → Sync invoice status from Stripe to DB
+ * POST ?action=send       → Send a finalized-but-unsent invoice to the client
  *
  * Auth: Supabase JWT in Authorization header (Bearer token)
  */
@@ -172,23 +173,66 @@ async function notifyInvoiceCreated({ clientName, clientEmail, amountCents, invo
 
 // --- Handlers ---
 
+async function handleSendExisting(body, stripe, supabase) {
+  const { stripeInvoiceId } = body;
+  if (!stripeInvoiceId) {
+    return errorResponse(400, 'stripeInvoiceId is required', 'VALIDATION_ERROR');
+  }
+
+  const sentInvoice = await stripe.invoices.sendInvoice(stripeInvoiceId);
+
+  const { error } = await supabase
+    .from('stripe_invoices')
+    .update({ sent_to_client: true, status: sentInvoice.status || 'open', updated_at: new Date().toISOString() })
+    .eq('stripe_invoice_id', stripeInvoiceId);
+
+  if (error) {
+    console.error('Failed to update sent_to_client flag:', error);
+  }
+
+  // Send Slack notification
+  const { data: invoiceRecord } = await supabase
+    .from('stripe_invoices')
+    .select('client_name, amount_cents, proposal_id, invoice_url')
+    .eq('stripe_invoice_id', stripeInvoiceId)
+    .single();
+
+  if (invoiceRecord) {
+    await notifyInvoiceCreated({
+      clientName: invoiceRecord.client_name,
+      clientEmail: sentInvoice.customer_email || '',
+      amountCents: invoiceRecord.amount_cents,
+      invoiceUrl: invoiceRecord.invoice_url,
+      proposalId: invoiceRecord.proposal_id
+    });
+  }
+
+  return jsonResponse(200, {
+    success: true,
+    status: sentInvoice.status || 'open',
+    invoiceUrl: sentInvoice.hosted_invoice_url
+  });
+}
+
 async function handleCreateInvoice(body, stripe, supabase, user) {
-  const { proposalId, proposalData, pricingOptions, selectedOptions, clientEmail, clientName, daysUntilDue } = body;
+  const { proposalId, proposalData, pricingOptions, selectedOptions, clientEmail, clientName, daysUntilDue, sendToClient = true } = body;
 
   const resolvedName = clientName || proposalData?.clientName;
   if (!resolvedName) {
     return errorResponse(400, 'Client name is required', 'VALIDATION_ERROR');
   }
-  if (!clientEmail) {
+  if (sendToClient && !clientEmail) {
     return errorResponse(400, 'Client email is required to send an invoice', 'VALIDATION_ERROR');
   }
 
   // Step 1: Create Stripe customer
   const customerParams = {
     name: resolvedName,
-    email: clientEmail,
     metadata: { proposalId: proposalId || 'unknown' }
   };
+  if (clientEmail) {
+    customerParams.email = clientEmail;
+  }
 
   const customer = await stripe.customers.create(customerParams);
 
@@ -232,21 +276,28 @@ async function handleCreateInvoice(body, stripe, supabase, user) {
     });
   }
 
-  // Step 5: Finalize and send
-  const sentInvoice = await stripe.invoices.sendInvoice(invoice.id);
+  // Step 5: Finalize (and optionally send)
+  let finalInvoice;
+  if (sendToClient) {
+    finalInvoice = await stripe.invoices.sendInvoice(invoice.id);
+  } else {
+    finalInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
+  }
 
   // Step 6: Persist to stripe_invoices table
   const { error: insertError } = await supabase
     .from('stripe_invoices')
     .insert({
       proposal_id: proposalId || null,
-      stripe_invoice_id: sentInvoice.id,
+      stripe_invoice_id: finalInvoice.id,
       stripe_customer_id: customer.id,
-      invoice_url: sentInvoice.hosted_invoice_url,
-      status: sentInvoice.status || 'sent',
+      invoice_url: finalInvoice.hosted_invoice_url,
+      invoice_pdf: finalInvoice.invoice_pdf || null,
+      status: sendToClient ? (finalInvoice.status || 'sent') : 'open',
       amount_cents: totalCents,
       client_name: resolvedName,
-      created_by_user_id: user.id
+      created_by_user_id: user.id,
+      sent_to_client: sendToClient
     });
 
   if (insertError) {
@@ -254,20 +305,22 @@ async function handleCreateInvoice(body, stripe, supabase, user) {
     // Non-fatal: invoice was created in Stripe
   }
 
-  // Step 7: Send Slack notification (non-fatal)
-  await notifyInvoiceCreated({
-    clientName: resolvedName,
-    clientEmail,
-    amountCents: totalCents,
-    invoiceUrl: sentInvoice.hosted_invoice_url,
-    proposalId: proposalId || null
-  });
+  // Step 7: Send Slack notification (only when actually sending to client)
+  if (sendToClient) {
+    await notifyInvoiceCreated({
+      clientName: resolvedName,
+      clientEmail,
+      amountCents: totalCents,
+      invoiceUrl: finalInvoice.hosted_invoice_url,
+      proposalId: proposalId || null
+    });
+  }
 
   // Step 8: Update proposal with stripe_invoice_id
   if (proposalId) {
     const { error: updateError } = await supabase
       .from('proposals')
-      .update({ stripe_invoice_id: sentInvoice.id })
+      .update({ stripe_invoice_id: finalInvoice.id })
       .eq('id', proposalId);
 
     if (updateError) {
@@ -277,11 +330,13 @@ async function handleCreateInvoice(body, stripe, supabase, user) {
 
   return jsonResponse(200, {
     success: true,
-    invoiceId: sentInvoice.id,
-    invoiceUrl: sentInvoice.hosted_invoice_url,
+    invoiceId: finalInvoice.id,
+    invoiceUrl: finalInvoice.hosted_invoice_url,
+    invoicePdf: finalInvoice.invoice_pdf || null,
     amountCents: totalCents,
     customerId: customer.id,
-    status: sentInvoice.status || 'sent'
+    status: sendToClient ? (finalInvoice.status || 'sent') : 'open',
+    sentToClient: sendToClient
   });
 }
 
@@ -347,6 +402,10 @@ export const handler = async (event) => {
 
     if (params.action === 'sync') {
       return await handleSyncStatus(body, stripe, supabase);
+    }
+
+    if (params.action === 'send') {
+      return await handleSendExisting(body, stripe, supabase);
     }
 
     return await handleCreateInvoice(body, stripe, supabase, user);
