@@ -143,7 +143,7 @@ async function sendEmailViaSendGrid({ to, subject, html, text }) {
     body: JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
       from: {
-        email: process.env.FROM_EMAIL || 'ops@getshortcut.co',
+        email: process.env.FROM_EMAIL || 'hello@getshortcut.co',
         name: 'Shortcut Wellness'
       },
       subject,
