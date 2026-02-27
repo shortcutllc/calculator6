@@ -21,6 +21,7 @@ import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
 import { QRCodeSignProvider } from './contexts/QRCodeSignContext';
 import { ClientEmailProvider } from './contexts/ClientEmailContext';
 import { InvoiceProvider } from './contexts/InvoiceContext';
+import { ProAgreementProvider } from './contexts/ProAgreementContext';
 import { GenericLandingPageProvider } from './contexts/GenericLandingPageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -46,6 +47,8 @@ const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
 const CLELandingPage = lazy(() => import('./components/CLELandingPage'));
 const ClientEmailManager = lazy(() => import('./components/ClientEmailManager'));
 const InvoiceManager = lazy(() => import('./components/InvoiceManager'));
+const ProAgreementManager = lazy(() => import('./components/ProAgreementManager'));
+const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'));
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 
 function App() {
@@ -73,7 +76,8 @@ function App() {
     location.pathname === '/cle' ||
     location.pathname.startsWith('/cle/') ||
     location.pathname === '/195-nassau' ||
-    location.pathname.startsWith('/p/');
+    location.pathname.startsWith('/p/') ||
+    location.pathname.startsWith('/sign/');
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -393,6 +397,36 @@ function App() {
                       </Suspense>
                     </InvoiceProvider>
                   </PrivateRoute>
+                }
+              />
+              {/* Pro Agreements */}
+              <Route
+                path="/pro-agreements"
+                element={
+                  <PrivateRoute>
+                    <ProAgreementProvider>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <ProAgreementManager />
+                      </Suspense>
+                    </ProAgreementProvider>
+                  </PrivateRoute>
+                }
+              />
+              {/* Public signing page (no auth) */}
+              <Route
+                path="/sign/:slug"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <ProAgreementSigning />
+                  </Suspense>
                 }
               />
               <Route
