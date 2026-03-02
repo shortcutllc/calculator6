@@ -50,6 +50,7 @@ const InvoiceManager = lazy(() => import('./components/InvoiceManager'));
 const ProAgreementManager = lazy(() => import('./components/ProAgreementManager'));
 const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'));
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
+const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
 
 function App() {
   const location = useLocation();
@@ -76,6 +77,7 @@ function App() {
     location.pathname === '/cle' ||
     location.pathname.startsWith('/cle/') ||
     location.pathname === '/195-nassau' ||
+    location.pathname === '/lower-pyne' ||
     location.pathname.startsWith('/p/') ||
     location.pathname.startsWith('/sign/');
 
@@ -557,6 +559,18 @@ function App() {
                     </div>
                   }>
                     <NassauBudgetReview />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/lower-pyne"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <LowerPyneDashboard />
                   </Suspense>
                 }
               />
