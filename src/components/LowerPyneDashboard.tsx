@@ -490,10 +490,10 @@ export default function LowerPyneDashboard() {
               <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#1F3864]/[.06]">
                 <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#2E7D32] mb-2">Strengths</div>
                 <div className="space-y-2 text-[14px] text-[#3D4F5F] leading-relaxed">
-                  <p>All leases renewing to 10yr / 3% escalator terms</p>
+                  <p>All leases assumed renewing to 10yr / 3% escalator terms</p>
                   <p>NOI growing at ~4% annually (revenue 3%, expenses 2%)</p>
                   <p>DSCR consistently above 2.0x on current debt</p>
-                  <p>Hamilton Jewelers anchor tenant since 1912</p>
+                  <p>Hamilton Jewelers anchor tenant</p>
                 </div>
               </div>
               <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#1F3864]/[.06]">
@@ -1504,10 +1504,44 @@ export default function LowerPyneDashboard() {
           {/* ── PROPERTY VALUATION ── */}
           <Section id="valuation">
             <SectionLabel>Property Valuation Analysis</SectionLabel>
-            <h2 className="text-[1.5rem] font-extrabold text-[#1F3864] mb-4">2029 Implied Valuation by Cap Rate</h2>
+
+            {/* ── Market Valuation ── */}
+            <h2 className="text-[1.5rem] font-extrabold text-[#1F3864] mb-4">Market Valuation</h2>
             <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-6">
-              Commercial property values are derived from NOI using the income capitalization approach.
-              Using projected 2029 NOI for refinancing purposes.
+              Based on comparable sales and the asset&rsquo;s prime Nassau Street location, estimated current market value is
+              <span className="font-bold text-[#1F3864]"> $10&ndash;$12M</span>.
+              Projected forward at 2.5% annual appreciation (conservative, CPI-level).
+            </p>
+
+            <div className="bg-white rounded-2xl border border-[#1F3864]/[.08] overflow-hidden mb-6">
+              {(() => {
+                const marketLow = 10000000;
+                const marketHigh = 12000000;
+                const appRate = 0.025;
+                const milestoneYears = [2025, 2027, 2029, 2032, 2035];
+                return (
+                  <Table
+                    headers={['', ...milestoneYears.map(y => String(y))]}
+                    rows={[
+                      [<span key="low" className="font-bold">Low ($10M)</span>, ...milestoneYears.map(y => {
+                        const v = Math.round(marketLow * Math.pow(1 + appRate, y - 2025));
+                        return <span key={y} className={y === 2025 ? 'font-bold' : ''}>{fmt(v)}</span>;
+                      })],
+                      [<span key="high" className="font-bold">High ($12M)</span>, ...milestoneYears.map(y => {
+                        const v = Math.round(marketHigh * Math.pow(1 + appRate, y - 2025));
+                        return <span key={y} className={y === 2025 ? 'font-bold' : ''}>{fmt(v)}</span>;
+                      })],
+                    ]}
+                  />
+                );
+              })()}
+            </div>
+
+            {/* ── Bank / Refi Valuation ── */}
+            <h2 className="text-[1.5rem] font-extrabold text-[#1F3864] mb-4 mt-10">Bank Underwriting Valuation</h2>
+            <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-6">
+              Banks use the income capitalization approach with conservative cap rates (6&ndash;8%) to determine
+              lending value &mdash; typically well below market value. Using projected 2029 NOI for refinancing purposes.
             </p>
 
             <div className="bg-white rounded-2xl border border-[#1F3864]/[.08] overflow-hidden mb-6">
@@ -1516,7 +1550,7 @@ export default function LowerPyneDashboard() {
                 const estMortgage = 3650000;
                 return (
                   <Table
-                    headers={['Cap Rate', 'Implied Value', 'Est. Mortgage', 'Total Equity', '60% Share', '20% Share']}
+                    headers={['Cap Rate', 'Bank Value', 'Est. Mortgage', 'Total Equity', '60% Share', '20% Share']}
                     rows={capRates.map((cr) => {
                       const val = Math.round(noi29 / cr);
                       const equity = val - estMortgage;
@@ -1534,21 +1568,23 @@ export default function LowerPyneDashboard() {
               })()}
             </div>
 
-            <p className="text-[14px] text-[#3D4F5F] leading-relaxed">
-              At the estimated valuation range of $10&ndash;$15M, the 60% ownership stake represents
-              between <span className="font-bold text-[#1F3864]">$3.8M and $6.8M</span> in equity value.
-            </p>
+            <div className="bg-[#FFF8E1] rounded-2xl p-5 border border-[#B26A00]/20 text-[14px] text-[#3D4F5F] leading-relaxed">
+              <span className="font-bold text-[#B26A00]">Key distinction:</span> The bank will lend based on their
+              conservative underwriting value ($7.6&ndash;$10.2M at 6&ndash;8% cap), while the asset&rsquo;s true market
+              value ($10&ndash;$12M+) is materially higher. This gap means the partners hold significantly more equity
+              than a refinancing appraisal would suggest.
+            </div>
           </Section>
 
           {/* ── PARTNER BUYOUT ── */}
           <Section id="buyout">
             <SectionLabel>20% Partner Buyout Strategy</SectionLabel>
-            <h2 className="text-[1.5rem] font-extrabold text-[#1F3864] mb-4">Estimated 20% Stake Value</h2>
+            <h2 className="text-[1.5rem] font-extrabold text-[#1F3864] mb-4">Estimated 20% Stake Value (Market Basis)</h2>
 
             <div className="bg-white rounded-2xl border border-[#1F3864]/[.08] overflow-hidden mb-6">
               <Table
-                headers={['Property Valuation', '20% Gross', 'Mortgage (20%)', '20% Net Equity', 'w/ 20% Discount']}
-                rows={[10000000, 12000000, 15000000].map((v) => {
+                headers={['Market Valuation', '20% Gross', 'Mortgage (20%)', '20% Net Equity', 'w/ 20% Discount']}
+                rows={[10000000, 11000000, 12000000].map((v) => {
                   const gross20 = Math.round(v * 0.2);
                   const mort20 = Math.round(3874209 * 0.2);
                   const netEq = gross20 - mort20;
@@ -1567,7 +1603,7 @@ export default function LowerPyneDashboard() {
             <div className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#1F3864]/[.06] space-y-3 text-[14px] text-[#3D4F5F] leading-relaxed">
               <p><span className="font-bold text-[#1F3864]">Before Refinancing (2026&ndash;2028):</span> Stronger negotiating leverage. The estate is likely motivated to liquidate, and no fresh appraisal has established value. A 15&ndash;25% minority/illiquidity discount is defensible.</p>
               <p><span className="font-bold text-[#1F3864]">After Refinancing (2029+):</span> A refinancing appraisal establishes FMV, simplifying negotiations but potentially setting a higher floor for the estate.</p>
-              <p><span className="font-bold text-[#1F3864]">Recommendation:</span> Pursue acquisition before refinancing, ideally 2026&ndash;2027. At a $12M valuation with 20% discount, the purchase price would be approximately <span className="font-bold text-[#2E7D32]">$1.27M</span> &mdash; achievable with current cash reserves.</p>
+              <p><span className="font-bold text-[#1F3864]">Recommendation:</span> Pursue acquisition before refinancing, ideally 2026&ndash;2027. At a $11M market valuation with 20% minority discount, the purchase price would be approximately <span className="font-bold text-[#2E7D32]">$1.14M</span> &mdash; achievable with current cash reserves.</p>
             </div>
           </Section>
 
