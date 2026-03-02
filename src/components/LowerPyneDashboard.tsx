@@ -470,7 +470,7 @@ export default function LowerPyneDashboard() {
               <p className="text-[16px] md:text-[17px] leading-relaxed opacity-95">
                 Lower Pyne Associates LP owns <span className="font-bold text-[#9EFAFF]">17,440 SF</span> of
                 prime Nassau Street retail and office space in Princeton, NJ. With all five tenants committed to
-                10-year renewals at 3% annual escalators, the <span className="font-bold text-[#9EFAFF]">2029 mortgage
+                lease renewals (Hamilton 10yr, others 5yr) at 3% annual escalators, the <span className="font-bold text-[#9EFAFF]">2029 mortgage
                 maturity</span> presents a cash-out refinancing opportunity of <span className="font-bold text-[#9EFAFF]">$1.4M&ndash;$2.4M</span> at
                 strong DSCR coverage. This memo analyzes the financial position, refinancing scenarios, and three near-term
                 strategic decisions: partner buyout ($1.2&ndash;$2.2M), capital improvements ($750K), and treasury optimization ($215K+ in foregone income).
@@ -490,7 +490,7 @@ export default function LowerPyneDashboard() {
               <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#1F3864]/[.06]">
                 <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#2E7D32] mb-2">Strengths</div>
                 <div className="space-y-2 text-[14px] text-[#3D4F5F] leading-relaxed">
-                  <p>All leases assumed renewing to 10yr / 3% escalator terms</p>
+                  <p>All leases assumed renewing (Hamilton 10yr, others 5yr) w/ 3% escalators</p>
                   <p>NOI growing at ~4% annually (revenue 3%, expenses 2%)</p>
                   <p>DSCR consistently above 2.0x on current debt</p>
                   <p>Hamilton Jewelers anchor tenant</p>
@@ -989,8 +989,8 @@ export default function LowerPyneDashboard() {
             {/* Lease renewal timeline */}
             <h3 className="text-[1.1rem] font-bold text-[#1F3864] mb-4">Lease Renewal Timeline</h3>
             <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-4">
-              All leases were originally signed as ~10-year terms around 2017, coinciding with the last refinancing.
-              All five tenants have provided verbal commitment to renew for 10-year terms with 3% annual escalators.
+              All leases were originally signed around 2017, coinciding with the last refinancing.
+              All five tenants are assumed to renew &mdash; Hamilton Jewelers on a 10-year term, the remaining four on 5-year terms &mdash; all with 3% annual escalators.
             </p>
 
             <div className="space-y-3 mb-6">
@@ -1020,8 +1020,8 @@ export default function LowerPyneDashboard() {
 
             <div className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#1F3864]/[.06] space-y-3 text-[14px] text-[#3D4F5F] leading-relaxed">
               <p><span className="font-bold text-[#1F3864]">Concentration risk:</span> Hamilton Jewelers represents 64% of revenue. However, Hamilton is a Princeton institution (est. 1912), the premier jeweler in the market, and has occupied this space for decades. Their renewal is effectively certain.</p>
-              <p><span className="font-bold text-[#1F3864]">Renewal impact on 2029 refi:</span> If all tenants sign 10-year renewals in 2026&ndash;2027, the lender in 2029 will see every tenant locked in for 7&ndash;8 more years with contractual 3% annual escalators. This transforms the property from a short-term lease portfolio into a bond-like income stream.</p>
-              <p><span className="font-bold text-[#1F3864]">Escalator structure:</span> Hamilton currently pays $139,911/yr in escalations on top of base rent. The new 10-year leases will formalize 3% annual increases for all tenants, replacing the current mixed escalation structure.</p>
+              <p><span className="font-bold text-[#1F3864]">Renewal impact on 2029 refi:</span> If all tenants renew in 2026&ndash;2027, the lender in 2029 will see Hamilton locked in for 8+ more years and the other four tenants with 3&ndash;4 years remaining &mdash; all with contractual 3% annual escalators. This significantly de-risks the loan underwriting.</p>
+              <p><span className="font-bold text-[#1F3864]">Escalator structure:</span> Hamilton currently pays $139,911/yr in escalations on top of base rent. The new leases will formalize 3% annual increases for all tenants, replacing the current mixed escalation structure.</p>
             </div>
           </Section>
 
@@ -1126,7 +1126,7 @@ export default function LowerPyneDashboard() {
             <SectionLabel>Revenue Growth Projections</SectionLabel>
             <h2 className="text-[1.5rem] font-extrabold text-[#1F3864] mb-4">2025&ndash;2029 Revenue at 3% Growth</h2>
             <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-6">
-              With all leases being renewed to 10-year terms at 3% annual increases, consistent with the property's demonstrated growth trajectory.
+              With all leases assumed renewing (Hamilton 10yr, others 5yr) at 3% annual increases, consistent with the property's demonstrated growth trajectory.
             </p>
 
             <div className="bg-white rounded-2xl border border-[#1F3864]/[.08] overflow-hidden mb-6">
@@ -1388,10 +1388,10 @@ export default function LowerPyneDashboard() {
               <div className="text-[12px] font-bold uppercase tracking-[.12em] text-[#9EFAFF] mb-3">Strategic Advantage</div>
               <div className="space-y-3 text-[14px] leading-relaxed">
                 <p className="opacity-90">
-                  <span className="font-bold text-white">The 10-year lease commitments are the single biggest improvement over the last refi.</span> In 2018,
+                  <span className="font-bold text-white">The lease commitments are the single biggest improvement over the last refi.</span> In 2018,
                   the lender underwrote to trailing revenue with no visibility into future income. In 2029, they'll see
-                  a decade of contractually committed 3% annual increases &mdash; essentially guaranteed revenue growth
-                  that de-risks the entire loan.
+                  Hamilton locked in for 8+ years and all tenants on contractual 3% annual escalators &mdash; significantly
+                  de-risking the loan.
                 </p>
                 <p className="opacity-90">
                   This positions the partnership to push for a larger cash-out (70&ndash;75% LTV vs. the prior 66%), a lower spread,
@@ -1667,7 +1667,7 @@ export default function LowerPyneDashboard() {
                   { text: 'Complete the committed $100,000 investment in Nassau 211-213 LLC.' },
                   { text: 'Complete architectural and engineering assessments for HVAC and elevator systems.' },
                   { text: 'Commission a cost segregation study to maximize depreciation benefits.' },
-                  { text: 'Execute all lease renewals to 10-year terms with 3% annual escalators.' },
+                  { text: 'Execute all lease renewals (Hamilton 10yr, others 5yr) with 3% annual escalators.' },
                 ].map((item, i) => (
                   <div key={i} className={`py-3 px-4 rounded-xl ${item.priority ? 'bg-[#1F3864]/[.06] border border-[#1F3864]/[.12]' : 'bg-[#FAFAFA]'}`}>
                     <p className={`text-[14px] leading-relaxed ${item.priority ? 'font-bold text-[#1F3864]' : 'text-[#3D4F5F]'}`}>
