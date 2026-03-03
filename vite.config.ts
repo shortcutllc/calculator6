@@ -39,15 +39,11 @@ export default defineConfig({
           if (id.includes('HolidayProposal') || id.includes('HolidayPage')) {
             return undefined; // Don't create separate chunk
           }
-          // Vendor libraries
+          // Vendor libraries - only split truly independent chunks
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor';
-            }
             if (id.includes('supabase')) {
               return 'supabase';
             }
-            return 'vendor-other';
           }
         }
       }
