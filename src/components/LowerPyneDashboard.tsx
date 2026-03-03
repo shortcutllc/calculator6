@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts';
 
 /* ─────────────────────────────────────────────
    Lower Pyne Associates LP — Financial Dashboard
@@ -1837,8 +1838,137 @@ const HISTORICAL_ROWS: ProjectionRow[] = [
   },
 ];
 
+// ── Slider Groups for Projections ──
+const SLIDER_GROUPS = [
+  {
+    title: 'Growth Assumptions',
+    note: 'Annual growth rates applied to 2025 base values.',
+    keys: ['revenueGrowth', 'expenseGrowth', 'taxGrowth', 'vacancyRate'] as const,
+  },
+  {
+    title: 'Refinancing Terms',
+    note: 'Current mortgage (~$3.87M) matures 2029. Excess above ~$3.6M balance is cash-out proceeds.',
+    keys: ['capRate', 'refiRate', 'refiLoanAmount', 'refiDistPct'] as const,
+  },
+  {
+    title: 'Cash Management',
+    note: 'Annual distributions to partners. RE investments and reserves are optional strategies.',
+    keys: ['distributions', 'newInvestments', 'reserveInvestPct', 'reserveReturnRate'] as const,
+  },
+];
+
+// ── Compute 2035 NOI for a given assumptions set (lightweight, no full projection) ──
+function compute2035NOI(a: typeof DEFAULTS): number {
+  const yearIndex = 10;
+  const gross = Math.round(BASE_REVENUE_2025 * Math.pow(1 + a.revenueGrowth, yearIndex));
+  const vacancy = Math.round(gross * a.vacancyRate);
+  const effective = gross - vacancy;
+  const tax = Math.round(BASE_TAX_2025 * Math.pow(1 + a.taxGrowth, yearIndex));
+  const opex = Math.round(BASE_OTHER_OPEX_2025 * Math.pow(1 + a.expenseGrowth, yearIndex));
+  return effective - tax - opex;
+}
+
+// ── Custom Tooltip for Projection Chart ──
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white rounded-xl shadow-lg border border-[#334A46]/[.1] px-4 py-3">
+      <div className="text-[12px] font-bold text-[#334A46] mb-2">{label}</div>
+      {payload.map((p: any) => (
+        <div key={p.dataKey} className="flex items-center gap-2 text-[13px]">
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.stroke }} />
+          <span className="text-[#334A46]/60">{p.name}:</span>
+          <span className="font-bold text-[#334A46]">{fmt(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Projection Chart Component ──
+function ProjectionChart({ rows }: { rows: ProjectionRow[] }) {
+  const chartData = rows
+    .filter(r => r.year >= 2025)
+    .map(r => ({
+      year: r.year.toString(),
+      noi: r.noi,
+      debtService: r.debtService,
+      freeCashFlow: r.freeCashFlow,
+    }));
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6 mb-10">
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-[11px] font-bold uppercase tracking-[.15em] text-[#334A46]/40">
+          NOI, Debt Service & Free Cash Flow
+        </div>
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-0.5 bg-[#334A46] rounded" />
+            <span className="text-[10px] text-[#334A46]/50 font-medium">NOI</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-0.5 bg-[#6B9E8A] rounded" />
+            <span className="text-[10px] text-[#334A46]/50 font-medium">Free Cash Flow</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-0.5 bg-[#9CA3AF] rounded border-t border-dashed border-[#9CA3AF]" />
+            <span className="text-[10px] text-[#334A46]/50 font-medium">Debt Service</span>
+          </div>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={300}>
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+          <XAxis
+            dataKey="year"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12, fill: '#334A46', opacity: 0.5, fontWeight: 600 }}
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 11, fill: '#334A46', opacity: 0.4 }}
+            tickFormatter={(v: number) => '$' + (v / 1000).toFixed(0) + 'K'}
+            width={60}
+          />
+          <Tooltip content={<ChartTooltip />} />
+          <ReferenceLine
+            x="2029"
+            stroke="#334A46"
+            strokeDasharray="4 4"
+            strokeOpacity={0.3}
+            label={{ value: 'Refi', position: 'top', fontSize: 11, fill: '#334A46', opacity: 0.5 }}
+          />
+          <Area
+            type="monotone" dataKey="noi"
+            stroke="#334A46" fill="#334A46" fillOpacity={0.08}
+            strokeWidth={2.5} dot={false} name="NOI"
+          />
+          <Area
+            type="monotone" dataKey="freeCashFlow"
+            stroke="#6B9E8A" fill="#6B9E8A" fillOpacity={0.06}
+            strokeWidth={2} dot={false} name="Free Cash Flow"
+          />
+          <Area
+            type="monotone" dataKey="debtService"
+            stroke="#9CA3AF" fill="none"
+            strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="Debt Service"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function ProjectionsView() {
   const [assumptions, setAssumptions] = useState({ ...DEFAULTS });
+  const [assumptionsOpen, setAssumptionsOpen] = useState(true);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(SLIDER_GROUPS.map(g => [g.title, true]))
+  );
+  const toggleGroup = (title: string) =>
+    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }));
 
   const updateAssumption = (key: keyof typeof DEFAULTS, value: number) => {
     setAssumptions((prev) => ({ ...prev, [key]: value }));
@@ -1959,6 +2089,32 @@ function ProjectionsView() {
     return { rows: allRows, propertyValue, totalEquity, share60, share20, totalDist60, refiAnnualDS };
   }, [assumptions]);
 
+  // ── Active preset detection ──
+  const isActivePreset = (presetKey: string) => {
+    const preset = PRESETS[presetKey as keyof typeof PRESETS];
+    if (!preset) return false;
+    return (Object.keys(preset) as (keyof typeof DEFAULTS)[]).every(
+      (k) => Math.abs(assumptions[k] - preset[k]) < 0.0001
+    );
+  };
+
+  // ── Min DSCR for health indicator ──
+  const minDSCR = useMemo(() => {
+    const projected = projections.rows.filter(r => !r.isHistorical && !r.isBaseline);
+    return Math.min(...projected.map(r => r.dscr));
+  }, [projections.rows]);
+  const dscrColor = minDSCR >= 1.5 ? '#2E7D32' : minDSCR >= 1.25 ? '#F57F17' : '#C62828';
+  const dscrLabel = minDSCR >= 1.5 ? 'Healthy' : minDSCR >= 1.25 ? 'Adequate' : 'At Risk';
+  const dscrBg = minDSCR >= 1.5 ? 'bg-[#E2EFDA]' : minDSCR >= 1.25 ? 'bg-[#FFF8E1]' : 'bg-[#FFEBEE]';
+
+  // ── Table helpers ──
+  const yearHeader = (r: ProjectionRow) =>
+    r.isHistorical ? `${r.year} Act.` : r.isBaseline ? '2025 Act.' : r.year === 2029 ? '2029 Refi' : String(r.year);
+  const yearThClass = (r: ProjectionRow) =>
+    `py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] border-b border-[#334A46]/10 text-right whitespace-nowrap ${r.year === 2029 ? 'text-[#2E7D32] bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'text-[#334A46]/70 bg-[#FAFAFA]' : 'text-[#334A46]/50'}`;
+  const yearTdBg = (r: ProjectionRow) =>
+    r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : '';
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* ── Intro ── */}
@@ -1971,80 +2127,151 @@ function ProjectionsView() {
         </p>
       </div>
 
-      {/* ── Scenario Presets ── */}
-      <div className="flex flex-wrap gap-3 mb-8">
+      {/* ── Scenario Presets (redesigned as larger cards) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
         {([
-          { key: 'base', label: 'Base Case', desc: '3% rev, 3% exp, $87K invest', color: 'bg-[#2E7D32]' },
-          { key: 'conservative', label: 'Conservative', desc: '2% rev, 3.5% exp, 3% vacancy', color: 'bg-[#F57F17]' },
-          { key: 'stress', label: 'Stress Test', desc: '1% rev, 4% exp, 8% vacancy', color: 'bg-[#C62828]' },
-        ] as const).map((preset) => (
-          <button
-            key={preset.key}
-            onClick={() => setAssumptions(PRESETS[preset.key])}
-            className="group px-4 py-3 rounded-xl border border-[#334A46]/[.1] hover:border-[#334A46]/[.25] transition-all bg-white hover:shadow-sm"
-          >
-            <div className="flex items-center gap-2 mb-0.5">
-              <div className={`w-2 h-2 rounded-full ${preset.color}`} />
-              <span className="text-[13px] font-bold text-[#334A46]">{preset.label}</span>
-            </div>
-            <div className="text-[11px] text-[#334A46]/40">{preset.desc}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* ── Assumptions Panel ── */}
-      <div className="mb-10">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <SectionLabel>Model Assumptions</SectionLabel>
-          </div>
-          <button
-            onClick={resetDefaults}
-            className="px-4 py-2 text-[13px] font-semibold text-[#334A46]/60 border border-[#334A46]/[.12] rounded-lg hover:bg-[#334A46]/[.04] transition-colors"
-          >
-            Reset to Defaults
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {SLIDERS.map((slider) => (
-            <div key={slider.key} className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
-              <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/40 mb-1">{slider.label}</div>
-              <div className="text-[1.5rem] font-extrabold text-[#334A46] mb-3">{slider.format(assumptions[slider.key])}</div>
-              <input
-                type="range"
-                min={slider.min}
-                max={slider.max}
-                step={slider.step}
-                value={assumptions[slider.key]}
-                onChange={(e) => updateAssumption(slider.key, parseFloat(e.target.value))}
-                className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]"
-              />
-              <div className="flex justify-between mt-1">
-                <span className="text-[10px] text-[#334A46]/30 font-medium">{slider.format(slider.min)}</span>
-                <span className="text-[10px] text-[#334A46]/30 font-medium">{slider.format(slider.max)}</span>
+          { key: 'base' as const, label: 'Base Case', borderColor: 'border-l-[#2E7D32]', dotColor: 'bg-[#2E7D32]', params: ['3% revenue growth', '3% expense growth', '0% vacancy', '$5M refi'] },
+          { key: 'conservative' as const, label: 'Conservative', borderColor: 'border-l-[#F57F17]', dotColor: 'bg-[#F57F17]', params: ['2% revenue growth', '3.5% expense growth', '3% vacancy', '$4M refi'] },
+          { key: 'stress' as const, label: 'Stress Test', borderColor: 'border-l-[#C62828]', dotColor: 'bg-[#C62828]', params: ['1% revenue growth', '4% expense growth', '8% vacancy', '$3.6M refi'] },
+        ]).map((preset) => {
+          const active = isActivePreset(preset.key);
+          const noiVal = compute2035NOI(PRESETS[preset.key]);
+          return (
+            <button
+              key={preset.key}
+              onClick={() => setAssumptions(PRESETS[preset.key])}
+              className={`text-left p-5 rounded-2xl border-l-4 ${preset.borderColor} border border-[#334A46]/[.08] transition-all ${active ? 'bg-[#E2EFDA]/20 shadow-md ring-1 ring-[#334A46]/[.15]' : 'bg-white hover:shadow-sm'}`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${preset.dotColor}`} />
+                <span className="text-[15px] font-extrabold text-[#334A46]">{preset.label}</span>
+                {active && <span className="text-[10px] font-bold uppercase tracking-wider text-[#2E7D32] ml-auto">Active</span>}
               </div>
-            </div>
-          ))}
-        </div>
+              <div className="space-y-0.5 mb-3">
+                {preset.params.map((p) => (
+                  <div key={p} className="text-[12px] text-[#334A46]/50">{p}</div>
+                ))}
+              </div>
+              <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/40">2035 NOI</div>
+              <div className="text-[1.1rem] font-extrabold text-[#334A46]">{fmt(noiVal)}</div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── Valuation Summary Cards ── */}
+      {/* ── Hero Chart ── */}
+      <ProjectionChart rows={projections.rows} />
+
+      {/* ── Assumptions Panel (collapsible, grouped into 3 sections) ── */}
+      <div className="mb-10">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setAssumptionsOpen(!assumptionsOpen)}
+            className="flex items-center gap-2 group"
+          >
+            <svg className={`w-4 h-4 text-[#334A46]/40 transition-transform ${assumptionsOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            <SectionLabel>Model Assumptions</SectionLabel>
+          </button>
+          <div className="flex items-center gap-3">
+            {!assumptionsOpen && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {SLIDERS.slice(0, 6).map((slider) => (
+                  <span key={slider.key} className="text-[11px] text-[#334A46]/50">
+                    <span className="font-medium text-[#334A46]/70">{slider.format(assumptions[slider.key])}</span> {slider.label.toLowerCase().replace('revenue ', 'rev ').replace('expense ', 'exp ').replace('re tax ', 'tax ').replace('refi interest ', 'refi ')}
+                  </span>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={resetDefaults}
+              className="px-4 py-2 text-[13px] font-semibold text-[#334A46]/60 border border-[#334A46]/[.12] rounded-lg hover:bg-[#334A46]/[.04] transition-colors shrink-0"
+            >
+              Reset to Defaults
+            </button>
+          </div>
+        </div>
+
+        {assumptionsOpen && (
+          <div>
+            {SLIDER_GROUPS.map((group) => (
+              <div key={group.title} className="mb-6">
+                <button
+                  onClick={() => toggleGroup(group.title)}
+                  className="flex items-center gap-2 mb-3 group w-full text-left"
+                >
+                  <svg className={`w-3.5 h-3.5 text-[#334A46]/50 transition-transform ${openGroups[group.title] ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  <h3 className="text-[14px] font-bold text-[#334A46] whitespace-nowrap">{group.title}</h3>
+                  <p className="text-[12px] text-[#334A46]/50 leading-relaxed">{group.note}</p>
+                </button>
+                {openGroups[group.title] ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {group.keys.map((key) => {
+                      const slider = SLIDERS.find(s => s.key === key)!;
+                      return (
+                        <div key={slider.key} className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
+                          <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/70 mb-1">{slider.label}</div>
+                          <div className="text-[1.5rem] font-extrabold text-[#334A46] mb-3">{slider.format(assumptions[slider.key])}</div>
+                          <input
+                            type="range"
+                            min={slider.min}
+                            max={slider.max}
+                            step={slider.step}
+                            value={assumptions[slider.key]}
+                            onChange={(e) => updateAssumption(slider.key, parseFloat(e.target.value))}
+                            className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]"
+                          />
+                          <div className="flex justify-between mt-1">
+                            <span className="text-[11px] text-[#334A46]/50 font-medium">{slider.format(slider.min)}</span>
+                            <span className="text-[11px] text-[#334A46]/50 font-medium">{slider.format(slider.max)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-x-5 gap-y-1 ml-5.5">
+                    {group.keys.map((key) => {
+                      const slider = SLIDERS.find(s => s.key === key)!;
+                      return (
+                        <span key={key} className="text-[12px] text-[#334A46]/60">
+                          <span className="font-semibold text-[#334A46]/80">{slider.format(assumptions[key])}</span>{' '}
+                          {slider.label.toLowerCase()}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Valuation Summary Cards (with DSCR health indicator) ── */}
       <div className="mb-10">
         <SectionLabel>Valuation Summary (Based on 2035 NOI)</SectionLabel>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Stat value={fmt(projections.propertyValue)} label="Property Value" accent />
           <Stat value={fmt(projections.totalEquity)} label="Total Equity" />
           <Stat value={fmt(projections.share60)} label="60% Share" />
           <Stat value={fmt(projections.share20)} label="20% Share" />
           <Stat value={fmt(projections.totalDist60)} label="10-Yr Dist. (60%)" accent />
+          {/* DSCR Health Indicator */}
+          <div className={`rounded-2xl p-5 overflow-hidden ${dscrBg} border border-[#334A46]/[.06]`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dscrColor }} />
+              <span className="text-[11px] font-bold uppercase tracking-[.08em]" style={{ color: dscrColor }}>{dscrLabel}</span>
+            </div>
+            <div className="text-[1.4rem] md:text-[1.75rem] font-extrabold leading-none text-[#334A46]">{minDSCR.toFixed(2)}x</div>
+            <div className="mt-2 text-[12px] font-semibold uppercase tracking-[.08em] text-[#334A46]/50">Min DSCR</div>
+          </div>
         </div>
       </div>
 
-      {/* ── 10-Year P&L Projection ── */}
+      {/* ── Unified 10-Year Projection Table ── */}
       <div className="mb-10">
         <SectionLabel>10-Year Projection</SectionLabel>
-        <h2 className="text-[1.3rem] font-extrabold text-[#334A46] mb-4">Income & NOI</h2>
+        <h2 className="text-[1.3rem] font-extrabold text-[#334A46] mb-4">Income, Cash Flow & Debt Service</h2>
         <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[1100px]">
@@ -2052,13 +2279,12 @@ function ProjectionsView() {
                 <tr>
                   <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 sticky left-0 bg-white z-10"></th>
                   {projections.rows.map((r) => (
-                    <th key={r.year} className={`py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] border-b border-[#334A46]/10 text-right whitespace-nowrap ${r.year === 2029 ? 'text-[#2E7D32] bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'text-[#334A46]/70 bg-[#FAFAFA]' : 'text-[#334A46]/50'}`}>
-                      {r.isHistorical ? `${r.year} Act.` : r.isBaseline ? '2025 Act.' : r.year === 2029 ? '2029 Refi' : r.year}
-                    </th>
+                    <th key={r.year} className={yearThClass(r)}>{yearHeader(r)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
+                {/* ── Section 1: Revenue & NOI ── */}
                 {([
                   { label: 'Gross Revenue', key: 'grossRevenue' as const },
                   { label: 'Vacancy Loss', key: 'vacancyLoss' as const },
@@ -2069,51 +2295,23 @@ function ProjectionsView() {
                   { label: 'Net Operating Income', key: 'noi' as const, bold: true, highlight: true },
                 ]).map(({ label, key, bold, highlight }) => (
                   <tr key={key} className={`border-b border-[#334A46]/[.06] ${highlight ? 'bg-[#E2EFDA]/30' : ''}`}>
-                    <td className={`py-2.5 px-3 text-[13px] ${bold ? 'font-bold text-[#334A46]' : 'text-[#3D4F5F]'} sticky left-0 bg-white z-10 ${highlight ? '!bg-[#E2EFDA]/30' : ''}`}>{label}</td>
+                    <td className={`py-2.5 px-3 text-[13px] ${bold ? 'font-bold text-[#334A46]' : 'text-[#3D4F5F]'} sticky left-0 z-10 ${highlight ? 'bg-[#E2EFDA]/30' : 'bg-white'}`}>{label}</td>
                     {projections.rows.map((r) => (
-                      <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${bold ? 'font-bold text-[#334A46]' : 'text-[#3D4F5F]'} ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
-                        {key === 'vacancyLoss' ? (r[key] > 0 ? `(${fmt(r[key]).replace('$', '$')})` : '\u2014') : fmt(r[key])}
+                      <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${bold ? 'font-bold text-[#334A46]' : 'text-[#3D4F5F]'} ${yearTdBg(r)}`}>
+                        {key === 'vacancyLoss' ? (r[key] > 0 ? `(${fmt(r[key])})` : '\u2014') : fmt(r[key])}
                       </td>
                     ))}
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Cash Flow & Debt Service ── */}
-      <div className="mb-10">
-        <h2 className="text-[1.3rem] font-extrabold text-[#334A46] mb-4">Cash Flow & Debt Service</h2>
-        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1100px]">
-              <thead>
-                <tr>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 sticky left-0 bg-white z-10"></th>
-                  {projections.rows.map((r) => (
-                    <th key={r.year} className={`py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] border-b border-[#334A46]/10 text-right whitespace-nowrap ${r.year === 2029 ? 'text-[#2E7D32] bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'text-[#334A46]/70 bg-[#FAFAFA]' : 'text-[#334A46]/50'}`}>
-                      {r.isHistorical ? `${r.year} Act.` : r.isBaseline ? '2025 Act.' : r.year === 2029 ? '2029 Refi' : r.year}
-                    </th>
-                  ))}
+                {/* ── Section 2: Cash Flow & Debt ── */}
+                <tr className="border-b border-[#334A46]/10">
+                  <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46]/30 bg-white">Cash Flow &amp; Debt Service</td>
                 </tr>
-              </thead>
-              <tbody>
-                {/* NOI row */}
-                <tr className="border-b border-[#334A46]/[.06]">
-                  <td className="py-2.5 px-3 text-[13px] font-bold text-[#334A46] sticky left-0 bg-white z-10">Net Operating Income</td>
-                  {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right font-bold text-[#334A46] ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
-                      {fmt(r.noi)}
-                    </td>
-                  ))}
-                </tr>
-                {/* Debt Service row with step-up annotation */}
+                {/* Debt Service with step-up annotation */}
                 <tr className="border-b border-[#334A46]/[.06]">
                   <td className="py-2.5 px-3 text-[13px] text-[#3D4F5F] sticky left-0 bg-white z-10">Debt Service</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right text-[#3D4F5F] ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right text-[#3D4F5F] ${yearTdBg(r)}`}>
                       <div>{fmt(-r.debtService)}</div>
                       {r.year === 2029 && !r.isHistorical && (
                         <div className="text-[10px] text-[#C62828] font-bold mt-0.5 whitespace-nowrap">+{fmt(r.debtService - PRE_REFI_DEBT_SERVICE)} step-up</div>
@@ -2121,16 +2319,16 @@ function ProjectionsView() {
                     </td>
                   ))}
                 </tr>
-                {/* Free Cash Flow row */}
+                {/* Free Cash Flow */}
                 <tr className="border-b border-[#334A46]/[.06]">
                   <td className="py-2.5 px-3 text-[13px] font-bold text-[#334A46] sticky left-0 bg-white z-10">Free Cash Flow</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right font-bold text-[#334A46] ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right font-bold text-[#334A46] ${yearTdBg(r)}`}>
                       {fmt(r.freeCashFlow)}
                     </td>
                   ))}
                 </tr>
-                {/* DSCR row */}
+                {/* DSCR */}
                 <tr className="border-b border-[#334A46]/[.06] bg-[#FAFAFA]">
                   <td className="py-2.5 px-3 text-[13px] font-bold text-[#334A46] sticky left-0 bg-[#FAFAFA] z-10">DSCR</td>
                   {projections.rows.map((r) => (
@@ -2139,74 +2337,78 @@ function ProjectionsView() {
                     </td>
                   ))}
                 </tr>
-                {/* ── Section divider: Outflows ── */}
+                {/* ── Section 3: Outflows & Inflows ── */}
                 <tr className="border-b border-[#334A46]/10">
                   <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46]/30 bg-white">Outflows &amp; Inflows</td>
                 </tr>
-                {/* Distributions row */}
+                {/* Distributions */}
                 <tr className="border-b border-[#334A46]/[.06]">
                   <td className="py-2.5 px-3 text-[13px] text-[#3D4F5F] sticky left-0 bg-white z-10">Distributions</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right text-[#3D4F5F] ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right text-[#3D4F5F] ${yearTdBg(r)}`}>
                       {(r.isHistorical || r.isBaseline) ? fmt(-280000) : fmt(-assumptions.distributions)}
                     </td>
                   ))}
                 </tr>
-                {/* Outside RE Investments row — always visible */}
+                {/* Outside RE Investments */}
                 <tr className="border-b border-[#334A46]/[.06]">
                   <td className="py-2.5 px-3 text-[13px] text-[#3D4F5F] sticky left-0 bg-white z-10">Outside RE Investments</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${assumptions.newInvestments > 0 && !r.isHistorical && !r.isBaseline ? 'text-[#3D4F5F]' : 'text-[#3D4F5F]/30'} ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${assumptions.newInvestments > 0 && !r.isHistorical && !r.isBaseline ? 'text-[#3D4F5F]' : 'text-[#3D4F5F]/30'} ${yearTdBg(r)}`}>
                       {(r.isHistorical || r.isBaseline) ? '\u2014' : (assumptions.newInvestments > 0 ? fmt(-assumptions.newInvestments) : '\u2014')}
                     </td>
                   ))}
                 </tr>
-                {/* Refi Cash-Out Distribution row — always visible */}
+                {/* Refi Cash-Out Distribution */}
                 <tr className="border-b border-[#334A46]/[.06]">
                   <td className="py-2.5 px-3 text-[13px] text-[#3D4F5F] sticky left-0 bg-white z-10">Refi Cash-Out Distribution</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${r.refiDistribution > 0 ? 'font-bold text-[#C62828]' : 'text-[#3D4F5F]/30'} ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${r.refiDistribution > 0 ? 'font-bold text-[#C62828]' : 'text-[#3D4F5F]/30'} ${yearTdBg(r)}`}>
                       {r.refiDistribution > 0 ? fmt(-r.refiDistribution) : '\u2014'}
                     </td>
                   ))}
                 </tr>
-                {/* Refi Proceeds inflow row — always visible */}
+                {/* Refi Proceeds */}
                 <tr className="border-b border-[#334A46]/[.06]">
                   <td className="py-2.5 px-3 text-[13px] text-[#3D4F5F] sticky left-0 bg-white z-10">Refi Proceeds (Inflow)</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${r.refiProceeds > 0 ? 'font-bold text-[#2E7D32]' : 'text-[#3D4F5F]/30'} ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${r.refiProceeds > 0 ? 'font-bold text-[#2E7D32]' : 'text-[#3D4F5F]/30'} ${yearTdBg(r)}`}>
                       {r.refiProceeds > 0 ? '+' + fmt(r.refiProceeds) : '\u2014'}
                     </td>
                   ))}
                 </tr>
-                {/* Invested Reserves row — always visible */}
+                {/* Invested Reserves */}
                 <tr className="border-b border-[#334A46]/[.06]">
                   <td className="py-2.5 px-3 text-[13px] text-[#3D4F5F] sticky left-0 bg-white z-10">Invested Reserves</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${r.investedReserves > 0 ? 'text-[#3D4F5F]' : 'text-[#3D4F5F]/30'} ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${r.investedReserves > 0 ? 'text-[#3D4F5F]' : 'text-[#3D4F5F]/30'} ${yearTdBg(r)}`}>
                       {(r.isHistorical || r.isBaseline) ? '\u2014' : (r.investedReserves > 0 ? fmt(r.investedReserves) : '\u2014')}
                     </td>
                   ))}
                 </tr>
-                {/* Investment Income row — always visible */}
+                {/* Investment Income */}
                 <tr className="border-b border-[#334A46]/[.06]">
                   <td className="py-2.5 px-3 text-[13px] text-[#2E7D32] font-semibold sticky left-0 bg-white z-10">Investment Income</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${r.investmentIncome > 0 ? 'text-[#2E7D32] font-semibold' : 'text-[#3D4F5F]/30'} ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right ${r.investmentIncome > 0 ? 'text-[#2E7D32] font-semibold' : 'text-[#3D4F5F]/30'} ${yearTdBg(r)}`}>
                       {(r.isHistorical || r.isBaseline) ? '\u2014' : (r.investmentIncome > 0 ? '+' + fmt(r.investmentIncome) : '\u2014')}
                     </td>
                   ))}
                 </tr>
-                {/* ── Net to Cash Position row ── */}
+                {/* ── Section 4: Net Position ── */}
+                <tr className="border-b border-[#334A46]/10">
+                  <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46]/30 bg-white">Net Position</td>
+                </tr>
+                {/* Net to Cash Position */}
                 <tr className="border-b border-[#334A46]/[.08] bg-[#334A46]/[.04]">
                   <td className="py-2.5 px-3 text-[13px] font-bold text-[#334A46] sticky left-0 bg-[#334A46]/[.04] z-10">Net to Cash Position</td>
                   {projections.rows.map((r) => (
-                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right font-bold ${r.netToCash > 0 ? 'text-[#2E7D32]' : r.netToCash < 0 ? 'text-[#C62828]' : 'text-[#3D4F5F]/30'} ${r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : ''}`}>
+                    <td key={r.year} className={`py-2.5 px-3 text-[13px] text-right font-bold ${r.netToCash > 0 ? 'text-[#2E7D32]' : r.netToCash < 0 ? 'text-[#C62828]' : 'text-[#3D4F5F]/30'} ${yearTdBg(r)}`}>
                       {(r.isHistorical || r.isBaseline) ? '\u2014' : (r.netToCash >= 0 ? '+' : '') + fmt(r.netToCash)}
                     </td>
                   ))}
                 </tr>
-                {/* Cash Position row */}
+                {/* Cash Position */}
                 <tr className="bg-[#E2EFDA]/30">
                   <td className="py-2.5 px-3 text-[13px] font-bold text-[#334A46] sticky left-0 bg-[#E2EFDA]/30 z-10">Cash Position</td>
                   {projections.rows.map((r) => (
@@ -2217,21 +2419,6 @@ function ProjectionsView() {
                 </tr>
               </tbody>
             </table>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Key Metrics Note ── */}
-      <div className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#334A46]/[.06] mb-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[14px] text-[#3D4F5F]">
-          <div>
-            <span className="font-bold text-[#334A46]">Pre-Refi (2026&ndash;2028):</span> Debt service uses current ~$255K/yr mortgage cost. Cash position reflects free cash flow minus distributions{assumptions.newInvestments > 0 ? ' and outside RE investments' : ''} each year.
-          </div>
-          <div>
-            <span className="font-bold text-[#334A46]">Refi Year (2029):</span> New loan pays off ~$3.6M balance. Cash-out proceeds ({fmt(Math.max(0, assumptions.refiLoanAmount - 3600000))}){assumptions.refiDistPct > 0 ? `, of which ${(assumptions.refiDistPct * 100).toFixed(0)}% (${fmt(Math.round(Math.max(0, assumptions.refiLoanAmount - 3600000) * assumptions.refiDistPct))}) is distributed to partners` : ''}. Debt service switches to new loan terms.
-          </div>
-          <div>
-            <span className="font-bold text-[#334A46]">Post-Refi Debt Service:</span> {fmt(projections.refiAnnualDS)}/yr on {SLIDERS[6].format(assumptions.refiLoanAmount)} at {SLIDERS[5].format(assumptions.refiRate)}, 25-year amortization.
           </div>
         </div>
       </div>
