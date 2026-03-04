@@ -2071,7 +2071,9 @@ function ProjectionsView() {
       </div>
 
       {/* ── Hero Chart ── */}
-      <ProjectionChart rows={projections.rows} />
+      <Suspense fallback={<div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6 mb-10 h-[364px] animate-pulse" />}>
+        <LazyProjectionChart rows={projections.rows} />
+      </Suspense>
 
       {/* ── Assumptions Panel (collapsible, grouped into 3 sections) ── */}
       <div className="mb-10">
