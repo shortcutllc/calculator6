@@ -2531,6 +2531,40 @@ function PynView() {
   const [wbActive, setWbActive] = useState(false);
   const [wbStartYear, setWbStartYear] = useState(2029);
   const [wbPct, setWbPct] = useState(1.0);
+  // Outside investment flows
+  const [chambersSale, setChambersSale] = useState(700000); // LP gross proceeds from Chambers sale (2026)
+  const [nassauDistStart, setNassauDistStart] = useState(2028); // year Nassau 195 begins distributing
+  const [nassauAnnualDist, setNassauAnnualDist] = useState(44000); // LP annual distribution from Nassau
+  // Refi
+  const [refiCashOut, setRefiCashOut] = useState(1400000); // cash-out proceeds to LP from 2029 refi
+
+  // ── Advisor projection reference data (Andrew Hauber, March Wealth, Feb 2026) ──
+  const ADVISOR_DATA = useMemo(() => [
+    { year: 2026, age: 70, income: 335333, distributions: 0, totalIn: 335333, expenses: 315873, totalOut: 315873, netCF: 19460, portfolio: 2059321 },
+    { year: 2027, age: 71, income: 371120, distributions: 0, totalIn: 371120, expenses: 331803, totalOut: 331803, netCF: 39317, portfolio: 2197106 },
+    { year: 2028, age: 72, income: 374272, distributions: 0, totalIn: 374272, expenses: 338194, totalOut: 338194, netCF: 36078, portfolio: 2337425 },
+    { year: 2029, age: 73, income: 377455, distributions: 28917, totalIn: 406372, expenses: 355972, totalOut: 355972, netCF: 50400, portfolio: 2486254 },
+    { year: 2030, age: 74, income: 380670, distributions: 30689, totalIn: 411359, expenses: 372564, totalOut: 372564, netCF: 38795, portfolio: 2592493 },
+    { year: 2031, age: 75, income: 383917, distributions: 32442, totalIn: 416359, expenses: 380219, totalOut: 380219, netCF: 36140, portfolio: 2716259 },
+    { year: 2032, age: 76, income: 387197, distributions: 34292, totalIn: 421489, expenses: 388047, totalOut: 388047, netCF: 33442, portfolio: 2840609 },
+    { year: 2033, age: 77, income: 390509, distributions: 36086, totalIn: 426595, expenses: 395991, totalOut: 395991, netCF: 30604, portfolio: 2956648 },
+    { year: 2034, age: 78, income: 393854, distributions: 38138, totalIn: 431992, expenses: 404226, totalOut: 404226, netCF: 27766, portfolio: 3091326 },
+    { year: 2035, age: 79, income: 397232, distributions: 40303, totalIn: 437535, expenses: 412673, totalOut: 412673, netCF: 24862, portfolio: 3217676 },
+    { year: 2036, age: 80, income: 400645, distributions: 42588, totalIn: 443233, expenses: 421383, totalOut: 421383, netCF: 21850, portfolio: 3344612 },
+    { year: 2037, age: 81, income: 404091, distributions: 44765, totalIn: 448856, expenses: 430244, totalOut: 430244, netCF: 18612, portfolio: 3472410 },
+    { year: 2038, age: 82, income: 407571, distributions: 47293, totalIn: 454864, expenses: 439100, totalOut: 439100, netCF: 15764, portfolio: 3601166 },
+    { year: 2039, age: 83, income: 411086, distributions: 49675, totalIn: 460761, expenses: 448089, totalOut: 448089, netCF: 12672, portfolio: 3731068 },
+    { year: 2040, age: 84, income: 414638, distributions: 52467, totalIn: 467105, expenses: 457496, totalOut: 457496, netCF: 9609, portfolio: 3861984 },
+    { year: 2041, age: 85, income: 418224, distributions: 55081, totalIn: 473285, expenses: 467059, totalOut: 467059, netCF: 6226, portfolio: 3994028 },
+    { year: 2042, age: 86, income: 421846, distributions: 57756, totalIn: 479602, expenses: 476877, totalOut: 476877, netCF: 2725, portfolio: 4127250 },
+    { year: 2043, age: 87, income: 425505, distributions: 60551, totalIn: 486056, expenses: 487065, totalOut: 487065, netCF: -1009, portfolio: 4261591 },
+    { year: 2044, age: 88, income: 429201, distributions: 62980, totalIn: 492181, expenses: 497320, totalOut: 497320, netCF: -5139, portfolio: 4397305 },
+    { year: 2045, age: 89, income: 432933, distributions: 65950, totalIn: 498883, expenses: 508120, totalOut: 508120, netCF: -9237, portfolio: 4534209 },
+    { year: 2046, age: 90, income: 436703, distributions: 68443, totalIn: 505146, expenses: 519002, totalOut: 519002, netCF: -13856, portfolio: 4672567 },
+    { year: 2047, age: 91, income: 440510, distributions: 70941, totalIn: 511451, expenses: 530216, totalOut: 530216, netCF: -18765, portfolio: 4812441 },
+    { year: 2048, age: 92, income: 444355, distributions: 73428, totalIn: 517783, expenses: 541746, totalOut: 541746, netCF: -23963, portfolio: 4963930 },
+    { year: 2049, age: 93, income: 448239, distributions: 75879, totalIn: 524118, expenses: 553622, totalOut: 553622, netCF: -29504, portfolio: 5097128 },
+  ], []);
 
   // ── Compute RMD for a given year ──
   const getRMD = (year: number, retirementBalance: number) => {
@@ -2552,6 +2586,16 @@ function PynView() {
       const lpDist = Math.round(lpDistributions * Math.pow(1.03, yearIndex));
       // Pyn receives 60% of LP distributions
       const pynFromLP = Math.round(lpDist * PYN_LP_SHARE);
+
+      // Outside investment flows to LP
+      const lpChambers = year === 2026 ? chambersSale : 0;
+      const lpNassau = year >= nassauDistStart ? nassauAnnualDist : 0;
+      const lpRefiProceeds = year === 2029 ? refiCashOut : 0;
+      // Pyn's 60% share of outside flows
+      const pynChambers = Math.round(lpChambers * PYN_LP_SHARE);
+      const pynNassau = Math.round(lpNassau * PYN_LP_SHARE);
+      const pynRefi = Math.round(lpRefiProceeds * PYN_LP_SHARE);
+      const pynOutsideFlows = pynChambers + pynNassau + pynRefi;
 
       // RMD (reduces needed Pyn draw)
       const rmd = getRMD(year, retirementBalance);
@@ -2575,14 +2619,15 @@ function PynView() {
       // Pyn investment returns (on beginning balance, invested fraction)
       const pynInvestmentReturn = Math.round(pynBalance * 0.5 * investReturn);
 
-      // Pyn cash flow
-      const pynInflows = pynFromLP + pynInvestmentReturn;
+      // Pyn cash flow (includes outside investment flows)
+      const pynInflows = pynFromLP + pynInvestmentReturn + pynOutsideFlows;
       const pynOutflows = dadPynDraw + willDist + benDist + uncleDist;
       const pynNetCashFlow = pynInflows - pynOutflows;
       pynBalance = Math.round(pynBalance + pynNetCashFlow);
 
       return {
         year, lpDist, pynFromLP, pynInvestmentReturn,
+        pynChambers, pynNassau, pynRefi, pynOutsideFlows,
         dadPynDraw, dadSS: DAVID_SS, dadRMD: rmd, dadTotalIncome,
         dadExpenses, dadSurplus,
         willDist, benDist, uncleDist,
@@ -2590,7 +2635,7 @@ function PynView() {
       };
     });
     return rows;
-  }, [dadDrawTarget, expenseGrowth, lpDistributions, investReturn, wbActive, wbStartYear, wbPct]);
+  }, [dadDrawTarget, expenseGrowth, lpDistributions, investReturn, wbActive, wbStartYear, wbPct, chambersSale, nassauDistStart, nassauAnnualDist, refiCashOut]);
 
   // ── Slider helper ──
   const SliderCard = ({ label, value, onChange, min, max, step, format }: {
@@ -2721,7 +2766,7 @@ function PynView() {
                   { name: 'Private Equity \u2014 Terracycle LP', value: 20000 },
                   { name: 'Private Equity \u2014 Viwa LP', value: 44614 },
                   { name: 'Royal Bank Scotland', value: 17000 },
-                  { name: 'Taxable Investments', value: 399998 },
+                  { name: 'MetLife GAUL *8319 (Cash Surrender)', value: 39705 },
                 ].map((a) => (
                   <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
                     <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
@@ -2739,15 +2784,6 @@ function PynView() {
                 ].map((a) => (
                   <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
                     <td className="py-2 px-4 pl-10 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
-                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
-                  </tr>
-                ))}
-                {/* Insurance */}
-                {[
-                  { name: 'MetLife GAUL *8319 (CSV)', value: 39705 },
-                ].map((a) => (
-                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
-                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
                     <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
                   </tr>
                 ))}
@@ -2866,6 +2902,20 @@ function PynView() {
             )}
           </div>
         </div>
+        {/* Outside Investments & Refi sliders */}
+        <div className="mt-4">
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/40 mb-3">LP Outside Investments &amp; Refi Events</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <SliderCard label="Chambers Sale to LP (2026)" value={chambersSale} onChange={setChambersSale}
+              min={0} max={900000} step={50000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
+            <SliderCard label="Nassau 195 Dist. to LP /yr" value={nassauAnnualDist} onChange={setNassauAnnualDist}
+              min={0} max={80000} step={5000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
+            <SliderCard label="Nassau Dist. Start Year" value={nassauDistStart} onChange={setNassauDistStart}
+              min={2027} max={2030} step={1} format={(v) => String(v)} />
+            <SliderCard label="2029 Refi Cash-Out to LP" value={refiCashOut} onChange={setRefiCashOut}
+              min={0} max={2400000} step={100000} format={(v) => '$' + (v / 1e6).toFixed(1) + 'M'} />
+          </div>
+        </div>
       </div>
 
       {/* ── David's Income vs. Expenses ── */}
@@ -2928,6 +2978,7 @@ function PynView() {
                   <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
                   <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP Dist. (60%)</th>
                   <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Invest. Return</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#1565C0] border-b border-[#334A46]/10 text-right">Outside Flows</th>
                   <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total In</th>
                   <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Dad Draw</th>
                   {wbActive && <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Will</th>}
@@ -2943,6 +2994,9 @@ function PynView() {
                     <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{r.year}</td>
                     <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.pynFromLP)}</td>
                     <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.pynInvestmentReturn)}</td>
+                    <td className={`py-2.5 px-3 text-[13px] text-right ${r.pynOutsideFlows > 0 ? 'font-bold text-[#1565C0]' : 'text-[#334A46]/30'}`}>
+                      {r.pynOutsideFlows > 0 ? fmtK(r.pynOutsideFlows) : '\u2014'}
+                    </td>
                     <td className="py-2.5 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.pynInflows)}</td>
                     <td className="py-2.5 px-3 text-[13px] text-right text-[#C62828]/70">{fmtK(r.dadPynDraw)}</td>
                     {wbActive && <td className={`py-2.5 px-3 text-[13px] text-right ${r.willDist > 0 ? 'text-[#334A46]/80 font-medium' : 'text-[#334A46]/30'}`}>{r.willDist > 0 ? fmtK(r.willDist) : '\u2014'}</td>}
@@ -3080,6 +3134,62 @@ function PynView() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* ── Financial Advisor Projection (March Wealth) ── */}
+      <div className="mb-10">
+        <SectionLabel>Financial Advisor Projection (Andrew Hauber, March Wealth)</SectionLabel>
+        <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-4">
+          Combined personal + Pyn portfolio projection prepared February 2026. Shows income flows, planned distributions,
+          expenses, and total portfolio assets through age 93. Portfolio grows from <span className="font-bold">$2.06M</span> to
+          <span className="font-bold"> $5.10M</span> &mdash; net cash flow turns negative around age 87 but portfolio continues growing
+          due to investment returns exceeding net draws.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Stat value="$2.06M" label="Starting Portfolio (2026)" accent />
+          <Stat value="$5.10M" label="Projected Portfolio (2049, Age 93)" />
+          <Stat value="2043" label="Year Net CF Turns Negative (Age 87)" />
+          <Stat value="$335K&rarr;$448K" label="Income Flow Growth (24yr)" />
+        </div>
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Age</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Income</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Distributions</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total In</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Expenses</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Net CF</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Portfolio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ADVISOR_DATA.map((r) => (
+                  <tr key={r.year} className={`border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA] ${r.netCF < 0 ? 'bg-[#FFEBEE]/20' : ''}`}>
+                    <td className="py-2 px-3 text-[13px] font-bold text-[#334A46]">{r.year}</td>
+                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]/60">{r.age}</td>
+                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.income)}</td>
+                    <td className={`py-2 px-3 text-[13px] text-right ${r.distributions > 0 ? 'text-[#334A46]/80' : 'text-[#334A46]/30'}`}>
+                      {r.distributions > 0 ? fmtK(r.distributions) : '\u2014'}
+                    </td>
+                    <td className="py-2 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.totalIn)}</td>
+                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.expenses)}</td>
+                    <td className={`py-2 px-3 text-[13px] text-right font-bold ${r.netCF >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                      {r.netCF >= 0 ? '+' : ''}{fmtK(r.netCF)}
+                    </td>
+                    <td className="py-2 px-3 text-[13px] text-right font-bold text-[#334A46]">{fmtK(r.portfolio)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="mt-3 text-[11px] text-[#334A46]/40">
+          Source: March Wealth Management (Andrew Hauber) &middot; Prepared February 10, 2026 &middot; Page 11 of 57
         </div>
       </div>
 
