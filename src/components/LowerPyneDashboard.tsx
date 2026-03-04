@@ -244,7 +244,7 @@ export default function LowerPyneDashboard() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [activeSection, setActiveSection] = useState('');
-  const [activeTab, setActiveTab] = useState<'analysis' | 'projections'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'projections' | 'pyn'>('analysis');
   const [showExpenseDetail, setShowExpenseDetail] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -415,7 +415,7 @@ export default function LowerPyneDashboard() {
           </div>
           <div className="flex items-center gap-4">
             <div className="flex bg-[#334A46]/[.06] rounded-lg p-0.5">
-              {(['analysis', 'projections'] as const).map((tab) => (
+              {(['analysis', 'projections', 'pyn'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => { setActiveTab(tab); window.scrollTo(0, 0); }}
@@ -425,7 +425,7 @@ export default function LowerPyneDashboard() {
                       : 'text-[#334A46]/50 hover:text-[#334A46]/70'
                   }`}
                 >
-                  {tab === 'analysis' ? 'Analysis' : 'Projections'}
+                  {tab === 'analysis' ? 'Analysis' : tab === 'projections' ? 'Projections' : 'David Newton / Pyn'}
                 </button>
               ))}
             </div>
@@ -1125,6 +1125,144 @@ export default function LowerPyneDashboard() {
             </div>
           </Section>
 
+          {/* ── OUTSIDE INVESTMENT PORTFOLIO ── */}
+          <Section id="outside-investments">
+            <SectionLabel>Outside Real Estate Investment Portfolio</SectionLabel>
+            <h2 className="text-[1.5rem] font-extrabold text-[#334A46] mb-2">LP Direct Investments</h2>
+            <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-6">
+              Lower Pyne has made direct capital investments into multiple outside properties using LP cash reserves.
+              These represent significant equity &mdash; total portfolio value of <span className="font-bold">$2.7M&ndash;$3.6M</span> on
+              a cost basis of <span className="font-bold">$867K</span>. Two investments have near-term liquidity events.
+            </p>
+
+            <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden mb-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[900px]">
+                  <thead>
+                    <tr>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Investment</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Type</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Location</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP %</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Cost Basis</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Equity Value</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { name: 'Penns Neck Plaza', type: 'Land', loc: 'West Windsor', pct: '10.0%', cost: 96555, equity: 100000, status: 'Held' },
+                      { name: '258 Washington Rd', type: 'Residential', loc: 'West Windsor', pct: '10.0%', cost: 35500, equity: 29500, status: 'Matured' },
+                      { name: 'Varsity 266', type: 'Residential', loc: 'West Windsor', pct: '10.0%', cost: 47700, equity: 20000, status: 'Matured' },
+                      { name: 'Mather 265', type: 'Residential', loc: 'West Windsor', pct: '10.0%', cost: 33600, equity: 30000, status: 'Matured' },
+                      { name: '16 Chambers', type: 'Medical/Office', loc: 'Princeton', pct: '22.1%', cost: 196590, equity: 714924, status: 'SALE' },
+                      { name: '195 Nassau', type: '45-Unit Mixed-Use', loc: 'Princeton', pct: '14.0%', cost: 188555, equity: 1209000, status: 'LEASING' },
+                      { name: 'PrinPike 3450', type: 'Office/Medical', loc: 'Lawrence', pct: '12.5%', cost: 168750, equity: 402679, status: 'Refinanced' },
+                      { name: 'Prinbo', type: 'Office/Retail', loc: 'Princeton/Bordentown', pct: '20.0%', cost: 100000, equity: 149162, status: 'Held' },
+                    ].map((inv) => (
+                      <tr key={inv.name} className={`border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA] ${inv.status === 'SALE' || inv.status === 'LEASING' ? 'bg-[#E2EFDA]/20' : ''}`}>
+                        <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{inv.name}</td>
+                        <td className="py-2.5 px-3 text-[12px] text-[#334A46]/60">{inv.type}</td>
+                        <td className="py-2.5 px-3 text-[12px] text-[#334A46]/60">{inv.loc}</td>
+                        <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{inv.pct}</td>
+                        <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmt(inv.cost)}</td>
+                        <td className="py-2.5 px-3 text-[13px] text-right font-semibold text-[#334A46]">{fmt(inv.equity)}</td>
+                        <td className="py-2.5 px-3">
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                            inv.status === 'SALE' ? 'bg-[#C62828]/10 text-[#C62828]' :
+                            inv.status === 'LEASING' ? 'bg-[#2E7D32]/10 text-[#2E7D32]' :
+                            inv.status === 'Matured' ? 'bg-[#F57F17]/10 text-[#F57F17]' :
+                            inv.status === 'Refinanced' ? 'bg-[#1565C0]/10 text-[#1565C0]' :
+                            'bg-[#334A46]/10 text-[#334A46]/60'
+                          }`}>{inv.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                    {/* Totals */}
+                    <tr className="bg-[#FAFAFA] font-bold">
+                      <td className="py-3 px-4 text-[13px] text-[#334A46]" colSpan={4}>Total (8 investments)</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#334A46]">{fmt(867250)}</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#334A46]">{fmt(2655265)}&ndash;{fmt(3597265)}</td>
+                      <td className="py-3 px-3 text-[13px] text-[#2E7D32] font-bold">3.1&ndash;4.1x MOIC</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Key Liquidity Events */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Chambers 16 */}
+              <div className="bg-white rounded-2xl border border-[#C62828]/20 p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#C62828]/10 text-[#C62828]">Sale in Progress</span>
+                  <span className="text-[12px] font-bold text-[#334A46]">16 Chambers &middot; Late 2026</span>
+                </div>
+                <div className="space-y-2 text-[13px] text-[#3D4F5F]">
+                  <div className="flex justify-between"><span>Sale Price Range</span><span className="font-bold">$5.2M&ndash;$6.5M</span></div>
+                  <div className="flex justify-between"><span>Less Mortgage Payoff</span><span className="text-[#C62828]">($2,407,500)</span></div>
+                  <div className="flex justify-between"><span>Less Closing Costs (~5%)</span><span className="text-[#C62828]">($260K&ndash;$325K)</span></div>
+                  <div className="flex justify-between pt-2 border-t border-[#334A46]/10"><span className="font-bold">LP Gross Proceeds (22.1%)</span><span className="font-bold text-[#2E7D32]">$561K&ndash;$834K</span></div>
+                  <div className="flex justify-between"><span>LP Cost Basis</span><span>$196,590</span></div>
+                  <div className="flex justify-between"><span>Est. Tax (~25%)</span><span className="text-[#C62828]">($91K&ndash;$159K)</span></div>
+                </div>
+              </div>
+
+              {/* Nassau 195 */}
+              <div className="bg-white rounded-2xl border border-[#2E7D32]/20 p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#2E7D32]/10 text-[#2E7D32]">Leasing May 2026</span>
+                  <span className="text-[12px] font-bold text-[#334A46]">195 Nassau &middot; 45-Unit Mixed-Use</span>
+                </div>
+                <div className="space-y-2 text-[13px] text-[#3D4F5F]">
+                  <div className="flex justify-between"><span>Project Cost</span><span className="font-bold">$31M</span></div>
+                  <div className="flex justify-between"><span>Stabilized NOI</span><span className="font-bold">$2.02M</span></div>
+                  <div className="flex justify-between"><span>Valuation (5% cap)</span><span className="font-bold">$40.4M</span></div>
+                  <div className="flex justify-between"><span>LP's 14% of Equity</span><span className="font-bold text-[#2E7D32]">$1.2M&ndash;$2.2M</span></div>
+                  <div className="flex justify-between pt-2 border-t border-[#334A46]/10"><span>Annual Dist. to LP (amortizing)</span><span className="font-bold">$24K/yr</span></div>
+                  <div className="flex justify-between"><span>Annual Dist. to LP (I/O)</span><span className="font-bold">$64K/yr</span></div>
+                  <div className="flex justify-between"><span>LP Cost Basis</span><span>$188,555</span></div>
+                  <div className="flex justify-between"><span>MOIC (at 5% cap)</span><span className="font-bold text-[#2E7D32]">11.4x</span></div>
+                </div>
+              </div>
+            </div>
+
+            {/* LP Cash Position Timeline */}
+            <h3 className="text-[1.1rem] font-extrabold text-[#334A46] mb-3">LP Cash Position Through 2029</h3>
+            <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden mb-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Timing</th>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Event</th>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP Cash</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { time: 'End 2025', event: 'Starting position', cash: '$1,475,000' },
+                      { time: 'Early 2026', event: 'Nassau 195 additional investment', cash: '$1,375,000' },
+                      { time: 'Late 2026', event: 'Chambers sale proceeds ($561\u2013$834K)', cash: '$1,935,000\u2013$2,209,000' },
+                      { time: '2027\u20132028', event: 'Nassau 195 begins distributing (stabilization)', cash: '+$24\u2013$64K/year' },
+                      { time: '2029', event: 'Lower Pyne mortgage refi', cash: 'Depends on cash-out size' },
+                    ].map((row) => (
+                      <tr key={row.time} className="border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA]">
+                        <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{row.time}</td>
+                        <td className="py-2.5 px-4 text-[13px] text-[#3D4F5F]">{row.event}</td>
+                        <td className="py-2.5 px-4 text-[13px] text-right font-semibold text-[#334A46]">{row.cash}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <p className="text-[13px] text-[#334A46]/50 leading-relaxed mb-2">
+              With Chambers proceeds, LP could fund the partner buyout ($1.2M) pre-refi and still maintain $700K&ndash;$1.0M in reserves,
+              or defer the buyout and enter the 2029 refi with $1.9M+ in cash.
+            </p>
+          </Section>
+
           {/* ── REVENUE PROJECTIONS 2025-2029 ── */}
           <Section id="revenue-projections">
             <SectionLabel>Revenue Growth Projections</SectionLabel>
@@ -1738,8 +1876,10 @@ export default function LowerPyneDashboard() {
 
         </main>
       </div>
-      ) : (
+      ) : activeTab === 'projections' ? (
         <ProjectionsView />
+      ) : (
+        <PynView />
       )}
     </div>
   );
@@ -2340,6 +2480,613 @@ function ProjectionsView() {
       <div className="pt-10 pb-6 border-t border-[#334A46]/[.08] text-center">
         <div className="text-[11px] text-[#334A46]/30 font-medium">
           Lower Pyne Associates LP &middot; Confidential &middot; Prepared February 2026
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// PYN / DAVID NEWTON VIEW
+// ══════════════════════════════════════════════
+
+// ── Pyn Ownership ──
+const PYN_OWNERSHIP = { dad: 0.50, will: 0.20, ben: 0.20, uncle: 0.10 };
+const PYN_LP_SHARE = 0.60;
+
+// ── David Newton Net Worth Components (Feb 2026) ──
+const DAVID_NW = {
+  nonQualified: 1301633,
+  retirement: 645214,
+  governors: 1200000,
+  west62: 550000,
+  pynAssets: 1200000,
+  lifeInsurance: 1500000,
+  mortgageBofA: -535000,
+  total: 13335602,
+};
+
+// ── David Income & Expenses ──
+const DAVID_SS = 43000;
+const DAVID_RETIREMENT_TOTAL = 645000;
+const DAVID_EXPENSES_BASE = 247000;
+
+// ── Pyn LLC Starting Position (2026) ──
+const PYN_START = 1200000;
+
+// ── RMD Divisors (IRS Uniform Lifetime Table, SECURE 2.0 — age 73 start) ──
+const RMD_DIV: Record<number, number> = {
+  73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9,
+  78: 22.0, 79: 21.1, 80: 20.2, 81: 19.4, 82: 18.5,
+  83: 17.7, 84: 16.8, 85: 16.0,
+};
+const DAVID_BIRTH_YEAR = 1955;
+
+function PynView() {
+  // ── Assumptions (sliders) ──
+  const [dadDrawTarget, setDadDrawTarget] = useState(330000);
+  const [expenseGrowth, setExpenseGrowth] = useState(0.025);
+  const [lpDistributions, setLpDistributions] = useState(280000);
+  const [investReturn, setInvestReturn] = useState(0.05);
+  const [wbActive, setWbActive] = useState(false);
+  const [wbStartYear, setWbStartYear] = useState(2029);
+  const [wbPct, setWbPct] = useState(1.0);
+
+  // ── Compute RMD for a given year ──
+  const getRMD = (year: number, retirementBalance: number) => {
+    const age = year - DAVID_BIRTH_YEAR;
+    if (age < 73) return 0;
+    const divisor = RMD_DIV[age] || Math.max(16.0 - (age - 85) * 0.9, 5.0);
+    return Math.round(retirementBalance / divisor);
+  };
+
+  // ── Year-by-year projections (2026–2035) ──
+  const projections = useMemo(() => {
+    const years = Array.from({ length: 10 }, (_, i) => 2026 + i);
+    let pynBalance = PYN_START;
+    let retirementBalance = DAVID_RETIREMENT_TOTAL;
+    const rows = years.map((year) => {
+      const yearIndex = year - 2026;
+
+      // LP distributions grow ~3%/year
+      const lpDist = Math.round(lpDistributions * Math.pow(1.03, yearIndex));
+      // Pyn receives 60% of LP distributions
+      const pynFromLP = Math.round(lpDist * PYN_LP_SHARE);
+
+      // RMD (reduces needed Pyn draw)
+      const rmd = getRMD(year, retirementBalance);
+      // Retirement account grows at ~5% minus RMD withdrawal
+      retirementBalance = Math.round((retirementBalance - rmd) * 1.05);
+
+      // David's income components
+      const dadTotalIncome = dadDrawTarget;
+      const dadPynDraw = Math.max(0, dadTotalIncome - DAVID_SS - rmd);
+
+      // David's expenses
+      const dadExpenses = Math.round(DAVID_EXPENSES_BASE * Math.pow(1 + expenseGrowth, yearIndex));
+      const dadSurplus = dadTotalIncome - dadExpenses;
+
+      // W&B distributions
+      const wbDistributing = wbActive && year >= wbStartYear;
+      const willDist = wbDistributing ? Math.round(pynFromLP * PYN_OWNERSHIP.will * wbPct) : 0;
+      const benDist = wbDistributing ? Math.round(pynFromLP * PYN_OWNERSHIP.ben * wbPct) : 0;
+      const uncleDist = 0; // Uncle defers
+
+      // Pyn investment returns (on beginning balance, invested fraction)
+      const pynInvestmentReturn = Math.round(pynBalance * 0.5 * investReturn);
+
+      // Pyn cash flow
+      const pynInflows = pynFromLP + pynInvestmentReturn;
+      const pynOutflows = dadPynDraw + willDist + benDist + uncleDist;
+      const pynNetCashFlow = pynInflows - pynOutflows;
+      pynBalance = Math.round(pynBalance + pynNetCashFlow);
+
+      return {
+        year, lpDist, pynFromLP, pynInvestmentReturn,
+        dadPynDraw, dadSS: DAVID_SS, dadRMD: rmd, dadTotalIncome,
+        dadExpenses, dadSurplus,
+        willDist, benDist, uncleDist,
+        pynInflows, pynOutflows, pynNetCashFlow, pynBalance,
+      };
+    });
+    return rows;
+  }, [dadDrawTarget, expenseGrowth, lpDistributions, investReturn, wbActive, wbStartYear, wbPct]);
+
+  // ── Slider helper ──
+  const SliderCard = ({ label, value, onChange, min, max, step, format }: {
+    label: string; value: number; onChange: (v: number) => void;
+    min: number; max: number; step: number; format: (v: number) => string;
+  }) => (
+    <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
+      <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/70 mb-1">{label}</div>
+      <div className="text-[1.5rem] font-extrabold text-[#334A46] mb-3">{format(value)}</div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
+      <div className="flex justify-between mt-1">
+        <span className="text-[11px] text-[#334A46]/50 font-medium">{format(min)}</span>
+        <span className="text-[11px] text-[#334A46]/50 font-medium">{format(max)}</span>
+      </div>
+    </div>
+  );
+
+  const fmtK = (n: number) => {
+    if (Math.abs(n) >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+    return '$' + Math.round(n / 1e3).toLocaleString() + 'K';
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 py-10">
+      {/* ── Page Header ── */}
+      <div className="mb-10">
+        <div className="text-[11px] font-bold uppercase tracking-[.15em] text-[#334A46]/40 mb-2">Family Wealth Overview</div>
+        <h1 className="text-[2rem] font-extrabold text-[#334A46] mb-2">David Newton / Pyn Investments LLC</h1>
+        <p className="text-[15px] text-[#334A46]/60 leading-relaxed max-w-3xl">
+          Pyn Investments LLC owns 60% of Lower Pyne Associates LP. David holds 50% of Pyn,
+          with Will and Benjamin each holding 20%. This view models Pyn&rsquo;s cash flow,
+          David&rsquo;s retirement income, and scenarios for beginning W&amp;B distributions.
+        </p>
+      </div>
+
+      {/* ── Entity Structure ── */}
+      <div className="mb-10">
+        <SectionLabel>Entity &amp; Ownership Structure</SectionLabel>
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-8">
+          {/* LP Box */}
+          <div className="text-center mb-6">
+            <div className="inline-block bg-[#334A46] text-white rounded-xl px-8 py-4">
+              <div className="text-[14px] font-extrabold">Lower Pyne Associates LP</div>
+              <div className="text-[11px] opacity-70">Commercial Property &middot; Princeton, NJ</div>
+            </div>
+          </div>
+          {/* Ownership splits */}
+          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+            <div className="bg-[#E2EFDA]/40 rounded-xl p-4 text-center border-2 border-[#334A46]/20">
+              <div className="text-[2rem] font-extrabold text-[#334A46]">60%</div>
+              <div className="text-[13px] font-bold text-[#334A46]">Pyn Investments LLC</div>
+              <div className="text-[11px] text-[#334A46]/50">Family Entity</div>
+            </div>
+            <div className="bg-[#FAFAFA] rounded-xl p-4 text-center border border-[#334A46]/[.08]">
+              <div className="text-[2rem] font-extrabold text-[#334A46]/50">20%</div>
+              <div className="text-[13px] font-bold text-[#334A46]/60">Partner B</div>
+              <div className="text-[11px] text-[#334A46]/40">Deceased &mdash; buyout target</div>
+            </div>
+            <div className="bg-[#FAFAFA] rounded-xl p-4 text-center border border-[#334A46]/[.08]">
+              <div className="text-[2rem] font-extrabold text-[#334A46]/50">20%</div>
+              <div className="text-[13px] font-bold text-[#334A46]/60">Partner C</div>
+              <div className="text-[11px] text-[#334A46]/40">&nbsp;</div>
+            </div>
+          </div>
+          {/* Pyn members */}
+          <div className="max-w-2xl mx-auto">
+            <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#334A46]/30 text-center mb-3">Pyn Investments LLC Members</div>
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                { name: 'David Newton', pct: '50%', role: 'Managing Member', effective: '30%', highlight: true },
+                { name: 'Will Newton', pct: '20%', role: 'Member', effective: '12%', highlight: false },
+                { name: 'Benjamin Newton', pct: '20%', role: 'Member', effective: '12%', highlight: false },
+                { name: 'Uncle', pct: '10%', role: 'Member', effective: '6%', highlight: false },
+              ].map((m) => (
+                <div key={m.name} className={`rounded-xl p-3 text-center ${m.highlight ? 'bg-[#334A46] text-white' : 'bg-[#FAFAFA] border border-[#334A46]/[.08]'}`}>
+                  <div className={`text-[1.1rem] font-extrabold ${m.highlight ? '' : 'text-[#334A46]'}`}>{m.pct}</div>
+                  <div className={`text-[12px] font-bold ${m.highlight ? 'text-white/90' : 'text-[#334A46]/80'}`}>{m.name}</div>
+                  <div className={`text-[10px] ${m.highlight ? 'text-white/50' : 'text-[#334A46]/40'}`}>{m.role}</div>
+                  <div className={`text-[10px] mt-1 pt-1 border-t ${m.highlight ? 'border-white/20 text-white/60' : 'border-[#334A46]/10 text-[#334A46]/50'}`}>
+                    {m.effective} of property
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── David's Net Worth ── */}
+      <div className="mb-10">
+        <SectionLabel>David Newton &mdash; Net Worth Statement (Feb 2026)</SectionLabel>
+
+        {/* Top-level summary cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Stat value={'$' + (DAVID_NW.total / 1e6).toFixed(1) + 'M'} label="Total Net Worth" accent />
+          <Stat value={fmtK(DAVID_NW.nonQualified)} label="Non-Qualified Assets" />
+          <Stat value={fmtK(DAVID_NW.retirement)} label="Retirement Accounts" />
+          <div className="bg-[#FFF8E1] rounded-2xl p-5 border border-[#F57F17]/20">
+            <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#F57F17]/70 mb-1">Estate Tax Alert</div>
+            <div className="text-[1.3rem] font-extrabold text-[#F57F17]">$1.2M Over</div>
+            <div className="text-[11px] text-[#F57F17]/60">vs. $13.6M exemption (without ILIT)</div>
+          </div>
+        </div>
+
+        {/* Detailed account breakdown */}
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10" colSpan={2}>Account</th>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Non-Qualified Assets */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Non-Qualified Assets</td>
+                </tr>
+                {[
+                  { name: 'Cash / Alternatives', value: 35545 },
+                  { name: 'CDs', value: 156906 },
+                  { name: 'CIMA \u2014 Merrill Lynch *3707', value: 34338 },
+                  { name: 'Gold Certificate', value: 40000 },
+                  { name: 'Private Equity \u2014 Shortcut LP', value: 40000 },
+                  { name: 'Private Equity \u2014 Terracycle LP', value: 20000 },
+                  { name: 'Private Equity \u2014 Viwa LP', value: 44614 },
+                  { name: 'Royal Bank Scotland', value: 17000 },
+                  { name: 'Taxable Investments', value: 399998 },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                {/* Pyn LLC sub-accounts */}
+                <tr className="bg-[#E2EFDA]/30">
+                  <td className="py-2 px-4 pl-8 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50" colSpan={3}>Pyn Investments LLC Accounts</td>
+                </tr>
+                {[
+                  { name: 'MLPDA Account *3710', value: 399998, note: 'Merrill Lynch' },
+                  { name: 'NQ Investment \u2014 Wells Fargo *3803', value: 270385, note: '' },
+                  { name: 'Stock \u2014 Bank of Princeton', value: 243142, note: '' },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-10 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                {/* Insurance */}
+                {[
+                  { name: 'MetLife GAUL *8319 (CSV)', value: 39705 },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                {/* Non-Qualified Total */}
+                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
+                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Non-Qualified Assets</td>
+                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(1301633)}</td>
+                </tr>
+
+                {/* Retirement Assets */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Retirement Assets</td>
+                </tr>
+                {[
+                  { name: 'Qualified Retirement (401k) \u2014 Merrill Lynch *3708', value: 551265 },
+                  { name: 'IRA \u2014 Wells Fargo *3841', value: 93949 },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
+                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Retirement Assets</td>
+                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(645214)}</td>
+                </tr>
+
+                {/* Real Estate */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Real Estate</td>
+                </tr>
+                {[
+                  { name: '49 Governors Lane', value: 1200000 },
+                  { name: '44 West 62nd St, NYC', value: 550000 },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
+                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Real Estate</td>
+                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(1750000)}</td>
+                </tr>
+
+                {/* Other Assets */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Other Assets</td>
+                </tr>
+                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>Lower Pyne LP Interest (via Pyn)</td>
+                  <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">Included in Pyn</td>
+                </tr>
+                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>MetLife Universal Life (Death Benefit)</td>
+                  <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(1500000)}</td>
+                </tr>
+
+                {/* Liabilities */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Liabilities</td>
+                </tr>
+                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>Home Mortgage &mdash; BofA</td>
+                  <td className="py-2 px-4 text-[13px] text-right text-[#C62828]/80">({fmt(535000)})</td>
+                </tr>
+
+                {/* Grand Total */}
+                <tr className="bg-[#334A46]">
+                  <td className="py-3 px-4 text-[14px] font-extrabold text-white" colSpan={2}>Total Net Worth</td>
+                  <td className="py-3 px-4 text-[14px] text-right font-extrabold text-white">{fmt(13335602)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="mt-3 text-[11px] text-[#334A46]/40">
+          Source: March Wealth Management (Andrew Hauber) &middot; Prepared February 10, 2026 &middot; Personal and Confidential
+        </div>
+      </div>
+
+      {/* ── Model Assumptions ── */}
+      <div className="mb-10">
+        <SectionLabel>Model Assumptions</SectionLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <SliderCard label="David's Income Target" value={dadDrawTarget} onChange={setDadDrawTarget}
+            min={250000} max={450000} step={10000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
+          <SliderCard label="Expense Inflation" value={expenseGrowth} onChange={setExpenseGrowth}
+            min={0.01} max={0.05} step={0.0025} format={(v) => (v * 100).toFixed(1) + '%'} />
+          <SliderCard label="LP Annual Distributions" value={lpDistributions} onChange={setLpDistributions}
+            min={200000} max={400000} step={10000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
+          <SliderCard label="Pyn Investment Return" value={investReturn} onChange={setInvestReturn}
+            min={0.02} max={0.08} step={0.005} format={(v) => (v * 100).toFixed(1) + '%'} />
+          <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
+            <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/70 mb-2">W&amp;B Distributions</div>
+            <label className="flex items-center gap-3 mb-3 cursor-pointer">
+              <input type="checkbox" checked={wbActive} onChange={(e) => setWbActive(e.target.checked)}
+                className="w-5 h-5 rounded accent-[#334A46]" />
+              <span className="text-[14px] font-semibold text-[#334A46]">Begin W&amp;B distributions</span>
+            </label>
+            {wbActive && (
+              <div className="space-y-3">
+                <div>
+                  <div className="text-[11px] text-[#334A46]/50 mb-1">Start Year: <span className="font-bold text-[#334A46]">{wbStartYear}</span></div>
+                  <input type="range" min={2026} max={2035} step={1} value={wbStartYear}
+                    onChange={(e) => setWbStartYear(parseInt(e.target.value))}
+                    className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
+                </div>
+                <div>
+                  <div className="text-[11px] text-[#334A46]/50 mb-1">% of share taken: <span className="font-bold text-[#334A46]">{(wbPct * 100).toFixed(0)}%</span></div>
+                  <input type="range" min={0.25} max={1} step={0.25} value={wbPct}
+                    onChange={(e) => setWbPct(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── David's Income vs. Expenses ── */}
+      <div className="mb-10">
+        <SectionLabel>David&rsquo;s Annual Income vs. Expenses</SectionLabel>
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Age</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Pyn Draw</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Soc. Sec.</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">RMDs</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total Income</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Expenses</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Surplus</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projections.map((r) => (
+                  <tr key={r.year} className="border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA]">
+                    <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{r.year}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{r.year - DAVID_BIRTH_YEAR}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.dadPynDraw)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.dadSS)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{r.dadRMD > 0 ? fmtK(r.dadRMD) : '\u2014'}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.dadTotalIncome)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.dadExpenses)}</td>
+                    <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${r.dadSurplus >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                      {r.dadSurplus >= 0 ? '+' : ''}{fmtK(r.dadSurplus)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="mt-3 text-[12px] text-[#334A46]/40">
+          RMDs begin at age 73 (2028) under SECURE 2.0. As RMDs increase, Pyn draw decreases to maintain the target income level.
+        </div>
+      </div>
+
+      {/* ── Pyn LLC Cash Flow ── */}
+      <div className="mb-10">
+        <SectionLabel>Pyn Investments LLC &mdash; Cash Flow Projection</SectionLabel>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Stat value={fmtK(PYN_START)} label="Starting Balance (2026)" accent />
+          <Stat value={fmtK(projections[projections.length - 1].pynBalance)} label="Projected Balance (2035)"
+            accent={projections[projections.length - 1].pynBalance > 0} />
+          <Stat value={fmtK(projections[0].pynFromLP)} label="LP Income to Pyn (2026)" />
+          <Stat value={fmtK(projections[0].dadPynDraw)} label="Dad's Pyn Draw (2026)" />
+        </div>
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP Dist. (60%)</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Invest. Return</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total In</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Dad Draw</th>
+                  {wbActive && <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Will</th>}
+                  {wbActive && <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Ben</th>}
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Total Out</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Net</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Pyn Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projections.map((r) => (
+                  <tr key={r.year} className={`border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA] ${r.pynBalance < 0 ? 'bg-[#FFEBEE]/30' : ''}`}>
+                    <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{r.year}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.pynFromLP)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.pynInvestmentReturn)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.pynInflows)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#C62828]/70">{fmtK(r.dadPynDraw)}</td>
+                    {wbActive && <td className={`py-2.5 px-3 text-[13px] text-right ${r.willDist > 0 ? 'text-[#334A46]/80 font-medium' : 'text-[#334A46]/30'}`}>{r.willDist > 0 ? fmtK(r.willDist) : '\u2014'}</td>}
+                    {wbActive && <td className={`py-2.5 px-3 text-[13px] text-right ${r.benDist > 0 ? 'text-[#334A46]/80 font-medium' : 'text-[#334A46]/30'}`}>{r.benDist > 0 ? fmtK(r.benDist) : '\u2014'}</td>}
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#C62828]/70">{fmtK(r.pynOutflows)}</td>
+                    <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${r.pynNetCashFlow >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                      {r.pynNetCashFlow >= 0 ? '+' : ''}{fmtK(r.pynNetCashFlow)}
+                    </td>
+                    <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${r.pynBalance >= 500000 ? 'text-[#334A46]' : r.pynBalance >= 0 ? 'text-[#F57F17]' : 'text-[#C62828]'}`}>
+                      {fmtK(r.pynBalance)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Will & Benjamin Distribution Detail ── */}
+      <div className="mb-10">
+        <SectionLabel>Will &amp; Benjamin &mdash; Distribution Modeling</SectionLabel>
+        {!wbActive ? (
+          <div className="bg-[#FAFAFA] rounded-2xl p-8 border border-[#334A46]/[.06] text-center">
+            <div className="text-[14px] text-[#334A46]/50 mb-3">
+              Will and Benjamin currently defer 100% of their Pyn distributions &mdash; Dad receives all draws.
+            </div>
+            <button onClick={() => setWbActive(true)}
+              className="px-6 py-2.5 bg-[#334A46] text-white rounded-lg text-[13px] font-semibold hover:bg-[#334A46]/90 transition-colors">
+              Model W&amp;B Distributions
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Stat value={String(wbStartYear)} label="Distribution Start Year" accent />
+              <Stat value={(wbPct * 100).toFixed(0) + '%'} label="% of Share Taken" />
+              <Stat value={fmtK(projections.find(r => r.willDist > 0)?.willDist || 0)} label="Will's First Year" />
+              <Stat value={fmtK(projections.reduce((sum, r) => sum + r.willDist, 0))} label="Will's 10-Year Total" />
+            </div>
+            <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                    <tr>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP Distribution</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Pyn 60% Share</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Dad (50%)</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Will (20%)</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Ben (20%)</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Uncle (10%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projections.map((r) => {
+                      const distributing = r.year >= wbStartYear;
+                      return (
+                        <tr key={r.year} className={`border-b border-[#334A46]/[.06] ${distributing ? 'bg-[#E2EFDA]/20' : ''}`}>
+                          <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{r.year}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.lpDist)}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.pynFromLP)}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.dadPynDraw)}</td>
+                          <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${distributing ? 'text-[#2E7D32]' : 'text-[#334A46]/30'}`}>
+                            {distributing ? fmtK(r.willDist) : 'Deferred'}
+                          </td>
+                          <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${distributing ? 'text-[#2E7D32]' : 'text-[#334A46]/30'}`}>
+                            {distributing ? fmtK(r.benDist) : 'Deferred'}
+                          </td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/30">Deferred</td>
+                        </tr>
+                      );
+                    })}
+                    {/* Totals row */}
+                    <tr className="bg-[#FAFAFA] font-bold">
+                      <td className="py-3 px-4 text-[13px] text-[#334A46]">Total</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#334A46]">{fmtK(projections.reduce((s, r) => s + r.lpDist, 0))}</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#334A46]">{fmtK(projections.reduce((s, r) => s + r.pynFromLP, 0))}</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#334A46]">{fmtK(projections.reduce((s, r) => s + r.dadPynDraw, 0))}</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#2E7D32]">{fmtK(projections.reduce((s, r) => s + r.willDist, 0))}</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#2E7D32]">{fmtK(projections.reduce((s, r) => s + r.benDist, 0))}</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#334A46]/30">$0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Estate Planning Snapshot ── */}
+      <div className="mb-10">
+        <SectionLabel>Estate Planning Snapshot</SectionLabel>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {[
+            { label: 'Current (No Changes)', taxable: 14800000, exemption: 13600000, color: '#C62828', bg: 'bg-[#FFEBEE]', border: 'border-[#C62828]/20' },
+            { label: 'With ILIT', taxable: 13300000, exemption: 13600000, color: '#2E7D32', bg: 'bg-[#E2EFDA]', border: 'border-[#2E7D32]/20' },
+            { label: 'ILIT + Marriage', taxable: 12800000, exemption: 13600000, color: '#2E7D32', bg: 'bg-[#E2EFDA]', border: 'border-[#2E7D32]/20' },
+          ].map((s) => {
+            const diff = s.exemption - s.taxable;
+            return (
+              <div key={s.label} className={`${s.bg} rounded-2xl p-5 border ${s.border}`}>
+                <div className="text-[12px] font-bold uppercase tracking-[.08em] mb-2" style={{ color: s.color + 'AA' }}>{s.label}</div>
+                <div className="text-[1.5rem] font-extrabold mb-1" style={{ color: s.color }}>
+                  {diff >= 0 ? '$' + (diff / 1e6).toFixed(1) + 'M Under' : '$' + (Math.abs(diff) / 1e6).toFixed(1) + 'M Over'}
+                </div>
+                <div className="text-[11px]" style={{ color: s.color + '99' }}>
+                  Est. taxable: ${(s.taxable / 1e6).toFixed(1)}M vs. ${(s.exemption / 1e6).toFixed(1)}M exemption
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Priority Actions */}
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6">
+          <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 mb-4">Priority Actions</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { action: 'ILIT for Life Insurance', detail: 'Move $1.5M policy out of estate. Starts 3-year lookback clock. Reduces taxable estate by ~$1.5M.', priority: 'Urgent' },
+              { action: '754 Elections (Both Entities)', detail: 'File at Pyn LLC and Lower Pyne LP. Protects ~$2.7M stepped-up basis, generating ~$69K/yr new depreciation.', priority: 'Urgent' },
+              { action: 'Do NOT Transfer Pyn Shares', detail: 'Estate is manageable with ILIT. Transferring would sacrifice stepped-up basis worth $600–900K in tax savings.', priority: 'Advisory' },
+              { action: 'Capital Improvements ($750K)', detail: 'HVAC $350K, elevator $200K, common area $100K, TI $100K. Generates $510–570K first-year deductions.', priority: '2029' },
+            ].map((item) => (
+              <div key={item.action} className="flex gap-3">
+                <div className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase h-fit ${
+                  item.priority === 'Urgent' ? 'bg-[#C62828]/10 text-[#C62828]' :
+                  item.priority === '2029' ? 'bg-[#F57F17]/10 text-[#F57F17]' :
+                  'bg-[#334A46]/10 text-[#334A46]/60'
+                }`}>{item.priority}</div>
+                <div>
+                  <div className="text-[13px] font-bold text-[#334A46]">{item.action}</div>
+                  <div className="text-[12px] text-[#334A46]/50 leading-relaxed">{item.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="pt-10 pb-6 border-t border-[#334A46]/[.08] text-center">
+        <div className="text-[11px] text-[#334A46]/30 font-medium">
+          Pyn Investments LLC &middot; Confidential &middot; Prepared March 2026
         </div>
       </div>
     </div>
