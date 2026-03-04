@@ -243,9 +243,9 @@ const DISTRIBUTION_PHASES: { phase: number; timing: string; trigger: string; wbE
 // ── Housing Constants ──
 const GOVERNORS_LANE_VALUE = 1200000;
 const GOVERNORS_LANE_MORTGAGE = 535000;
-const NYC_APT_VALUE = 700000;
-const CURRENT_HOUSING_MONTHLY = 5800; // Princeton mortgage P&I
-const CURRENT_HOUSING_ANNUAL = CURRENT_HOUSING_MONTHLY * 12; // $69,600
+const NYC_APT_VALUE = 600000;
+const CURRENT_HOUSING_MONTHLY = 8845; // Mortgage $5,800 + Princeton condo fees $1,236 + NYC condo fee $1,809
+const CURRENT_HOUSING_ANNUAL = CURRENT_HOUSING_MONTHLY * 12; // $106,140
 const COMBINED_HOUSING_EQUITY = GOVERNORS_LANE_VALUE + NYC_APT_VALUE - GOVERNORS_LANE_MORTGAGE; // ~$1,365,000
 
 // ══════════════════════════════════════════════
@@ -3902,7 +3902,7 @@ const PERSONAL_EXPENSE_ITEMS = [
   { category: 'Housing', items: [
     { name: 'Mortgage (Dad)', amount: 5800 * 12 },
     { name: 'Condo Fees', amount: 14835 },
-    { name: 'Rent — NY Apartment', amount: 21709 },
+    { name: 'NYC Condo Fee', amount: 21709 },
     { name: 'Utilities (Gas/Electric)', amount: 5252 },
     { name: 'Water', amount: 1020 },
     { name: 'Television/Cable', amount: 3765 },
