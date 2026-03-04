@@ -46,7 +46,7 @@ function Table({ headers, rows, className = '', compact = false }: { headers: st
         <thead>
           <tr>
             {headers.map((h, i) => (
-              <th key={i} className={`${compact ? 'py-2 px-3 text-[11px]' : 'py-3 px-4 text-[12px]'} font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
+              <th key={i} className={`${compact ? 'py-2 px-3 text-[11px]' : 'py-3 px-4 text-[12px]'} font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -68,13 +68,13 @@ function Stat({ value, label, accent = false }: { value: string; label: string; 
   return (
     <div className={`rounded-2xl p-5 overflow-hidden ${accent ? 'bg-[#334A46] text-white' : 'bg-[#FAFAFA] border border-[#334A46]/[.08]'}`}>
       <div className={`text-[1.4rem] md:text-[1.75rem] font-extrabold leading-none whitespace-nowrap ${accent ? 'text-[#FFFFFF]' : 'text-[#334A46]'}`}>{value}</div>
-      <div className={`mt-2 text-[12px] font-semibold uppercase tracking-[.08em] ${accent ? 'text-white/70' : 'text-[#334A46]/50'}`}>{label}</div>
+      <div className={`mt-2 text-[12px] font-semibold uppercase tracking-[.08em] ${accent ? 'text-white/70' : 'text-[#334A46]'}`}>{label}</div>
     </div>
   );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <div className="text-[11px] font-bold uppercase tracking-[.15em] text-[#334A46]/40 mb-3">{children}</div>;
+  return <div className="text-[11px] font-bold uppercase tracking-[.15em] text-[#334A46] mb-3">{children}</div>;
 }
 
 // Formatting helpers
@@ -233,6 +233,21 @@ function annualDebtService(principal: number, annualRate: number) {
   return Math.round(monthly * 12);
 }
 
+// ── Distribution Strategy Data ──
+const DISTRIBUTION_PHASES: { phase: number; timing: string; trigger: string; wbEach?: number; uncle?: number; wbEachLabel?: string; uncleLabel?: string }[] = [
+  { phase: 1, timing: '2026', trigger: 'Chambers sale closes', wbEach: 18000, uncle: 9000 },
+  { phase: 2, timing: '2028', trigger: 'RMDs begin + Nassau distributing', wbEach: 36000, uncle: 18000 },
+  { phase: 3, timing: '2030+', trigger: 'Post-refi surplus', wbEachLabel: '$35K–$50K', uncleLabel: '$18K–$25K' },
+];
+
+// ── Housing Constants ──
+const GOVERNORS_LANE_VALUE = 1200000;
+const GOVERNORS_LANE_MORTGAGE = 535000;
+const NYC_APT_VALUE = 700000;
+const CURRENT_HOUSING_MONTHLY = 5800; // Princeton mortgage P&I
+const CURRENT_HOUSING_ANNUAL = CURRENT_HOUSING_MONTHLY * 12; // $69,600
+const COMBINED_HOUSING_EQUITY = GOVERNORS_LANE_VALUE + NYC_APT_VALUE - GOVERNORS_LANE_MORTGAGE; // ~$1,365,000
+
 // ══════════════════════════════════════════════
 // COMPONENT
 // ══════════════════════════════════════════════
@@ -244,7 +259,7 @@ export default function LowerPyneDashboard() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [activeSection, setActiveSection] = useState('');
-  const [activeTab, setActiveTab] = useState<'analysis' | 'projections' | 'pyn'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'projections' | 'pyn' | 'housing' | 'expenses'>('analysis');
   const [showExpenseDetail, setShowExpenseDetail] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -296,6 +311,7 @@ export default function LowerPyneDashboard() {
     ]},
     { group: 'Strategic Actions', items: [
       { id: 'distributions', label: 'Distributions' },
+      { id: 'distribution-strategy', label: 'W&B Distribution Case' },
       { id: 'buyout', label: 'Partner Buyout' },
       { id: 'capital', label: 'Capital Improvements' },
       { id: 'cash-optimization', label: 'Cash Optimization' },
@@ -310,7 +326,7 @@ export default function LowerPyneDashboard() {
         <div className="w-full max-w-sm mx-auto px-6">
           <div className="text-center mb-8">
             <div className="text-[15px] font-extrabold text-[#334A46] mb-1">Lower Pyne Associates LP</div>
-            <div className="text-[12px] text-[#334A46]/40 font-medium">Financial Analysis & Strategic Plan</div>
+            <div className="text-[12px] text-[#334A46] font-medium">Financial Analysis & Strategic Plan</div>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -411,21 +427,21 @@ export default function LowerPyneDashboard() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
             <div className="text-[15px] font-extrabold text-[#334A46]">Lower Pyne Associates LP</div>
-            <div className="text-[11px] text-[#334A46]/40 font-medium">Financial Analysis & Strategic Plan &middot; 2023&ndash;2035</div>
+            <div className="text-[11px] text-[#334A46] font-medium">Financial Analysis & Strategic Plan &middot; 2023&ndash;2035</div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex bg-[#334A46]/[.06] rounded-lg p-0.5">
-              {(['analysis', 'projections', 'pyn'] as const).map((tab) => (
+              {(['analysis', 'projections', 'pyn', 'housing', 'expenses'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => { setActiveTab(tab); window.scrollTo(0, 0); }}
                   className={`px-4 py-1.5 rounded-md text-[13px] font-semibold transition-all ${
                     activeTab === tab
                       ? 'bg-white text-[#334A46] shadow-sm'
-                      : 'text-[#334A46]/50 hover:text-[#334A46]/70'
+                      : 'text-[#334A46] hover:text-[#334A46]'
                   }`}
                 >
-                  {tab === 'analysis' ? 'Analysis' : tab === 'projections' ? 'Projections' : 'David Newton / Pyn'}
+                  {tab === 'analysis' ? 'Analysis' : tab === 'projections' ? 'Projections' : tab === 'pyn' ? 'Pyn' : tab === 'housing' ? 'Housing' : 'Personal'}
                 </button>
               ))}
             </div>
@@ -441,7 +457,7 @@ export default function LowerPyneDashboard() {
           <div className="sticky top-24 space-y-1">
             {tocGroups.map((group) => (
               <div key={group.group} className="mb-3">
-                <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#334A46]/30 mb-1 px-3">{group.group}</div>
+                <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#334A46] mb-1 px-3">{group.group}</div>
                 {group.items.map((item) => (
                   <a
                     key={item.id}
@@ -449,7 +465,7 @@ export default function LowerPyneDashboard() {
                     className={`block text-[13px] py-1.5 px-3 rounded-lg transition-colors ${
                       activeSection === item.id
                         ? 'bg-[#334A46]/[.06] text-[#334A46] font-semibold'
-                        : 'text-[#334A46]/50 hover:text-[#334A46]/80 hover:bg-[#334A46]/[.03]'
+                        : 'text-[#334A46] hover:text-[#334A46] hover:bg-[#334A46]/[.03]'
                     }`}
                   >
                     {item.label}
@@ -527,9 +543,9 @@ export default function LowerPyneDashboard() {
                 <table className="w-full text-left border-collapse min-w-[1000px]">
                   <thead>
                     <tr>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 sticky left-0 bg-white z-10"></th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 sticky left-0 bg-white z-10"></th>
                       {historicalYears.map((yr) => (
-                        <th key={yr} className={`py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] border-b border-[#334A46]/10 text-right whitespace-nowrap ${yr === 2019 ? 'text-[#2E7D32] bg-[#E2EFDA]/30' : yr === 2018 ? 'text-[#B26A00] bg-[#FFF8E1]/40' : yr <= 2016 ? 'text-[#334A46]/40 bg-[#FAFAFA]' : 'text-[#334A46]/50'}`}>
+                        <th key={yr} className={`py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] border-b border-[#334A46]/10 text-right whitespace-nowrap ${yr === 2019 ? 'text-[#2E7D32] bg-[#E2EFDA]/30' : yr === 2018 ? 'text-[#B26A00] bg-[#FFF8E1]/40' : yr <= 2016 ? 'text-[#334A46] bg-[#FAFAFA]' : 'text-[#334A46]'}`}>
                           {yr === 2019 ? '2019 Post-Refi' : yr === 2018 ? '2018 Pre-Refi' : yr}
                         </th>
                       ))}
@@ -594,7 +610,7 @@ export default function LowerPyneDashboard() {
 
               {/* Key observations */}
               <div className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#334A46]/[.06]">
-                <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 mb-3">Key Observations</div>
+                <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-3">Key Observations</div>
                 <div className="space-y-3 text-[14px] text-[#3D4F5F] leading-relaxed">
                   <p><span className="font-bold text-[#334A46]">Revenue growth:</span> $702K to $880K over 10 years (+25%), averaging ~2.5% annually through all market conditions.</p>
                   <p><span className="font-bold text-[#334A46]">COVID resilience:</span> Revenue dipped only 3% in 2021&ndash;2022 before recovering, demonstrating tenant stability.</p>
@@ -640,7 +656,7 @@ export default function LowerPyneDashboard() {
 
             {/* Revenue growth chart - simple bar visualization */}
             <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6">
-              <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 mb-4">Revenue Growth Trajectory</div>
+              <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-4">Revenue Growth Trajectory</div>
               <div className="flex items-end gap-2 h-40">
                 {historicalRevenue.map((v, i) => {
                   const maxRev = Math.max(...historicalRevenue);
@@ -649,12 +665,12 @@ export default function LowerPyneDashboard() {
                   const isRefiYear = historicalYears[i] === 2019;
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="text-[10px] font-bold text-[#334A46]/60">{Math.round(v / 1000)}K</div>
+                      <div className="text-[10px] font-bold text-[#334A46]">{Math.round(v / 1000)}K</div>
                       <div
                         className={`w-full rounded-t-lg transition-all ${isRefiYear ? 'bg-[#2E7D32]' : historicalYears[i] === 2018 ? 'bg-[#B26A00]' : historicalYears[i] <= 2016 ? 'bg-[#334A46]/30' : 'bg-[#334A46]'}`}
                         style={{ height: `${heightPct}%`, minHeight: '8px' }}
                       />
-                      <div className={`text-[10px] font-semibold ${isRefiYear ? 'text-[#2E7D32]' : 'text-[#334A46]/50'}`}>
+                      <div className={`text-[10px] font-semibold ${isRefiYear ? 'text-[#2E7D32]' : 'text-[#334A46]'}`}>
                         {String(historicalYears[i]).slice(2)}
                       </div>
                     </div>
@@ -724,7 +740,7 @@ export default function LowerPyneDashboard() {
               <div className="border-t border-[#334A46]/[.06]">
                 <button
                   onClick={() => setShowExpenseDetail(!showExpenseDetail)}
-                  className="w-full px-4 py-2.5 text-[13px] font-semibold text-[#334A46]/50 hover:text-[#334A46]/80 hover:bg-[#334A46]/[.02] transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 text-[13px] font-semibold text-[#334A46] hover:text-[#334A46] hover:bg-[#334A46]/[.02] transition-colors flex items-center justify-center gap-2"
                 >
                   {showExpenseDetail ? 'Hide' : 'Show'} {expenseRows.length} line items
                   <span className={`transition-transform ${showExpenseDetail ? 'rotate-180' : ''}`}>&#9662;</span>
@@ -949,7 +965,7 @@ export default function LowerPyneDashboard() {
                   <thead>
                     <tr>
                       {['Tenant', 'Floor', 'Sq Ft', '2025 Rent', '$/SF/yr', '% Revenue', 'Lease Expires'].map((h) => (
-                        <th key={h} className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">{h}</th>
+                        <th key={h} className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1014,7 +1030,7 @@ export default function LowerPyneDashboard() {
                     >
                       <span className="text-[11px] font-bold text-white whitespace-nowrap">{t.expires}</span>
                     </div>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-[#334A46]/40">
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-[#334A46]">
                       {t.pct}% of revenue
                     </div>
                   </div>
@@ -1071,11 +1087,11 @@ export default function LowerPyneDashboard() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr>
-                          <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Yield</th>
+                          <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Yield</th>
                           {amounts.map((a) => (
-                            <th key={a} className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">{fmt(a)} Invested</th>
+                            <th key={a} className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">{fmt(a)} Invested</th>
                           ))}
-                          <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">4-Yr Total (at $1.075M)</th>
+                          <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">4-Yr Total (at $1.075M)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1114,7 +1130,7 @@ export default function LowerPyneDashboard() {
               </div>
 
               <div className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#334A46]/[.06]">
-                <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 mb-3">Investment Options</div>
+                <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-3">Investment Options</div>
                 <div className="space-y-3 text-[14px] text-[#3D4F5F] leading-relaxed">
                   <p><span className="font-bold text-[#334A46]">High-Yield Savings:</span> FDIC-insured, 4.5&ndash;5.0% APY, immediate liquidity. Simplest option with no risk.</p>
                   <p><span className="font-bold text-[#334A46]">Treasury Bills (3&ndash;6 Mo.):</span> 4.5&ndash;5.2% yield, state tax exempt, highly liquid. Ladder maturities for regular cash access.</p>
@@ -1140,13 +1156,13 @@ export default function LowerPyneDashboard() {
                 <table className="w-full text-left border-collapse min-w-[900px]">
                   <thead>
                     <tr>
-                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Investment</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Type</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Location</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP %</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Cost Basis</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Equity Value</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Status</th>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Investment</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Type</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Location</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">LP %</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Cost Basis</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Equity Value</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1162,10 +1178,10 @@ export default function LowerPyneDashboard() {
                     ].map((inv) => (
                       <tr key={inv.name} className={`border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA] ${inv.status === 'SALE' || inv.status === 'LEASING' ? 'bg-[#E2EFDA]/20' : ''}`}>
                         <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{inv.name}</td>
-                        <td className="py-2.5 px-3 text-[12px] text-[#334A46]/60">{inv.type}</td>
-                        <td className="py-2.5 px-3 text-[12px] text-[#334A46]/60">{inv.loc}</td>
-                        <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{inv.pct}</td>
-                        <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmt(inv.cost)}</td>
+                        <td className="py-2.5 px-3 text-[12px] text-[#334A46]">{inv.type}</td>
+                        <td className="py-2.5 px-3 text-[12px] text-[#334A46]">{inv.loc}</td>
+                        <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{inv.pct}</td>
+                        <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmt(inv.cost)}</td>
                         <td className="py-2.5 px-3 text-[13px] text-right font-semibold text-[#334A46]">{fmt(inv.equity)}</td>
                         <td className="py-2.5 px-3">
                           <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
@@ -1173,7 +1189,7 @@ export default function LowerPyneDashboard() {
                             inv.status === 'LEASING' ? 'bg-[#2E7D32]/10 text-[#2E7D32]' :
                             inv.status === 'Matured' ? 'bg-[#F57F17]/10 text-[#F57F17]' :
                             inv.status === 'Refinanced' ? 'bg-[#1565C0]/10 text-[#1565C0]' :
-                            'bg-[#334A46]/10 text-[#334A46]/60'
+                            'bg-[#334A46]/10 text-[#334A46]'
                           }`}>{inv.status}</span>
                         </td>
                       </tr>
@@ -1234,9 +1250,9 @@ export default function LowerPyneDashboard() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr>
-                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Timing</th>
-                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Event</th>
-                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP Cash</th>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Timing</th>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Event</th>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">LP Cash</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1257,7 +1273,7 @@ export default function LowerPyneDashboard() {
                 </table>
               </div>
             </div>
-            <p className="text-[13px] text-[#334A46]/50 leading-relaxed mb-2">
+            <p className="text-[13px] text-[#334A46] leading-relaxed mb-2">
               With Chambers proceeds, LP could fund the partner buyout ($1.2M) pre-refi and still maintain $700K&ndash;$1.0M in reserves,
               or defer the buyout and enter the 2029 refi with $1.9M+ in cash.
             </p>
@@ -1364,6 +1380,144 @@ export default function LowerPyneDashboard() {
             </p>
           </Section>
 
+          {/* ── PYN DISTRIBUTION STRATEGY — W&B ── */}
+          <Section id="distribution-strategy">
+            <SectionLabel>The Case for W&amp;B Distributions</SectionLabel>
+            <h2 className="text-[1.5rem] font-extrabold text-[#334A46] mb-4">Five Income Streams Converging</h2>
+
+            <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-6">
+              David&rsquo;s retirement income is built on five independent streams that converge
+              over time: LP distributions (growing ~3%/yr), Social Security ($43K/yr),
+              Required Minimum Distributions (starting 2028), Nassau 195 distributions,
+              and investment returns on Pyn&rsquo;s $1.2M balance. As these streams grow, Pyn generates
+              surplus cash that can support W&amp;B distributions without impacting David&rsquo;s lifestyle.
+            </p>
+
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <Stat value="2028" label="Breakeven Year" accent />
+              <Stat value="$88K–$114K" label="2032 Annual Surplus" />
+              <Stat value="$35K–$45K" label="W&B Share Each (2030+)" />
+              <Stat value="Yes" label="K-1 Tax Already Owed" />
+            </div>
+
+            {/* Convergence table */}
+            <h3 className="text-[1.1rem] font-bold text-[#334A46] mb-4">Income vs. Expenses Convergence</h3>
+            <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden mb-8">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[900px]">
+                  <thead>
+                    <tr>
+                      {['Year', 'Age', 'LP Dist (60%)', 'Soc. Sec.', 'RMDs', 'Nassau 195', 'Invest. Ret.', 'Total Income', 'Expenses', 'Gap'].map((h) => (
+                        <th key={h} className={`py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] border-b border-[#334A46]/10 text-right first:text-left ${
+                          h === 'Total Income' ? 'text-[#6B9E8A]' : h === 'Gap' ? 'text-[#334A46]' : 'text-[#334A46]'
+                        }`}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { year: 2026, age: 71, lp: 168000, ss: 43000, rmd: 0, nassau: 0, invest: 30000, expenses: 300000 },
+                      { year: 2027, age: 72, lp: 173000, ss: 43000, rmd: 0, nassau: 0, invest: 32000, expenses: 308000 },
+                      { year: 2028, age: 73, lp: 178000, ss: 43000, rmd: 24000, nassau: 26400, invest: 34000, expenses: 315000 },
+                      { year: 2029, age: 74, lp: 184000, ss: 43000, rmd: 25000, nassau: 26400, invest: 36000, expenses: 323000 },
+                      { year: 2030, age: 75, lp: 189000, ss: 43000, rmd: 26000, nassau: 26400, invest: 38000, expenses: 331000 },
+                      { year: 2031, age: 76, lp: 195000, ss: 43000, rmd: 27000, nassau: 26400, invest: 40000, expenses: 339000 },
+                      { year: 2032, age: 77, lp: 201000, ss: 43000, rmd: 28000, nassau: 26400, invest: 42000, expenses: 348000 },
+                    ].map((r) => {
+                      const totalIncome = r.lp + r.ss + r.rmd + r.nassau + r.invest;
+                      const gap = totalIncome - r.expenses;
+                      return (
+                        <tr key={r.year} className={`border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA] ${gap >= 0 ? 'bg-[#E2EFDA]/20' : ''}`}>
+                          <td className="py-2.5 px-3 text-[13px] font-bold text-[#334A46]">{r.year}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{r.age}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmt(r.lp)}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmt(r.ss)}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{r.rmd > 0 ? fmt(r.rmd) : '\u2014'}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{r.nassau > 0 ? fmt(r.nassau) : '\u2014'}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmt(r.invest)}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmt(totalIncome)}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmt(r.expenses)}</td>
+                          <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${gap >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                            {gap >= 0 ? '+' : ''}{fmt(gap)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Tax note */}
+            <div className="bg-[#FFF8E1] rounded-2xl p-5 border border-[#B26A00]/20 mb-8">
+              <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#B26A00]/70 mb-2">Tax Note</div>
+              <p className="text-[14px] text-[#3D4F5F] leading-relaxed">
+                Will and Ben already receive K-1 taxable income whether or not they receive
+                cash distributions. Beginning cash distributions does not create new tax
+                liability &mdash; it converts an existing phantom income obligation into actual cash flow.
+              </p>
+            </div>
+
+            {/* 3-Phase timeline */}
+            <h3 className="text-[1.1rem] font-bold text-[#334A46] mb-4">Recommended Distribution Phasing</h3>
+            <div className="space-y-4 mb-8">
+              {DISTRIBUTION_PHASES.map((p) => (
+                <div key={p.phase} className={`rounded-2xl p-5 border ${
+                  p.phase === 1 ? 'bg-[#334A46]/[.04] border-[#334A46]/[.12]' :
+                  p.phase === 2 ? 'bg-[#E2EFDA]/40 border-[#2E7D32]/20' :
+                  'bg-[#E2EFDA]/60 border-[#2E7D32]/30'
+                }`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`text-[12px] font-bold uppercase tracking-[.08em] px-3 py-1 rounded-lg ${
+                      p.phase === 1 ? 'bg-[#334A46] text-white' : 'bg-[#2E7D32] text-white'
+                    }`}>
+                      Phase {p.phase} &middot; {p.timing}
+                    </div>
+                  </div>
+                  <div className="text-[14px] text-[#3D4F5F] leading-relaxed mb-1">
+                    <span className="font-bold text-[#334A46]">Trigger:</span> {p.trigger}
+                  </div>
+                  <div className="text-[14px] text-[#3D4F5F]">
+                    W&amp;B each: <span className="font-bold text-[#2E7D32]">
+                      {p.wbEachLabel || ('$' + ((p.wbEach || 0) / 1000).toLocaleString() + 'K')}
+                    </span>/yr &middot;
+                    Uncle: <span className="font-medium">
+                      {p.uncleLabel || ('$' + ((p.uncle || 0) / 1000).toLocaleString() + 'K')}
+                    </span>/yr
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Priority actions */}
+            <h3 className="text-[1.1rem] font-bold text-[#334A46] mb-4">Priority Actions</h3>
+            <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { action: 'ILIT Transfer', detail: 'Move $1.5M MetLife policy out of estate. Removes ~$1.46M from taxable estate, solving the $1.2M overage.', priority: 'Urgent' },
+                  { action: '754 Elections', detail: 'File at both Pyn LLC and Lower Pyne LP with 2025 tax returns. Protects ~$2.7M in stepped-up basis.', priority: 'Urgent' },
+                  { action: 'Maximize LP Distributions', detail: 'Increase annual distributions as NOI grows. Target $300K+ by 2027.', priority: '2026' },
+                  { action: 'Begin W&B Cash Distributions', detail: 'Phase 1: $18K/yr each, triggered by Chambers sale proceeds.', priority: '2026' },
+                  { action: 'Complete Nassau 195 Investment', detail: 'Deploy final $100K into Nassau 195. Positions LP for $14K–$38K/yr distributions.', priority: '2026' },
+                  { action: 'Do NOT Transfer Pyn Shares', detail: 'Preserve stepped-up basis for 754 election. Transfer would sacrifice $600K–$900K in future tax savings.', priority: 'Advisory' },
+                ].map((item) => (
+                  <div key={item.action} className="flex gap-3">
+                    <div className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase h-fit mt-0.5 ${
+                      item.priority === 'Urgent' ? 'bg-[#C62828]/10 text-[#C62828]' :
+                      item.priority === 'Advisory' ? 'bg-[#F57F17]/10 text-[#F57F17]' :
+                      'bg-[#334A46]/10 text-[#334A46]'
+                    }`}>{item.priority}</div>
+                    <div>
+                      <div className="text-[13px] font-bold text-[#334A46]">{item.action}</div>
+                      <div className="text-[12px] text-[#334A46] leading-relaxed">{item.detail}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Section>
+
           {/* ── 2029 REFINANCING SCENARIOS ── */}
           <Section id="refinancing">
             <SectionLabel>2029 Refinancing Scenarios</SectionLabel>
@@ -1414,9 +1568,9 @@ export default function LowerPyneDashboard() {
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr>
-                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10"></th>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10"></th>
                       {loanScenarios.map((s) => (
-                        <th key={s.label} className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">{s.label}</th>
+                        <th key={s.label} className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">{s.label}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1600,7 +1754,7 @@ export default function LowerPyneDashboard() {
               onClick={() => { setActiveTab('projections'); window.scrollTo(0, 0); }}
               className="mb-8 px-5 py-2.5 text-[13px] font-semibold text-[#334A46] border border-[#334A46]/[.15] rounded-xl hover:bg-[#334A46]/[.04] transition-colors inline-flex items-center gap-2"
             >
-              Adjust assumptions interactively <span className="text-[#334A46]/40">&rarr;</span> Projections Tab
+              Adjust assumptions interactively <span className="text-[#334A46]">&rarr;</span> Projections Tab
             </button>
 
             <h3 className="text-[1.1rem] font-bold text-[#334A46] mb-4">Downside Scenarios: 2029 NOI Sensitivity</h3>
@@ -1869,7 +2023,7 @@ export default function LowerPyneDashboard() {
 
           {/* Footer */}
           <div className="pt-10 pb-6 border-t border-[#334A46]/[.08] text-center">
-            <div className="text-[11px] text-[#334A46]/30 font-medium">
+            <div className="text-[11px] text-[#334A46] font-medium">
               Lower Pyne Associates LP &middot; Confidential &middot; Prepared February 2026
             </div>
           </div>
@@ -1878,8 +2032,12 @@ export default function LowerPyneDashboard() {
       </div>
       ) : activeTab === 'projections' ? (
         <ProjectionsView />
-      ) : (
+      ) : activeTab === 'pyn' ? (
         <PynView />
+      ) : activeTab === 'housing' ? (
+        <HousingView />
+      ) : (
+        <PersonalExpensesView />
       )}
     </div>
   );
@@ -2162,7 +2320,7 @@ function ProjectionsView() {
   const yearHeader = (r: ProjectionRow) =>
     r.isHistorical ? `${r.year} Act.` : r.isBaseline ? '2025 Act.' : r.year === 2029 ? '2029 Refi' : String(r.year);
   const yearThClass = (r: ProjectionRow) =>
-    `py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] border-b border-[#334A46]/10 text-right whitespace-nowrap ${r.year === 2029 ? 'text-[#2E7D32] bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'text-[#334A46]/70 bg-[#FAFAFA]' : 'text-[#334A46]/50'}`;
+    `py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] border-b border-[#334A46]/10 text-right whitespace-nowrap ${r.year === 2029 ? 'text-[#2E7D32] bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'text-[#334A46] bg-[#FAFAFA]' : 'text-[#334A46]'}`;
   const yearTdBg = (r: ProjectionRow) =>
     r.year === 2029 ? 'bg-[#E2EFDA]/30' : (r.isBaseline || r.isHistorical) ? 'bg-[#FAFAFA]' : '';
 
@@ -2200,10 +2358,10 @@ function ProjectionsView() {
               </div>
               <div className="space-y-0.5 mb-3">
                 {preset.params.map((p) => (
-                  <div key={p} className="text-[12px] text-[#334A46]/50">{p}</div>
+                  <div key={p} className="text-[12px] text-[#334A46]">{p}</div>
                 ))}
               </div>
-              <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/40">2035 NOI</div>
+              <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]">2035 NOI</div>
               <div className="text-[1.1rem] font-extrabold text-[#334A46]">{fmt(noiVal)}</div>
             </button>
           );
@@ -2222,22 +2380,22 @@ function ProjectionsView() {
             onClick={() => setAssumptionsOpen(!assumptionsOpen)}
             className="flex items-center gap-2 group"
           >
-            <svg className={`w-4 h-4 text-[#334A46]/40 transition-transform ${assumptionsOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            <svg className={`w-4 h-4 text-[#334A46] transition-transform ${assumptionsOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             <SectionLabel>Model Assumptions</SectionLabel>
           </button>
           <div className="flex items-center gap-3">
             {!assumptionsOpen && (
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {SLIDERS.slice(0, 6).map((slider) => (
-                  <span key={slider.key} className="text-[11px] text-[#334A46]/50">
-                    <span className="font-medium text-[#334A46]/70">{slider.format(assumptions[slider.key])}</span> {slider.label.toLowerCase().replace('revenue ', 'rev ').replace('expense ', 'exp ').replace('re tax ', 'tax ').replace('refi interest ', 'refi ')}
+                  <span key={slider.key} className="text-[11px] text-[#334A46]">
+                    <span className="font-medium text-[#334A46]">{slider.format(assumptions[slider.key])}</span> {slider.label.toLowerCase().replace('revenue ', 'rev ').replace('expense ', 'exp ').replace('re tax ', 'tax ').replace('refi interest ', 'refi ')}
                   </span>
                 ))}
               </div>
             )}
             <button
               onClick={resetDefaults}
-              className="px-4 py-2 text-[13px] font-semibold text-[#334A46]/60 border border-[#334A46]/[.12] rounded-lg hover:bg-[#334A46]/[.04] transition-colors shrink-0"
+              className="px-4 py-2 text-[13px] font-semibold text-[#334A46] border border-[#334A46]/[.12] rounded-lg hover:bg-[#334A46]/[.04] transition-colors shrink-0"
             >
               Reset to Defaults
             </button>
@@ -2252,9 +2410,9 @@ function ProjectionsView() {
                   onClick={() => toggleGroup(group.title)}
                   className="flex items-center gap-2 mb-3 group w-full text-left"
                 >
-                  <svg className={`w-3.5 h-3.5 text-[#334A46]/50 transition-transform ${openGroups[group.title] ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  <svg className={`w-3.5 h-3.5 text-[#334A46] transition-transform ${openGroups[group.title] ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                   <h3 className="text-[14px] font-bold text-[#334A46] whitespace-nowrap">{group.title}</h3>
-                  <p className="text-[12px] text-[#334A46]/50 leading-relaxed">{group.note}</p>
+                  <p className="text-[12px] text-[#334A46] leading-relaxed">{group.note}</p>
                 </button>
                 {openGroups[group.title] ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2262,7 +2420,7 @@ function ProjectionsView() {
                       const slider = SLIDERS.find(s => s.key === key)!;
                       return (
                         <div key={slider.key} className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
-                          <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/70 mb-1">{slider.label}</div>
+                          <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">{slider.label}</div>
                           <div className="text-[1.5rem] font-extrabold text-[#334A46] mb-3">{slider.format(assumptions[slider.key])}</div>
                           <input
                             type="range"
@@ -2274,8 +2432,8 @@ function ProjectionsView() {
                             className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]"
                           />
                           <div className="flex justify-between mt-1">
-                            <span className="text-[11px] text-[#334A46]/50 font-medium">{slider.format(slider.min)}</span>
-                            <span className="text-[11px] text-[#334A46]/50 font-medium">{slider.format(slider.max)}</span>
+                            <span className="text-[11px] text-[#334A46] font-medium">{slider.format(slider.min)}</span>
+                            <span className="text-[11px] text-[#334A46] font-medium">{slider.format(slider.max)}</span>
                           </div>
                         </div>
                       );
@@ -2286,8 +2444,8 @@ function ProjectionsView() {
                     {group.keys.map((key) => {
                       const slider = SLIDERS.find(s => s.key === key)!;
                       return (
-                        <span key={key} className="text-[12px] text-[#334A46]/60">
-                          <span className="font-semibold text-[#334A46]/80">{slider.format(assumptions[key])}</span>{' '}
+                        <span key={key} className="text-[12px] text-[#334A46]">
+                          <span className="font-semibold text-[#334A46]">{slider.format(assumptions[key])}</span>{' '}
                           {slider.label.toLowerCase()}
                         </span>
                       );
@@ -2316,7 +2474,7 @@ function ProjectionsView() {
               <span className="text-[11px] font-bold uppercase tracking-[.08em]" style={{ color: dscrColor }}>{dscrLabel}</span>
             </div>
             <div className="text-[1.4rem] md:text-[1.75rem] font-extrabold leading-none text-[#334A46]">{minDSCR.toFixed(2)}x</div>
-            <div className="mt-2 text-[12px] font-semibold uppercase tracking-[.08em] text-[#334A46]/50">Min DSCR</div>
+            <div className="mt-2 text-[12px] font-semibold uppercase tracking-[.08em] text-[#334A46]">Min DSCR</div>
           </div>
         </div>
       </div>
@@ -2330,7 +2488,7 @@ function ProjectionsView() {
             <table className="w-full text-left border-collapse min-w-[1100px]">
               <thead>
                 <tr>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 sticky left-0 bg-white z-10"></th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 sticky left-0 bg-white z-10"></th>
                   {projections.rows.map((r) => (
                     <th key={r.year} className={yearThClass(r)}>{yearHeader(r)}</th>
                   ))}
@@ -2358,7 +2516,7 @@ function ProjectionsView() {
                 ))}
                 {/* ── Section 2: Cash Flow & Debt ── */}
                 <tr className="border-b border-[#334A46]/10">
-                  <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46]/30 bg-white">Cash Flow &amp; Debt Service</td>
+                  <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46] bg-white">Cash Flow &amp; Debt Service</td>
                 </tr>
                 {/* Debt Service with step-up annotation */}
                 <tr className="border-b border-[#334A46]/[.06]">
@@ -2392,7 +2550,7 @@ function ProjectionsView() {
                 </tr>
                 {/* ── Section 3: Outflows & Inflows ── */}
                 <tr className="border-b border-[#334A46]/10">
-                  <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46]/30 bg-white">Outflows &amp; Inflows</td>
+                  <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46] bg-white">Outflows &amp; Inflows</td>
                 </tr>
                 {/* Distributions */}
                 <tr className="border-b border-[#334A46]/[.06]">
@@ -2450,7 +2608,7 @@ function ProjectionsView() {
                 </tr>
                 {/* ── Section 4: Net Position ── */}
                 <tr className="border-b border-[#334A46]/10">
-                  <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46]/30 bg-white">Net Position</td>
+                  <td colSpan={projections.rows.length + 1} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-[.12em] text-[#334A46] bg-white">Net Position</td>
                 </tr>
                 {/* Net to Cash Position */}
                 <tr className="border-b border-[#334A46]/[.08] bg-[#334A46]/[.04]">
@@ -2478,7 +2636,7 @@ function ProjectionsView() {
 
       {/* Footer */}
       <div className="pt-10 pb-6 border-t border-[#334A46]/[.08] text-center">
-        <div className="text-[11px] text-[#334A46]/30 font-medium">
+        <div className="text-[11px] text-[#334A46] font-medium">
           Lower Pyne Associates LP &middot; Confidential &middot; Prepared February 2026
         </div>
       </div>
@@ -2509,7 +2667,7 @@ const DAVID_NW = {
 // ── David Income & Expenses ──
 const DAVID_SS = 43000;
 const DAVID_RETIREMENT_TOTAL = 645000;
-const DAVID_EXPENSES_BASE = 247000;
+const DAVID_EXPENSES_BASE = 300000;
 
 // ── Pyn LLC Starting Position (2026) ──
 const PYN_START = 1200000;
@@ -2531,8 +2689,10 @@ function PynView() {
   const [wbActive, setWbActive] = useState(false);
   const [wbStartYear, setWbStartYear] = useState(2029);
   const [wbPct, setWbPct] = useState(1.0);
+  // Additional personal expenses
+  const [anzereExpense, setAnzereExpense] = useState(15000); // Annual Anzere (Switzerland) property expense
   // Outside investment flows
-  const [chambersSale, setChambersSale] = useState(700000); // LP gross proceeds from Chambers sale (2026)
+  const [chambersSale, setChambersSale] = useState(0); // LP gross proceeds from Chambers sale (2026)
   const [nassauDistStart, setNassauDistStart] = useState(2028); // year Nassau 195 begins distributing
   const [nassauAnnualDist, setNassauAnnualDist] = useState(44000); // LP annual distribution from Nassau
   // Refi
@@ -2606,8 +2766,8 @@ function PynView() {
       const dadTotalIncome = dadDrawTarget;
       const dadPynDraw = Math.max(0, dadTotalIncome - DAVID_SS - rmd);
 
-      // David's expenses
-      const dadExpenses = Math.round(DAVID_EXPENSES_BASE * Math.pow(1 + expenseGrowth, yearIndex));
+      // David's expenses (base + Anzere property, both grow with inflation)
+      const dadExpenses = Math.round((DAVID_EXPENSES_BASE + anzereExpense) * Math.pow(1 + expenseGrowth, yearIndex));
       const dadSurplus = dadTotalIncome - dadExpenses;
 
       // W&B distributions
@@ -2619,9 +2779,12 @@ function PynView() {
       // Pyn investment returns (on beginning balance, invested fraction)
       const pynInvestmentReturn = Math.round(pynBalance * 0.5 * investReturn);
 
+      // Anzère expense grows with inflation
+      const anzereAnnual = Math.round(anzereExpense * Math.pow(1 + expenseGrowth, yearIndex));
+
       // Pyn cash flow (includes outside investment flows)
       const pynInflows = pynFromLP + pynInvestmentReturn + pynOutsideFlows;
-      const pynOutflows = dadPynDraw + willDist + benDist + uncleDist;
+      const pynOutflows = dadPynDraw + willDist + benDist + uncleDist + anzereAnnual;
       const pynNetCashFlow = pynInflows - pynOutflows;
       pynBalance = Math.round(pynBalance + pynNetCashFlow);
 
@@ -2629,13 +2792,13 @@ function PynView() {
         year, lpDist, pynFromLP, pynInvestmentReturn,
         pynChambers, pynNassau, pynRefi, pynOutsideFlows,
         dadPynDraw, dadSS: DAVID_SS, dadRMD: rmd, dadTotalIncome,
-        dadExpenses, dadSurplus,
+        dadExpenses, dadSurplus, anzereAnnual,
         willDist, benDist, uncleDist,
         pynInflows, pynOutflows, pynNetCashFlow, pynBalance,
       };
     });
     return rows;
-  }, [dadDrawTarget, expenseGrowth, lpDistributions, investReturn, wbActive, wbStartYear, wbPct, chambersSale, nassauDistStart, nassauAnnualDist, refiCashOut]);
+  }, [dadDrawTarget, expenseGrowth, lpDistributions, investReturn, wbActive, wbStartYear, wbPct, chambersSale, nassauDistStart, nassauAnnualDist, refiCashOut, anzereExpense]);
 
   // ── Slider helper ──
   const SliderCard = ({ label, value, onChange, min, max, step, format }: {
@@ -2643,14 +2806,14 @@ function PynView() {
     min: number; max: number; step: number; format: (v: number) => string;
   }) => (
     <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
-      <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/70 mb-1">{label}</div>
+      <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">{label}</div>
       <div className="text-[1.5rem] font-extrabold text-[#334A46] mb-3">{format(value)}</div>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
       <div className="flex justify-between mt-1">
-        <span className="text-[11px] text-[#334A46]/50 font-medium">{format(min)}</span>
-        <span className="text-[11px] text-[#334A46]/50 font-medium">{format(max)}</span>
+        <span className="text-[11px] text-[#334A46] font-medium">{format(min)}</span>
+        <span className="text-[11px] text-[#334A46] font-medium">{format(max)}</span>
       </div>
     </div>
   );
@@ -2662,63 +2825,65 @@ function PynView() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
-      {/* ── Page Header ── */}
+
+      {/* ══ 1. HEADER — Pyn is the top entity ══ */}
       <div className="mb-10">
-        <div className="text-[11px] font-bold uppercase tracking-[.15em] text-[#334A46]/40 mb-2">Family Wealth Overview</div>
-        <h1 className="text-[2rem] font-extrabold text-[#334A46] mb-2">David Newton / Pyn Investments LLC</h1>
-        <p className="text-[15px] text-[#334A46]/60 leading-relaxed max-w-3xl">
-          Pyn Investments LLC owns 60% of Lower Pyne Associates LP. David holds 50% of Pyn,
-          with Will and Benjamin each holding 20%. This view models Pyn&rsquo;s cash flow,
-          David&rsquo;s retirement income, and scenarios for beginning W&amp;B distributions.
+        <div className="text-[11px] font-bold uppercase tracking-[.15em] text-[#334A46] mb-2">Family Investment Entity</div>
+        <h1 className="text-[2rem] font-extrabold text-[#334A46] mb-2">Pyn Investments LLC</h1>
+        <p className="text-[15px] text-[#334A46] leading-relaxed max-w-3xl">
+          Pyn holds a 60% limited partnership interest in Lower Pyne Associates LP, an outside
+          real&nbsp;estate investment portfolio, and liquid investment accounts. David Newton is
+          managing member (50%). This view models Pyn&rsquo;s cash flow, member distributions,
+          and David&rsquo;s retirement picture.
         </p>
       </div>
 
-      {/* ── Entity Structure ── */}
+      {/* ══ 2. ENTITY & ASSETS DIAGRAM — Pyn at top ══ */}
       <div className="mb-10">
-        <SectionLabel>Entity &amp; Ownership Structure</SectionLabel>
+        <SectionLabel>Entity Structure &amp; Assets</SectionLabel>
         <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-8">
-          {/* LP Box */}
+          {/* Pyn Box — top of hierarchy */}
           <div className="text-center mb-6">
-            <div className="inline-block bg-[#334A46] text-white rounded-xl px-8 py-4">
-              <div className="text-[14px] font-extrabold">Lower Pyne Associates LP</div>
-              <div className="text-[11px] opacity-70">Commercial Property &middot; Princeton, NJ</div>
+            <div className="inline-block bg-[#334A46] text-white rounded-xl px-10 py-4">
+              <div className="text-[16px] font-extrabold">Pyn Investments LLC</div>
+              <div className="text-[11px] opacity-70">Family Investment Entity &middot; Princeton, NJ</div>
             </div>
           </div>
-          {/* Ownership splits */}
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+
+          {/* Pyn's Assets */}
+          <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#334A46] text-center mb-3">Assets Held by Pyn</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-8">
             <div className="bg-[#E2EFDA]/40 rounded-xl p-4 text-center border-2 border-[#334A46]/20">
-              <div className="text-[2rem] font-extrabold text-[#334A46]">60%</div>
-              <div className="text-[13px] font-bold text-[#334A46]">Pyn Investments LLC</div>
-              <div className="text-[11px] text-[#334A46]/50">Family Entity</div>
+              <div className="text-[1.5rem] font-extrabold text-[#334A46]">60%</div>
+              <div className="text-[13px] font-bold text-[#334A46]">Lower Pyne Associates LP</div>
+              <div className="text-[11px] text-[#334A46]">Commercial Property &middot; Nassau St</div>
             </div>
             <div className="bg-[#FAFAFA] rounded-xl p-4 text-center border border-[#334A46]/[.08]">
-              <div className="text-[2rem] font-extrabold text-[#334A46]/50">20%</div>
-              <div className="text-[13px] font-bold text-[#334A46]/60">Partner B</div>
-              <div className="text-[11px] text-[#334A46]/40">Deceased &mdash; buyout target</div>
+              <div className="text-[1.5rem] font-extrabold text-[#334A46]">8</div>
+              <div className="text-[13px] font-bold text-[#334A46]">Outside RE Investments</div>
+              <div className="text-[11px] text-[#334A46]">$2.65M&ndash;$3.6M equity</div>
             </div>
             <div className="bg-[#FAFAFA] rounded-xl p-4 text-center border border-[#334A46]/[.08]">
-              <div className="text-[2rem] font-extrabold text-[#334A46]/50">20%</div>
-              <div className="text-[13px] font-bold text-[#334A46]/60">Partner C</div>
-              <div className="text-[11px] text-[#334A46]/40">&nbsp;</div>
+              <div className="text-[1.5rem] font-extrabold text-[#334A46]">$913K</div>
+              <div className="text-[13px] font-bold text-[#334A46]">Liquid Accounts</div>
+              <div className="text-[11px] text-[#334A46]">MLPDA, Wells Fargo, BofP Stock</div>
             </div>
           </div>
-          {/* Pyn members */}
+
+          {/* Pyn Members */}
           <div className="max-w-2xl mx-auto">
-            <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#334A46]/30 text-center mb-3">Pyn Investments LLC Members</div>
+            <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#334A46] text-center mb-3">Members</div>
             <div className="grid grid-cols-4 gap-3">
               {[
-                { name: 'David Newton', pct: '50%', role: 'Managing Member', effective: '30%', highlight: true },
-                { name: 'Will Newton', pct: '20%', role: 'Member', effective: '12%', highlight: false },
-                { name: 'Benjamin Newton', pct: '20%', role: 'Member', effective: '12%', highlight: false },
-                { name: 'Uncle', pct: '10%', role: 'Member', effective: '6%', highlight: false },
+                { name: 'David Newton', pct: '50%', role: 'Managing Member', highlight: true },
+                { name: 'Will Newton', pct: '20%', role: 'Member', highlight: false },
+                { name: 'Benjamin Newton', pct: '20%', role: 'Member', highlight: false },
+                { name: 'Uncle', pct: '10%', role: 'Member', highlight: false },
               ].map((m) => (
                 <div key={m.name} className={`rounded-xl p-3 text-center ${m.highlight ? 'bg-[#334A46] text-white' : 'bg-[#FAFAFA] border border-[#334A46]/[.08]'}`}>
                   <div className={`text-[1.1rem] font-extrabold ${m.highlight ? '' : 'text-[#334A46]'}`}>{m.pct}</div>
-                  <div className={`text-[12px] font-bold ${m.highlight ? 'text-white/90' : 'text-[#334A46]/80'}`}>{m.name}</div>
-                  <div className={`text-[10px] ${m.highlight ? 'text-white/50' : 'text-[#334A46]/40'}`}>{m.role}</div>
-                  <div className={`text-[10px] mt-1 pt-1 border-t ${m.highlight ? 'border-white/20 text-white/60' : 'border-[#334A46]/10 text-[#334A46]/50'}`}>
-                    {m.effective} of property
-                  </div>
+                  <div className={`text-[12px] font-bold ${m.highlight ? 'text-white/90' : 'text-[#334A46]'}`}>{m.name}</div>
+                  <div className={`text-[10px] ${m.highlight ? 'text-white/50' : 'text-[#334A46]'}`}>{m.role}</div>
                 </div>
               ))}
             </div>
@@ -2726,241 +2891,97 @@ function PynView() {
         </div>
       </div>
 
-      {/* ── David's Net Worth ── */}
+      {/* ══ 3. PYN POSITION SUMMARY ══ */}
       <div className="mb-10">
-        <SectionLabel>David Newton &mdash; Net Worth Statement (Feb 2026)</SectionLabel>
-
-        {/* Top-level summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Stat value={'$' + (DAVID_NW.total / 1e6).toFixed(1) + 'M'} label="Total Net Worth" accent />
-          <Stat value={fmtK(DAVID_NW.nonQualified)} label="Non-Qualified Assets" />
-          <Stat value={fmtK(DAVID_NW.retirement)} label="Retirement Accounts" />
-          <div className="bg-[#FFF8E1] rounded-2xl p-5 border border-[#F57F17]/20">
-            <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#F57F17]/70 mb-1">Estate Tax Alert</div>
-            <div className="text-[1.3rem] font-extrabold text-[#F57F17]">$1.2M Over</div>
-            <div className="text-[11px] text-[#F57F17]/60">vs. $13.6M exemption (without ILIT)</div>
-          </div>
-        </div>
-
-        {/* Detailed account breakdown */}
-        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr>
-                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10" colSpan={2}>Account</th>
-                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* Non-Qualified Assets */}
-                <tr className="bg-[#FAFAFA]">
-                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Non-Qualified Assets</td>
-                </tr>
-                {[
-                  { name: 'Cash / Alternatives', value: 35545 },
-                  { name: 'CDs', value: 156906 },
-                  { name: 'CIMA \u2014 Merrill Lynch *3707', value: 34338 },
-                  { name: 'Gold Certificate', value: 40000 },
-                  { name: 'Private Equity \u2014 Shortcut LP', value: 40000 },
-                  { name: 'Private Equity \u2014 Terracycle LP', value: 20000 },
-                  { name: 'Private Equity \u2014 Viwa LP', value: 44614 },
-                  { name: 'Royal Bank Scotland', value: 17000 },
-                  { name: 'MetLife GAUL *8319 (Cash Surrender)', value: 39705 },
-                ].map((a) => (
-                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
-                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
-                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
-                  </tr>
-                ))}
-                {/* Pyn LLC sub-accounts */}
-                <tr className="bg-[#E2EFDA]/30">
-                  <td className="py-2 px-4 pl-8 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50" colSpan={3}>Pyn Investments LLC Accounts</td>
-                </tr>
-                {[
-                  { name: 'MLPDA Account *3710', value: 399998, note: 'Merrill Lynch' },
-                  { name: 'NQ Investment \u2014 Wells Fargo *3803', value: 270385, note: '' },
-                  { name: 'Stock \u2014 Bank of Princeton', value: 243142, note: '' },
-                ].map((a) => (
-                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
-                    <td className="py-2 px-4 pl-10 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
-                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
-                  </tr>
-                ))}
-                {/* Non-Qualified Total */}
-                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
-                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Non-Qualified Assets</td>
-                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(1301633)}</td>
-                </tr>
-
-                {/* Retirement Assets */}
-                <tr className="bg-[#FAFAFA]">
-                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Retirement Assets</td>
-                </tr>
-                {[
-                  { name: 'Qualified Retirement (401k) \u2014 Merrill Lynch *3708', value: 551265 },
-                  { name: 'IRA \u2014 Wells Fargo *3841', value: 93949 },
-                ].map((a) => (
-                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
-                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
-                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
-                  </tr>
-                ))}
-                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
-                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Retirement Assets</td>
-                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(645214)}</td>
-                </tr>
-
-                {/* Real Estate */}
-                <tr className="bg-[#FAFAFA]">
-                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Real Estate</td>
-                </tr>
-                {[
-                  { name: '49 Governors Lane', value: 1200000 },
-                  { name: '44 West 62nd St, NYC', value: 550000 },
-                ].map((a) => (
-                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
-                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>{a.name}</td>
-                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(a.value)}</td>
-                  </tr>
-                ))}
-                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
-                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Real Estate</td>
-                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(1750000)}</td>
-                </tr>
-
-                {/* Other Assets */}
-                <tr className="bg-[#FAFAFA]">
-                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Other Assets</td>
-                </tr>
-                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
-                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>Lower Pyne LP Interest (via Pyn)</td>
-                  <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">Included in Pyn</td>
-                </tr>
-                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
-                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>MetLife Universal Life (Death Benefit)</td>
-                  <td className="py-2 px-4 text-[13px] text-right text-[#334A46]/80">{fmt(1500000)}</td>
-                </tr>
-
-                {/* Liabilities */}
-                <tr className="bg-[#FAFAFA]">
-                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/60" colSpan={3}>Liabilities</td>
-                </tr>
-                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
-                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]/70" colSpan={2}>Home Mortgage &mdash; BofA</td>
-                  <td className="py-2 px-4 text-[13px] text-right text-[#C62828]/80">({fmt(535000)})</td>
-                </tr>
-
-                {/* Grand Total */}
-                <tr className="bg-[#334A46]">
-                  <td className="py-3 px-4 text-[14px] font-extrabold text-white" colSpan={2}>Total Net Worth</td>
-                  <td className="py-3 px-4 text-[14px] text-right font-extrabold text-white">{fmt(13335602)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="mt-3 text-[11px] text-[#334A46]/40">
-          Source: March Wealth Management (Andrew Hauber) &middot; Prepared February 10, 2026 &middot; Personal and Confidential
+        <SectionLabel>Pyn Position Summary</SectionLabel>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Stat value={fmtK(PYN_START)} label="Starting Cash (2026)" accent />
+          <Stat value={fmtK(projections[0].pynFromLP)} label="LP Income to Pyn (2026)" />
+          <Stat value="$913K" label="Liquid Accounts" />
+          <Stat value={fmtK(projections[projections.length - 1].pynBalance)} label="Projected Balance (2035)"
+            accent={projections[projections.length - 1].pynBalance > 0} />
         </div>
       </div>
 
-      {/* ── Model Assumptions ── */}
+
+      {/* ══ 4. MODEL ASSUMPTIONS — grouped by category ══ */}
       <div className="mb-10">
         <SectionLabel>Model Assumptions</SectionLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <SliderCard label="David's Income Target" value={dadDrawTarget} onChange={setDadDrawTarget}
-            min={250000} max={450000} step={10000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
-          <SliderCard label="Expense Inflation" value={expenseGrowth} onChange={setExpenseGrowth}
-            min={0.01} max={0.05} step={0.0025} format={(v) => (v * 100).toFixed(1) + '%'} />
-          <SliderCard label="LP Annual Distributions" value={lpDistributions} onChange={setLpDistributions}
-            min={200000} max={400000} step={10000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
-          <SliderCard label="Pyn Investment Return" value={investReturn} onChange={setInvestReturn}
-            min={0.02} max={0.08} step={0.005} format={(v) => (v * 100).toFixed(1) + '%'} />
-          <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
-            <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/70 mb-2">W&amp;B Distributions</div>
-            <label className="flex items-center gap-3 mb-3 cursor-pointer">
-              <input type="checkbox" checked={wbActive} onChange={(e) => setWbActive(e.target.checked)}
-                className="w-5 h-5 rounded accent-[#334A46]" />
-              <span className="text-[14px] font-semibold text-[#334A46]">Begin W&amp;B distributions</span>
-            </label>
-            {wbActive && (
-              <div className="space-y-3">
-                <div>
-                  <div className="text-[11px] text-[#334A46]/50 mb-1">Start Year: <span className="font-bold text-[#334A46]">{wbStartYear}</span></div>
-                  <input type="range" min={2026} max={2035} step={1} value={wbStartYear}
-                    onChange={(e) => setWbStartYear(parseInt(e.target.value))}
-                    className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
-                </div>
-                <div>
-                  <div className="text-[11px] text-[#334A46]/50 mb-1">% of share taken: <span className="font-bold text-[#334A46]">{(wbPct * 100).toFixed(0)}%</span></div>
-                  <input type="range" min={0.25} max={1} step={0.25} value={wbPct}
-                    onChange={(e) => setWbPct(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Outside Investments & Refi sliders */}
-        <div className="mt-4">
-          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/40 mb-3">LP Outside Investments &amp; Refi Events</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        {/* Group 1 — LP Income & Events */}
+        <div className="mb-5">
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] mb-3">LP Income &amp; Events</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SliderCard label="LP Annual Distributions" value={lpDistributions} onChange={setLpDistributions}
+              min={200000} max={400000} step={10000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
             <SliderCard label="Chambers Sale to LP (2026)" value={chambersSale} onChange={setChambersSale}
               min={0} max={900000} step={50000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
+            <SliderCard label="2029 Refi Cash-Out to LP" value={refiCashOut} onChange={setRefiCashOut}
+              min={0} max={2400000} step={100000} format={(v) => '$' + (v / 1e6).toFixed(1) + 'M'} />
             <SliderCard label="Nassau 195 Dist. to LP /yr" value={nassauAnnualDist} onChange={setNassauAnnualDist}
               min={0} max={80000} step={5000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
             <SliderCard label="Nassau Dist. Start Year" value={nassauDistStart} onChange={setNassauDistStart}
               min={2027} max={2030} step={1} format={(v) => String(v)} />
-            <SliderCard label="2029 Refi Cash-Out to LP" value={refiCashOut} onChange={setRefiCashOut}
-              min={0} max={2400000} step={100000} format={(v) => '$' + (v / 1e6).toFixed(1) + 'M'} />
+          </div>
+          <div className="mt-2 text-[11px] text-[#334A46]">
+            Pyn receives 60% of all LP distributions and event proceeds. LP distributions grow ~3%/yr from base.
+          </div>
+        </div>
+
+        {/* Group 2 — Pyn Returns */}
+        <div className="mb-5">
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-3">Pyn Investment Returns</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SliderCard label="Pyn Investment Return" value={investReturn} onChange={setInvestReturn}
+              min={0.02} max={0.08} step={0.005} format={(v) => (v * 100).toFixed(1) + '%'} />
+          </div>
+          <div className="mt-2 text-[11px] text-[#334A46]">
+            Applied to 50% of Pyn&rsquo;s cash balance (conservative invested fraction).
+          </div>
+        </div>
+
+        {/* Group 3 — Member Draws & W&B */}
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#C62828]/60 mb-3">Member Draws &amp; Distributions</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SliderCard label="David's Income Target" value={dadDrawTarget} onChange={setDadDrawTarget}
+              min={250000} max={450000} step={10000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
+            <SliderCard label="Expense Inflation" value={expenseGrowth} onChange={setExpenseGrowth}
+              min={0.01} max={0.05} step={0.0025} format={(v) => (v * 100).toFixed(1) + '%'} />
+            <SliderCard label="Anzère Annual Expense" value={anzereExpense} onChange={setAnzereExpense}
+              min={0} max={50000} step={1000} format={(v) => '$' + (v / 1000).toFixed(0) + 'K'} />
+            <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
+              <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-2">W&amp;B Distributions</div>
+              <label className="flex items-center gap-3 mb-3 cursor-pointer">
+                <input type="checkbox" checked={wbActive} onChange={(e) => setWbActive(e.target.checked)}
+                  className="w-5 h-5 rounded accent-[#334A46]" />
+                <span className="text-[14px] font-semibold text-[#334A46]">Begin W&amp;B distributions</span>
+              </label>
+              {wbActive && (
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-[11px] text-[#334A46] mb-1">Start Year: <span className="font-bold text-[#334A46]">{wbStartYear}</span></div>
+                    <input type="range" min={2026} max={2035} step={1} value={wbStartYear}
+                      onChange={(e) => setWbStartYear(parseInt(e.target.value))}
+                      className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[#334A46] mb-1">% of share taken: <span className="font-bold text-[#334A46]">{(wbPct * 100).toFixed(0)}%</span></div>
+                    <input type="range" min={0.25} max={1} step={0.25} value={wbPct}
+                      onChange={(e) => setWbPct(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="mt-2 text-[11px] text-[#334A46]">
+            David&rsquo;s draw from Pyn is reduced as RMDs and Social Security provide more income. W&amp;B distributions are optional.
           </div>
         </div>
       </div>
 
-      {/* ── David's Income vs. Expenses ── */}
-      <div className="mb-10">
-        <SectionLabel>David&rsquo;s Annual Income vs. Expenses</SectionLabel>
-        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[800px]">
-              <thead>
-                <tr>
-                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Age</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Pyn Draw</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Soc. Sec.</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">RMDs</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total Income</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Expenses</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Surplus</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projections.map((r) => (
-                  <tr key={r.year} className="border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA]">
-                    <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{r.year}</td>
-                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{r.year - DAVID_BIRTH_YEAR}</td>
-                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.dadPynDraw)}</td>
-                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.dadSS)}</td>
-                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{r.dadRMD > 0 ? fmtK(r.dadRMD) : '\u2014'}</td>
-                    <td className="py-2.5 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.dadTotalIncome)}</td>
-                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.dadExpenses)}</td>
-                    <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${r.dadSurplus >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
-                      {r.dadSurplus >= 0 ? '+' : ''}{fmtK(r.dadSurplus)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="mt-3 text-[12px] text-[#334A46]/40">
-          RMDs begin at age 73 (2028) under SECURE 2.0. As RMDs increase, Pyn draw decreases to maintain the target income level.
-        </div>
-      </div>
-
-      {/* ── Pyn LLC Cash Flow ── */}
+      {/* ══ 5. PYN CASH FLOW MODEL ══ */}
       <div className="mb-10">
         <SectionLabel>Pyn Investments LLC &mdash; Cash Flow Projection</SectionLabel>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -2975,32 +2996,32 @@ function PynView() {
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr>
-                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP Dist. (60%)</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Invest. Return</th>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Year</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">LP Dist. (60%)</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Invest. Return</th>
                   <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#1565C0] border-b border-[#334A46]/10 text-right">Outside Flows</th>
                   <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total In</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Dad Draw</th>
-                  {wbActive && <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Will</th>}
-                  {wbActive && <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Ben</th>}
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Total Out</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Net</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Pyn Balance</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Dad Draw</th>
+                  {wbActive && <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Will</th>}
+                  {wbActive && <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Ben</th>}
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Total Out</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Net</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Pyn Balance</th>
                 </tr>
               </thead>
               <tbody>
                 {projections.map((r) => (
                   <tr key={r.year} className={`border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA] ${r.pynBalance < 0 ? 'bg-[#FFEBEE]/30' : ''}`}>
                     <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{r.year}</td>
-                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.pynFromLP)}</td>
-                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.pynInvestmentReturn)}</td>
-                    <td className={`py-2.5 px-3 text-[13px] text-right ${r.pynOutsideFlows > 0 ? 'font-bold text-[#1565C0]' : 'text-[#334A46]/30'}`}>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.pynFromLP)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.pynInvestmentReturn)}</td>
+                    <td className={`py-2.5 px-3 text-[13px] text-right ${r.pynOutsideFlows > 0 ? 'font-bold text-[#1565C0]' : 'text-[#334A46]'}`}>
                       {r.pynOutsideFlows > 0 ? fmtK(r.pynOutsideFlows) : '\u2014'}
                     </td>
                     <td className="py-2.5 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.pynInflows)}</td>
                     <td className="py-2.5 px-3 text-[13px] text-right text-[#C62828]/70">{fmtK(r.dadPynDraw)}</td>
-                    {wbActive && <td className={`py-2.5 px-3 text-[13px] text-right ${r.willDist > 0 ? 'text-[#334A46]/80 font-medium' : 'text-[#334A46]/30'}`}>{r.willDist > 0 ? fmtK(r.willDist) : '\u2014'}</td>}
-                    {wbActive && <td className={`py-2.5 px-3 text-[13px] text-right ${r.benDist > 0 ? 'text-[#334A46]/80 font-medium' : 'text-[#334A46]/30'}`}>{r.benDist > 0 ? fmtK(r.benDist) : '\u2014'}</td>}
+                    {wbActive && <td className={`py-2.5 px-3 text-[13px] text-right ${r.willDist > 0 ? 'text-[#334A46] font-medium' : 'text-[#334A46]'}`}>{r.willDist > 0 ? fmtK(r.willDist) : '\u2014'}</td>}
+                    {wbActive && <td className={`py-2.5 px-3 text-[13px] text-right ${r.benDist > 0 ? 'text-[#334A46] font-medium' : 'text-[#334A46]'}`}>{r.benDist > 0 ? fmtK(r.benDist) : '\u2014'}</td>}
                     <td className="py-2.5 px-3 text-[13px] text-right text-[#C62828]/70">{fmtK(r.pynOutflows)}</td>
                     <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${r.pynNetCashFlow >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
                       {r.pynNetCashFlow >= 0 ? '+' : ''}{fmtK(r.pynNetCashFlow)}
@@ -3016,12 +3037,12 @@ function PynView() {
         </div>
       </div>
 
-      {/* ── Will & Benjamin Distribution Detail ── */}
+      {/* ══ 6. MEMBER DISTRIBUTIONS ══ */}
       <div className="mb-10">
-        <SectionLabel>Will &amp; Benjamin &mdash; Distribution Modeling</SectionLabel>
+        <SectionLabel>Member Distributions</SectionLabel>
         {!wbActive ? (
           <div className="bg-[#FAFAFA] rounded-2xl p-8 border border-[#334A46]/[.06] text-center">
-            <div className="text-[14px] text-[#334A46]/50 mb-3">
+            <div className="text-[14px] text-[#334A46] mb-3">
               Will and Benjamin currently defer 100% of their Pyn distributions &mdash; Dad receives all draws.
             </div>
             <button onClick={() => setWbActive(true)}
@@ -3042,13 +3063,13 @@ function PynView() {
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr>
-                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">LP Distribution</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Pyn 60% Share</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Dad (50%)</th>
+                      <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Year</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">LP Distribution</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Pyn 60% Share</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Dad (50%)</th>
                       <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Will (20%)</th>
                       <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Ben (20%)</th>
-                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Uncle (10%)</th>
+                      <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Uncle (10%)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3057,16 +3078,16 @@ function PynView() {
                       return (
                         <tr key={r.year} className={`border-b border-[#334A46]/[.06] ${distributing ? 'bg-[#E2EFDA]/20' : ''}`}>
                           <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{r.year}</td>
-                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.lpDist)}</td>
-                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.pynFromLP)}</td>
-                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.dadPynDraw)}</td>
-                          <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${distributing ? 'text-[#2E7D32]' : 'text-[#334A46]/30'}`}>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.lpDist)}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.pynFromLP)}</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.dadPynDraw)}</td>
+                          <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${distributing ? 'text-[#2E7D32]' : 'text-[#334A46]'}`}>
                             {distributing ? fmtK(r.willDist) : 'Deferred'}
                           </td>
-                          <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${distributing ? 'text-[#2E7D32]' : 'text-[#334A46]/30'}`}>
+                          <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${distributing ? 'text-[#2E7D32]' : 'text-[#334A46]'}`}>
                             {distributing ? fmtK(r.benDist) : 'Deferred'}
                           </td>
-                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]/30">Deferred</td>
+                          <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">Deferred</td>
                         </tr>
                       );
                     })}
@@ -3078,7 +3099,7 @@ function PynView() {
                       <td className="py-3 px-3 text-[13px] text-right text-[#334A46]">{fmtK(projections.reduce((s, r) => s + r.dadPynDraw, 0))}</td>
                       <td className="py-3 px-3 text-[13px] text-right text-[#2E7D32]">{fmtK(projections.reduce((s, r) => s + r.willDist, 0))}</td>
                       <td className="py-3 px-3 text-[13px] text-right text-[#2E7D32]">{fmtK(projections.reduce((s, r) => s + r.benDist, 0))}</td>
-                      <td className="py-3 px-3 text-[13px] text-right text-[#334A46]/30">$0</td>
+                      <td className="py-3 px-3 text-[13px] text-right text-[#334A46]">$0</td>
                     </tr>
                   </tbody>
                 </table>
@@ -3088,7 +3109,319 @@ function PynView() {
         )}
       </div>
 
-      {/* ── Estate Planning Snapshot ── */}
+      {/* ══ 6.5. DISTRIBUTION STRATEGY — WILL & BEN ══ */}
+      <div className="mb-10">
+        <SectionLabel>Distribution Strategy &mdash; Will &amp; Ben</SectionLabel>
+
+        {/* Summary stat cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Stat value="2028" label="Breakeven Year" accent />
+          <Stat value="$88K–$114K" label="2032 Annual Surplus" />
+          <Stat value="$35K–$45K" label="W&B Share Each (2030+)" />
+          <div className="bg-[#FFF8E1] rounded-2xl p-5 border border-[#F57F17]/20">
+            <div className="text-[1.4rem] md:text-[1.75rem] font-extrabold leading-none text-[#F57F17]">K-1</div>
+            <div className="mt-2 text-[12px] font-semibold uppercase tracking-[.08em] text-[#F57F17]/60">Tax Already Owed</div>
+          </div>
+        </div>
+
+        {/* 5 income streams visual */}
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6 mb-6">
+          <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-4">
+            5 Income Streams Converging on $300K Expenses
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[
+              { label: 'LP Distributions', value: '$168K+', color: '#334A46', note: 'Growing 3%/yr' },
+              { label: 'Social Security', value: '$43K', color: '#6B9E8A', note: 'Fixed' },
+              { label: 'RMDs', value: '$24K+', color: '#2E5A88', note: 'Starts 2028' },
+              { label: 'Nassau 195', value: '$26K', color: '#1565C0', note: 'Starts 2028' },
+              { label: 'Invest. Returns', value: '$30K+', color: '#7B1FA2', note: 'On Pyn balance' },
+            ].map((s) => (
+              <div key={s.label} className="text-center p-3 rounded-xl bg-[#FAFAFA] border border-[#334A46]/[.06]">
+                <div className="text-[1.1rem] font-extrabold" style={{ color: s.color }}>{s.value}</div>
+                <div className="text-[11px] font-bold text-[#334A46] mt-1">{s.label}</div>
+                <div className="text-[10px] text-[#334A46]">{s.note}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 text-center">
+            <div className="inline-block bg-[#E2EFDA] rounded-xl px-6 py-2">
+              <span className="text-[13px] font-bold text-[#2E7D32]">
+                Combined: ~$305K by 2028 &rarr; Exceeds $300K expenses
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-phase compact timeline */}
+        <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-3">
+          Phased Rollout
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {DISTRIBUTION_PHASES.map((p) => (
+            <div key={p.phase} className={`rounded-2xl p-5 ${
+              p.phase === 1 ? 'bg-[#FAFAFA] border border-[#334A46]/[.08]' :
+              p.phase === 2 ? 'bg-[#E2EFDA]/40 border border-[#2E7D32]/20' :
+              'bg-[#334A46] text-white'
+            }`}>
+              <div className={`text-[11px] font-bold uppercase tracking-[.08em] mb-1 ${
+                p.phase === 3 ? 'text-white/50' : 'text-[#334A46]'
+              }`}>Phase {p.phase} &middot; {p.timing}</div>
+              <div className={`text-[1.3rem] font-extrabold mb-1 ${
+                p.phase === 3 ? 'text-white' : 'text-[#334A46]'
+              }`}>
+                {p.wbEachLabel || ('$' + ((p.wbEach || 0) / 1000) + 'K')}
+              </div>
+              <div className={`text-[12px] ${p.phase === 3 ? 'text-white/70' : 'text-[#334A46]'}`}>
+                each/yr &middot; {p.trigger}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ══ 7. DAVID NEWTON — PERSONAL FINANCES ══ */}
+      <div className="mb-10">
+        <SectionLabel>David Newton &mdash; Personal Financial Picture</SectionLabel>
+
+        {/* A. Net Worth Statement */}
+        <div className="mb-8">
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-4">Net Worth Statement (Feb 2026)</div>
+
+          {/* Top-level summary cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Stat value={'$' + (DAVID_NW.total / 1e6).toFixed(1) + 'M'} label="Total Net Worth" accent />
+            <Stat value={fmtK(DAVID_NW.nonQualified)} label="Non-Qualified Assets" />
+            <Stat value={fmtK(DAVID_NW.retirement)} label="Retirement Accounts" />
+            <div className="bg-[#FFF8E1] rounded-2xl p-5 border border-[#F57F17]/20">
+              <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#F57F17]/70 mb-1">Estate Tax Alert</div>
+              <div className="text-[1.3rem] font-extrabold text-[#F57F17]">$1.2M Over</div>
+              <div className="text-[11px] text-[#F57F17]/60">vs. $13.6M exemption (without ILIT)</div>
+            </div>
+          </div>
+
+          {/* Detailed account breakdown */}
+          <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr>
+                    <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10" colSpan={2}>Account</th>
+                    <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]" colSpan={3}>Non-Qualified Assets</td>
+                </tr>
+                {[
+                  { name: 'Cash / Alternatives', value: 35545 },
+                  { name: 'CDs', value: 156906 },
+                  { name: 'CIMA \u2014 Merrill Lynch *3707', value: 34338 },
+                  { name: 'Gold Certificate', value: 40000 },
+                  { name: 'Private Equity \u2014 Shortcut LP', value: 40000 },
+                  { name: 'Private Equity \u2014 Terracycle LP', value: 20000 },
+                  { name: 'Private Equity \u2014 Viwa LP', value: 44614 },
+                  { name: 'Royal Bank Scotland', value: 17000 },
+                  { name: 'MetLife GAUL *8319 (Cash Surrender)', value: 39705 },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                {/* Pyn LLC sub-accounts */}
+                <tr className="bg-[#E2EFDA]/30">
+                  <td className="py-2 px-4 pl-8 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]" colSpan={3}>Pyn Investments LLC Accounts</td>
+                </tr>
+                {[
+                  { name: 'MLPDA Account *3710', value: 399998, note: 'Merrill Lynch' },
+                  { name: 'NQ Investment \u2014 Wells Fargo *3803', value: 270385, note: '' },
+                  { name: 'Stock \u2014 Bank of Princeton', value: 243142, note: '' },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-10 text-[13px] text-[#334A46]" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                {/* Non-Qualified Total */}
+                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
+                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Non-Qualified Assets</td>
+                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(1301633)}</td>
+                </tr>
+
+                {/* Retirement Assets */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]" colSpan={3}>Retirement Assets</td>
+                </tr>
+                {[
+                  { name: 'Qualified Retirement (401k) \u2014 Merrill Lynch *3708', value: 551265 },
+                  { name: 'IRA \u2014 Wells Fargo *3841', value: 93949 },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
+                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Retirement Assets</td>
+                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(645214)}</td>
+                </tr>
+
+                {/* Real Estate */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]" colSpan={3}>Real Estate</td>
+                </tr>
+                {[
+                  { name: '49 Governors Lane', value: 1200000 },
+                  { name: '44 West 62nd St, NYC', value: 550000 },
+                ].map((a) => (
+                  <tr key={a.name} className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                    <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]" colSpan={2}>{a.name}</td>
+                    <td className="py-2 px-4 text-[13px] text-right text-[#334A46]">{fmt(a.value)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-[#FAFAFA] font-bold border-b border-[#334A46]/10">
+                  <td className="py-2.5 px-4 text-[13px] text-[#334A46]" colSpan={2}>Total Real Estate</td>
+                  <td className="py-2.5 px-4 text-[13px] text-right text-[#334A46]">{fmt(1750000)}</td>
+                </tr>
+
+                {/* Other Assets */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]" colSpan={3}>Other Assets</td>
+                </tr>
+                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]" colSpan={2}>Lower Pyne LP Interest (via Pyn)</td>
+                  <td className="py-2 px-4 text-[13px] text-right text-[#334A46]">Included in Pyn</td>
+                </tr>
+                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]" colSpan={2}>MetLife Universal Life (Death Benefit)</td>
+                  <td className="py-2 px-4 text-[13px] text-right text-[#334A46]">{fmt(1500000)}</td>
+                </tr>
+
+                {/* Liabilities */}
+                <tr className="bg-[#FAFAFA]">
+                  <td className="py-2.5 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]" colSpan={3}>Liabilities</td>
+                </tr>
+                <tr className="border-b border-[#334A46]/[.04] hover:bg-[#FAFAFA]/50">
+                  <td className="py-2 px-4 pl-8 text-[13px] text-[#334A46]" colSpan={2}>Home Mortgage &mdash; BofA</td>
+                  <td className="py-2 px-4 text-[13px] text-right text-[#C62828]/80">({fmt(535000)})</td>
+                </tr>
+
+                {/* Grand Total */}
+                <tr className="bg-[#334A46]">
+                  <td className="py-3 px-4 text-[14px] font-extrabold text-white" colSpan={2}>Total Net Worth</td>
+                  <td className="py-3 px-4 text-[14px] text-right font-extrabold text-white">{fmt(13335602)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="mt-3 text-[11px] text-[#334A46]">
+          Source: March Wealth Management (Andrew Hauber) &middot; Prepared February 10, 2026 &middot; Personal and Confidential
+        </div>
+        </div>
+
+        {/* B. Income vs. Expenses */}
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-4">Annual Income vs. Expenses</div>
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Year</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Age</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Pyn Draw</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Soc. Sec.</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">RMDs</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total Income</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Expenses</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Surplus</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projections.map((r) => (
+                  <tr key={r.year} className="border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA]">
+                    <td className="py-2.5 px-4 text-[13px] font-bold text-[#334A46]">{r.year}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{r.year - DAVID_BIRTH_YEAR}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.dadPynDraw)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.dadSS)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{r.dadRMD > 0 ? fmtK(r.dadRMD) : '\u2014'}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.dadTotalIncome)}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.dadExpenses)}</td>
+                    <td className={`py-2.5 px-3 text-[13px] text-right font-bold ${r.dadSurplus >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                      {r.dadSurplus >= 0 ? '+' : ''}{fmtK(r.dadSurplus)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="mt-3 text-[12px] text-[#334A46]">
+          RMDs begin at age 73 (2028) under SECURE 2.0. As RMDs increase, Pyn draw decreases to maintain the target income level.
+        </div>
+        </div>
+      </div>
+
+      {/* ══ 8. FINANCIAL ADVISOR PROJECTION ══ */}
+      <div className="mb-10">
+        <SectionLabel>Financial Advisor Projection (Andrew Hauber, March Wealth)</SectionLabel>
+        <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-4">
+          Combined personal + Pyn portfolio projection prepared February 2026. Shows income flows, planned distributions,
+          expenses, and total portfolio assets through age 93. Portfolio grows from <span className="font-bold">$2.06M</span> to
+          <span className="font-bold"> $5.10M</span> &mdash; net cash flow turns negative around age 87 but portfolio continues growing
+          due to investment returns exceeding net draws.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Stat value="$2.06M" label="Starting Portfolio (2026)" accent />
+          <Stat value="$5.10M" label="Projected Portfolio (2049, Age 93)" />
+          <Stat value="2043" label="Year Net CF Turns Negative (Age 87)" />
+          <Stat value="$335K&rarr;$448K" label="Income Flow Growth (24yr)" />
+        </div>
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10">Year</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Age</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Income</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Distributions</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total In</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Expenses</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Net CF</th>
+                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Portfolio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ADVISOR_DATA.map((r) => (
+                  <tr key={r.year} className={`border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA] ${r.netCF < 0 ? 'bg-[#FFEBEE]/20' : ''}`}>
+                    <td className="py-2 px-3 text-[13px] font-bold text-[#334A46]">{r.year}</td>
+                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]">{r.age}</td>
+                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.income)}</td>
+                    <td className={`py-2 px-3 text-[13px] text-right ${r.distributions > 0 ? 'text-[#334A46]' : 'text-[#334A46]'}`}>
+                      {r.distributions > 0 ? fmtK(r.distributions) : '\u2014'}
+                    </td>
+                    <td className="py-2 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.totalIn)}</td>
+                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]">{fmtK(r.expenses)}</td>
+                    <td className={`py-2 px-3 text-[13px] text-right font-bold ${r.netCF >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                      {r.netCF >= 0 ? '+' : ''}{fmtK(r.netCF)}
+                    </td>
+                    <td className="py-2 px-3 text-[13px] text-right font-bold text-[#334A46]">{fmtK(r.portfolio)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="mt-3 text-[11px] text-[#334A46]">
+          Source: March Wealth Management (Andrew Hauber) &middot; Prepared February 10, 2026 &middot; Page 11 of 57
+        </div>
+      </div>
+
+      {/* ══ 9. ESTATE PLANNING ══ */}
       <div className="mb-10">
         <SectionLabel>Estate Planning Snapshot</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -3113,7 +3446,7 @@ function PynView() {
         </div>
         {/* Priority Actions */}
         <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6">
-          <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 mb-4">Priority Actions</div>
+          <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-4">Priority Actions</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { action: 'ILIT for Life Insurance', detail: 'Move $1.5M policy out of estate. Starts 3-year lookback clock. Reduces taxable estate by ~$1.5M.', priority: 'Urgent' },
@@ -3125,11 +3458,11 @@ function PynView() {
                 <div className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase h-fit ${
                   item.priority === 'Urgent' ? 'bg-[#C62828]/10 text-[#C62828]' :
                   item.priority === '2029' ? 'bg-[#F57F17]/10 text-[#F57F17]' :
-                  'bg-[#334A46]/10 text-[#334A46]/60'
+                  'bg-[#334A46]/10 text-[#334A46]'
                 }`}>{item.priority}</div>
                 <div>
                   <div className="text-[13px] font-bold text-[#334A46]">{item.action}</div>
-                  <div className="text-[12px] text-[#334A46]/50 leading-relaxed">{item.detail}</div>
+                  <div className="text-[12px] text-[#334A46] leading-relaxed">{item.detail}</div>
                 </div>
               </div>
             ))}
@@ -3137,68 +3470,647 @@ function PynView() {
         </div>
       </div>
 
-      {/* ── Financial Advisor Projection (March Wealth) ── */}
-      <div className="mb-10">
-        <SectionLabel>Financial Advisor Projection (Andrew Hauber, March Wealth)</SectionLabel>
-        <p className="text-[14px] text-[#3D4F5F] leading-relaxed mb-4">
-          Combined personal + Pyn portfolio projection prepared February 2026. Shows income flows, planned distributions,
-          expenses, and total portfolio assets through age 93. Portfolio grows from <span className="font-bold">$2.06M</span> to
-          <span className="font-bold"> $5.10M</span> &mdash; net cash flow turns negative around age 87 but portfolio continues growing
-          due to investment returns exceeding net draws.
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Stat value="$2.06M" label="Starting Portfolio (2026)" accent />
-          <Stat value="$5.10M" label="Projected Portfolio (2049, Age 93)" />
-          <Stat value="2043" label="Year Net CF Turns Negative (Age 87)" />
-          <Stat value="$335K&rarr;$448K" label="Income Flow Growth (24yr)" />
-        </div>
-        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[900px]">
-              <thead>
-                <tr>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10">Year</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Age</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Income</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Distributions</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">Total In</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Expenses</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Net CF</th>
-                  <th className="py-3 px-3 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46]/50 border-b border-[#334A46]/10 text-right">Portfolio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ADVISOR_DATA.map((r) => (
-                  <tr key={r.year} className={`border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA] ${r.netCF < 0 ? 'bg-[#FFEBEE]/20' : ''}`}>
-                    <td className="py-2 px-3 text-[13px] font-bold text-[#334A46]">{r.year}</td>
-                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]/60">{r.age}</td>
-                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]/80">{fmtK(r.income)}</td>
-                    <td className={`py-2 px-3 text-[13px] text-right ${r.distributions > 0 ? 'text-[#334A46]/80' : 'text-[#334A46]/30'}`}>
-                      {r.distributions > 0 ? fmtK(r.distributions) : '\u2014'}
-                    </td>
-                    <td className="py-2 px-3 text-[13px] text-right font-bold text-[#6B9E8A]">{fmtK(r.totalIn)}</td>
-                    <td className="py-2 px-3 text-[13px] text-right text-[#334A46]/60">{fmtK(r.expenses)}</td>
-                    <td className={`py-2 px-3 text-[13px] text-right font-bold ${r.netCF >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
-                      {r.netCF >= 0 ? '+' : ''}{fmtK(r.netCF)}
-                    </td>
-                    <td className="py-2 px-3 text-[13px] text-right font-bold text-[#334A46]">{fmtK(r.portfolio)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="mt-3 text-[11px] text-[#334A46]/40">
-          Source: March Wealth Management (Andrew Hauber) &middot; Prepared February 10, 2026 &middot; Page 11 of 57
-        </div>
-      </div>
-
       {/* Footer */}
       <div className="pt-10 pb-6 border-t border-[#334A46]/[.08] text-center">
-        <div className="text-[11px] text-[#334A46]/30 font-medium">
+        <div className="text-[11px] text-[#334A46] font-medium">
           Pyn Investments LLC &middot; Confidential &middot; Prepared March 2026
         </div>
       </div>
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════
+//  HOUSING VIEW — All-in Monthly Housing Scenario Planner
+// ═══════════════════════════════════════════════════════════
+
+function HousingView() {
+  // ── Core state ──
+  const [israelPrice, setIsraelPrice] = useState(1500000);
+  const [israelMortgagePct, setIsraelMortgagePct] = useState(0.80);
+  const [israelRate, setIsraelRate] = useState(0.05);
+  const [usOption, setUsOption] = useState<'buy' | 'rent'>('rent');
+  const [usPrice, setUsPrice] = useState(1000000);
+  const [usMortgagePct, setUsMortgagePct] = useState(0.80);
+  const [usRate, setUsRate] = useState(0.055);
+  const [usRent, setUsRent] = useState(6000);
+
+  // ── Additional monthly costs: Israel ──
+  const [israelTax, setIsraelTax] = useState(400);
+  const [israelVaad, setIsraelVaad] = useState(300);
+  const [israelInsurance, setIsraelInsurance] = useState(150);
+
+  // ── Additional monthly costs: US (buy only) ──
+  const [usTax, setUsTax] = useState(1250);
+  const [usInsuranceBuy, setUsInsuranceBuy] = useState(250);
+  const [usHoa, setUsHoa] = useState(0);
+
+  // ── Local SliderCard ──
+  const SliderCard = ({ label, value, onChange, min, max, step, format }: {
+    label: string; value: number; onChange: (v: number) => void;
+    min: number; max: number; step: number; format: (v: number) => string;
+  }) => (
+    <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
+      <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">{label}</div>
+      <div className="text-[1.5rem] font-extrabold text-[#334A46] mb-3">{format(value)}</div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full h-2 bg-[#334A46]/[.12] rounded-lg appearance-none cursor-pointer accent-[#334A46]" />
+      <div className="flex justify-between mt-1">
+        <span className="text-[11px] text-[#334A46] font-medium">{format(min)}</span>
+        <span className="text-[11px] text-[#334A46] font-medium">{format(max)}</span>
+      </div>
+    </div>
+  );
+
+  // ── Cost input helper ──
+  const CostInput = ({ label, value, onChange }: {
+    label: string; value: number; onChange: (v: number) => void;
+  }) => (
+    <div className="bg-white rounded-xl p-3 border border-[#334A46]/[.08]">
+      <div className="text-[11px] font-bold text-[#334A46] mb-1">{label}</div>
+      <div className="flex items-center gap-1">
+        <span className="text-[13px] font-bold text-[#334A46]">$</span>
+        <input type="number" value={value} onChange={(e) => onChange(Math.max(0, Number(e.target.value)))}
+          className="w-full text-[14px] font-bold text-[#334A46] bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+        <span className="text-[12px] text-[#334A46]">/mo</span>
+      </div>
+    </div>
+  );
+
+  // ── Monthly debt service helper ──
+  const monthlyPayment = (principal: number, annualRate: number, years: number = 30) => {
+    if (principal === 0) return 0;
+    const r = annualRate / 12;
+    const n = years * 12;
+    return Math.round(principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
+  };
+
+  // ── Computed — all-in monthly ──
+  const scenario = useMemo(() => {
+    const netProceeds = COMBINED_HOUSING_EQUITY;
+
+    // Israel
+    const israelMortgage = Math.round(israelPrice * israelMortgagePct);
+    const israelDown = israelPrice - israelMortgage;
+    const israelPAndI = monthlyPayment(israelMortgage, israelRate, 25);
+    const israelAdditional = israelTax + israelVaad + israelInsurance;
+    const israelMonthly = israelPAndI + israelAdditional;
+
+    // US
+    let usPAndI = 0;
+    let usAdditional = 0;
+    let usMonthly = 0;
+    let usDown = 0;
+    let usMortgageAmt = 0;
+    if (usOption === 'buy') {
+      usMortgageAmt = Math.round(usPrice * usMortgagePct);
+      usDown = usPrice - usMortgageAmt;
+      usPAndI = monthlyPayment(usMortgageAmt, usRate, 30);
+      usAdditional = usTax + usInsuranceBuy + usHoa;
+      usMonthly = usPAndI + usAdditional;
+    } else {
+      usMonthly = usRent;
+    }
+
+    const newMonthly = israelMonthly + usMonthly;
+    const newAnnual = newMonthly * 12;
+    const monthlyChange = newMonthly - CURRENT_HOUSING_MONTHLY;
+    const annualChange = monthlyChange * 12;
+
+    const totalDown = israelDown + usDown;
+    const cashAfterSales = netProceeds - totalDown;
+    const newDebt = israelMortgage + usMortgageAmt;
+
+    return {
+      netProceeds,
+      israelDown, israelMortgage, israelPAndI, israelAdditional, israelMonthly,
+      usDown, usMortgageAmt, usPAndI, usAdditional, usMonthly,
+      newMonthly, newAnnual,
+      monthlyChange, annualChange,
+      totalDown, cashAfterSales, newDebt,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [israelPrice, israelMortgagePct, israelRate, israelTax, israelVaad, israelInsurance,
+      usOption, usPrice, usMortgagePct, usRate, usRent, usTax, usInsuranceBuy, usHoa]);
+
+  const isLess = scenario.monthlyChange <= 0;
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 py-10">
+
+      {/* ══ Header ══ */}
+      <div className="mb-10">
+        <div className="text-[11px] font-bold uppercase tracking-[.15em] text-[#6B9E8A] mb-2">Residential Planning</div>
+        <h1 className="text-[2rem] font-extrabold text-[#334A46] mb-2">Housing Scenarios</h1>
+        <p className="text-[15px] text-[#334A46] leading-relaxed max-w-3xl">
+          David currently pays <span className="font-bold">${CURRENT_HOUSING_MONTHLY.toLocaleString()}/mo</span> for
+          his Princeton mortgage. Model all-in costs for Israel + US housing including taxes, insurance, and building fees.
+        </p>
+      </div>
+
+      {/* ══ Current Situation ══ */}
+      <div className="mb-10">
+        <SectionLabel>Current Situation</SectionLabel>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Current monthly — hero card */}
+          <div className="bg-[#334A46] rounded-2xl p-6 text-white">
+            <div className="text-[12px] font-bold uppercase tracking-[.08em] text-white/70 mb-1">Current Monthly Housing</div>
+            <div className="text-[2.5rem] font-extrabold text-white leading-none">
+              ${CURRENT_HOUSING_MONTHLY.toLocaleString()}<span className="text-[1rem] font-bold text-white/70">/mo</span>
+            </div>
+            <div className="text-[14px] text-white/70 mt-2">${(CURRENT_HOUSING_MONTHLY * 12).toLocaleString()}/yr</div>
+            <div className="mt-4 pt-4 border-t border-white/20 text-[13px] text-white/80">
+              49 Governors Lane, Princeton &mdash; Mortgage P&amp;I
+            </div>
+          </div>
+
+          {/* Properties being sold */}
+          <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6">
+            <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-3">Properties to Sell</div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-baseline">
+                <div>
+                  <div className="text-[14px] font-bold text-[#334A46]">49 Governors Lane</div>
+                  <div className="text-[12px] text-[#6B9E8A]">Princeton, NJ</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[14px] font-bold text-[#334A46]">{fmt(GOVERNORS_LANE_VALUE)}</div>
+                  <div className="text-[11px] text-[#334A46]">Mortgage: {fmt(GOVERNORS_LANE_MORTGAGE)}</div>
+                </div>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <div>
+                  <div className="text-[14px] font-bold text-[#334A46]">44 West 62nd St</div>
+                  <div className="text-[12px] text-[#6B9E8A]">New York, NY</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[14px] font-bold text-[#334A46]">{fmt(NYC_APT_VALUE)}</div>
+                  <div className="text-[11px] text-[#334A46]">No mortgage</div>
+                </div>
+              </div>
+              <div className="pt-3 border-t border-[#334A46]/[.06] flex justify-between">
+                <span className="text-[13px] font-bold text-[#334A46]">Net equity after payoff</span>
+                <span className="text-[15px] font-extrabold text-[#334A46]">{fmt(COMBINED_HOUSING_EQUITY)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ Scenario Builder ══ */}
+      <div className="mb-10">
+        <SectionLabel>New Scenario</SectionLabel>
+
+        {/* Israel Purchase */}
+        <div className="mb-8">
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#6B9E8A]" /> Israel Home Purchase
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <SliderCard label="Purchase Price" value={israelPrice} onChange={setIsraelPrice}
+              min={1000000} max={2500000} step={50000} format={(v) => '$' + (v / 1e6).toFixed(2) + 'M'} />
+            <SliderCard label="Mortgage %" value={israelMortgagePct} onChange={setIsraelMortgagePct}
+              min={0} max={1.0} step={0.05} format={(v) => (v * 100).toFixed(0) + '%'} />
+            <SliderCard label="Interest Rate" value={israelRate} onChange={setIsraelRate}
+              min={0.03} max={0.07} step={0.0025} format={(v) => (v * 100).toFixed(2) + '%'} />
+          </div>
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-2">Additional Monthly Costs</div>
+          <div className="grid grid-cols-3 gap-3">
+            <CostInput label="Arnona (Tax)" value={israelTax} onChange={setIsraelTax} />
+            <CostInput label="Vaad Bayit" value={israelVaad} onChange={setIsraelVaad} />
+            <CostInput label="Insurance" value={israelInsurance} onChange={setIsraelInsurance} />
+          </div>
+        </div>
+
+        {/* US Housing */}
+        <div className="mb-4">
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#334A46]" /> US Housing
+          </div>
+          <div className="flex gap-2 mb-4">
+            {(['buy', 'rent'] as const).map((opt) => (
+              <button key={opt} onClick={() => setUsOption(opt)}
+                className={`px-5 py-2 rounded-lg text-[13px] font-semibold transition-all ${
+                  usOption === opt ? 'bg-[#334A46] text-white' : 'bg-[#FAFAFA] text-[#334A46] border border-[#334A46]/[.08]'
+                }`}>
+                {opt === 'buy' ? 'Buy' : 'Rent'}
+              </button>
+            ))}
+          </div>
+          {usOption === 'buy' ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <SliderCard label="Purchase Price" value={usPrice} onChange={setUsPrice}
+                  min={500000} max={2000000} step={50000} format={(v) => '$' + (v / 1e6).toFixed(2) + 'M'} />
+                <SliderCard label="Mortgage %" value={usMortgagePct} onChange={setUsMortgagePct}
+                  min={0} max={1.0} step={0.05} format={(v) => (v * 100).toFixed(0) + '%'} />
+                <SliderCard label="Interest Rate" value={usRate} onChange={setUsRate}
+                  min={0.03} max={0.08} step={0.0025} format={(v) => (v * 100).toFixed(2) + '%'} />
+              </div>
+              <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-2">Additional Monthly Costs</div>
+              <div className="grid grid-cols-3 gap-3">
+                <CostInput label="Property Tax" value={usTax} onChange={setUsTax} />
+                <CostInput label="Insurance" value={usInsuranceBuy} onChange={setUsInsuranceBuy} />
+                <CostInput label="HOA / Condo" value={usHoa} onChange={setUsHoa} />
+              </div>
+            </>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <SliderCard label="Monthly Rent" value={usRent} onChange={setUsRent}
+                min={3000} max={10000} step={250} format={(v) => '$' + v.toLocaleString() + '/mo'} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══ WHAT YOU'LL PAY ══ */}
+      <div className="mb-10">
+        <SectionLabel>What You&apos;ll Pay</SectionLabel>
+
+        {/* Big monthly comparison */}
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            <div className="text-center">
+              <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">Current Monthly</div>
+              <div className="text-[2rem] font-extrabold text-[#334A46]">${CURRENT_HOUSING_MONTHLY.toLocaleString()}</div>
+              <div className="text-[13px] text-[#334A46]">${(CURRENT_HOUSING_MONTHLY * 12).toLocaleString()}/yr</div>
+            </div>
+            <div className="text-center hidden md:block">
+              <div className="text-[2rem] text-[#334A46]">&rarr;</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">New Monthly (All-In)</div>
+              <div className={`text-[2rem] font-extrabold ${isLess ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                ${scenario.newMonthly.toLocaleString()}
+              </div>
+              <div className="text-[13px] text-[#334A46]">${scenario.newAnnual.toLocaleString()}/yr</div>
+            </div>
+          </div>
+
+          {/* Change badge */}
+          <div className={`mt-6 rounded-xl p-4 text-center ${isLess ? 'bg-[#E2EFDA]' : 'bg-[#FFEBEE]'}`}>
+            <span className={`text-[1.5rem] font-extrabold ${isLess ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+              {scenario.monthlyChange >= 0 ? '+' : '\u2212'}${Math.abs(scenario.monthlyChange).toLocaleString()}/mo
+            </span>
+            <span className={`text-[14px] font-bold ml-3 ${isLess ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+              ({scenario.annualChange >= 0 ? '+' : '\u2212'}${Math.abs(scenario.annualChange).toLocaleString()}/yr)
+            </span>
+          </div>
+        </div>
+
+        {/* Monthly breakdown */}
+        <div className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#334A46]/[.06] mb-6">
+          <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-4">Monthly Cost Breakdown</div>
+          <div className="space-y-2">
+            {/* Israel section */}
+            <div className="text-[11px] font-bold uppercase tracking-[.06em] text-[#6B9E8A] mb-1">Israel</div>
+            <div className="flex justify-between items-center">
+              <span className="text-[14px] text-[#334A46]">Mortgage P&amp;I</span>
+              <span className="text-[14px] font-bold text-[#334A46]">${scenario.israelPAndI.toLocaleString()}/mo</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[14px] text-[#334A46]">Arnona + Vaad + Insurance</span>
+              <span className="text-[14px] font-bold text-[#334A46]">${scenario.israelAdditional.toLocaleString()}/mo</span>
+            </div>
+            <div className="flex justify-between items-center pt-1 border-t border-[#334A46]/[.08]">
+              <span className="text-[14px] font-bold text-[#6B9E8A]">Israel total</span>
+              <span className="text-[15px] font-extrabold text-[#6B9E8A]">${scenario.israelMonthly.toLocaleString()}/mo</span>
+            </div>
+
+            {/* US section */}
+            <div className="text-[11px] font-bold uppercase tracking-[.06em] text-[#334A46] mt-4 mb-1">US</div>
+            {usOption === 'buy' ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-[14px] text-[#334A46]">Mortgage P&amp;I</span>
+                  <span className="text-[14px] font-bold text-[#334A46]">${scenario.usPAndI.toLocaleString()}/mo</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[14px] text-[#334A46]">Tax + Insurance + HOA</span>
+                  <span className="text-[14px] font-bold text-[#334A46]">${scenario.usAdditional.toLocaleString()}/mo</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-[#334A46]">Rent (all-in)</span>
+                <span className="text-[14px] font-bold text-[#334A46]">${scenario.usMonthly.toLocaleString()}/mo</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-1 border-t border-[#334A46]/[.08]">
+              <span className="text-[14px] font-bold text-[#334A46]">US total</span>
+              <span className="text-[15px] font-extrabold text-[#334A46]">${scenario.usMonthly.toLocaleString()}/mo</span>
+            </div>
+
+            {/* Grand total */}
+            <div className="flex justify-between items-center pt-3 mt-2 border-t-2 border-[#334A46]/[.15]">
+              <span className="text-[15px] font-extrabold text-[#334A46]">Total new monthly</span>
+              <span className={`text-[1.3rem] font-extrabold ${isLess ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                ${scenario.newMonthly.toLocaleString()}/mo
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Comparison table */}
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.08] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10"></th>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Current</th>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#6B9E8A] border-b border-[#334A46]/10 text-right">New Scenario</th>
+                  <th className="py-3 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] border-b border-[#334A46]/10 text-right">Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: 'Monthly cost', current: CURRENT_HOUSING_MONTHLY, newVal: scenario.newMonthly },
+                  { label: 'Annual cost', current: CURRENT_HOUSING_MONTHLY * 12, newVal: scenario.newAnnual },
+                  { label: 'Mortgage debt', current: GOVERNORS_LANE_MORTGAGE, newVal: scenario.newDebt },
+                ].map((row) => {
+                  const diff = row.newVal - row.current;
+                  return (
+                    <tr key={row.label} className="border-b border-[#334A46]/[.06] hover:bg-[#FAFAFA]">
+                      <td className="py-3 px-4 text-[14px] font-bold text-[#334A46]">{row.label}</td>
+                      <td className="py-3 px-4 text-[14px] text-right text-[#334A46]">{fmt(row.current)}</td>
+                      <td className="py-3 px-4 text-[14px] text-right font-bold text-[#334A46]">{fmt(row.newVal)}</td>
+                      <td className={`py-3 px-4 text-[14px] text-right font-bold ${diff <= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+                        {diff > 0 ? '+' : ''}{fmt(diff)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ Equity & Cash Position ══ */}
+      <div className="mb-10">
+        <SectionLabel>Equity &amp; Cash Position</SectionLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
+            <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">Sale Proceeds</div>
+            <div className="text-[1.4rem] font-extrabold text-[#334A46]">{fmt(scenario.netProceeds)}</div>
+            <div className="text-[12px] text-[#334A46] mt-1">Net after mortgage payoff</div>
+          </div>
+          <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
+            <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">Down Payments</div>
+            <div className="text-[1.4rem] font-extrabold text-[#334A46]">{fmt(scenario.totalDown)}</div>
+            <div className="text-[12px] text-[#334A46] mt-1">
+              Israel: {fmt(scenario.israelDown)}{usOption === 'buy' ? ` + US: ${fmt(scenario.usDown)}` : ''}
+            </div>
+          </div>
+          <div className={`rounded-2xl p-5 border ${scenario.cashAfterSales >= 0 ? 'bg-[#E2EFDA] border-[#2E7D32]/20' : 'bg-[#FFEBEE] border-[#C62828]/20'}`}>
+            <div className="text-[12px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">Cash Remaining</div>
+            <div className={`text-[1.4rem] font-extrabold ${scenario.cashAfterSales >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>
+              {fmt(scenario.cashAfterSales)}
+            </div>
+            <div className="text-[12px] text-[#334A46] mt-1">After all down payments</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ Note ══ */}
+      <div className="mb-10">
+        <div className="bg-[#FFF8E1] rounded-2xl p-5 border border-[#F57F17]/10">
+          <div className="text-[13px] text-[#5D4037] leading-relaxed">
+            <strong>Note:</strong> Israel mortgages assume 25-year amortization; US mortgages assume 30-year.
+            Adjust the additional cost fields above for your specific location. Rent is assumed all-inclusive.
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="pt-10 pb-6 border-t border-[#334A46]/[.08] text-center">
+        <div className="text-[11px] text-[#334A46] font-medium">
+          Pyn Investments LLC &middot; Confidential &middot; Residential Transition Analysis &middot; March 2026
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// PERSONAL EXPENSES VIEW
+// ══════════════════════════════════════════════
+
+const PERSONAL_EXPENSE_ITEMS = [
+  { category: 'Housing', items: [
+    { name: 'Mortgage (Dad)', amount: 5800 * 12 },
+    { name: 'Condo Fees', amount: 14835 },
+    { name: 'Rent — NY Apartment', amount: 21709 },
+    { name: 'Utilities (Gas/Electric)', amount: 5252 },
+    { name: 'Water', amount: 1020 },
+    { name: 'Television/Cable', amount: 3765 },
+    { name: 'Telephone', amount: 3043 },
+    { name: 'Cleaning — House', amount: 6204 },
+    { name: 'Household Repairs', amount: 1815 },
+    { name: 'House Items', amount: 1321 },
+  ]},
+  { category: 'Insurance & Medical', items: [
+    { name: 'Insurance', amount: 24863 },
+    { name: 'Medical (net)', amount: -9779 },
+  ]},
+  { category: 'Auto', items: [
+    { name: 'Auto — Offense', amount: 120 },
+    { name: 'Auto — Repairs/Other', amount: 8205 },
+  ]},
+  { category: 'Professional & Financial', items: [
+    { name: 'Accounting Fees', amount: 4590 },
+    { name: 'Professional Fees', amount: 5431 },
+    { name: 'Fed & State Taxes', amount: 9904 },
+    { name: 'Credit Card Charges', amount: 58500 },
+    { name: 'Bank Fee', amount: 232 },
+  ]},
+  { category: 'Lifestyle', items: [
+    { name: 'Donations', amount: 23985 },
+    { name: 'Gifts', amount: 18988 },
+    { name: 'Travel', amount: 447 },
+    { name: 'Dry Cleaning', amount: 702 },
+    { name: 'Groceries', amount: 134 },
+    { name: 'Pet Care', amount: 140 },
+    { name: 'Cash', amount: 2202 },
+    { name: 'Dues & Subscriptions', amount: 286 },
+    { name: 'Computer', amount: 36 },
+    { name: 'Miscellaneous', amount: 4150 },
+  ]},
+];
+
+function PersonalExpensesView() {
+  const fmtD = (v: number) => {
+    if (v < 0) return '-$' + Math.abs(v).toLocaleString();
+    return '$' + v.toLocaleString();
+  };
+
+  const totalExpenses = PERSONAL_EXPENSE_ITEMS.reduce(
+    (sum, cat) => sum + cat.items.reduce((s, item) => s + item.amount, 0), 0
+  );
+
+  // Income side
+  const lpDistributions = 168000; // David's share of Lower Pyne distributions
+  const pynExtraDraw = 120000;   // $10K/month extra draw from Pyn
+  const socialSecurity = 43000;  // Social Security
+  const totalIncome = lpDistributions + pynExtraDraw + socialSecurity;
+  const netIncome = totalIncome - totalExpenses;
+
+  const mortgageAnnual = 5800 * 12;
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-10">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#6B9E8A] mb-2">Personal Finance</div>
+        <div className="text-[2rem] font-extrabold text-[#334A46] leading-tight">David S. Newton</div>
+        <div className="text-[14px] text-[#334A46] mt-1">Annual Personal Expenses &middot; Jan&ndash;Dec 2025</div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        <div className="bg-[#334A46] rounded-2xl p-5">
+          <div className="text-[1.5rem] font-extrabold text-white">{fmtD(totalExpenses)}</div>
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-white/70 mt-1">Total Expenses</div>
+        </div>
+        <div className="bg-[#334A46] rounded-2xl p-5">
+          <div className="text-[1.5rem] font-extrabold text-white">{fmtD(totalIncome)}</div>
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-white/70 mt-1">Total Income</div>
+        </div>
+        <div className={`rounded-2xl p-5 ${netIncome >= 0 ? 'bg-[#E8F5E9]' : 'bg-[#FFEBEE]'}`}>
+          <div className={`text-[1.5rem] font-extrabold ${netIncome >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>{fmtD(netIncome)}</div>
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mt-1">Net Income</div>
+        </div>
+        <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#334A46]/[.06]">
+          <div className="text-[1.5rem] font-extrabold text-[#334A46]">{fmtD(mortgageAnnual)}</div>
+          <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mt-1">Dad&rsquo;s Mortgage /yr</div>
+          <div className="text-[11px] text-[#334A46] mt-0.5">$5,800 &times; 12 months</div>
+        </div>
+      </div>
+
+      {/* Expense Breakdown by Category */}
+      <div className="mb-10">
+        <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#6B9E8A] mb-1">Expense Detail</div>
+        <div className="text-[1.25rem] font-extrabold text-[#334A46] mb-6">Breakdown by Category</div>
+
+        <div className="space-y-6">
+          {PERSONAL_EXPENSE_ITEMS.map((cat) => {
+            const catTotal = cat.items.reduce((s, item) => s + item.amount, 0);
+            const pctOfTotal = totalExpenses > 0 ? (catTotal / totalExpenses * 100) : 0;
+            return (
+              <div key={cat.category} className="bg-white rounded-2xl border border-[#334A46]/[.06] overflow-hidden">
+                {/* Category header */}
+                <div className="px-5 py-4 bg-[#FAFAFA] border-b border-[#334A46]/[.06] flex items-center justify-between">
+                  <div className="text-[13px] font-bold text-[#334A46]">{cat.category}</div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-[11px] font-medium text-[#334A46]">{pctOfTotal.toFixed(1)}% of total</div>
+                    <div className="text-[15px] font-extrabold text-[#334A46]">{fmtD(catTotal)}</div>
+                  </div>
+                </div>
+                {/* Line items */}
+                <div className="divide-y divide-[#334A46]/[.06]">
+                  {cat.items.map((item) => (
+                    <div key={item.name} className="px-5 py-3 flex items-center justify-between">
+                      <div className="text-[13px] text-[#334A46]">{item.name}</div>
+                      <div className={`text-[14px] font-bold tabular-nums ${item.amount < 0 ? 'text-[#2E7D32]' : 'text-[#334A46]'}`}>
+                        {fmtD(item.amount)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Monthly Breakdown */}
+      <div className="mb-10">
+        <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#6B9E8A] mb-1">Monthly View</div>
+        <div className="text-[1.25rem] font-extrabold text-[#334A46] mb-6">Average Monthly Expenses</div>
+
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.06] overflow-hidden">
+          <div className="divide-y divide-[#334A46]/[.06]">
+            {PERSONAL_EXPENSE_ITEMS.map((cat) => {
+              const catTotal = cat.items.reduce((s, item) => s + item.amount, 0);
+              const monthly = Math.round(catTotal / 12);
+              return (
+                <div key={cat.category} className="px-5 py-3 flex items-center justify-between">
+                  <div className="text-[13px] font-bold text-[#334A46]">{cat.category}</div>
+                  <div className="text-[14px] font-bold tabular-nums text-[#334A46]">{fmtD(monthly)}/mo</div>
+                </div>
+              );
+            })}
+            <div className="px-5 py-4 flex items-center justify-between bg-[#334A46]">
+              <div className="text-[13px] font-bold text-white">Total Monthly</div>
+              <div className="text-[16px] font-extrabold tabular-nums text-white">{fmtD(Math.round(totalExpenses / 12))}/mo</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Income Section */}
+      <div className="mb-10">
+        <div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#6B9E8A] mb-1">Income</div>
+        <div className="text-[1.25rem] font-extrabold text-[#334A46] mb-6">Annual Income Sources</div>
+
+        <div className="bg-white rounded-2xl border border-[#334A46]/[.06] overflow-hidden">
+          <div className="divide-y divide-[#334A46]/[.06]">
+            <div className="px-5 py-3 flex items-center justify-between">
+              <div className="text-[13px] text-[#334A46]">Lower Pyne Distributions</div>
+              <div className="text-[14px] font-bold tabular-nums text-[#334A46]">{fmtD(lpDistributions)}</div>
+            </div>
+            <div className="px-5 py-3 flex items-center justify-between">
+              <div className="text-[13px] text-[#334A46]">Pyn Extra Draw ($10K/mo)</div>
+              <div className="text-[14px] font-bold tabular-nums text-[#334A46]">{fmtD(pynExtraDraw)}</div>
+            </div>
+            <div className="px-5 py-3 flex items-center justify-between">
+              <div className="text-[13px] text-[#334A46]">Social Security</div>
+              <div className="text-[14px] font-bold tabular-nums text-[#334A46]">{fmtD(socialSecurity)}</div>
+            </div>
+            <div className="px-5 py-4 flex items-center justify-between bg-[#E8F5E9]">
+              <div className="text-[13px] font-bold text-[#2E7D32]">Total Income</div>
+              <div className="text-[16px] font-extrabold tabular-nums text-[#2E7D32]">{fmtD(totalIncome)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Net Summary */}
+      <div className="bg-[#FAFAFA] rounded-2xl border border-[#334A46]/[.06] p-6 mb-10">
+        <div className="grid grid-cols-3 gap-6 text-center">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">Total Income</div>
+            <div className="text-[1.25rem] font-extrabold text-[#334A46]">{fmtD(totalIncome)}</div>
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">Total Expenses</div>
+            <div className="text-[1.25rem] font-extrabold text-[#C62828]">{fmtD(totalExpenses)}</div>
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[.08em] text-[#334A46] mb-1">Net Income</div>
+            <div className={`text-[1.25rem] font-extrabold ${netIncome >= 0 ? 'text-[#2E7D32]' : 'text-[#C62828]'}`}>{fmtD(netIncome)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Data source note */}
+      <div className="bg-[#FFF8E1] rounded-2xl p-5 border border-[#F57F17]/10 mb-10">
+        <div className="text-[13px] text-[#5D4037] leading-relaxed">
+          <strong>Source:</strong> QuickBooks Report &mdash; David S. Newton, Jan&ndash;Dec 2025.
+          Dad&rsquo;s annual mortgage = $5,800 &times; 12 = $69,600/yr.
+          Medical shows a net credit of $9,779 due to insurance reimbursements exceeding costs.
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="pt-10 pb-6 border-t border-[#334A46]/[.08] text-center">
+        <div className="text-[11px] text-[#334A46] font-medium">
+          Pyn Investments LLC &middot; Confidential &middot; Personal Expense Report &middot; 2025
+        </div>
+      </div>
+    </div>
+  );
+}
+
