@@ -33,6 +33,7 @@ const transformAgreementRow = (row: any): ProAgreement => ({
   templateId: row.template_id,
   proName: row.pro_name,
   proEmail: row.pro_email,
+  proPhone: row.pro_phone || null,
   status: row.status,
   docusealSubmissionId: row.docuseal_submission_id,
   signingSlug: row.signing_slug,

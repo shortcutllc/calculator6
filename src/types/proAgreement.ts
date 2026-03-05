@@ -19,6 +19,7 @@ export interface ProAgreement {
   templateId: string;
   proName: string;
   proEmail: string;
+  proPhone: string | null;
   status: AgreementStatus;
   docusealSubmissionId: number | null;
   signingSlug: string | null;

@@ -1,30 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 const DOCUSEAL_HOST = 'https://docuseal-production-f0ef.up.railway.app';
 
 const ProAgreementSigning: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const [completed, setCompleted] = useState(false);
-
-  // Listen for DocuSeal completion message from iframe
-  const handleMessage = useCallback((event: MessageEvent) => {
-    if (event.origin !== DOCUSEAL_HOST) return;
-    try {
-      const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-      if (data.type === 'completed' || data.event === 'completed' || data.status === 'completed') {
-        setCompleted(true);
-      }
-    } catch {
-      // Ignore non-JSON messages
-    }
-  }, []);
 
   useEffect(() => {
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [handleMessage]);
+    if (slug) {
+      window.location.href = `${DOCUSEAL_HOST}/s/${slug}`;
+    }
+  }, [slug]);
 
   if (!slug) {
     return (
@@ -37,59 +24,22 @@ const ProAgreementSigning: React.FC = () => {
     );
   }
 
-  if (completed) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={40} className="text-green-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">Document Signed!</h1>
-          <p className="text-gray-600 mb-6">
-            Thank you for signing your agreement. A copy has been saved and you can close this page.
-          </p>
-          <div className="flex items-center justify-center gap-2">
-            <img
-              src="/shortcut-logo-blue.svg"
-              alt="Shortcut Wellness"
-              className="h-5 w-auto opacity-50"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // Brief loading state while redirecting
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <img
-            src="/shortcut-logo-blue.svg"
-            alt="Shortcut Wellness"
-            className="h-6 w-auto"
-          />
-          <span className="text-sm text-gray-500">Secure Document Signing</span>
-        </div>
-      </div>
-
-      {/* DocuSeal Embedded Form */}
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        <iframe
-          src={`${DOCUSEAL_HOST}/s/${slug}`}
-          className="w-full border-0 rounded-lg bg-white"
-          style={{ minHeight: '80vh' }}
-          title="Sign Document"
-          allow="camera"
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center max-w-md mx-auto px-4">
+        <img
+          src="/shortcut-logo-blue.svg"
+          alt="Shortcut Wellness"
+          className="h-8 w-auto mx-auto mb-6"
         />
-      </div>
-
-      {/* Footer */}
-      <div className="border-t border-gray-200 bg-white px-4 py-4 mt-8">
-        <div className="max-w-4xl mx-auto text-center text-xs text-gray-400">
-          <p>Powered by Shortcut Wellness &middot; Secure document signing via DocuSeal</p>
-        </div>
+        <p className="text-gray-600 mb-4">Redirecting to your document...</p>
+        <a
+          href={`${DOCUSEAL_HOST}/s/${slug}`}
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm"
+        >
+          Click here if not redirected <ExternalLink size={14} />
+        </a>
       </div>
     </div>
   );

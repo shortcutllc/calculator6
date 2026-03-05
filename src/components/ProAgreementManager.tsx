@@ -2,9 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useProAgreement } from '../contexts/ProAgreementContext';
 import { ProAgreement, ProAgreementTemplate, AgreementStatus, DocumentType } from '../types/proAgreement';
 import { LoadingSpinner } from './LoadingSpinner';
-import { Search, ExternalLink, RefreshCw, FileSignature, Plus, Copy, Check, Send, RotateCcw, FileCheck, Settings, X, Eye, Download } from 'lucide-react';
+import { Search, ExternalLink, RefreshCw, FileSignature, Plus, Copy, Check, Send, RotateCcw, FileCheck, Settings, X, Eye, Download, Bell, MessageSquare, AlertCircle } from 'lucide-react';
 import { Button } from './Button';
 import { format } from 'date-fns';
+import { SMSService } from '../services/SMSService';
+import { supabase } from '../lib/supabaseClient';
 
 const STATUS_CONFIG: Record<AgreementStatus, { label: string; className: string }> = {
   pending: { label: 'Pending', className: 'bg-gray-100 text-gray-700' },
@@ -37,7 +39,12 @@ const ProAgreementManager: React.FC = () => {
   // Action states
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [remindResult, setRemindResult] = useState<{ id: string; success: boolean } | null>(null);
+
+  // Phone prompt modal
+  const [phonePromptAgreement, setPhonePromptAgreement] = useState<ProAgreement | null>(null);
+  const [phoneInput, setPhoneInput] = useState('');
 
   // Send modal
   const [showSendModal, setShowSendModal] = useState(false);
@@ -105,15 +112,72 @@ const ProAgreementManager: React.FC = () => {
     }
   };
 
-  const handleResend = async (agreement: ProAgreement) => {
-    try {
-      setResendingId(agreement.id);
-      await resendEmail(agreement.id);
-    } catch (err) {
-      console.error('Failed to resend:', err);
-    } finally {
-      setResendingId(null);
+  const handleRemind = async (agreement: ProAgreement, phone?: string) => {
+    const phoneToUse = phone || agreement.proPhone;
+
+    if (!phoneToUse) {
+      // No phone — show prompt
+      setPhoneInput('');
+      setPhonePromptAgreement(agreement);
+      return;
     }
+
+    // Phone exists — confirm
+    const confirmed = window.confirm(
+      `Send reminder email and SMS to ${agreement.proName}?\n\nEmail: ${agreement.proEmail}\nPhone: ${phoneToUse}`
+    );
+    if (!confirmed) return;
+
+    await sendReminder(agreement, phoneToUse);
+  };
+
+  const sendReminder = async (agreement: ProAgreement, phone: string) => {
+    try {
+      setRemindingId(agreement.id);
+      setRemindResult(null);
+
+      const signingUrl = `https://proposals.getshortcut.co/sign/${agreement.signingSlug}`;
+      const documentName = agreement.templateName || 'Agreement';
+
+      // Send email + SMS in parallel
+      const [emailResult, smsResult] = await Promise.allSettled([
+        resendEmail(agreement.id),
+        SMSService.sendAgreementReminderSMS(phone, agreement.proName, signingUrl, documentName)
+      ]);
+
+      const emailOk = emailResult.status === 'fulfilled';
+      const smsOk = smsResult.status === 'fulfilled';
+
+      if (!emailOk) console.error('Email failed:', (emailResult as PromiseRejectedResult).reason);
+      if (!smsOk) console.error('SMS failed:', (smsResult as PromiseRejectedResult).reason);
+
+      setRemindResult({ id: agreement.id, success: emailOk || smsOk });
+      setTimeout(() => setRemindResult(null), 3000);
+    } catch (err) {
+      console.error('Failed to remind:', err);
+      setRemindResult({ id: agreement.id, success: false });
+      setTimeout(() => setRemindResult(null), 3000);
+    } finally {
+      setRemindingId(null);
+    }
+  };
+
+  const handlePhoneSubmit = async () => {
+    if (!phonePromptAgreement || !phoneInput.trim()) return;
+
+    // Save phone to DB
+    await supabase
+      .from('pro_agreements')
+      .update({ pro_phone: phoneInput.trim() })
+      .eq('id', phonePromptAgreement.id);
+
+    // Update local state
+    phonePromptAgreement.proPhone = phoneInput.trim();
+
+    const agreement = phonePromptAgreement;
+    setPhonePromptAgreement(null);
+
+    await sendReminder(agreement, phoneInput.trim());
   };
 
   const handleSend = async (sendToClient: boolean) => {
@@ -340,13 +404,19 @@ const ProAgreementManager: React.FC = () => {
                   <div className="flex items-center gap-2 shrink-0">
                     {agreement.status !== 'completed' && agreement.proEmail && (
                       <button
-                        onClick={() => handleResend(agreement)}
-                        disabled={resendingId === agreement.id}
+                        onClick={() => handleRemind(agreement)}
+                        disabled={remindingId === agreement.id}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors border border-blue-200"
-                        title="Resend signing email"
+                        title="Send reminder email + SMS"
                       >
-                        <RotateCcw size={12} />
-                        {resendingId === agreement.id ? 'Sending...' : 'Resend'}
+                        {remindingId === agreement.id ? (
+                          <RefreshCw size={12} className="animate-spin" />
+                        ) : remindResult?.id === agreement.id ? (
+                          remindResult.success ? <Check size={12} className="text-green-600" /> : <AlertCircle size={12} className="text-red-600" />
+                        ) : (
+                          <Bell size={12} />
+                        )}
+                        {remindingId === agreement.id ? 'Sending...' : remindResult?.id === agreement.id ? (remindResult.success ? 'Sent!' : 'Error') : 'Remind'}
                       </button>
                     )}
                     {agreement.signingSlug && (
@@ -418,6 +488,50 @@ const ProAgreementManager: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Phone Prompt Modal */}
+      {phonePromptAgreement && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-shortcut-navy-blue flex items-center gap-2">
+                <MessageSquare size={20} />
+                Add Phone Number
+              </h3>
+              <button onClick={() => setPhonePromptAgreement(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-text-dark-60 mb-4">
+              Enter a phone number for <strong>{phonePromptAgreement.proName}</strong> to send SMS reminders.
+            </p>
+            <input
+              type="tel"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              placeholder="(555) 123-4567"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base focus:border-shortcut-blue focus:outline-none mb-4"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handlePhoneSubmit()}
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPhonePromptAgreement(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePhoneSubmit}
+                disabled={!phoneInput.trim()}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-shortcut-blue text-white font-semibold hover:bg-shortcut-navy-blue transition-colors disabled:opacity-50"
+              >
+                Save & Send Reminder
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

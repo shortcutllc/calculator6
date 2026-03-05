@@ -6,9 +6,10 @@ const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 
 interface SMSRequest {
   to: string;
-  employeeName: string;
-  galleryUrl: string;
-  eventName: string;
+  message?: string; // Custom message — if provided, sends directly (skips gallery template)
+  employeeName?: string;
+  galleryUrl?: string;
+  eventName?: string;
   deadline?: string;
 }
 
@@ -25,42 +26,51 @@ serve(async (req) => {
   }
 
   try {
-    const { to, employeeName, galleryUrl, eventName, deadline }: SMSRequest = await req.json();
+    const { to, message: customMessage, employeeName, galleryUrl, eventName, deadline }: SMSRequest = await req.json();
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
       throw new Error('Twilio credentials not configured');
     }
 
-    if (!to || !employeeName || !galleryUrl) {
-      throw new Error('Missing required fields: to, employeeName, galleryUrl');
+    if (!to) {
+      throw new Error('Missing required field: to');
     }
 
     // Format phone number (remove any non-numeric characters except +)
     const formattedPhone = to.startsWith('+') ? to : `+1${to.replace(/\D/g, '')}`;
 
-    // Create SMS message
-    // Extract first name from full name
-    const firstName = employeeName.split(' ')[0];
-    
-    let message = `Hi ${firstName}! This is a friendly reminder to select your headshot photo for ${eventName}.\n\n`;
-    
-    if (deadline) {
-      // Parse and format deadline
-      const dateStr = deadline.split('T')[0];
-      const [year, month, day] = dateStr.split('-');
-      const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      const formattedDeadline = localDate.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      message += `Please make your selection by ${formattedDeadline} so our team can complete the retouching process.\n\n`;
+    let message: string;
+
+    if (customMessage) {
+      // Custom message mode — send directly
+      message = customMessage;
     } else {
-      message += `Please make your selection soon so our team can complete the retouching process.\n\n`;
+      // Gallery reminder mode (backward compatible)
+      if (!employeeName || !galleryUrl) {
+        throw new Error('Missing required fields: employeeName, galleryUrl');
+      }
+
+      const firstName = employeeName.split(' ')[0];
+
+      message = `Hi ${firstName}! This is a friendly reminder to select your headshot photo for ${eventName}.\n\n`;
+
+      if (deadline) {
+        const dateStr = deadline.split('T')[0];
+        const [year, month, day] = dateStr.split('-');
+        const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        const formattedDeadline = localDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        message += `Please make your selection by ${formattedDeadline} so our team can complete the retouching process.\n\n`;
+      } else {
+        message += `Please make your selection soon so our team can complete the retouching process.\n\n`;
+      }
+
+      message += `View your gallery: ${galleryUrl}\n\n`;
+      message += `Thanks!\nTeam Shortcut`;
     }
-    
-    message += `View your gallery: ${galleryUrl}\n\n`;
-    message += `Thanks!\nTeam Shortcut`;
 
     // Send SMS via Twilio
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
