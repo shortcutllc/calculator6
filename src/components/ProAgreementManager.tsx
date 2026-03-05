@@ -337,7 +337,7 @@ const ProAgreementManager: React.FC = () => {
                   </div>
 
                   {/* Right: Actions */}
-                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  <div className="flex items-center gap-2 shrink-0">
                     {agreement.status !== 'completed' && agreement.proEmail && (
                       <button
                         onClick={() => handleResend(agreement)}
@@ -359,32 +359,6 @@ const ProAgreementManager: React.FC = () => {
                         {copiedId === agreement.id ? 'Copied!' : 'Copy Link'}
                       </button>
                     )}
-                    {agreement.status === 'completed' && agreement.allDocumentsUrls && agreement.allDocumentsUrls.length > 0 ? (
-                      agreement.allDocumentsUrls.map((doc, idx) => (
-                        <a
-                          key={idx}
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200"
-                          title={`Download ${doc.name}`}
-                        >
-                          <Download size={12} />
-                          {doc.name}
-                        </a>
-                      ))
-                    ) : agreement.status === 'completed' && agreement.documentsUrl ? (
-                      <a
-                        href={agreement.documentsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200"
-                        title="View signed document"
-                      >
-                        <FileCheck size={12} />
-                        Signed Doc
-                      </a>
-                    ) : null}
                     <Button
                       onClick={() => handleSync(agreement)}
                       variant="secondary"
@@ -406,6 +380,41 @@ const ProAgreementManager: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Signed Documents Row */}
+                {agreement.status === 'completed' && (agreement.allDocumentsUrls?.length || agreement.documentsUrl) && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Signed Docs:</span>
+                      {agreement.allDocumentsUrls && agreement.allDocumentsUrls.length > 0 ? (
+                        agreement.allDocumentsUrls.map((doc, idx) => (
+                          <a
+                            key={idx}
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200"
+                            title={`Download ${doc.name}`}
+                          >
+                            <Download size={12} />
+                            {doc.name}
+                          </a>
+                        ))
+                      ) : (
+                        <a
+                          href={agreement.documentsUrl!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200"
+                          title="View signed document"
+                        >
+                          <FileCheck size={12} />
+                          Signed Doc
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
