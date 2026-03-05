@@ -25,6 +25,7 @@ export interface ProAgreement {
   signingUrl: string | null;
   completedAt: string | null;
   documentsUrl: string | null;
+  allDocumentsUrls: Array<{ name: string; url: string }> | null;
   sentAt: string | null;
   openedAt: string | null;
   createdByUserId: string | null;

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useProAgreement } from '../contexts/ProAgreementContext';
 import { ProAgreement, ProAgreementTemplate, AgreementStatus, DocumentType } from '../types/proAgreement';
 import { LoadingSpinner } from './LoadingSpinner';
-import { Search, ExternalLink, RefreshCw, FileSignature, Plus, Copy, Check, Send, RotateCcw, FileCheck, Settings, X, Eye } from 'lucide-react';
+import { Search, ExternalLink, RefreshCw, FileSignature, Plus, Copy, Check, Send, RotateCcw, FileCheck, Settings, X, Eye, Download } from 'lucide-react';
 import { Button } from './Button';
 import { format } from 'date-fns';
 
@@ -359,7 +359,21 @@ const ProAgreementManager: React.FC = () => {
                         {copiedId === agreement.id ? 'Copied!' : 'Copy Link'}
                       </button>
                     )}
-                    {agreement.status === 'completed' && agreement.documentsUrl && (
+                    {agreement.status === 'completed' && agreement.allDocumentsUrls && agreement.allDocumentsUrls.length > 0 ? (
+                      agreement.allDocumentsUrls.map((doc, idx) => (
+                        <a
+                          key={idx}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200"
+                          title={`Download ${doc.name}`}
+                        >
+                          <Download size={12} />
+                          {doc.name}
+                        </a>
+                      ))
+                    ) : agreement.status === 'completed' && agreement.documentsUrl ? (
                       <a
                         href={agreement.documentsUrl}
                         target="_blank"
@@ -370,7 +384,7 @@ const ProAgreementManager: React.FC = () => {
                         <FileCheck size={12} />
                         Signed Doc
                       </a>
-                    )}
+                    ) : null}
                     <Button
                       onClick={() => handleSync(agreement)}
                       variant="secondary"

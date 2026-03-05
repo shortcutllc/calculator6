@@ -82,10 +82,14 @@ export const handler = async (event) => {
       updated_at: new Date().toISOString()
     };
 
-    // Get signed document URL
+    // Get signed document URLs
     const documents = submissionData.documents || submitter.documents;
     if (Array.isArray(documents) && documents.length > 0) {
       updateData.documents_url = documents[0].url;
+      updateData.all_documents_urls = documents.map(doc => ({
+        name: doc.name || doc.filename || 'Document',
+        url: doc.url
+      }));
     }
 
     const { error: updateError } = await supabase

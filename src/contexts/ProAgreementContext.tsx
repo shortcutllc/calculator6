@@ -39,6 +39,7 @@ const transformAgreementRow = (row: any): ProAgreement => ({
   signingUrl: row.signing_url,
   completedAt: row.completed_at,
   documentsUrl: row.documents_url,
+  allDocumentsUrls: row.all_documents_urls || null,
   sentAt: row.sent_at,
   openedAt: row.opened_at,
   createdByUserId: row.created_by_user_id,

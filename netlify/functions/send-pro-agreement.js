@@ -329,10 +329,14 @@ async function handleSyncStatus(body, supabase) {
     updateData.opened_at = submitter.opened_at;
   }
 
-  // Get signed documents URL
+  // Get signed documents URLs
   const documents = submission.documents || submitter?.documents;
   if (Array.isArray(documents) && documents.length > 0) {
     updateData.documents_url = documents[0].url;
+    updateData.all_documents_urls = documents.map(doc => ({
+      name: doc.name || doc.filename || 'Document',
+      url: doc.url
+    }));
   }
 
   await supabase
