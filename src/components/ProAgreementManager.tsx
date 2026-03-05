@@ -38,6 +38,7 @@ const ProAgreementManager: React.FC = () => {
 
   // Action states
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [syncAllProgress, setSyncAllProgress] = useState<{ current: number; total: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [remindResult, setRemindResult] = useState<{ id: string; success: boolean } | null>(null);
@@ -97,6 +98,21 @@ const ProAgreementManager: React.FC = () => {
     } finally {
       setSyncingId(null);
     }
+  };
+
+  const handleSyncAll = async () => {
+    const toSync = agreements.filter(a => a.status !== 'completed');
+    if (toSync.length === 0) return;
+    setSyncAllProgress({ current: 0, total: toSync.length });
+    for (let i = 0; i < toSync.length; i++) {
+      setSyncAllProgress({ current: i + 1, total: toSync.length });
+      try {
+        await syncAgreementStatus(toSync[i].id);
+      } catch (err) {
+        console.error(`Failed to sync ${toSync[i].proName}:`, err);
+      }
+    }
+    setSyncAllProgress(null);
   };
 
   const handleCopyLink = async (agreement: ProAgreement) => {
@@ -284,6 +300,14 @@ const ProAgreementManager: React.FC = () => {
           <p className="text-text-dark-60 mt-1">Send and track agreements for Pros via DocuSeal</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleSyncAll}
+            disabled={syncAllProgress !== null}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-full transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw size={16} className={syncAllProgress ? 'animate-spin' : ''} />
+            {syncAllProgress ? `Syncing ${syncAllProgress.current}/${syncAllProgress.total}...` : 'Sync All'}
+          </button>
           <Button
             onClick={() => setShowTemplateModal(true)}
             variant="secondary"

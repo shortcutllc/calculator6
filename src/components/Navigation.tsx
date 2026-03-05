@@ -1,38 +1,90 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogIn, LogOut, FileText, Calculator, Settings, Camera, ChevronDown, Clock, Plus, Users, Handshake, Eye, Gift, Smartphone, Brain, QrCode, TrendingUp, Scale, Mail, Receipt, FileSignature } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Menu, X, LogOut, FileText, Calculator, Settings, Camera,
+  ChevronDown, Clock, Plus, Users, Handshake, Gift, Smartphone,
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from './Button';
 import { isMasterAccount } from '../utils/isMasterAccount';
+
+interface NavItem {
+  label: string;
+  path: string;
+  icon: React.ReactNode;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+  masterOnly?: boolean;
+  collapsible?: boolean;
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    title: 'Proposals',
+    items: [
+      { label: 'New Proposal', path: '/', icon: <Plus size={18} /> },
+      { label: 'History', path: '/history', icon: <Clock size={18} /> },
+      { label: 'Admin', path: '/admin', icon: <Settings size={18} /> },
+    ],
+  },
+  {
+    title: 'Services',
+    items: [
+      { label: 'Headshots', path: '/headshots', icon: <Camera size={18} /> },
+      { label: 'Agreements', path: '/pro-agreements', icon: <FileSignature size={18} /> },
+      { label: 'Mindfulness', path: '/mindfulness-programs', icon: <Brain size={18} /> },
+      { label: 'Invoices', path: '/invoices', icon: <Receipt size={18} /> },
+    ],
+  },
+  {
+    title: 'Marketing',
+    items: [
+      { label: 'Landing Pages', path: '/generic-landing-pages', icon: <Handshake size={18} /> },
+      { label: 'Holiday Pages', path: '/holiday-pages', icon: <Gift size={18} /> },
+      { label: 'Social Media', path: '/social-media-pages', icon: <Smartphone size={18} /> },
+      { label: 'Client Emails', path: '/client-emails', icon: <Mail size={18} /> },
+      { label: 'QR Codes', path: '/qr-code-signs', icon: <QrCode size={18} /> },
+    ],
+  },
+  {
+    title: 'CLE Program',
+    collapsible: true,
+    items: [
+      { label: 'New York', path: '/cle', icon: <Scale size={18} /> },
+      { label: 'Pennsylvania', path: '/cle/pa', icon: <Scale size={18} /> },
+      { label: 'California', path: '/cle/ca', icon: <Scale size={18} /> },
+      { label: 'Texas', path: '/cle/tx', icon: <Scale size={18} /> },
+      { label: 'Florida', path: '/cle/fl', icon: <Scale size={18} /> },
+    ],
+  },
+  {
+    title: 'Tools',
+    items: [
+      { label: 'Calculator', path: '/calculator', icon: <Calculator size={18} /> },
+      { label: 'Brochures', path: '/brochure', icon: <FileText size={18} /> },
+      { label: '2026 Plan', path: '/2026-plan', icon: <TrendingUp size={18} /> },
+    ],
+  },
+  {
+    title: 'Admin',
+    masterOnly: true,
+    items: [
+      { label: 'Users', path: '/users', icon: <Users size={18} /> },
+    ],
+  },
+];
 
 export const Navigation: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [proposalsDropdownOpen, setProposalsDropdownOpen] = useState(false);
-  const [landingPagesDropdownOpen, setLandingPagesDropdownOpen] = useState(false);
-  const proposalsDropdownRef = useRef<HTMLDivElement>(null);
-  const landingPagesDropdownRef = useRef<HTMLDivElement>(null);
-  
-  // Check if user is master account
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [cleExpanded, setCleExpanded] = useState(false);
+
   const isMaster = isMasterAccount(user);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (proposalsDropdownRef.current && !proposalsDropdownRef.current.contains(event.target as Node)) {
-        setProposalsDropdownOpen(false);
-      }
-      if (landingPagesDropdownRef.current && !landingPagesDropdownRef.current.contains(event.target as Node)) {
-        setLandingPagesDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -43,509 +95,127 @@ export const Navigation: React.FC = () => {
     }
   };
 
-  return (
-    <nav className="bg-white py-4 px-4 sm:px-8 shadow-md relative rounded-b-3xl z-[100]">
-      <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
-        {/* Logo on the left */}
-        <button 
-          onClick={() => navigate('/')}
-          className="hover:opacity-80 transition-opacity"
-        >
-          <img
-            src="/shortcut-logo-blue.svg"
-            alt="Shortcut Logo"
-            className="h-6 sm:h-8 w-auto"
-          />
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
+
+  const handleNav = (path: string) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
+
+  const renderSidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="px-5 py-5 border-b border-gray-100">
+        <button onClick={() => handleNav('/')} className="hover:opacity-80 transition-opacity">
+          <img src="/shortcut-logo-blue.svg" alt="Shortcut Logo" className="h-7 w-auto" />
         </button>
+      </div>
 
-        {/* Navigation items on the right */}
-        <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
-          {user && (
-            <>
-              {/* Proposals Dropdown */}
-              <div className="relative hidden sm:block" ref={proposalsDropdownRef}>
-                <Button 
-                  onClick={() => setProposalsDropdownOpen(!proposalsDropdownOpen)}
-                  variant="secondary"
-                  className="flex items-center gap-1"
-                >
-                  Proposals
-                  <ChevronDown size={16} className={`transition-transform ${proposalsDropdownOpen ? 'rotate-180' : ''}`} />
-                </Button>
-                {proposalsDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[150]">
-                    <button
-                      onClick={() => {
-                        navigate('/');
-                        setProposalsDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                    >
-                      <Plus size={16} className="text-text-dark-60" />
-                      Create New Proposal
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/history');
-                        setProposalsDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                    >
-                      <Clock size={16} className="text-text-dark-60" />
-                      History
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/admin');
-                        setProposalsDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                    >
-                      <Settings size={16} className="text-text-dark-60" />
-                      Admin
-                    </button>
-                  </div>
+      {/* Nav Sections */}
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+        {NAV_SECTIONS.map((section) => {
+          if (section.masterOnly && !isMaster) return null;
+
+          const isCollapsible = section.collapsible;
+          const isExpanded = !isCollapsible || cleExpanded;
+
+          return (
+            <div key={section.title}>
+              <button
+                onClick={isCollapsible ? () => setCleExpanded(!cleExpanded) : undefined}
+                className={`flex items-center gap-1 px-2 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 ${
+                  isCollapsible ? 'cursor-pointer hover:text-gray-600' : 'cursor-default'
+                }`}
+              >
+                {section.title}
+                {isCollapsible && (
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  />
                 )}
-              </div>
-
-              {/* Landing Pages Dropdown */}
-              <div className="relative hidden sm:block" ref={landingPagesDropdownRef}>
-                <Button 
-                  onClick={() => setLandingPagesDropdownOpen(!landingPagesDropdownOpen)}
-                  variant="secondary"
-                  className="flex items-center gap-1"
-                >
-                  Landing Pages
-                  <ChevronDown size={16} className={`transition-transform ${landingPagesDropdownOpen ? 'rotate-180' : ''}`} />
-                </Button>
-                {landingPagesDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[150]">
-                    <button
-                      onClick={() => {
-                        navigate('/generic-landing-pages');
-                        setLandingPagesDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                    >
-                      <Handshake size={16} className="text-text-dark-60" />
-                      Corporate Partnerships
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/corporatepartnerships');
-                        setLandingPagesDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                    >
-                      <Eye size={16} className="text-text-dark-60" />
-                      View Generic Page
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/holiday-pages');
-                        setLandingPagesDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                    >
-                      <Gift size={16} className="text-text-dark-60" />
-                      Holiday
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/social-media-pages');
-                        setLandingPagesDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                    >
-                      <Smartphone size={16} className="text-text-dark-60" />
-                      Social
-                    </button>
-                    <div className="border-t border-gray-100 mt-1 pt-1">
-                      <p className="px-4 py-1 text-[10px] font-bold text-text-dark-60 uppercase tracking-wider">CLE Program</p>
-                      {[
-                        { label: 'New York', path: '/cle' },
-                        { label: 'Pennsylvania', path: '/cle/pa' },
-                        { label: 'California', path: '/cle/ca' },
-                        { label: 'Texas', path: '/cle/tx' },
-                        { label: 'Florida', path: '/cle/fl' },
-                      ].map((item) => (
-                        <button
-                          key={item.path}
-                          onClick={() => {
-                            navigate(item.path);
-                            setLandingPagesDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm text-text-dark hover:bg-neutral-light-gray transition-colors flex items-center gap-2"
-                        >
-                          <Scale size={16} className="text-text-dark-60" />
-                          CLE — {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Visual Separator */}
-              <div className="hidden sm:block h-6 w-px bg-gray-300 mx-1" />
-
-              {/* Calculator - Direct Button */}
-              <Button 
-                onClick={() => navigate('/calculator')} 
-                variant="secondary"
-                icon={<Calculator size={18} />}
-                className="hidden sm:flex"
-              >
-                Calculator
-              </Button>
-
-              {/* Headshots - Direct Button */}
-              <Button 
-                onClick={() => navigate('/headshots')} 
-                variant="secondary"
-                icon={<Camera size={18} />}
-                className="hidden sm:flex"
-              >
-                Headshots
-              </Button>
-
-              {/* Invoices - Direct Button */}
-              <Button
-                onClick={() => navigate('/invoices')}
-                variant="secondary"
-                icon={<Receipt size={18} />}
-                className="hidden sm:flex"
-              >
-                Invoices
-              </Button>
-
-              {/* Pro Agreements - Direct Button */}
-              <Button
-                onClick={() => navigate('/pro-agreements')}
-                variant="secondary"
-                icon={<FileSignature size={18} />}
-                className="hidden lg:flex"
-              >
-                Agreements
-              </Button>
-
-              {/* Users - Only visible to master account */}
-              {isMaster && (
-                <Button 
-                  onClick={() => navigate('/users')} 
-                  variant="secondary"
-                  icon={<Users size={18} />}
-                  className="hidden sm:flex"
-                >
-                  Users
-                </Button>
-              )}
-            </>
-          )}
-          {!user && (
-            <Button 
-              onClick={() => navigate('/login')} 
-              variant="primary"
-              icon={<LogIn size={18} />}
-              className="hidden sm:flex"
-            >
-              Sign In
-            </Button>
-          )}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 hover:bg-gray-100 rounded-md"
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {isMenuOpen && (
-          <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-[150] max-h-[90vh] overflow-y-auto">
-            {user && (
-              <div className="px-4 py-3 border-b border-gray-200">
-                <p className="text-sm text-text-dark-60 truncate">
-                  Signed in as: {user.email}
-                </p>
-              </div>
-            )}
-            
-            <div className="py-2">
-              {user && (
-                <>
-                  {/* Proposals Section */}
-                  <div className="px-4 py-2">
-                    <div className="text-xs font-extrabold text-shortcut-blue uppercase tracking-wider mb-2">Proposals</div>
-                    <div className="space-y-1">
+              </button>
+              {isExpanded && (
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const active = isActive(item.path);
+                    return (
                       <button
-                        onClick={() => {
-                          navigate('/');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
+                        key={item.path}
+                        onClick={() => handleNav(item.path)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          active
+                            ? 'bg-shortcut-blue/10 text-shortcut-blue'
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        }`}
                       >
-                        <Plus size={16} className="text-text-dark-60" />
-                        Create New Proposal
+                        <span className={active ? 'text-shortcut-blue' : 'text-gray-400'}>
+                          {item.icon}
+                        </span>
+                        {item.label}
                       </button>
-                      <button
-                        onClick={() => {
-                          navigate('/history');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Clock size={16} className="text-text-dark-60" />
-                        History
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/admin');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Settings size={16} className="text-text-dark-60" />
-                        Admin
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Landing Pages Section */}
-                  <div className="px-4 py-2 border-t border-gray-100">
-                    <div className="text-xs font-extrabold text-shortcut-blue uppercase tracking-wider mb-2">Landing Pages</div>
-                    <div className="space-y-1">
-                      <button
-                        onClick={() => {
-                          navigate('/generic-landing-pages');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Handshake size={16} className="text-text-dark-60" />
-                        Corporate Partnerships
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/corporatepartnerships');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Eye size={16} className="text-text-dark-60" />
-                        View Generic Page
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/holiday-pages');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Gift size={16} className="text-text-dark-60" />
-                        Holiday
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/social-media-pages');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Smartphone size={16} className="text-text-dark-60" />
-                        Social
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* CLE Program Section */}
-                  <div className="px-4 py-2 border-t border-gray-100">
-                    <div className="text-xs font-extrabold text-shortcut-blue uppercase tracking-wider mb-2">CLE Program</div>
-                    <div className="space-y-1">
-                      {[
-                        { label: 'New York', path: '/cle' },
-                        { label: 'Pennsylvania', path: '/cle/pa' },
-                        { label: 'California', path: '/cle/ca' },
-                        { label: 'Texas', path: '/cle/tx' },
-                        { label: 'Florida', path: '/cle/fl' },
-                      ].map((item) => (
-                        <button
-                          key={item.path}
-                          onClick={() => {
-                            navigate(item.path);
-                            setIsMenuOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                        >
-                          <Scale size={16} className="text-text-dark-60" />
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Tools Section */}
-                  <div className="px-4 py-2 border-t border-gray-100">
-                    <div className="text-xs font-extrabold text-shortcut-blue uppercase tracking-wider mb-2">Tools</div>
-                    <div className="space-y-1">
-                      <button
-                        onClick={() => {
-                          navigate('/calculator');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Calculator size={16} className="text-text-dark-60" />
-                        Calculator
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/headshots');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Camera size={16} className="text-text-dark-60" />
-                        Headshots
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/mindfulness-programs');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Brain size={16} className="text-text-dark-60" />
-                        Mindfulness Programs
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/brochure');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <FileText size={16} className="text-text-dark-60" />
-                        Brochures
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/qr-code-signs');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <QrCode size={16} className="text-text-dark-60" />
-                        QR Codes
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/client-emails');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Mail size={16} className="text-text-dark-60" />
-                        Client Emails
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/invoices');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <Receipt size={16} className="text-text-dark-60" />
-                        Invoices
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/pro-agreements');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <FileSignature size={16} className="text-text-dark-60" />
-                        Pro Agreements
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/2026-plan');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <TrendingUp size={16} className="text-text-dark-60" />
-                        2026 Growth Plan
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/2026-plan-ml');
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                      >
-                        <TrendingUp size={16} className="text-text-dark-60" />
-                        2026 Plan ML
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Users Section - Only visible to master account */}
-                  {isMaster && (
-                    <div className="px-4 py-2 border-t border-gray-100">
-                      <div className="text-xs font-extrabold text-shortcut-blue uppercase tracking-wider mb-2">Users</div>
-                      <div className="space-y-1">
-                        <button
-                          onClick={() => {
-                            navigate('/users');
-                            setIsMenuOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-neutral-light-gray rounded-md transition-colors flex items-center gap-2"
-                        >
-                          <Users size={16} className="text-text-dark-60" />
-                          Manage Users
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Account Actions */}
-                  <div className="px-4 py-2 border-t border-gray-200 mt-2">
-                    <Button
-                      onClick={() => {
-                        handleSignOut();
-                        setIsMenuOpen(false);
-                      }}
-                      variant="secondary"
-                      size="sm"
-                      icon={<LogOut className="w-4 h-4" />}
-                      className="w-full"
-                    >
-                      Sign Out
-                    </Button>
-                  </div>
-                </>
-              )}
-              {!user && (
-                <div className="px-4 py-2">
-                  <Button
-                    onClick={() => {
-                      navigate('/login');
-                      setIsMenuOpen(false);
-                    }}
-                    variant="primary"
-                    size="sm"
-                    icon={<LogIn className="w-4 h-4" />}
-                    className="w-full"
-                  >
-                    Sign In
-                  </Button>
+                    );
+                  })}
                 </div>
               )}
             </div>
-          </div>
-        )}
+          );
+        })}
       </div>
-    </nav>
+
+      {/* Footer: User + Sign Out */}
+      {user && (
+        <div className="border-t border-gray-100 px-4 py-4">
+          <p className="text-xs text-gray-400 truncate mb-3">{user.email}</p>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          >
+            <LogOut size={18} className="text-gray-400" />
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  if (!user) return null;
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-60 bg-white border-r border-gray-200 z-[100]">
+        {renderSidebarContent()}
+      </aside>
+
+      {/* Mobile: Top bar with hamburger */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-[100] px-4 py-3 flex items-center justify-between">
+        <button onClick={() => handleNav('/')} className="hover:opacity-80 transition-opacity">
+          <img src="/shortcut-logo-blue.svg" alt="Shortcut Logo" className="h-6 w-auto" />
+        </button>
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="p-2 hover:bg-gray-100 rounded-lg"
+        >
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* Mobile: Sidebar overlay */}
+      {mobileOpen && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 bg-black/40 z-[140]"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="md:hidden fixed inset-y-0 left-0 w-72 bg-white z-[150] shadow-xl">
+            {renderSidebarContent()}
+          </aside>
+        </>
+      )}
+    </>
   );
 };

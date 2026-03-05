@@ -51,6 +51,7 @@ const ProAgreementManager = lazy(() => import('./components/ProAgreementManager'
 const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'));
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
+const UsersManagement = lazy(() => import('./components/UsersManagement'));
 
 function App() {
   const location = useLocation();
@@ -106,7 +107,7 @@ function App() {
         <HolidayPageProvider>
         <div className="min-h-screen flex flex-col bg-gray-100">
           {!isSharedView && <Navigation />}
-          <main className="flex-1 overflow-y-auto">
+          <main className={`flex-1 overflow-y-auto ${!isSharedView ? 'md:ml-60 pt-14 md:pt-0' : ''}`}>
             <Routes>
               <Route path={config.app.routes.login} element={<Login />} />
               <Route path={config.app.routes.register} element={<Register />} />
@@ -415,6 +416,21 @@ function App() {
                         <ProAgreementManager />
                       </Suspense>
                     </ProAgreementProvider>
+                  </PrivateRoute>
+                }
+              />
+              {/* Users Management (master account only - component handles access control) */}
+              <Route
+                path="/users"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <UsersManagement />
+                    </Suspense>
                   </PrivateRoute>
                 }
               />
