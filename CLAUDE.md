@@ -178,6 +178,16 @@ Dynamic routing for clean client-facing URLs:
 
 ---
 
+# Build Issues
+
+## Troubleshooting build hangs/timeouts
+- This project builds fine on Node 22. Do NOT switch Node versions or reinstall node_modules unless there is a confirmed incompatibility.
+- If a build hangs or times out, check for zombie processes (`ps aux | grep vite`) and system memory (`top -l 1 -n 0 | grep PhysMem`) before investigating anything else.
+- Kill any zombie `vite build` or `esbuild` processes before retrying.
+- Always kill dev servers before building or deploying — CPU/memory contention causes hangs.
+
+---
+
 # Bash Guidelines
 
 ## IMPORTANT: Avoid commands that cause output buffering issues

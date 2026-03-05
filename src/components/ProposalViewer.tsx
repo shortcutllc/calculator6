@@ -3101,7 +3101,7 @@ The Shortcut Team`);
                                           <span className="text-sm md:text-base font-bold text-shortcut-blue">Total Hours:</span>
                                           <div className="font-bold text-text-dark">
                                             <EditableField
-                                              value={String(service.totalHours || 0)}
+                                              value={String((service.pricingOptions?.length > 0 ? (service.pricingOptions[service.selectedOption || 0]?.totalHours ?? service.totalHours) : service.totalHours) || 0)}
                                               onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                               isEditing={isEditing}
                                               type="number"
@@ -3114,7 +3114,7 @@ The Shortcut Team`);
                                         <span className="text-sm md:text-base font-bold text-shortcut-blue">Professionals:</span>
                                         <div className="font-bold text-text-dark">
                                           <EditableField
-                                            value={String(service.numPros || 0)}
+                                            value={String((service.pricingOptions?.length > 0 ? (service.pricingOptions[service.selectedOption || 0]?.numPros ?? service.numPros) : service.numPros) || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
@@ -3191,7 +3191,7 @@ The Shortcut Team`);
                                         <span className="text-sm md:text-base font-bold text-shortcut-blue">Hourly Rate:</span>
                                         <div className="font-bold text-text-dark">
                                           <EditableField
-                                            value={String(service.hourlyRate ?? 0)}
+                                            value={String((service.pricingOptions?.length > 0 ? (service.pricingOptions[service.selectedOption || 0]?.hourlyRate ?? service.hourlyRate) : service.hourlyRate) ?? 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'hourlyRate'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"

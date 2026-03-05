@@ -1901,7 +1901,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                           <span className="text-base md:text-lg font-bold text-shortcut-blue">Total Hours:</span>
                                           <div className="font-bold text-text-dark text-base md:text-lg">
                                             <EditableField
-                                              value={String(service.totalHours || 0)}
+                                              value={String((service.pricingOptions?.length > 0 ? (service.pricingOptions[service.selectedOption || 0]?.totalHours ?? service.totalHours) : service.totalHours) || 0)}
                                               onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'totalHours'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                               isEditing={isEditing}
                                               type="number"
@@ -1914,7 +1914,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         <span className="text-base md:text-lg font-bold text-shortcut-blue">Professionals:</span>
                                         <div className="font-bold text-text-dark text-base md:text-lg">
                                           <EditableField
-                                            value={String(service.numPros || 0)}
+                                            value={String((service.pricingOptions?.length > 0 ? (service.pricingOptions[service.selectedOption || 0]?.numPros ?? service.numPros) : service.numPros) || 0)}
                                             onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'numPros'], typeof value === 'string' ? parseFloat(value) || 0 : value)}
                                             isEditing={isEditing}
                                             type="number"
