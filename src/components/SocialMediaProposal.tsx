@@ -1871,7 +1871,7 @@ const SocialMediaProposal: React.FC<SocialMediaProposalProps> = ({ platform }) =
                   <h3 className="section-subtitle mb-6" style={{ color: '#003756' }}>Headshots + hair & makeup touch ups</h3>
                   
                   <p className="text-lg md:text-xl leading-relaxed mb-10" style={{ color: '#003756' }}>
-                    Our in-office headshot experience, complete with hair and makeup touch-ups, helps employees present themselves confidently and creates a consistent, professional appearance for your company.
+                    Our in-office headshot experience creates a consistent, professional appearance across your team. Elevate the experience with optional hair and makeup touch-ups so employees feel confident and camera-ready.
                   </p>
                   
                   {/* Feature Options */}
