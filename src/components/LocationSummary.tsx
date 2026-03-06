@@ -133,6 +133,31 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
             {totalAppointments === 0 ? '∞' : totalAppointments}
           </span>
         </div>
+        {/* Cost Per Headshot - only for locations with headshot services */}
+        {(() => {
+          let headshotCost = 0;
+          let headshotAppts = 0;
+          Object.values(services).forEach((dateData: any) => {
+            (dateData.services || []).forEach((service: any) => {
+              if (service.serviceType === 'headshot') {
+                headshotCost += service.serviceCost || 0;
+                headshotAppts += typeof service.totalAppointments === 'number' ? service.totalAppointments : 0;
+              }
+            });
+          });
+          if (headshotAppts > 0) {
+            const costPerHeadshot = headshotCost / headshotAppts;
+            return (
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-shortcut-navy-blue text-base md:text-lg">Cost Per Headshot:</span>
+                <span className="text-shortcut-navy-blue font-extrabold text-xl md:text-2xl">
+                  ${costPerHeadshot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            );
+          }
+          return null;
+        })()}
         <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-navy-blue">
           <span className="font-extrabold text-shortcut-navy-blue text-base md:text-lg">Total Cost:</span>
           <div className="text-right">

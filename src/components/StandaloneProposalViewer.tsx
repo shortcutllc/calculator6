@@ -2356,6 +2356,30 @@ export const StandaloneProposalViewer: React.FC = () => {
                     {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
                   </span>
                 </div>
+                {/* Cost Per Headshot - only shown when proposal has headshot services */}
+                {(() => {
+                  let headshotCost = 0;
+                  let headshotAppts = 0;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.serviceType === 'headshot') {
+                          headshotCost += service.serviceCost || 0;
+                          headshotAppts += typeof service.totalAppointments === 'number' ? service.totalAppointments : 0;
+                        }
+                      });
+                    });
+                  });
+                  if (headshotAppts > 0) {
+                    return (
+                      <div className="flex justify-between items-center pt-3 border-t border-shortcut-teal/20">
+                        <span className="font-semibold text-white/90 text-base md:text-lg">Cost Per Headshot:</span>
+                        <span className="font-extrabold text-xl md:text-2xl text-white">${formatCurrency(headshotCost / headshotAppts)}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 {/* Custom Line Items */}
                 {displayData.customLineItems && displayData.customLineItems.length > 0 && (
                   <>

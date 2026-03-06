@@ -4060,6 +4060,30 @@ The Shortcut Team`);
                     {displayData.summary?.totalAppointments === 0 || displayData.summary?.totalAppointments === 'unlimited' ? '∞' : (displayData.summary?.totalAppointments || 0)}
                   </span>
                 </div>
+                {/* Cost Per Headshot - only shown when proposal has headshot services */}
+                {(() => {
+                  let headshotCost = 0;
+                  let headshotAppts = 0;
+                  Object.values(displayData.services || {}).forEach((locationData: any) => {
+                    Object.values(locationData || {}).forEach((dateData: any) => {
+                      (dateData.services || []).forEach((service: any) => {
+                        if (service.serviceType === 'headshot') {
+                          headshotCost += service.serviceCost || 0;
+                          headshotAppts += typeof service.totalAppointments === 'number' ? service.totalAppointments : 0;
+                        }
+                      });
+                    });
+                  });
+                  if (headshotAppts > 0) {
+                    return (
+                      <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
+                        <span className="font-semibold text-sm md:text-base">Cost Per Headshot:</span>
+                        <span className="font-bold text-base md:text-lg">${formatCurrency(headshotCost / headshotAppts)}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 {/* Custom Line Items in summary */}
                 {displayData.customLineItems && displayData.customLineItems.length > 0 && displayData.customLineItems.map((item: any) => (
                   <div key={item.id} className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
