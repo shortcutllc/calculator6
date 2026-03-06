@@ -32,7 +32,7 @@ import { UnifiedServiceSections } from './UnifiedProposalSections';
 
 const formatCurrency = (value: number | string): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
+  return isNaN(numValue) ? '0.00' : numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 // Helper function to get display name for service type
@@ -88,7 +88,7 @@ const getServiceSubtitle = (serviceType: string): string | null => {
 const formatDate = (dateString: string): string => {
   try {
     if (!dateString) return 'No Date';
-    if (dateString === 'TBD') return 'Date TBD';
+    if (dateString === 'TBD' || dateString.startsWith('TBD-')) return 'Date TBD';
     
     // If it's already in YYYY-MM-DD format, parse it directly
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
@@ -1731,9 +1731,11 @@ export const StandaloneProposalViewer: React.FC = () => {
                       {Object.entries(locationData)
                         .sort(([dateA], [dateB]) => {
                           // Handle TBD dates - put them at the end
-                          if (dateA === 'TBD' && dateB === 'TBD') return 0;
-                          if (dateA === 'TBD') return 1;
-                          if (dateB === 'TBD') return -1;
+                          const aIsTBD = dateA === 'TBD' || dateA.startsWith('TBD-');
+                          const bIsTBD = dateB === 'TBD' || dateB.startsWith('TBD-');
+                          if (aIsTBD && bIsTBD) return 0;
+                          if (aIsTBD) return 1;
+                          if (bIsTBD) return -1;
 
                           // Sort actual dates normally
                           return new Date(dateA).getTime() - new Date(dateB).getTime();

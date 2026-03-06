@@ -170,7 +170,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
 };
 
 const formatCurrency = (value: number): string => {
-  return value.toFixed(2);
+  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 // Helper function to get display name for service type
@@ -316,7 +316,7 @@ const getServiceDescription = (service: any): string => {
 const formatDate = (dateString: string): string => {
   try {
     if (!dateString) return 'No Date';
-    if (dateString === 'TBD') return 'Date TBD';
+    if (dateString === 'TBD' || dateString.startsWith('TBD-')) return 'Date TBD';
     
     // If it's already in YYYY-MM-DD format, parse it directly
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
@@ -338,7 +338,7 @@ const formatDate = (dateString: string): string => {
 const formatDateForInput = (dateString: string): string => {
   try {
     if (!dateString) return '';
-    if (dateString === 'TBD') return '';
+    if (dateString === 'TBD' || dateString.startsWith('TBD-')) return '';
     
     // If it's already in YYYY-MM-DD format, return as is
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
@@ -672,12 +672,11 @@ const ProposalViewer: React.FC = () => {
       Object.keys(locationData).forEach(date => allDates.add(date));
     });
     updatedData.eventDates = Array.from(allDates).sort((a, b) => {
-      // Handle TBD dates - put them at the end
-      if (a === 'TBD' && b === 'TBD') return 0;
-      if (a === 'TBD') return 1;
-      if (b === 'TBD') return -1;
-      
-      // Sort actual dates normally
+      const aIsTBD = a === 'TBD' || a.startsWith('TBD-');
+      const bIsTBD = b === 'TBD' || b.startsWith('TBD-');
+      if (aIsTBD && bIsTBD) return a.localeCompare(b);
+      if (aIsTBD) return 1;
+      if (bIsTBD) return -1;
       return new Date(a).getTime() - new Date(b).getTime();
     });
 
@@ -1599,18 +1598,114 @@ const ProposalViewer: React.FC = () => {
   const handleRemoveService = (location: string, date: string, serviceIndex: number) => {
     if (!editedData || !isEditing) return;
     if (!window.confirm('Are you sure you want to remove this service?')) return;
-    
+
     const updatedData = { ...editedData };
     updatedData.services[location][date].services.splice(serviceIndex, 1);
-    
-    // If no services remain, we could remove the date, but for now just leave it empty
+
+    // If no services remain, remove the entire date entry
     if (updatedData.services[location][date].services.length === 0) {
-      updatedData.services[location][date].services = [];
-      updatedData.services[location][date].totalCost = 0;
-      updatedData.services[location][date].totalAppointments = 0;
+      delete updatedData.services[location][date];
+      // Rebuild eventDates
+      const allDates = new Set<string>();
+      Object.values(updatedData.services || {}).forEach((locData: any) => {
+        Object.keys(locData).forEach((d: string) => allDates.add(d));
+      });
+      updatedData.eventDates = Array.from(allDates).sort((a, b) => {
+        const aIsTBD = a === 'TBD' || a.startsWith('TBD-');
+        const bIsTBD = b === 'TBD' || b.startsWith('TBD-');
+        if (aIsTBD && bIsTBD) return a.localeCompare(b);
+        if (aIsTBD) return 1;
+        if (bIsTBD) return -1;
+        return new Date(a).getTime() - new Date(b).getTime();
+      });
     }
-    
+
     // Recalculate totals
+    const recalculatedData = recalculateServiceTotals(updatedData);
+    setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+    setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+    setUpdateCounter(prev => prev + 1);
+  };
+
+  // Handle removing an entire day (all services for that date at a location)
+  const handleRemoveDay = (location: string, date: string) => {
+    if (!editedData || !isEditing) return;
+    const serviceCount = editedData.services[location]?.[date]?.services?.length || 0;
+    if (!window.confirm(`Remove this entire day${serviceCount > 0 ? ` and its ${serviceCount} service${serviceCount > 1 ? 's' : ''}` : ''}?`)) return;
+
+    const updatedData = { ...editedData };
+    delete updatedData.services[location][date];
+
+    // Rebuild eventDates
+    const allDates = new Set<string>();
+    Object.values(updatedData.services || {}).forEach((locData: any) => {
+      Object.keys(locData).forEach((d: string) => allDates.add(d));
+    });
+    updatedData.eventDates = Array.from(allDates).sort((a, b) => {
+      const aIsTBD = a === 'TBD' || a.startsWith('TBD-');
+      const bIsTBD = b === 'TBD' || b.startsWith('TBD-');
+      if (aIsTBD && bIsTBD) return a.localeCompare(b);
+      if (aIsTBD) return 1;
+      if (bIsTBD) return -1;
+      return new Date(a).getTime() - new Date(b).getTime();
+    });
+
+    const recalculatedData = recalculateServiceTotals(updatedData);
+    setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+    setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+    setUpdateCounter(prev => prev + 1);
+  };
+
+  // Handle adding a new day to a location
+  const handleAddDay = (location: string) => {
+    if (!editedData || !isEditing) return;
+
+    // Use 'TBD' as default date key — if TBD already exists, use TBD-2, TBD-3, etc.
+    let newDateKey = 'TBD';
+    let counter = 2;
+    while (editedData.services[location]?.[newDateKey]) {
+      newDateKey = `TBD-${counter}`;
+      counter++;
+    }
+
+    // Create a default massage service for the new day
+    const newService = {
+      serviceType: 'massage',
+      ...SERVICE_DEFAULTS.massage,
+      date: newDateKey,
+      location: location,
+      discountPercent: 0,
+      totalAppointments: 0,
+      serviceCost: 0,
+      proRevenue: 0
+    };
+
+    const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(newService);
+    newService.totalAppointments = totalAppointments;
+    newService.serviceCost = serviceCost;
+    newService.proRevenue = proRevenue;
+
+    const updatedData = { ...editedData };
+    updatedData.services[location][newDateKey] = {
+      services: [newService],
+      totalCost: serviceCost,
+      totalAppointments: totalAppointments
+    };
+
+    // Update eventDates
+    const allDates = new Set<string>();
+    Object.values(updatedData.services || {}).forEach((locData: any) => {
+      Object.keys(locData).forEach((d: string) => allDates.add(d));
+    });
+    updatedData.eventDates = Array.from(allDates).sort((a, b) => {
+      const aIsTBD = a === 'TBD' || a.startsWith('TBD-');
+      const bIsTBD = b === 'TBD' || b.startsWith('TBD-');
+      if (aIsTBD && bIsTBD) return a.localeCompare(b);
+      if (aIsTBD) return 1;
+      if (bIsTBD) return -1;
+      return new Date(a).getTime() - new Date(b).getTime();
+    });
+
     const recalculatedData = recalculateServiceTotals(updatedData);
     setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
     setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
@@ -2803,10 +2898,12 @@ The Shortcut Team`);
                       {Object.entries(locationData)
                         .sort(([dateA], [dateB]) => {
                           // Handle TBD dates - put them at the end
-                          if (dateA === 'TBD' && dateB === 'TBD') return 0;
-                          if (dateA === 'TBD') return 1;
-                          if (dateB === 'TBD') return -1;
-                          
+                          const aIsTBD = dateA === 'TBD' || dateA.startsWith('TBD-');
+                          const bIsTBD = dateB === 'TBD' || dateB.startsWith('TBD-');
+                          if (aIsTBD && bIsTBD) return 0;
+                          if (aIsTBD) return 1;
+                          if (bIsTBD) return -1;
+
                           // Sort actual dates normally
                           return new Date(dateA).getTime() - new Date(dateB).getTime();
                         })
@@ -2823,52 +2920,162 @@ The Shortcut Team`);
                                   </h3>
                                 </button>
                                 {isEditing && !isSharedView && (
-                                  <input
-                                    type="date"
-                                    value={formatDateForInput(date)}
-                                    onChange={(e) => {
-                                      if (!editedData) return;
-                                      const newDate = e.target.value || 'TBD';
-                                      if (newDate === date) return;
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        if (!editedData) return;
+                                        const isTBD = date === 'TBD' || date.startsWith('TBD-');
 
-                                      const updatedData = { ...editedData };
+                                        // Deep clone to ensure React detects the state change
+                                        const updatedData = JSON.parse(JSON.stringify(editedData));
+                                        let newDateKey: string;
 
-                                      // Create new date entry if needed
-                                      if (!updatedData.services[location][newDate]) {
-                                        updatedData.services[location][newDate] = {
-                                          services: [],
-                                          totalCost: 0,
-                                          totalAppointments: 0
-                                        };
-                                      }
+                                        if (!isTBD) {
+                                          // Change from real date → TBD
+                                          newDateKey = 'TBD';
+                                          let counter = 2;
+                                          while (updatedData.services[location]?.[newDateKey]) {
+                                            newDateKey = `TBD-${counter}`;
+                                            counter++;
+                                          }
 
-                                      // Move ALL services from old date to new date
-                                      const movingServices = updatedData.services[location][date].services.map(
-                                        (s: any) => ({ ...s, date: newDate })
-                                      );
-                                      updatedData.services[location][newDate].services.push(...movingServices);
+                                          updatedData.services[location][newDateKey] = {
+                                            services: updatedData.services[location][date].services.map(
+                                              (s: any) => ({ ...s, date: newDateKey })
+                                            ),
+                                            totalCost: updatedData.services[location][date].totalCost,
+                                            totalAppointments: updatedData.services[location][date].totalAppointments
+                                          };
+                                          delete updatedData.services[location][date];
+                                        } else {
+                                          // Change from TBD → real date (default to today)
+                                          const today = new Date();
+                                          newDateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-                                      // Remove old date entry
-                                      delete updatedData.services[location][date];
+                                          if (updatedData.services[location][newDateKey]) {
+                                            // If today's date already exists, merge services into it
+                                            const movingServices = updatedData.services[location][date].services.map(
+                                              (s: any) => ({ ...s, date: newDateKey })
+                                            );
+                                            updatedData.services[location][newDateKey].services.push(...movingServices);
+                                          } else {
+                                            updatedData.services[location][newDateKey] = {
+                                              services: updatedData.services[location][date].services.map(
+                                                (s: any) => ({ ...s, date: newDateKey })
+                                              ),
+                                              totalCost: updatedData.services[location][date].totalCost,
+                                              totalAppointments: updatedData.services[location][date].totalAppointments
+                                            };
+                                          }
+                                          delete updatedData.services[location][date];
+                                        }
 
-                                      // Rebuild eventDates
-                                      const allDates = new Set<string>();
-                                      Object.values(updatedData.services || {}).forEach((locData: any) => {
-                                        Object.keys(locData).forEach((d: string) => allDates.add(d));
-                                      });
-                                      updatedData.eventDates = Array.from(allDates).sort((a, b) => {
-                                        if (a === 'TBD' && b === 'TBD') return 0;
-                                        if (a === 'TBD') return 1;
-                                        if (b === 'TBD') return -1;
-                                        return new Date(a).getTime() - new Date(b).getTime();
-                                      });
+                                        // Rebuild eventDates
+                                        const allDates = new Set<string>();
+                                        Object.values(updatedData.services || {}).forEach((locData: any) => {
+                                          Object.keys(locData).forEach((d: string) => allDates.add(d));
+                                        });
+                                        updatedData.eventDates = Array.from(allDates).sort((a, b) => {
+                                          const aIsTBD2 = a === 'TBD' || a.startsWith('TBD-');
+                                          const bIsTBD2 = b === 'TBD' || b.startsWith('TBD-');
+                                          if (aIsTBD2 && bIsTBD2) return a.localeCompare(b);
+                                          if (aIsTBD2) return 1;
+                                          if (bIsTBD2) return -1;
+                                          return new Date(a).getTime() - new Date(b).getTime();
+                                        });
 
-                                      const recalculatedData = recalculateServiceTotals(updatedData);
-                                      setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
-                                      setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
-                                    }}
-                                    className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-                                  />
+                                        const recalculatedData = recalculateServiceTotals(updatedData);
+                                        setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+                                        setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+
+                                        // Update expandedDates to track the new date key
+                                        setExpandedDates(prev => {
+                                          const updated = { ...prev };
+                                          if (prev[date]) {
+                                            delete updated[date];
+                                            updated[newDateKey] = true;
+                                          } else {
+                                            updated[newDateKey] = true;
+                                          }
+                                          return updated;
+                                        });
+                                      }}
+                                      className={`px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors ${
+                                        (date === 'TBD' || date.startsWith('TBD-'))
+                                          ? 'bg-shortcut-teal/10 text-shortcut-teal border-shortcut-teal'
+                                          : 'bg-gray-50 text-gray-500 border-gray-300 hover:bg-gray-100'
+                                      }`}
+                                    >
+                                      TBD
+                                    </button>
+                                    {!(date === 'TBD' || date.startsWith('TBD-')) && (
+                                      <input
+                                        type="date"
+                                        value={formatDateForInput(date)}
+                                        onChange={(e) => {
+                                          if (!editedData || !e.target.value) return;
+                                          const newDate = e.target.value;
+                                          if (newDate === date) return;
+
+                                          // Deep clone to ensure React detects the state change
+                                          const updatedData = JSON.parse(JSON.stringify(editedData));
+                                          if (!updatedData.services[location][newDate]) {
+                                            updatedData.services[location][newDate] = {
+                                              services: updatedData.services[location][date].services.map(
+                                                (s: any) => ({ ...s, date: newDate })
+                                              ),
+                                              totalCost: updatedData.services[location][date].totalCost,
+                                              totalAppointments: updatedData.services[location][date].totalAppointments
+                                            };
+                                          } else {
+                                            const movingServices = updatedData.services[location][date].services.map(
+                                              (s: any) => ({ ...s, date: newDate })
+                                            );
+                                            updatedData.services[location][newDate].services.push(...movingServices);
+                                          }
+                                          delete updatedData.services[location][date];
+
+                                          const allDates = new Set<string>();
+                                          Object.values(updatedData.services || {}).forEach((locData: any) => {
+                                            Object.keys(locData).forEach((d: string) => allDates.add(d));
+                                          });
+                                          updatedData.eventDates = Array.from(allDates).sort((a, b) => {
+                                            const aIsTBD = a === 'TBD' || a.startsWith('TBD-');
+                                            const bIsTBD = b === 'TBD' || b.startsWith('TBD-');
+                                            if (aIsTBD && bIsTBD) return a.localeCompare(b);
+                                            if (aIsTBD) return 1;
+                                            if (bIsTBD) return -1;
+                                            return new Date(a).getTime() - new Date(b).getTime();
+                                          });
+
+                                          const recalculatedData = recalculateServiceTotals(updatedData);
+                                          setEditedData({ ...recalculatedData, customization: currentProposal?.customization });
+                                          setDisplayData({ ...recalculatedData, customization: currentProposal?.customization });
+
+                                          // Update expandedDates to track the new date key
+                                          setExpandedDates(prev => {
+                                            const updated = { ...prev };
+                                            if (prev[date]) {
+                                              delete updated[date];
+                                              updated[newDate] = true;
+                                            }
+                                            return updated;
+                                          });
+                                        }}
+                                        className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                                      />
+                                    )}
+                                    <button
+                                      onClick={() => handleRemoveDay(location, date)}
+                                      className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                                      title="Remove this entire day"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </>
                                 )}
                               </div>
                               <button onClick={() => toggleDate(date)} className="hover:opacity-80 transition-opacity">
@@ -2895,14 +3102,15 @@ The Shortcut Team`);
                                     key={serviceIndex}
                                     className="card-small mb-6"
                                   >
+                                    {/* Service Header */}
                                     <div className="flex items-center justify-between mb-4">
-                                      <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-3 min-w-0">
                                         <h4 className="text-lg font-extrabold text-shortcut-blue flex items-center">
-                                          <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3"></span>
-                                          Service Type: {getServiceDisplayName(service.serviceType)}
+                                          <span className="w-3 h-3 rounded-full bg-shortcut-teal mr-3 shrink-0"></span>
+                                          Service {serviceIndex + 1}: {getServiceDisplayName(service.serviceType)}
                                         </h4>
                                         {service.isRecurring && service.recurringFrequency && (
-                                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white shrink-0">
                                             Recurring
                                             <span className="opacity-80">
                                               ({service.recurringFrequency.type === 'quarterly' ? 'Quarterly' :
@@ -2918,37 +3126,42 @@ The Shortcut Team`);
                                         )}
                                       </div>
                                       {isEditing && !isSharedView && (
-                                        <div className="flex items-center gap-2">
-                                          <select
-                                            value={service.serviceType}
-                                            onChange={(e) => handleServiceTypeChange(location, date, serviceIndex, e.target.value)}
-                                            className="px-3 py-1.5 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal font-medium"
-                                          >
-                                            <option value="massage">Massage</option>
-                                            <option value="facial">Facial</option>
-                                            <option value="hair">Hair</option>
-                                            <option value="nails">Nails</option>
-                                            <option value="makeup">Makeup</option>
-                                            <option value="headshot">Headshots</option>
-                                            <option value="mindfulness">Mindfulness</option>
-                                            <option value="mindfulness-soles">Mindfulness: Soles of the Feet</option>
-                                            <option value="mindfulness-movement">Mindfulness: Ground & Reset</option>
-                                            <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
-                                            <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
-                                            <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely</option>
-                                            <option value="hair-makeup">Hair + Makeup</option>
-                                            <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
-                                          </select>
-                                          <button
-                                            onClick={() => handleRemoveService(location, date, serviceIndex)}
-                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
-                                            title="Remove service"
-                                          >
-                                            <Trash2 size={18} />
-                                          </button>
-                                        </div>
+                                        <button
+                                          onClick={() => handleRemoveService(location, date, serviceIndex)}
+                                          className="shrink-0 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                                          title="Remove this service"
+                                        >
+                                          <Trash2 size={16} />
+                                        </button>
                                       )}
                                     </div>
+
+                                    {/* Service Type Selector - own row in edit mode */}
+                                    {isEditing && !isSharedView && (
+                                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                        <span className="text-sm md:text-base font-bold text-shortcut-blue">Service Type:</span>
+                                        <select
+                                          value={service.serviceType}
+                                          onChange={(e) => handleServiceTypeChange(location, date, serviceIndex, e.target.value)}
+                                          className="w-48 px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal font-medium bg-white"
+                                        >
+                                          <option value="massage">Massage</option>
+                                          <option value="facial">Facial</option>
+                                          <option value="hair">Hair</option>
+                                          <option value="nails">Nails</option>
+                                          <option value="makeup">Makeup</option>
+                                          <option value="headshot">Headshots</option>
+                                          <option value="mindfulness">Mindfulness</option>
+                                          <option value="mindfulness-soles">Soles of the Feet</option>
+                                          <option value="mindfulness-movement">Ground & Reset</option>
+                                          <option value="mindfulness-pro">PRO Practice</option>
+                                          <option value="mindfulness-cle">CLE Ethics</option>
+                                          <option value="mindfulness-pro-reactivity">Pause, Relax, Open</option>
+                                          <option value="hair-makeup">Hair + Makeup</option>
+                                          <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
+                                        </select>
+                                      </div>
+                                    )}
                                     
                                     {/* Service Description */}
                                     {getServiceDescription(service) && (
@@ -3134,8 +3347,8 @@ The Shortcut Team`);
                                             service.serviceType === 'mindfulness-pro' ||
                                             service.serviceType === 'mindfulness-cle' ||
                                             service.serviceType === 'mindfulness-pro-reactivity') && isEditing ? (
-                                            <div className="flex items-center gap-2">
-                                              <span className="font-bold text-shortcut-blue">$</span>
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-sm font-medium text-gray-500">$</span>
                                               <input
                                                 type="number"
                                                 value={service.serviceCost}
@@ -3145,7 +3358,7 @@ The Shortcut Team`);
                                                   // Also update fixedPrice to match
                                                   handleFieldChange(['services', location, date, 'services', serviceIndex, 'fixedPrice'], newCost);
                                                 }}
-                                                className="w-32 px-3 py-2 border-2 border-shortcut-blue rounded-lg font-bold text-shortcut-blue text-lg text-right"
+                                                className="w-28 px-3 py-2 border-2 border-gray-200 rounded-lg font-bold text-right focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                                               />
                                             </div>
                                           ) : service.discountPercent > 0 ? (
@@ -3496,6 +3709,17 @@ The Shortcut Team`);
                             )}
                           </div>
                         ))}
+                      {isEditing && !isSharedView && (
+                        <div className="mt-4 pt-4 border-t border-dashed border-gray-300">
+                          <button
+                            onClick={() => handleAddDay(location)}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-shortcut-blue/10 text-shortcut-blue font-semibold rounded-full hover:bg-shortcut-blue/20 transition-colors text-sm"
+                          >
+                            <Plus size={16} />
+                            Add Day
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -3684,7 +3908,7 @@ The Shortcut Team`);
                     <div className="flex items-center gap-2 text-green-600 font-semibold">
                       <span>✨</span>
                       <span>
-                        {editedData.autoRecurringDiscount}% discount will save ${((editedData.autoRecurringSavings || 0)).toFixed(2)}
+                        {editedData.autoRecurringDiscount}% discount will save ${formatCurrency(editedData.autoRecurringSavings || 0)}
                       </span>
                     </div>
                   )}

@@ -195,8 +195,9 @@ Discounts apply to the service cost.
 
 ## Edit Operations
 When editing proposals, use these operations:
-- add_service: Add a service at a location/date
-- remove_service: Remove a service by index
+- add_service: Add a service at a location/date. If the date doesn't exist yet, it will be created automatically.
+- remove_service: Remove a single service by index from a location/date
+- remove_date: Remove an entire day (all services on that date) from a location. Requires location and date.
 - update_service: Change service fields (totalHours, numPros, appTime, hourlyRate, etc.)
 - set_recurring: Make a service recurring (frequency: { type: "quarterly"|"monthly"|"custom", occurrences: number })
 - remove_recurring: Remove recurring from a service
@@ -222,7 +223,21 @@ When a user says the date is "TBD", "to be determined", "not yet confirmed", or 
 - Use the string "TBD" as the date value when creating a proposal (e.g., date: "TBD").
 - To change an existing date to TBD, use change_date with newDate: "TBD".
 - To change a TBD date to a real date, use change_date with oldDate: "TBD" and newDate: "2026-03-15".
-- "TBD" is a fully supported date value — never ask the user for a placeholder date when they say TBD.`;
+- "TBD" is a fully supported date value — never ask the user for a placeholder date when they say TBD.
+
+### Multiple TBD Days at the Same Location
+When a proposal has multiple TBD events at the same location that should be separate days (e.g., "Day 1 headshots + Day 2 headshots, both TBD"), the system uses unique TBD keys:
+- First TBD day: "TBD"
+- Second TBD day: "TBD-2"
+- Third TBD day: "TBD-3"
+- etc.
+
+When working with these proposals:
+- Call get_proposal first to see the actual date keys (e.g., "TBD", "TBD-2").
+- Use the exact TBD key shown in verifiedState when referencing a specific day (e.g., date: "TBD-2").
+- To add a new TBD day at a location that already has a "TBD" day, use the next available key (e.g., date: "TBD-2") with add_service.
+- To remove a specific TBD day, use remove_date with the exact key (e.g., date: "TBD-2").
+- To change a specific TBD day to a real date, use change_date with the exact key (e.g., oldDate: "TBD-2", newDate: "2026-04-15").`;
 
 // Array format for prompt caching — cache_control on the last block
 const SYSTEM_PROMPT = [
@@ -293,7 +308,7 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              op: { type: 'string', description: 'Operation type: add_service, remove_service, update_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state' },
+              op: { type: 'string', description: 'Operation type: add_service, remove_service, remove_date, update_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state' },
               location: { type: 'string' },
               date: { type: 'string' },
               serviceIndex: { type: 'integer' },

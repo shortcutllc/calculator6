@@ -151,6 +151,9 @@ function normalizeDate(dateInput) {
   if (!dateInput) return 'TBD';
   if (dateInput === 'TBD') return 'TBD';
 
+  // Support TBD-2, TBD-3, etc. for multiple TBD days at the same location
+  if (/^TBD-\d+$/.test(dateInput)) return dateInput;
+
   // Already in YYYY-MM-DD format
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
     return dateInput;
@@ -252,13 +255,8 @@ function buildProposalData(input) {
     servicesByLocation[location][date].services.push(service);
   });
 
-  // Sort dates (TBD at end)
-  const sortedDates = Array.from(allDates).sort((a, b) => {
-    if (a === 'TBD' && b === 'TBD') return 0;
-    if (a === 'TBD') return 1;
-    if (b === 'TBD') return -1;
-    return new Date(a).getTime() - new Date(b).getTime();
-  });
+  // Sort dates (TBD/TBD-* at end)
+  const sortedDates = Array.from(allDates).sort(sortDates);
 
   // Build the ProposalData structure
   const proposalData = {
@@ -344,9 +342,23 @@ function assembleProposal(input) {
   };
 }
 
+/**
+ * Sort comparator for dates that handles TBD and TBD-* keys.
+ * Real dates sort chronologically, TBD/TBD-* sort to the end.
+ */
+function sortDates(a, b) {
+  const aIsTBD = a === 'TBD' || (typeof a === 'string' && a.startsWith('TBD-'));
+  const bIsTBD = b === 'TBD' || (typeof b === 'string' && b.startsWith('TBD-'));
+  if (aIsTBD && bIsTBD) return a.localeCompare(b);
+  if (aIsTBD) return 1;
+  if (bIsTBD) return -1;
+  return new Date(a).getTime() - new Date(b).getTime();
+}
+
 export {
   applyServiceDefaults,
   buildProposalData,
   assembleProposal,
-  normalizeDate
+  normalizeDate,
+  sortDates
 };

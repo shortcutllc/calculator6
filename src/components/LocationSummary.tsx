@@ -15,8 +15,8 @@ const formatDate = (dateString: string): string => {
   try {
     if (!dateString) return 'No Date';
 
-    // Handle TBD case
-    if (dateString === 'TBD') return 'Date TBD';
+    // Handle TBD and TBD-* cases
+    if (dateString === 'TBD' || dateString.startsWith('TBD-')) return 'Date TBD';
 
     // If it's already in YYYY-MM-DD format, parse it directly
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
@@ -36,7 +36,14 @@ const formatDate = (dateString: string): string => {
 
 const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, isAutoRecurring, autoRecurringDiscount, officeAddress }) => {
   const [showAllDates, setShowAllDates] = useState(false);
-  const dates = Object.keys(services).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const dates = Object.keys(services).sort((a, b) => {
+    const aIsTBD = a === 'TBD' || a.startsWith('TBD-');
+    const bIsTBD = b === 'TBD' || b.startsWith('TBD-');
+    if (aIsTBD && bIsTBD) return a.localeCompare(b);
+    if (aIsTBD) return 1;
+    if (bIsTBD) return -1;
+    return new Date(a).getTime() - new Date(b).getTime();
+  });
 
   const totalAppointments = Object.values(services).reduce((sum: number, dateData: any) => {
     if (typeof dateData.totalAppointments === 'number') {
@@ -132,17 +139,17 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
             {isAutoRecurring && autoRecurringDiscount ? (
               <>
                 <span className="text-shortcut-navy-blue/60 font-semibold text-base md:text-lg line-through mr-2">
-                  ${totalCost.toFixed(2)}
+                  ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className="text-green-600 font-extrabold text-xl md:text-2xl">
-                  ${discountedCost.toFixed(2)}
+                  ${discountedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <div className="text-xs text-green-600 font-bold mt-1">
                   {autoRecurringDiscount}% recurring discount applied
                 </div>
               </>
             ) : (
-              <span className="text-shortcut-navy-blue font-extrabold text-xl md:text-2xl">${totalCost.toFixed(2)}</span>
+              <span className="text-shortcut-navy-blue font-extrabold text-xl md:text-2xl">${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             )}
           </div>
         </div>

@@ -2,7 +2,7 @@
  * Proposal Editor — applies an array of discrete operations to an existing proposal.
  * After all operations are applied, recalculateProposalSummary() runs to reflow totals.
  *
- * Supports: add_service, remove_service, update_service, set_gratuity, remove_gratuity,
+ * Supports: add_service, remove_service, remove_date, update_service, set_gratuity, remove_gratuity,
  * set_recurring, remove_recurring, set_discount, add_pricing_options, remove_pricing_options,
  * update_customization, update_client_info, set_status, add_location, remove_location
  */
@@ -15,7 +15,7 @@ import {
   calculateServiceResults,
   recalculateProposalSummary
 } from './pricing-engine.js';
-import { applyServiceDefaults, normalizeDate } from './proposal-assembler.js';
+import { applyServiceDefaults, normalizeDate, sortDates } from './proposal-assembler.js';
 
 /**
  * Apply an array of operations to a proposal's data.
@@ -65,6 +65,7 @@ function applyOperations(proposalData, customization, proposalRecord, operations
 const OPERATION_HANDLERS = {
   add_service: handleAddService,
   remove_service: handleRemoveService,
+  remove_date: handleRemoveDate,
   update_service: handleUpdateService,
   set_gratuity: handleSetGratuity,
   remove_gratuity: handleRemoveGratuity,
@@ -131,12 +132,7 @@ function handleAddService(proposalData, customization, proposalRecord, op) {
   // Update eventDates if new date
   if (!proposalData.eventDates.includes(date)) {
     proposalData.eventDates.push(date);
-    proposalData.eventDates.sort((a, b) => {
-      if (a === 'TBD' && b === 'TBD') return 0;
-      if (a === 'TBD') return 1;
-      if (b === 'TBD') return -1;
-      return new Date(a).getTime() - new Date(b).getTime();
-    });
+    proposalData.eventDates.sort(sortDates);
   }
 
   return {
@@ -179,6 +175,56 @@ function handleRemoveService(proposalData, customization, proposalRecord, op) {
   return {
     op: 'remove_service',
     description: `Removed ${removed.serviceType} from ${location} on ${normalizedDate}`
+  };
+}
+
+/**
+ * Remove an entire date (day) and all its services from a location.
+ * Cleans up empty locations and eventDates.
+ */
+function handleRemoveDate(proposalData, customization, proposalRecord, op) {
+  const { location, date } = op;
+  const normalizedDate = normalizeDate(date);
+
+  if (!location) {
+    throw new Error('remove_date requires "location"');
+  }
+  if (!date) {
+    throw new Error('remove_date requires "date"');
+  }
+  if (!proposalData.services[location]) {
+    throw new Error(`Location "${location}" not found in proposal. Available: ${Object.keys(proposalData.services).join(', ')}`);
+  }
+  if (!proposalData.services[location][normalizedDate]) {
+    throw new Error(`Date "${normalizedDate}" not found at location "${location}". Available: ${Object.keys(proposalData.services[location]).join(', ')}`);
+  }
+
+  // Count services being removed
+  const servicesRemoved = proposalData.services[location][normalizedDate].services.length;
+  const serviceTypes = proposalData.services[location][normalizedDate].services
+    .map(s => s.serviceType)
+    .join(', ');
+
+  // Remove the entire date entry
+  delete proposalData.services[location][normalizedDate];
+
+  // Clean up empty location
+  if (Object.keys(proposalData.services[location]).length === 0) {
+    delete proposalData.services[location];
+    proposalData.locations = proposalData.locations.filter(l => l !== location);
+  }
+
+  // Clean up eventDates — remove date if no longer used at any location
+  const dateStillUsed = Object.values(proposalData.services).some(locData =>
+    Object.keys(locData).includes(normalizedDate)
+  );
+  if (!dateStillUsed) {
+    proposalData.eventDates = proposalData.eventDates.filter(d => d !== normalizedDate);
+  }
+
+  return {
+    op: 'remove_date',
+    description: `Removed day "${normalizedDate}" from ${location} (${servicesRemoved} service${servicesRemoved !== 1 ? 's' : ''}: ${serviceTypes})`
   };
 }
 
@@ -693,12 +739,7 @@ function handleChangeDate(proposalData, customization, proposalRecord, op) {
   Object.values(proposalData.services).forEach(locData => {
     Object.keys(locData).forEach(date => allDates.add(date));
   });
-  proposalData.eventDates = Array.from(allDates).sort((a, b) => {
-    if (a === 'TBD' && b === 'TBD') return 0;
-    if (a === 'TBD') return 1;
-    if (b === 'TBD') return -1;
-    return new Date(a).getTime() - new Date(b).getTime();
-  });
+  proposalData.eventDates = Array.from(allDates).sort(sortDates);
 
   return {
     op: 'change_date',

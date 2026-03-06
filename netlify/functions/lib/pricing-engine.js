@@ -237,9 +237,10 @@ function calculateServiceResults(service) {
   let proRevenue = 0;
 
   if (service.serviceType === 'headshot') {
-    proRevenue = service.totalHours * service.numPros * (service.proHourly || 0);
+    const photographerCost = service.totalHours * service.numPros * (service.proHourly || 0);
     const retouchingTotal = (typeof totalAppts === 'number' ? totalAppts : 0) * (service.retouchingCost || 0);
-    serviceCost = proRevenue + retouchingTotal;
+    serviceCost = photographerCost + retouchingTotal;
+    proRevenue = serviceCost * 0.80; // 80% to Pro, 20% to Shortcut
   } else if (isMindfulness) {
     serviceCost = service.fixedPrice || 1375;
     proRevenue = serviceCost * 0.3;
@@ -344,9 +345,11 @@ function recalculateProposalSummary(proposalData) {
     Object.keys(locationData).forEach(date => allDates.add(date));
   });
   proposalData.eventDates = Array.from(allDates).sort((a, b) => {
-    if (a === 'TBD' && b === 'TBD') return 0;
-    if (a === 'TBD') return 1;
-    if (b === 'TBD') return -1;
+    const aIsTBD = a === 'TBD' || (typeof a === 'string' && a.startsWith('TBD-'));
+    const bIsTBD = b === 'TBD' || (typeof b === 'string' && b.startsWith('TBD-'));
+    if (aIsTBD && bIsTBD) return a.localeCompare(b);
+    if (aIsTBD) return 1;
+    if (bIsTBD) return -1;
     return new Date(a).getTime() - new Date(b).getTime();
   });
 

@@ -40,7 +40,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
 
   const formatValue = (val: string | number): string => {
     if (type === 'number' && typeof val === 'number') {
-      return val.toFixed(2);
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     if (type === 'date' && typeof val === 'string') {
       try {
@@ -114,7 +114,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
         type={type}
         value={typeof fieldValue === 'number' ? String(fieldValue) : fieldValue}
         onChange={handleChange}
-        className={`w-full px-3 py-2 text-right border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${className}`}
+        className={`${type === 'number' ? 'w-28' : 'w-full'} px-3 py-2 text-right border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${className}`}
         min={type === 'number' ? 0 : undefined}
         step={type === 'number' ? 'any' : undefined}
       />

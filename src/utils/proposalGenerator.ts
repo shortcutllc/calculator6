@@ -66,9 +66,10 @@ export const calculateServiceResults = (service: any) => {
   let proRevenue = 0;
 
   if (service.serviceType === 'headshot') {
-    proRevenue = service.totalHours * service.numPros * (service.proHourly || 0);
+    const photographerCost = service.totalHours * service.numPros * (service.proHourly || 0);
     const retouchingTotal = (typeof totalAppts === 'number' ? totalAppts : 0) * (service.retouchingCost || 0);
-    serviceCost = proRevenue + retouchingTotal;
+    serviceCost = photographerCost + retouchingTotal;
+    proRevenue = serviceCost * 0.80; // 80% to Pro, 20% to Shortcut
   } else if (isMindfulness) {
     // Mindfulness services use fixed pricing
     serviceCost = service.fixedPrice || 1375;
@@ -257,9 +258,12 @@ export const transformToPricingOptions = (proposalData: ProposalData): ProposalD
 const normalizeDate = (dateInput: string | Date): string => {
   if (!dateInput) return '';
   
-  // Handle TBD dates
+  // Handle TBD dates (TBD, TBD-2, TBD-3, etc.)
   if (dateInput === 'TBD') {
     return 'TBD';
+  }
+  if (typeof dateInput === 'string' && /^TBD-\d+$/.test(dateInput)) {
+    return dateInput;
   }
   
   let date: Date;
@@ -333,20 +337,42 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
   Object.entries(currentClient.events).forEach(([location, locationEvents]: [string, any]) => {
     proposalData.services[location] = {};
 
-    // Create a flat list of all services for this location
-    const allLocationServices: any[] = [];
+    // Group services by date, keeping separate events with TBD dates as distinct days
+    const servicesByDate: { [date: string]: any[] } = {};
+    let tbdCounter = 0;
 
     locationEvents.forEach((event: any) => {
+      // Determine the date key for this event
+      let eventDateKey: string | null = null;
+
       event.services.forEach((service: any) => {
         if (service.date) {
           const normalizedDate = normalizeDate(service.date);
 
           if (normalizedDate) {
-            // Push each service individually with normalized date
-            allLocationServices.push({
+            // For TBD dates, each separate event gets its own TBD key
+            let dateKey = normalizedDate;
+            if (normalizedDate === 'TBD') {
+              if (eventDateKey && eventDateKey.startsWith('TBD')) {
+                // Same event, reuse the same TBD key
+                dateKey = eventDateKey;
+              } else {
+                // New TBD event — assign a unique key
+                dateKey = tbdCounter === 0 ? 'TBD' : `TBD-${tbdCounter + 1}`;
+                tbdCounter++;
+                eventDateKey = dateKey;
+              }
+            } else {
+              eventDateKey = dateKey;
+            }
+
+            if (!servicesByDate[dateKey]) {
+              servicesByDate[dateKey] = [];
+            }
+            servicesByDate[dateKey].push({
               ...service,
               location,
-              date: normalizedDate,
+              date: dateKey,
               totalHours: Number(service.totalHours),
               numPros: Number(service.numPros),
               proHourly: Number(service.proHourly),
@@ -362,17 +388,6 @@ export const prepareProposalFromCalculation = (currentClient: any): ProposalData
           }
         }
       });
-    });
-    
-    // Group services by date
-    const servicesByDate: { [date: string]: any[] } = {};
-
-    allLocationServices.forEach((service: any) => {
-      const date = service.date;
-      if (!servicesByDate[date]) {
-        servicesByDate[date] = [];
-      }
-      servicesByDate[date].push(service);
     });
     
     // Sort dates and create day data
@@ -552,9 +567,11 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     const sortedDates = Object.entries(dates)
       .sort(([dateA], [dateB]) => {
         // Handle TBD dates - put them at the end
-        if (dateA === 'TBD' && dateB === 'TBD') return 0;
-        if (dateA === 'TBD') return 1;
-        if (dateB === 'TBD') return -1;
+        const aIsTBD = dateA === 'TBD' || dateA.startsWith('TBD-');
+        const bIsTBD = dateB === 'TBD' || dateB.startsWith('TBD-');
+        if (aIsTBD && bIsTBD) return 0;
+        if (aIsTBD) return 1;
+        if (bIsTBD) return -1;
         
         // Sort actual dates normally
         return new Date(dateA).getTime() - new Date(dateB).getTime();
@@ -702,10 +719,12 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
   });
   updatedData.eventDates = Array.from(allDates).sort((a, b) => {
     // Handle TBD dates - put them at the end
-    if (a === 'TBD' && b === 'TBD') return 0;
-    if (a === 'TBD') return 1;
-    if (b === 'TBD') return -1;
-    
+    const aIsTBD = a === 'TBD' || a.startsWith('TBD-');
+    const bIsTBD = b === 'TBD' || b.startsWith('TBD-');
+    if (aIsTBD && bIsTBD) return 0;
+    if (aIsTBD) return 1;
+    if (bIsTBD) return -1;
+
     // Sort actual dates normally
     return new Date(a).getTime() - new Date(b).getTime();
   });
