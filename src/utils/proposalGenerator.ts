@@ -807,11 +807,50 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
   // Apply auto-recurring if applicable
   if (autoRecurringDiscount && autoRecurringDiscount > 0 && !hasManualRecurring) {
     const discountMultiplier = autoRecurringDiscount / 100;
+    const originalSubtotalBeforeGratuity = subtotalBeforeGratuity;
+    let totalSavings = 0;
+    let newTotalProRevenue = 0;
 
-    // Calculate savings from auto-recurring discount
-    // The discount applies to the subtotal before gratuity
-    const autoRecurringSavings = Number((subtotalBeforeGratuity * discountMultiplier).toFixed(2));
-    const discountedSubtotal = Number((subtotalBeforeGratuity - autoRecurringSavings).toFixed(2));
+    // Apply per-service discounts with headshot-specific logic
+    Object.entries(updatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+      Object.entries(locationData || {}).forEach(([date, dayData]: [string, any]) => {
+        let discountedDayCost = 0;
+        let dayProRevenue = 0;
+
+        (dayData.services || []).forEach((service: any) => {
+          // Store original cost before auto-recurring discount
+          service.originalServiceCost = service.serviceCost;
+
+          if (service.serviceType === 'headshot') {
+            // For headshots: only discount photographer hourly, NOT retouching
+            const photographerCost = service.totalHours * service.numPros * (service.proHourly || 0);
+            const retouchingTotal = (typeof service.totalAppointments === 'number' ? service.totalAppointments : 0) * (service.retouchingCost || 0);
+            const discountedPhotographerCost = photographerCost * (1 - discountMultiplier);
+            service.serviceCost = Number((discountedPhotographerCost + retouchingTotal).toFixed(2));
+            service.discountedProHourly = Number(((service.proHourly || 0) * (1 - discountMultiplier)).toFixed(2));
+            // Recalculate proRevenue on discounted cost (80/20 split)
+            const newProRevenue = Number((service.serviceCost * 0.80).toFixed(2));
+            dayProRevenue += newProRevenue;
+          } else {
+            // For all other services: discount the full service cost
+            service.serviceCost = Number((service.originalServiceCost * (1 - discountMultiplier)).toFixed(2));
+            // Pro revenue stays the same for non-headshot services (based on proHourly, not affected by client rate)
+            dayProRevenue += service.proRevenue || 0;
+          }
+
+          totalSavings += service.originalServiceCost - service.serviceCost;
+          discountedDayCost += service.serviceCost;
+        });
+
+        // Store original and update with discounted day totals
+        dayData.originalTotalCost = dayData.totalCost;
+        dayData.totalCost = Number(discountedDayCost.toFixed(2));
+        newTotalProRevenue += dayProRevenue;
+      });
+    });
+
+    const autoRecurringSavings = Number(totalSavings.toFixed(2));
+    const discountedSubtotal = Number((originalSubtotalBeforeGratuity - autoRecurringSavings).toFixed(2));
 
     // Recalculate gratuity based on discounted subtotal
     let newGratuityAmount = 0;
@@ -828,6 +867,11 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     updatedData.summary.subtotalBeforeGratuity = discountedSubtotal;
     updatedData.summary.gratuityAmount = newGratuityAmount;
     updatedData.summary.totalEventCost = Number((discountedSubtotal + newGratuityAmount).toFixed(2));
+    updatedData.summary.totalProRevenue = Number(newTotalProRevenue.toFixed(2));
+
+    // Store originals for display (line-through)
+    updatedData.summary.originalSubtotalBeforeGratuity = originalSubtotalBeforeGratuity;
+    updatedData.summary.originalTotalEventCost = Number((originalSubtotalBeforeGratuity + gratuityAmount).toFixed(2));
 
     // Recalculate profit margin based on discounted amounts
     const newNetProfit = discountedSubtotal - updatedData.summary.totalProRevenue;
@@ -845,6 +889,17 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     updatedData.isAutoRecurring = false;
     updatedData.autoRecurringDiscount = undefined;
     updatedData.autoRecurringSavings = undefined;
+
+    // Clear per-service discount data
+    Object.values(updatedData.services || {}).forEach((locationData: any) => {
+      Object.values(locationData || {}).forEach((dayData: any) => {
+        delete (dayData as any).originalTotalCost;
+        (dayData.services || []).forEach((service: any) => {
+          delete service.originalServiceCost;
+          delete service.discountedProHourly;
+        });
+      });
+    });
   }
 
   return updatedData;

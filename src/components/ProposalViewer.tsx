@@ -3687,13 +3687,13 @@ The Shortcut Team`);
                                     </div>
                                     <div className="bg-shortcut-teal bg-opacity-10 rounded-lg p-3 md:p-4 border border-shortcut-teal">
                                       <div className="text-[10px] md:text-sm font-bold text-shortcut-navy-blue mb-1">Total Cost</div>
-                                      {displayData.isAutoRecurring && displayData.autoRecurringDiscount ? (
+                                      {displayData.isAutoRecurring && displayData.autoRecurringDiscount && dateData.originalTotalCost ? (
                                         <div>
                                           <div className="text-sm md:text-lg font-semibold text-shortcut-navy-blue/60 line-through">
-                                            ${formatCurrency(dateData.totalCost || 0)}
+                                            ${formatCurrency(dateData.originalTotalCost)}
                                           </div>
                                           <div className="text-xl md:text-2xl font-extrabold text-green-600">
-                                            ${formatCurrency((dateData.totalCost || 0) * (1 - displayData.autoRecurringDiscount / 100))}
+                                            ${formatCurrency(dateData.totalCost || 0)}
                                           </div>
                                           <div className="text-xs text-green-600 font-bold mt-1">
                                             {displayData.autoRecurringDiscount}% discount
@@ -3900,6 +3900,7 @@ The Shortcut Team`);
                       className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                     >
                       <option value="0">No Recurring Discount</option>
+                      <option value="10">10% Recurring Discount</option>
                       <option value="15">15% Recurring Discount</option>
                       <option value="20">20% Recurring Discount</option>
                     </select>
@@ -4063,22 +4064,36 @@ The Shortcut Team`);
                 {/* Cost Per Headshot - only shown when proposal has headshot services */}
                 {(() => {
                   let headshotCost = 0;
+                  let headshotOriginalCost = 0;
                   let headshotAppts = 0;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {
                     Object.values(locationData || {}).forEach((dateData: any) => {
                       (dateData.services || []).forEach((service: any) => {
                         if (service.serviceType === 'headshot') {
                           headshotCost += service.serviceCost || 0;
+                          headshotOriginalCost += service.originalServiceCost ?? service.serviceCost ?? 0;
                           headshotAppts += typeof service.totalAppointments === 'number' ? service.totalAppointments : 0;
                         }
                       });
                     });
                   });
                   if (headshotAppts > 0) {
+                    const costPerHeadshot = headshotCost / headshotAppts;
+                    const originalCostPerHeadshot = headshotOriginalCost / headshotAppts;
+                    const hasDiscount = displayData.isAutoRecurring && displayData.autoRecurringDiscount && originalCostPerHeadshot > costPerHeadshot;
                     return (
                       <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
                         <span className="font-semibold text-sm md:text-base">Cost Per Headshot:</span>
-                        <span className="font-bold text-base md:text-lg">${formatCurrency(headshotCost / headshotAppts)}</span>
+                        <div className="text-right">
+                          {hasDiscount ? (
+                            <>
+                              <span className="text-white/50 font-semibold text-sm line-through mr-2">${formatCurrency(originalCostPerHeadshot)}</span>
+                              <span className="font-bold text-base md:text-lg text-green-300">${formatCurrency(costPerHeadshot)}</span>
+                            </>
+                          ) : (
+                            <span className="font-bold text-base md:text-lg">${formatCurrency(costPerHeadshot)}</span>
+                          )}
+                        </div>
                       </div>
                     );
                   }
@@ -4107,7 +4122,16 @@ The Shortcut Team`);
                 )}
                 <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
                   <span className="font-semibold text-sm md:text-base">Total Event Cost:</span>
-                  <span className="font-bold text-base md:text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                  <div className="text-right">
+                    {displayData.isAutoRecurring && displayData.autoRecurringDiscount && displayData.summary?.originalTotalEventCost ? (
+                      <>
+                        <span className="text-white/50 font-semibold text-sm line-through mr-2">${formatCurrency(displayData.summary.originalTotalEventCost)}</span>
+                        <span className="font-bold text-base md:text-lg text-green-300">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                      </>
+                    ) : (
+                      <span className="font-bold text-base md:text-lg">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center py-2 md:py-3 border-b border-white/20">
                   <span className="font-semibold text-sm md:text-base">Pro Revenue:</span>

@@ -52,13 +52,19 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
     return sum;
   }, 0);
 
+  // totalCost = sum of current (possibly discounted) day totals
   const totalCost = Object.values(services).reduce((sum: number, dateData: any) =>
     sum + dateData.totalCost, 0
   );
 
-  // Calculate discounted cost if auto-recurring
-  const discountMultiplier = isAutoRecurring && autoRecurringDiscount ? autoRecurringDiscount / 100 : 0;
-  const discountedCost = isAutoRecurring ? totalCost * (1 - discountMultiplier) : totalCost;
+  // originalTotalCost = sum of original day totals before auto-recurring discount
+  const originalTotalCost = Object.values(services).reduce((sum: number, dateData: any) =>
+    sum + (dateData.originalTotalCost ?? dateData.totalCost), 0
+  );
+
+  // When auto-recurring is active, totalCost already reflects per-service discounts
+  // originalTotalCost is the pre-discount value for line-through display
+  const discountedCost = totalCost;
 
   const uniqueServices = new Set();
   Object.values(services).forEach((dateData: any) => {
@@ -136,23 +142,40 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
         {/* Cost Per Headshot - only for locations with headshot services */}
         {(() => {
           let headshotCost = 0;
+          let headshotOriginalCost = 0;
           let headshotAppts = 0;
           Object.values(services).forEach((dateData: any) => {
             (dateData.services || []).forEach((service: any) => {
               if (service.serviceType === 'headshot') {
                 headshotCost += service.serviceCost || 0;
+                headshotOriginalCost += service.originalServiceCost ?? service.serviceCost ?? 0;
                 headshotAppts += typeof service.totalAppointments === 'number' ? service.totalAppointments : 0;
               }
             });
           });
           if (headshotAppts > 0) {
             const costPerHeadshot = headshotCost / headshotAppts;
+            const originalCostPerHeadshot = headshotOriginalCost / headshotAppts;
+            const hasDiscount = isAutoRecurring && autoRecurringDiscount && originalCostPerHeadshot > costPerHeadshot;
             return (
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-shortcut-navy-blue text-base md:text-lg">Cost Per Headshot:</span>
-                <span className="text-shortcut-navy-blue font-extrabold text-xl md:text-2xl">
-                  ${costPerHeadshot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+                <div className="text-right">
+                  {hasDiscount ? (
+                    <>
+                      <span className="text-shortcut-navy-blue/60 font-semibold text-base md:text-lg line-through mr-2">
+                        ${originalCostPerHeadshot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-green-600 font-extrabold text-xl md:text-2xl">
+                        ${costPerHeadshot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-shortcut-navy-blue font-extrabold text-xl md:text-2xl">
+                      ${costPerHeadshot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           }
@@ -164,7 +187,7 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
             {isAutoRecurring && autoRecurringDiscount ? (
               <>
                 <span className="text-shortcut-navy-blue/60 font-semibold text-base md:text-lg line-through mr-2">
-                  ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${originalTotalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className="text-green-600 font-extrabold text-xl md:text-2xl">
                   ${discountedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

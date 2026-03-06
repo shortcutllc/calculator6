@@ -2144,13 +2144,13 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     </div>
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-3 md:p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-[10px] md:text-xs font-bold text-shortcut-blue mb-2 md:mb-3 uppercase tracking-wider">Total Cost</div>
-                                      {displayData.isAutoRecurring && displayData.autoRecurringDiscount ? (
+                                      {displayData.isAutoRecurring && displayData.autoRecurringDiscount && dateData.originalTotalCost ? (
                                         <div>
                                           <div className="text-sm md:text-xl font-semibold text-shortcut-navy-blue/60 line-through">
-                                            ${formatCurrency(dateData.totalCost || 0)}
+                                            ${formatCurrency(dateData.originalTotalCost)}
                                           </div>
                                           <div className="text-xl md:text-3xl font-extrabold text-green-600">
-                                            ${formatCurrency((dateData.totalCost || 0) * (1 - displayData.autoRecurringDiscount / 100))}
+                                            ${formatCurrency(dateData.totalCost || 0)}
                                           </div>
                                           <div className="text-[10px] md:text-xs text-green-600 font-bold mt-1">
                                             {displayData.autoRecurringDiscount}% discount
@@ -2359,22 +2359,36 @@ export const StandaloneProposalViewer: React.FC = () => {
                 {/* Cost Per Headshot - only shown when proposal has headshot services */}
                 {(() => {
                   let headshotCost = 0;
+                  let headshotOriginalCost = 0;
                   let headshotAppts = 0;
                   Object.values(displayData.services || {}).forEach((locationData: any) => {
                     Object.values(locationData || {}).forEach((dateData: any) => {
                       (dateData.services || []).forEach((service: any) => {
                         if (service.serviceType === 'headshot') {
                           headshotCost += service.serviceCost || 0;
+                          headshotOriginalCost += service.originalServiceCost ?? service.serviceCost ?? 0;
                           headshotAppts += typeof service.totalAppointments === 'number' ? service.totalAppointments : 0;
                         }
                       });
                     });
                   });
                   if (headshotAppts > 0) {
+                    const costPerHeadshot = headshotCost / headshotAppts;
+                    const originalCostPerHeadshot = headshotOriginalCost / headshotAppts;
+                    const hasDiscount = displayData.isAutoRecurring && displayData.autoRecurringDiscount && originalCostPerHeadshot > costPerHeadshot;
                     return (
                       <div className="flex justify-between items-center pt-3 border-t border-shortcut-teal/20">
                         <span className="font-semibold text-white/90 text-base md:text-lg">Cost Per Headshot:</span>
-                        <span className="font-extrabold text-xl md:text-2xl text-white">${formatCurrency(headshotCost / headshotAppts)}</span>
+                        <div className="text-right">
+                          {hasDiscount ? (
+                            <>
+                              <span className="text-white/40 font-semibold text-base md:text-lg line-through mr-2">${formatCurrency(originalCostPerHeadshot)}</span>
+                              <span className="font-extrabold text-xl md:text-2xl text-green-300">${formatCurrency(costPerHeadshot)}</span>
+                            </>
+                          ) : (
+                            <span className="font-extrabold text-xl md:text-2xl text-white">${formatCurrency(costPerHeadshot)}</span>
+                          )}
+                        </div>
                       </div>
                     );
                   }
@@ -2412,7 +2426,16 @@ export const StandaloneProposalViewer: React.FC = () => {
                 )}
                 <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-teal">
                   <span className="font-extrabold text-base md:text-lg text-white">Total Event Cost:</span>
-                  <span className="font-extrabold text-xl md:text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                  <div className="text-right">
+                    {displayData.isAutoRecurring && displayData.autoRecurringDiscount && displayData.summary?.originalTotalEventCost ? (
+                      <>
+                        <span className="text-white/40 font-semibold text-base md:text-lg line-through mr-2">${formatCurrency(displayData.summary.originalTotalEventCost)}</span>
+                        <span className="font-extrabold text-xl md:text-2xl text-green-300">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                      </>
+                    ) : (
+                      <span className="font-extrabold text-xl md:text-2xl text-shortcut-teal">${formatCurrency(displayData.summary?.totalEventCost || 0)}</span>
+                    )}
+                  </div>
                 </div>
                 {/* Recurring Savings Display (manual or auto) */}
                 {(() => {

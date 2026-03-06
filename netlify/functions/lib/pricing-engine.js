@@ -378,6 +378,119 @@ function recalculateProposalSummary(proposalData) {
     : 0;
 
   proposalData.summary = summary;
+
+  // Auto-recurring: Apply recurring discount when 4+ unique dates exist
+  // Only apply if no services are already manually marked as recurring
+  const uniqueDateCount = (proposalData.eventDates || []).filter(d => d !== 'TBD').length;
+  let hasManualRecurring = false;
+
+  Object.values(proposalData.services || {}).forEach((locationData) => {
+    Object.values(locationData).forEach((dateData) => {
+      (dateData.services || []).forEach((service) => {
+        if (service.isRecurring && service.recurringFrequency) {
+          hasManualRecurring = true;
+        }
+      });
+    });
+  });
+
+  const isExplicitlyDisabled = proposalData.isAutoRecurring === false && proposalData.autoRecurringDiscount === undefined;
+  const hasManualAutoRecurring = proposalData.isAutoRecurring === true && proposalData.autoRecurringDiscount !== undefined;
+
+  let autoRecurringDiscount;
+  if (isExplicitlyDisabled) {
+    autoRecurringDiscount = undefined;
+  } else if (hasManualAutoRecurring) {
+    autoRecurringDiscount = proposalData.autoRecurringDiscount;
+  } else if (uniqueDateCount >= 4 && !hasManualRecurring) {
+    autoRecurringDiscount = uniqueDateCount >= 9 ? 20 : 15;
+  }
+
+  if (autoRecurringDiscount && autoRecurringDiscount > 0 && !hasManualRecurring) {
+    const discountMultiplier = autoRecurringDiscount / 100;
+    const originalSubtotalBeforeGratuity = subtotalBeforeGratuity;
+    let totalSavings = 0;
+    let newTotalProRevenue = 0;
+
+    // Apply per-service discounts with headshot-specific logic
+    Object.entries(proposalData.services || {}).forEach(([location, locationData]) => {
+      Object.entries(locationData).forEach(([date, dayData]) => {
+        let discountedDayCost = 0;
+        let dayProRevenue = 0;
+
+        (dayData.services || []).forEach((service) => {
+          service.originalServiceCost = service.serviceCost;
+
+          if (service.serviceType === 'headshot') {
+            // For headshots: only discount photographer hourly, NOT retouching
+            const photographerCost = service.totalHours * service.numPros * (service.proHourly || 0);
+            const retouchingTotal = (typeof service.totalAppointments === 'number' ? service.totalAppointments : 0) * (service.retouchingCost || 0);
+            const discountedPhotographerCost = photographerCost * (1 - discountMultiplier);
+            service.serviceCost = Number((discountedPhotographerCost + retouchingTotal).toFixed(2));
+            service.discountedProHourly = Number(((service.proHourly || 0) * (1 - discountMultiplier)).toFixed(2));
+            // Recalculate proRevenue on discounted cost (80/20 split)
+            const newProRevenue = Number((service.serviceCost * 0.80).toFixed(2));
+            dayProRevenue += newProRevenue;
+          } else {
+            service.serviceCost = Number((service.originalServiceCost * (1 - discountMultiplier)).toFixed(2));
+            dayProRevenue += service.proRevenue || 0;
+          }
+
+          totalSavings += service.originalServiceCost - service.serviceCost;
+          discountedDayCost += service.serviceCost;
+        });
+
+        dayData.originalTotalCost = dayData.totalCost;
+        dayData.totalCost = Number(discountedDayCost.toFixed(2));
+        newTotalProRevenue += dayProRevenue;
+      });
+    });
+
+    const autoRecurringSavings = Number(totalSavings.toFixed(2));
+    const discountedSubtotal = Number((originalSubtotalBeforeGratuity - autoRecurringSavings).toFixed(2));
+
+    let newGratuityAmount = 0;
+    if (proposalData.gratuityType && proposalData.gratuityValue) {
+      if (proposalData.gratuityType === 'percentage') {
+        newGratuityAmount = discountedSubtotal * (proposalData.gratuityValue / 100);
+      } else if (proposalData.gratuityType === 'dollar') {
+        newGratuityAmount = proposalData.gratuityValue;
+      }
+      newGratuityAmount = Number(newGratuityAmount.toFixed(2));
+    }
+
+    summary.subtotalBeforeGratuity = discountedSubtotal;
+    summary.gratuityAmount = newGratuityAmount;
+    summary.totalEventCost = Number((discountedSubtotal + newGratuityAmount).toFixed(2));
+    summary.totalProRevenue = Number(newTotalProRevenue.toFixed(2));
+    summary.originalSubtotalBeforeGratuity = originalSubtotalBeforeGratuity;
+    summary.originalTotalEventCost = Number((originalSubtotalBeforeGratuity + gratuityAmount).toFixed(2));
+
+    const newNetProfit = discountedSubtotal - summary.totalProRevenue;
+    summary.netProfit = Number(newNetProfit.toFixed(2));
+    summary.profitMargin = discountedSubtotal > 0
+      ? Number(((newNetProfit / discountedSubtotal) * 100).toFixed(2))
+      : 0;
+
+    proposalData.isAutoRecurring = true;
+    proposalData.autoRecurringDiscount = autoRecurringDiscount;
+    proposalData.autoRecurringSavings = autoRecurringSavings;
+  } else {
+    proposalData.isAutoRecurring = false;
+    proposalData.autoRecurringDiscount = undefined;
+    proposalData.autoRecurringSavings = undefined;
+
+    Object.values(proposalData.services || {}).forEach((locationData) => {
+      Object.values(locationData).forEach((dayData) => {
+        delete dayData.originalTotalCost;
+        (dayData.services || []).forEach((service) => {
+          delete service.originalServiceCost;
+          delete service.discountedProHourly;
+        });
+      });
+    });
+  }
+
   return proposalData;
 }
 
