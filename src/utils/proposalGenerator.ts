@@ -823,8 +823,10 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
 
           if (service.serviceType === 'headshot') {
             // For headshots: only discount photographer hourly, NOT retouching
-            const photographerCost = service.totalHours * service.numPros * (service.proHourly || 0);
+            // Derive photographer cost from existing serviceCost (not base params)
+            // because pricing options may override totalHours/numPros
             const retouchingTotal = (typeof service.totalAppointments === 'number' ? service.totalAppointments : 0) * (service.retouchingCost || 0);
+            const photographerCost = service.serviceCost - retouchingTotal;
             const discountedPhotographerCost = photographerCost * (1 - discountMultiplier);
             service.serviceCost = Number((discountedPhotographerCost + retouchingTotal).toFixed(2));
             service.discountedProHourly = Number(((service.proHourly || 0) * (1 - discountMultiplier)).toFixed(2));
