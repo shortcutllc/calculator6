@@ -650,7 +650,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         (proposalData as any).quarterlyCommitment = {
           eventsCommitted: 4,
           discountPercent: 15,
-          deadline: '2026-02-16',
+          deadline: '2026-04-01',
           totalSavings: discountAmount * 4 // Assuming 4 events
         };
       }
@@ -1660,7 +1660,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
 
               {/* Deadline Timer */}
               {(() => {
-                const deadline = new Date('2026-02-16T23:59:59');
+                const deadline = new Date('2026-04-01T23:59:59');
                 const now = new Date();
                 const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                 const isPastDeadline = daysUntil < 0;
@@ -1880,7 +1880,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                 Build My 2026 Proposal
               </button>
               <p className="mt-6 text-sm" style={{ color: '#003756', opacity: 0.5 }}>
-                Commit by February 16, 2026 to secure your quarterly program
+                Commit by April 1, 2026 to secure your quarterly program
               </p>
             </div>
           </div>
@@ -3005,7 +3005,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           </h2>
           <p className="text-base md:text-xl lg:text-2xl mb-8 md:mb-12 max-w-3xl mx-auto" style={{ color: 'white', opacity: 0.8, lineHeight: '1.6' }}>
             {isReturningClient
-              ? `As a valued partner, commit to 4+ quarterly events and save 15% while securing priority booking and guaranteed availability on your preferred dates. Commit by February 16, 2026.`
+              ? `As a valued partner, commit to 4+ quarterly events and save 15% while securing priority booking and guaranteed availability on your preferred dates. Commit by April 1, 2026.`
               : 'Join 500+ companies who trust Shortcut to deliver employee happiness. Book a call today and see how easy workplace wellness can be.'
             }
           </p>
@@ -3502,7 +3502,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                         <li>15% discount applied to all events</li>
                         <li>Priority booking and guaranteed availability</li>
                         <li>Dedicated account manager</li>
-                        <li>Deadline: February 16, 2026</li>
+                        <li>Deadline: April 1, 2026</li>
                       </ul>
                     </div>
                   )}
