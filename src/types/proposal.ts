@@ -208,6 +208,17 @@ export interface Proposal {
   stripeInvoiceId?: string | null;
   // Short URL slug
   slug?: string | null;
+  // Coordinator event creation tracking
+  coordinatorEvents?: CoordinatorEventLink[] | null;
+}
+
+export interface CoordinatorEventLink {
+  date: string;
+  location: string;
+  eventName: string;
+  status: string; // 'pending_parse_integration' | 'created' | 'failed'
+  coordinatorEventId: string | null;
+  createdAt: string;
 }
 
 // Change tracking interfaces

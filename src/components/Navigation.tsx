@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, Clock, Plus, Users, Handshake, Gift, Smartphone,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -43,6 +43,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Marketing',
     items: [
       { label: 'Landing Pages', path: '/generic-landing-pages', icon: <Handshake size={18} /> },
+      { label: 'Sign-Up Links', path: '/sign-up-links', icon: <Link2 size={18} /> },
       { label: 'Holiday Pages', path: '/holiday-pages', icon: <Gift size={18} /> },
       { label: 'Social Media', path: '/social-media-pages', icon: <Smartphone size={18} /> },
       { label: 'Client Emails', path: '/client-emails', icon: <Mail size={18} /> },

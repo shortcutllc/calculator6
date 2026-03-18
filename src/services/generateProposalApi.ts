@@ -519,3 +519,85 @@ export async function searchLandingPages(
   );
   return result.results;
 }
+
+// --- Coordinator Event Creation ---
+
+const CREATE_EVENT_API = '/.netlify/functions/create-event';
+
+export interface CoordinatorEvent {
+  date: string;
+  location: string;
+  eventName: string;
+  status: string;
+  coordinatorEventId: string | null;
+  createdAt: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface CreateEventResponse {
+  success: boolean;
+  proposalId: string;
+  eventsCreated: number;
+  events: CoordinatorEvent[];
+}
+
+export interface EventStatusResponse {
+  success: boolean;
+  proposalId: string;
+  events: CoordinatorEvent[];
+}
+
+/**
+ * Create coordinator event(s) from a proposal.
+ * Accepts the admin-reviewed event form data from CreateEventModal.
+ */
+export async function createCoordinatorEvents(
+  proposalId: string,
+  events?: unknown[]
+): Promise<CreateEventResponse> {
+  const headers = await getAuthHeaders();
+
+  const response = await fetch(CREATE_EVENT_API, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ proposalId, events })
+  });
+
+  const result = await response.json();
+
+  if (!result.success) {
+    throw new ProposalApiError(
+      result.error || 'Failed to create events',
+      result.code || 'CREATE_EVENT_ERROR',
+      response.status
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Get coordinator event creation status for a proposal.
+ */
+export async function getCoordinatorEventStatus(
+  proposalId: string
+): Promise<EventStatusResponse> {
+  const headers = await getAuthHeaders();
+
+  const response = await fetch(`${CREATE_EVENT_API}?proposalId=${proposalId}`, {
+    method: 'GET',
+    headers
+  });
+
+  const result = await response.json();
+
+  if (!result.success) {
+    throw new ProposalApiError(
+      result.error || 'Failed to get event status',
+      result.code || 'EVENT_STATUS_ERROR',
+      response.status
+    );
+  }
+
+  return result;
+}

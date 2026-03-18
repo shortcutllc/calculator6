@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Eye, CheckCircle, XCircle, Calendar, MapPin, User, Mail, DollarSign, AlertCircle, ArrowRight, FileText } from 'lucide-react';
+import { X, ExternalLink, Eye, CheckCircle, XCircle, Calendar, MapPin, User, Mail, DollarSign, AlertCircle, ArrowRight, FileText, Zap } from 'lucide-react';
 import { Proposal, ProposalData } from '../types/proposal';
 import { format, parseISO } from 'date-fns';
 import { trackProposalChanges, getChangeDisplayInfo } from '../utils/changeTracker';
 import { Button } from './Button';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
+import CreateEventModal from './CreateEventModal';
 
 interface ChangeReviewModalProps {
   isOpen: boolean;
@@ -21,7 +22,11 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
   proposalData,
   surveyResponse
 }) => {
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+
   if (!isOpen || !proposalData) return null;
+
+  const hasCoordinatorEvents = proposalData.coordinatorEvents && proposalData.coordinatorEvents.length > 0;
 
   const getProposalViewerUrl = () => {
     return `/proposal/${proposalId}`;
@@ -335,31 +340,61 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-neutral-light-gray flex-shrink-0">
-          <Button
-            onClick={onClose}
-            variant="secondary"
-          >
-            Close
-          </Button>
-          
-          <Button
-            onClick={() => window.open(getProposalViewerUrl(), '_blank', 'noopener,noreferrer')}
-            variant="primary"
-            icon={<Eye className="w-4 h-4" />}
-          >
-            View Proposal
-          </Button>
-          
-          <Button
-            onClick={() => window.open(getStandaloneViewerUrl(), '_blank', 'noopener,noreferrer')}
-            variant="green"
-            icon={<ExternalLink className="w-4 h-4" />}
-          >
-            View Standalone
-          </Button>
+        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-neutral-light-gray flex-shrink-0">
+          <div className="flex items-center gap-2">
+            {/* Create Event Button */}
+            {proposalData.status === 'approved' && !hasCoordinatorEvents && (
+              <Button
+                onClick={() => setShowCreateEventModal(true)}
+                variant="primary"
+                icon={<Zap className="w-4 h-4" />}
+              >
+                Create Event
+              </Button>
+            )}
+            {hasCoordinatorEvents && (
+              <span className="flex items-center gap-1.5 text-sm font-medium text-green-600">
+                <CheckCircle className="w-4 h-4" />
+                {proposalData.coordinatorEvents!.length} Event(s) Created
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <Button
+              onClick={onClose}
+              variant="secondary"
+            >
+              Close
+            </Button>
+
+            <Button
+              onClick={() => window.open(getProposalViewerUrl(), '_blank', 'noopener,noreferrer')}
+              variant="primary"
+              icon={<Eye className="w-4 h-4" />}
+            >
+              View Proposal
+            </Button>
+
+            <Button
+              onClick={() => window.open(getStandaloneViewerUrl(), '_blank', 'noopener,noreferrer')}
+              variant="green"
+              icon={<ExternalLink className="w-4 h-4" />}
+            >
+              View Standalone
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Create Event Modal */}
+      <CreateEventModal
+        isOpen={showCreateEventModal}
+        onClose={() => setShowCreateEventModal(false)}
+        proposal={proposalData}
+        proposalId={proposalId}
+        surveyResponse={surveyResponse}
+      />
     </div>
   );
 };

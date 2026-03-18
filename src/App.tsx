@@ -19,6 +19,7 @@ import { ProposalProvider } from './contexts/ProposalContext';
 import { HolidayPageProvider } from './contexts/HolidayPageContext';
 import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
 import { QRCodeSignProvider } from './contexts/QRCodeSignContext';
+import { SignUpLinkProvider } from './contexts/SignUpLinkContext';
 import { ClientEmailProvider } from './contexts/ClientEmailContext';
 import { InvoiceProvider } from './contexts/InvoiceContext';
 import { ProAgreementProvider } from './contexts/ProAgreementContext';
@@ -38,6 +39,7 @@ const HolidayPageManager = lazy(() => import('./components/HolidayPageManager'))
 const SocialMediaProposal = lazy(() => import('./components/SocialMediaProposal'));
 const SocialMediaPageManager = lazy(() => import('./components/SocialMediaPageManager'));
 const QRCodeSignManager = lazy(() => import('./components/QRCodeSignManager'));
+const SignUpLinkManager = lazy(() => import('./components/SignUpLinkManager'));
 const QRCodeSignDisplay = lazy(() => import('./components/QRCodeSignDisplay'));
 const MindfulnessProgramManager = lazy(() => import('./components/MindfulnessProgramManager'));
 const GenericLandingPageManager = lazy(() => import('./components/GenericLandingPageManager'));
@@ -367,6 +369,23 @@ function App() {
                         <QRCodeSignManager />
                       </Suspense>
                     </QRCodeSignProvider>
+                  </PrivateRoute>
+                }
+              />
+              {/* Sign-Up Links Routes */}
+              <Route
+                path="/sign-up-links"
+                element={
+                  <PrivateRoute>
+                    <SignUpLinkProvider>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <SignUpLinkManager />
+                      </Suspense>
+                    </SignUpLinkProvider>
                   </PrivateRoute>
                 }
               />
