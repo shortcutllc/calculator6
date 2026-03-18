@@ -187,6 +187,13 @@ Dynamic routing for clean client-facing URLs:
 - Always kill dev servers before building or deploying — CPU/memory contention causes hangs.
 - **Git push:** SSH pushes may take 30+ seconds under memory pressure. Do not use default timeouts — use at least 120s.
 
+## Dev server won't start (no logs, no port listening)
+If `preview_start` reports success but nothing is listening and there are zero logs:
+1. **Don't keep retrying `preview_start` with config changes.** The launch.json config is fine.
+2. **Check `node_modules` first** — this is almost always corrupted node_modules.
+3. **Fix:** `source ~/.nvm/nvm.sh && rm -rf node_modules && npm install`, then `preview_start` again.
+4. The symptom is vite silently dying with no stdout/stderr at all.
+
 ---
 
 # Bash Guidelines

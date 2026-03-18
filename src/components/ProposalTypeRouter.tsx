@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { StandaloneProposalViewer } from './StandaloneProposalViewer';
@@ -7,15 +7,13 @@ import { StandaloneMindfulnessProposalViewer } from './StandaloneMindfulnessProp
 import ProposalViewer from './ProposalViewer';
 import MindfulnessProposalViewer from './MindfulnessProposalViewer';
 import { useAuth } from '../contexts/AuthContext';
-import { isMasterAccount } from '../utils/isMasterAccount';
 
 /**
  * Router component that checks proposal type and renders the appropriate viewer
- * Routes to admin view (ProposalViewer) if user is the owner OR is an admin/master account, otherwise to client view
+ * Routes to admin view (ProposalViewer) for all authenticated users, otherwise to client view
  */
 export const ProposalTypeRouter: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -53,16 +51,8 @@ export const ProposalTypeRouter: React.FC = () => {
 
         setProposalType(isMindfulness ? 'mindfulness-program' : 'event');
 
-        // Check if current user is the owner OR is an admin/master account (only if not a shared view)
-        if (!isSharedView && user) {
-          const { data: { user: currentUser } } = await supabase.auth.getUser();
-          const isOwner = currentUser?.id === data.user_id;
-          const isAdmin = isMasterAccount(currentUser);
-          // Show admin view if user is owner OR is admin/master account
-          setIsOwner(isOwner || isAdmin);
-        } else {
-          setIsOwner(false);
-        }
+        // All authenticated users get the admin view (non-shared only)
+        setIsOwner(!isSharedView && !!user);
       } catch (err) {
         console.error('Error checking proposal type:', err);
         setError(err instanceof Error ? err.message : 'Failed to load proposal');
