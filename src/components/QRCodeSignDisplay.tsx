@@ -20,6 +20,19 @@ const CARD_COLORS: Record<ServiceType, { bg: string; text: string }> = {
   'facial': { bg: '#FF5050', text: '#FFFFFF' },
 };
 
+/**
+ * Background colors for the hero image container — matched to each service PNG's
+ * baked-in background so the container fills seamlessly with no gaps.
+ */
+const HERO_BG_COLORS: Record<ServiceType, string> = {
+  'massage': '#9efaff',
+  'hair-beauty': '#fedc64',
+  'nails': '#f7bbff',
+  'headshot': '#9efaff',
+  'mindfulness': '#fedc64',
+  'facial': '#f7bbff',
+};
+
 /** Scale factor: Figma phone is 258px wide, we render at 140px on the sign */
 const PHONE_SCALE = 140 / 258;
 
@@ -381,7 +394,7 @@ const QRCodeSignDisplay: React.FC = () => {
                     />
                   )}
                 </div>
-                <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, wordBreak: 'break-word' }}>
                   <span style={{ fontWeight: 700 }}>Service Type: </span>
                   <span style={{ fontWeight: 400 }}>{eventInfo.serviceType || serviceDisplayName}</span>
                 </p>
@@ -397,7 +410,7 @@ const QRCodeSignDisplay: React.FC = () => {
                       style={{ width: '36px', height: '36px', objectFit: 'contain' }}
                     />
                   </div>
-                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, wordBreak: 'break-word' }}>
                     <span style={{ fontWeight: 700 }}>Event Date: </span>
                     <span style={{ fontWeight: 400 }}>{eventInfo.date}</span>
                   </p>
@@ -414,7 +427,7 @@ const QRCodeSignDisplay: React.FC = () => {
                       style={{ width: '36px', height: '36px', objectFit: 'contain' }}
                     />
                   </div>
-                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, wordBreak: 'break-word' }}>
                     <span style={{ fontWeight: 700 }}>Event Time: </span>
                     <span style={{ fontWeight: 400 }}>{eventInfo.time}</span>
                   </p>
@@ -431,7 +444,7 @@ const QRCodeSignDisplay: React.FC = () => {
                       style={{ width: '36px', height: '36px', objectFit: 'contain' }}
                     />
                   </div>
-                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '22px', color: '#003c5e', lineHeight: 1.2, letterSpacing: '-0.44px', margin: 0, wordBreak: 'break-word' }}>
                     <span style={{ fontWeight: 700 }}>Location: </span>
                     <span style={{ fontWeight: 400 }}>{eventInfo.location}</span>
                   </p>
@@ -450,7 +463,7 @@ const QRCodeSignDisplay: React.FC = () => {
               transform: 'translateY(-50%)',
               width: '203px',
               height: '209px',
-              backgroundColor: '#9EFAFF',
+              backgroundColor: HERO_BG_COLORS[primaryServiceType] || '#9EFAFF',
               borderRadius: '16px',
               overflow: 'hidden',
               boxShadow: '0 2px 2px rgba(0,0,0,0.25)',
