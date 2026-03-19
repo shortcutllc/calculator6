@@ -13,6 +13,126 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+// --- Parse Auth (session-level cache) ---
+
+let cachedSessionToken = null;
+
+async function parseLogin() {
+  const { PARSE_SERVER_URL, PARSE_APP_ID, PARSE_ADMIN_USERNAME, PARSE_ADMIN_PASSWORD } = process.env;
+
+  if (!PARSE_SERVER_URL || !PARSE_APP_ID || !PARSE_ADMIN_USERNAME || !PARSE_ADMIN_PASSWORD) {
+    throw { statusCode: 500, message: 'Parse configuration missing', code: 'PARSE_CONFIG_ERROR' };
+  }
+
+  const res = await fetch(`${PARSE_SERVER_URL}/login`, {
+    method: 'POST',
+    headers: {
+      'X-Parse-Application-Id': PARSE_APP_ID,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      username: PARSE_ADMIN_USERNAME,
+      password: PARSE_ADMIN_PASSWORD,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error('Parse login failed:', res.status, err);
+    throw { statusCode: 502, message: `Parse login failed: ${err.error || res.statusText}`, code: 'PARSE_LOGIN_FAILED' };
+  }
+
+  const data = await res.json();
+  cachedSessionToken = data.sessionToken;
+  return cachedSessionToken;
+}
+
+async function getSessionToken() {
+  if (cachedSessionToken) return cachedSessionToken;
+  return parseLogin();
+}
+
+async function callAddEvent(payload) {
+  const { PARSE_SERVER_URL, PARSE_APP_ID } = process.env;
+  const token = await getSessionToken();
+
+  console.log('addEvent payload:', JSON.stringify(payload, null, 2));
+
+  const res = await fetch(`${PARSE_SERVER_URL}/functions/addEvent`, {
+    method: 'POST',
+    headers: {
+      'X-Parse-Application-Id': PARSE_APP_ID,
+      'X-Parse-Session-Token': token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await res.text();
+  console.log('addEvent response status:', res.status, 'body:', responseText);
+
+  let responseBody;
+  try { responseBody = JSON.parse(responseText); } catch { responseBody = { error: responseText }; }
+
+  // Handle expired session — re-auth and retry once
+  if (res.status === 209 || res.status === 401) {
+    const isSessionError = responseBody.code === 209 || responseBody.error?.toLowerCase().includes('invalid session');
+    if (isSessionError) {
+      console.warn('Parse session expired, re-authenticating...');
+      cachedSessionToken = null;
+      const newToken = await parseLogin();
+
+      const retryRes = await fetch(`${PARSE_SERVER_URL}/functions/addEvent`, {
+        method: 'POST',
+        headers: {
+          'X-Parse-Application-Id': PARSE_APP_ID,
+          'X-Parse-Session-Token': newToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!retryRes.ok) {
+        const retryErr = await retryRes.json().catch(() => ({}));
+        throw { statusCode: 502, message: `Parse addEvent failed after re-auth: ${retryErr.error || retryRes.statusText}`, code: 'PARSE_ADD_EVENT_FAILED' };
+      }
+
+      return retryRes.json();
+    }
+  }
+
+  if (!res.ok) {
+    throw { statusCode: 502, message: `Parse addEvent failed: ${responseBody.error || res.statusText}`, code: 'PARSE_ADD_EVENT_FAILED' };
+  }
+
+  return responseBody;
+}
+
+// --- Timezone helpers ---
+
+const PACIFIC_STATES = ['CA', 'WA', 'OR', 'NV'];
+const MOUNTAIN_STATES = ['CO', 'AZ', 'UT', 'MT', 'WY', 'NM', 'ID'];
+const CENTRAL_STATES = ['IL', 'TX', 'MN', 'WI', 'IA', 'MO', 'AR', 'LA', 'MS', 'AL', 'TN', 'KY', 'IN', 'KS', 'NE', 'SD', 'ND', 'OK'];
+
+function getTimezoneOffset(state) {
+  // Coordinator expects positive minutes from UTC (e.g. EST=300, CST=360, MST=420, PST=480)
+  if (!state) return 300;
+  const s = state.toUpperCase().trim();
+  if (PACIFIC_STATES.includes(s)) return 480;
+  if (MOUNTAIN_STATES.includes(s)) return 420;
+  if (CENTRAL_STATES.includes(s)) return 360;
+  return 300; // Eastern default
+}
+
+function getTimezoneAbbreviation(state) {
+  if (!state) return 'EST';
+  const s = state.toUpperCase().trim();
+  if (PACIFIC_STATES.includes(s)) return 'PST';
+  if (MOUNTAIN_STATES.includes(s)) return 'MST';
+  if (CENTRAL_STATES.includes(s)) return 'CST';
+  return 'EST';
+}
+
 // --- CORS ---
 
 const CORS_HEADERS = {
@@ -102,15 +222,7 @@ function transformToCoordinatorPayload(eventForm) {
       .map(s => ({
         id: s.coordinatorServiceId,
         serviceTitle: s.coordinatorServiceTitle,
-        price: s.price || undefined,
       })),
-
-    // Service categories — derived from service type mapping
-    serviceCategories: [...new Set(
-      (eventForm.services || [])
-        .filter(s => s.coordinatorServiceType)
-        .map(s => s.coordinatorServiceType)
-    )],
 
     // Timing
     startTime: startDateTime.toISOString(),
@@ -118,8 +230,9 @@ function transformToCoordinatorPayload(eventForm) {
     lengthPerService: eventForm.lengthPerService,
     signupsPerTimeslot: eventForm.signupsPerTimeslot || 1,
 
-    // Financial (optional)
-    taxRate: eventForm.taxRate ? parseFloat(eventForm.taxRate) : undefined,
+    // Timezone — derive from address state or default to Eastern
+    timezoneOffset: eventForm.timezoneOffset || getTimezoneOffset(eventForm.address?.state),
+    timezoneAbbreviation: eventForm.timezoneAbbreviation || getTimezoneAbbreviation(eventForm.address?.state),
 
     // Settings
     isSecret: eventForm.isSecret || false,
@@ -130,16 +243,18 @@ function transformToCoordinatorPayload(eventForm) {
     isTestEvent: eventForm.isTestEvent || false,
     isOutbound: false,
 
-    // Optional fields
+    // Optional fields — match coordinator's exact field names
     legacyName: eventForm.legacyName || undefined,
-    eventLinkURL: eventForm.eventLinkURL || undefined,
+    eventLinkURL: eventForm.eventLinkURL || null,
     sponsorName: eventForm.sponsorName || undefined,
-    managerPassword: eventForm.managerPassword || undefined,
-    staffNotes: eventForm.staffNotes || undefined,
-    adminNotes: eventForm.adminNotes || undefined,
+    managerPassword: eventForm.managerPassword || null,
+    staffNotes: eventForm.staffNotes || '',
+    adminNotes: eventForm.adminNotes || '',
+    delayUntilSpecificDayBefore: null,
+    delayUntilNumDaysBefore: null,
 
-    // Logo URL from proposal (Parse cloud function will download and save via Parse Files)
-    clientLogoUrl: eventForm.clientLogoUrl || undefined,
+    // Logo URL (coordinator expects 'logo' field)
+    logo: eventForm.clientLogoUrl || undefined,
   };
 }
 
@@ -175,30 +290,45 @@ async function handleCreateEvents(event, user, supabase) {
 
     const payload = transformToCoordinatorPayload(eventForm);
 
-    // TODO: Call Parse Cloud Function to create each event
-    // When Parse is plugged in, replace this block:
-    //
-    // const parseResponse = await fetch(process.env.PARSE_SERVER_URL + '/functions/addEvent', {
-    //   method: 'POST',
-    //   headers: {
-    //     'X-Parse-Application-Id': process.env.PARSE_APP_ID,
-    //     'X-Parse-REST-API-Key': process.env.PARSE_REST_API_KEY,
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify(payload)
-    // });
-    // const parseResult = await parseResponse.json();
-    //
-    // For now, store the payload as pending:
-    createdEvents.push({
-      date: eventForm.eventDate,
-      location: eventForm.locationName,
-      eventName: eventForm.name,
-      status: 'pending_parse_integration',
-      coordinatorEventId: null,
-      payload,
-      createdAt: new Date().toISOString()
-    });
+    try {
+      const parseResult = await callAddEvent(payload);
+      const eventId = parseResult?.result?.id || parseResult?.result?.objectId;
+
+      if (!eventId) {
+        console.error('Parse addEvent returned no event ID:', parseResult);
+        createdEvents.push({
+          date: eventForm.eventDate,
+          location: eventForm.locationName,
+          eventName: eventForm.name,
+          status: 'error',
+          coordinatorEventId: null,
+          error: 'No event ID returned from coordinator',
+          createdAt: new Date().toISOString()
+        });
+        continue;
+      }
+
+      createdEvents.push({
+        date: eventForm.eventDate,
+        location: eventForm.locationName,
+        eventName: eventForm.name,
+        status: 'created',
+        coordinatorEventId: eventId,
+        signupUrl: `https://admin.shortcutpros.com/#/signup/${eventId}`,
+        createdAt: new Date().toISOString()
+      });
+    } catch (parseErr) {
+      console.error(`Failed to create event "${eventForm.name}":`, parseErr);
+      createdEvents.push({
+        date: eventForm.eventDate,
+        location: eventForm.locationName,
+        eventName: eventForm.name,
+        status: 'error',
+        coordinatorEventId: null,
+        error: parseErr.message || 'Failed to create event on coordinator',
+        createdAt: new Date().toISOString()
+      });
+    }
   }
 
   if (!createdEvents.length) {
@@ -215,6 +345,8 @@ async function handleCreateEvents(event, user, supabase) {
         eventName: e.eventName,
         status: e.status,
         coordinatorEventId: e.coordinatorEventId,
+        signupUrl: e.signupUrl || null,
+        error: e.error || null,
         createdAt: e.createdAt
       }))
     })

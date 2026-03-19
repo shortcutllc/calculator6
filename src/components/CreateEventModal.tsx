@@ -348,7 +348,7 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
         // Optional fields
         legacyName: '',
         eventLinkURL: '',
-        sponsorName: '',
+        sponsorName: totalPayment <= 0 ? clientName : '',
         overrideNameCheck: false,
         isTestEvent: false,
         isSecret: false,
@@ -389,7 +389,9 @@ function validateEvents(events: EventFormData[]): ValidationIssue[] {
     if (evt.services.some(s => !s.coordinatorServiceId)) {
       issues.push({ eventIndex: i, field: 'services', message: 'Service selection incomplete' });
     }
-    if (evt.payment <= 0) issues.push({ eventIndex: i, field: 'payment', message: 'Payment required' });
+    if (evt.payment <= 0 && !evt.sponsorName.trim()) {
+      issues.push({ eventIndex: i, field: 'sponsorName', message: 'Sponsor name required for free events' });
+    }
   });
   return issues;
 }
@@ -828,12 +830,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-shortcut-blue mb-1">Event Sponsor (if free)</label>
+                          <label className="block text-xs font-bold text-shortcut-blue mb-1">
+                            Event Sponsor {evt.payment <= 0 && <span className="text-red-500">*</span>}
+                          </label>
                           <input
                             value={evt.sponsorName}
                             onChange={(e) => updateEvent(eventIndex, { sponsorName: e.target.value })}
-                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal"
-                            placeholder="Optional"
+                            className={inputClass(eventIndex, 'sponsorName')}
+                            placeholder={evt.payment <= 0 ? 'Required for free events' : 'Optional'}
                           />
                         </div>
                       </div>
