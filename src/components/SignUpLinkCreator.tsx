@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Search, CheckCircle, Calendar, MapPin, DollarSign } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle, Calendar, MapPin, DollarSign, Link2 } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useSignUpLinks } from '../contexts/SignUpLinkContext';
 import { Proposal } from '../types/proposal';
@@ -12,11 +12,22 @@ interface SignUpLinkCreatorProps {
 
 const SignUpLinkCreator: React.FC<SignUpLinkCreatorProps> = ({ onClose, onCreated }) => {
   const { proposals } = useProposal();
-  const { createSignUpLink } = useSignUpLinks();
+  const { signUpLinks, createSignUpLink } = useSignUpLinks();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved'>('approved');
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
+
+  // Build a set of proposal IDs that already have signup links
+  const proposalsWithLinks = useMemo(() => {
+    const linkMap = new Map<string, number>();
+    for (const link of signUpLinks) {
+      if (link.proposalId) {
+        linkMap.set(link.proposalId, (linkMap.get(link.proposalId) || 0) + 1);
+      }
+    }
+    return linkMap;
+  }, [signUpLinks]);
 
   const filteredProposals = useMemo(() => {
     return proposals
@@ -161,6 +172,12 @@ const SignUpLinkCreator: React.FC<SignUpLinkCreatorProps> = ({ onClose, onCreate
                       }`}>
                         {proposal.status}
                       </span>
+                      {proposalsWithLinks.has(proposal.id) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-700">
+                          <Link2 className="w-3 h-3" />
+                          {proposalsWithLinks.get(proposal.id)} link{proposalsWithLinks.get(proposal.id)! > 1 ? 's' : ''}
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
                       {proposal.data.eventDates?.length > 0 && (
