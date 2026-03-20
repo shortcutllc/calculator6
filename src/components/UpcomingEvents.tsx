@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   RefreshCw, Calendar, MapPin, Clock, Users, ExternalLink,
-  Search, ChevronDown, ChevronUp, AlertCircle, CheckCircle,
-  XCircle, Filter, Eye, EyeOff
+  Search, ChevronDown, ChevronUp, AlertCircle,
+  Eye, EyeOff, CalendarCheck
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -110,8 +110,8 @@ function formatAddress(address: CoordinatorEventAddress | null, locationDesc: st
 
 function getFillColor(pct: number): string {
   if (pct >= 90) return 'bg-green-500';
-  if (pct >= 50) return 'bg-blue-500';
-  if (pct >= 25) return 'bg-yellow-500';
+  if (pct >= 50) return 'bg-shortcut-teal';
+  if (pct >= 25) return 'bg-shortcut-service-yellow';
   return 'bg-gray-300';
 }
 
@@ -127,8 +127,8 @@ function formatProType(proType: string | null, hairProType: string | null): stri
 function getProTypeBadgeClass(proType: string | null): string {
   switch (proType?.toLowerCase()) {
     case 'massage': return 'bg-blue-100 text-blue-700';
-    case 'hair': return 'bg-purple-100 text-purple-700';
-    case 'nails': return 'bg-pink-100 text-pink-700';
+    case 'hair': return 'bg-shortcut-service-yellow/30 text-[#09364f]';
+    case 'nails': return 'bg-shortcut-pink/30 text-[#09364f]';
     case 'makeup': return 'bg-rose-100 text-rose-700';
     default: return 'bg-gray-100 text-gray-600';
   }
@@ -240,13 +240,21 @@ const UpcomingEvents: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Upcoming Events</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-3xl font-extrabold text-shortcut-navy-blue flex items-center gap-3">
+            <CalendarCheck size={28} />
+            Upcoming Events
+            {events.length > 0 && (
+              <span className="text-base font-medium bg-shortcut-teal/20 text-[#09364f] px-3 py-1 rounded-full">
+                {events.length}
+              </span>
+            )}
+          </h1>
+          <p className="text-text-dark-60 mt-1">
             Events synced from Shortcut Coordinator
             {lastSynced && (
-              <span className="ml-2">
+              <span className="ml-1">
                 — last synced {formatDistanceToNow(new Date(lastSynced), { addSuffix: true })}
               </span>
             )}
@@ -255,7 +263,7 @@ const UpcomingEvents: React.FC = () => {
         <button
           onClick={fetchEvents}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A7B7D] text-white rounded-lg hover:bg-[#3d6566] disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#9EFAFF] text-[#09364f] font-bold text-sm rounded-full hover:bg-[#FEDC64] disabled:opacity-50 transition-colors"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           {loading ? 'Syncing...' : 'Sync Now'}
@@ -263,66 +271,71 @@ const UpcomingEvents: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Upcoming</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <p className="text-sm text-text-dark-60">Upcoming</p>
+          <p className="text-2xl font-extrabold text-[#09364f]">{stats.total}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">This Week</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.thisWeek}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <p className="text-sm text-text-dark-60">This Week</p>
+          <p className="text-2xl font-extrabold text-[#09364f]">{stats.thisWeek}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Need Pros</p>
-          <p className="text-2xl font-bold text-orange-600">{stats.needsPros}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <p className="text-sm text-text-dark-60">Need Pros</p>
+          <p className="text-2xl font-extrabold text-shortcut-coral">{stats.needsPros}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Avg Fill Rate</p>
-          <p className="text-2xl font-bold text-green-600">{stats.avgFill}%</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <p className="text-sm text-text-dark-60">Avg Fill Rate</p>
+          <p className="text-2xl font-extrabold text-green-600">{stats.avgFill}%</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search events..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#4A7B7D] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#4A7B7D]"
-        >
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-        <button
-          onClick={() => setShowTestEvents(!showTestEvents)}
-          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border transition-colors ${
-            showTestEvents
-              ? 'bg-gray-100 border-gray-400 text-gray-700'
-              : 'border-gray-300 text-gray-500 hover:bg-gray-50'
-          }`}
-        >
-          {showTestEvents ? <Eye size={14} /> : <EyeOff size={14} />}
-          Test Events
-        </button>
+        <div className="flex items-center gap-2">
+          {['all', 'pending', 'confirmed', 'cancelled'].map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
+                statusFilter === s
+                  ? 'bg-[#09364f] text-white'
+                  : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowTestEvents(!showTestEvents)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
+              showTestEvents
+                ? 'bg-[#09364f] text-white'
+                : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {showTestEvents ? <Eye size={14} /> : <EyeOff size={14} />}
+            Test
+          </button>
+        </div>
       </div>
 
       {/* Error State */}
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700">
           <AlertCircle size={16} />
           <span className="text-sm">{error}</span>
-          <button onClick={fetchEvents} className="ml-auto text-sm underline hover:no-underline">
+          <button onClick={fetchEvents} className="ml-auto text-sm font-bold underline hover:no-underline">
             Retry
           </button>
         </div>
@@ -331,17 +344,17 @@ const UpcomingEvents: React.FC = () => {
       {/* Loading State */}
       {loading && events.length === 0 && (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw size={24} className="animate-spin text-gray-400 mr-3" />
-          <span className="text-gray-500">Loading events from Coordinator...</span>
+          <RefreshCw size={24} className="animate-spin text-text-dark-60 mr-3" />
+          <span className="text-text-dark-60">Loading events from Coordinator...</span>
         </div>
       )}
 
-      {/* Events List */}
+      {/* Empty State */}
       {!loading && filteredEvents.length === 0 && (
-        <div className="text-center py-20 text-gray-500">
+        <div className="text-center py-20">
           <Calendar size={40} className="mx-auto mb-3 text-gray-300" />
-          <p className="text-lg font-medium">No events found</p>
-          <p className="text-sm">
+          <p className="text-lg font-extrabold text-[#09364f]">No events found</p>
+          <p className="text-sm text-text-dark-60 mt-1">
             {searchTerm || statusFilter !== 'all'
               ? 'Try adjusting your filters'
               : 'Click Sync Now to fetch events from Coordinator'}
@@ -349,6 +362,7 @@ const UpcomingEvents: React.FC = () => {
         </div>
       )}
 
+      {/* Events List */}
       <div className="space-y-3">
         {filteredEvents.map(evt => {
           const isExpanded = expandedId === evt.coordinatorEventId;
@@ -358,47 +372,47 @@ const UpcomingEvents: React.FC = () => {
           return (
             <div
               key={evt.coordinatorEventId}
-              className={`bg-white rounded-lg border border-gray-200 overflow-hidden transition-shadow hover:shadow-md ${
+              className={`bg-white rounded-xl border border-gray-200 overflow-hidden transition-shadow hover:shadow-md ${
                 isCancelled ? 'opacity-60' : ''
               }`}
             >
               {/* Main Row */}
               <div
-                className="flex items-center gap-4 px-4 py-3 cursor-pointer"
+                className="flex items-center gap-4 px-5 py-4 cursor-pointer"
                 onClick={() => setExpandedId(isExpanded ? null : evt.coordinatorEventId)}
               >
                 {/* Date Column */}
                 <div className="flex-shrink-0 w-20 text-center">
                   {evt.startTime ? (
                     <>
-                      <p className="text-xs font-medium text-gray-500 uppercase">
+                      <p className="text-xs font-bold text-text-dark-60 uppercase">
                         {format(new Date(evt.startTime), 'EEE')}
                       </p>
-                      <p className="text-lg font-bold text-gray-900">
+                      <p className="text-lg font-extrabold text-[#09364f]">
                         {format(new Date(evt.startTime), 'MMM d')}
                       </p>
                     </>
                   ) : (
-                    <p className="text-sm text-gray-400">TBD</p>
+                    <p className="text-sm text-text-dark-60">TBD</p>
                   )}
                 </div>
 
                 {/* Event Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className={`font-semibold text-gray-900 truncate ${isCancelled ? 'line-through' : ''}`}>
+                    <h3 className={`font-extrabold text-[#09364f] text-lg truncate ${isCancelled ? 'line-through' : ''}`}>
                       {evt.name}
                     </h3>
-                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${statusBadge.className}`}>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full ${statusBadge.className}`}>
                       {statusBadge.label}
                     </span>
                     {evt.isTestEvent && (
-                      <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
+                      <span className="inline-flex px-2.5 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-700">
                         TEST
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-1 text-sm text-text-dark-60">
                     <span className="flex items-center gap-1">
                       <Clock size={13} />
                       {formatEventTime(evt.startTime, evt.endTime, evt.timezoneAbbreviation)}
@@ -412,9 +426,9 @@ const UpcomingEvents: React.FC = () => {
 
                 {/* Fill Rate */}
                 <div className="flex-shrink-0 w-32 hidden md:block">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <div className="flex items-center justify-between text-xs text-text-dark-60 mb-1">
                     <span>Signups</span>
-                    <span>{evt.filledSlots}/{evt.totalSlots}</span>
+                    <span className="font-bold">{evt.filledSlots}/{evt.totalSlots}</span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-2">
                     <div
@@ -426,48 +440,48 @@ const UpcomingEvents: React.FC = () => {
 
                 {/* Pro Staffing */}
                 <div className="flex-shrink-0 hidden md:flex items-center gap-1.5 text-sm">
-                  <Users size={14} className="text-gray-400" />
-                  <span className={evt.openProSpots > 0 ? 'text-orange-600 font-medium' : 'text-green-600'}>
+                  <Users size={14} className="text-text-dark-60" />
+                  <span className={`font-bold ${evt.openProSpots > 0 ? 'text-shortcut-coral' : 'text-green-600'}`}>
                     {evt.prosRequired - evt.openProSpots}/{evt.prosRequired}
                   </span>
                 </div>
 
                 {/* Expand Toggle */}
                 <div className="flex-shrink-0">
-                  {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                  {isExpanded ? <ChevronUp size={16} className="text-text-dark-60" /> : <ChevronDown size={16} className="text-text-dark-60" />}
                 </div>
               </div>
 
               {/* Expanded Detail */}
               {isExpanded && (
-                <div className="border-t border-gray-100 px-4 py-4 bg-gray-50">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="border-t border-gray-100 px-5 py-5 bg-gray-50">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Column 1: Event Details */}
                     <div className="space-y-3">
-                      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Event Details</h4>
+                      <h4 className="text-xs font-bold text-text-dark-60 uppercase tracking-wider">Event Details</h4>
                       <div className="text-sm space-y-2">
                         <div>
-                          <span className="text-gray-500">Date:</span>{' '}
-                          <span className="text-gray-900">{formatEventDate(evt.startTime)}</span>
+                          <span className="text-text-dark-60">Date:</span>{' '}
+                          <span className="text-text-dark font-medium">{formatEventDate(evt.startTime)}</span>
                         </div>
                         <div>
-                          <span className="text-gray-500">Time:</span>{' '}
-                          <span className="text-gray-900">{formatEventTime(evt.startTime, evt.endTime, evt.timezoneAbbreviation)}</span>
+                          <span className="text-text-dark-60">Time:</span>{' '}
+                          <span className="text-text-dark font-medium">{formatEventTime(evt.startTime, evt.endTime, evt.timezoneAbbreviation)}</span>
                         </div>
                         <div>
-                          <span className="text-gray-500">Address:</span>{' '}
-                          <span className="text-gray-900">{formatAddress(evt.address, evt.locationDescription)}</span>
+                          <span className="text-text-dark-60">Address:</span>{' '}
+                          <span className="text-text-dark font-medium">{formatAddress(evt.address, evt.locationDescription)}</span>
                         </div>
                         {evt.contactName && (
                           <div>
-                            <span className="text-gray-500">Contact:</span>{' '}
-                            <span className="text-gray-900">{evt.contactName}{evt.contactPhone ? ` — ${evt.contactPhone}` : ''}</span>
+                            <span className="text-text-dark-60">Contact:</span>{' '}
+                            <span className="text-text-dark font-medium">{evt.contactName}{evt.contactPhone ? ` — ${evt.contactPhone}` : ''}</span>
                           </div>
                         )}
                         {evt.sponsorName && (
                           <div>
-                            <span className="text-gray-500">Sponsor:</span>{' '}
-                            <span className="text-gray-900">{evt.sponsorName}</span>
+                            <span className="text-text-dark-60">Sponsor:</span>{' '}
+                            <span className="text-text-dark font-medium">{evt.sponsorName}</span>
                           </div>
                         )}
                       </div>
@@ -475,33 +489,33 @@ const UpcomingEvents: React.FC = () => {
 
                     {/* Column 2: Staffing & Services */}
                     <div className="space-y-3">
-                      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Staffing & Services</h4>
+                      <h4 className="text-xs font-bold text-text-dark-60 uppercase tracking-wider">Staffing & Services</h4>
                       <div className="text-sm space-y-2">
                         <div>
-                          <span className="text-gray-500">Signups:</span>{' '}
-                          <span className="text-gray-900">
+                          <span className="text-text-dark-60">Signups:</span>{' '}
+                          <span className="text-text-dark font-medium">
                             {evt.filledSlots} / {evt.totalSlots} ({evt.fillPercentage}%)
                             {evt.waitlistEntries > 0 && (
-                              <span className="text-orange-600 ml-1">+{evt.waitlistEntries} waitlisted</span>
+                              <span className="text-shortcut-coral ml-1">+{evt.waitlistEntries} waitlisted</span>
                             )}
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-500">Pros Needed:</span>{' '}
-                          <span className={evt.openProSpots > 0 ? 'text-orange-600 font-medium' : 'text-gray-900'}>
+                          <span className="text-text-dark-60">Pros Needed:</span>{' '}
+                          <span className={`font-medium ${evt.openProSpots > 0 ? 'text-shortcut-coral' : 'text-text-dark'}`}>
                             {evt.prosRequired - evt.openProSpots} assigned / {evt.prosRequired} needed
                             {evt.openProSpots > 0 && ` (${evt.openProSpots} open)`}
                           </span>
                         </div>
                         {evt.pros.length > 0 && (
                           <div>
-                            <span className="text-gray-500">Assigned Pros:</span>
+                            <span className="text-text-dark-60">Assigned Pros:</span>
                             <div className="mt-1 space-y-1">
                               {evt.pros.map((pro, idx) => (
                                 <div key={pro.id || idx} className="flex items-center gap-2">
-                                  <span className="text-gray-900">{pro.fullName}</span>
+                                  <span className="text-text-dark font-medium">{pro.fullName}</span>
                                   {pro.proType && (
-                                    <span className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded ${getProTypeBadgeClass(pro.proType)}`}>
+                                    <span className={`inline-flex px-1.5 py-0.5 text-xs font-bold rounded-full ${getProTypeBadgeClass(pro.proType)}`}>
                                       {formatProType(pro.proType, pro.hairProType)}
                                     </span>
                                   )}
@@ -512,14 +526,14 @@ const UpcomingEvents: React.FC = () => {
                         )}
                         {evt.proHourlyRate && (
                           <div>
-                            <span className="text-gray-500">Pro Rate:</span>{' '}
-                            <span className="text-gray-900">${evt.proHourlyRate}/hr</span>
+                            <span className="text-text-dark-60">Pro Rate:</span>{' '}
+                            <span className="text-text-dark font-medium">${evt.proHourlyRate}/hr</span>
                           </div>
                         )}
                         {evt.serviceOfferings.length > 0 && (
                           <div>
-                            <span className="text-gray-500">Services:</span>{' '}
-                            <span className="text-gray-900">
+                            <span className="text-text-dark-60">Services:</span>{' '}
+                            <span className="text-text-dark font-medium">
                               {evt.serviceOfferings.map(s => s.serviceTitle || 'Unknown').join(', ')}
                             </span>
                           </div>
@@ -529,18 +543,18 @@ const UpcomingEvents: React.FC = () => {
 
                     {/* Column 3: Notes & Links */}
                     <div className="space-y-3">
-                      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes & Links</h4>
+                      <h4 className="text-xs font-bold text-text-dark-60 uppercase tracking-wider">Notes & Links</h4>
                       <div className="text-sm space-y-2">
                         {evt.adminNotes && (
                           <div>
-                            <span className="text-gray-500">Admin Notes:</span>{' '}
-                            <span className="text-gray-900">{evt.adminNotes}</span>
+                            <span className="text-text-dark-60">Admin Notes:</span>{' '}
+                            <span className="text-text-dark">{evt.adminNotes}</span>
                           </div>
                         )}
                         {evt.staffNotes && (
                           <div>
-                            <span className="text-gray-500">Staff Notes:</span>{' '}
-                            <span className="text-gray-900">{evt.staffNotes}</span>
+                            <span className="text-text-dark-60">Staff Notes:</span>{' '}
+                            <span className="text-text-dark">{evt.staffNotes}</span>
                           </div>
                         )}
                         <div className="flex flex-wrap gap-2 pt-1">
@@ -549,7 +563,7 @@ const UpcomingEvents: React.FC = () => {
                               href={evt.signupUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#4A7B7D] text-white text-xs rounded hover:bg-[#3d6566] transition-colors"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#9EFAFF] text-[#09364f] text-xs font-semibold rounded-full hover:bg-[#FEDC64] transition-colors"
                               onClick={e => e.stopPropagation()}
                             >
                               <ExternalLink size={12} />
@@ -560,7 +574,7 @@ const UpcomingEvents: React.FC = () => {
                             href={`https://admin.shortcutpros.com/#/events/${evt.coordinatorEventId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-200 text-[#09364f] text-xs font-semibold rounded-full hover:bg-gray-300 transition-colors"
                             onClick={e => e.stopPropagation()}
                           >
                             <ExternalLink size={12} />
