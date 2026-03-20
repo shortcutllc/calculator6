@@ -142,7 +142,9 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
       setEventDate(formatDateAmerican(proposal.data.eventDates[0]));
     }
 
-    // Fetch and auto-populate signup links
+    // Fetch and auto-populate signup links (clear first so stale values don't persist)
+    setTestSignupLink('');
+    setBookingLink('');
     const links = await fetchSignupLinksForProposal(proposalId);
     if (links.length > 0) {
       const firstUrl = links[0].signupUrl;

@@ -175,11 +175,9 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
     // Auto-generate title
     const title = generateSignTitle(limitedTypes as ServiceType[], proposal.data.clientName);
 
-    // Fetch signup links to use as QR code URL
+    // Fetch signup links to use as QR code URL (only populate if signup link exists)
     const links = await fetchSignupLinksForProposal(proposalId);
-    const qrUrl = links.length > 0
-      ? links[0].signupUrl
-      : `${window.location.origin}/shared/${proposal.id}`;
+    const qrUrl = links.length > 0 ? links[0].signupUrl : '';
 
     // Auto-fill fields
     setOptions(prev => ({
