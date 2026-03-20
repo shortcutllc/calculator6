@@ -75,53 +75,67 @@ async function queryEvents(where, limit = 200) {
     'createdAt', 'updatedAt',
   ].join(',');
 
-  const params = new URLSearchParams({
-    where: JSON.stringify(where),
-    keys,
-    include: 'barberList',
-    limit: String(limit),
-    order: 'startTime',
-  });
+  async function doFetch(includeBarbers) {
+    const params = new URLSearchParams({
+      where: JSON.stringify(where),
+      keys,
+      limit: String(limit),
+      order: 'startTime',
+    });
+    if (includeBarbers) params.set('include', 'barberList');
 
-  const res = await fetch(`${PARSE_SERVER_URL}/classes/Event?${params}`, {
-    method: 'GET',
-    headers: {
-      'X-Parse-Application-Id': PARSE_APP_ID,
-      'X-Parse-Session-Token': token,
-      'Content-Type': 'application/json',
-    },
-  });
+    const tkn = await getSessionToken();
+    const res = await fetch(`${PARSE_SERVER_URL}/classes/Event?${params}`, {
+      method: 'GET',
+      headers: {
+        'X-Parse-Application-Id': PARSE_APP_ID,
+        'X-Parse-Session-Token': tkn,
+        'Content-Type': 'application/json',
+      },
+    });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
 
-    // Session expired — re-auth and retry once
-    if (err.code === 209) {
-      console.log('Parse session expired, re-authenticating...');
-      cachedSessionToken = null;
-      const newToken = await parseLogin();
+      // Session expired — re-auth and retry once
+      if (err.code === 209) {
+        console.log('Parse session expired, re-authenticating...');
+        cachedSessionToken = null;
+        const newToken = await parseLogin();
 
-      const retryRes = await fetch(`${PARSE_SERVER_URL}/classes/Event?${params}`, {
-        method: 'GET',
-        headers: {
-          'X-Parse-Application-Id': PARSE_APP_ID,
-          'X-Parse-Session-Token': newToken,
-          'Content-Type': 'application/json',
-        },
-      });
+        const retryRes = await fetch(`${PARSE_SERVER_URL}/classes/Event?${params}`, {
+          method: 'GET',
+          headers: {
+            'X-Parse-Application-Id': PARSE_APP_ID,
+            'X-Parse-Session-Token': newToken,
+            'Content-Type': 'application/json',
+          },
+        });
 
-      if (!retryRes.ok) {
-        const retryErr = await retryRes.json().catch(() => ({}));
-        throw { statusCode: 502, message: `Parse query failed after re-auth: ${retryErr.error || retryRes.statusText}` };
+        if (!retryRes.ok) {
+          const retryErr = await retryRes.json().catch(() => ({}));
+          throw { statusCode: 502, message: `Parse query failed after re-auth: ${retryErr.error || retryRes.statusText}` };
+        }
+
+        return retryRes.json();
       }
 
-      return retryRes.json();
+      throw { statusCode: res.status, message: err.error || res.statusText };
     }
 
-    throw { statusCode: 502, message: `Parse query failed: ${err.error || res.statusText}` };
+    return res.json();
   }
 
-  return res.json();
+  // Try with barberList included; if a deleted pro breaks the query, retry without
+  try {
+    return await doFetch(true);
+  } catch (err) {
+    if (err.message && err.message.includes('Object not found')) {
+      console.warn('barberList include failed (deleted pro pointer), retrying without include...');
+      return await doFetch(false);
+    }
+    throw err;
+  }
 }
 
 /**
