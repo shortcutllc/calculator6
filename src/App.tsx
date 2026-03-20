@@ -54,6 +54,7 @@ const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
+const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
 
 function App() {
   const location = useLocation();
@@ -369,6 +370,21 @@ function App() {
                         <QRCodeSignManager />
                       </Suspense>
                     </QRCodeSignProvider>
+                  </PrivateRoute>
+                }
+              />
+              {/* Upcoming Events */}
+              <Route
+                path="/upcoming-events"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <UpcomingEvents />
+                    </Suspense>
                   </PrivateRoute>
                 }
               />

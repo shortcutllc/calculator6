@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, Clock, Plus, Users, Handshake, Gift, Smartphone,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -33,6 +33,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Event Operations',
     items: [
+      { label: 'Upcoming Events', path: '/upcoming-events', icon: <CalendarCheck size={18} /> },
       { label: 'Client Emails', path: '/client-emails', icon: <Mail size={18} /> },
       { label: 'Agreements', path: '/pro-agreements', icon: <FileSignature size={18} /> },
       { label: 'QR Codes', path: '/qr-code-signs', icon: <QrCode size={18} /> },
