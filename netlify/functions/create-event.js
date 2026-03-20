@@ -114,23 +114,35 @@ const PACIFIC_STATES = ['CA', 'WA', 'OR', 'NV'];
 const MOUNTAIN_STATES = ['CO', 'AZ', 'UT', 'MT', 'WY', 'NM', 'ID'];
 const CENTRAL_STATES = ['IL', 'TX', 'MN', 'WI', 'IA', 'MO', 'AR', 'LA', 'MS', 'AL', 'TN', 'KY', 'IN', 'KS', 'NE', 'SD', 'ND', 'OK'];
 
-function getTimezoneOffset(state) {
-  // Coordinator expects positive minutes from UTC (e.g. EST=300, CST=360, MST=420, PST=480)
-  if (!state) return 300;
-  const s = state.toUpperCase().trim();
-  if (PACIFIC_STATES.includes(s)) return 480;
-  if (MOUNTAIN_STATES.includes(s)) return 420;
-  if (CENTRAL_STATES.includes(s)) return 360;
-  return 300; // Eastern default
+function isDST(date) {
+  // Check if a date falls in US daylight saving time
+  const d = date instanceof Date ? date : new Date();
+  const jan = new Date(d.getFullYear(), 0, 1).getTimezoneOffset();
+  const jul = new Date(d.getFullYear(), 6, 1).getTimezoneOffset();
+  return d.getTimezoneOffset() < Math.max(jan, jul);
 }
 
-function getTimezoneAbbreviation(state) {
-  if (!state) return 'EST';
+function getTimezoneOffset(state, eventDate) {
+  // Coordinator expects positive minutes from UTC
+  // DST-aware: EDT=240, CDT=300, MDT=360, PDT=420
+  // Standard:  EST=300, CST=360, MST=420, PST=480
+  const dst = isDST(eventDate ? new Date(eventDate) : new Date());
+  if (!state) return dst ? 240 : 300;
   const s = state.toUpperCase().trim();
-  if (PACIFIC_STATES.includes(s)) return 'PST';
-  if (MOUNTAIN_STATES.includes(s)) return 'MST';
-  if (CENTRAL_STATES.includes(s)) return 'CST';
-  return 'EST';
+  if (PACIFIC_STATES.includes(s)) return dst ? 420 : 480;
+  if (MOUNTAIN_STATES.includes(s)) return dst ? 360 : 420;
+  if (CENTRAL_STATES.includes(s)) return dst ? 300 : 360;
+  return dst ? 240 : 300; // Eastern default
+}
+
+function getTimezoneAbbreviation(state, eventDate) {
+  const dst = isDST(eventDate ? new Date(eventDate) : new Date());
+  if (!state) return dst ? 'EDT' : 'EST';
+  const s = state.toUpperCase().trim();
+  if (PACIFIC_STATES.includes(s)) return dst ? 'PDT' : 'PST';
+  if (MOUNTAIN_STATES.includes(s)) return dst ? 'MDT' : 'MST';
+  if (CENTRAL_STATES.includes(s)) return dst ? 'CDT' : 'CST';
+  return dst ? 'EDT' : 'EST';
 }
 
 // --- CORS ---
@@ -224,15 +236,15 @@ function transformToCoordinatorPayload(eventForm) {
         serviceTitle: s.coordinatorServiceTitle,
       })),
 
-    // Timing
-    startTime: startDateTime.toISOString(),
-    endTime: endDateTime.toISOString(),
+    // Timing — Parse Cloud Functions expect Date objects in {__type, iso} format
+    startTime: { __type: 'Date', iso: startDateTime.toISOString() },
+    endTime: { __type: 'Date', iso: endDateTime.toISOString() },
     lengthPerService: eventForm.lengthPerService,
     signupsPerTimeslot: eventForm.signupsPerTimeslot || 1,
 
-    // Timezone — derive from address state or default to Eastern
-    timezoneOffset: eventForm.timezoneOffset || getTimezoneOffset(eventForm.address?.state),
-    timezoneAbbreviation: eventForm.timezoneAbbreviation || getTimezoneAbbreviation(eventForm.address?.state),
+    // Timezone — derive from address state, DST-aware
+    timezoneOffset: eventForm.timezoneOffset || getTimezoneOffset(eventForm.address?.state, eventForm.eventDate),
+    timezoneAbbreviation: eventForm.timezoneAbbreviation || getTimezoneAbbreviation(eventForm.address?.state, eventForm.eventDate),
 
     // Settings
     isSecret: eventForm.isSecret || false,
@@ -244,7 +256,7 @@ function transformToCoordinatorPayload(eventForm) {
     isOutbound: false,
 
     // Optional fields — match coordinator's exact field names
-    legacyName: eventForm.legacyName || undefined,
+    legacyName: eventForm.legacyName || '',
     eventLinkURL: eventForm.eventLinkURL || null,
     sponsorName: eventForm.sponsorName || undefined,
     managerPassword: eventForm.managerPassword || null,
@@ -292,7 +304,10 @@ async function handleCreateEvents(event, user, supabase) {
 
     try {
       const parseResult = await callAddEvent(payload);
-      const eventId = parseResult?.result?.id || parseResult?.result?.objectId;
+      // Parse returns { result: "eventId" } — result is the ID string directly
+      const eventId = typeof parseResult?.result === 'string'
+        ? parseResult.result
+        : parseResult?.result?.id || parseResult?.result?.objectId;
 
       if (!eventId) {
         console.error('Parse addEvent returned no event ID:', parseResult);
