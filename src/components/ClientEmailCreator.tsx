@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { ArrowLeft, Copy, Save, Check, Plus, Trash2, Link } from 'lucide-react';
+import { ArrowLeft, Copy, Save, Check, Plus, Trash2, Link, ExternalLink } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useClientEmail } from '../contexts/ClientEmailContext';
 import { EmailType, ServiceVariant, PostCallTemplateData, KeyInfoTemplateData, ProInfo, ClientEmailDraft } from '../types/clientEmail';
@@ -8,6 +8,7 @@ import { generatePostCallEmail, generateKeyInfoEmail, detectServiceVariant, dete
 import { copyHtmlToClipboard } from '../utils/clipboardHtml';
 import { shortenUrl } from '../utils/shortenUrl';
 import { getServiceTypesFromProposal, formatServiceType, formatDateAmerican } from '../utils/proposalUtils';
+import { supabase } from '../lib/supabaseClient';
 
 interface Props {
   editingDraft?: ClientEmailDraft | null;
@@ -39,6 +40,9 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
   const [invoiceLink, setInvoiceLink] = useState('');
   const [paymentDueDate, setPaymentDueDate] = useState('');
   const [qrCodeSignLink, setQrCodeSignLink] = useState('');
+
+  // Signup links for the selected proposal
+  const [proposalSignupLinks, setProposalSignupLinks] = useState<Array<{ signupUrl: string; eventName: string; eventLocation: string; eventDate: string }>>([]);
 
   // UI state
   const [copied, setCopied] = useState(false);
@@ -78,8 +82,39 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
     }
   }, [editingDraft]);
 
+  // Fetch signup links for a given proposal
+  const fetchSignupLinksForProposal = useCallback(async (proposalId: string) => {
+    if (!proposalId) {
+      setProposalSignupLinks([]);
+      return [];
+    }
+    try {
+      const { data, error } = await supabase
+        .from('sign_up_links')
+        .select('signup_url, event_name, event_location, event_date')
+        .eq('proposal_id', proposalId)
+        .not('signup_url', 'is', null);
+      if (error) {
+        console.warn('Could not fetch signup links:', error.message);
+        setProposalSignupLinks([]);
+        return [];
+      }
+      const links = (data || []).map((r: any) => ({
+        signupUrl: r.signup_url,
+        eventName: r.event_name || '',
+        eventLocation: r.event_location || '',
+        eventDate: r.event_date || '',
+      }));
+      setProposalSignupLinks(links);
+      return links;
+    } catch {
+      setProposalSignupLinks([]);
+      return [];
+    }
+  }, []);
+
   // When a proposal is selected, auto-populate fields
-  const handleProposalSelect = useCallback((proposalId: string) => {
+  const handleProposalSelect = useCallback(async (proposalId: string) => {
     setSelectedProposalId(proposalId);
     if (!proposalId) return;
 
@@ -106,7 +141,15 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
     if (proposal.data.eventDates?.length) {
       setEventDate(formatDateAmerican(proposal.data.eventDates[0]));
     }
-  }, [proposals]);
+
+    // Fetch and auto-populate signup links
+    const links = await fetchSignupLinksForProposal(proposalId);
+    if (links.length > 0) {
+      const firstUrl = links[0].signupUrl;
+      setTestSignupLink(firstUrl);
+      setBookingLink(firstUrl);
+    }
+  }, [proposals, fetchSignupLinksForProposal]);
 
   // Generate HTML based on current form state
   const generatedHtml = useMemo(() => {
@@ -349,12 +392,33 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Test Signup Link</label>
-                <input
-                  value={testSignupLink}
-                  onChange={(e) => setTestSignupLink(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
-                  placeholder="https://admin.shortcutpros.com/#/signup/..."
-                />
+                {proposalSignupLinks.length > 1 ? (
+                  <select
+                    value={testSignupLink}
+                    onChange={(e) => setTestSignupLink(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
+                  >
+                    <option value="">— Select a signup link —</option>
+                    {proposalSignupLinks.map((link, i) => (
+                      <option key={i} value={link.signupUrl}>
+                        {link.eventName || link.eventLocation || `Link ${i + 1}`} — {link.signupUrl.split('/').pop()}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={testSignupLink}
+                    onChange={(e) => setTestSignupLink(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
+                    placeholder="https://admin.shortcutpros.com/#/signup/..."
+                  />
+                )}
+                {proposalSignupLinks.length > 0 && (
+                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <ExternalLink size={12} />
+                    {proposalSignupLinks.length} signup {proposalSignupLinks.length === 1 ? 'link' : 'links'} found for this proposal
+                  </p>
+                )}
               </div>
             </>
           )}
@@ -387,23 +451,63 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Booking / Signup Link</label>
-                <div className="flex gap-2">
-                  <input
-                    value={bookingLink}
-                    onChange={(e) => setBookingLink(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
-                    placeholder="https://admin.shortcutpros.com/#/signup/..."
-                  />
-                  <button
-                    onClick={handleShortenBookingLink}
-                    disabled={!bookingLink || shortening || bookingLink.includes('tinyurl.com')}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[#09364f] bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-                    title="Shorten URL with TinyURL"
-                  >
-                    <Link size={14} />
-                    {shortening ? 'Shortening...' : 'Shorten'}
-                  </button>
-                </div>
+                {proposalSignupLinks.length > 1 ? (
+                  <div className="space-y-2">
+                    <select
+                      value={bookingLink}
+                      onChange={(e) => setBookingLink(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
+                    >
+                      <option value="">— Select a signup link —</option>
+                      {proposalSignupLinks.map((link, i) => (
+                        <option key={i} value={link.signupUrl}>
+                          {link.eventName || link.eventLocation || `Link ${i + 1}`} — {link.signupUrl.split('/').pop()}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2">
+                      <input
+                        value={bookingLink}
+                        onChange={(e) => setBookingLink(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
+                        placeholder="Or paste a custom URL..."
+                      />
+                      <button
+                        onClick={handleShortenBookingLink}
+                        disabled={!bookingLink || shortening || bookingLink.includes('tinyurl.com')}
+                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[#09364f] bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                        title="Shorten URL with TinyURL"
+                      >
+                        <Link size={14} />
+                        {shortening ? 'Shortening...' : 'Shorten'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      value={bookingLink}
+                      onChange={(e) => setBookingLink(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
+                      placeholder="https://admin.shortcutpros.com/#/signup/..."
+                    />
+                    <button
+                      onClick={handleShortenBookingLink}
+                      disabled={!bookingLink || shortening || bookingLink.includes('tinyurl.com')}
+                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[#09364f] bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                      title="Shorten URL with TinyURL"
+                    >
+                      <Link size={14} />
+                      {shortening ? 'Shortening...' : 'Shorten'}
+                    </button>
+                  </div>
+                )}
+                {proposalSignupLinks.length > 0 && (
+                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <ExternalLink size={12} />
+                    {proposalSignupLinks.length} signup {proposalSignupLinks.length === 1 ? 'link' : 'links'} found for this proposal
+                  </p>
+                )}
                 <p className="text-xs text-gray-400 mt-1">This full URL will be shown in the employee blurb (not hyperlinked)</p>
               </div>
 

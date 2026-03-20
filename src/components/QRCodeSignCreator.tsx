@@ -7,7 +7,8 @@ import { mapProposalServiceToQRType, getMultiServiceDisplayName } from '../utils
 import { getServiceTypesFromProposal, formatDateAmerican } from '../utils/proposalUtils';
 import { generateSignTitle, getAvailableTitles } from '../utils/qrSignTitleGenerator';
 import { Button } from './Button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ExternalLink } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 interface QRCodeSignCreatorProps {
   onClose?: () => void;
@@ -106,6 +107,36 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
 
   const [logoInputType, setLogoInputType] = useState<'file' | 'url'>('file');
   const [updatedLogoUrl, setUpdatedLogoUrl] = useState<string | null>(null);
+  const [proposalSignupLinks, setProposalSignupLinks] = useState<Array<{ signupUrl: string; eventName: string; eventLocation: string }>>([]);
+
+  // Fetch signup links for a given proposal
+  const fetchSignupLinksForProposal = useCallback(async (proposalId: string) => {
+    if (!proposalId) {
+      setProposalSignupLinks([]);
+      return [];
+    }
+    try {
+      const { data, error } = await supabase
+        .from('sign_up_links')
+        .select('signup_url, event_name, event_location')
+        .eq('proposal_id', proposalId)
+        .not('signup_url', 'is', null);
+      if (error) {
+        setProposalSignupLinks([]);
+        return [];
+      }
+      const links = (data || []).map((r: any) => ({
+        signupUrl: r.signup_url,
+        eventName: r.event_name || '',
+        eventLocation: r.event_location || '',
+      }));
+      setProposalSignupLinks(links);
+      return links;
+    } catch {
+      setProposalSignupLinks([]);
+      return [];
+    }
+  }, []);
 
   // Sort proposals by most recent, exclude test proposals
   const sortedProposals = useMemo(() => {
@@ -126,7 +157,7 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
   };
 
   // Handle proposal selection and auto-fill
-  const handleProposalSelect = useCallback((proposalId: string) => {
+  const handleProposalSelect = useCallback(async (proposalId: string) => {
     setSelectedProposalId(proposalId);
     if (!proposalId) return;
 
@@ -144,6 +175,12 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
     // Auto-generate title
     const title = generateSignTitle(limitedTypes as ServiceType[], proposal.data.clientName);
 
+    // Fetch signup links to use as QR code URL
+    const links = await fetchSignupLinksForProposal(proposalId);
+    const qrUrl = links.length > 0
+      ? links[0].signupUrl
+      : `${window.location.origin}/shared/${proposal.id}`;
+
     // Auto-fill fields
     setOptions(prev => ({
       ...prev,
@@ -152,14 +189,14 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
       serviceTypeText: getMultiServiceDisplayName(limitedTypes as ServiceType[]),
       partnerName: proposal.data.clientName || '',
       partnerLogoUrl: proposal.data.clientLogoUrl || '',
-      qrCodeUrl: `${window.location.origin}/shared/${proposal.id}`,
+      qrCodeUrl: qrUrl,
       eventDate: proposal.data.eventDates?.[0] ? formatDateAmerican(proposal.data.eventDates[0]) : '',
       location: proposal.data.locations?.[0] || '',
     }));
 
     // Clear errors on auto-fill
     setErrors({});
-  }, [proposals]);
+  }, [proposals, fetchSignupLinksForProposal]);
 
   // Regenerate title from current selected services + company name
   const handleRegenerateTitle = () => {
@@ -522,6 +559,19 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
               <label className="block text-sm font-bold text-shortcut-navy-blue mb-2">
                 QR Code URL *
               </label>
+              {proposalSignupLinks.length > 1 && (
+                <select
+                  value={options.qrCodeUrl}
+                  onChange={(e) => handleFieldChange('qrCodeUrl', e.target.value)}
+                  className="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal transition-all mb-2"
+                >
+                  {proposalSignupLinks.map((link, i) => (
+                    <option key={i} value={link.signupUrl}>
+                      {link.eventName || link.eventLocation || `Link ${i + 1}`} — {link.signupUrl.split('/').pop()}
+                    </option>
+                  ))}
+                </select>
+              )}
               <input
                 type="url"
                 value={options.qrCodeUrl}
@@ -534,9 +584,16 @@ const QRCodeSignCreator: React.FC<QRCodeSignCreatorProps> = ({ onClose, editingS
               {errors.qrCodeUrl && (
                 <p className="text-accent-coral text-sm font-medium mt-2">{errors.qrCodeUrl}</p>
               )}
-              <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium mt-2">
-                This URL will be encoded in the QR code (booking/signup link)
-              </p>
+              {proposalSignupLinks.length > 0 ? (
+                <p className="text-green-600 text-sm font-medium mt-2 flex items-center gap-1">
+                  <ExternalLink size={14} />
+                  {proposalSignupLinks.length} signup {proposalSignupLinks.length === 1 ? 'link' : 'links'} found — auto-filled from coordinator
+                </p>
+              ) : (
+                <p className="text-shortcut-navy-blue opacity-60 text-sm font-medium mt-2">
+                  This URL will be encoded in the QR code (booking/signup link)
+                </p>
+              )}
             </div>
           </div>
 
