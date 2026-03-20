@@ -23,6 +23,16 @@ interface ServiceOffering {
   [key: string]: unknown;
 }
 
+interface Pro {
+  id: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string;
+  proType: string | null;
+  hairProType: string | null;
+  active: boolean | null;
+}
+
 interface CoordinatorEvent {
   coordinatorEventId: string;
   name: string;
@@ -54,6 +64,7 @@ interface CoordinatorEvent {
   signupUrl: string | null;
   eventLinkURL: string | null;
   logoUrl: string | null;
+  pros: Pro[];
   isTestEvent: boolean;
   isSecret: boolean;
   createdAt: string | null;
@@ -102,6 +113,25 @@ function getFillColor(pct: number): string {
   if (pct >= 50) return 'bg-blue-500';
   if (pct >= 25) return 'bg-yellow-500';
   return 'bg-gray-300';
+}
+
+function formatProType(proType: string | null, hairProType: string | null): string {
+  if (!proType) return '';
+  const label = proType.charAt(0).toUpperCase() + proType.slice(1);
+  if (proType === 'hair' && hairProType) {
+    return `${hairProType.charAt(0).toUpperCase() + hairProType.slice(1)}`;
+  }
+  return label;
+}
+
+function getProTypeBadgeClass(proType: string | null): string {
+  switch (proType?.toLowerCase()) {
+    case 'massage': return 'bg-blue-100 text-blue-700';
+    case 'hair': return 'bg-purple-100 text-purple-700';
+    case 'nails': return 'bg-pink-100 text-pink-700';
+    case 'makeup': return 'bg-rose-100 text-rose-700';
+    default: return 'bg-gray-100 text-gray-600';
+  }
 }
 
 function getStatusBadge(status: string): { label: string; className: string } {
@@ -457,12 +487,29 @@ const UpcomingEvents: React.FC = () => {
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-500">Pros:</span>{' '}
+                          <span className="text-gray-500">Pros Needed:</span>{' '}
                           <span className={evt.openProSpots > 0 ? 'text-orange-600 font-medium' : 'text-gray-900'}>
                             {evt.prosRequired - evt.openProSpots} assigned / {evt.prosRequired} needed
                             {evt.openProSpots > 0 && ` (${evt.openProSpots} open)`}
                           </span>
                         </div>
+                        {evt.pros.length > 0 && (
+                          <div>
+                            <span className="text-gray-500">Assigned Pros:</span>
+                            <div className="mt-1 space-y-1">
+                              {evt.pros.map((pro, idx) => (
+                                <div key={pro.id || idx} className="flex items-center gap-2">
+                                  <span className="text-gray-900">{pro.fullName}</span>
+                                  {pro.proType && (
+                                    <span className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded ${getProTypeBadgeClass(pro.proType)}`}>
+                                      {formatProType(pro.proType, pro.hairProType)}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         {evt.proHourlyRate && (
                           <div>
                             <span className="text-gray-500">Pro Rate:</span>{' '}

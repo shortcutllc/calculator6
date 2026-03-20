@@ -70,6 +70,7 @@ async function queryEvents(where, limit = 200) {
     'sponsorName', 'barberHourlyRate', 'barberPaymentAmount', 'serviceCost',
     'paid', 'adminNotes', 'staffNotes',
     'eventLinkURL', 'link', 'logo',
+    'barberList',
     'isTestEvent', 'isSecret', 'mobileEventCode',
     'createdAt', 'updatedAt',
   ].join(',');
@@ -77,6 +78,7 @@ async function queryEvents(where, limit = 200) {
   const params = new URLSearchParams({
     where: JSON.stringify(where),
     keys,
+    include: 'barberList',
     limit: String(limit),
     order: 'startTime',
   });
@@ -161,6 +163,15 @@ function transformEvent(evt) {
       : null,
     eventLinkURL: evt.eventLinkURL || null,
     logoUrl: evt.logo?.url || null,
+    pros: (evt.barberList || []).map(barber => ({
+      id: barber.objectId || null,
+      firstName: barber.firstName || null,
+      lastName: barber.lastName || null,
+      fullName: barber.fullName || [barber.firstName, barber.lastName].filter(Boolean).join(' ') || 'Unknown',
+      proType: barber.proType || null,
+      hairProType: barber.hairProType || null,
+      active: barber.active ?? null,
+    })),
     isTestEvent: evt.isTestEvent || false,
     isSecret: evt.isSecret || false,
     createdAt: evt.createdAt || null,
