@@ -207,18 +207,84 @@ function getServicesForProposalType(proposalServiceType: string): CoordinatorSer
 function parseAddressString(addressStr: string): Partial<EventFormAddress> {
   if (!addressStr) return {};
 
-  // Try to parse "123 Main St, New York, NY 10001" format
-  const parts = addressStr.split(',').map(p => p.trim());
-  if (parts.length >= 3) {
-    const stateZip = parts[parts.length - 1].trim().split(/\s+/);
+  let parts = addressStr.split(',').map(p => p.trim()).filter(p => p);
+
+  // Strip trailing country code (US, USA, United States)
+  const last = parts[parts.length - 1];
+  if (/^(US|USA|United\s+States)$/i.test(last)) {
+    parts = parts.slice(0, -1);
+  }
+
+  if (parts.length >= 2) {
+    const lastPart = parts[parts.length - 1].trim();
+
+    // Check if last part is just a zip code: "street, city, state, 10001"
+    const isZipOnly = /^\d{5}(-\d{4})?$/.test(lastPart);
+    if (isZipOnly && parts.length >= 4) {
+      return {
+        street: parts.slice(0, parts.length - 3).join(', '),
+        city: parts[parts.length - 3],
+        state: parts[parts.length - 2].replace(/\d/g, '').trim().substring(0, 2).toUpperCase(),
+        zip: lastPart,
+      };
+    }
+
+    // Check if last part is "state, zip" as separate parts: "street, city, NY, 10001"
+    if (isZipOnly && parts.length >= 3) {
+      const statePart = parts[parts.length - 2].trim();
+      if (/^[A-Za-z]{2}$/.test(statePart)) {
+        return {
+          street: parts.slice(0, parts.length - 3).join(', '),
+          city: parts[parts.length - 3],
+          state: statePart.toUpperCase(),
+          zip: lastPart,
+        };
+      }
+    }
+
+    // "street, city, NY 10001" or "street, city, New York, NY 10001"
+    const stateZipMatch = lastPart.match(/^([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$/);
+    if (stateZipMatch) {
+      return {
+        street: parts.slice(0, parts.length - 2).join(', '),
+        city: parts[parts.length - 2],
+        state: stateZipMatch[1].toUpperCase(),
+        zip: stateZipMatch[2],
+      };
+    }
+
+    // "street, city, NY" (no zip)
+    if (/^[A-Za-z]{2}$/.test(lastPart)) {
+      return {
+        street: parts.slice(0, parts.length - 2).join(', '),
+        city: parts[parts.length - 2],
+        state: lastPart.toUpperCase(),
+        zip: '',
+      };
+    }
+
+    // Fallback: try to extract state and zip from last part more aggressively
+    const fallbackMatch = lastPart.match(/([A-Za-z]{2})\s*(\d{5}(?:-\d{4})?)?/);
+    if (fallbackMatch) {
+      return {
+        street: parts.slice(0, parts.length - 2).join(', '),
+        city: parts[parts.length - 2],
+        state: fallbackMatch[1].toUpperCase(),
+        zip: fallbackMatch[2] || '',
+      };
+    }
+
+    // Last resort: 2 parts = street, city
+    if (parts.length === 2) {
+      return { street: parts[0], city: parts[1] };
+    }
+
     return {
       street: parts.slice(0, parts.length - 2).join(', '),
       city: parts[parts.length - 2],
-      state: stateZip[0] || '',
-      zip: stateZip[1] || '',
+      state: lastPart.substring(0, 2).toUpperCase(),
+      zip: '',
     };
-  } else if (parts.length === 2) {
-    return { street: parts[0], city: parts[1] };
   }
   return { street: addressStr };
 }
@@ -237,16 +303,17 @@ function formatDisplayDate(dateStr: string): string {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function generateEventCode(clientName: string, dateStr: string): string {
-  const prefix = (clientName || 'EVT')
+function generateEventCode(clientName: string, location: string): string {
+  const name = (clientName || 'EVT')
     .replace(/[^A-Za-z0-9]/g, '')
-    .substring(0, 4)
     .toUpperCase();
-  const d = new Date(dateStr);
-  const suffix = !isNaN(d.getTime())
-    ? `${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
-    : Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${suffix}`;
+  const loc = (location || '')
+    .replace(/[^A-Za-z0-9]/g, '')
+    .toUpperCase();
+  // Use short versions: up to 6 chars of client name + up to 4 chars of location
+  const prefix = name.substring(0, 6);
+  const suffix = loc.substring(0, 4);
+  return suffix ? `${prefix}${suffix}` : prefix;
 }
 
 // --- Build initial form data from proposal ---
@@ -300,7 +367,7 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
           coordinatorServiceId: match?.id || '',
           coordinatorServiceTitle: match?.title || '',
           coordinatorServiceType: match?.type || '',
-          price: s.serviceCost ? Math.round(s.serviceCost / (s.totalAppointments || 1)) : 0,
+          price: 0, // Events are sponsor-covered; employees don't pay per service
         };
       });
 
@@ -320,9 +387,9 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
         included: true,
         expanded: events.length === 0,
         name: clientName,
-        eventCode: generateEventCode(clientName, dateStr),
+        eventCode: generateEventCode(clientName, location),
         category: 'Office',
-        description: `Event for ${clientName}`,
+        description: 'Relaxing and soothing massages from the Shortcut team for you. Enjoy the service',
         locationName: location,
         address: {
           street: addressData.street || '',
@@ -348,7 +415,7 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
         // Optional fields
         legacyName: '',
         eventLinkURL: '',
-        sponsorName: totalPayment <= 0 ? clientName : '',
+        sponsorName: clientName,
         overrideNameCheck: false,
         isTestEvent: false,
         isSecret: false,
@@ -389,8 +456,8 @@ function validateEvents(events: EventFormData[]): ValidationIssue[] {
     if (evt.services.some(s => !s.coordinatorServiceId)) {
       issues.push({ eventIndex: i, field: 'services', message: 'Service selection incomplete' });
     }
-    if (evt.payment <= 0 && !evt.sponsorName.trim()) {
-      issues.push({ eventIndex: i, field: 'sponsorName', message: 'Sponsor name required for free events' });
+    if (!evt.sponsorName.trim()) {
+      issues.push({ eventIndex: i, field: 'sponsorName', message: 'Event sponsor required' });
     }
   });
   return issues;
@@ -585,12 +652,18 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-shortcut-blue mb-1">Description</label>
-                      <input
+                      <label className="block text-xs font-bold text-shortcut-blue mb-1">
+                        Description
+                        <span className={`ml-2 text-[10px] font-normal ${evt.description.length >= 75 ? 'text-yellow-500' : 'text-gray-400'}`}>
+                          {evt.description.length}/80
+                        </span>
+                      </label>
+                      <textarea
                         value={evt.description}
                         onChange={(e) => updateEvent(eventIndex, { description: e.target.value })}
-                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal"
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal resize-y"
                         maxLength={80}
+                        rows={2}
                       />
                     </div>
                   </div>
@@ -662,6 +735,19 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                         placeholder="Required"
                       />
                     </div>
+                  </div>
+
+                  {/* Event Sponsor */}
+                  <div>
+                    <label className="block text-xs font-bold text-shortcut-blue mb-1">
+                      Event Sponsor <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={evt.sponsorName}
+                      onChange={(e) => updateEvent(eventIndex, { sponsorName: e.target.value })}
+                      className={inputClass(eventIndex, 'sponsorName')}
+                      placeholder="Client name sponsoring the event"
+                    />
                   </div>
 
                   {/* Timing */}
@@ -747,21 +833,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                               );
                             })()}
                           </select>
-                          <input
-                            type="number"
-                            value={svc.price}
-                            onChange={(e) => {
-                              setEvents(prev => prev.map((ev, i) => {
-                                if (i !== eventIndex) return ev;
-                                const newSvcs = [...ev.services];
-                                newSvcs[svcIndex] = { ...newSvcs[svcIndex], price: parseInt(e.target.value) || 0 };
-                                return { ...ev, services: newSvcs };
-                              }));
-                            }}
-                            className="w-20 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal text-center"
-                            placeholder="$"
-                            min={0}
-                          />
+                          <span className="w-16 px-2 py-1.5 text-sm text-center text-text-dark-60">$0</span>
                         </div>
                       ))}
                     </div>
@@ -827,17 +899,6 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                             onChange={(e) => updateEvent(eventIndex, { legacyName: e.target.value })}
                             className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal"
                             placeholder="Optional"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-shortcut-blue mb-1">
-                            Event Sponsor {evt.payment <= 0 && <span className="text-red-500">*</span>}
-                          </label>
-                          <input
-                            value={evt.sponsorName}
-                            onChange={(e) => updateEvent(eventIndex, { sponsorName: e.target.value })}
-                            className={inputClass(eventIndex, 'sponsorName')}
-                            placeholder={evt.payment <= 0 ? 'Required for free events' : 'Optional'}
                           />
                         </div>
                       </div>
