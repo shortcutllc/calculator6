@@ -31,23 +31,21 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: 'Services',
+    title: 'Event Operations',
     items: [
-      { label: 'Headshots', path: '/headshots', icon: <Camera size={18} /> },
+      { label: 'Client Emails', path: '/client-emails', icon: <Mail size={18} /> },
       { label: 'Agreements', path: '/pro-agreements', icon: <FileSignature size={18} /> },
-      { label: 'Mindfulness', path: '/mindfulness-programs', icon: <Brain size={18} /> },
+      { label: 'QR Codes', path: '/qr-code-signs', icon: <QrCode size={18} /> },
       { label: 'Invoices', path: '/invoices', icon: <Receipt size={18} /> },
+      { label: 'Sign-Up Links', path: '/sign-up-links', icon: <Link2 size={18} /> },
     ],
   },
   {
     title: 'Marketing',
     items: [
       { label: 'Landing Pages', path: '/generic-landing-pages', icon: <Handshake size={18} /> },
-      { label: 'Sign-Up Links', path: '/sign-up-links', icon: <Link2 size={18} /> },
       { label: 'Holiday Pages', path: '/holiday-pages', icon: <Gift size={18} /> },
       { label: 'Social Media', path: '/social-media-pages', icon: <Smartphone size={18} /> },
-      { label: 'Client Emails', path: '/client-emails', icon: <Mail size={18} /> },
-      { label: 'QR Codes', path: '/qr-code-signs', icon: <QrCode size={18} /> },
     ],
   },
   {
@@ -59,6 +57,13 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'California', path: '/cle/ca', icon: <Scale size={18} /> },
       { label: 'Texas', path: '/cle/tx', icon: <Scale size={18} /> },
       { label: 'Florida', path: '/cle/fl', icon: <Scale size={18} /> },
+    ],
+  },
+  {
+    title: 'Services',
+    items: [
+      { label: 'Headshots', path: '/headshots', icon: <Camera size={18} /> },
+      { label: 'Mindfulness', path: '/mindfulness-programs', icon: <Brain size={18} /> },
     ],
   },
   {
