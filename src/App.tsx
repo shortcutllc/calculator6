@@ -55,6 +55,7 @@ const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'))
 const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
+const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
 
 function App() {
   const location = useLocation();
@@ -384,6 +385,21 @@ function App() {
                       </div>
                     }>
                       <UpcomingEvents />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              {/* Workhuman 2026 */}
+              <Route
+                path="/workhuman"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <WorkhumanProject />
                     </Suspense>
                   </PrivateRoute>
                 }

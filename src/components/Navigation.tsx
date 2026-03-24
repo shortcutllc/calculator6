@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, Clock, Plus, Users, Handshake, Gift, Smartphone,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -39,6 +39,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'QR Codes', path: '/qr-code-signs', icon: <QrCode size={18} /> },
       { label: 'Invoices', path: '/invoices', icon: <Receipt size={18} /> },
       { label: 'Sign-Up Links', path: '/sign-up-links', icon: <Link2 size={18} /> },
+      { label: 'Workhuman 2026', path: '/workhuman', icon: <Ticket size={18} /> },
     ],
   },
   {
@@ -73,6 +74,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Calculator', path: '/calculator', icon: <Calculator size={18} /> },
       { label: 'Brochures', path: '/brochure', icon: <FileText size={18} /> },
       { label: '2026 Plan', path: '/2026-plan', icon: <TrendingUp size={18} /> },
+      { label: '2026 Plan ML', path: '/2026-plan-ml', icon: <TrendingUp size={18} /> },
     ],
   },
   {
