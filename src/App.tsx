@@ -56,6 +56,7 @@ const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'))
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
+const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesigns'));
 
 function App() {
   const location = useLocation();
@@ -400,6 +401,21 @@ function App() {
                       </div>
                     }>
                       <WorkhumanProject />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              {/* Workhuman Booth Designs */}
+              <Route
+                path="/workhuman/booth-designs"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <WorkhumanBoothDesigns />
                     </Suspense>
                   </PrivateRoute>
                 }

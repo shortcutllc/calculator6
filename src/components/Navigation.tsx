@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, Clock, Plus, Users, Handshake, Gift, Smartphone,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -40,6 +40,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Invoices', path: '/invoices', icon: <Receipt size={18} /> },
       { label: 'Sign-Up Links', path: '/sign-up-links', icon: <Link2 size={18} /> },
       { label: 'Workhuman 2026', path: '/workhuman', icon: <Ticket size={18} /> },
+      { label: 'Workhuman Designs', path: '/workhuman/booth-designs', icon: <Palette size={18} /> },
     ],
   },
   {
