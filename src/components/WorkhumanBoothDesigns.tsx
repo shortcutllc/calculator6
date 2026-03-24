@@ -160,7 +160,7 @@ function ShortcutLogo({ variant, size }: { variant: 'coral' | 'navy' | 'white'; 
   );
 }
 
-type ViewMode = 'grid' | 'single' | 'booth-context';
+type ViewMode = 'grid' | 'single' | 'recharge-station' | 'lounge-backdrop' | 'booth-context';
 
 export default function WorkhumanBoothDesigns() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -201,7 +201,7 @@ export default function WorkhumanBoothDesigns() {
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-[#003756] opacity-60">View:</span>
             <div className="flex bg-white rounded-full p-1 shadow-sm border border-gray-200">
-              {(['grid', 'single', 'booth-context'] as ViewMode[]).map(mode => (
+              {(['grid', 'single', 'recharge-station', 'lounge-backdrop', 'booth-context'] as ViewMode[]).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
@@ -211,7 +211,7 @@ export default function WorkhumanBoothDesigns() {
                       : 'text-[#003756] hover:bg-gray-100'
                   }`}
                 >
-                  {mode === 'grid' ? 'All Panels' : mode === 'single' ? 'Full Size' : 'Booth Layout'}
+                  {mode === 'grid' ? 'Privacy Screens' : mode === 'single' ? 'Full Size' : mode === 'recharge-station' ? 'Recharge Station' : mode === 'lounge-backdrop' ? 'Lounge Backdrop' : 'Booth Layout'}
                 </button>
               ))}
             </div>
@@ -219,7 +219,8 @@ export default function WorkhumanBoothDesigns() {
 
         </div>
 
-        {/* Color scheme selector */}
+        {/* Color scheme selector — only for privacy screen views */}
+        {(viewMode === 'grid' || viewMode === 'single') && (
         <div className="bg-white rounded-2xl p-4 border border-gray-200">
           <div className="flex items-center gap-3 mb-3">
             <span className="text-sm font-bold text-[#003756]">Color Scheme:</span>
@@ -250,9 +251,11 @@ export default function WorkhumanBoothDesigns() {
           </div>
 
         </div>
+        )}
       </div>
 
       {/* Panel Grid View */}
+
       {viewMode === 'grid' && (
         <div className="max-w-7xl mx-auto px-6 pb-12">
           {/* Panel designs — pick 3-4 for screens */}
@@ -328,6 +331,276 @@ export default function WorkhumanBoothDesigns() {
                 <p className="text-[#003756] opacity-60">0.25" all sides</p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recharge Station View */}
+      {viewMode === 'recharge-station' && (
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex gap-10 items-start">
+
+            {/* Orthographic views — front + side */}
+            <div className="space-y-6">
+              {/* Front view */}
+              <div>
+                <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-2">Front View</p>
+                <svg width="420" height="220" viewBox="0 0 420 220" fill="none">
+                  {/* Table body */}
+                  <rect x="10" y="10" width="400" height="16" rx="2" fill="#FFFFFF" stroke="#D1D5DB" strokeWidth="1" />
+                  <rect x="10" y="26" width="400" height="160" rx="0" fill="#FFFFFF" stroke="#D1D5DB" strokeWidth="1" />
+                  {/* Coral inner cavity visible through open bottom */}
+                  <rect x="18" y="26" width="384" height="152" fill="#FF5050" rx="0" />
+                  {/* Inner top shadow */}
+                  <rect x="18" y="26" width="384" height="8" fill="#E04545" />
+                  {/* Copy on front face */}
+                  <text x="210" y="100" textAnchor="middle" fontFamily="Outfit, system-ui" fontWeight="800" fontSize="18" fill="#FFFFFF">Currently recharging.</text>
+                  <text x="210" y="124" textAnchor="middle" fontFamily="Outfit, system-ui" fontWeight="800" fontSize="18" fill="#FFFFFF">Both of you.</text>
+                  {/* Logo placeholder */}
+                  <text x="350" y="166" textAnchor="end" fontFamily="Outfit, system-ui" fontWeight="700" fontSize="11" fill="#FFFFFF" opacity="0.8">shortcut</text>
+                  {/* Floor line */}
+                  <line x1="0" y1="210" x2="420" y2="210" stroke="#E5E7EB" strokeWidth="1" />
+                  {/* Dimension labels */}
+                  <text x="210" y="205" textAnchor="middle" fontFamily="system-ui" fontSize="10" fill="#9CA3AF">48"</text>
+                </svg>
+              </div>
+
+              {/* Side view */}
+              <div>
+                <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-2">Side View</p>
+                <svg width="260" height="220" viewBox="0 0 260 220" fill="none">
+                  {/* Table top */}
+                  <rect x="30" y="10" width="120" height="16" rx="2" fill="#FFFFFF" stroke="#D1D5DB" strokeWidth="1" />
+                  {/* Left side panel */}
+                  <rect x="30" y="26" width="16" height="160" fill="#FFFFFF" stroke="#D1D5DB" strokeWidth="1" />
+                  {/* Right side panel */}
+                  <rect x="134" y="26" width="16" height="160" fill="#FFFFFF" stroke="#D1D5DB" strokeWidth="1" />
+                  {/* Inner cavity — coral */}
+                  <rect x="46" y="26" width="88" height="160" fill="#FF5050" />
+                  {/* Open bottom — shows floor through gap */}
+                  <rect x="46" y="186" width="88" height="24" fill="#F8F9FA" />
+                  {/* Stool */}
+                  <ellipse cx="210" cy="90" rx="22" ry="4" fill="#D4A574" />
+                  <line x1="195" y1="94" x2="191" y2="208" stroke="#D4A574" strokeWidth="3" strokeLinecap="round" />
+                  <line x1="225" y1="94" x2="229" y2="208" stroke="#D4A574" strokeWidth="3" strokeLinecap="round" />
+                  <line x1="210" y1="94" x2="210" y2="208" stroke="#D4A574" strokeWidth="3" strokeLinecap="round" />
+                  <line x1="194" y1="170" x2="226" y2="170" stroke="#D4A574" strokeWidth="2" strokeLinecap="round" />
+                  {/* Floor line */}
+                  <line x1="0" y1="210" x2="260" y2="210" stroke="#E5E7EB" strokeWidth="1" />
+                  {/* Dimension labels */}
+                  <text x="90" y="205" textAnchor="middle" fontFamily="system-ui" fontSize="10" fill="#9CA3AF">18"</text>
+                  <text x="16" y="110" textAnchor="middle" fontFamily="system-ui" fontSize="10" fill="#9CA3AF" transform="rotate(-90, 16, 110)">42"</text>
+                </svg>
+              </div>
+            </div>
+
+            {/* Right column: Front face flat design + specs */}
+            <div className="flex-1 space-y-6">
+              {/* Front face signage design */}
+              <div>
+                <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-2">Front Face Signage</p>
+                <div style={{ width: '100%', maxWidth: 440, height: 200 }}>
+                  <div
+                    className="relative w-full h-full overflow-hidden"
+                    style={{ backgroundColor: '#FFFFFF', borderRadius: 8, border: '1px solid #E5E7EB' }}
+                  >
+                    <div className="absolute bottom-0 left-0 right-0" style={{ height: 40, backgroundColor: '#FF5050', borderRadius: '0 0 8px 8px' }} />
+                    <div className="absolute" style={{ top: '14%', left: '6%', right: '6%' }}>
+                      <p className="font-extrabold leading-[1.08] tracking-[-0.02em]" style={{ fontSize: 28, fontFamily: 'Outfit, system-ui, sans-serif', color: '#003756' }}>
+                        Currently recharging. Both of you.
+                      </p>
+                    </div>
+                    <div className="absolute" style={{ bottom: 52, right: '6%' }}>
+                      <ShortcutLogo variant="coral" size={20} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Specs */}
+              <div>
+                <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-2">Specifications</p>
+                <div className="bg-white rounded-xl p-4 border border-gray-200 text-sm space-y-2.5">
+                  {[
+                    ['Dimensions', '48"W × 18"D × 42"H (bar height)'],
+                    ['Top + front', 'White laminate'],
+                    ['Inner cavity', 'Coral (#FF5050)'],
+                    ['Front signage', 'Vinyl copy + logo on white face'],
+                    ['Charging', 'Recessed USB-C + Lightning ports in top'],
+                    ['Stools', '3-4 natural wood bar stools'],
+                    ['Copy', '"Currently recharging. Both of you."'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between">
+                      <span className="text-[#003756] opacity-60">{label}</span>
+                      <span className="font-semibold text-[#003756]">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Lounge Backdrop View */}
+      {viewMode === 'lounge-backdrop' && (
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <p className="text-sm text-[#003756] opacity-60 mb-8">
+            Backdrop wall behind the lounge area. High-level brand messaging — explains what Shortcut does. Inspired by Instacart's bold color-blocked walls with oversized brand elements.
+          </p>
+
+          <div className="space-y-10">
+
+            {/* Option A: Navy wall + white copy panel (Instacart corner style) */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-200">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option A</span>
+                <span className="text-sm font-bold text-[#003756]">— Two-Panel Corner (Navy + White)</span>
+              </div>
+              <p className="text-xs text-[#003756] opacity-50 mb-4">Like Instacart's corner lounge — dark brand wall with oversized icon, white wall with copy + QR. Couch sits in the corner.</p>
+              <div className="flex rounded-lg overflow-hidden" style={{ height: 480 }}>
+                {/* White panel — copy + QR */}
+                <div className="relative flex-1" style={{ backgroundColor: '#FFFFFF', borderRight: '1px solid #E5E7EB' }}>
+                  <div className="absolute" style={{ top: 24, left: 24 }}>
+                    <ShortcutLogo variant="navy" size={20} />
+                  </div>
+                  <div className="absolute" style={{ top: 70, left: 24, right: 24 }}>
+                    <p className="font-extrabold text-2xl leading-[1.1] tracking-[-0.02em]" style={{ color: '#003756', fontFamily: 'Outfit, system-ui, sans-serif' }}>
+                      From massage and beauty to headshots and mindfulness.
+                    </p>
+                    <p className="font-extrabold text-lg mt-2 tracking-[-0.02em]" style={{ color: '#FF5050', fontFamily: 'Outfit, system-ui, sans-serif' }}>
+                      One platform. One vendor. Zero hassle.
+                    </p>
+                  </div>
+                  {/* QR code */}
+                  <div className="absolute" style={{ bottom: 24, left: 24 }}>
+                    <div style={{ width: 64, height: 64, background: 'repeating-conic-gradient(#003756 0% 25%, #FFFFFF 0% 50%) 50% / 8px 8px', borderRadius: 4, border: '2px solid #E5E7EB' }} />
+                    <p className="text-[9px] font-semibold mt-1" style={{ color: '#003756', opacity: 0.5 }}>Book a session</p>
+                  </div>
+                </div>
+                {/* Navy panel — oversized icon + pattern */}
+                <div className="relative flex-1" style={{ backgroundColor: '#003756' }}>
+                  {/* Large Shortcut icon only (no wordmark) */}
+                  <svg className="absolute" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} width="160" height="160" viewBox="0 0 285 192" fill="none" opacity="0.15">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M180.085 123.273C178.523 136.95 174.332 150.363 166.404 161.789C147.666 188.794 115.391 197.809 83.505 187.975C52.0357 178.27 21.5169 150.798 0 106.28L29.4336 92.0535C48.1724 130.823 72.6235 150.408 93.1396 156.736C113.239 162.935 129.965 156.958 139.545 143.152C141.253 140.691 142.721 137.91 143.935 134.846C142.091 134.947 140.246 134.979 138.402 134.945C117.189 134.548 97.7708 125.343 83.1568 112.659C68.6417 100.062 57.4983 82.8406 54.2488 64.5611C50.855 45.4703 56.3132 25.3828 74.6228 11.3512C83.191 4.78496 92.5896 0.887791 102.475 0.134123C112.334 -0.61748 121.541 1.84316 129.627 6.17627C145.351 14.6033 157.577 30.4138 165.925 47.3746C171.212 58.1174 175.313 70.0533 177.861 82.3164C192.547 66.6019 208.52 57.2563 222.041 52.0055C229.027 49.2927 235.456 47.6337 240.848 46.7633C245.575 46.0002 251.284 45.5405 256.04 46.6381L248.689 78.4922C249.256 78.6231 249.56 78.669 249.56 78.669C249.558 78.6929 248.483 78.6453 246.058 79.0368C243.004 79.5298 238.792 80.5701 233.876 82.4796C224.082 86.2829 211.873 93.3814 200.548 105.942C194.094 113.1 187.222 118.845 180.085 123.273ZM147.727 101.517C146.5 87.8421 142.494 73.7985 136.594 61.8105C129.869 48.148 121.609 38.9693 114.185 34.9907C110.696 33.1211 107.663 32.5248 104.96 32.7309C102.284 32.9349 98.8002 34.0099 94.5082 37.2992C87.0974 42.9785 84.9004 50.2039 86.4355 58.8393C88.1148 68.2858 94.4842 79.2038 104.585 87.9699C114.586 96.6501 126.886 102.033 139.013 102.259C141.841 102.312 144.754 102.088 147.727 101.517Z" fill="#9EFAFF"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M227.95 60.6342C212.285 55.7034 200.552 45.6102 190.79 34.575L215.742 12.5006C223.559 21.3371 230.444 26.4925 237.953 28.8562C245.287 31.1646 255.432 31.4939 271.035 26.2883L284.604 56.5339C273.057 63.1664 266.67 73.9685 263.648 85.1433C262.14 90.7193 261.573 96.0733 261.599 100.426C261.625 104.815 262.24 107.049 262.315 107.323C262.322 107.346 262.322 107.35 262.322 107.35L231.654 120.365C229.232 114.657 228.325 107.44 228.284 100.627C228.241 93.4035 229.161 85.049 231.488 76.4463C232.7 71.9629 234.323 67.3261 236.435 62.7047C233.55 62.1969 230.724 61.5071 227.95 60.6342Z" fill="#9EFAFF"/>
+                  </svg>
+                  {/* Decorative wellness line-art elements */}
+                  <svg className="absolute opacity-10" style={{ top: 20, right: 20 }} width="60" height="60" viewBox="0 0 60 60" fill="none">
+                    <circle cx="30" cy="30" r="28" stroke="#9EFAFF" strokeWidth="1.5" fill="none" />
+                    <path d="M30 10 C30 10 20 25 30 30 C40 25 30 10 30 10Z" stroke="#9EFAFF" strokeWidth="1.5" fill="none" />
+                    <path d="M30 50 C30 50 20 35 30 30 C40 35 30 50 30 50Z" stroke="#9EFAFF" strokeWidth="1.5" fill="none" />
+                  </svg>
+                  <svg className="absolute opacity-10" style={{ bottom: 30, left: 20 }} width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <path d="M20 5 L25 15 L35 15 L27 22 L30 32 L20 26 L10 32 L13 22 L5 15 L15 15Z" stroke="#9EFAFF" strokeWidth="1.5" fill="none" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Option B: Navy wall with mounted TV */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-200">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option B</span>
+                <span className="text-sm font-bold text-[#003756]">— Navy Wall + Mounted TV</span>
+              </div>
+              <p className="text-xs text-[#003756] opacity-50 mb-4">Bold navy backdrop with TV running content loop. Copy and logo flanking the screen. Like Instacart's digital kiosk wall.</p>
+              <div className="relative overflow-hidden rounded-lg mx-auto" style={{ width: 480, height: 480, backgroundColor: '#003756' }}>
+                <div className="absolute" style={{ top: 24, left: 32 }}>
+                  <ShortcutLogo variant="white" size={28} />
+                </div>
+                {/* TV */}
+                <div className="absolute" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 240, height: 140, backgroundColor: '#1a1a1a', borderRadius: 8, border: '4px solid #222', boxShadow: '0 0 30px rgba(158,250,255,0.15)', overflow: 'hidden' }}>
+                  <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#002a44' }}>
+                    <div className="text-center">
+                      <p className="text-white font-extrabold text-sm">Content Loop</p>
+                      <p className="text-[10px] mt-1" style={{ color: '#9EFAFF' }}>Copy slides / QR / Video / Stats</p>
+                    </div>
+                  </div>
+                </div>
+                {/* Copy below TV */}
+                <div className="absolute" style={{ bottom: 24, left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
+                  <p className="font-extrabold text-base tracking-[-0.01em]" style={{ color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}>
+                    Wellness that actually works for your team.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Option C: Coral wall — short services line */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-200">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option C</span>
+                <span className="text-sm font-bold text-[#003756]">— Coral Wall + Services Line</span>
+              </div>
+              <p className="text-xs text-[#003756] opacity-50 mb-4">Bold coral wall — maximum brand visibility. Short services description. Matches privacy screen energy.</p>
+              <div className="relative overflow-hidden rounded-lg mx-auto" style={{ width: 480, height: 480, backgroundColor: '#FF5050' }}>
+                <div className="absolute" style={{ top: 30, left: 32 }}>
+                  <ShortcutLogo variant="white" size={32} />
+                </div>
+                <div className="absolute" style={{ top: '50%', left: 32, right: 32, transform: 'translateY(-50%)' }}>
+                  <p className="font-extrabold text-2xl leading-[1.1] tracking-[-0.02em]" style={{ color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}>
+                    From massage and beauty to headshots and mindfulness. One platform. One vendor. Zero hassle.
+                  </p>
+                </div>
+                <div className="absolute" style={{ bottom: 24, left: 32 }}>
+                  <p className="text-sm font-semibold" style={{ color: '#FFFFFF', opacity: 0.7 }}>getshortcut.co</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Option D: Navy wall — full description */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-200">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option D</span>
+                <span className="text-sm font-bold text-[#003756]">— Navy Wall + Full Description</span>
+              </div>
+              <p className="text-xs text-[#003756] opacity-50 mb-4">Full Shortcut pitch on the wall. More text but tells the complete story.</p>
+              <div className="relative overflow-hidden rounded-lg mx-auto" style={{ width: 480, height: 480, backgroundColor: '#003756' }}>
+                <div className="absolute" style={{ top: 30, left: 32 }}>
+                  <ShortcutLogo variant="white" size={32} />
+                </div>
+                <div className="absolute" style={{ top: '48%', left: 32, right: 32, transform: 'translateY(-50%)' }}>
+                  <p className="font-extrabold text-lg leading-[1.2] tracking-[-0.01em] mb-3" style={{ color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}>
+                    Shortcut creates happier, more energized teams through on-site and virtual wellness experiences, including massage, beauty, headshots, mindfulness and more.
+                  </p>
+                  <p className="font-extrabold text-xl tracking-[-0.02em]" style={{ color: '#9EFAFF', fontFamily: 'Outfit, system-ui, sans-serif' }}>
+                    One platform. One vendor. Zero hassle.
+                  </p>
+                </div>
+                <div className="absolute" style={{ bottom: 24, left: 32 }}>
+                  <p className="text-sm font-semibold" style={{ color: '#FFFFFF', opacity: 0.5 }}>getshortcut.co</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Option E: White wall — clean, website-style */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-200">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option E</span>
+                <span className="text-sm font-bold text-[#003756]">— White Clean (Website Style)</span>
+              </div>
+              <p className="text-xs text-[#003756] opacity-50 mb-4">Clean white wall like the landing page hero. Navy text, coral accents. Premium and approachable.</p>
+              <div className="relative overflow-hidden rounded-lg mx-auto" style={{ width: 480, height: 480, backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+                <div className="absolute" style={{ top: 30, left: 32 }}>
+                  <ShortcutLogo variant="navy" size={32} />
+                </div>
+                <div className="absolute" style={{ top: '45%', left: 32, right: 32, transform: 'translateY(-50%)' }}>
+                  <p className="font-extrabold text-3xl leading-[1.1] tracking-[-0.02em]" style={{ color: '#003756', fontFamily: 'Outfit, system-ui, sans-serif' }}>
+                    Wellness that actually works for your team.
+                  </p>
+                  <p className="text-sm leading-[1.5] mt-3" style={{ color: '#003756', opacity: 0.6 }}>
+                    We bring the spa, salon, and studio directly to your office. No scheduling headaches — just wellness your team actually wants.
+                  </p>
+                </div>
+                <div className="absolute flex items-center gap-6" style={{ bottom: 24, left: 32 }}>
+                  <div style={{ width: 48, height: 48, background: 'repeating-conic-gradient(#003756 0% 25%, #FFFFFF 0% 50%) 50% / 6px 6px', borderRadius: 4, border: '1px solid #E5E7EB' }} />
+                  <p className="text-xs font-semibold" style={{ color: '#003756', opacity: 0.5 }}>Scan to learn more</p>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
