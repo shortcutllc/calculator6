@@ -38,7 +38,7 @@ const BUDGET_CATEGORIES = [
   { key: 'pro_cost', label: 'Massage Pro Cost', color: 'bg-violet-100 text-violet-800', barColor: 'bg-violet-500' },
 ] as const;
 
-const TOTAL_BUDGET = 25000;
+const TOTAL_BUDGET = 30000;
 
 const SEED_TASKS: Omit<WorkhumanTask, 'id' | 'created_at' | 'updated_at'>[] = [
   // Travel & Logistics
