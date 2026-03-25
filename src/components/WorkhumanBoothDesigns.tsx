@@ -897,80 +897,111 @@ export default function WorkhumanBoothDesigns() {
           <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-2">
             Reception Counter — Logo Lockup for Workhuman
           </p>
-          <p className="text-sm text-[#003756] opacity-60 mb-8">
-            White background, standardized by Workhuman. Supply as logo lockup file.
+          <p className="text-sm text-[#003756] opacity-60 mb-6">
+            White background, standardized by Workhuman. Supply as SVG logo lockup file.
           </p>
 
-          <div className="flex gap-8">
-            {/* Main lockup — centered */}
-            <div className="flex-1">
-              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">Lockup — Centered</p>
-              <div
-                className="relative flex flex-col items-center justify-center bg-white rounded-lg border-2 border-gray-200"
-                style={{ aspectRatio: '16 / 9', padding: '8%' }}
-              >
-                <ShortcutLogo variant="brand" size={48} />
-                <p
-                  className="font-normal mt-4"
-                  style={{
-                    fontSize: 'clamp(10px, 1.2vw, 15px)',
-                    letterSpacing: '-0.01em',
-                    color: '#003756',
-                    opacity: 0.7,
-                    fontFamily: 'Outfit, system-ui, sans-serif',
-                  }}
-                >
-                  Employee Happiness Delivered
-                </p>
-              </div>
+          {/* Main lockup preview — exact replica of Figma "Kiosk Design A" (1254×903, scaled 50%) */}
+          <div
+            id="kiosk-lockup-svg"
+            className="relative bg-white rounded-lg border-2 border-gray-200 mx-auto"
+            style={{ width: 627, height: 452, overflow: 'hidden' }}
+          >
+            {/* Logo — positioned exactly as Figma: centered at (50%-17.37px, 50%-42.61px) scaled 50% */}
+            <div
+              className="absolute"
+              style={{
+                top: '50%',
+                left: '50%',
+                transform: 'translate(calc(-50% - 8.7px), calc(-50% - 21.3px))',
+              }}
+            >
+              <ShortcutLogo variant="brand" size={80} />
             </div>
+            {/* Tagline — positioned exactly as Figma: top=558 in 903, centered, 65px text scaled 50% */}
+            <p
+              className="absolute font-bold text-center"
+              style={{
+                top: '61.8%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '94.3%',
+                fontSize: 32.5,
+                letterSpacing: '-0.65px',
+                lineHeight: 1.04,
+                color: '#175071',
+                fontFamily: 'Outfit, system-ui, sans-serif',
+              }}
+            >
+              Employee Happiness Delivered.
+            </p>
+          </div>
 
-            {/* Lockup — with divider */}
-            <div className="flex-1">
-              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">Lockup — With Divider</p>
-              <div
-                className="relative flex flex-col items-center justify-center bg-white rounded-lg border-2 border-gray-200"
-                style={{ aspectRatio: '16 / 9', padding: '8%' }}
-              >
-                <ShortcutLogo variant="brand" size={48} />
-                <div className="w-10 h-px bg-[#003756] opacity-10 mt-4 mb-3" />
-                <p
-                  className="font-medium text-center"
-                  style={{
-                    fontSize: 'clamp(10px, 1.2vw, 15px)',
-                    letterSpacing: '-0.01em',
-                    color: '#003756',
-                    opacity: 0.6,
-                    fontFamily: 'Outfit, system-ui, sans-serif',
-                  }}
-                >
-                  Employee Happiness Delivered
-                </p>
-              </div>
-            </div>
+          {/* Download SVG button */}
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => {
+                const el = document.getElementById('kiosk-lockup-svg');
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                const svgNS = 'http://www.w3.org/2000/svg';
 
-            {/* Lockup — compact with coral tagline */}
-            <div className="flex-1">
-              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">Lockup — Coral Tagline</p>
-              <div
-                className="relative flex flex-col items-center justify-center bg-white rounded-lg border-2 border-gray-200"
-                style={{ aspectRatio: '16 / 9', padding: '8%' }}
-              >
-                <ShortcutLogo variant="brand" size={48} />
-                <p
-                  className="font-medium mt-3"
-                  style={{
-                    fontSize: 'clamp(10px, 1.2vw, 15px)',
-                    letterSpacing: '-0.01em',
-                    color: '#FF5050',
-                    opacity: 0.85,
-                    fontFamily: 'Outfit, system-ui, sans-serif',
-                  }}
-                >
-                  Employee Happiness Delivered
-                </p>
-              </div>
-            </div>
+                // Build clean SVG
+                const svg = document.createElementNS(svgNS, 'svg');
+                svg.setAttribute('xmlns', svgNS);
+                svg.setAttribute('viewBox', `0 0 1254 903`);
+                svg.setAttribute('width', '1254');
+                svg.setAttribute('height', '903');
+
+                // White background
+                const bg = document.createElementNS(svgNS, 'rect');
+                bg.setAttribute('width', '1254');
+                bg.setAttribute('height', '903');
+                bg.setAttribute('fill', '#FFFFFF');
+                svg.appendChild(bg);
+
+                // Clone the logo SVG from the page
+                const logoSvgs = el.querySelectorAll('svg');
+                if (logoSvgs.length > 0) {
+                  const logoClone = logoSvgs[0].cloneNode(true) as SVGElement;
+                  // Center the logo
+                  const logoG = document.createElementNS(svgNS, 'g');
+                  logoG.setAttribute('transform', 'translate(142, 290)');
+                  // Scale to match Figma proportions
+                  logoG.setAttribute('transform', 'translate(142, 290) scale(2.0)');
+                  logoG.appendChild(logoClone);
+                  svg.appendChild(logoG);
+                }
+
+                // Tagline text
+                const text = document.createElementNS(svgNS, 'text');
+                text.setAttribute('x', '627');
+                text.setAttribute('y', '626');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-family', 'Outfit, system-ui, sans-serif');
+                text.setAttribute('font-weight', '700');
+                text.setAttribute('font-size', '65');
+                text.setAttribute('fill', '#175071');
+                text.setAttribute('letter-spacing', '-1.3');
+                text.textContent = 'Employee Happiness Delivered.';
+                svg.appendChild(text);
+
+                // Download
+                const serializer = new XMLSerializer();
+                const svgString = serializer.serializeToString(svg);
+                const blob = new Blob([svgString], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'shortcut-kiosk-lockup.svg';
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="px-6 py-3 bg-[#003756] text-white rounded-lg font-medium text-sm hover:bg-[#004a73] transition-colors"
+              style={{ fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              Download SVG Lockup
+            </button>
           </div>
         </div>
       )}
