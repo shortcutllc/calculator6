@@ -1085,12 +1085,14 @@ export const StandaloneProposalViewer: React.FC = () => {
         has_pricing_options: recalculatedData.hasPricingOptions || false
       };
 
-      // Try update - skip client_data initially since migration may not be applied
-      // The database trigger will handle client_data if the column exists
-      const { error: updateError } = await supabase
+      // Update proposal in database — use .select() to verify the update actually happened
+      // (Supabase RLS can silently reject updates, returning no error but affecting 0 rows)
+      const { data: updateResult, error: updateError } = await supabase
         .from('proposals')
         .update(updateData)
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
 
       if (updateError) {
         console.error('Proposal approval update error:', JSON.stringify({
@@ -1102,72 +1104,41 @@ export const StandaloneProposalViewer: React.FC = () => {
         throw updateError;
       }
 
-      // Update local state to reflect saved data
-      setDisplayData({ ...recalculatedData, customization: proposal?.customization });
-      setEditedData({ ...recalculatedData, customization: proposal?.customization });
-      
-      // Reload proposal to get updated pricing options
-      const { data: updatedProposal, error: fetchError } = await supabase
-        .from('proposals')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (!fetchError && updatedProposal) {
-        const updatedCalculatedData = recalculateServiceTotals(updatedProposal.data);
-        
-        // Reload pricing options
-        if (updatedProposal.pricing_options && updatedProposal.selected_options) {
-          Object.entries(updatedCalculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
-            Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
-              dateData.services?.forEach((service: any, serviceIndex: number) => {
-                const key = `${location}-${date}-${serviceIndex}`;
-                if (updatedProposal.pricing_options[key]) {
-                  service.pricingOptions = updatedProposal.pricing_options[key];
-                  service.selectedOption = updatedProposal.selected_options[key] || 0;
-                }
-              });
+      // Verify the update actually persisted (RLS can silently block updates)
+      if (!updateResult || updateResult.status !== 'approved') {
+        console.error('Proposal approval update was silently rejected — likely an RLS policy issue', {
+          updateResult,
+          proposalId: id
+        });
+        throw new Error('Unable to approve proposal. Please contact support.');
+      }
+
+      // Update local state with the confirmed DB data
+      const updatedProposal = updateResult;
+      const updatedCalculatedData = recalculateServiceTotals(updatedProposal.data);
+
+      // Reattach pricing options
+      if (updatedProposal.pricing_options && updatedProposal.selected_options) {
+        Object.entries(updatedCalculatedData.services || {}).forEach(([location, locationData]: [string, any]) => {
+          Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+            dateData.services?.forEach((service: any, serviceIndex: number) => {
+              const key = `${location}-${date}-${serviceIndex}`;
+              if (updatedProposal.pricing_options[key]) {
+                service.pricingOptions = updatedProposal.pricing_options[key];
+                service.selectedOption = updatedProposal.selected_options[key] || 0;
+              }
             });
           });
-        }
-        
-        setProposal(updatedProposal);
-        setDisplayData({ ...updatedCalculatedData, customization: updatedProposal.customization });
-        setEditedData({ ...updatedCalculatedData, customization: updatedProposal.customization });
-      } else {
-        // Fallback: just update status
-        setProposal((prev: typeof proposal) => prev ? { ...prev, status: 'approved' } : null);
+        });
       }
 
-      // Send email approval notification (existing)
-      const response = await fetch(`${config.supabase.url}/functions/v1/proposal-approval`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.supabase.anonKey}`,
-        },
-        body: JSON.stringify({
-          proposalId: id,
-          clientName: displayData.clientName,
-          totalCost: recalculatedData.summary?.totalEventCost || 0,
-          eventDates: recalculatedData.eventDates,
-          locations: recalculatedData.locations
-        })
-      });
+      setProposal(updatedProposal);
+      setDisplayData({ ...updatedCalculatedData, customization: updatedProposal.customization });
+      setEditedData({ ...updatedCalculatedData, customization: updatedProposal.customization });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to send email approval notification:', errorData);
-      }
-
-      // Send Slack notification for approval
-      sendProposalEventNotification('approved', {
-        ...proposal,
-        data: recalculatedData
-      });
-
+      // Show success immediately — don't let notification failures block the UI
       setShowApprovalSuccess(true);
-      setTimeout(() => setShowApprovalSuccess(false), 8000); // Show longer for multiple options
+      setTimeout(() => setShowApprovalSuccess(false), 8000);
 
       // Scroll to survey form after a short delay
       setTimeout(() => {
@@ -1176,6 +1147,36 @@ export const StandaloneProposalViewer: React.FC = () => {
           surveyElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 1000);
+
+      // Send notifications in background — failures should never block the approval UI
+      try {
+        const response = await fetch(`${config.supabase.url}/functions/v1/proposal-approval`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.supabase.anonKey}`,
+          },
+          body: JSON.stringify({
+            proposalId: id,
+            clientName: displayData.clientName,
+            totalCost: recalculatedData.summary?.totalEventCost || 0,
+            eventDates: recalculatedData.eventDates,
+            locations: recalculatedData.locations
+          })
+        });
+
+        if (!response.ok) {
+          console.error('Failed to send email approval notification:', await response.text());
+        }
+      } catch (notifyErr) {
+        console.error('Error sending approval email notification:', notifyErr);
+      }
+
+      // Send Slack notification for approval
+      sendProposalEventNotification('approved', {
+        ...proposal,
+        data: recalculatedData
+      });
     } catch (err) {
       console.error('Error approving proposal:', err);
       setError('We encountered an issue approving your proposal. Please try again in a moment.');
