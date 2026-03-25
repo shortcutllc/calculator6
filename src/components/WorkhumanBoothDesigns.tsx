@@ -446,162 +446,213 @@ export default function WorkhumanBoothDesigns() {
       {/* Lounge Backdrop View */}
       {viewMode === 'lounge-backdrop' && (
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <p className="text-sm text-[#003756] opacity-60 mb-8">
-            Backdrop wall behind the lounge area. High-level brand messaging — explains what Shortcut does. Inspired by Instacart's bold color-blocked walls with oversized brand elements.
+          <p className="text-sm text-[#003756] opacity-60 mb-6">
+            ~8ft × 8ft freestanding panel. Edge-lit glow. Massive headline top-left. Logo bottom-right. Reads from 50 feet.
           </p>
 
-          <div className="space-y-10">
+          {/* The panel — rendered large, 1:1 square */}
+          <div className="flex gap-8">
 
-            {/* Option A: Navy wall + white copy panel (Instacart corner style) */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option A</span>
-                <span className="text-sm font-bold text-[#003756]">— Two-Panel Corner (Navy + White)</span>
-              </div>
-              <p className="text-xs text-[#003756] opacity-50 mb-4">Like Instacart's corner lounge — dark brand wall with oversized icon, white wall with copy + QR. Couch sits in the corner.</p>
-              <div className="flex rounded-lg overflow-hidden" style={{ height: 480 }}>
-                {/* White panel — copy + QR */}
-                <div className="relative flex-1" style={{ backgroundColor: '#FFFFFF', borderRight: '1px solid #E5E7EB' }}>
-                  <div className="absolute" style={{ top: 24, left: 24 }}>
-                    <ShortcutLogo variant="navy" size={20} />
-                  </div>
-                  <div className="absolute" style={{ top: 70, left: 24, right: 24 }}>
-                    <p className="font-extrabold text-2xl leading-[1.1] tracking-[-0.02em]" style={{ color: '#003756', fontFamily: 'Outfit, system-ui, sans-serif' }}>
-                      From massage and beauty to headshots and mindfulness.
-                    </p>
-                    <p className="font-extrabold text-lg mt-2 tracking-[-0.02em]" style={{ color: '#FF5050', fontFamily: 'Outfit, system-ui, sans-serif' }}>
-                      One platform. One vendor. Zero hassle.
-                    </p>
-                  </div>
-                  {/* QR code */}
-                  <div className="absolute" style={{ bottom: 24, left: 24 }}>
-                    <div style={{ width: 64, height: 64, background: 'repeating-conic-gradient(#003756 0% 25%, #FFFFFF 0% 50%) 50% / 8px 8px', borderRadius: 4, border: '2px solid #E5E7EB' }} />
-                    <p className="text-[9px] font-semibold mt-1" style={{ color: '#003756', opacity: 0.5 }}>Book a session</p>
-                  </div>
-                </div>
-                {/* Navy panel — oversized icon + pattern */}
-                <div className="relative flex-1" style={{ backgroundColor: '#003756' }}>
-                  {/* Large Shortcut icon only (no wordmark) */}
-                  <svg className="absolute" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} width="160" height="160" viewBox="0 0 285 192" fill="none" opacity="0.15">
-                    <path fillRule="evenodd" clipRule="evenodd" d="M180.085 123.273C178.523 136.95 174.332 150.363 166.404 161.789C147.666 188.794 115.391 197.809 83.505 187.975C52.0357 178.27 21.5169 150.798 0 106.28L29.4336 92.0535C48.1724 130.823 72.6235 150.408 93.1396 156.736C113.239 162.935 129.965 156.958 139.545 143.152C141.253 140.691 142.721 137.91 143.935 134.846C142.091 134.947 140.246 134.979 138.402 134.945C117.189 134.548 97.7708 125.343 83.1568 112.659C68.6417 100.062 57.4983 82.8406 54.2488 64.5611C50.855 45.4703 56.3132 25.3828 74.6228 11.3512C83.191 4.78496 92.5896 0.887791 102.475 0.134123C112.334 -0.61748 121.541 1.84316 129.627 6.17627C145.351 14.6033 157.577 30.4138 165.925 47.3746C171.212 58.1174 175.313 70.0533 177.861 82.3164C192.547 66.6019 208.52 57.2563 222.041 52.0055C229.027 49.2927 235.456 47.6337 240.848 46.7633C245.575 46.0002 251.284 45.5405 256.04 46.6381L248.689 78.4922C249.256 78.6231 249.56 78.669 249.56 78.669C249.558 78.6929 248.483 78.6453 246.058 79.0368C243.004 79.5298 238.792 80.5701 233.876 82.4796C224.082 86.2829 211.873 93.3814 200.548 105.942C194.094 113.1 187.222 118.845 180.085 123.273ZM147.727 101.517C146.5 87.8421 142.494 73.7985 136.594 61.8105C129.869 48.148 121.609 38.9693 114.185 34.9907C110.696 33.1211 107.663 32.5248 104.96 32.7309C102.284 32.9349 98.8002 34.0099 94.5082 37.2992C87.0974 42.9785 84.9004 50.2039 86.4355 58.8393C88.1148 68.2858 94.4842 79.2038 104.585 87.9699C114.586 96.6501 126.886 102.033 139.013 102.259C141.841 102.312 144.754 102.088 147.727 101.517Z" fill="#9EFAFF"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M227.95 60.6342C212.285 55.7034 200.552 45.6102 190.79 34.575L215.742 12.5006C223.559 21.3371 230.444 26.4925 237.953 28.8562C245.287 31.1646 255.432 31.4939 271.035 26.2883L284.604 56.5339C273.057 63.1664 266.67 73.9685 263.648 85.1433C262.14 90.7193 261.573 96.0733 261.599 100.426C261.625 104.815 262.24 107.049 262.315 107.323C262.322 107.346 262.322 107.35 262.322 107.35L231.654 120.365C229.232 114.657 228.325 107.44 228.284 100.627C228.241 93.4035 229.161 85.049 231.488 76.4463C232.7 71.9629 234.323 67.3261 236.435 62.7047C233.55 62.1969 230.724 61.5071 227.95 60.6342Z" fill="#9EFAFF"/>
-                  </svg>
-                  {/* Decorative wellness line-art elements */}
-                  <svg className="absolute opacity-10" style={{ top: 20, right: 20 }} width="60" height="60" viewBox="0 0 60 60" fill="none">
-                    <circle cx="30" cy="30" r="28" stroke="#9EFAFF" strokeWidth="1.5" fill="none" />
-                    <path d="M30 10 C30 10 20 25 30 30 C40 25 30 10 30 10Z" stroke="#9EFAFF" strokeWidth="1.5" fill="none" />
-                    <path d="M30 50 C30 50 20 35 30 30 C40 35 30 50 30 50Z" stroke="#9EFAFF" strokeWidth="1.5" fill="none" />
-                  </svg>
-                  <svg className="absolute opacity-10" style={{ bottom: 30, left: 20 }} width="40" height="40" viewBox="0 0 40 40" fill="none">
-                    <path d="M20 5 L25 15 L35 15 L27 22 L30 32 L20 26 L10 32 L13 22 L5 15 L15 15Z" stroke="#9EFAFF" strokeWidth="1.5" fill="none" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Option B: Navy wall with mounted TV */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option B</span>
-                <span className="text-sm font-bold text-[#003756]">— Navy Wall + Mounted TV</span>
-              </div>
-              <p className="text-xs text-[#003756] opacity-50 mb-4">Bold navy backdrop with TV running content loop. Copy and logo flanking the screen. Like Instacart's digital kiosk wall.</p>
-              <div className="relative overflow-hidden rounded-lg mx-auto" style={{ width: 480, height: 480, backgroundColor: '#003756' }}>
-                <div className="absolute" style={{ top: 24, left: 32 }}>
-                  <ShortcutLogo variant="white" size={28} />
-                </div>
-                {/* TV */}
-                <div className="absolute" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 240, height: 140, backgroundColor: '#1a1a1a', borderRadius: 8, border: '4px solid #222', boxShadow: '0 0 30px rgba(158,250,255,0.15)', overflow: 'hidden' }}>
-                  <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#002a44' }}>
-                    <div className="text-center">
-                      <p className="text-white font-extrabold text-sm">Content Loop</p>
-                      <p className="text-[10px] mt-1" style={{ color: '#9EFAFF' }}>Copy slides / QR / Video / Stats</p>
-                    </div>
-                  </div>
-                </div>
-                {/* Copy below TV */}
-                <div className="absolute" style={{ bottom: 24, left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
-                  <p className="font-extrabold text-base tracking-[-0.01em]" style={{ color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}>
-                    Wellness that actually works for your team.
+            {/* Navy version */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">A — Navy</p>
+              <div
+                className="relative overflow-hidden"
+                style={{
+                  aspectRatio: '1 / 1',
+                  backgroundColor: '#003756',
+                  borderRadius: 16,
+                  border: '5px solid rgba(158,250,255,0.25)',
+                  boxShadow: '0 0 80px rgba(158,250,255,0.18), 0 0 160px rgba(158,250,255,0.08)',
+                }}
+              >
+                {/* Headline — 10% top, 8% sides, all white, no accent colors */}
+                <div className="absolute" style={{ top: '10%', left: '8%', right: '8%' }}>
+                  <p
+                    className="font-extrabold tracking-[-0.03em]"
+                    style={{
+                      fontSize: 'clamp(28px, 5.5vw, 58px)',
+                      lineHeight: 1.08,
+                      color: '#FFFFFF',
+                      fontFamily: 'Outfit, system-ui, sans-serif',
+                    }}
+                  >
+                    From massage and beauty to headshots and mindfulness.
                   </p>
                 </div>
-              </div>
-            </div>
 
-            {/* Option C: Coral wall — short services line */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option C</span>
-                <span className="text-sm font-bold text-[#003756]">— Coral Wall + Services Line</span>
-              </div>
-              <p className="text-xs text-[#003756] opacity-50 mb-4">Bold coral wall — maximum brand visibility. Short services description. Matches privacy screen energy.</p>
-              <div className="relative overflow-hidden rounded-lg mx-auto" style={{ width: 480, height: 480, backgroundColor: '#FF5050' }}>
-                <div className="absolute" style={{ top: 30, left: 32 }}>
-                  <ShortcutLogo variant="white" size={32} />
-                </div>
-                <div className="absolute" style={{ top: '50%', left: 32, right: 32, transform: 'translateY(-50%)' }}>
-                  <p className="font-extrabold text-2xl leading-[1.1] tracking-[-0.02em]" style={{ color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}>
-                    From massage and beauty to headshots and mindfulness. One platform. One vendor. Zero hassle.
-                  </p>
-                </div>
-                <div className="absolute" style={{ bottom: 24, left: 32 }}>
-                  <p className="text-sm font-semibold" style={{ color: '#FFFFFF', opacity: 0.7 }}>getshortcut.co</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Option D: Navy wall — full description */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option D</span>
-                <span className="text-sm font-bold text-[#003756]">— Navy Wall + Full Description</span>
-              </div>
-              <p className="text-xs text-[#003756] opacity-50 mb-4">Full Shortcut pitch on the wall. More text but tells the complete story.</p>
-              <div className="relative overflow-hidden rounded-lg mx-auto" style={{ width: 480, height: 480, backgroundColor: '#003756' }}>
-                <div className="absolute" style={{ top: 30, left: 32 }}>
-                  <ShortcutLogo variant="white" size={32} />
-                </div>
-                <div className="absolute" style={{ top: '48%', left: 32, right: 32, transform: 'translateY(-50%)' }}>
-                  <p className="font-extrabold text-lg leading-[1.2] tracking-[-0.01em] mb-3" style={{ color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}>
-                    Shortcut creates happier, more energized teams through on-site and virtual wellness experiences, including massage, beauty, headshots, mindfulness and more.
-                  </p>
-                  <p className="font-extrabold text-xl tracking-[-0.02em]" style={{ color: '#9EFAFF', fontFamily: 'Outfit, system-ui, sans-serif' }}>
+                {/* Bottom bar — tagline left, logo right, same baseline */}
+                <div className="absolute flex items-center justify-between" style={{ bottom: '6%', left: '8%', right: '8%' }}>
+                  <p
+                    className="font-bold tracking-[-0.01em]"
+                    style={{
+                      fontSize: 'clamp(11px, 1.6vw, 15px)',
+                      color: '#FF5050',
+                      fontFamily: 'Outfit, system-ui, sans-serif',
+                    }}
+                  >
                     One platform. One vendor. Zero hassle.
                   </p>
-                </div>
-                <div className="absolute" style={{ bottom: 24, left: 32 }}>
-                  <p className="text-sm font-semibold" style={{ color: '#FFFFFF', opacity: 0.5 }}>getshortcut.co</p>
+                  <ShortcutLogo variant="white" size={24} />
                 </div>
               </div>
             </div>
 
-            {/* Option E: White wall — clean, website-style */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-[#FF5050] uppercase tracking-wider">Option E</span>
-                <span className="text-sm font-bold text-[#003756]">— White Clean (Website Style)</span>
-              </div>
-              <p className="text-xs text-[#003756] opacity-50 mb-4">Clean white wall like the landing page hero. Navy text, coral accents. Premium and approachable.</p>
-              <div className="relative overflow-hidden rounded-lg mx-auto" style={{ width: 480, height: 480, backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB' }}>
-                <div className="absolute" style={{ top: 30, left: 32 }}>
-                  <ShortcutLogo variant="navy" size={32} />
-                </div>
-                <div className="absolute" style={{ top: '45%', left: 32, right: 32, transform: 'translateY(-50%)' }}>
-                  <p className="font-extrabold text-3xl leading-[1.1] tracking-[-0.02em]" style={{ color: '#003756', fontFamily: 'Outfit, system-ui, sans-serif' }}>
-                    Wellness that actually works for your team.
+            {/* Coral version */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">A — Coral</p>
+              <div
+                className="relative overflow-hidden"
+                style={{
+                  aspectRatio: '1 / 1',
+                  backgroundColor: '#FF5050',
+                  borderRadius: 16,
+                  border: '5px solid rgba(255,255,255,0.2)',
+                  boxShadow: '0 0 80px rgba(255,80,80,0.2), 0 0 160px rgba(255,80,80,0.1)',
+                }}
+              >
+                <div className="absolute" style={{ top: '10%', left: '8%', right: '8%' }}>
+                  <p
+                    className="font-extrabold tracking-[-0.03em]"
+                    style={{
+                      fontSize: 'clamp(28px, 5.5vw, 58px)',
+                      lineHeight: 1.08,
+                      color: '#FFFFFF',
+                      fontFamily: 'Outfit, system-ui, sans-serif',
+                    }}
+                  >
+                    From massage and beauty to headshots and mindfulness.
                   </p>
-                  <p className="text-sm leading-[1.5] mt-3" style={{ color: '#003756', opacity: 0.6 }}>
-                    We bring the spa, salon, and studio directly to your office. No scheduling headaches — just wellness your team actually wants.
-                  </p>
                 </div>
-                <div className="absolute flex items-center gap-6" style={{ bottom: 24, left: 32 }}>
-                  <div style={{ width: 48, height: 48, background: 'repeating-conic-gradient(#003756 0% 25%, #FFFFFF 0% 50%) 50% / 6px 6px', borderRadius: 4, border: '1px solid #E5E7EB' }} />
-                  <p className="text-xs font-semibold" style={{ color: '#003756', opacity: 0.5 }}>Scan to learn more</p>
+
+                <div className="absolute flex items-center justify-between" style={{ bottom: '6%', left: '8%', right: '8%' }}>
+                  <p
+                    className="font-bold tracking-[-0.01em]"
+                    style={{
+                      fontSize: 'clamp(11px, 1.6vw, 15px)',
+                      color: '#003756',
+                      fontFamily: 'Outfit, system-ui, sans-serif',
+                    }}
+                  >
+                    One platform. One vendor. Zero hassle.
+                  </p>
+                  <ShortcutLogo variant="white" size={24} />
                 </div>
               </div>
             </div>
 
           </div>
+
+          {/* Options B, C, D */}
+          <div className="flex gap-8 mt-10">
+
+            {/* Option B */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">B</p>
+              <div
+                className="relative"
+                style={{
+                  aspectRatio: '5 / 6',
+                  backgroundColor: '#003756',
+                  borderRadius: 2,
+                  border: '6px solid #9EFAFF',
+                  boxShadow: '0 0 40px rgba(158,250,255,0.35), 0 0 80px rgba(158,250,255,0.15), 0 0 120px rgba(158,250,255,0.08)',
+                }}
+              >
+                <div className="absolute" style={{ top: '6%', left: '7%', right: '7%' }}>
+                  <p
+                    className="font-extrabold tracking-[-0.04em]"
+                    style={{
+                      fontSize: 'clamp(24px, 4.8vw, 52px)',
+                      lineHeight: 0.95,
+                      color: '#FFFFFF',
+                      fontFamily: 'Outfit, system-ui, sans-serif',
+                    }}
+                  >
+                    Employee<br />
+                    <span style={{ color: '#9EFAFF' }}>Happiness</span><br />
+                    Delivered.
+                  </p>
+                </div>
+
+                <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+                  <ShortcutLogo variant="white" size={16} />
+                </div>
+              </div>
+            </div>
+
+            {/* Option C */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">C</p>
+              <div
+                className="relative"
+                style={{
+                  aspectRatio: '5 / 6',
+                  backgroundColor: '#003756',
+                  borderRadius: 2,
+                  border: '6px solid #9EFAFF',
+                  boxShadow: '0 0 40px rgba(158,250,255,0.35), 0 0 80px rgba(158,250,255,0.15), 0 0 120px rgba(158,250,255,0.08)',
+                }}
+              >
+                <div className="absolute" style={{ top: '6%', left: '7%', right: '7%' }}>
+                  <p
+                    className="font-extrabold tracking-[-0.04em]"
+                    style={{
+                      fontSize: 'clamp(28px, 5.5vw, 60px)',
+                      lineHeight: 0.93,
+                      color: '#FFFFFF',
+                      fontFamily: 'Outfit, system-ui, sans-serif',
+                    }}
+                  >
+                    Wellness<br />
+                    <span style={{ color: '#9EFAFF' }}>that</span><br />
+                    works.
+                  </p>
+                </div>
+
+                <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+                  <ShortcutLogo variant="white" size={16} />
+                </div>
+              </div>
+            </div>
+
+            {/* Option D */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">D</p>
+              <div
+                className="relative"
+                style={{
+                  aspectRatio: '5 / 6',
+                  backgroundColor: '#FF5050',
+                  borderRadius: 2,
+                  border: '6px solid rgba(255,255,255,0.4)',
+                  boxShadow: '0 0 40px rgba(255,255,255,0.15), 0 0 80px rgba(255,80,80,0.2), 0 0 120px rgba(255,80,80,0.1)',
+                }}
+              >
+                <div className="absolute" style={{ top: '6%', left: '7%', right: '7%' }}>
+                  <p
+                    className="font-extrabold tracking-[-0.04em]"
+                    style={{
+                      fontSize: 'clamp(24px, 4.8vw, 52px)',
+                      lineHeight: 0.95,
+                      color: '#FFFFFF',
+                      fontFamily: 'Outfit, system-ui, sans-serif',
+                    }}
+                  >
+                    Employee<br />
+                    <span style={{ color: '#003756' }}>Happiness</span><br />
+                    Delivered.
+                  </p>
+                </div>
+
+                <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+                  <ShortcutLogo variant="white" size={16} />
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       )}
 
