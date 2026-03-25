@@ -130,11 +130,12 @@ function PanelPreview({ panel, scale = 1 }: { panel: PanelDesign; scale?: number
   );
 }
 
-function ShortcutLogo({ variant, size }: { variant: 'coral' | 'navy' | 'white'; size: number }) {
+function ShortcutLogo({ variant, size }: { variant: 'coral' | 'navy' | 'white' | 'brand'; size: number }) {
   // Real Shortcut logo SVG paths from shortcut-logo-rgb.svg
   // Icon color and wordmark color change based on variant
-  const iconColor = variant === 'coral' ? '#FF5050' : variant === 'white' ? '#FFFFFF' : '#003756';
-  const wordmarkColor = variant === 'coral' ? '#FF5050' : variant === 'white' ? '#FFFFFF' : '#003C5E';
+  // 'brand' = coral icon + navy wordmark (matches nav bar)
+  const iconColor = variant === 'coral' || variant === 'brand' ? '#FF5050' : variant === 'white' ? '#FFFFFF' : '#003756';
+  const wordmarkColor = variant === 'brand' ? '#003756' : variant === 'coral' ? '#FF5050' : variant === 'white' ? '#FFFFFF' : '#003C5E';
 
   // The original SVG viewBox is 1162×192, we scale based on height = size
   const scale = size / 192;
@@ -160,7 +161,7 @@ function ShortcutLogo({ variant, size }: { variant: 'coral' | 'navy' | 'white'; 
   );
 }
 
-type ViewMode = 'grid' | 'single' | 'recharge-station' | 'lounge-backdrop' | 'booth-context';
+type ViewMode = 'grid' | 'single' | 'recharge-station' | 'lounge-backdrop' | 'kiosk' | 'booth-context';
 
 export default function WorkhumanBoothDesigns() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -201,7 +202,7 @@ export default function WorkhumanBoothDesigns() {
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-[#003756] opacity-60">View:</span>
             <div className="flex bg-white rounded-full p-1 shadow-sm border border-gray-200">
-              {(['grid', 'single', 'recharge-station', 'lounge-backdrop', 'booth-context'] as ViewMode[]).map(mode => (
+              {(['grid', 'single', 'recharge-station', 'lounge-backdrop', 'kiosk', 'booth-context'] as ViewMode[]).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
@@ -211,7 +212,7 @@ export default function WorkhumanBoothDesigns() {
                       : 'text-[#003756] hover:bg-gray-100'
                   }`}
                 >
-                  {mode === 'grid' ? 'Privacy Screens' : mode === 'single' ? 'Full Size' : mode === 'recharge-station' ? 'Recharge Station' : mode === 'lounge-backdrop' ? 'Lounge Backdrop' : 'Booth Layout'}
+                  {mode === 'grid' ? 'Privacy Screens' : mode === 'single' ? 'Full Size' : mode === 'recharge-station' ? 'Recharge Station' : mode === 'lounge-backdrop' ? 'Lounge Backdrop' : mode === 'kiosk' ? 'Kiosk' : 'Booth Layout'}
                 </button>
               ))}
             </div>
@@ -890,6 +891,90 @@ export default function WorkhumanBoothDesigns() {
       )}
 
       {/* Booth Context View */}
+      {/* Kiosk / Reception Counter */}
+      {viewMode === 'kiosk' && (
+        <div className="max-w-7xl mx-auto px-6 pb-12">
+          <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-2">
+            Reception Counter — Logo Lockup for Workhuman
+          </p>
+          <p className="text-sm text-[#003756] opacity-60 mb-8">
+            White background, standardized by Workhuman. Supply as logo lockup file.
+          </p>
+
+          <div className="flex gap-8">
+            {/* Main lockup — centered */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">Lockup — Centered</p>
+              <div
+                className="relative flex flex-col items-center justify-center bg-white rounded-lg border-2 border-gray-200"
+                style={{ aspectRatio: '16 / 9', padding: '8%' }}
+              >
+                <ShortcutLogo variant="brand" size={48} />
+                <p
+                  className="font-normal mt-4"
+                  style={{
+                    fontSize: 'clamp(10px, 1.2vw, 15px)',
+                    letterSpacing: '-0.01em',
+                    color: '#003756',
+                    opacity: 0.7,
+                    fontFamily: 'Outfit, system-ui, sans-serif',
+                  }}
+                >
+                  Employee Happiness Delivered
+                </p>
+              </div>
+            </div>
+
+            {/* Lockup — with divider */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">Lockup — With Divider</p>
+              <div
+                className="relative flex flex-col items-center justify-center bg-white rounded-lg border-2 border-gray-200"
+                style={{ aspectRatio: '16 / 9', padding: '8%' }}
+              >
+                <ShortcutLogo variant="brand" size={48} />
+                <div className="w-10 h-px bg-[#003756] opacity-10 mt-4 mb-3" />
+                <p
+                  className="font-medium text-center"
+                  style={{
+                    fontSize: 'clamp(10px, 1.2vw, 15px)',
+                    letterSpacing: '-0.01em',
+                    color: '#003756',
+                    opacity: 0.6,
+                    fontFamily: 'Outfit, system-ui, sans-serif',
+                  }}
+                >
+                  Employee Happiness Delivered
+                </p>
+              </div>
+            </div>
+
+            {/* Lockup — compact with coral tagline */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">Lockup — Coral Tagline</p>
+              <div
+                className="relative flex flex-col items-center justify-center bg-white rounded-lg border-2 border-gray-200"
+                style={{ aspectRatio: '16 / 9', padding: '8%' }}
+              >
+                <ShortcutLogo variant="brand" size={48} />
+                <p
+                  className="font-medium mt-3"
+                  style={{
+                    fontSize: 'clamp(10px, 1.2vw, 15px)',
+                    letterSpacing: '-0.01em',
+                    color: '#FF5050',
+                    opacity: 0.85,
+                    fontFamily: 'Outfit, system-ui, sans-serif',
+                  }}
+                >
+                  Employee Happiness Delivered
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {viewMode === 'booth-context' && (
         <div className="max-w-7xl mx-auto px-6 pb-12">
           <div className="bg-white rounded-2xl p-8 border border-gray-200">
