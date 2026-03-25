@@ -653,6 +653,174 @@ export default function WorkhumanBoothDesigns() {
 
           </div>
 
+          {/* Options E, F — Vertical list designs */}
+          <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mt-10 mb-4">Service & Value Prop Lists</p>
+          <div className="flex gap-6">
+
+            {/* Option E — Services List */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">E</p>
+              <div
+                className="relative"
+                style={{
+                  aspectRatio: '5 / 6',
+                  backgroundColor: '#4A8FA8',
+                  borderRadius: 12,
+                  border: 'none',
+                }}
+              >
+                <div className="absolute" style={{ top: '6%', left: '7%', right: '7%' }}>
+                  {['Massage', 'Nails', 'Haircut', 'Spa', 'Mindfulness', 'Headshots'].map((service, i) => (
+                    <p
+                      key={service}
+                      className="font-extrabold tracking-[-0.03em]"
+                      style={{
+                        fontSize: 'clamp(14px, 2.8vw, 32px)',
+                        lineHeight: 1.2,
+                        color: i % 2 === 0 ? '#FFFFFF' : '#9EDCE8',
+                        fontFamily: 'Outfit, system-ui, sans-serif',
+                      }}
+                    >
+                      {service}
+                    </p>
+                  ))}
+                </div>
+
+                <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+                  <ShortcutLogo variant="white" size={16} />
+                </div>
+              </div>
+            </div>
+
+            {/* Option F — Value Props List */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">F</p>
+              <div
+                className="relative"
+                style={{
+                  aspectRatio: '5 / 6',
+                  backgroundColor: '#4A8FA8',
+                  borderRadius: 12,
+                  border: 'none',
+                }}
+              >
+                <div className="absolute" style={{ top: '6%', left: '7%', right: '7%' }}>
+                  {[
+                    'One vendor,',
+                    'multiple services.',
+                    'Available nationwide.',
+                    'Seamless technology.',
+                    'Zero admin',
+                    'headaches.',
+                  ].map((line, i) => (
+                    <p
+                      key={i}
+                      className="font-extrabold tracking-[-0.03em]"
+                      style={{
+                        fontSize: 'clamp(11px, 2.2vw, 24px)',
+                        lineHeight: 1.25,
+                        color: i % 2 === 0 ? '#FFFFFF' : '#9EDCE8',
+                        fontFamily: 'Outfit, system-ui, sans-serif',
+                        marginTop: i === 2 || i === 4 ? '0.5em' : 0,
+                      }}
+                    >
+                      {line}
+                    </p>
+                  ))}
+                </div>
+
+                <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+                  <ShortcutLogo variant="white" size={16} />
+                </div>
+              </div>
+            </div>
+
+            {/* Option E Navy — Services List on Navy */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">E — Navy</p>
+              <div
+                className="relative"
+                style={{
+                  aspectRatio: '5 / 6',
+                  backgroundColor: '#003756',
+                  borderRadius: 2,
+                  border: '6px solid #9EFAFF',
+                  boxShadow: '0 0 40px rgba(158,250,255,0.35), 0 0 80px rgba(158,250,255,0.15), 0 0 120px rgba(158,250,255,0.08)',
+                }}
+              >
+                <div className="absolute" style={{ top: '6%', left: '7%', right: '7%' }}>
+                  {['Massage', 'Nails', 'Haircut', 'Spa', 'Mindfulness', 'Headshots'].map((service, i) => (
+                    <p
+                      key={service}
+                      className="font-extrabold tracking-[-0.03em]"
+                      style={{
+                        fontSize: 'clamp(14px, 2.8vw, 32px)',
+                        lineHeight: 1.2,
+                        color: i % 2 === 0 ? '#FFFFFF' : '#9EFAFF',
+                        fontFamily: 'Outfit, system-ui, sans-serif',
+                      }}
+                    >
+                      {service}
+                    </p>
+                  ))}
+                </div>
+
+                <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+                  <ShortcutLogo variant="white" size={16} />
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Row 2 — Option G */}
+          <div className="flex gap-6 mt-6" style={{ maxWidth: 'calc(33.333% - 8px)' }}>
+
+            {/* Option G — Services List with Service Colors */}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-[#003756] opacity-40 uppercase tracking-wider mb-3">G — Service Colors</p>
+              <div
+                className="relative"
+                style={{
+                  aspectRatio: '5 / 6',
+                  backgroundColor: '#003756',
+                  borderRadius: 2,
+                  border: '6px solid #9EFAFF',
+                  boxShadow: '0 0 40px rgba(158,250,255,0.35), 0 0 80px rgba(158,250,255,0.15), 0 0 120px rgba(158,250,255,0.08)',
+                }}
+              >
+                <div className="absolute" style={{ top: '6%', left: '7%', right: '7%' }}>
+                  {[
+                    { name: 'Massage', color: '#9EFAFF' },
+                    { name: 'Nails', color: '#F7BBFF' },
+                    { name: 'Haircut', color: '#FEDC64' },
+                    { name: 'Spa', color: '#F7BBFF' },
+                    { name: 'Mindfulness', color: '#FEDC64' },
+                    { name: 'Headshots', color: '#9EFAFF' },
+                  ].map((service) => (
+                    <p
+                      key={service.name}
+                      className="font-extrabold tracking-[-0.03em]"
+                      style={{
+                        fontSize: 'clamp(14px, 2.8vw, 32px)',
+                        lineHeight: 1.2,
+                        color: service.color,
+                        fontFamily: 'Outfit, system-ui, sans-serif',
+                      }}
+                    >
+                      {service.name}
+                    </p>
+                  ))}
+                </div>
+
+                <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+                  <ShortcutLogo variant="white" size={16} />
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       )}
 
