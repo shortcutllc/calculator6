@@ -57,6 +57,7 @@ const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
 const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesigns'));
+const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
 
 function App() {
   const location = useLocation();
@@ -418,6 +419,19 @@ function App() {
                       <WorkhumanBoothDesigns />
                     </Suspense>
                   </PrivateRoute>
+                }
+              />
+              {/* Workhuman TV Content Loop — public, runs on booth TV */}
+              <Route
+                path="/workhuman-tv"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center bg-[#003756]">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <WorkhumanTVLoop />
+                  </Suspense>
                 }
               />
               {/* Sign-Up Links Routes */}

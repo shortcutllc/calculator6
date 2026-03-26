@@ -28,3 +28,6 @@ dist-ssr
 .env.*
 # Local Netlify folder
 .netlify
+
+# Large media files (served by Netlify from public/, not needed in git)
+public/workhuman-tv/*.mp4

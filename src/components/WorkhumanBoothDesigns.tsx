@@ -482,18 +482,21 @@ export default function WorkhumanBoothDesigns() {
                   </p>
                 </div>
 
-                {/* Bottom bar — tagline left, logo right, same baseline */}
-                <div className="absolute flex items-center justify-between" style={{ bottom: '6%', left: '8%', right: '8%' }}>
+                {/* Tagline — separated from logo for breathing room */}
+                <div className="absolute" style={{ bottom: '14%', left: '8%', right: '8%' }}>
                   <p
                     className="font-bold tracking-[-0.01em]"
                     style={{
-                      fontSize: 'clamp(11px, 1.6vw, 15px)',
+                      fontSize: 'clamp(12px, 1.8vw, 18px)',
                       color: '#FF5050',
                       fontFamily: 'Outfit, system-ui, sans-serif',
                     }}
                   >
                     One platform. One vendor. Zero hassle.
                   </p>
+                </div>
+                {/* Logo — bottom right */}
+                <div className="absolute" style={{ bottom: '5%', right: '8%' }}>
                   <ShortcutLogo variant="white" size={24} />
                 </div>
               </div>
@@ -526,17 +529,21 @@ export default function WorkhumanBoothDesigns() {
                   </p>
                 </div>
 
-                <div className="absolute flex items-center justify-between" style={{ bottom: '6%', left: '8%', right: '8%' }}>
+                {/* Tagline — separated from logo for breathing room */}
+                <div className="absolute" style={{ bottom: '14%', left: '8%', right: '8%' }}>
                   <p
                     className="font-bold tracking-[-0.01em]"
                     style={{
-                      fontSize: 'clamp(11px, 1.6vw, 15px)',
+                      fontSize: 'clamp(12px, 1.8vw, 18px)',
                       color: '#003756',
                       fontFamily: 'Outfit, system-ui, sans-serif',
                     }}
                   >
                     One platform. One vendor. Zero hassle.
                   </p>
+                </div>
+                {/* Logo — bottom right */}
+                <div className="absolute" style={{ bottom: '5%', right: '8%' }}>
                   <ShortcutLogo variant="white" size={24} />
                 </div>
               </div>
