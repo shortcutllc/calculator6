@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+// ============================================================
+// Workhuman TV Content Loop — Portrait (9:16) vertical screen
+// Story flow: QR → Problem → Pivot → Logo → Services → Platform → Ease → Close
+// QR persists in bottom-left after initial full-screen display
+// ============================================================
+
 // Brand colors
 const NAVY = '#003756';
 const CORAL = '#FF5050';
@@ -7,20 +13,17 @@ const TEAL = '#9EFAFF';
 const YELLOW = '#FEDC64';
 const PINK = '#F7BBFF';
 
-// Copy lines from privacy screens
-const COPY_LINES = [
-  'That meeting could have been a massage.',
-  'Employee Happiness Delivered.',
-  'Wellness that works.',
-  'Real wellness, right between meetings.',
-  'We create space — to reset.',
+// Service definitions with video paths, copy, and explicit word split points
+// Split points match the HomeHero.vue pattern (e.g. "mass" + "age")
+const SERVICES = [
+  { splitLeft: 'mass', splitRight: 'age', video: '/workhuman-tv/massage.mp4', tagline: 'Stress leaves. Focus returns.', color: TEAL, textColor: CORAL },
+  { splitLeft: 'head', splitRight: 'shots', video: '/workhuman-tv/headshot.mp4', tagline: 'Looking sharp without leaving the office.', color: NAVY, textColor: '#FFFFFF' },
+  { splitLeft: 'mani', splitRight: 'cure', video: '/workhuman-tv/manicure.mp4', tagline: 'A little self care between meetings.', color: PINK, textColor: NAVY },
+  { splitLeft: 'hair', splitRight: 'cut', video: '/workhuman-tv/haircut.mp4', tagline: 'Fresh cuts. Zero commute.', color: YELLOW, textColor: NAVY },
+  { splitLeft: 'mind', splitRight: 'fulness', video: '/workhuman-tv/mindfulness.mp4', tagline: 'Calm minds. Better decisions.', color: CORAL, textColor: '#FFFFFF' },
 ];
 
-const SERVICES = ['Massage', 'Nails', 'Haircut', 'Spa', 'Mindfulness', 'Headshots'];
-
-const SERVICE_COLORS = [TEAL, PINK, YELLOW, TEAL, YELLOW, PINK];
-
-// --- Reusable ShortcutLogo (same as WorkhumanBoothDesigns) ---
+// --- Shortcut Logo SVG ---
 function ShortcutLogo({ variant, size }: { variant: 'coral' | 'navy' | 'white'; size: number }) {
   const iconColor = variant === 'coral' ? '#FF5050' : variant === 'white' ? '#FFFFFF' : '#003756';
   const wordmarkColor = variant === 'coral' ? '#FF5050' : variant === 'white' ? '#FFFFFF' : '#003C5E';
@@ -47,89 +50,14 @@ function ShortcutLogo({ variant, size }: { variant: 'coral' | 'navy' | 'white'; 
   );
 }
 
-// --- Animated Counter ---
-function AnimatedCounter({ target, duration = 2000, prefix = '', suffix = '' }: {
-  target: number;
-  duration?: number;
-  prefix?: string;
-  suffix?: string;
-}) {
-  const [count, setCount] = useState(0);
-  const [started, setStarted] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!started) return;
-    const startTime = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.round(eased * target));
-      if (progress >= 1) clearInterval(timer);
-    }, 16);
-    return () => clearInterval(timer);
-  }, [started, target, duration]);
-
-  // Start when visible
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setStarted(true); },
-      { threshold: 0.5 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return <span ref={ref}>{prefix}{count.toLocaleString()}{suffix}</span>;
-}
-
-// --- Floating particles (CSS-only feel, but via canvas-free divs) ---
-function FloatingParticles() {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    size: 3 + Math.random() * 6,
-    delay: Math.random() * 8,
-    duration: 6 + Math.random() * 8,
-    opacity: 0.1 + Math.random() * 0.2,
-  }));
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particles.map(p => (
-        <div
-          key={p.id}
-          className="absolute rounded-full"
-          style={{
-            left: p.left,
-            top: p.top,
-            width: p.size,
-            height: p.size,
-            backgroundColor: TEAL,
-            opacity: p.opacity,
-            animation: `float-particle ${p.duration}s ease-in-out ${p.delay}s infinite alternate`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// --- QR Code placeholder (simple SVG pattern) ---
-function QRPlaceholder({ size = 280 }: { size?: number }) {
+// --- QR Code placeholder ---
+function QRPlaceholder({ size = 200 }: { size?: number }) {
   return (
     <div
-      className="relative flex items-center justify-center"
-      style={{ width: size, height: size, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20 }}
+      className="flex items-center justify-center"
+      style={{ width: size, height: size, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16 }}
     >
-      {/* Grid pattern to simulate QR code */}
-      <svg width={size - 40} height={size - 40} viewBox="0 0 21 21">
-        {/* Corner squares */}
+      <svg width={size - 32} height={size - 32} viewBox="0 0 21 21">
         <rect x="0" y="0" width="7" height="7" fill={NAVY} />
         <rect x="1" y="1" width="5" height="5" fill="white" />
         <rect x="2" y="2" width="3" height="3" fill={NAVY} />
@@ -139,55 +67,42 @@ function QRPlaceholder({ size = 280 }: { size?: number }) {
         <rect x="0" y="14" width="7" height="7" fill={NAVY} />
         <rect x="1" y="15" width="5" height="5" fill="white" />
         <rect x="2" y="16" width="3" height="3" fill={NAVY} />
-        {/* Random data dots */}
         {[
           [8,0],[10,0],[8,2],[9,3],[10,2],[11,1],[12,3],
           [0,8],[2,8],[3,9],[4,8],[1,10],[3,10],[5,9],
           [8,8],[9,9],[10,8],[11,9],[12,10],[8,10],[10,10],
           [14,8],[15,9],[16,10],[17,8],[18,9],[19,10],[20,8],
           [8,14],[9,15],[10,14],[11,15],[12,16],[8,16],[10,16],
-          [14,14],[16,15],[18,16],[15,17],[17,18],[19,19],[20,20],
         ].map(([x, y], i) => (
           <rect key={i} x={x} y={y} width="1" height="1" fill={NAVY} />
         ))}
       </svg>
-      <div className="absolute bottom-2 text-[10px] font-bold text-gray-400">SCAN TO BOOK</div>
     </div>
   );
 }
 
-// --- Slide definitions ---
-interface Slide {
-  id: string;
-  duration: number; // ms
-  render: (phase: 'enter' | 'active' | 'exit') => React.ReactNode;
-}
-
-function useSlideshow(slides: Slide[]) {
+// --- Slideshow engine (stable ref, no infinite re-render) ---
+function useSlideshow(slideCount: number, durations: number[]) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [phase, setPhase] = useState<'enter' | 'active' | 'exit'>('enter');
-  const slidesRef = useRef(slides);
-  slidesRef.current = slides;
+  const durationsRef = useRef(durations);
+  durationsRef.current = durations;
+  const countRef = useRef(slideCount);
+  countRef.current = slideCount;
 
   useEffect(() => {
-    const slide = slidesRef.current[currentIndex];
-    if (!slide) return;
+    const duration = durationsRef.current[currentIndex] || 6000;
 
-    // Enter phase: 800ms
-    const enterTimer = setTimeout(() => setPhase('active'), 800);
-
-    // Active phase: slide.duration - 800ms before end
-    const activeTimer = setTimeout(() => setPhase('exit'), slide.duration - 800);
-
-    // Transition to next slide
+    const enterTimer = setTimeout(() => setPhase('active'), 600);
+    const exitTimer = setTimeout(() => setPhase('exit'), duration - 600);
     const nextTimer = setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % slidesRef.current.length);
+      setCurrentIndex((prev) => (prev + 1) % countRef.current);
       setPhase('enter');
-    }, slide.duration);
+    }, duration);
 
     return () => {
       clearTimeout(enterTimer);
-      clearTimeout(activeTimer);
+      clearTimeout(exitTimer);
       clearTimeout(nextTimer);
     };
   }, [currentIndex]);
@@ -195,7 +110,167 @@ function useSlideshow(slides: Slide[]) {
   return { currentIndex, phase };
 }
 
-// --- Main Component ---
+// --- Persistent QR badge (bottom-left after slide 1) ---
+function QRBadge({ visible }: { visible: boolean }) {
+  return (
+    <div
+      className="absolute z-30 flex items-center gap-3"
+      style={{
+        bottom: 32,
+        left: 32,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'scale(1)' : 'scale(0.5)',
+        transition: 'all 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+        pointerEvents: 'none',
+      }}
+    >
+      <QRPlaceholder size={100} />
+      <div>
+        <p className="font-extrabold text-white" style={{ fontSize: 14, fontFamily: 'Outfit, system-ui, sans-serif' }}>
+          Book your
+        </p>
+        <p className="font-extrabold text-white" style={{ fontSize: 14, fontFamily: 'Outfit, system-ui, sans-serif' }}>
+          free massage
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// --- Transition wrapper ---
+function SlideTransition({ phase, children, direction = 'up' }: {
+  phase: 'enter' | 'active' | 'exit';
+  children: React.ReactNode;
+  direction?: 'up' | 'down' | 'fade' | 'scale' | 'left';
+}) {
+  const transforms: Record<string, Record<string, string>> = {
+    up: { enter: 'translateY(60px)', active: 'translateY(0)', exit: 'translateY(-40px)' },
+    down: { enter: 'translateY(-60px)', active: 'translateY(0)', exit: 'translateY(40px)' },
+    left: { enter: 'translateX(60px)', active: 'translateX(0)', exit: 'translateX(-60px)' },
+    fade: { enter: 'scale(1.02)', active: 'scale(1)', exit: 'scale(0.98)' },
+    scale: { enter: 'scale(0.85)', active: 'scale(1)', exit: 'scale(1.05)' },
+  };
+
+  return (
+    <div
+      className="absolute inset-0"
+      style={{
+        opacity: phase === 'active' ? 1 : 0,
+        transform: transforms[direction][phase],
+        transition: 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// --- Service video slide with split-word reveal ---
+// Matches HomeHero.vue from getshortcut.co exactly:
+// - Horizontal flex row: leftText + video + rightText
+// - Video starts width:0, expands to 30% with 10px margin
+// - 3:4 portrait aspect ratio, rounded-[20px]
+// - Text: Outfit ExtraBold, coral (#FF5050), tracking -0.03em
+// - Container: rounded-[33px], teal bg per original
+// - Easing: expo.out (CSS approximation: cubic-bezier(0.16, 1, 0.3, 1))
+function ServiceSlide({ service, phase }: {
+  service: typeof SERVICES[0];
+  phase: 'enter' | 'active' | 'exit';
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (phase === 'active' && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [phase]);
+
+  const isOpen = phase === 'active';
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: service.color }}>
+      {/* Split-word container — matches HomeHero.vue structure */}
+      <div
+        className="flex items-center justify-center overflow-hidden"
+        style={{
+          borderRadius: 33,
+          width: '85%',
+          height: '45%',
+          backgroundColor: service.color,
+        }}
+      >
+        {/* Left half of word */}
+        <span
+          className="font-extrabold tracking-[-0.03em] block"
+          style={{
+            fontSize: 'clamp(52px, 10vh, 96px)',
+            lineHeight: 1,
+            color: service.textColor,
+            fontFamily: 'Outfit, system-ui, sans-serif',
+            transform: 'translateY(-4px)',
+            flexShrink: 0,
+          }}
+        >
+          {service.splitLeft}
+        </span>
+
+        {/* Video — width animates from 0 to 30%, 3:4 aspect, rounded-20 */}
+        <video
+          ref={videoRef}
+          muted
+          loop
+          playsInline
+          className="object-cover block"
+          src={service.video}
+          style={{
+            width: isOpen ? '30%' : '0%',
+            aspectRatio: '3 / 4',
+            borderRadius: 20,
+            marginInline: isOpen ? 10 : 0,
+            transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1), margin 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+            flexShrink: 0,
+          }}
+        />
+
+        {/* Right half of word */}
+        <span
+          className="font-extrabold tracking-[-0.03em] block"
+          style={{
+            fontSize: 'clamp(52px, 10vh, 96px)',
+            lineHeight: 1,
+            color: service.textColor,
+            fontFamily: 'Outfit, system-ui, sans-serif',
+            transform: 'translateY(-4px)',
+            flexShrink: 0,
+          }}
+        >
+          {service.splitRight}
+        </span>
+      </div>
+
+      {/* Tagline below the split-word container */}
+      <p
+        className="font-bold text-center px-10 mt-8"
+        style={{
+          fontSize: 'clamp(18px, 3vh, 30px)',
+          color: service.textColor,
+          fontFamily: 'Outfit, system-ui, sans-serif',
+          opacity: phase === 'active' ? 0.7 : 0,
+          transform: phase === 'active' ? 'translateY(0)' : 'translateY(16px)',
+          transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
+        }}
+      >
+        {service.tagline}
+      </p>
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+
 export default function WorkhumanTVLoop() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -209,7 +284,6 @@ export default function WorkhumanTVLoop() {
     }
   }, []);
 
-  // Keyboard: F for fullscreen
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'f' || e.key === 'F') toggleFullscreen();
@@ -218,7 +292,7 @@ export default function WorkhumanTVLoop() {
     return () => window.removeEventListener('keydown', handler);
   }, [toggleFullscreen]);
 
-  // Hide cursor after 3s of inactivity
+  // Hide cursor after 3s
   const [cursorHidden, setCursorHidden] = useState(false);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -229,391 +303,306 @@ export default function WorkhumanTVLoop() {
     };
     window.addEventListener('mousemove', show);
     timer = setTimeout(() => setCursorHidden(true), 3000);
-    return () => {
-      window.removeEventListener('mousemove', show);
-      clearTimeout(timer);
-    };
+    return () => { window.removeEventListener('mousemove', show); clearTimeout(timer); };
   }, []);
 
-  const slides: Slide[] = [
-    // 1. Hero
-    {
-      id: 'hero',
-      duration: 8000,
-      render: (phase) => (
-        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: NAVY }}>
-          <FloatingParticles />
-          <div
-            className="relative z-10 text-center"
-            style={{
-              opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
-              transform: phase === 'enter' ? 'translateY(40px)' : phase === 'exit' ? 'translateY(-20px)' : 'translateY(0)',
-              transition: 'all 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-            }}
-          >
-            <p
-              className="font-extrabold tracking-[-0.04em]"
-              style={{
-                fontSize: 140,
-                lineHeight: 0.95,
-                color: '#FFFFFF',
-                fontFamily: 'Outfit, system-ui, sans-serif',
-              }}
-            >
-              Recharge.
-            </p>
-            <p
-              className="font-extrabold tracking-[-0.02em] mt-6"
-              style={{
-                fontSize: 32,
-                color: TEAL,
-                fontFamily: 'Outfit, system-ui, sans-serif',
-                opacity: 0.8,
-              }}
-            >
-              Slack. Zoom. Shortcut. One of these helps you relax.
-            </p>
-            <div className="mt-12">
-              <ShortcutLogo variant="white" size={48} />
-            </div>
-          </div>
-        </div>
-      ),
-    },
-
-    // 2. Video/Ambient placeholder
-    {
-      id: 'video',
-      duration: 10000,
-      render: (phase) => (
-        <div className="absolute inset-0" style={{ backgroundColor: NAVY }}>
-          {/* Gradient placeholder — replace with <video> when ready */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(135deg, ${NAVY} 0%, #004d6d 30%, #006080 60%, ${NAVY} 100%)`,
-              animation: 'gradient-shift 10s ease infinite',
-            }}
-          />
-          {/* TODO: Replace above div with:
-            <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
-              <source src="/your-video.mp4" type="video/mp4" />
-            </video>
-          */}
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center z-10"
-            style={{
-              opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
-              transition: 'opacity 0.8s ease',
-            }}
-          >
-            <p
-              className="font-extrabold tracking-[-0.03em] text-center"
-              style={{
-                fontSize: 80,
-                lineHeight: 1.05,
-                color: '#FFFFFF',
-                fontFamily: 'Outfit, system-ui, sans-serif',
-                textShadow: '0 4px 40px rgba(0,0,0,0.5)',
-                maxWidth: '80%',
-              }}
-            >
-              Employee Happiness Delivered.
-            </p>
-            <div className="mt-10">
-              <ShortcutLogo variant="white" size={56} />
-            </div>
-          </div>
-        </div>
-      ),
-    },
-
-    // 3. Services — animated reveal
-    {
-      id: 'services',
-      duration: 10000,
-      render: (phase) => (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: NAVY }}>
-          <div
-            className="text-left"
-            style={{
-              opacity: phase === 'exit' ? 0 : 1,
-              transition: 'opacity 0.8s ease',
-            }}
-          >
-            {SERVICES.map((service, i) => (
-              <p
-                key={service}
-                className="font-extrabold tracking-[-0.04em]"
-                style={{
-                  fontSize: 'clamp(48px, 7vw, 96px)',
-                  lineHeight: 1.15,
-                  color: SERVICE_COLORS[i],
-                  fontFamily: 'Outfit, system-ui, sans-serif',
-                  opacity: phase === 'enter' ? 0 : 1,
-                  transform: phase === 'enter' ? 'translateX(-40px)' : 'translateX(0)',
-                  transition: `all 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${i * 150}ms`,
-                }}
-              >
-                {service}
-              </p>
-            ))}
-            <div
-              className="mt-8"
-              style={{
-                opacity: phase === 'enter' ? 0 : 1,
-                transition: `opacity 0.6s ease ${SERVICES.length * 150}ms`,
-              }}
-            >
-              <ShortcutLogo variant="white" size={40} />
-            </div>
-          </div>
-        </div>
-      ),
-    },
-
-    // 4. Stats — counter animations
-    {
-      id: 'stats',
-      duration: 10000,
-      render: (phase) => (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: NAVY }}>
-          <div
-            className="text-center"
-            style={{
-              opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
-              transform: phase === 'enter' ? 'scale(0.95)' : 'scale(1)',
-              transition: 'all 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-            }}
-          >
-            <div className="flex gap-16 mb-16 px-12">
-              {[
-                { target: 500, suffix: '+', label: 'Companies', color: TEAL },
-                { target: 50, suffix: '+', label: 'Cities', color: YELLOW },
-                { target: 6, suffix: '', label: 'Services', color: PINK },
-              ].map((stat, i) => (
-                <div key={i} className="text-center flex-1">
-                  <p
-                    className="font-extrabold tracking-[-0.04em]"
-                    style={{
-                      fontSize: 'clamp(60px, 8vw, 120px)',
-                      lineHeight: 1,
-                      color: stat.color,
-                      fontFamily: 'Outfit, system-ui, sans-serif',
-                    }}
-                  >
-                    {phase === 'active' ? (
-                      <AnimatedCounter target={stat.target} suffix={stat.suffix} duration={2500} />
-                    ) : (
-                      `${stat.target}${stat.suffix}`
-                    )}
-                  </p>
-                  <p
-                    className="font-bold tracking-[-0.01em] mt-2"
-                    style={{
-                      fontSize: 24,
-                      color: '#FFFFFF',
-                      fontFamily: 'Outfit, system-ui, sans-serif',
-                      opacity: 0.7,
-                    }}
-                  >
-                    {stat.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <p
-              className="font-extrabold tracking-[-0.02em]"
-              style={{
-                fontSize: 36,
-                color: '#FFFFFF',
-                fontFamily: 'Outfit, system-ui, sans-serif',
-              }}
-            >
-              One platform. One vendor. Zero hassle.
-            </p>
-          </div>
-        </div>
-      ),
-    },
-
-    // 5. Copy lines — rotating
-    ...COPY_LINES.map((line, idx) => ({
-      id: `copy-${idx}`,
-      duration: 5000,
-      render: (phase: 'enter' | 'active' | 'exit') => {
-        const bgs = [CORAL, NAVY, TEAL, NAVY, CORAL];
-        const textColors = ['#FFFFFF', '#FFFFFF', NAVY, TEAL, '#FFFFFF'];
-        const bg = bgs[idx % bgs.length];
-        const textColor = textColors[idx % textColors.length];
-        return (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: bg }}>
-            <div
-              className="text-center px-20"
-              style={{
-                opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
-                transform: phase === 'enter' ? 'translateY(30px)' : phase === 'exit' ? 'translateY(-15px)' : 'translateY(0)',
-                transition: 'all 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            >
-              <p
-                className="font-extrabold tracking-[-0.03em]"
-                style={{
-                  fontSize: 80,
-                  lineHeight: 1.1,
-                  color: textColor,
-                  fontFamily: 'Outfit, system-ui, sans-serif',
-                  maxWidth: 1000,
-                }}
-              >
-                {line}
-              </p>
-            </div>
-            <div className="absolute" style={{ bottom: '5%', right: '5%' }}>
-              <ShortcutLogo variant={bg === NAVY || bg === CORAL ? 'white' : 'navy'} size={40} />
-            </div>
-          </div>
-        );
-      },
-    })),
-
-    // 6. QR Code
-    {
-      id: 'qr',
-      duration: 8000,
-      render: (phase) => (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: CORAL }}>
-          <div
-            className="text-center"
-            style={{
-              opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
-              transform: phase === 'enter' ? 'scale(0.9)' : 'scale(1)',
-              transition: 'all 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-            }}
-          >
-            <p
-              className="font-extrabold tracking-[-0.03em] mb-10"
-              style={{
-                fontSize: 64,
-                lineHeight: 1.1,
-                color: '#FFFFFF',
-                fontFamily: 'Outfit, system-ui, sans-serif',
-              }}
-            >
-              Book Your Massage
-            </p>
-            <div className="flex justify-center">
-              <QRPlaceholder size={320} />
-            </div>
-            <p
-              className="font-bold mt-8"
-              style={{
-                fontSize: 28,
-                color: '#FFFFFF',
-                fontFamily: 'Outfit, system-ui, sans-serif',
-                opacity: 0.8,
-              }}
-            >
-              Scan to reserve your 15-minute session
-            </p>
-          </div>
-        </div>
-      ),
-    },
-
-    // 7. Closing
-    {
-      id: 'closing',
-      duration: 8000,
-      render: (phase) => (
-        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: NAVY }}>
-          <FloatingParticles />
-          <div
-            className="relative z-10 text-center"
-            style={{
-              opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
-              transition: 'all 1s cubic-bezier(0.22, 1, 0.36, 1)',
-            }}
-          >
-            <p
-              className="font-extrabold tracking-[-0.03em]"
-              style={{
-                fontSize: 72,
-                lineHeight: 1.1,
-                color: '#FFFFFF',
-                fontFamily: 'Outfit, system-ui, sans-serif',
-                maxWidth: 900,
-              }}
-            >
-              Real wellness, right between meetings.
-            </p>
-            <div className="mt-14">
-              <ShortcutLogo variant="coral" size={64} />
-            </div>
-          </div>
-        </div>
-      ),
-    },
+  // Slide definitions:
+  // 0: QR Hero (full screen)
+  // 1: Problem line 1
+  // 2: Problem line 2
+  // 3: Pivot (aaaah)
+  // 4: Logo reveal
+  // 5-9: Services (5 services)
+  // 10: Platform
+  // 11: Ease
+  // 12: Close
+  const totalSlides = 13;
+  const durations = [
+    8000,  // 0: QR hero
+    4000,  // 1: problem 1
+    5000,  // 2: problem 2
+    6000,  // 3: pivot
+    5000,  // 4: logo reveal
+    7000,  // 5: massage
+    7000,  // 6: headshots
+    7000,  // 7: nails
+    7000,  // 8: hair
+    7000,  // 9: mindfulness
+    6000,  // 10: platform
+    6000,  // 11: ease
+    6000,  // 12: close
   ];
 
-  const { currentIndex, phase } = useSlideshow(slides);
+  const { currentIndex, phase } = useSlideshow(totalSlides, durations);
+
+  // QR badge shows after slide 0
+  const showQRBadge = currentIndex > 0;
 
   return (
     <>
-      {/* Global keyframe animations */}
       <style>{`
         @keyframes float-particle {
           0% { transform: translateY(0) translateX(0); }
-          100% { transform: translateY(-30px) translateX(15px); }
+          100% { transform: translateY(-30px) translateX(10px); }
         }
-        @keyframes gradient-shift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+        }
+        @keyframes text-shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
         }
       `}</style>
 
       <div
-        className="relative w-screen h-screen overflow-hidden"
+        className="relative overflow-hidden"
         style={{
+          width: '100vw',
+          height: '100vh',
           fontFamily: 'Outfit, system-ui, sans-serif',
           cursor: cursorHidden ? 'none' : 'default',
           backgroundColor: NAVY,
         }}
       >
-        {/* Current slide */}
-        {slides[currentIndex]?.render(phase)}
 
-        {/* Slide progress dots — bottom center, subtle */}
+        {/* ====== SLIDE 0: QR HERO (full screen) ====== */}
+        {currentIndex === 0 && (
+          <SlideTransition phase={phase} direction="scale">
+            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: CORAL }}>
+              <p
+                className="font-extrabold text-center tracking-[-0.03em] mb-12"
+                style={{ fontSize: 'clamp(36px, 6vh, 64px)', color: '#FFFFFF' }}
+              >
+                Book Your<br />Free Massage
+              </p>
+              <QRPlaceholder size={280} />
+              <p
+                className="font-bold mt-8"
+                style={{ fontSize: 'clamp(16px, 2.5vh, 24px)', color: '#FFFFFF', opacity: 0.8 }}
+              >
+                Scan to reserve your spot
+              </p>
+              <div className="mt-12">
+                <ShortcutLogo variant="white" size={40} />
+              </div>
+            </div>
+          </SlideTransition>
+        )}
+
+        {/* ====== SLIDE 1: PROBLEM LINE 1 ====== */}
+        {currentIndex === 1 && (
+          <SlideTransition phase={phase} direction="up">
+            <div className="absolute inset-0 flex items-center justify-center px-10" style={{ backgroundColor: NAVY }}>
+              <p
+                className="font-extrabold text-center tracking-[-0.03em]"
+                style={{ fontSize: 'clamp(36px, 7vh, 72px)', lineHeight: 1.1, color: '#FFFFFF' }}
+              >
+                Your team has wellness benefits.
+              </p>
+            </div>
+          </SlideTransition>
+        )}
+
+        {/* ====== SLIDE 2: PROBLEM LINE 2 ====== */}
+        {currentIndex === 2 && (
+          <SlideTransition phase={phase} direction="up">
+            <div className="absolute inset-0 flex items-center justify-center px-10" style={{ backgroundColor: NAVY }}>
+              <div className="text-center">
+                <p
+                  className="font-extrabold tracking-[-0.03em]"
+                  style={{ fontSize: 'clamp(28px, 5vh, 56px)', lineHeight: 1.15, color: 'rgba(255,255,255,0.4)' }}
+                >
+                  Buried in a portal.
+                </p>
+                <p
+                  className="font-extrabold tracking-[-0.03em] mt-2"
+                  style={{ fontSize: 'clamp(28px, 5vh, 56px)', lineHeight: 1.15, color: 'rgba(255,255,255,0.4)' }}
+                >
+                  Behind a login.
+                </p>
+                <p
+                  className="font-extrabold tracking-[-0.03em] mt-2"
+                  style={{ fontSize: 'clamp(28px, 5vh, 56px)', lineHeight: 1.15, color: 'rgba(255,255,255,0.4)' }}
+                >
+                  Next to the dental plan.
+                </p>
+              </div>
+            </div>
+          </SlideTransition>
+        )}
+
+        {/* ====== SLIDE 3: THE PIVOT ====== */}
+        {currentIndex === 3 && (
+          <SlideTransition phase={phase} direction="scale">
+            <div className="absolute inset-0 flex items-center justify-center px-8" style={{ backgroundColor: TEAL }}>
+              <p
+                className="font-extrabold text-center tracking-[-0.04em]"
+                style={{ fontSize: 'clamp(32px, 6.5vh, 68px)', lineHeight: 1.1, color: NAVY }}
+              >
+                The kind of perk that makes your team stop and say "aaaah."
+              </p>
+            </div>
+          </SlideTransition>
+        )}
+
+        {/* ====== SLIDE 4: LOGO REVEAL ====== */}
+        {currentIndex === 4 && (
+          <SlideTransition phase={phase} direction="fade">
+            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: NAVY }}>
+              {/* Floating particles */}
+              {Array.from({ length: 15 }, (_, i) => (
+                <div
+                  key={i}
+                  className="absolute rounded-full"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    width: 3 + Math.random() * 5,
+                    height: 3 + Math.random() * 5,
+                    backgroundColor: TEAL,
+                    opacity: 0.15 + Math.random() * 0.15,
+                    animation: `float-particle ${6 + Math.random() * 6}s ease-in-out ${Math.random() * 4}s infinite alternate`,
+                  }}
+                />
+              ))}
+              <div className="relative z-10 text-center">
+                <ShortcutLogo variant="white" size={56} />
+                <p
+                  className="font-extrabold tracking-[-0.03em] mt-8"
+                  style={{ fontSize: 'clamp(36px, 6vh, 64px)', lineHeight: 1.1, color: '#FFFFFF' }}
+                >
+                  Employee<br />Happiness<br />Delivered.
+                </p>
+              </div>
+            </div>
+          </SlideTransition>
+        )}
+
+        {/* ====== SLIDES 5-9: SERVICE SHOWCASE ====== */}
+        {currentIndex >= 5 && currentIndex <= 9 && (
+          <ServiceSlide
+            service={SERVICES[currentIndex - 5]}
+            phase={phase}
+          />
+        )}
+
+        {/* ====== SLIDE 10: THE PLATFORM ====== */}
+        {currentIndex === 10 && (
+          <SlideTransition phase={phase} direction="up">
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ backgroundColor: NAVY }}>
+              <p
+                className="font-extrabold text-center tracking-[-0.04em]"
+                style={{ fontSize: 'clamp(36px, 7vh, 76px)', lineHeight: 1.05, color: '#FFFFFF' }}
+              >
+                One vendor.
+              </p>
+              <p
+                className="font-extrabold text-center tracking-[-0.04em] mt-2"
+                style={{ fontSize: 'clamp(36px, 7vh, 76px)', lineHeight: 1.05, color: TEAL }}
+              >
+                Every office.
+              </p>
+              <p
+                className="font-bold text-center tracking-[-0.02em] mt-8"
+                style={{ fontSize: 'clamp(18px, 3vh, 32px)', lineHeight: 1.3, color: 'rgba(255,255,255,0.6)' }}
+              >
+                A dozen ways to breathe easier.
+              </p>
+            </div>
+          </SlideTransition>
+        )}
+
+        {/* ====== SLIDE 11: EASE ====== */}
+        {currentIndex === 11 && (
+          <SlideTransition phase={phase} direction="left">
+            <div className="absolute inset-0 flex items-center justify-center px-10" style={{ backgroundColor: CORAL }}>
+              <div className="text-center">
+                <p
+                  className="font-extrabold tracking-[-0.03em]"
+                  style={{ fontSize: 'clamp(28px, 5vh, 52px)', lineHeight: 1.15, color: '#FFFFFF' }}
+                >
+                  We handle scheduling, sign ups, and reminders.
+                </p>
+                <p
+                  className="font-extrabold tracking-[-0.03em] mt-6"
+                  style={{ fontSize: 'clamp(36px, 6.5vh, 68px)', lineHeight: 1.05, color: NAVY }}
+                >
+                  You handle nothing.
+                </p>
+              </div>
+            </div>
+          </SlideTransition>
+        )}
+
+        {/* ====== SLIDE 12: CLOSE ====== */}
+        {currentIndex === 12 && (
+          <SlideTransition phase={phase} direction="fade">
+            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: NAVY }}>
+              {Array.from({ length: 12 }, (_, i) => (
+                <div
+                  key={i}
+                  className="absolute rounded-full"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    width: 3 + Math.random() * 5,
+                    height: 3 + Math.random() * 5,
+                    backgroundColor: TEAL,
+                    opacity: 0.12 + Math.random() * 0.12,
+                    animation: `float-particle ${7 + Math.random() * 5}s ease-in-out ${Math.random() * 3}s infinite alternate`,
+                  }}
+                />
+              ))}
+              <div className="relative z-10 text-center">
+                <p
+                  className="font-extrabold tracking-[-0.03em]"
+                  style={{ fontSize: 'clamp(36px, 6vh, 64px)', lineHeight: 1.1, color: '#FFFFFF' }}
+                >
+                  Employee<br />Happiness<br />Delivered.
+                </p>
+                <div className="mt-10">
+                  <ShortcutLogo variant="coral" size={52} />
+                </div>
+              </div>
+            </div>
+          </SlideTransition>
+        )}
+
+        {/* ====== PERSISTENT QR BADGE (after slide 0) ====== */}
+        <QRBadge visible={showQRBadge} />
+
+        {/* Progress dots */}
         <div
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20"
+          className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-20"
           style={{
-            opacity: cursorHidden ? 0 : 0.5,
+            opacity: cursorHidden ? 0 : 0.4,
             transition: 'opacity 0.5s ease',
           }}
         >
-          {slides.map((s, i) => (
+          {Array.from({ length: totalSlides }, (_, i) => (
             <div
-              key={s.id}
+              key={i}
               className="rounded-full transition-all duration-300"
               style={{
-                width: i === currentIndex ? 24 : 8,
-                height: 8,
+                width: 6,
+                height: i === currentIndex ? 18 : 6,
                 backgroundColor: i === currentIndex ? '#FFFFFF' : 'rgba(255,255,255,0.3)',
               }}
             />
           ))}
         </div>
 
-        {/* Fullscreen hint — top right, fades with cursor */}
+        {/* Fullscreen hint */}
         {!isFullscreen && (
           <div
-            className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-lg text-xs font-bold"
+            className="absolute top-3 right-3 z-20 px-2 py-1 rounded text-xs font-bold"
             style={{
               backgroundColor: 'rgba(0,0,0,0.4)',
-              color: 'rgba(255,255,255,0.6)',
+              color: 'rgba(255,255,255,0.5)',
               opacity: cursorHidden ? 0 : 1,
               transition: 'opacity 0.5s ease',
+              fontSize: 10,
             }}
           >
             Press F for fullscreen
