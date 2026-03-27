@@ -107,7 +107,12 @@ function useSlideshow(slideCount: number, durations: number[]) {
     };
   }, [currentIndex]);
 
-  return { currentIndex, phase };
+  const goTo = useCallback((index: number) => {
+    setCurrentIndex(((index % countRef.current) + countRef.current) % countRef.current);
+    setPhase('enter');
+  }, []);
+
+  return { currentIndex, phase, goTo };
 }
 
 // --- Persistent QR badge (bottom-left after slide 1) ---
@@ -316,24 +321,35 @@ export default function WorkhumanTVLoop() {
   // 10: Platform
   // 11: Ease
   // 12: Close
-  const totalSlides = 13;
+  const totalSlides = 14;
   const durations = [
     8000,  // 0: QR hero
     4000,  // 1: problem 1
     5000,  // 2: problem 2
     6000,  // 3: pivot
-    5000,  // 4: logo reveal
-    7000,  // 5: massage
-    7000,  // 6: headshots
-    7000,  // 7: nails
-    7000,  // 8: hair
-    7000,  // 9: mindfulness
-    6000,  // 10: platform
-    6000,  // 11: ease
-    6000,  // 12: close
+    7000,  // 4: logo reveal (Jitter-matched)
+    5000,  // 5: service list glide (Jitter "Glide" style)
+    7000,  // 6: massage video
+    7000,  // 7: headshots video
+    7000,  // 8: nails video
+    7000,  // 9: hair video
+    7000,  // 10: mindfulness video
+    6000,  // 11: platform
+    6000,  // 12: ease
+    6000,  // 13: close
   ];
 
-  const { currentIndex, phase } = useSlideshow(totalSlides, durations);
+  const { currentIndex, phase, goTo } = useSlideshow(totalSlides, durations);
+
+  // Arrow keys to navigate slides
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(currentIndex + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(currentIndex - 1); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [goTo, currentIndex]);
 
   // QR badge shows after slide 0
   const showQRBadge = currentIndex > 0;
@@ -352,6 +368,35 @@ export default function WorkhumanTVLoop() {
         @keyframes text-shimmer {
           0% { background-position: -200% center; }
           100% { background-position: 200% center; }
+        }
+        @keyframes logo-icon-scale {
+          0% { transform: scale(0); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes logo-overshoot {
+          0% { transform: translateX(140px) scale(1.1); }
+          100% { transform: translateX(140px) scale(1); }
+        }
+        @keyframes logo-slide-left {
+          0% { transform: translateX(140px) scale(1); }
+          100% { transform: translateX(0) scale(1); }
+        }
+        @keyframes word-mask-up {
+          0% { transform: translateY(100%); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes tagline-pan-up {
+          0% { opacity: 0; transform: translateY(40px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes glide-in-right {
+          0% { transform: translateX(-120%); opacity: 0; }
+          40% { opacity: 1; }
+          100% { transform: translateX(60%); opacity: 1; }
+        }
+        @keyframes glide-back-left {
+          0% { transform: translateX(60%); }
+          100% { transform: translateX(0); }
         }
       `}</style>
 
@@ -383,8 +428,61 @@ export default function WorkhumanTVLoop() {
               >
                 Scan to reserve your spot
               </p>
-              <div className="mt-12">
-                <ShortcutLogo variant="white" size={40} />
+              {/* Animated logo — same Jitter sequence, white on coral */}
+              <div className="flex items-center mt-12">
+                <div
+                  style={{
+                    flexShrink: 0,
+                    animation: phase === 'active'
+                      ? 'logo-overshoot 0.4s cubic-bezier(0.22, 1, 0.36, 1) 1.0s forwards, logo-slide-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.1s forwards'
+                      : 'none',
+                    transform: 'translateX(100px) scale(1.1)',
+                  }}
+                >
+                  <svg
+                    width="56"
+                    height="42"
+                    viewBox="0 0 285 192"
+                    fill="none"
+                    style={{
+                      animation: phase === 'active'
+                        ? 'logo-icon-scale 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards'
+                        : 'none',
+                      transform: 'scale(0)',
+                      opacity: 0,
+                    }}
+                  >
+                    <path fillRule="evenodd" clipRule="evenodd" d="M180.085 123.273C178.523 136.95 174.332 150.363 166.404 161.789C147.666 188.794 115.391 197.809 83.505 187.975C52.0357 178.27 21.5169 150.798 0 106.28L29.4336 92.0535C48.1724 130.823 72.6235 150.408 93.1396 156.736C113.239 162.935 129.965 156.958 139.545 143.152C141.253 140.691 142.721 137.91 143.935 134.846C142.091 134.947 140.246 134.979 138.402 134.945C117.189 134.548 97.7708 125.343 83.1568 112.659C68.6417 100.062 57.4983 82.8406 54.2488 64.5611C50.855 45.4703 56.3132 25.3828 74.6228 11.3512C83.191 4.78496 92.5896 0.887791 102.475 0.134123C112.334 -0.61748 121.541 1.84316 129.627 6.17627C145.351 14.6033 157.577 30.4138 165.925 47.3746C171.212 58.1174 175.313 70.0533 177.861 82.3164C192.547 66.6019 208.52 57.2563 222.041 52.0055C229.027 49.2927 235.456 47.6337 240.848 46.7633C245.575 46.0002 251.284 45.5405 256.04 46.6381L248.689 78.4922C249.256 78.6231 249.56 78.669 249.56 78.669C249.558 78.6929 248.483 78.6453 246.058 79.0368C243.004 79.5298 238.792 80.5701 233.876 82.4796C224.082 86.2829 211.873 93.3814 200.548 105.942C194.094 113.1 187.222 118.845 180.085 123.273ZM147.727 101.517C146.5 87.8421 142.494 73.7985 136.594 61.8105C129.869 48.148 121.609 38.9693 114.185 34.9907C110.696 33.1211 107.663 32.5248 104.96 32.7309C102.284 32.9349 98.8002 34.0099 94.5082 37.2992C87.0974 42.9785 84.9004 50.2039 86.4355 58.8393C88.1148 68.2858 94.4842 79.2038 104.585 87.9699C114.586 96.6501 126.886 102.033 139.013 102.259C141.841 102.312 144.754 102.088 147.727 101.517Z" fill="#FFFFFF"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M227.95 60.6342C212.285 55.7034 200.552 45.6102 190.79 34.575L215.742 12.5006C223.559 21.3371 230.444 26.4925 237.953 28.8562C245.287 31.1646 255.432 31.4939 271.035 26.2883L284.604 56.5339C273.057 63.1664 266.67 73.9685 263.648 85.1433C262.14 90.7193 261.573 96.0733 261.599 100.426C261.625 104.815 262.24 107.049 262.315 107.323C262.322 107.346 262.322 107.35 262.322 107.35L231.654 120.365C229.232 114.657 228.325 107.44 228.284 100.627C228.241 93.4035 229.161 85.049 231.488 76.4463C232.7 71.9629 234.323 67.3261 236.435 62.7047C233.55 62.1969 230.724 61.5071 227.95 60.6342Z" fill="#FFFFFF"/>
+                  </svg>
+                </div>
+                <div className="flex items-center overflow-visible" style={{ marginLeft: 10, height: 36 }}>
+                  {['s','h','o','r','t','c','u','t'].map((letter, i) => (
+                    <span
+                      key={i}
+                      className="inline-block overflow-hidden"
+                      style={{ height: 36 }}
+                    >
+                      <span
+                        className="inline-block font-extrabold"
+                        style={{
+                          fontSize: 36,
+                          lineHeight: 1,
+                          color: '#FFFFFF',
+                          fontFamily: 'Outfit, system-ui, sans-serif',
+                          letterSpacing: '-0.02em',
+                          animation: phase === 'active'
+                            ? `word-mask-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) ${1.6 + i * 0.04}s forwards`
+                            : 'none',
+                          transform: 'translateY(100%)',
+                          opacity: 0,
+                        }}
+                      >
+                        {letter}
+                      </span>
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </SlideTransition>
@@ -446,49 +544,149 @@ export default function WorkhumanTVLoop() {
           </SlideTransition>
         )}
 
-        {/* ====== SLIDE 4: LOGO REVEAL ====== */}
+        {/* ====== SLIDE 4: LOGO REVEAL (matched to Jitter "Logo 2" exactly) ====== */}
+        {/* Timeline: 0s ellipse scale → 0.15s icon scale → 0.5s group overshoot → 0.6s group slide left → 1.1s wordmark mask-up word-by-word → 1.8s tagline pan up */}
         {currentIndex === 4 && (
-          <SlideTransition phase={phase} direction="fade">
-            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: NAVY }}>
-              {/* Floating particles */}
-              {Array.from({ length: 15 }, (_, i) => (
-                <div
-                  key={i}
-                  className="absolute rounded-full"
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center"
+            style={{
+              backgroundColor: NAVY,
+              opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
+              transition: 'opacity 0.4s ease',
+            }}
+          >
+            {/* Logo lockup — icon slides from center to left, wordmark masks up beside it */}
+            <div className="flex items-center" style={{ marginTop: '-6vh' }}>
+              {/* Icon group — starts centered (translateX 140px), overshoots scale, then slides to final position */}
+              <div
+                style={{
+                  flexShrink: 0,
+                  animation: phase === 'active'
+                    ? 'logo-overshoot 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards, logo-slide-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards'
+                    : 'none',
+                  transform: 'translateX(140px) scale(1.1)',
+                }}
+              >
+                {/* Shortcut icon — coral, scales from 0 */}
+                <svg
+                  width="80"
+                  height="60"
+                  viewBox="0 0 285 192"
+                  fill="none"
                   style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                    width: 3 + Math.random() * 5,
-                    height: 3 + Math.random() * 5,
-                    backgroundColor: TEAL,
-                    opacity: 0.15 + Math.random() * 0.15,
-                    animation: `float-particle ${6 + Math.random() * 6}s ease-in-out ${Math.random() * 4}s infinite alternate`,
+                    animation: phase === 'active'
+                      ? 'logo-icon-scale 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards'
+                      : 'none',
+                    transform: 'scale(0)',
+                    opacity: 0,
                   }}
-                />
-              ))}
-              <div className="relative z-10 text-center">
-                <ShortcutLogo variant="white" size={56} />
-                <p
-                  className="font-extrabold tracking-[-0.03em] mt-8"
-                  style={{ fontSize: 'clamp(36px, 6vh, 64px)', lineHeight: 1.1, color: '#FFFFFF' }}
                 >
-                  Employee<br />Happiness<br />Delivered.
-                </p>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M180.085 123.273C178.523 136.95 174.332 150.363 166.404 161.789C147.666 188.794 115.391 197.809 83.505 187.975C52.0357 178.27 21.5169 150.798 0 106.28L29.4336 92.0535C48.1724 130.823 72.6235 150.408 93.1396 156.736C113.239 162.935 129.965 156.958 139.545 143.152C141.253 140.691 142.721 137.91 143.935 134.846C142.091 134.947 140.246 134.979 138.402 134.945C117.189 134.548 97.7708 125.343 83.1568 112.659C68.6417 100.062 57.4983 82.8406 54.2488 64.5611C50.855 45.4703 56.3132 25.3828 74.6228 11.3512C83.191 4.78496 92.5896 0.887791 102.475 0.134123C112.334 -0.61748 121.541 1.84316 129.627 6.17627C145.351 14.6033 157.577 30.4138 165.925 47.3746C171.212 58.1174 175.313 70.0533 177.861 82.3164C192.547 66.6019 208.52 57.2563 222.041 52.0055C229.027 49.2927 235.456 47.6337 240.848 46.7633C245.575 46.0002 251.284 45.5405 256.04 46.6381L248.689 78.4922C249.256 78.6231 249.56 78.669 249.56 78.669C249.558 78.6929 248.483 78.6453 246.058 79.0368C243.004 79.5298 238.792 80.5701 233.876 82.4796C224.082 86.2829 211.873 93.3814 200.548 105.942C194.094 113.1 187.222 118.845 180.085 123.273ZM147.727 101.517C146.5 87.8421 142.494 73.7985 136.594 61.8105C129.869 48.148 121.609 38.9693 114.185 34.9907C110.696 33.1211 107.663 32.5248 104.96 32.7309C102.284 32.9349 98.8002 34.0099 94.5082 37.2992C87.0974 42.9785 84.9004 50.2039 86.4355 58.8393C88.1148 68.2858 94.4842 79.2038 104.585 87.9699C114.586 96.6501 126.886 102.033 139.013 102.259C141.841 102.312 144.754 102.088 147.727 101.517Z" fill={CORAL}/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M227.95 60.6342C212.285 55.7034 200.552 45.6102 190.79 34.575L215.742 12.5006C223.559 21.3371 230.444 26.4925 237.953 28.8562C245.287 31.1646 255.432 31.4939 271.035 26.2883L284.604 56.5339C273.057 63.1664 266.67 73.9685 263.648 85.1433C262.14 90.7193 261.573 96.0733 261.599 100.426C261.625 104.815 262.24 107.049 262.315 107.323C262.322 107.346 262.322 107.35 262.322 107.35L231.654 120.365C229.232 114.657 228.325 107.44 228.284 100.627C228.241 93.4035 229.161 85.049 231.488 76.4463C232.7 71.9629 234.323 67.3261 236.435 62.7047C233.55 62.1969 230.724 61.5071 227.95 60.6342Z" fill={CORAL}/>
+                </svg>
+              </div>
+
+              {/* Wordmark "shortcut" — each letter group masks up from bottom, word-by-word with 100ms stagger */}
+              <div className="flex items-center overflow-visible" style={{ marginLeft: 14, height: 50 }}>
+                {['s','h','o','r','t','c','u','t'].map((letter, i) => (
+                  <span
+                    key={i}
+                    className="inline-block overflow-hidden"
+                    style={{ height: 50 }}
+                  >
+                    <span
+                      className="inline-block font-extrabold"
+                      style={{
+                        fontSize: 50,
+                        lineHeight: 1,
+                        color: '#FFFFFF',
+                        fontFamily: 'Outfit, system-ui, sans-serif',
+                        letterSpacing: '-0.02em',
+                        animation: phase === 'active'
+                          ? `word-mask-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) ${1.1 + i * 0.04}s forwards`
+                          : 'none',
+                        transform: 'translateY(100%)',
+                        opacity: 0,
+                      }}
+                    >
+                      {letter}
+                    </span>
+                  </span>
+                ))}
               </div>
             </div>
-          </SlideTransition>
+
+            {/* "Employee Happiness Delivered." — pans up after full logo animation */}
+            <p
+              className="font-extrabold text-center tracking-[-0.03em] mt-10"
+              style={{
+                fontSize: 'clamp(32px, 5.5vh, 56px)',
+                lineHeight: 1.1,
+                color: '#FFFFFF',
+                fontFamily: 'Outfit, system-ui, sans-serif',
+                animation: phase === 'active'
+                  ? 'tagline-pan-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 1.8s forwards'
+                  : 'none',
+                opacity: 0,
+                transform: 'translateY(40px)',
+              }}
+            >
+              Employee<br />Happiness<br />Delivered.
+            </p>
+          </div>
         )}
 
-        {/* ====== SLIDES 5-9: SERVICE SHOWCASE ====== */}
-        {currentIndex >= 5 && currentIndex <= 9 && (
+        {/* ====== SLIDE 5: SERVICE LIST GLIDE (Jitter "Glide" style, G — Service Colors design) ====== */}
+        {currentIndex === 5 && (
+          <div
+            className="absolute inset-0 flex items-center"
+            style={{
+              backgroundColor: NAVY,
+              opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
+              transition: 'opacity 0.4s ease',
+            }}
+          >
+            <div className="w-full" style={{ paddingLeft: '7%', paddingTop: '6%' }}>
+              {[
+                { name: 'Massage', color: TEAL },
+                { name: 'Nails', color: PINK },
+                { name: 'Haircut', color: YELLOW },
+                { name: 'Beauty', color: PINK },
+                { name: 'Mindfulness', color: YELLOW },
+                { name: 'Headshots', color: TEAL },
+              ].map((service, i) => (
+                <p
+                  key={service.name}
+                  className="font-bold tracking-[-0.01em]"
+                  style={{
+                    fontSize: 'clamp(40px, 8vh, 80px)',
+                    lineHeight: 1.0,
+                    color: service.color,
+                    fontFamily: 'Outfit, system-ui, sans-serif',
+                    animation: phase === 'active'
+                      ? `glide-in-right 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${i * 0.12}s forwards, glide-back-left 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${0.9 + i * 0.08}s forwards`
+                      : 'none',
+                    transform: 'translateX(-120%)',
+                    opacity: 0,
+                  }}
+                >
+                  {service.name}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ====== SLIDES 6-10: SERVICE VIDEO SHOWCASE ====== */}
+        {currentIndex >= 6 && currentIndex <= 10 && (
           <ServiceSlide
-            service={SERVICES[currentIndex - 5]}
+            service={SERVICES[currentIndex - 6]}
             phase={phase}
           />
         )}
 
-        {/* ====== SLIDE 10: THE PLATFORM ====== */}
-        {currentIndex === 10 && (
+        {/* ====== SLIDE 11: THE PLATFORM ====== */}
+        {currentIndex === 11 && (
           <SlideTransition phase={phase} direction="up">
             <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ backgroundColor: NAVY }}>
               <p
@@ -513,8 +711,8 @@ export default function WorkhumanTVLoop() {
           </SlideTransition>
         )}
 
-        {/* ====== SLIDE 11: EASE ====== */}
-        {currentIndex === 11 && (
+        {/* ====== SLIDE 12: EASE ====== */}
+        {currentIndex === 12 && (
           <SlideTransition phase={phase} direction="left">
             <div className="absolute inset-0 flex items-center justify-center px-10" style={{ backgroundColor: CORAL }}>
               <div className="text-center">
@@ -535,8 +733,8 @@ export default function WorkhumanTVLoop() {
           </SlideTransition>
         )}
 
-        {/* ====== SLIDE 12: CLOSE ====== */}
-        {currentIndex === 12 && (
+        {/* ====== SLIDE 13: CLOSE ====== */}
+        {currentIndex === 13 && (
           <SlideTransition phase={phase} direction="fade">
             <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: NAVY }}>
               {Array.from({ length: 12 }, (_, i) => (
