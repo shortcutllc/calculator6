@@ -86,7 +86,8 @@ function App() {
     location.pathname === '/195-nassau' ||
     location.pathname === '/lower-pyne' ||
     location.pathname.startsWith('/p/') ||
-    location.pathname.startsWith('/sign/');
+    location.pathname.startsWith('/sign/') ||
+    location.pathname === '/workhuman-tv';
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering

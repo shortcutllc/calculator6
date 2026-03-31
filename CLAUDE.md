@@ -5,6 +5,8 @@ Shortcut is an all-in-one corporate wellness platform delivering in-person and v
 
 **Brand voice:** Calm, human, practical. No buzzwords or "perks theater."
 
+**Copywriting rule:** Before writing ANY marketing copy, proposal text, landing page content, email outreach, event signage, or social media content, read the full brand voice guide at `memory/brand_voice_copywriter.md`. Always produce 3 directions (safe/medium/brave) and flag which you'd fight for.
+
 ---
 
 ## Tech Stack

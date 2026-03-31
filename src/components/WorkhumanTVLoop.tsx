@@ -256,12 +256,13 @@ function ServiceSlide({ service, phase }: {
 
       {/* Tagline below the split-word container */}
       <p
-        className="font-bold text-center px-10 mt-8"
+        className="font-bold text-center mt-8"
         style={{
           fontSize: 'clamp(18px, 3vh, 30px)',
           color: service.textColor,
           fontFamily: 'Outfit, system-ui, sans-serif',
-          opacity: phase === 'active' ? 0.7 : 0,
+          width: '85%',
+          opacity: phase === 'active' ? 1 : 0,
           transform: phase === 'active' ? 'translateY(0)' : 'translateY(16px)',
           transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
         }}
@@ -276,7 +277,717 @@ function ServiceSlide({ service, phase }: {
 // MAIN COMPONENT
 // ============================================================
 
+// ============================================================
+// V2 — Refined narrative (8 slides)
+// ============================================================
+function V2Loop({ phase, currentIndex }: { phase: 'enter' | 'active' | 'exit'; currentIndex: number }) {
+  return (
+    <>
+      {/* ====== SLIDE 0: QR HERO ====== */}
+      {currentIndex === 0 && (
+        <SlideTransition phase={phase} direction="scale">
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: CORAL }}>
+            <p
+              className="font-extrabold text-center tracking-[-0.03em] mb-12"
+              style={{ fontSize: 'clamp(36px, 6vh, 64px)', color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              Book Your<br />Free Massage
+            </p>
+            <QRPlaceholder size={280} />
+            <p
+              className="font-bold mt-8"
+              style={{ fontSize: 'clamp(16px, 2.5vh, 24px)', color: '#FFFFFF', opacity: 0.8, fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              Scan to reserve your spot
+            </p>
+            {/* Animated logo — same Jitter sequence, white on coral */}
+            <div className="flex items-center mt-12">
+              <div
+                style={{
+                  flexShrink: 0,
+                  animation: phase === 'active'
+                    ? 'logo-overshoot 0.4s cubic-bezier(0.22, 1, 0.36, 1) 1.0s forwards, logo-slide-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.1s forwards'
+                    : 'none',
+                  transform: 'translateX(100px) scale(1.1)',
+                }}
+              >
+                <svg width="56" height="42" viewBox="0 0 285 192" fill="none"
+                  style={{
+                    animation: phase === 'active' ? 'logo-icon-scale 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards' : 'none',
+                    transform: 'scale(0)', opacity: 0,
+                  }}
+                >
+                  <path fillRule="evenodd" clipRule="evenodd" d="M180.085 123.273C178.523 136.95 174.332 150.363 166.404 161.789C147.666 188.794 115.391 197.809 83.505 187.975C52.0357 178.27 21.5169 150.798 0 106.28L29.4336 92.0535C48.1724 130.823 72.6235 150.408 93.1396 156.736C113.239 162.935 129.965 156.958 139.545 143.152C141.253 140.691 142.721 137.91 143.935 134.846C142.091 134.947 140.246 134.979 138.402 134.945C117.189 134.548 97.7708 125.343 83.1568 112.659C68.6417 100.062 57.4983 82.8406 54.2488 64.5611C50.855 45.4703 56.3132 25.3828 74.6228 11.3512C83.191 4.78496 92.5896 0.887791 102.475 0.134123C112.334 -0.61748 121.541 1.84316 129.627 6.17627C145.351 14.6033 157.577 30.4138 165.925 47.3746C171.212 58.1174 175.313 70.0533 177.861 82.3164C192.547 66.6019 208.52 57.2563 222.041 52.0055C229.027 49.2927 235.456 47.6337 240.848 46.7633C245.575 46.0002 251.284 45.5405 256.04 46.6381L248.689 78.4922C249.256 78.6231 249.56 78.669 249.56 78.669C249.558 78.6929 248.483 78.6453 246.058 79.0368C243.004 79.5298 238.792 80.5701 233.876 82.4796C224.082 86.2829 211.873 93.3814 200.548 105.942C194.094 113.1 187.222 118.845 180.085 123.273ZM147.727 101.517C146.5 87.8421 142.494 73.7985 136.594 61.8105C129.869 48.148 121.609 38.9693 114.185 34.9907C110.696 33.1211 107.663 32.5248 104.96 32.7309C102.284 32.9349 98.8002 34.0099 94.5082 37.2992C87.0974 42.9785 84.9004 50.2039 86.4355 58.8393C88.1148 68.2858 94.4842 79.2038 104.585 87.9699C114.586 96.6501 126.886 102.033 139.013 102.259C141.841 102.312 144.754 102.088 147.727 101.517Z" fill="#FFFFFF"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M227.95 60.6342C212.285 55.7034 200.552 45.6102 190.79 34.575L215.742 12.5006C223.559 21.3371 230.444 26.4925 237.953 28.8562C245.287 31.1646 255.432 31.4939 271.035 26.2883L284.604 56.5339C273.057 63.1664 266.67 73.9685 263.648 85.1433C262.14 90.7193 261.573 96.0733 261.599 100.426C261.625 104.815 262.24 107.049 262.315 107.323C262.322 107.346 262.322 107.35 262.322 107.35L231.654 120.365C229.232 114.657 228.325 107.44 228.284 100.627C228.241 93.4035 229.161 85.049 231.488 76.4463C232.7 71.9629 234.323 67.3261 236.435 62.7047C233.55 62.1969 230.724 61.5071 227.95 60.6342Z" fill="#FFFFFF"/>
+                </svg>
+              </div>
+              <div className="flex items-center overflow-visible" style={{ marginLeft: 10, height: 36 }}>
+                {['s','h','o','r','t','c','u','t'].map((letter, i) => (
+                  <span key={i} className="inline-block overflow-hidden" style={{ height: 36 }}>
+                    <span className="inline-block font-extrabold" style={{
+                      fontSize: 36, lineHeight: 1, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif',
+                      letterSpacing: '-0.02em',
+                      animation: phase === 'active' ? `word-mask-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) ${1.6 + i * 0.04}s forwards` : 'none',
+                      transform: 'translateY(100%)', opacity: 0,
+                    }}>{letter}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 1: WELCOME + LOGO REVEAL ====== */}
+      {currentIndex === 1 && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center"
+          style={{
+            backgroundColor: NAVY,
+            opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
+            transition: 'opacity 0.4s ease',
+          }}
+        >
+          <p
+            className="font-bold tracking-[-0.01em] mb-8"
+            style={{
+              fontSize: 'clamp(18px, 2.5vh, 28px)', color: 'rgba(255,255,255,0.5)',
+              fontFamily: 'Outfit, system-ui, sans-serif',
+              animation: phase === 'active' ? 'tagline-pan-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards' : 'none',
+              opacity: 0, transform: 'translateY(20px)',
+            }}
+          >
+            Welcome to
+          </p>
+          {/* Jitter logo animation */}
+          <div className="flex items-center" style={{ marginTop: 0 }}>
+            <div style={{
+              flexShrink: 0,
+              animation: phase === 'active'
+                ? 'logo-overshoot 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.7s forwards, logo-slide-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.8s forwards'
+                : 'none',
+              transform: 'translateX(140px) scale(1.1)',
+            }}>
+              <svg width="80" height="60" viewBox="0 0 285 192" fill="none" style={{
+                animation: phase === 'active' ? 'logo-icon-scale 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards' : 'none',
+                transform: 'scale(0)', opacity: 0,
+              }}>
+                <path fillRule="evenodd" clipRule="evenodd" d="M180.085 123.273C178.523 136.95 174.332 150.363 166.404 161.789C147.666 188.794 115.391 197.809 83.505 187.975C52.0357 178.27 21.5169 150.798 0 106.28L29.4336 92.0535C48.1724 130.823 72.6235 150.408 93.1396 156.736C113.239 162.935 129.965 156.958 139.545 143.152C141.253 140.691 142.721 137.91 143.935 134.846C142.091 134.947 140.246 134.979 138.402 134.945C117.189 134.548 97.7708 125.343 83.1568 112.659C68.6417 100.062 57.4983 82.8406 54.2488 64.5611C50.855 45.4703 56.3132 25.3828 74.6228 11.3512C83.191 4.78496 92.5896 0.887791 102.475 0.134123C112.334 -0.61748 121.541 1.84316 129.627 6.17627C145.351 14.6033 157.577 30.4138 165.925 47.3746C171.212 58.1174 175.313 70.0533 177.861 82.3164C192.547 66.6019 208.52 57.2563 222.041 52.0055C229.027 49.2927 235.456 47.6337 240.848 46.7633C245.575 46.0002 251.284 45.5405 256.04 46.6381L248.689 78.4922C249.256 78.6231 249.56 78.669 249.56 78.669C249.558 78.6929 248.483 78.6453 246.058 79.0368C243.004 79.5298 238.792 80.5701 233.876 82.4796C224.082 86.2829 211.873 93.3814 200.548 105.942C194.094 113.1 187.222 118.845 180.085 123.273ZM147.727 101.517C146.5 87.8421 142.494 73.7985 136.594 61.8105C129.869 48.148 121.609 38.9693 114.185 34.9907C110.696 33.1211 107.663 32.5248 104.96 32.7309C102.284 32.9349 98.8002 34.0099 94.5082 37.2992C87.0974 42.9785 84.9004 50.2039 86.4355 58.8393C88.1148 68.2858 94.4842 79.2038 104.585 87.9699C114.586 96.6501 126.886 102.033 139.013 102.259C141.841 102.312 144.754 102.088 147.727 101.517Z" fill={CORAL}/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M227.95 60.6342C212.285 55.7034 200.552 45.6102 190.79 34.575L215.742 12.5006C223.559 21.3371 230.444 26.4925 237.953 28.8562C245.287 31.1646 255.432 31.4939 271.035 26.2883L284.604 56.5339C273.057 63.1664 266.67 73.9685 263.648 85.1433C262.14 90.7193 261.573 96.0733 261.599 100.426C261.625 104.815 262.24 107.049 262.315 107.323C262.322 107.346 262.322 107.35 262.322 107.35L231.654 120.365C229.232 114.657 228.325 107.44 228.284 100.627C228.241 93.4035 229.161 85.049 231.488 76.4463C232.7 71.9629 234.323 67.3261 236.435 62.7047C233.55 62.1969 230.724 61.5071 227.95 60.6342Z" fill={CORAL}/>
+              </svg>
+            </div>
+            <div className="flex items-center overflow-visible" style={{ marginLeft: 14, height: 50 }}>
+              {['s','h','o','r','t','c','u','t'].map((letter, i) => (
+                <span key={i} className="inline-block overflow-hidden" style={{ height: 50 }}>
+                  <span className="inline-block font-extrabold" style={{
+                    fontSize: 50, lineHeight: 1, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif',
+                    letterSpacing: '-0.02em',
+                    animation: phase === 'active' ? `word-mask-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) ${1.3 + i * 0.04}s forwards` : 'none',
+                    transform: 'translateY(100%)', opacity: 0,
+                  }}>{letter}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== SLIDE 2: WHAT WE DO ====== */}
+      {currentIndex === 2 && (
+        <SlideTransition phase={phase} direction="up">
+          <div className="absolute inset-0 flex items-center justify-center px-10" style={{ backgroundColor: NAVY }}>
+            <p
+              className="font-extrabold text-center tracking-[-0.03em]"
+              style={{ fontSize: 'clamp(32px, 6vh, 60px)', lineHeight: 1.1, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              We bring massage, beauty, and wellness directly to your office.
+            </p>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 3: SERVICE LIST GLIDE ====== */}
+      {currentIndex === 3 && (
+        <div
+          className="absolute inset-0 flex items-center"
+          style={{
+            backgroundColor: NAVY,
+            opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
+            transition: 'opacity 0.4s ease',
+          }}
+        >
+          <div className="w-full" style={{ paddingLeft: '7%', paddingTop: '6%' }}>
+            {[
+              { name: 'Massage', color: TEAL },
+              { name: 'Nails', color: PINK },
+              { name: 'Haircut', color: YELLOW },
+              { name: 'Beauty', color: PINK },
+              { name: 'Mindfulness', color: YELLOW },
+              { name: 'Headshots', color: TEAL },
+            ].map((service, i) => (
+              <p
+                key={service.name}
+                className="font-bold tracking-[-0.01em]"
+                style={{
+                  fontSize: 'clamp(40px, 8vh, 80px)', lineHeight: 1.0, color: service.color,
+                  fontFamily: 'Outfit, system-ui, sans-serif',
+                  animation: phase === 'active'
+                    ? `glide-in-right 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${i * 0.12}s forwards, glide-back-left 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${0.9 + i * 0.08}s forwards`
+                    : 'none',
+                  transform: 'translateX(-120%)', opacity: 0,
+                }}
+              >
+                {service.name}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ====== SLIDE 4: THE EXPERIENCE (video + copy) ====== */}
+      {currentIndex === 4 && (
+        <SlideTransition phase={phase} direction="fade">
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: NAVY }}>
+            {/* Video placeholder — gradient for now */}
+            <div
+              className="relative overflow-hidden mx-8 mb-8"
+              style={{
+                width: '80%', aspectRatio: '3 / 4', borderRadius: 20,
+                background: `linear-gradient(135deg, ${NAVY} 0%, #004d6d 50%, #006080 100%)`,
+              }}
+            >
+              {/* TODO: Replace with cycling <video> of services */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ShortcutLogo variant="white" size={40} />
+              </div>
+            </div>
+            <p
+              className="font-extrabold text-center tracking-[-0.03em] px-8"
+              style={{
+                fontSize: 'clamp(24px, 4vh, 44px)', lineHeight: 1.15, color: '#FFFFFF',
+                fontFamily: 'Outfit, system-ui, sans-serif',
+                animation: phase === 'active' ? 'tagline-pan-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.4s forwards' : 'none',
+                opacity: 0, transform: 'translateY(30px)',
+              }}
+            >
+              We transform a conference room into something your team actually looks forward to.
+            </p>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 5: THE EASE ====== */}
+      {currentIndex === 5 && (
+        <SlideTransition phase={phase} direction="up">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-10" style={{ backgroundColor: CORAL }}>
+            <p
+              className="font-extrabold text-center tracking-[-0.03em]"
+              style={{ fontSize: 'clamp(28px, 5vh, 52px)', lineHeight: 1.15, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              You provide the space.
+            </p>
+            <p
+              className="font-extrabold text-center tracking-[-0.03em] mt-2"
+              style={{ fontSize: 'clamp(28px, 5vh, 52px)', lineHeight: 1.15, color: NAVY, fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              We handle the rest.
+            </p>
+            <div className="mt-10 space-y-2">
+              {['Scheduling.', 'Sign ups.', 'Reminders.', 'Setup.', 'Cleanup.', 'Everything.'].map((item, i) => (
+                <p
+                  key={item}
+                  className="font-bold text-center"
+                  style={{
+                    fontSize: 'clamp(18px, 3vh, 30px)', color: 'rgba(255,255,255,0.7)',
+                    fontFamily: 'Outfit, system-ui, sans-serif',
+                    animation: phase === 'active'
+                      ? `tagline-pan-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${0.5 + i * 0.15}s forwards`
+                      : 'none',
+                    opacity: 0, transform: 'translateY(20px)',
+                  }}
+                >
+                  {item}
+                </p>
+              ))}
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 6: THE SCALE ====== */}
+      {currentIndex === 6 && (
+        <SlideTransition phase={phase} direction="left">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ backgroundColor: NAVY }}>
+            <p
+              className="font-extrabold text-center tracking-[-0.04em]"
+              style={{ fontSize: 'clamp(36px, 7vh, 76px)', lineHeight: 1.05, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              One vendor.
+            </p>
+            <p
+              className="font-extrabold text-center tracking-[-0.04em] mt-2"
+              style={{ fontSize: 'clamp(36px, 7vh, 76px)', lineHeight: 1.05, color: TEAL, fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              Every office.
+            </p>
+            <p
+              className="font-bold text-center tracking-[-0.02em] mt-8"
+              style={{ fontSize: 'clamp(18px, 3vh, 32px)', lineHeight: 1.3, color: 'rgba(255,255,255,0.5)', fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              From New York to wherever your team sits.
+            </p>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 7: SOCIAL PROOF ====== */}
+      {currentIndex === 7 && (
+        <SlideTransition phase={phase} direction="scale">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-10" style={{ backgroundColor: NAVY }}>
+            <p
+              className="font-bold text-center tracking-[-0.01em] mb-8"
+              style={{ fontSize: 'clamp(16px, 2.5vh, 24px)', color: 'rgba(255,255,255,0.4)', fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              Trusted by
+            </p>
+            <p
+              className="font-extrabold text-center tracking-[-0.04em]"
+              style={{ fontSize: 'clamp(40px, 8vh, 84px)', lineHeight: 1.0, color: TEAL, fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              500+
+            </p>
+            <p
+              className="font-extrabold text-center tracking-[-0.03em] mt-1"
+              style={{ fontSize: 'clamp(28px, 4.5vh, 48px)', lineHeight: 1.1, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              companies
+            </p>
+            <div className="mt-10 flex flex-wrap justify-center gap-x-6 gap-y-3 px-4">
+              {['BCG', 'DraftKings', 'PwC', 'Paramount', 'Tripadvisor', 'Wix'].map((name, i) => (
+                <p
+                  key={name}
+                  className="font-bold"
+                  style={{
+                    fontSize: 'clamp(14px, 2vh, 20px)', color: 'rgba(255,255,255,0.35)',
+                    fontFamily: 'Outfit, system-ui, sans-serif',
+                    animation: phase === 'active'
+                      ? `tagline-pan-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) ${0.6 + i * 0.1}s forwards`
+                      : 'none',
+                    opacity: 0, transform: 'translateY(15px)',
+                  }}
+                >
+                  {name}
+                </p>
+              ))}
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 8: CLOSE ====== */}
+      {currentIndex === 8 && (
+        <SlideTransition phase={phase} direction="fade">
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: NAVY }}>
+            {Array.from({ length: 12 }, (_, i) => (
+              <div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  left: `${10 + (i * 37) % 80}%`,
+                  top: `${5 + (i * 43) % 85}%`,
+                  width: 3 + (i % 3) * 2,
+                  height: 3 + (i % 3) * 2,
+                  backgroundColor: TEAL,
+                  opacity: 0.12 + (i % 4) * 0.04,
+                  animation: `float-particle ${7 + (i % 4)}s ease-in-out ${(i % 5) * 0.8}s infinite alternate`,
+                }}
+              />
+            ))}
+            <div className="relative z-10 text-center">
+              <p
+                className="font-extrabold tracking-[-0.03em]"
+                style={{ fontSize: 'clamp(36px, 6vh, 64px)', lineHeight: 1.1, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}
+              >
+                Employee<br />Happiness<br />Delivered.
+              </p>
+              <div className="mt-10">
+                <ShortcutLogo variant="coral" size={52} />
+              </div>
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+    </>
+  );
+}
+
+// ============================================================
+// V3 — Coherent brand story (13 slides: greeting → intro → services → TBD)
+// ============================================================
+function V3Loop({ phase, currentIndex }: { phase: 'enter' | 'active' | 'exit'; currentIndex: number }) {
+  return (
+    <>
+      {/* ====== SLIDE 0: QR HERO (reuse V2 design) ====== */}
+      {currentIndex === 0 && (
+        <SlideTransition phase={phase} direction="scale">
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: CORAL }}>
+            <p
+              className="font-extrabold text-center tracking-[-0.03em] mb-12"
+              style={{ fontSize: 'clamp(36px, 6vh, 64px)', color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              Book Your<br />Free Massage
+            </p>
+            <QRPlaceholder size={280} />
+            <p
+              className="font-bold mt-8"
+              style={{ fontSize: 'clamp(16px, 2.5vh, 24px)', color: '#FFFFFF', opacity: 0.8, fontFamily: 'Outfit, system-ui, sans-serif' }}
+            >
+              Scan to reserve your spot
+            </p>
+            {/* Animated logo — white on coral */}
+            <div className="flex items-center mt-12">
+              <div
+                style={{
+                  flexShrink: 0,
+                  animation: phase === 'active'
+                    ? 'logo-overshoot 0.4s cubic-bezier(0.22, 1, 0.36, 1) 1.0s forwards, logo-slide-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.1s forwards'
+                    : 'none',
+                  transform: 'translateX(100px) scale(1.1)',
+                }}
+              >
+                <svg width="56" height="42" viewBox="0 0 285 192" fill="none"
+                  style={{
+                    animation: phase === 'active' ? 'logo-icon-scale 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards' : 'none',
+                    transform: 'scale(0)', opacity: 0,
+                  }}
+                >
+                  <path fillRule="evenodd" clipRule="evenodd" d="M180.085 123.273C178.523 136.95 174.332 150.363 166.404 161.789C147.666 188.794 115.391 197.809 83.505 187.975C52.0357 178.27 21.5169 150.798 0 106.28L29.4336 92.0535C48.1724 130.823 72.6235 150.408 93.1396 156.736C113.239 162.935 129.965 156.958 139.545 143.152C141.253 140.691 142.721 137.91 143.935 134.846C142.091 134.947 140.246 134.979 138.402 134.945C117.189 134.548 97.7708 125.343 83.1568 112.659C68.6417 100.062 57.4983 82.8406 54.2488 64.5611C50.855 45.4703 56.3132 25.3828 74.6228 11.3512C83.191 4.78496 92.5896 0.887791 102.475 0.134123C112.334 -0.61748 121.541 1.84316 129.627 6.17627C145.351 14.6033 157.577 30.4138 165.925 47.3746C171.212 58.1174 175.313 70.0533 177.861 82.3164C192.547 66.6019 208.52 57.2563 222.041 52.0055C229.027 49.2927 235.456 47.6337 240.848 46.7633C245.575 46.0002 251.284 45.5405 256.04 46.6381L248.689 78.4922C249.256 78.6231 249.56 78.669 249.56 78.669C249.558 78.6929 248.483 78.6453 246.058 79.0368C243.004 79.5298 238.792 80.5701 233.876 82.4796C224.082 86.2829 211.873 93.3814 200.548 105.942C194.094 113.1 187.222 118.845 180.085 123.273ZM147.727 101.517C146.5 87.8421 142.494 73.7985 136.594 61.8105C129.869 48.148 121.609 38.9693 114.185 34.9907C110.696 33.1211 107.663 32.5248 104.96 32.7309C102.284 32.9349 98.8002 34.0099 94.5082 37.2992C87.0974 42.9785 84.9004 50.2039 86.4355 58.8393C88.1148 68.2858 94.4842 79.2038 104.585 87.9699C114.586 96.6501 126.886 102.033 139.013 102.259C141.841 102.312 144.754 102.088 147.727 101.517Z" fill="#FFFFFF"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M227.95 60.6342C212.285 55.7034 200.552 45.6102 190.79 34.575L215.742 12.5006C223.559 21.3371 230.444 26.4925 237.953 28.8562C245.287 31.1646 255.432 31.4939 271.035 26.2883L284.604 56.5339C273.057 63.1664 266.67 73.9685 263.648 85.1433C262.14 90.7193 261.573 96.0733 261.599 100.426C261.625 104.815 262.24 107.049 262.315 107.323C262.322 107.346 262.322 107.35 262.322 107.35L231.654 120.365C229.232 114.657 228.325 107.44 228.284 100.627C228.241 93.4035 229.161 85.049 231.488 76.4463C232.7 71.9629 234.323 67.3261 236.435 62.7047C233.55 62.1969 230.724 61.5071 227.95 60.6342Z" fill="#FFFFFF"/>
+                </svg>
+              </div>
+              <div className="flex items-center overflow-visible" style={{ marginLeft: 10, height: 36 }}>
+                {['s','h','o','r','t','c','u','t'].map((letter, i) => (
+                  <span key={i} className="inline-block overflow-hidden" style={{ height: 36 }}>
+                    <span className="inline-block font-extrabold" style={{
+                      fontSize: 36, lineHeight: 1, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif',
+                      letterSpacing: '-0.02em',
+                      animation: phase === 'active' ? `word-mask-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) ${1.6 + i * 0.04}s forwards` : 'none',
+                      transform: 'translateY(100%)', opacity: 0,
+                    }}>{letter}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 1: HELLO WORKHUMAN ====== */}
+      {currentIndex === 1 && (
+        <SlideTransition phase={phase} direction="fade">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-10" style={{ backgroundColor: '#FFF3E2' }}>
+            <div className="text-center">
+              {/* Workhuman Live logo */}
+              {/* Workhuman Live logo — main wordmark only, no sub-copy */}
+              <div className="flex justify-center mb-8">
+                <svg style={{ width: 'min(420px, 80vw)' }} viewBox="0 0 260 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g>
+                    <path d="M192.1,33.6c1,0,1.8.8,1.8,1.7h0c0,1.1-.7,1.9-1.6,1.9h-.1c-1,0-1.8-.9-1.8-1.9,0-1,.8-1.7,1.8-1.8M192.1,36.9c.8,0,1.4-.7,1.4-1.4h0c0-.8-.7-1.4-1.5-1.4s-1.4.7-1.4,1.5c0,.8.7,1.4,1.4,1.4M192.2,35.8h-.3v.7h-.5v-2h.8c.4,0,.8.2.8.7,0,.2,0,.5-.3.6l.3.7h-.6l-.2-.7h0ZM191.9,35.4h.3c.1,0,.3,0,.3-.2h0c0-.3-.1-.4-.3-.4h-.2v.6h0Z" fill="#0d173d"/>
+                    <path d="M5.1,17.4l2.4,15.3h.9l3-14.9h5.4l3,14.9h.9l2.4-15.3h5.2l-3.7,19.8h-8.2l-2.2-12.2-2.2,12.2H3.7L0,17.4h5.2,0Z" fill="#0d173d"/>
+                    <path d="M47.1,27.3c0,6.1-2.2,10.4-9,10.4s-9-4.3-9-10.4,2.2-10.4,9-10.4,9,4.2,9,10.4M41.8,27.3c0-3.8-.8-5.8-3.7-5.8s-3.7,2-3.7,5.8.8,5.9,3.7,5.9,3.7-2.1,3.7-5.9" fill="#0d173d"/>
+                    <path d="M49.5,17.4h5.2v2.1s3.3-2,6.2-2.6v5.4c-2.1.4-4.2,1-6.2,1.7v13.3h-5.2v-19.9Z" fill="#0d173d"/>
+                    <path d="M82.3,37.2V9.4h5.2v8.9s2.7-1.4,4.8-1.4c5.5,0,6.9,3.5,6.9,9.6v10.8h-5.2v-10.6c0-3-.4-4.9-2.9-4.9-1.2,0-2.4.2-3.6.6v14.9s-5.2,0-5.2,0Z" fill="#0d173d"/>
+                    <path d="M118.7,17.4v19.9h-5.2v-1.1s-2.8,1.6-4.9,1.6c-5.7,0-6.9-3.2-6.9-9.9v-10.4h5.2v10.5c0,3.5.2,5.1,2.7,5.1,1.3,0,2.6-.3,3.8-.7v-14.8h5.2Z" fill="#0d173d"/>
+                    <path d="M121.4,37.2v-19.8h5.2v1.1s2.7-1.6,4.6-1.6,3.7.6,4.9,1.9c0,0,3.6-1.9,6.6-1.9,5.3,0,6.9,3.2,6.9,9.6v10.8h-5.2v-10.6c0-3-.4-5-2.7-5-1.2,0-2.5.3-3.6.8,0,0,.2,3,.2,4.5v10.3h-5.2v-10.2c0-3.6-.3-5.4-2.7-5.4-1.2,0-2.4.3-3.5.7v14.8h-5.2Z" fill="#0d173d"/>
+                    <path d="M171.1,37.2v-19.8h5.2v1.1s2.6-1.6,4.9-1.6c5.5,0,6.9,3.5,6.9,9.6v10.8h-5.2v-10.6c0-3-.4-5-2.9-5-1.2,0-2.4.3-3.6.7v14.8h-5.2Z" fill="#0d173d"/>
+                    <path d="M80.3,17.4h-6.1l-5.9,9.1V9.4h-5.2v27.8h5.2v-9.1l5.9,9.1h6.1l-6.4-9.9s6.4-9.9,6.4-9.9Z" fill="#0d173d"/>
+                    <path d="M168.4,17.4h-5.2v1.1s-2.6-1.6-4.9-1.6c-5.5,0-6.8,5.2-6.8,11.2s1.4,9.6,6.9,9.6,4.4-1.3,4.8-1.5v1.1h5.3v-19.8h0ZM159.7,32.9c-2.5,0-2.9-1.9-2.9-5v-2.7c.1-2.3.7-3.7,2.9-3.7,1.2,0,2.4.3,3.6.7v9.9c-1.1.4-2.3.7-3.5.7" fill="#0d173d"/>
+                    <path d="M200.7,9.6c0-1.7-.5-3.3-1.3-4.8l-7.3,3.6,1.6-8c-1.8-.5-3.7-.5-5.5,0l1.6,8-7.3-3.6c-.9,1.5-1.3,3.1-1.3,4.8l7.9,1-4.7,4.7c1.5.3,2.8,1.2,3.8,2.4l2.8-5.7,3.4,6.9c1.5-.6,2.9-1.5,4-2.8l-5.5-5.5,7.9-1h0Z" fill="#0d173d"/>
+                    <rect x="208.3" y="9.4" width="5.3" height="27.7" fill="#c1386a"/>
+                    <path d="M216.8,9.4h5.3v5.4h-5.3v-5.4ZM216.8,17.3h5.3v19.8h-5.3v-19.8Z" fill="#c1386a"/>
+                    <path d="M229.1,17.3l3.2,15.3h1.1l3.3-15.3h5.4l-4.7,19.8h-9l-4.7-19.8h5.5,0Z" fill="#c1386a"/>
+                    <path d="M258.9,32.6v3.9c-2.6.6-5.4,1-8.2,1.1-6,0-8.5-3-8.5-10.1s3-10.6,8.7-10.6,8.6,3,8.6,8.9l-.4,3.7h-11.6c0,2.4,1.1,3.4,4,3.4s7.3-.4,7.3-.4M254.4,25.4c0-3.2-.9-4.2-3.4-4.2s-3.4,1.2-3.4,4.2h6.8Z" fill="#c1386a"/>
+                  </g>
+                </svg>
+              </div>
+              <p
+                className="font-extrabold tracking-[-0.03em]"
+                style={{
+                  fontSize: 'clamp(40px, 7vh, 72px)', lineHeight: 1.1, color: '#000000',
+                  fontFamily: 'Outfit, system-ui, sans-serif',
+                }}
+              >
+                Hello{' '}
+                <span
+                  className="inline-block"
+                  style={{
+                    animation: phase === 'active' ? 'wave-hand 1.2s ease-in-out 0.3s' : 'none',
+                  }}
+                >
+                  👋
+                </span>
+              </p>
+              <p
+                className="font-bold tracking-[-0.01em] mt-6"
+                style={{
+                  fontSize: 'clamp(18px, 3vh, 28px)', lineHeight: 1.3,
+                  color: '#000000',
+                  fontFamily: 'Outfit, system-ui, sans-serif',
+                  animation: phase === 'active' ? 'tagline-pan-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.8s forwards' : 'none',
+                  opacity: 0, transform: 'translateY(20px)',
+                }}
+              >
+                Welcome to your moment of zen.<br />Presented by Shortcut.
+              </p>
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 2: WE'RE SHORTCUT ====== */}
+      {currentIndex === 2 && (
+        <SlideTransition phase={phase} direction="scale">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-10" style={{ backgroundColor: CORAL }}>
+            {/* "We're" + animated Shortcut logo inline */}
+            <div className="flex items-center flex-wrap justify-center gap-x-4">
+              <p
+                className="font-extrabold tracking-[-0.03em]"
+                style={{
+                  fontSize: 'clamp(36px, 6vh, 64px)', lineHeight: 1.1, color: '#FFFFFF',
+                  fontFamily: 'Outfit, system-ui, sans-serif',
+                }}
+              >
+                We're
+              </p>
+              {/* Animated logo — icon + wordmark, Jitter sequence */}
+              <div className="flex items-center">
+                <div
+                  style={{
+                    flexShrink: 0,
+                    animation: phase === 'active'
+                      ? 'logo-overshoot 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.7s forwards, logo-slide-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.8s forwards'
+                      : 'none',
+                    transform: 'translateX(100px) scale(1.1)',
+                  }}
+                >
+                  <svg width="56" height="42" viewBox="0 0 285 192" fill="none"
+                    style={{
+                      animation: phase === 'active' ? 'logo-icon-scale 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards' : 'none',
+                      transform: 'scale(0)', opacity: 0,
+                    }}
+                  >
+                    <path fillRule="evenodd" clipRule="evenodd" d="M180.085 123.273C178.523 136.95 174.332 150.363 166.404 161.789C147.666 188.794 115.391 197.809 83.505 187.975C52.0357 178.27 21.5169 150.798 0 106.28L29.4336 92.0535C48.1724 130.823 72.6235 150.408 93.1396 156.736C113.239 162.935 129.965 156.958 139.545 143.152C141.253 140.691 142.721 137.91 143.935 134.846C142.091 134.947 140.246 134.979 138.402 134.945C117.189 134.548 97.7708 125.343 83.1568 112.659C68.6417 100.062 57.4983 82.8406 54.2488 64.5611C50.855 45.4703 56.3132 25.3828 74.6228 11.3512C83.191 4.78496 92.5896 0.887791 102.475 0.134123C112.334 -0.61748 121.541 1.84316 129.627 6.17627C145.351 14.6033 157.577 30.4138 165.925 47.3746C171.212 58.1174 175.313 70.0533 177.861 82.3164C192.547 66.6019 208.52 57.2563 222.041 52.0055C229.027 49.2927 235.456 47.6337 240.848 46.7633C245.575 46.0002 251.284 45.5405 256.04 46.6381L248.689 78.4922C249.256 78.6231 249.56 78.669 249.56 78.669C249.558 78.6929 248.483 78.6453 246.058 79.0368C243.004 79.5298 238.792 80.5701 233.876 82.4796C224.082 86.2829 211.873 93.3814 200.548 105.942C194.094 113.1 187.222 118.845 180.085 123.273ZM147.727 101.517C146.5 87.8421 142.494 73.7985 136.594 61.8105C129.869 48.148 121.609 38.9693 114.185 34.9907C110.696 33.1211 107.663 32.5248 104.96 32.7309C102.284 32.9349 98.8002 34.0099 94.5082 37.2992C87.0974 42.9785 84.9004 50.2039 86.4355 58.8393C88.1148 68.2858 94.4842 79.2038 104.585 87.9699C114.586 96.6501 126.886 102.033 139.013 102.259C141.841 102.312 144.754 102.088 147.727 101.517Z" fill="#FFFFFF"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M227.95 60.6342C212.285 55.7034 200.552 45.6102 190.79 34.575L215.742 12.5006C223.559 21.3371 230.444 26.4925 237.953 28.8562C245.287 31.1646 255.432 31.4939 271.035 26.2883L284.604 56.5339C273.057 63.1664 266.67 73.9685 263.648 85.1433C262.14 90.7193 261.573 96.0733 261.599 100.426C261.625 104.815 262.24 107.049 262.315 107.323C262.322 107.346 262.322 107.35 262.322 107.35L231.654 120.365C229.232 114.657 228.325 107.44 228.284 100.627C228.241 93.4035 229.161 85.049 231.488 76.4463C232.7 71.9629 234.323 67.3261 236.435 62.7047C233.55 62.1969 230.724 61.5071 227.95 60.6342Z" fill="#FFFFFF"/>
+                  </svg>
+                </div>
+                <div className="flex items-center overflow-visible" style={{ marginLeft: 10, height: 42 }}>
+                  {['s','h','o','r','t','c','u','t'].map((letter, i) => (
+                    <span key={i} className="inline-block overflow-hidden" style={{ height: 42 }}>
+                      <span className="inline-block font-extrabold" style={{
+                        fontSize: 42, lineHeight: 1, color: '#FFFFFF', fontFamily: 'Outfit, system-ui, sans-serif',
+                        letterSpacing: '-0.02em',
+                        animation: phase === 'active' ? `word-mask-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) ${1.3 + i * 0.04}s forwards` : 'none',
+                        transform: 'translateY(100%)', opacity: 0,
+                      }}>{letter}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Subtitle — white */}
+            <p
+              className="font-bold text-center tracking-[-0.01em] mt-6"
+              style={{
+                fontSize: 'clamp(18px, 3vh, 28px)', lineHeight: 1.3, color: '#FFFFFF',
+                fontFamily: 'Outfit, system-ui, sans-serif',
+                animation: phase === 'active' ? 'tagline-pan-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.8s forwards' : 'none',
+                opacity: 0, transform: 'translateY(20px)',
+              }}
+            >
+              A wellness vendor that shows up. Literally.
+            </p>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 3: WHAT WE DELIVER — privacy screen style ====== */}
+      {currentIndex === 3 && (
+        <SlideTransition phase={phase} direction="up">
+          <div className="absolute inset-0" style={{ backgroundColor: NAVY }}>
+            <p
+              className="font-extrabold tracking-[-0.03em]"
+              style={{
+                fontSize: 'clamp(36px, 8vh, 80px)', lineHeight: 1.05, color: '#FFFFFF',
+                fontFamily: 'Outfit, system-ui, sans-serif',
+                position: 'absolute', top: '6%', left: '6%', right: '6%',
+              }}
+            >
+              We deliver feel good, on-site{' '}
+              <span style={{ color: TEAL }}>moments</span>{' '}
+              to hundreds of companies across the US.
+            </p>
+            <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+              <ShortcutLogo variant="white" size={36} />
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 4: THE RANGE — privacy screen style ====== */}
+      {currentIndex === 4 && (
+        <SlideTransition phase={phase} direction="left">
+          <div className="absolute inset-0" style={{ backgroundColor: TEAL }}>
+            <p
+              className="font-extrabold tracking-[-0.03em]"
+              style={{
+                fontSize: 'clamp(36px, 8vh, 80px)', lineHeight: 1.05, color: NAVY,
+                fontFamily: 'Outfit, system-ui, sans-serif',
+                position: 'absolute', top: '6%', left: '6%', right: '6%',
+              }}
+            >
+              From massage and mindfulness to beauty and corporate{' '}
+              <span style={{ color: CORAL }}>headshots</span>.
+            </p>
+            <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+              <ShortcutLogo variant="coral" size={36} />
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 5: ONE VENDOR — privacy screen style ====== */}
+      {currentIndex === 5 && (
+        <SlideTransition phase={phase} direction="up">
+          <div className="absolute inset-0" style={{ backgroundColor: NAVY }}>
+            <div style={{ position: 'absolute', top: '6%', left: '6%', right: '6%' }}>
+              <p
+                className="font-extrabold tracking-[-0.03em]"
+                style={{
+                  fontSize: 'clamp(36px, 8vh, 80px)', lineHeight: 1.05, color: '#FFFFFF',
+                  fontFamily: 'Outfit, system-ui, sans-serif',
+                  animation: phase === 'active'
+                    ? 'tagline-pan-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards'
+                    : 'none',
+                  opacity: 0, transform: 'translateY(30px)',
+                }}
+              >
+                One vendor.
+              </p>
+              <p
+                className="font-extrabold tracking-[-0.03em]"
+                style={{
+                  fontSize: 'clamp(36px, 8vh, 80px)', lineHeight: 1.05, color: TEAL,
+                  fontFamily: 'Outfit, system-ui, sans-serif',
+                  animation: phase === 'active'
+                    ? 'tagline-pan-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards'
+                    : 'none',
+                  opacity: 0, transform: 'translateY(30px)',
+                }}
+              >
+                Zero hassle.
+              </p>
+              <p
+                className="font-extrabold tracking-[-0.03em]"
+                style={{
+                  fontSize: 'clamp(28px, 6vh, 60px)', lineHeight: 1.05, color: '#FFFFFF',
+                  fontFamily: 'Outfit, system-ui, sans-serif',
+                  marginTop: 'clamp(12px, 2vh, 24px)',
+                  animation: phase === 'active'
+                    ? 'tagline-pan-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.8s forwards'
+                    : 'none',
+                  opacity: 0, transform: 'translateY(30px)',
+                }}
+              >
+                A dozen ways to breathe easier.
+              </p>
+            </div>
+            <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+              <ShortcutLogo variant="white" size={36} />
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 6: SERVICE + TECH — privacy screen style ====== */}
+      {currentIndex === 6 && (
+        <SlideTransition phase={phase} direction="fade">
+          <div className="absolute inset-0" style={{ backgroundColor: CORAL }}>
+            <p
+              className="font-extrabold tracking-[-0.03em]"
+              style={{
+                fontSize: 'clamp(36px, 8vh, 80px)', lineHeight: 1.05, color: '#FFFFFF',
+                fontFamily: 'Outfit, system-ui, sans-serif',
+                position: 'absolute', top: '6%', left: '6%', right: '6%',
+              }}
+            >
+              The highest level of{' '}
+              <span style={{ color: NAVY }}>service</span>{' '}
+              paired with seamless technology.
+            </p>
+            <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
+              <ShortcutLogo variant="white" size={36} />
+            </div>
+          </div>
+        </SlideTransition>
+      )}
+
+      {/* ====== SLIDE 7: SERVICE LIST GLIDE ====== */}
+      {currentIndex === 7 && (
+        <div
+          className="absolute inset-0 flex items-center"
+          style={{
+            backgroundColor: NAVY,
+            opacity: phase === 'enter' ? 0 : phase === 'exit' ? 0 : 1,
+            transition: 'opacity 0.4s ease',
+          }}
+        >
+          <div className="w-full" style={{ paddingLeft: '7%', paddingTop: '6%' }}>
+            {[
+              { name: 'Massage', color: TEAL },
+              { name: 'Nails', color: PINK },
+              { name: 'Haircut', color: YELLOW },
+              { name: 'Beauty', color: PINK },
+              { name: 'Mindfulness', color: YELLOW },
+              { name: 'Headshots', color: TEAL },
+            ].map((service, i) => (
+              <p
+                key={service.name}
+                className="font-bold tracking-[-0.01em]"
+                style={{
+                  fontSize: 'clamp(40px, 8vh, 80px)', lineHeight: 1.0, color: service.color,
+                  fontFamily: 'Outfit, system-ui, sans-serif',
+                  animation: phase === 'active'
+                    ? `glide-in-right 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${i * 0.12}s forwards, glide-back-left 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${0.9 + i * 0.08}s forwards`
+                    : 'none',
+                  transform: 'translateX(-120%)', opacity: 0,
+                }}
+              >
+                {service.name}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ====== SLIDES 8-12: SERVICE VIDEO SPOTLIGHTS ====== */}
+      {currentIndex >= 8 && currentIndex <= 12 && (
+        <ServiceSlide
+          service={SERVICES[currentIndex - 8]}
+          phase={phase}
+        />
+      )}
+    </>
+  );
+}
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+
 export default function WorkhumanTVLoop() {
+  // Version toggle: ?v=2 for refined narrative, ?v=3 for brand story
+  const vParam = new URLSearchParams(window.location.search).get('v');
+  const version = vParam === '3' ? 3 : vParam === '2' ? 2 : 1;
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const toggleFullscreen = useCallback(() => {
@@ -321,8 +1032,7 @@ export default function WorkhumanTVLoop() {
   // 10: Platform
   // 11: Ease
   // 12: Close
-  const totalSlides = 14;
-  const durations = [
+  const v1Durations = [
     8000,  // 0: QR hero
     4000,  // 1: problem 1
     5000,  // 2: problem 2
@@ -338,6 +1048,34 @@ export default function WorkhumanTVLoop() {
     6000,  // 12: ease
     6000,  // 13: close
   ];
+  const v2Durations = [
+    8000,  // 0: QR hero
+    7000,  // 1: welcome + logo reveal
+    6000,  // 2: what we do
+    5000,  // 3: service list glide
+    8000,  // 4: the experience (video)
+    7000,  // 5: the ease
+    6000,  // 6: the scale
+    6000,  // 7: social proof
+    6000,  // 8: close
+  ];
+  const v3Durations = [
+    8000,  // 0: QR hero
+    6000,  // 1: Hello Workhuman
+    7000,  // 2: We're Shortcut
+    6000,  // 3: What we deliver
+    6000,  // 4: The range
+    6000,  // 5: One vendor
+    6000,  // 6: Service + tech
+    5000,  // 7: Service glide
+    7000,  // 8: massage
+    7000,  // 9: headshots
+    7000,  // 10: nails
+    7000,  // 11: hair
+    7000,  // 12: mindfulness
+  ];
+  const totalSlides = version === 3 ? 13 : version === 2 ? 9 : 14;
+  const durations = version === 3 ? v3Durations : version === 2 ? v2Durations : v1Durations;
 
   const { currentIndex, phase, goTo } = useSlideshow(totalSlides, durations);
 
@@ -398,6 +1136,15 @@ export default function WorkhumanTVLoop() {
           0% { transform: translateX(60%); }
           100% { transform: translateX(0); }
         }
+        @keyframes wave-hand {
+          0%, 100% { transform: rotate(0deg); transform-origin: 70% 70%; }
+          10% { transform: rotate(14deg); }
+          20% { transform: rotate(-8deg); }
+          30% { transform: rotate(14deg); }
+          40% { transform: rotate(-4deg); }
+          50% { transform: rotate(10deg); }
+          60% { transform: rotate(0deg); }
+        }
       `}</style>
 
       <div
@@ -411,6 +1158,12 @@ export default function WorkhumanTVLoop() {
         }}
       >
 
+        {/* ====== VERSION SWITCH ====== */}
+        {version === 3 && <V3Loop phase={phase} currentIndex={currentIndex} />}
+        {version === 2 && <V2Loop phase={phase} currentIndex={currentIndex} />}
+
+        {/* ====== V1 SLIDES BELOW ====== */}
+        {version === 1 && <>
         {/* ====== SLIDE 0: QR HERO (full screen) ====== */}
         {currentIndex === 0 && (
           <SlideTransition phase={phase} direction="scale">
@@ -767,6 +1520,9 @@ export default function WorkhumanTVLoop() {
           </SlideTransition>
         )}
 
+        </>}
+        {/* ====== END V1 SLIDES ====== */}
+
         {/* ====== PERSISTENT QR BADGE (after slide 0) ====== */}
         <QRBadge visible={showQRBadge} />
 
@@ -806,6 +1562,39 @@ export default function WorkhumanTVLoop() {
             Press F for fullscreen
           </div>
         )}
+
+        {/* Version toggle — top left, fades with cursor */}
+        <div
+          className="absolute top-3 left-3 z-20 flex gap-1"
+          style={{
+            opacity: cursorHidden ? 0 : 0.6,
+            transition: 'opacity 0.5s ease',
+          }}
+        >
+          {[1, 2, 3].map(v => (
+            <button
+              key={v}
+              onClick={() => {
+                const url = new URL(window.location.href);
+                if (v === 1) url.searchParams.delete('v');
+                else url.searchParams.set('v', String(v));
+                window.location.href = url.toString();
+              }}
+              className="font-bold"
+              style={{
+                fontSize: 10,
+                padding: '3px 8px',
+                borderRadius: 4,
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: version === v ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+                color: version === v ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+              }}
+            >
+              V{v}
+            </button>
+          ))}
+        </div>
       </div>
     </>
   );
