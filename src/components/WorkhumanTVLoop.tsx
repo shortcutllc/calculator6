@@ -112,10 +112,10 @@ function useSlideshow(slideCount: number, durations: number[]) {
   const goTo = useCallback((index: number) => {
     setCurrentIndex(((index % countRef.current) + countRef.current) % countRef.current);
     setPhase('enter');
-    // When navigating while paused, briefly unpause to trigger enter→active, then re-pause
+    // When navigating while paused, briefly unpause to trigger enter→active + animations, then re-pause
     if (paused) {
       setPaused(false);
-      setTimeout(() => setPaused(true), 700);
+      setTimeout(() => setPaused(true), 2500);
     }
   }, [paused]);
 
@@ -640,6 +640,109 @@ function V2Loop({ phase, currentIndex }: { phase: 'enter' | 'active' | 'exit'; c
 // ============================================================
 // V3 — Coherent brand story (13 slides: greeting → intro → services → TBD)
 // ============================================================
+// --- Jitter-style stacked card carousel for slide 4 ---
+const CARD_SERVICES = [
+  { name: 'Massage', icon: '/workhuman-tv/icon-massage.png' },
+  { name: 'Headshots', icon: '/workhuman-tv/icon-headshots.png' },
+  { name: 'Nails', icon: '/workhuman-tv/icon-nails.png' },
+  { name: 'Hair', icon: '/workhuman-tv/icon-hair.png' },
+  { name: 'Beauty', icon: '/workhuman-tv/icon-beauty.png' },
+  { name: 'Mindfulness', icon: '/workhuman-tv/icon-mindfulness.png' },
+];
+
+function ServiceCardSlide({ phase }: { phase: 'enter' | 'active' | 'exit' }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const count = CARD_SERVICES.length;
+
+  // Simple interval: advance every 2s
+  useEffect(() => {
+    if (phase !== 'active') return;
+    const interval = setInterval(() => {
+      setActiveIndex(prev => (prev + 1) % count);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [phase, count]);
+
+  // Reset when slide re-enters
+  useEffect(() => {
+    if (phase === 'enter') setActiveIndex(0);
+  }, [phase]);
+
+  // For each card, determine its position relative to active (0=front, 1=behind, 2=further back)
+  function getCardPosition(cardIndex: number): number {
+    const diff = (cardIndex - activeIndex + count) % count;
+    return diff; // 0=front, 1=next behind, 2=two behind, etc.
+  }
+
+  return (
+    <SlideTransition phase={phase} direction="left">
+      <div className="absolute inset-0" style={{ backgroundColor: NAVY }}>
+        {/* Header text */}
+        <p
+          className="font-extrabold tracking-[-0.03em]"
+          style={{
+            fontSize: 'clamp(28px, 6vh, 56px)', lineHeight: 1.1, color: '#FFFFFF',
+            fontFamily: 'Outfit, system-ui, sans-serif',
+            position: 'absolute', top: '5%', left: '6%', right: '6%',
+          }}
+        >
+          From{' '}
+          <span style={{ color: TEAL }}>massage</span>{' '}and{' '}
+          <span style={{ color: YELLOW }}>mindfulness</span>{' '}to{' '}
+          <span style={{ color: PINK }}>beauty</span>{' '}and corporate{' '}
+          <span style={{ color: TEAL }}>headshots</span>.
+        </p>
+
+        {/* Centered card stack */}
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ top: '15%' }}
+        >
+          <div style={{ position: 'relative', width: 'min(360px, 45vh)', height: 'min(360px, 45vh)' }}>
+            {CARD_SERVICES.map((svc, i) => {
+              const pos = getCardPosition(i);
+              // Show max 3 cards (front + 2 behind). Hide the rest.
+              const visible = pos <= 2;
+              // Front card: scale 1, y 0, full opacity, highest z
+              // 1 behind: scale 0.92, y -16px, z-1
+              // 2 behind: scale 0.84, y -32px, z-2
+              const scale = pos === 0 ? 1 : pos === 1 ? 0.9 : 0.8;
+              const translateY = pos === 0 ? 0 : pos === 1 ? -40 : -72;
+              const zIndex = visible ? (30 - pos * 10) : 0;
+              const opacity = visible ? 1 : 0;
+
+              return (
+                <div
+                  key={svc.name}
+                  className="absolute inset-0"
+                  style={{
+                    borderRadius: 'clamp(16px, 3vh, 28px)',
+                    overflow: 'hidden',
+                    transform: `scale(${scale}) translateY(${translateY}px)`,
+                    opacity,
+                    zIndex,
+                    transition: 'transform 1.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease',
+                  }}
+                >
+                  <img
+                    src={svc.icon}
+                    alt={svc.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="absolute" style={{ bottom: '3%', right: '5%' }}>
+          <ShortcutLogo variant="white" size={36} />
+        </div>
+      </div>
+    </SlideTransition>
+  );
+}
+
 function V3Loop({ phase, currentIndex }: { phase: 'enter' | 'active' | 'exit'; currentIndex: number }) {
   return (
     <>
@@ -849,27 +952,8 @@ function V3Loop({ phase, currentIndex }: { phase: 'enter' | 'active' | 'exit'; c
         </SlideTransition>
       )}
 
-      {/* ====== SLIDE 4: THE RANGE — privacy screen style ====== */}
-      {currentIndex === 4 && (
-        <SlideTransition phase={phase} direction="left">
-          <div className="absolute inset-0" style={{ backgroundColor: TEAL }}>
-            <p
-              className="font-extrabold tracking-[-0.03em]"
-              style={{
-                fontSize: 'clamp(36px, 8vh, 80px)', lineHeight: 1.05, color: NAVY,
-                fontFamily: 'Outfit, system-ui, sans-serif',
-                position: 'absolute', top: '6%', left: '6%', right: '6%',
-              }}
-            >
-              From massage and mindfulness to beauty and corporate{' '}
-              <span style={{ color: CORAL }}>headshots</span>.
-            </p>
-            <div className="absolute" style={{ bottom: '4%', right: '5%' }}>
-              <ShortcutLogo variant="coral" size={36} />
-            </div>
-          </div>
-        </SlideTransition>
-      )}
+      {/* ====== SLIDE 4: THE RANGE — navy bg, Jitter-style stacked card carousel ====== */}
+      {currentIndex === 4 && <ServiceCardSlide phase={phase} />}
 
       {/* ====== SLIDE 5: ONE VENDOR — privacy screen style ====== */}
       {currentIndex === 5 && (
@@ -1080,7 +1164,7 @@ export default function WorkhumanTVLoop() {
     6000,  // 1: Hello Workhuman
     7000,  // 2: We're Shortcut
     6000,  // 3: What we deliver
-    6000,  // 4: The range
+    14000, // 4: The range (card carousel needs time to cycle)
     6000,  // 5: One vendor
     6000,  // 6: Service + tech
     5000,  // 7: Service glide
@@ -1152,6 +1236,25 @@ export default function WorkhumanTVLoop() {
         @keyframes glide-back-left {
           0% { transform: translateX(60%); }
           100% { transform: translateX(0); }
+        }
+        @keyframes card-flip-in {
+          0% { transform: perspective(800px) rotateY(90deg) scale(0.85); opacity: 0; }
+          60% { transform: perspective(800px) rotateY(-8deg) scale(1.02); opacity: 1; }
+          80% { transform: perspective(800px) rotateY(3deg) scale(1); }
+          100% { transform: perspective(800px) rotateY(0deg) scale(1); opacity: 1; }
+        }
+        /* Card stack: 6 cards, each visible for ~16.67% of cycle.
+           Transition in: scale 80%→90%, translateY(20px→0).
+           Hold: scale 90%, translateY(0).
+           Transition out: scale 90%→85%, translateY(0→-30px), opacity→0.
+           Based on Jitter "Screens 4" animation: 1.25s transitions, smooth easing. */
+        @keyframes card-stack-in {
+          0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+          100% { opacity: 1; transform: scale(0.9) translateY(0); }
+        }
+        @keyframes card-stack-out {
+          0% { opacity: 1; transform: scale(0.9) translateY(0); }
+          100% { opacity: 0; transform: scale(0.85) translateY(-30px); }
         }
         @keyframes wave-hand {
           0%, 100% { transform: rotate(0deg); transform-origin: 70% 70%; }
