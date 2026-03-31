@@ -85,12 +85,14 @@ function QRPlaceholder({ size = 200 }: { size?: number }) {
 function useSlideshow(slideCount: number, durations: number[]) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [phase, setPhase] = useState<'enter' | 'active' | 'exit'>('enter');
+  const [paused, setPaused] = useState(false);
   const durationsRef = useRef(durations);
   durationsRef.current = durations;
   const countRef = useRef(slideCount);
   countRef.current = slideCount;
 
   useEffect(() => {
+    if (paused) return; // Don't set timers when paused
     const duration = durationsRef.current[currentIndex] || 6000;
 
     const enterTimer = setTimeout(() => setPhase('active'), 600);
@@ -105,14 +107,21 @@ function useSlideshow(slideCount: number, durations: number[]) {
       clearTimeout(exitTimer);
       clearTimeout(nextTimer);
     };
-  }, [currentIndex]);
+  }, [currentIndex, paused]);
 
   const goTo = useCallback((index: number) => {
     setCurrentIndex(((index % countRef.current) + countRef.current) % countRef.current);
     setPhase('enter');
-  }, []);
+    // When navigating while paused, briefly unpause to trigger enter→active, then re-pause
+    if (paused) {
+      setPaused(false);
+      setTimeout(() => setPaused(true), 700);
+    }
+  }, [paused]);
 
-  return { currentIndex, phase, goTo };
+  const togglePause = useCallback(() => setPaused(p => !p), []);
+
+  return { currentIndex, phase, goTo, paused, togglePause };
 }
 
 // --- Persistent QR badge (bottom-left after slide 1) ---
@@ -195,80 +204,87 @@ function ServiceSlide({ service, phase }: {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: service.color }}>
-      {/* Split-word container — matches HomeHero.vue structure */}
-      <div
-        className="flex items-center justify-center overflow-hidden"
-        style={{
-          borderRadius: 33,
-          width: '85%',
-          height: '45%',
-          backgroundColor: service.color,
-        }}
-      >
-        {/* Left half of word */}
-        <span
-          className="font-extrabold tracking-[-0.03em] block"
+      {/* Wrapper: split-word row + tagline share the same centering context */}
+      <div className="flex flex-col items-center" style={{ width: '85%' }}>
+        {/* Split-word row */}
+        <div
+          className="flex items-center justify-center overflow-hidden"
           style={{
-            fontSize: 'clamp(52px, 10vh, 96px)',
-            lineHeight: 1,
-            color: service.textColor,
-            fontFamily: 'Outfit, system-ui, sans-serif',
-            transform: 'translateY(-4px)',
-            flexShrink: 0,
+            borderRadius: 33,
+            width: '100%',
+            height: '45vh',
+            backgroundColor: service.color,
           }}
         >
-          {service.splitLeft}
-        </span>
+          {/* Left half of word */}
+          <span
+            className="font-extrabold tracking-[-0.03em] block"
+            style={{
+              fontSize: 'clamp(52px, 10vh, 96px)',
+              lineHeight: 1,
+              color: service.textColor,
+              fontFamily: 'Outfit, system-ui, sans-serif',
+              transform: 'translateY(-4px)',
+              flex: 1,
+              textAlign: 'right',
+            }}
+          >
+            {service.splitLeft}
+          </span>
 
-        {/* Video — width animates from 0 to 30%, 3:4 aspect, rounded-20 */}
-        <video
-          ref={videoRef}
-          muted
-          loop
-          playsInline
-          className="object-cover block"
-          src={service.video}
-          style={{
-            width: isOpen ? '30%' : '0%',
-            aspectRatio: '3 / 4',
-            borderRadius: 20,
-            marginInline: isOpen ? 10 : 0,
-            transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1), margin 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-            flexShrink: 0,
-          }}
-        />
+          {/* Video — width animates from 0 to 30%, 3:4 aspect, rounded-20 */}
+          <video
+            ref={videoRef}
+            muted
+            loop
+            playsInline
+            className="object-cover block"
+            src={service.video}
+            style={{
+              width: isOpen ? '30%' : '0%',
+              aspectRatio: '3 / 4',
+              borderRadius: 20,
+              marginInline: isOpen ? 10 : 0,
+              transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1), margin 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+              flexShrink: 0,
+            }}
+          />
 
-        {/* Right half of word */}
-        <span
-          className="font-extrabold tracking-[-0.03em] block"
+          {/* Right half of word */}
+          <span
+            className="font-extrabold tracking-[-0.03em] block"
+            style={{
+              fontSize: 'clamp(52px, 10vh, 96px)',
+              lineHeight: 1,
+              color: service.textColor,
+              fontFamily: 'Outfit, system-ui, sans-serif',
+              transform: 'translateY(-4px)',
+              flex: 1,
+              textAlign: 'left',
+            }}
+          >
+            {service.splitRight}
+          </span>
+        </div>
+
+        {/* Tagline — same parent width as split-word row, centers within that shared box */}
+        <p
+          className="font-bold"
           style={{
-            fontSize: 'clamp(52px, 10vh, 96px)',
-            lineHeight: 1,
+            fontSize: 'clamp(18px, 3vh, 30px)',
             color: service.textColor,
             fontFamily: 'Outfit, system-ui, sans-serif',
-            transform: 'translateY(-4px)',
-            flexShrink: 0,
+            textAlign: 'center',
+            width: '100%',
+            marginTop: 'clamp(16px, 3vh, 32px)',
+            opacity: phase === 'active' ? 1 : 0,
+            transform: phase === 'active' ? 'translateY(0)' : 'translateY(16px)',
+            transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
           }}
         >
-          {service.splitRight}
-        </span>
+          {service.tagline}
+        </p>
       </div>
-
-      {/* Tagline below the split-word container */}
-      <p
-        className="font-bold text-center mt-8"
-        style={{
-          fontSize: 'clamp(18px, 3vh, 30px)',
-          color: service.textColor,
-          fontFamily: 'Outfit, system-ui, sans-serif',
-          width: '85%',
-          opacity: phase === 'active' ? 1 : 0,
-          transform: phase === 'active' ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
-        }}
-      >
-        {service.tagline}
-      </p>
     </div>
   );
 }
@@ -1077,17 +1093,18 @@ export default function WorkhumanTVLoop() {
   const totalSlides = version === 3 ? 13 : version === 2 ? 9 : 14;
   const durations = version === 3 ? v3Durations : version === 2 ? v2Durations : v1Durations;
 
-  const { currentIndex, phase, goTo } = useSlideshow(totalSlides, durations);
+  const { currentIndex, phase, goTo, paused, togglePause } = useSlideshow(totalSlides, durations);
 
   // Arrow keys to navigate slides
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(currentIndex + 1); }
       if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(currentIndex - 1); }
+      if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [goTo, currentIndex]);
+  }, [goTo, currentIndex, togglePause]);
 
   // QR badge shows after slide 0
   const showQRBadge = currentIndex > 0;
