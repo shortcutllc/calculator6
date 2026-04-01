@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-const ServiceAgreement: React.FC = () => {
+interface ServiceAgreementProps {
+  clientName?: string;
+}
+
+const ServiceAgreement: React.FC<ServiceAgreementProps> = ({ clientName }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -25,7 +29,7 @@ const ServiceAgreement: React.FC = () => {
               <h4 className="text-lg font-extrabold text-shortcut-blue mb-4">1. BACKGROUND</h4>
               <div className="pl-4 space-y-2">
                 <p className="text-text-dark">1.1 Shortcut provides corporate wellness services including massage, manicure, mindfulness sessions, and professional headshot photography services.</p>
-                <p className="text-text-dark">1.2 Partner wishes to engage Shortcut to provide these services to Partner's employees as part of their corporate wellness program.</p>
+                <p className="text-text-dark">1.2 {clientName ? <>{clientName} (&ldquo;Partner&rdquo;)</> : 'Partner'} wishes to engage Shortcut to provide these services to Partner's employees as part of their corporate wellness program.</p>
               </div>
             </section>
 

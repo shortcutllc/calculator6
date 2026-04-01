@@ -2730,24 +2730,43 @@ The Shortcut Team`);
             <div className="card-large mb-4 md:mb-8">
               <div className="mb-6 md:mb-8">
               {displayData.clientLogoUrl ? (
-                <div className="flex justify-start mb-6">
-                  <img
-                    src={displayData.clientLogoUrl}
-                    alt={`${displayData.clientName} Logo`}
-                      className="max-h-20 max-w-full object-contain rounded shadow-sm"
-                    style={{ maxWidth: '300px' }}
-                    onError={(e) => {
-                      console.error('Logo failed to load:', displayData.clientLogoUrl);
-                      e.currentTarget.style.display = 'none';
-                      const fallbackElement = e.currentTarget.nextElementSibling;
-                      if (fallbackElement) {
-                        (fallbackElement as HTMLElement).style.display = 'block';
-                      }
-                    }}
-                  />
-                    <h1 className="h1 mb-4 hidden">
-                    {displayData.clientName}
-                    </h1>
+                <div className="mb-6">
+                  <div className="flex justify-start mb-4">
+                    <img
+                      src={displayData.clientLogoUrl}
+                      alt={`${displayData.clientName} Logo`}
+                        className="max-h-20 max-w-full object-contain rounded shadow-sm"
+                      style={{ maxWidth: '300px' }}
+                      onError={(e) => {
+                        console.error('Logo failed to load:', displayData.clientLogoUrl);
+                        e.currentTarget.style.display = 'none';
+                        const fallbackElement = e.currentTarget.nextElementSibling;
+                        if (fallbackElement) {
+                          (fallbackElement as HTMLElement).style.display = 'block';
+                        }
+                      }}
+                    />
+                      <h1 className="h1 mb-4 hidden">
+                      {displayData.clientName}
+                      </h1>
+                  </div>
+                  {isEditing && !isSharedView ? (
+                    <input
+                      type="text"
+                      defaultValue={displayData.clientName}
+                      onBlur={(e) => {
+                        const newName = e.target.value.trim();
+                        if (!newName || !editedData) return;
+                        const updatedData = { ...editedData, clientName: newName };
+                        setEditedData(updatedData);
+                        setDisplayData({ ...updatedData, customization: currentProposal?.customization });
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                      className="text-lg font-bold text-text-dark w-full border-b-2 border-gray-300 focus:border-shortcut-teal focus:outline-none bg-transparent"
+                    />
+                  ) : (
+                    <h1 className="text-lg font-bold text-text-dark">{displayData.clientName}</h1>
+                  )}
                 </div>
               ) : (
                   isEditing && !isSharedView ? (

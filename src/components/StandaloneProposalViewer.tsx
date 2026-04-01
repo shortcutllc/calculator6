@@ -2540,7 +2540,7 @@ export const StandaloneProposalViewer: React.FC = () => {
             </div>
           )}
 
-          <ServiceAgreement />
+          <ServiceAgreement clientName={displayData?.clientName} />
 
           <div className="mt-8">
             <div className="flex justify-between items-center mb-8">
