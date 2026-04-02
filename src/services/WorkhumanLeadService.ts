@@ -1,0 +1,280 @@
+import { supabase } from '../lib/supabaseClient';
+import { WorkhumanLead, WorkhumanLeadCSVRow, OutreachStatus, LeadTier, VipSlotDay } from '../types/workhumanLead';
+import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
+
+// --- CSV Parsing ---
+
+/** Parse a single CSV line respecting quoted fields (RFC 4180) */
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        fields.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+/** Fuzzy match header to a field name */
+function matchHeader(header: string): string | null {
+  const h = header.toLowerCase().trim();
+
+  // Name fields
+  if (h === 'name' || h === 'full name' || h === 'full_name' || h === 'attendee name' || h === 'attendee') return 'name';
+  if (h === 'first name' || h === 'first_name' || h === 'firstname') return 'firstName';
+  if (h === 'last name' || h === 'last_name' || h === 'lastname') return 'lastName';
+
+  // Email
+  if (h.includes('email') || h.includes('e-mail')) return 'email';
+
+  // Company
+  if (h === 'company' || h === 'organization' || h === 'org' || h === 'employer' || h === 'company name' || h === 'company_name') return 'company';
+
+  // Title
+  if (h === 'title' || h === 'job title' || h === 'job_title' || h === 'role' || h === 'position') return 'title';
+
+  // Company size
+  if (h.includes('size') || h.includes('employees') || h.includes('headcount') || h === 'company size' || h === 'employee count') return 'companySize';
+
+  // HQ Location
+  if (h === 'location' || h === 'hq' || h === 'headquarters' || h === 'hq location' || h === 'city' || h === 'office location' || h === 'headquarter location') return 'hqLocation';
+
+  // Industry
+  if (h === 'industry' || h === 'sector' || h === 'vertical') return 'industry';
+
+  // Multi-office
+  if (h.includes('multi') && h.includes('office') || h.includes('multiple') && h.includes('location') || h === 'multi-office' || h === 'multi_office') return 'multiOffice';
+
+  return null;
+}
+
+export function parseCSV(csvContent: string): WorkhumanLeadCSVRow[] {
+  const lines = csvContent.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+
+  const headerFields = parseCSVLine(lines[0]);
+  const fieldMap: Record<number, string> = {};
+
+  for (let i = 0; i < headerFields.length; i++) {
+    const match = matchHeader(headerFields[i]);
+    if (match) fieldMap[i] = match;
+  }
+
+  const rows: WorkhumanLeadCSVRow[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    const raw: Record<string, string> = {};
+
+    for (const [idx, field] of Object.entries(fieldMap)) {
+      raw[field] = values[parseInt(idx)] || '';
+    }
+
+    // Handle separate first/last name columns
+    let name = raw.name || '';
+    if (!name && (raw.firstName || raw.lastName)) {
+      name = [raw.firstName, raw.lastName].filter(Boolean).join(' ');
+    }
+
+    const email = raw.email || '';
+    if (!name || !email) continue; // Skip rows without name or email
+
+    rows.push({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      company: (raw.company || '').trim(),
+      title: (raw.title || '').trim(),
+      companySize: (raw.companySize || '').trim(),
+      hqLocation: (raw.hqLocation || '').trim(),
+      industry: (raw.industry || '').trim(),
+      multiOffice: (raw.multiOffice || '').trim(),
+    });
+  }
+
+  return rows;
+}
+
+// --- Bulk Import ---
+
+export async function bulkInsertLeads(
+  rows: WorkhumanLeadCSVRow[],
+  onProgress?: (done: number, total: number) => void
+): Promise<{ inserted: number; updated: number; errors: number }> {
+  // Fetch existing leads with tier_override to preserve their tiers
+  const { data: overrideLeads } = await supabase
+    .from('workhuman_leads')
+    .select('email, tier')
+    .eq('tier_override', true);
+
+  const overrideMap = new Map<string, string>();
+  if (overrideLeads) {
+    for (const lead of overrideLeads) {
+      overrideMap.set(lead.email, lead.tier);
+    }
+  }
+
+  const BATCH_SIZE = 50;
+  let inserted = 0;
+  let updated = 0;
+  let errors = 0;
+
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+
+    const records = batch.map(row => {
+      const result = calculateWorkhumanLeadScore(row);
+      const existingTier = overrideMap.get(row.email);
+
+      return {
+        name: row.name,
+        email: row.email,
+        company: row.company || null,
+        title: row.title || null,
+        company_size: row.companySize || null,
+        company_size_normalized: result.companySizeNormalized || null,
+        hq_location: row.hqLocation || null,
+        industry: row.industry || null,
+        multi_office: result.multiOffice,
+        lead_score: result.score,
+        tier: existingTier || result.tier,
+        tier_override: !!existingTier,
+      };
+    });
+
+    const { data, error } = await supabase
+      .from('workhuman_leads')
+      .upsert(records, { onConflict: 'email' })
+      .select();
+
+    if (error) {
+      console.error('Batch insert error:', error);
+      errors += batch.length;
+    } else if (data) {
+      // Rough heuristic: new records have created_at close to now
+      const now = Date.now();
+      for (const record of data) {
+        const createdAge = now - new Date(record.created_at).getTime();
+        if (createdAge < 5000) inserted++;
+        else updated++;
+      }
+    }
+
+    onProgress?.(Math.min(i + BATCH_SIZE, rows.length), rows.length);
+  }
+
+  return { inserted, updated, errors };
+}
+
+// --- CRUD Operations ---
+
+export async function fetchLeads(): Promise<WorkhumanLead[]> {
+  const { data, error } = await supabase
+    .from('workhuman_leads')
+    .select('*')
+    .order('lead_score', { ascending: false });
+
+  if (error) {
+    console.error('Failed to fetch leads:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function updateLeadStatus(id: string, status: OutreachStatus): Promise<boolean> {
+  const updates: Record<string, unknown> = { outreach_status: status };
+
+  // Set corresponding timestamp
+  const now = new Date().toISOString();
+  if (status === 'emailed') updates.email_sent_at = now;
+  if (status === 'responded') updates.responded_at = now;
+  if (status === 'meeting_booked') updates.meeting_scheduled_at = now;
+
+  const { error } = await supabase
+    .from('workhuman_leads')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to update status:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateLeadTier(id: string, tier: LeadTier): Promise<boolean> {
+  const { error } = await supabase
+    .from('workhuman_leads')
+    .update({ tier, tier_override: true })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to update tier:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateLeadVipSlot(id: string, day: VipSlotDay | null, time: string | null): Promise<boolean> {
+  const updates: Record<string, unknown> = { vip_slot_day: day, vip_slot_time: time };
+  if (day) updates.outreach_status = 'vip_booked';
+
+  const { error } = await supabase
+    .from('workhuman_leads')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to update VIP slot:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateLeadNotes(id: string, notes: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('workhuman_leads')
+    .update({ notes: notes || null })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to update notes:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteLead(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('workhuman_leads')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to delete lead:', error);
+    return false;
+  }
+  return true;
+}

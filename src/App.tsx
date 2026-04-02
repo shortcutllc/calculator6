@@ -58,6 +58,7 @@ const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
 const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesigns'));
 const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
+const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
 
 function App() {
   const location = useLocation();
@@ -433,6 +434,21 @@ function App() {
                   }>
                     <WorkhumanTVLoop />
                   </Suspense>
+                }
+              />
+              {/* Workhuman Leads CRM */}
+              <Route
+                path="/workhuman-leads"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <WorkhumanLeads />
+                    </Suspense>
+                  </PrivateRoute>
                 }
               />
               {/* Sign-Up Links Routes */}
