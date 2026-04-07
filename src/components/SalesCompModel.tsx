@@ -93,6 +93,16 @@ const EXIT_METRICS = {
   targetPurchaseHigh: 40_000_000,
 };
 
+// ── Equity kicker milestones ──
+const EQUITY_KICKERS = [
+  { milestone: 250_000, bonusShares: 73_750, label: '$250K ARR' },
+  { milestone: 500_000, bonusShares: 73_750, label: '$500K ARR' },
+  { milestone: 750_000, bonusShares: 73_750, label: '$750K ARR' },
+  { milestone: 1_000_000, bonusShares: 73_750, label: '$1M ARR' },
+];
+const BASE_SHARES = 295_000;
+const MAX_KICKER_SHARES = EQUITY_KICKERS.reduce((s, k) => s + k.bonusShares, 0); // 295,000 total bonus = doubles to 2%
+
 // ── Comp structure presets with accelerators ──
 interface CompStructure {
   id: string;
@@ -171,6 +181,7 @@ export default function SalesCompModel() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [selectedStructure, setSelectedStructure] = useState('all-commission');
+  const [equityKickersEnabled, setEquityKickersEnabled] = useState(true);
   const [tiers, setTiers] = useState(DEFAULT_TIERS.map(t => ({ ...t })));
   const sharePrice = 0.03;
   const quarterlyPrice = 2500;
@@ -231,12 +242,29 @@ export default function SalesCompModel() {
   const VEST_YEARS = 4;
   const CLIFF_YEARS = 1;
 
-  const equityRows = useMemo(() => {
-    const costBasis = HER_SHARES * sharePrice; // total exercise cost
-    const pricePerShare409A = VALUATION_409A / TOTAL_SHARES;
-    const pricePerShareSAFE = VALUATION_SAFE / TOTAL_SHARES;
+  // ── Equity kicker milestones ──
+  const kickerTable = useMemo(() => {
+    let cumShares = BASE_SHARES;
+    let cumCost = BASE_SHARES * sharePrice;
+    return EQUITY_KICKERS.map(k => {
+      cumShares += k.bonusShares;
+      cumCost += k.bonusShares * sharePrice;
+      const pct = (cumShares / TOTAL_SHARES) * 100;
+      const valueAtSafe = cumShares * (VALUATION_SAFE / TOTAL_SHARES);
+      const valueAtExitLow = cumShares * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES);
+      const valueAtExitHigh = cumShares * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES);
+      return { ...k, cumShares, cumCost, pct, valueAtSafe, valueAtExitLow, valueAtExitHigh };
+    });
+  }, [sharePrice]);
 
-    // Vesting schedule: 25% at cliff (year 1), then monthly over remaining 3 years
+  const totalSharesWithKickers = equityKickersEnabled ? BASE_SHARES + MAX_KICKER_SHARES : BASE_SHARES;
+  const totalPctWithKickers = (totalSharesWithKickers / TOTAL_SHARES) * 100;
+
+  const equityRows = useMemo(() => {
+    const herShares = equityKickersEnabled ? totalSharesWithKickers : HER_SHARES;
+    const costBasis = herShares * sharePrice;
+
+    // Vesting schedule for base grant only (kickers vest on achievement)
     const vestingSchedule = [
       { year: 1, sharesVested: Math.round(HER_SHARES * 0.25), pctVested: 25 },
       { year: 2, sharesVested: Math.round(HER_SHARES * 0.50), pctVested: 50 },
@@ -245,21 +273,21 @@ export default function SalesCompModel() {
     ];
 
     // Revenue-multiple based valuations tied to company trajectory
-    const revenueMultiple = VALUATION_SAFE / COMPANY_TRAJECTORY[0].runRate; // ~8.5x implied from SAFE
+    const revenueMultiple = VALUATION_SAFE / COMPANY_TRAJECTORY[0].runRate;
     const scenarios = [
-      { label: '409A Valuation (current)', valuation: VALUATION_409A, equityValue: HER_SHARES * pricePerShare409A, gain: (HER_SHARES * pricePerShare409A) - costBasis },
-      { label: 'SAFE Note (latest round)', valuation: VALUATION_SAFE, equityValue: HER_SHARES * pricePerShareSAFE, gain: (HER_SHARES * pricePerShareSAFE) - costBasis },
+      { label: '409A Valuation (current)', valuation: VALUATION_409A, equityValue: herShares * (VALUATION_409A / TOTAL_SHARES), gain: (herShares * (VALUATION_409A / TOTAL_SHARES)) - costBasis },
+      { label: 'SAFE Note (latest round)', valuation: VALUATION_SAFE, equityValue: herShares * (VALUATION_SAFE / TOTAL_SHARES), gain: (herShares * (VALUATION_SAFE / TOTAL_SHARES)) - costBasis },
       ...COMPANY_TRAJECTORY.slice(1).map(t => {
         const futureVal = t.runRate * revenueMultiple;
         const pps = futureVal / TOTAL_SHARES;
-        return { label: `${t.year} (${fmtK(t.runRate)} run rate)`, valuation: futureVal, equityValue: HER_SHARES * pps, gain: (HER_SHARES * pps) - costBasis };
+        return { label: `${t.year} (${fmtK(t.runRate)} run rate)`, valuation: futureVal, equityValue: herShares * pps, gain: (herShares * pps) - costBasis };
       }),
-      { label: `${fmtK(EXIT_METRICS.targetPurchaseLow)} valuation`, valuation: EXIT_METRICS.targetPurchaseLow, equityValue: HER_SHARES * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES), gain: (HER_SHARES * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES)) - costBasis },
-      { label: `${fmtK(EXIT_METRICS.targetPurchaseHigh)} valuation`, valuation: EXIT_METRICS.targetPurchaseHigh, equityValue: HER_SHARES * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES), gain: (HER_SHARES * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)) - costBasis },
+      { label: `${fmtK(EXIT_METRICS.targetPurchaseLow)} valuation`, valuation: EXIT_METRICS.targetPurchaseLow, equityValue: herShares * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES), gain: (herShares * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES)) - costBasis },
+      { label: `${fmtK(EXIT_METRICS.targetPurchaseHigh)} valuation`, valuation: EXIT_METRICS.targetPurchaseHigh, equityValue: herShares * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES), gain: (herShares * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)) - costBasis },
     ];
 
-    return { costBasis, vestingSchedule, scenarios };
-  }, [sharePrice]);
+    return { costBasis, vestingSchedule, scenarios, herShares };
+  }, [sharePrice, equityKickersEnabled, totalSharesWithKickers]);
 
   // Password gate
   if (!authenticated) {
@@ -345,6 +373,88 @@ export default function SalesCompModel() {
               </button>
             ))}
           </div>
+        </Section>
+
+        {/* ── Equity Kickers ── */}
+        <Section className="mb-10">
+          <div className="flex items-center justify-between mb-2">
+            <SectionLabel>Performance Equity Kickers</SectionLabel>
+            <button
+              onClick={() => setEquityKickersEnabled(!equityKickersEnabled)}
+              className="flex items-center gap-3 group"
+            >
+              <div className={`relative w-11 h-6 rounded-full transition-colors ${equityKickersEnabled ? 'bg-[#003756]' : 'bg-[#003756]/15'}`}>
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${equityKickersEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
+              <span className={`text-[14px] font-semibold ${equityKickersEnabled ? 'text-[#003756]' : 'text-[#003756]/40'}`}>
+                Add equity kickers
+              </span>
+            </button>
+          </div>
+          <p className="text-[15px] text-[#032232]/60 mb-5 leading-relaxed">
+            Double your equity from 1% to 2% by hitting ARR milestones. Each milestone unlocks an additional
+            73,750 shares at the same $0.03 strike — vesting immediately on achievement.
+          </p>
+
+          {equityKickersEnabled && (
+            <>
+              <div className="overflow-x-auto -mx-2 px-2 mb-6">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr>
+                      {['Milestone', 'Bonus Shares', 'Cumulative Shares', 'Ownership', 'Value at SAFE ($7M)', `Value at ${fmtK(EXIT_METRICS.targetPurchaseLow)}`, `Value at ${fmtK(EXIT_METRICS.targetPurchaseHigh)}`].map((h, i) => (
+                        <th key={i} className={`py-3 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#003756] border-b border-[#003756]/10 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Base grant row */}
+                    <tr className="border-b border-[#003756]/[.06] bg-[#003756]/[.02]">
+                      <td className="py-3 px-4 text-[14px] text-[#003756] font-semibold">Signing (base grant)</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">295,000</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">295,000</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">1.00%</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{fmt(Math.round(BASE_SHARES * (VALUATION_SAFE / TOTAL_SHARES)))}</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{fmt(Math.round(BASE_SHARES * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES)))}</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{fmt(Math.round(BASE_SHARES * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}</td>
+                    </tr>
+                    {kickerTable.map((row, ri) => (
+                      <tr key={ri} className={`border-b border-[#003756]/[.06] hover:bg-[#003756]/[.02] transition-colors ${ri === kickerTable.length - 1 ? 'bg-[#9EFAFF]/20' : ''}`}>
+                        <td className="py-3 px-4 text-[14px] text-[#003756] font-semibold">{row.label}</td>
+                        <td className="py-3 px-4 text-[14px] text-[#018EA2] font-semibold text-right">+{row.bonusShares.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{row.cumShares.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-[14px] text-[#003756] font-bold text-right">{row.pct.toFixed(2)}%</td>
+                        <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{fmt(Math.round(row.valueAtSafe))}</td>
+                        <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{fmt(Math.round(row.valueAtExitLow))}</td>
+                        <td className="py-3 px-4 text-[14px] text-[#018EA2] font-bold text-right">{fmt(Math.round(row.valueAtExitHigh))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Kicker impact highlight */}
+              <div className="bg-[#003756] rounded-2xl p-6 text-white">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">Base Grant (1%)</div>
+                    <div className="text-[1.25rem] font-extrabold">{fmt(Math.round(BASE_SHARES * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}</div>
+                    <div className="text-[12px] text-white/50 mt-1">at {fmtK(EXIT_METRICS.targetPurchaseHigh)} valuation</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">With All Kickers (2%)</div>
+                    <div className="text-[1.25rem] font-extrabold">{fmt(Math.round(totalSharesWithKickers * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}</div>
+                    <div className="text-[12px] text-white/50 mt-1">at {fmtK(EXIT_METRICS.targetPurchaseHigh)} valuation</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-[.12em] text-[#9EFAFF] mb-1">Kicker Bonus</div>
+                    <div className="text-[1.25rem] font-extrabold text-[#9EFAFF]">+{fmt(Math.round(MAX_KICKER_SHARES * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}</div>
+                    <div className="text-[12px] text-white/50 mt-1">additional value from hitting goals</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </Section>
 
         {/* ── Year 1 Summary Stats ── */}
@@ -490,14 +600,14 @@ export default function SalesCompModel() {
           <div className="bg-[#003756] rounded-2xl p-6 text-white">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">Your 1% at $20M Valuation</div>
-                <div className="text-[1.75rem] font-extrabold">{fmt(200_000)}</div>
-                <div className="text-[12px] text-white/50 mt-1">Gain: {fmt(200_000 - equityRows.costBasis)} over strike</div>
+                <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">Your {totalPctWithKickers.toFixed(2)}% at {fmtK(EXIT_METRICS.targetPurchaseLow)}</div>
+                <div className="text-[1.75rem] font-extrabold">{fmt(Math.round(totalSharesWithKickers * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES)))}</div>
+                <div className="text-[12px] text-white/50 mt-1">Gain: {fmt(Math.round(totalSharesWithKickers * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES)) - equityRows.costBasis)} over strike</div>
               </div>
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">Your 1% at $40M Valuation</div>
-                <div className="text-[1.75rem] font-extrabold">{fmt(400_000)}</div>
-                <div className="text-[12px] text-white/50 mt-1">Gain: {fmt(400_000 - equityRows.costBasis)} over strike</div>
+                <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">Your {totalPctWithKickers.toFixed(2)}% at {fmtK(EXIT_METRICS.targetPurchaseHigh)}</div>
+                <div className="text-[1.75rem] font-extrabold">{fmt(Math.round(totalSharesWithKickers * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}</div>
+                <div className="text-[12px] text-white/50 mt-1">Gain: {fmt(Math.round(totalSharesWithKickers * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)) - equityRows.costBasis)} over strike</div>
               </div>
             </div>
           </div>
@@ -505,15 +615,15 @@ export default function SalesCompModel() {
 
         {/* ── Equity Grant ── */}
         <Section className="mb-10">
-          <SectionLabel>Equity Grant — 1% (NSO)</SectionLabel>
+          <SectionLabel>Equity Grant — {totalPctWithKickers.toFixed(2)}% (NSO){equityKickersEnabled ? ' with Kickers' : ''}</SectionLabel>
           <p className="text-[15px] text-[#032232]/60 mb-5 leading-relaxed">
             295,000 shares at ${sharePrice.toFixed(2)} strike price. 10-year term. 4-year vest with 1-year cliff.
           </p>
 
           {/* Grant summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <Stat value="295,000" label="Shares Granted" sub="1.00% of company" />
-            <Stat value={fmt(equityRows.costBasis)} label="Total Exercise Cost" sub={`295,000 x $${sharePrice.toFixed(2)}`} />
+            <Stat value={equityRows.herShares.toLocaleString()} label={equityKickersEnabled ? 'Total Shares (w/ kickers)' : 'Shares Granted'} sub={`${totalPctWithKickers.toFixed(2)}% of company`} />
+            <Stat value={fmt(equityRows.costBasis)} label="Total Exercise Cost" sub={`${equityRows.herShares.toLocaleString()} x $${sharePrice.toFixed(2)}`} />
             <Stat value={fmt(VALUATION_409A * 0.01)} label="Value at 409A ($1.7M)" />
             <Stat value={fmt(VALUATION_SAFE * 0.01)} label="Value at SAFE ($7M)" accent />
           </div>
@@ -585,13 +695,13 @@ export default function SalesCompModel() {
               sub={baseSalary > 0 ? `${fmt(Math.round(arrTable[arrTable.length - 1].commission))} commission + ${fmt(baseSalary)} base` : `${arrTable[arrTable.length - 1].effectiveRate.toFixed(0)}% effective rate`}
             />
             <Stat
-              value="$200-400K"
-              label="1% Equity Potential"
+              value={`${fmtK(Math.round(totalSharesWithKickers * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES)))}-${fmtK(Math.round(totalSharesWithKickers * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}`}
+              label={`${totalPctWithKickers.toFixed(0)}% Equity Potential`}
               accent
-              sub="If growth targets met by 2028"
+              sub={equityKickersEnabled ? 'With all kickers earned' : 'Base grant only'}
             />
             <Stat
-              value={fmt(arrTable[arrTable.length - 1].totalComp + 300_000)}
+              value={fmt(Math.round(arrTable[arrTable.length - 1].totalComp + totalSharesWithKickers * ((EXIT_METRICS.targetPurchaseLow + EXIT_METRICS.targetPurchaseHigh) / 2 / TOTAL_SHARES)))}
               label="Total Comp + Equity"
               sub="Cash comp + equity midpoint"
             />
@@ -606,8 +716,10 @@ export default function SalesCompModel() {
               <li>Baseline pricing: {fmt(quarterlyPrice)} per quarterly event commitment ({fmt(quarterlyPrice * 4)}/yr minimum)</li>
               <li>Selected structure: {activeStructure.label} — {activeStructure.tiers.map(t => `${t.rate}%`).join(' → ')} commission{baseSalary > 0 ? ` + ${fmt(baseSalary)} base` : ', no base salary'}</li>
               <li>Commission paid monthly on collected revenue from prior month</li>
-              <li>295,000 shares (1.00%), NSO, ${sharePrice.toFixed(2)} strike, 10-year term</li>
+              <li>Base grant: 295,000 shares (1.00%), NSO, ${sharePrice.toFixed(2)} strike, 10-year term</li>
               <li>4-year vest with 1-year cliff (25% at cliff, monthly thereafter)</li>
+              {equityKickersEnabled && <li>Equity kickers: +73,750 shares at each ARR milestone ($250K, $500K, $750K, $1M) — doubles to 2%</li>}
+              {equityKickersEnabled && <li>Kicker shares vest immediately on milestone achievement at same $0.03 strike</li>}
               <li>409A valuation: $1.7M | Latest SAFE note: $7M</li>
               <li>Year 1: Pure commission at 20% of ARR, no base salary</li>
               <li>Year 2+: Choice of comp structure with base salary and commission accelerators</li>
