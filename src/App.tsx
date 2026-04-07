@@ -5,6 +5,7 @@ import History from './components/History';
 import ProposalViewer from './components/ProposalViewer';
 import { ProposalTypeRouter } from './components/ProposalTypeRouter';
 import Calculator from './components/Calculator';
+import SalesCompModel from './components/SalesCompModel';
 import Login from './components/Login';
 import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
@@ -135,13 +136,17 @@ function App() {
                   </PrivateRoute>
                 } 
               />
-              <Route 
+              <Route
                 path="/calculator"
                 element={
                   <PrivateRoute>
                     <Calculator />
                   </PrivateRoute>
-                } 
+                }
+              />
+              <Route
+                path="/sales-comp-model"
+                element={<SalesCompModel />}
               />
               <Route 
                 path="/headshots"

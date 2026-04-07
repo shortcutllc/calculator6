@@ -78,6 +78,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Brochures', path: '/brochure', icon: <FileText size={18} /> },
       { label: '2026 Plan', path: '/2026-plan', icon: <TrendingUp size={18} /> },
       { label: '2026 Plan ML', path: '/2026-plan-ml', icon: <TrendingUp size={18} /> },
+      { label: 'Sales Comp Model', path: '/sales-comp-model', icon: <Target size={18} /> },
     ],
   },
   {
