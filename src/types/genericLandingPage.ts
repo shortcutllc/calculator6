@@ -20,6 +20,8 @@ export interface GenericLandingPageCustomization {
   theme?: 'default' | 'corporate';
 }
 
+export type LandingPageType = 'generic' | 'workhuman';
+
 export interface GenericLandingPage {
   id: string;
   createdAt: string;
@@ -32,6 +34,7 @@ export interface GenericLandingPage {
   uniqueToken?: string; // For public access
   customUrl?: string; // For custom URL system
   isReturningClient?: boolean; // Whether this is for a returning client (shows personalized messaging)
+  pageType?: LandingPageType; // 'generic' (default) or 'workhuman'
 }
 
 export interface GenericLandingPageOptions {
@@ -44,6 +47,7 @@ export interface GenericLandingPageOptions {
   customMessage?: string;
   customization: GenericLandingPageCustomization;
   isReturningClient?: boolean; // Whether this is for a returning client
+  pageType?: LandingPageType; // 'generic' (default) or 'workhuman'
 }
 
 

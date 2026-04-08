@@ -60,6 +60,7 @@ const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
 const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesigns'));
 const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
 const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
+const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
 
 function App() {
   const location = useLocation();
@@ -89,7 +90,8 @@ function App() {
     location.pathname === '/lower-pyne' ||
     location.pathname.startsWith('/p/') ||
     location.pathname.startsWith('/sign/') ||
-    location.pathname === '/workhuman-tv';
+    location.pathname === '/workhuman-tv' ||
+    location.pathname.startsWith('/workhuman/recharge');
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -454,6 +456,31 @@ function App() {
                       <WorkhumanLeads />
                     </Suspense>
                   </PrivateRoute>
+                }
+              />
+              {/* Workhuman Recharge Landing Page — public */}
+              <Route
+                path="/workhuman/recharge"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <WorkhumanRecharge />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/workhuman/recharge/:id"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <WorkhumanRecharge />
+                  </Suspense>
                 }
               />
               {/* Sign-Up Links Routes */}

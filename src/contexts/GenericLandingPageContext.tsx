@@ -53,7 +53,8 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
       userId: dbPage.user_id,
       uniqueToken: dbPage.unique_token,
       customUrl: dbPage.custom_url,
-      isReturningClient: isReturningClientValue
+      isReturningClient: isReturningClientValue,
+      pageType: dbPage.page_type || 'generic'
     };
   };
 
@@ -251,7 +252,8 @@ export const GenericLandingPageProvider: React.FC<{ children: React.ReactNode }>
         status: 'published',
         unique_token: uniqueToken,
         custom_url: null,
-        is_returning_client: options.isReturningClient || false
+        is_returning_client: options.isReturningClient || false,
+        page_type: options.pageType || 'generic'
       };
 
       const { data: newPage, error } = await supabase

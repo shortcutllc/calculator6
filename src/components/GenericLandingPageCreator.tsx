@@ -28,6 +28,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
     contactLastName: editingPage?.customization?.contactLastName || '',
     customMessage: editingPage?.data?.customMessage || '',
     isReturningClient: editingPage?.isReturningClient || false,
+    pageType: (editingPage?.pageType || 'generic') as 'generic' | 'workhuman',
     customization: {
       contactFirstName: editingPage?.customization?.contactFirstName || '',
       contactLastName: editingPage?.customization?.contactLastName || '',
@@ -56,6 +57,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         contactLastName: editingPage.customization?.contactLastName || '',
         customMessage: editingPage.data?.customMessage || '',
         isReturningClient: isReturningClientValue,
+        pageType: (editingPage.pageType || 'generic') as 'generic' | 'workhuman',
         customization: {
           contactFirstName: editingPage.customization?.contactFirstName || '',
           contactLastName: editingPage.customization?.contactLastName || '',
@@ -222,7 +224,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         contactLastName: options.contactLastName,
         customMessage: options.customMessage || undefined,
         customization: finalCustomization,
-        isReturningClient: options.isReturningClient
+        isReturningClient: options.isReturningClient,
+        pageType: options.pageType
       };
 
       let pageId;
@@ -297,8 +300,12 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         onClose();
       }
       
-      // Add timestamp to force page reload and refetch
-      navigate(`/generic-landing-page/${pageId}?refresh=${Date.now()}`);
+      // Navigate to the correct page based on type
+      if (options.pageType === 'workhuman') {
+        navigate(`/workhuman/recharge/${pageId}?refresh=${Date.now()}`);
+      } else {
+        navigate(`/generic-landing-page/${pageId}?refresh=${Date.now()}`);
+      }
     } catch (error) {
       console.error('Error creating generic landing page:', error);
       alert('Failed to create generic landing page. Please try again.');
@@ -312,7 +319,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            {editingPage ? 'Edit Generic Landing Page' : 'Create Generic Landing Page'}
+            {editingPage ? `Edit ${options.pageType === 'workhuman' ? 'Workhuman Recharge' : 'Generic'} Landing Page` : `Create ${options.pageType === 'workhuman' ? 'Workhuman Recharge' : 'Generic'} Landing Page`}
           </h2>
           {onClose && (
             <button
@@ -325,6 +332,30 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Page Type Selector */}
+          <div>
+            <label className="block text-sm font-bold text-shortcut-blue mb-2">Page Type</label>
+            <div className="flex gap-2">
+              {([
+                { value: 'generic' as const, label: 'Generic Landing Page' },
+                { value: 'workhuman' as const, label: 'Workhuman Recharge' },
+              ]).map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleFieldChange('pageType', value)}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border-2 transition-colors ${
+                    options.pageType === value
+                      ? 'bg-[#09364f] text-white border-[#09364f]'
+                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Partner Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Partner Information</h3>
@@ -347,7 +378,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               )}
             </div>
 
-            {/* Returning Client Checkbox */}
+            {/* Returning Client Checkbox (generic pages only) */}
+            {options.pageType !== 'workhuman' && (
             <div style={{ backgroundColor: '#F1F6F5', padding: '16px', borderRadius: '8px', border: '2px solid #E5E7EB' }}>
               <label className="flex items-center cursor-pointer">
                 <input
@@ -366,6 +398,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
                 </div>
               </label>
             </div>
+            )}
 
             <div>
               <label className="block text-sm font-bold text-shortcut-blue mb-2">
@@ -543,10 +576,11 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             />
           </div>
 
-          {/* Page Options */}
+          {/* Page Options (generic pages only — Workhuman has fixed sections) */}
+          {options.pageType !== 'workhuman' && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Page Options</h3>
-            
+
             <div className="space-y-3">
               <label className="flex items-center">
                 <input
@@ -579,6 +613,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               </label>
             </div>
           </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex justify-end space-x-4 pt-6">
