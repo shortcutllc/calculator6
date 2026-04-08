@@ -1,4 +1,4 @@
-import { PostCallTemplateData, KeyInfoTemplateData, ServiceVariant, EmailType } from '../types/clientEmail';
+import { PostCallTemplateData, KeyInfoTemplateData, WorkhumanOutreachTemplateData, ServiceVariant, EmailType, WorkhumanDirection } from '../types/clientEmail';
 import { Proposal } from '../types/proposal';
 
 // ─── Shortcut brand color ─────────────────────────────────────
@@ -185,6 +185,53 @@ export function getSpacePrepInstructions(variant: ServiceVariant): string {
   return html;
 }
 
+// ─── Workhuman Pre-Event Outreach ─────────────────────────────
+
+export function generateWorkhumanOutreachEmail(data: WorkhumanOutreachTemplateData): string {
+  const { contactName, companyName, bookingLink, direction } = data;
+  const name = contactName || '[First Name]';
+  const company = companyName || '[Company]';
+  const link = bookingLink || 'https://proposals.getshortcut.co/workhuman/recharge';
+
+  let html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.7;color:#333;max-width:560px;">`;
+
+  if (direction === 'safe') {
+    html += `<p style="margin:0 0 14px 0;">Hi ${name},</p>`;
+    html += `<p style="margin:0 0 14px 0;">Will Newton, Shortcut. We bring chair massage and wellness programming into offices.</p>`;
+    html += `<p style="margin:0 0 14px 0;">We're running a Recharge Lounge at Workhuman in the Gratitude Garden. 15-minute massage sessions between keynotes. We're opening booking to all conference attendees closer to the event, but I wanted to give you first access before that goes out.</p>`;
+    html += `<p style="margin:0 0 14px 0;">Book a slot and I'll meet you there 10 minutes before or after your session. No extra calendar hold. Just a quick conversation about what wellness looks like at ${company} while you're already in the Garden.</p>`;
+    html += `<p style="margin:0 0 20px 0;"><a href="${link}" style="display:inline-block;padding:10px 24px;background:${BRAND};color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">Book before general access</a></p>`;
+    html += `<p style="margin:0 0 4px 0;">Will Newton</p>`;
+    html += `<p style="margin:0;color:#666;">Shortcut | getshortcut.co</p>`;
+  } else if (direction === 'medium') {
+    html += `<p style="margin:0 0 14px 0;">${name},</p>`;
+    html += `<p style="margin:0 0 14px 0;">Will Newton, Shortcut. We do in-office wellness. Massage, headshots, grooming. One vendor, no hassle.</p>`;
+    html += `<p style="margin:0 0 14px 0;">We're running a Recharge Lounge at Workhuman. 15-minute chair massages in the Gratitude Garden. Booking opens to all 3,000+ attendees closer to the event. This is early access.</p>`;
+    html += `<p style="margin:0 0 14px 0;">Grab a slot and I'll meet you right before or after your session. 10 minutes to swap notes on what wellness could look like at ${company}. No separate meeting, no extra calendar block.</p>`;
+    html += `<p style="margin:0 0 20px 0;"><a href="${link}" style="display:inline-block;padding:10px 24px;background:${BRAND};color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">Book your spot before everyone else</a></p>`;
+    html += `<p style="margin:0;color:#666;">Will</p>`;
+  } else {
+    // brave
+    html += `<p style="margin:0 0 14px 0;">${name},</p>`;
+    html += `<p style="margin:0 0 14px 0;">Will Newton, Shortcut. We bring massage and wellness into offices. That's the whole pitch.</p>`;
+    html += `<p style="margin:0 0 14px 0;">We're running a recharge lounge at Workhuman. 15-minute chair massages, Gratitude Garden. Booking goes out to the full conference soon. You're getting early access.</p>`;
+    html += `<p style="margin:0 0 14px 0;">Book a slot. I'll meet you 10 minutes before or after. One conversation about how ${company} handles wellness, no extra time out of your day.</p>`;
+    html += `<p style="margin:0 0 20px 0;"><a href="${link}" style="display:inline-block;padding:10px 24px;background:${BRAND};color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">Get early access</a></p>`;
+    html += `<p style="margin:0;color:#666;">Will</p>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+export function getWorkhumanSubject(direction: WorkhumanDirection): string {
+  switch (direction) {
+    case 'safe': return 'Early access: Recharge Lounge at Workhuman';
+    case 'medium': return "You're getting this before 3,000 people";
+    case 'brave': return '10 minutes of your time, 15 on your shoulders';
+  }
+}
+
 // ─── Auto-Detection Helpers ───────────────────────────────────
 
 export function detectServiceVariant(proposal: Proposal): ServiceVariant {
@@ -222,7 +269,10 @@ export function detectEmailType(proposal: Proposal): EmailType {
   return 'post-call';
 }
 
-export function getDefaultSubject(emailType: EmailType, variant: ServiceVariant, companyName: string): string {
+export function getDefaultSubject(emailType: EmailType, variant: ServiceVariant, companyName: string, direction?: WorkhumanDirection): string {
+  if (emailType === 'workhuman-outreach') {
+    return getWorkhumanSubject(direction || 'medium');
+  }
   const company = companyName || '[Company]';
   if (emailType === 'post-call') {
     return `Great speaking with you! — ${company} x Shortcut`;

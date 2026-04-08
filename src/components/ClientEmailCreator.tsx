@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { ArrowLeft, Copy, Save, Check, Plus, Trash2, Link, ExternalLink } from 'lucide-react';
 import { useProposal } from '../contexts/ProposalContext';
 import { useClientEmail } from '../contexts/ClientEmailContext';
-import { EmailType, ServiceVariant, PostCallTemplateData, KeyInfoTemplateData, ProInfo, ClientEmailDraft } from '../types/clientEmail';
+import { EmailType, ServiceVariant, WorkhumanDirection, PostCallTemplateData, KeyInfoTemplateData, WorkhumanOutreachTemplateData, ProInfo, ClientEmailDraft } from '../types/clientEmail';
 import { Proposal } from '../types/proposal';
-import { generatePostCallEmail, generateKeyInfoEmail, detectServiceVariant, detectEmailType, getDefaultSubject } from '../utils/clientEmailTemplates';
+import { generatePostCallEmail, generateKeyInfoEmail, generateWorkhumanOutreachEmail, getWorkhumanSubject, detectServiceVariant, detectEmailType, getDefaultSubject } from '../utils/clientEmailTemplates';
 import { copyHtmlToClipboard } from '../utils/clipboardHtml';
 import { shortenUrl } from '../utils/shortenUrl';
 import { getServiceTypesFromProposal, formatServiceType, formatDateAmerican } from '../utils/proposalUtils';
@@ -31,6 +31,10 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
   const [eventType, setEventType] = useState('');
   const [proposalLink, setProposalLink] = useState('');
   const [testSignupLink, setTestSignupLink] = useState('');
+
+  // Workhuman outreach fields
+  const [workhumanDirection, setWorkhumanDirection] = useState<WorkhumanDirection>('medium');
+  const [workhumanBookingLink, setWorkhumanBookingLink] = useState('https://proposals.getshortcut.co/workhuman/recharge');
 
   // Key-info fields
   const [eventDate, setEventDate] = useState('');
@@ -155,7 +159,15 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
 
   // Generate HTML based on current form state
   const generatedHtml = useMemo(() => {
-    if (emailType === 'post-call') {
+    if (emailType === 'workhuman-outreach') {
+      const data: WorkhumanOutreachTemplateData = {
+        contactName,
+        companyName,
+        bookingLink: workhumanBookingLink,
+        direction: workhumanDirection,
+      };
+      return generateWorkhumanOutreachEmail(data);
+    } else if (emailType === 'post-call') {
       const data: PostCallTemplateData = {
         contactName,
         companyName,
@@ -179,7 +191,7 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
       };
       return generateKeyInfoEmail(data, serviceVariant);
     }
-  }, [emailType, serviceVariant, contactName, companyName, eventType, proposalLink, testSignupLink, eventDate, bookingLink, managerPageLink, proInfo, invoiceLink, paymentDueDate, qrCodeSignLink]);
+  }, [emailType, serviceVariant, workhumanDirection, contactName, companyName, eventType, proposalLink, testSignupLink, eventDate, bookingLink, managerPageLink, proInfo, invoiceLink, paymentDueDate, qrCodeSignLink, workhumanBookingLink]);
 
   const handleCopy = async () => {
     const success = await copyHtmlToClipboard(generatedHtml);
@@ -192,7 +204,9 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const templateData = emailType === 'post-call'
+      const templateData = emailType === 'workhuman-outreach'
+        ? { contactName, companyName, bookingLink: workhumanBookingLink, direction: workhumanDirection } as WorkhumanOutreachTemplateData
+        : emailType === 'post-call'
         ? { contactName, companyName, eventType, proposalLink, testSignupLink } as PostCallTemplateData
         : { contactName, companyName, eventDate, eventType, bookingLink, managerPageLink, proInfo, invoiceLink, paymentDueDate, qrCodeSignLink } as KeyInfoTemplateData;
 
@@ -275,33 +289,43 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — Form */}
         <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200 bg-gray-50 space-y-5">
-          {/* Proposal selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Link to Proposal</label>
-            <select
-              value={selectedProposalId}
-              onChange={(e) => handleProposalSelect(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
-            >
-              <option value="">— Select a proposal (optional) —</option>
-              {sortedProposals.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.data.clientName || 'Untitled'} — {p.status} — {new Date(p.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Proposal selector (hidden for workhuman outreach) */}
+          {emailType !== 'workhuman-outreach' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Link to Proposal</label>
+              <select
+                value={selectedProposalId}
+                onChange={(e) => handleProposalSelect(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
+              >
+                <option value="">— Select a proposal (optional) —</option>
+                {sortedProposals.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.data.clientName || 'Untitled'} — {p.status} — {new Date(p.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Email type toggle */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email Type</label>
             <div className="flex gap-2">
-              {(['post-call', 'key-info'] as EmailType[]).map(type => (
+              {([
+                { type: 'post-call' as EmailType, label: 'Post-Call' },
+                { type: 'key-info' as EmailType, label: 'Key Info' },
+                { type: 'workhuman-outreach' as EmailType, label: 'Workhuman' },
+              ]).map(({ type, label }) => (
                 <button
                   key={type}
                   onClick={() => {
                     setEmailType(type);
-                    setSubject(getDefaultSubject(type, serviceVariant, companyName));
+                    if (type === 'workhuman-outreach') {
+                      setSubject(getWorkhumanSubject(workhumanDirection));
+                    } else {
+                      setSubject(getDefaultSubject(type, serviceVariant, companyName));
+                    }
                   }}
                   className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                     emailType === type
@@ -309,11 +333,41 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  {type === 'post-call' ? 'Post-Call' : 'Key Info'}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Workhuman direction selector */}
+          {emailType === 'workhuman-outreach' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Direction</label>
+              <div className="flex gap-2">
+                {([
+                  { dir: 'safe' as WorkhumanDirection, label: 'Safe' },
+                  { dir: 'medium' as WorkhumanDirection, label: 'Medium' },
+                  { dir: 'brave' as WorkhumanDirection, label: 'Brave' },
+                ]).map(({ dir, label }) => (
+                  <button
+                    key={dir}
+                    onClick={() => {
+                      setWorkhumanDirection(dir);
+                      setSubject(getWorkhumanSubject(dir));
+                    }}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      workhumanDirection === dir
+                        ? 'bg-[#09364f] text-white border-[#09364f]'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {label}{dir === 'medium' ? ' ★' : ''}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">★ Recommended direction</p>
+            </div>
+          )}
 
           {/* Service variant (only for key-info) */}
           {emailType === 'key-info' && (
@@ -370,15 +424,31 @@ const ClientEmailCreator: React.FC<Props> = ({ editingDraft, onClose }) => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
-            <input
-              value={eventType}
-              onChange={(e) => setEventType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
-              placeholder="e.g. Chair Massage Event, Wellness Day"
-            />
-          </div>
+          {emailType !== 'workhuman-outreach' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+              <input
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
+                placeholder="e.g. Chair Massage Event, Wellness Day"
+              />
+            </div>
+          )}
+
+          {/* Workhuman outreach specific */}
+          {emailType === 'workhuman-outreach' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Booking Page Link (CTA)</label>
+              <input
+                value={workhumanBookingLink}
+                onChange={(e) => setWorkhumanBookingLink(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f] focus:border-[#09364f]"
+                placeholder="https://proposals.getshortcut.co/workhuman/recharge"
+              />
+              <p className="text-xs text-gray-400 mt-1">Links to the Workhuman landing page (to be built)</p>
+            </div>
+          )}
 
           {/* Post-call specific */}
           {emailType === 'post-call' && (

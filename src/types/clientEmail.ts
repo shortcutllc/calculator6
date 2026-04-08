@@ -1,5 +1,6 @@
-export type EmailType = 'post-call' | 'key-info';
+export type EmailType = 'post-call' | 'key-info' | 'workhuman-outreach';
 export type ServiceVariant = 'generic' | 'massage' | 'hair' | 'nails';
+export type WorkhumanDirection = 'safe' | 'medium' | 'brave';
 export type EmailDraftStatus = 'draft' | 'sent' | 'archived';
 
 export interface ProInfo {
@@ -28,7 +29,14 @@ export interface KeyInfoTemplateData {
   qrCodeSignLink: string;
 }
 
-export type ClientEmailTemplateData = PostCallTemplateData | KeyInfoTemplateData;
+export interface WorkhumanOutreachTemplateData {
+  contactName: string;
+  companyName: string;
+  bookingLink: string;
+  direction: WorkhumanDirection;
+}
+
+export type ClientEmailTemplateData = PostCallTemplateData | KeyInfoTemplateData | WorkhumanOutreachTemplateData;
 
 export interface ClientEmailDraft {
   id: string;
