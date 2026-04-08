@@ -922,273 +922,326 @@ const WorkhumanRecharge: React.FC = () => {
         </div>
       </header>
 
-      {/* ==================== HERO SECTION ==================== */}
-      <section id="top" className="pt-[80px] pb-16 md:pb-24" style={{ background: 'linear-gradient(180deg, rgba(9, 54, 79, 0.04) 0%, rgba(255,255,255,1) 100%)' }}>
-        <div className="mx-auto max-w-3xl px-4 md:px-6 pt-12 md:pt-20 text-center">
-          <h1
-            className="text-3xl md:text-5xl lg:text-6xl font-semibold mb-4 md:mb-6"
-            style={{
-              color: '#003756',
-              letterSpacing: '-0.02em',
-              lineHeight: '1.2'
-            }}
-          >
-            {/* "Hello" greeting fades in */}
-            <span
-              style={{
-                display: 'inline',
-                opacity: heroVisible ? 1 : 0,
-                transition: 'opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            >
-              Hello{' '}
-              <span
+      {/* ==================== HERO + FORM (Split Layout) ==================== */}
+      <section id="top" className="pt-[80px]" style={{ background: 'linear-gradient(180deg, rgba(9, 54, 79, 0.04) 0%, rgba(248,250,252,1) 100%)', minHeight: '100vh' }}>
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-10 md:pt-16 lg:pt-20">
+
+          {/* Two-column grid: text left, form right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+
+            {/* ─── Left Column: Hero Text ─── */}
+            <div className="pt-4 md:pt-8 lg:pt-12">
+              <h1
+                className="text-3xl md:text-4xl lg:text-[3.25rem] font-semibold mb-5 md:mb-7"
                 style={{
-                  display: 'inline-block',
-                  animation: heroVisible ? 'wave-hand 1.8s ease-in-out 0.4s' : 'none',
+                  color: '#003756',
+                  letterSpacing: '-0.025em',
+                  lineHeight: '1.15',
                 }}
               >
-                👋
-              </span>
-            </span>
-            {' '}
-            {/* Rest of headline types in word by word */}
-            {(() => {
-              const words = companyName
-                ? `${companyName} Team, we're looking forward to helping you recharge at Workhuman Live.`.split(' ')
-                : `we're looking forward to helping you recharge at Workhuman Live.`.split(' ');
-              return words.map((word, i) => (
+                {/* "Hello" greeting fades in */}
                 <span
-                  key={i}
                   style={{
-                    display: 'inline-block',
+                    display: 'inline',
                     opacity: heroVisible ? 1 : 0,
-                    animation: heroVisible
-                      ? `tagline-pan-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${0.4 + i * 0.07}s backwards`
-                      : 'none',
+                    transition: 'opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
                 >
-                  {word}&nbsp;
+                  Hello{' '}
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      animation: heroVisible ? 'wave-hand 1.8s ease-in-out 0.4s' : 'none',
+                    }}
+                  >
+                    👋
+                  </span>
                 </span>
-              ));
-            })()}
-          </h1>
+                <br />
+                {/* Rest of headline types in word by word */}
+                {(() => {
+                  const words = companyName
+                    ? `${companyName} Team, we're looking forward to helping you recharge at Workhuman Live.`.split(' ')
+                    : `We're looking forward to helping you recharge at Workhuman Live.`.split(' ');
+                  return words.map((word, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        display: 'inline-block',
+                        opacity: heroVisible ? 1 : 0,
+                        animation: heroVisible
+                          ? `tagline-pan-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${0.4 + i * 0.07}s backwards`
+                          : 'none',
+                      }}
+                    >
+                      {word}&nbsp;
+                    </span>
+                  ));
+                })()}
+              </h1>
 
-          <p
-            className="text-base md:text-xl lg:text-2xl font-normal mb-4 md:mb-6 max-w-2xl mx-auto"
-            style={{
-              color: '#003756',
-              opacity: heroVisible ? 0.7 : 0,
-              lineHeight: '1.7',
-              transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-              transitionDelay: '1.6s',
-            }}
-          >
-            15-minute chair massage. Gratitude Garden. Between sessions.
-          </p>
+              <p
+                className="text-base md:text-lg lg:text-xl font-normal mb-4"
+                style={{
+                  color: '#003756',
+                  opacity: heroVisible ? 0.7 : 0,
+                  lineHeight: '1.7',
+                  transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+                  transitionDelay: '1.6s',
+                  maxWidth: '480px',
+                }}
+              >
+                15-minute chair massage. Gratitude Garden. Between sessions. Your shoulders will thank you.
+              </p>
 
-          <p
-            className="text-sm font-medium mb-8 md:mb-12"
-            style={{
-              color: '#003756',
-              opacity: heroVisible ? 0.5 : 0,
-              transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-              transitionDelay: '2s',
-            }}
-          >
-            Early access. Booking opens to all 3,000+ attendees soon.
-          </p>
+              <p
+                className="text-sm font-medium mb-6"
+                style={{
+                  color: '#003756',
+                  opacity: heroVisible ? 0.45 : 0,
+                  transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+                  transitionDelay: '2s',
+                }}
+              >
+                Early access. Booking opens to all 3,000+ attendees soon.
+              </p>
 
-          <button
-            onClick={() => smoothScrollTo('book')}
-            className="px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 hover:scale-105 min-h-[48px]"
-            style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
-          >
-            Book Your Session
-          </button>
-
-          {/* Partner Logos — inside hero like generic landing page */}
-          <div className="pt-12 md:pt-16">
-            <p className="text-sm font-semibold uppercase tracking-wider mb-12" style={{ color: '#003756', opacity: 0.6 }}>
-              Trusted by Top Employers
-            </p>
-            <div className="overflow-hidden py-8 -mx-6">
-              <div className="logo-track">
-                <div className="logo-set">
-                  <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+              {/* Social proof stats */}
+              <div
+                className="flex gap-8 md:gap-12 pt-4 pb-6"
+                style={{
+                  opacity: heroVisible ? 1 : 0,
+                  transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+                  transitionDelay: '2.2s',
+                }}
+              >
+                <div>
+                  <div className="text-2xl md:text-3xl font-bold" style={{ color: '#003756' }}>500+</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Companies</div>
                 </div>
-                <div className="logo-set" aria-hidden="true">
-                  <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
-                  <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+                <div>
+                  <div className="text-2xl md:text-3xl font-bold" style={{ color: '#003756' }}>3,000+</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>HR Leaders</div>
+                </div>
+                <div>
+                  <div className="text-2xl md:text-3xl font-bold" style={{ color: '#003756' }}>15 min</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Sessions</div>
+                </div>
+              </div>
+
+              {/* Partner Logos — compact, inside hero left column */}
+              <div
+                className="pt-6 border-t"
+                style={{
+                  borderColor: 'rgba(0, 55, 86, 0.08)',
+                  opacity: heroVisible ? 1 : 0,
+                  transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+                  transitionDelay: '2.4s',
+                }}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wider mb-6" style={{ color: '#003756', opacity: 0.4 }}>
+                  Trusted by Top Employers
+                </p>
+                <div className="overflow-hidden" style={{ maxWidth: '480px' }}>
+                  <div className="logo-track">
+                    <div className="logo-set">
+                      <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+                    </div>
+                    <div className="logo-set" aria-hidden="true">
+                      <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
+                      <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ==================== BOOKING FORM ==================== */}
-      <section id="book" className="fade-in-section py-12 md:py-20" style={{ backgroundColor: '#f8fafc' }}>
-        <div className="mx-auto max-w-xl px-4">
-          <div className="bg-white rounded-3xl shadow-lg p-8 md:p-10">
-            {!submitted ? (
-              <>
-                <h2 className="text-2xl md:text-3xl font-semibold mb-2 text-center" style={{ color: '#003756' }}>
-                  Book your Recharge Session
-                </h2>
-                <p className="text-sm text-center mb-8" style={{ color: '#003756', opacity: 0.6 }}>
-                  Complimentary for all Workhuman Live attendees
-                </p>
+            {/* ─── Right Column: Booking Form ─── */}
+            <div id="book" className="lg:sticky lg:top-[96px]">
+              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-7 md:p-9">
+                {!submitted ? (
+                  <>
+                    <h2 className="text-xl md:text-2xl font-semibold mb-1" style={{ color: '#003756' }}>
+                      Book your Recharge Session
+                    </h2>
+                    <p className="text-sm mb-6" style={{ color: '#003756', opacity: 0.5 }}>
+                      Complimentary for all Workhuman Live attendees
+                    </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* First + Last Name */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="First Name"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                      className="px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Last Name"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                      className="px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
-                    />
+                    <form onSubmit={handleSubmit} className="space-y-3.5">
+                      {/* First + Last Name */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>First Name</label>
+                          <input
+                            type="text"
+                            placeholder="Enter first name"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            required
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Last Name</label>
+                          <input
+                            type="text"
+                            placeholder="Enter last name"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            required
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Email + Company */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Email</label>
+                          <input
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Company</label>
+                          <input
+                            type="text"
+                            placeholder="Enter company"
+                            value={formCompany}
+                            onChange={(e) => setFormCompany(e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Title + Employee Count */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Title</label>
+                          <input
+                            type="text"
+                            placeholder="Your role"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Employees</label>
+                          <select
+                            value={employeeCount}
+                            onChange={(e) => setEmployeeCount(e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            style={{ color: employeeCount ? '#003756' : '#9ca3af' }}
+                          >
+                            <option value="">Select</option>
+                            <option value="Under 200">Under 200</option>
+                            <option value="200-500">200-500</option>
+                            <option value="500-2,000">500-2,000</option>
+                            <option value="2,000-5,000">2,000-5,000</option>
+                            <option value="5,000+">5,000+</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Wellness + Preferred Day */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Wellness Program?</label>
+                          <select
+                            value={currentWellness}
+                            onChange={(e) => setCurrentWellness(e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            style={{ color: currentWellness ? '#003756' : '#9ca3af' }}
+                          >
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="Not sure">Not sure</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Preferred Day</label>
+                          <select
+                            value={preferredDay}
+                            onChange={(e) => setPreferredDay(e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            style={{ color: preferredDay ? '#003756' : '#9ca3af' }}
+                          >
+                            <option value="">Select</option>
+                            <option value="Day 1 (Apr 27)">Day 1 (Apr 27)</option>
+                            <option value="Day 2 (Apr 28)">Day 2 (Apr 28)</option>
+                            <option value="Day 3 (Apr 29)">Day 3 (Apr 29)</option>
+                            <option value="Any day">Any day</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Submit Button */}
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full px-6 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                        style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 8px 30px rgba(255, 80, 80, 0.25)' }}
+                      >
+                        {submitting ? 'Booking...' : 'Book your Recharge Session'}
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  /* Confirmation state */
+                  <div className="text-center py-6">
+                    <div className="mb-5">
+                      <svg className="w-14 h-14 mx-auto" fill="none" viewBox="0 0 24 24" stroke="#40C4BE" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-semibold mb-3" style={{ color: '#003756' }}>
+                      You're booked.
+                    </h3>
+                    <p className="text-sm mb-6" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.6' }}>
+                      We'll send you a reminder the morning of with exact location and a conference map.
+                    </p>
+                    <a
+                      href="https://getshortcut.co"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium hover:underline"
+                      style={{ color: '#FF5050' }}
+                    >
+                      Curious what we do for companies like yours? &rarr;
+                    </a>
                   </div>
-
-                  {/* Email */}
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
-                  />
-
-                  {/* Company */}
-                  <input
-                    type="text"
-                    placeholder="Company"
-                    value={formCompany}
-                    onChange={(e) => setFormCompany(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
-                  />
-
-                  {/* Title */}
-                  <input
-                    type="text"
-                    placeholder="Title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
-                  />
-
-                  {/* Employee Count */}
-                  <select
-                    value={employeeCount}
-                    onChange={(e) => setEmployeeCount(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
-                    style={{ color: employeeCount ? '#003756' : '#9ca3af' }}
-                  >
-                    <option value="">Employee Count</option>
-                    <option value="Under 200">Under 200</option>
-                    <option value="200-500">200-500</option>
-                    <option value="500-2,000">500-2,000</option>
-                    <option value="2,000-5,000">2,000-5,000</option>
-                    <option value="5,000+">5,000+</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
-
-                  {/* Current Wellness */}
-                  <select
-                    value={currentWellness}
-                    onChange={(e) => setCurrentWellness(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
-                    style={{ color: currentWellness ? '#003756' : '#9ca3af' }}
-                  >
-                    <option value="">Do you currently offer workplace wellness?</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                    <option value="Not sure">Not sure</option>
-                  </select>
-
-                  {/* Preferred Day */}
-                  <select
-                    value={preferredDay}
-                    onChange={(e) => setPreferredDay(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
-                    style={{ color: preferredDay ? '#003756' : '#9ca3af' }}
-                  >
-                    <option value="">Preferred Day</option>
-                    <option value="Day 1 (Apr 27)">Day 1 (Apr 27)</option>
-                    <option value="Day 2 (Apr 28)">Day 2 (Apr 28)</option>
-                    <option value="Day 3 (Apr 29)">Day 3 (Apr 29)</option>
-                    <option value="Any day">Any day</option>
-                  </select>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-300 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: '#FF5050', color: 'white' }}
-                  >
-                    {submitting ? 'Booking...' : 'Book your Recharge Session'}
-                  </button>
-                </form>
-              </>
-            ) : (
-              /* Confirmation state */
-              <div className="text-center py-8">
-                <div className="mb-6">
-                  <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="#40C4BE" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-2xl md:text-3xl font-semibold mb-4" style={{ color: '#003756' }}>
-                  You're booked.
-                </h3>
-                <p className="text-base mb-8" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.6' }}>
-                  We'll send you a reminder the morning of with exact location and a conference map.
-                </p>
-                <a
-                  href="https://getshortcut.co"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium hover:underline"
-                  style={{ color: '#FF5050' }}
-                >
-                  Curious what we do for companies like yours? &rarr;
-                </a>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </section>
