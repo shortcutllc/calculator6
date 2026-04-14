@@ -923,16 +923,16 @@ const WorkhumanRecharge: React.FC = () => {
       </header>
 
       {/* ==================== HERO + FORM (Split Layout) ==================== */}
-      <section id="top" className="pt-[80px]" style={{ background: 'linear-gradient(180deg, rgba(9, 54, 79, 0.04) 0%, rgba(248,250,252,1) 100%)', minHeight: '100vh' }}>
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-10 md:pt-16 lg:pt-20">
+      <section id="top" className="pt-[80px] pb-12 md:pb-20" style={{ background: 'linear-gradient(180deg, rgba(9, 54, 79, 0.05) 0%, rgba(248,250,252,1) 100%)' }}>
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-8 md:pt-12 lg:pt-16">
 
           {/* Two-column grid: text left, form right */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-start">
 
             {/* ─── Left Column: Hero Text ─── */}
-            <div className="pt-4 md:pt-8 lg:pt-12">
+            <div className="pt-2 md:pt-4 lg:pt-8">
               <h1
-                className="text-3xl md:text-4xl lg:text-[3.25rem] font-semibold mb-5 md:mb-7"
+                className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold mb-5 md:mb-6"
                 style={{
                   color: '#003756',
                   letterSpacing: '-0.025em',
@@ -981,7 +981,7 @@ const WorkhumanRecharge: React.FC = () => {
               </h1>
 
               <p
-                className="text-base md:text-lg lg:text-xl font-normal mb-4"
+                className="text-sm md:text-base lg:text-lg font-normal mb-3"
                 style={{
                   color: '#003756',
                   opacity: heroVisible ? 0.7 : 0,
@@ -995,7 +995,7 @@ const WorkhumanRecharge: React.FC = () => {
               </p>
 
               <p
-                className="text-sm font-medium mb-6"
+                className="text-xs font-medium mb-5"
                 style={{
                   color: '#003756',
                   opacity: heroVisible ? 0.45 : 0,
@@ -1008,7 +1008,7 @@ const WorkhumanRecharge: React.FC = () => {
 
               {/* Social proof stats */}
               <div
-                className="flex gap-8 md:gap-12 pt-4 pb-6"
+                className="flex gap-8 md:gap-10 pt-3 pb-4"
                 style={{
                   opacity: heroVisible ? 1 : 0,
                   transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
@@ -1016,33 +1016,33 @@ const WorkhumanRecharge: React.FC = () => {
                 }}
               >
                 <div>
-                  <div className="text-2xl md:text-3xl font-bold" style={{ color: '#003756' }}>500+</div>
+                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>500+</div>
                   <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Companies</div>
                 </div>
                 <div>
-                  <div className="text-2xl md:text-3xl font-bold" style={{ color: '#003756' }}>3,000+</div>
+                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>3,000+</div>
                   <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>HR Leaders</div>
                 </div>
                 <div>
-                  <div className="text-2xl md:text-3xl font-bold" style={{ color: '#003756' }}>15 min</div>
+                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>15 min</div>
                   <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Sessions</div>
                 </div>
               </div>
 
               {/* Partner Logos — compact, inside hero left column */}
               <div
-                className="pt-6 border-t"
+                className="pt-5 mt-2 border-t"
                 style={{
-                  borderColor: 'rgba(0, 55, 86, 0.08)',
+                  borderColor: 'rgba(0, 55, 86, 0.06)',
                   opacity: heroVisible ? 1 : 0,
                   transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
                   transitionDelay: '2.4s',
                 }}
               >
-                <p className="text-xs font-semibold uppercase tracking-wider mb-6" style={{ color: '#003756', opacity: 0.4 }}>
-                  Trusted by Top Employers
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-4" style={{ color: '#003756', opacity: 0.35 }}>
+                  Trusted by
                 </p>
-                <div className="overflow-hidden" style={{ maxWidth: '480px' }}>
+                <div className="overflow-hidden" style={{ maxWidth: '420px' }}>
                   <div className="logo-track">
                     <div className="logo-set">
                       <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
@@ -1078,40 +1078,40 @@ const WorkhumanRecharge: React.FC = () => {
             </div>
 
             {/* ─── Right Column: Booking Form ─── */}
-            <div id="book" className="lg:sticky lg:top-[96px]">
-              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-7 md:p-9">
+            <div id="book" className="lg:sticky lg:top-[88px]">
+              <div className="bg-white rounded-2xl p-6 md:p-8" style={{ boxShadow: '0 4px 40px rgba(0, 55, 86, 0.08), 0 1px 3px rgba(0, 55, 86, 0.04)', border: '1px solid rgba(0, 55, 86, 0.06)' }}>
                 {!submitted ? (
                   <>
-                    <h2 className="text-xl md:text-2xl font-semibold mb-1" style={{ color: '#003756' }}>
+                    <h2 className="text-lg md:text-xl font-bold mb-1" style={{ color: '#003756', letterSpacing: '-0.01em' }}>
                       Book your Recharge Session
                     </h2>
-                    <p className="text-sm mb-6" style={{ color: '#003756', opacity: 0.5 }}>
+                    <p className="text-xs mb-5" style={{ color: '#003756', opacity: 0.45 }}>
                       Complimentary for all Workhuman Live attendees
                     </p>
 
-                    <form onSubmit={handleSubmit} className="space-y-3.5">
+                    <form onSubmit={handleSubmit} className="space-y-3">
                       {/* First + Last Name */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>First Name</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>First Name</label>
                           <input
                             type="text"
                             placeholder="Enter first name"
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
                             required
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Last Name</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Last Name</label>
                           <input
                             type="text"
                             placeholder="Enter last name"
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
                             required
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                           />
                         </div>
                       </div>
@@ -1119,24 +1119,24 @@ const WorkhumanRecharge: React.FC = () => {
                       {/* Email + Company */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Email</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Email</label>
                           <input
                             type="email"
                             placeholder="Enter your email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Company</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Company</label>
                           <input
                             type="text"
                             placeholder="Enter company"
                             value={formCompany}
                             onChange={(e) => setFormCompany(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                           />
                         </div>
                       </div>
@@ -1144,21 +1144,21 @@ const WorkhumanRecharge: React.FC = () => {
                       {/* Title + Employee Count */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Title</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Title</label>
                           <input
                             type="text"
                             placeholder="Your role"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Employees</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Employees</label>
                           <select
                             value={employeeCount}
                             onChange={(e) => setEmployeeCount(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                             style={{ color: employeeCount ? '#003756' : '#9ca3af' }}
                           >
                             <option value="">Select</option>
@@ -1174,11 +1174,11 @@ const WorkhumanRecharge: React.FC = () => {
                       {/* Wellness + Preferred Day */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Wellness Program?</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Wellness Program?</label>
                           <select
                             value={currentWellness}
                             onChange={(e) => setCurrentWellness(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                             style={{ color: currentWellness ? '#003756' : '#9ca3af' }}
                           >
                             <option value="">Select</option>
@@ -1188,11 +1188,11 @@ const WorkhumanRecharge: React.FC = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: '#003756' }}>Preferred Day</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Preferred Day</label>
                           <select
                             value={preferredDay}
                             onChange={(e) => setPreferredDay(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] bg-gray-50/50"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                             style={{ color: preferredDay ? '#003756' : '#9ca3af' }}
                           >
                             <option value="">Select</option>
@@ -1208,8 +1208,8 @@ const WorkhumanRecharge: React.FC = () => {
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full px-6 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed mt-2"
-                        style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 8px 30px rgba(255, 80, 80, 0.25)' }}
+                        className="w-full px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed mt-1"
+                        style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 4px 16px rgba(255, 80, 80, 0.3)' }}
                       >
                         {submitting ? 'Booking...' : 'Book your Recharge Session'}
                       </button>
