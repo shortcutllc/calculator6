@@ -923,7 +923,7 @@ const WorkhumanRecharge: React.FC = () => {
       </header>
 
       {/* ==================== HERO + FORM (Split Layout) ==================== */}
-      <section id="top" className="pt-[80px] pb-12 md:pb-20" style={{ background: 'linear-gradient(180deg, rgba(9, 54, 79, 0.05) 0%, rgba(248,250,252,1) 100%)' }}>
+      <section id="top" className="pt-[80px] pb-6 md:pb-10" style={{ background: 'linear-gradient(180deg, rgba(9, 54, 79, 0.05) 0%, rgba(248,250,252,1) 100%)' }}>
         <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-8 md:pt-12 lg:pt-16">
 
           {/* Two-column grid: text left, form right */}
@@ -961,8 +961,8 @@ const WorkhumanRecharge: React.FC = () => {
                 {/* Rest of headline types in word by word */}
                 {(() => {
                   const words = companyName
-                    ? `${companyName} Team, we're looking forward to helping you recharge at Workhuman Live.`.split(' ')
-                    : `We're looking forward to helping you recharge at Workhuman Live.`.split(' ');
+                    ? `${companyName} Team, we'd love to meet you at Workhuman Live.`.split(' ')
+                    : `We'd love to meet you at Workhuman Live.`.split(' ');
                   return words.map((word, i) => (
                     <span
                       key={i}
@@ -991,19 +991,7 @@ const WorkhumanRecharge: React.FC = () => {
                   maxWidth: '480px',
                 }}
               >
-                15-minute chair massage. Gratitude Garden. Between sessions. Your shoulders will thank you.
-              </p>
-
-              <p
-                className="text-xs font-medium mb-5"
-                style={{
-                  color: '#003756',
-                  opacity: heroVisible ? 0.45 : 0,
-                  transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-                  transitionDelay: '2s',
-                }}
-              >
-                Early access. Booking opens to all 3,000+ attendees soon.
+                We bring wellness into offices. Massage, headshots, grooming. One vendor, zero hassle. We handpicked {companyName || 'your team'} for early access to a complimentary 15-minute massage at our Recharge Lounge. All we ask is 10 minutes to chat before or after.
               </p>
 
               {/* Social proof stats */}
@@ -1020,61 +1008,16 @@ const WorkhumanRecharge: React.FC = () => {
                   <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Companies</div>
                 </div>
                 <div>
-                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>3,000+</div>
-                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>HR Leaders</div>
+                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>6</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Services</div>
                 </div>
                 <div>
-                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>15 min</div>
-                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Sessions</div>
+                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>1</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Vendor</div>
                 </div>
               </div>
 
-              {/* Partner Logos — compact, inside hero left column */}
-              <div
-                className="pt-5 mt-2 border-t"
-                style={{
-                  borderColor: 'rgba(0, 55, 86, 0.06)',
-                  opacity: heroVisible ? 1 : 0,
-                  transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-                  transitionDelay: '2.4s',
-                }}
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-widest mb-4" style={{ color: '#003756', opacity: 0.35 }}>
-                  Trusted by
-                </p>
-                <div className="overflow-hidden" style={{ maxWidth: '420px' }}>
-                  <div className="logo-track">
-                    <div className="logo-set">
-                      <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
-                    </div>
-                    <div className="logo-set" aria-hidden="true">
-                      <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
-                      <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Partner logos moved to full-width strip below grid */}
             </div>
 
             {/* ─── Right Column: Booking Form ─── */}
@@ -1083,10 +1026,10 @@ const WorkhumanRecharge: React.FC = () => {
                 {!submitted ? (
                   <>
                     <h2 className="text-lg md:text-xl font-bold mb-1" style={{ color: '#003756', letterSpacing: '-0.01em' }}>
-                      Book your Recharge Session
+                      Reserve Your Spot
                     </h2>
                     <p className="text-xs mb-5" style={{ color: '#003756', opacity: 0.45 }}>
-                      Complimentary for all Workhuman Live attendees
+                      Exclusive early access. Limited spots available.
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-3">
@@ -1204,6 +1147,19 @@ const WorkhumanRecharge: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* Meeting opt-in */}
+                      <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+                        <input
+                          type="checkbox"
+                          defaultChecked
+                          className="mt-0.5 rounded border-gray-300 text-[#09364f] focus:ring-[#09364f]/20"
+                          style={{ width: '16px', height: '16px' }}
+                        />
+                        <span className="text-[12px] leading-relaxed" style={{ color: '#003756', opacity: 0.6 }}>
+                          I'm open to a quick 10-minute chat with the Shortcut team before or after my session.
+                        </span>
+                      </label>
+
                       {/* Submit Button */}
                       <button
                         type="submit"
@@ -1211,7 +1167,7 @@ const WorkhumanRecharge: React.FC = () => {
                         className="w-full px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed mt-1"
                         style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 4px 16px rgba(255, 80, 80, 0.3)' }}
                       >
-                        {submitting ? 'Booking...' : 'Book your Recharge Session'}
+                        {submitting ? 'Reserving...' : 'Reserve Your Spot'}
                       </button>
                     </form>
                   </>
@@ -1244,9 +1200,53 @@ const WorkhumanRecharge: React.FC = () => {
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Partner logos moved into hero section above */}
+        {/* ─── Full-Width Logo Strip ─── */}
+        <div
+          className="pt-4 pb-2 md:pt-6 md:pb-3 text-center"
+          style={{
+            opacity: heroVisible ? 1 : 0,
+            transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+            transitionDelay: '2.4s',
+          }}
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.15em] mb-6 md:mb-8" style={{ color: '#003756', opacity: 0.5 }}>
+            Trusted by Top Employers
+          </p>
+          <div className="overflow-hidden">
+            <div className="logo-track">
+              <div className="logo-set">
+                <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+              </div>
+              <div className="logo-set" aria-hidden="true">
+                <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
+                <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ==================== SERVICES CAROUSEL ==================== */}
       <section id="services" className="fade-in-section py-20 md:py-32 rounded-3xl overflow-hidden relative" style={{ backgroundColor: '#E0F2F7' }}>
