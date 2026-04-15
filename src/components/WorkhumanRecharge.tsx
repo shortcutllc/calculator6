@@ -924,15 +924,15 @@ const WorkhumanRecharge: React.FC = () => {
 
       {/* ==================== HERO + FORM (Split Layout) ==================== */}
       <section id="top" className="pt-[80px] pb-6 md:pb-10" style={{ background: 'linear-gradient(180deg, rgba(9, 54, 79, 0.05) 0%, rgba(248,250,252,1) 100%)' }}>
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-8 md:pt-12 lg:pt-16">
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-10 md:pt-14 lg:pt-20">
 
           {/* Two-column grid: text left, form right */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 lg:gap-14 items-start">
 
             {/* ─── Left Column: Hero Text ─── */}
-            <div className="pt-2 md:pt-4 lg:pt-8">
+            <div>
               <h1
-                className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold mb-5 md:mb-6"
+                className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold mb-6 md:mb-8"
                 style={{
                   color: '#003756',
                   letterSpacing: '-0.025em',
@@ -961,8 +961,8 @@ const WorkhumanRecharge: React.FC = () => {
                 {/* Rest of headline types in word by word */}
                 {(() => {
                   const words = companyName
-                    ? `${companyName} Team, we'd love to meet you at Workhuman Live.`.split(' ')
-                    : `We'd love to meet you at Workhuman Live.`.split(' ');
+                    ? `${companyName} Team, we look forward to helping you recharge at Workhuman Live and beyond.`.split(' ')
+                    : `We look forward to helping you recharge at Workhuman Live and beyond.`.split(' ');
                   return words.map((word, i) => (
                     <span
                       key={i}
@@ -981,7 +981,7 @@ const WorkhumanRecharge: React.FC = () => {
               </h1>
 
               <p
-                className="text-sm md:text-base lg:text-lg font-normal mb-3"
+                className="text-sm md:text-base lg:text-[17px] font-normal mb-6 md:mb-8"
                 style={{
                   color: '#003756',
                   opacity: heroVisible ? 0.7 : 0,
@@ -991,12 +991,12 @@ const WorkhumanRecharge: React.FC = () => {
                   maxWidth: '480px',
                 }}
               >
-                We bring wellness into offices. Massage, headshots, grooming. One vendor, zero hassle. We handpicked {companyName || 'your team'} for early access to a complimentary 15-minute massage at our Recharge Lounge. All we ask is 10 minutes to chat before or after.
+                We're Shortcut, a corporate wellness company that shows up for your employees — literally. We bring massage, headshots, beauty, and more directly to your workplace, and we've handpicked the {companyName || 'your'} team for early access to a complimentary 15-minute massage at our booth. We'd love to connect while you're there if you're open to it.
               </p>
 
               {/* Social proof stats */}
               <div
-                className="flex gap-8 md:gap-10 pt-3 pb-4"
+                className="flex gap-8 md:gap-10 pt-1 pb-6"
                 style={{
                   opacity: heroVisible ? 1 : 0,
                   transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
@@ -1022,7 +1022,7 @@ const WorkhumanRecharge: React.FC = () => {
 
             {/* ─── Right Column: Booking Form ─── */}
             <div id="book" className="lg:sticky lg:top-[88px]">
-              <div className="bg-white rounded-2xl p-6 md:p-8" style={{ boxShadow: '0 4px 40px rgba(0, 55, 86, 0.08), 0 1px 3px rgba(0, 55, 86, 0.04)', border: '1px solid rgba(0, 55, 86, 0.06)' }}>
+              <div className="bg-white rounded-2xl p-5 md:p-7" style={{ boxShadow: '0 4px 40px rgba(0, 55, 86, 0.08), 0 1px 3px rgba(0, 55, 86, 0.04)', border: '1px solid rgba(0, 55, 86, 0.06)' }}>
                 {!submitted ? (
                   <>
                     <h2 className="text-lg md:text-xl font-bold mb-1" style={{ color: '#003756', letterSpacing: '-0.01em' }}>
@@ -1242,6 +1242,220 @@ const WorkhumanRecharge: React.FC = () => {
                 <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
                 <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
                 <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== EMPLOYEE HAPPINESS SECTION ==================== */}
+      <section
+        id="about"
+        className="fade-in-section w-full"
+        style={{
+          backgroundColor: '#175071',
+          borderRadius: '48px 48px 0 0',
+          paddingTop: '64px',
+          paddingBottom: '64px',
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
+          {/* Headline */}
+          <h2
+            style={{
+              fontFamily: "'Outfit', sans-serif",
+              fontWeight: 800,
+              fontSize: '53px',
+              color: '#FFFFFF',
+              letterSpacing: '-0.56px',
+              lineHeight: '60.48px',
+              marginBottom: '48px',
+            }}
+          >
+            Employee Happiness Delivered.
+          </h2>
+
+          {/* Three Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Card 1 — All in one (Coral) */}
+            <div
+              className="rounded-[16px] overflow-hidden"
+              style={{ backgroundColor: '#FF5050', height: '414px' }}
+            >
+              {/* Card image — fixed height */}
+              <div style={{ height: '250px', overflow: 'hidden' }}>
+                <img
+                  src="/workhuman-recharge/card1-services.png"
+                  alt="Book Massage, Manicure, Mindfulness, Headshots"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+              {/* Text content — fixed position */}
+              <div style={{ padding: '20px 32px 32px 32px' }}>
+                <h3
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontWeight: 600,
+                    fontSize: '27px',
+                    color: '#FFFFFF',
+                    letterSpacing: '-0.28px',
+                    lineHeight: '33.6px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  All in one
+                </h3>
+                <p
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontWeight: 500,
+                    fontSize: '18px',
+                    color: 'rgba(255, 255, 255, 0.85)',
+                    lineHeight: '25.2px',
+                    margin: 0,
+                    maxWidth: '320px',
+                  }}
+                >
+                  One vendor for every office and a dozen ways to breathe easier.
+                </p>
+              </div>
+            </div>
+
+            {/* Card 2 — Wellness that works (Teal) */}
+            <div
+              className="rounded-[16px] overflow-hidden"
+              style={{ backgroundColor: '#9EFAFF', height: '414px' }}
+            >
+              {/* Card image — fixed height */}
+              <div style={{ height: '250px', overflow: 'hidden' }}>
+                <img
+                  src="/workhuman-recharge/card2-platform.png"
+                  alt="Shortcut platform showing MTV booking interface"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+              {/* Text content — fixed position */}
+              <div style={{ padding: '20px 32px 32px 32px' }}>
+                <h3
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontWeight: 600,
+                    fontSize: '27px',
+                    color: '#175071',
+                    letterSpacing: '-0.28px',
+                    lineHeight: '33.6px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Wellness that works
+                </h3>
+                <p
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontWeight: 500,
+                    fontSize: '18px',
+                    color: '#003756',
+                    lineHeight: '25.2px',
+                    margin: 0,
+                    maxWidth: '320px',
+                  }}
+                >
+                  We pair high quality services with technology that makes wellness a sinch.
+                </p>
+              </div>
+            </div>
+
+            {/* Card 3 — The feel good vendor (Pink) */}
+            <div
+              className="rounded-[16px] overflow-hidden"
+              style={{ backgroundColor: '#F7BBFF', height: '414px' }}
+            >
+              {/* Card image — fixed height with inner rounded container */}
+              <div className="mx-4 mt-4 rounded-[21px] overflow-hidden" style={{ height: '234px' }}>
+                <img
+                  src="/workhuman-recharge/card3-team.png"
+                  alt="Shortcut team member"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+              {/* Text content — fixed position */}
+              <div style={{ padding: '20px 32px 32px 32px' }}>
+                <h3
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontWeight: 600,
+                    fontSize: '27px',
+                    color: '#003756',
+                    letterSpacing: '-0.28px',
+                    lineHeight: '33.6px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  The feel good vendor
+                </h3>
+                <p
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontWeight: 500,
+                    fontSize: '18px',
+                    color: '#003756',
+                    lineHeight: '25.2px',
+                    margin: 0,
+                    maxWidth: '320px',
+                  }}
+                >
+                  Felt by employees, effortless for employers - what keeps our partners coming back.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Testimonial — inside Employee Happiness section */}
+          <div className="mt-12 md:mt-16 pt-10 md:pt-12" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
+              <div className="flex-1">
+                <div className="flex items-start gap-4">
+                  <span style={{ fontWeight: 700, fontSize: 'clamp(3rem, 5vw, 4.5rem)', lineHeight: 0.8, color: '#40C4BE', opacity: 0.9 }}>&ldquo;</span>
+                  <blockquote
+                    style={{
+                      fontFamily: "'Outfit', system-ui, sans-serif",
+                      fontSize: 'clamp(1.25rem, 2.5vw, 2rem)',
+                      fontWeight: 500,
+                      color: 'white',
+                      lineHeight: 1.35,
+                      margin: 0,
+                      paddingTop: '8px',
+                    }}
+                  >
+                    Shortcut has become an extension of the DraftKings family.
+                  </blockquote>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <img
+                  src="/Holiday Proposal/Parnter Logos/DraftKings.svg"
+                  alt="DraftKings"
+                  className="h-10 md:h-12 w-auto"
+                  style={{ filter: 'brightness(0) invert(1)', opacity: 0.8 }}
+                  loading="lazy"
+                />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/30 flex-shrink-0">
+                    <img
+                      src="/Holiday Proposal/Testimonial Headshots /1745346365915.jpeg"
+                      alt="Christian W."
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Outfit', system-ui, sans-serif", fontWeight: 600, fontSize: '14px', color: 'white' }}>Christian W.</div>
+                    <div style={{ fontFamily: "'Outfit', system-ui, sans-serif", fontWeight: 400, fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Head of Workplace Experience</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1605,31 +1819,7 @@ const WorkhumanRecharge: React.FC = () => {
         </div>
       </section>
 
-      {/* ==================== TESTIMONIALS ==================== */}
-      <section id="testimonials" className="fade-in-section testimonial-banner rounded-3xl">
-        <div className="testimonial-wrap">
-          <div className="testimonial-copy">
-            <span className="quote-mark">&ldquo;</span>
-            <blockquote>
-              The Shortcut team has become an extension of the DraftKings family.
-            </blockquote>
-          </div>
-          <div className="testimonial-side">
-            <div className="testimonial-identity">
-              <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" className="partner-logo" loading="lazy" />
-              <div className="testimonial-author">
-                <div className="photo">
-                  <img src="/Holiday Proposal/Testimonial Headshots /1745346365915.jpeg" alt="Christian W. headshot" loading="lazy" />
-                </div>
-                <div className="meta">
-                  <span className="name">Christian W.</span>
-                  <span className="title">Head of Workplace Experience</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Testimonial moved into Employee Happiness section above */}
 
       {/* ==================== SLACK. ZOOM. SHORTCUT. SECTION ==================== */}
       <section
