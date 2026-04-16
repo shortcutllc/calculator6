@@ -315,7 +315,7 @@ const WorkhumanLeads: React.FC = () => {
                       >
                         <td className="px-4 py-3">
                           <div className="font-medium text-gray-900">{lead.name}</div>
-                          <div className="text-gray-400 text-xs">{lead.email}</div>
+                          <div className="text-gray-400 text-xs">{lead.email?.includes('@no-email.placeholder') ? '' : lead.email}</div>
                         </td>
                         <td className="px-4 py-3 text-gray-700">{lead.company || '—'}</td>
                         <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate">{lead.title || '—'}</td>
@@ -450,12 +450,13 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete }: {
       {/* Details */}
       <div className="space-y-2 text-sm">
         <h4 className="font-medium text-gray-700 mb-2">Details</h4>
-        <div><span className="text-gray-400">Email:</span> <span className="text-gray-700">{lead.email}</span></div>
+        <div><span className="text-gray-400">Email:</span> <span className="text-gray-700">{lead.email?.includes('@no-email.placeholder') ? '—' : lead.email}</span></div>
         <div><span className="text-gray-400">Location:</span> <span className="text-gray-700">{lead.hq_location || '—'}</span></div>
         <div><span className="text-gray-400">Industry:</span> <span className="text-gray-700">{lead.industry || '—'}</span></div>
-        <div><span className="text-gray-400">Multi-office:</span> <span className="text-gray-700">{lead.multi_office ? 'Yes' : 'No'}</span></div>
-        <div><span className="text-gray-400">Company size (raw):</span> <span className="text-gray-700">{lead.company_size || '—'}</span></div>
-        <div><span className="text-gray-400">Score breakdown:</span> <span className="text-gray-700">{lead.lead_score} pts</span></div>
+        <div><span className="text-gray-400">Company size:</span> <span className="text-gray-700">{lead.company_size ? parseInt(lead.company_size).toLocaleString() + ' employees' : '—'}</span></div>
+        <div><span className="text-gray-400">LinkedIn:</span> {lead.linkedin_url ? <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{lead.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}</a> : <span className="text-gray-700">—</span>}</div>
+        <div><span className="text-gray-400">Company URL:</span> {lead.company_url ? <a href={lead.company_url.startsWith('http') ? lead.company_url : 'https://' + lead.company_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{lead.company_url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a> : <span className="text-gray-700">—</span>}</div>
+        <div><span className="text-gray-400">Score:</span> <span className="text-gray-700">{lead.lead_score} pts</span></div>
         {lead.tier_override && <div className="text-amber-600 text-xs">Tier manually overridden</div>}
       </div>
 

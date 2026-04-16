@@ -32,6 +32,8 @@ export interface WorkhumanLead {
   email_sent_at: string | null;
   responded_at: string | null;
   meeting_scheduled_at: string | null;
+  linkedin_url: string | null;
+  company_url: string | null;
   created_at: string;
   updated_at: string;
 }
