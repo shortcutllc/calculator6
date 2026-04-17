@@ -5,7 +5,7 @@ import {
   AlertCircle, CheckCircle, Clock, UserCheck, ExternalLink, Copy,
   Sparkles, Loader2, RefreshCw, Linkedin
 } from 'lucide-react';
-import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay, OutreachChannel } from '../types/workhumanLead';
+import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay, OutreachChannel, AssigneeName, ASSIGNEE_NAMES } from '../types/workhumanLead';
 import {
   parseCSV,
   bulkInsertLeads,
@@ -14,6 +14,7 @@ import {
   updateLeadTier,
   updateLeadVipSlot,
   updateLeadNotes,
+  updateLeadAssignment,
   deleteLead,
   createLandingPageForLead,
   bulkCreateLandingPages,
@@ -22,6 +23,31 @@ import {
 import { WorkhumanMessagingPanel } from './WorkhumanMessagingPanel';
 import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 import { WorkhumanLeadCSVRow } from '../types/workhumanLead';
+import { useAuth } from '../contexts/AuthContext';
+
+// Auth email → assignee name (mirrors mapping in WorkhumanMessagingPanel)
+const EMAIL_TO_ASSIGNEE: Record<string, AssigneeName> = {
+  'will@getshortcut.co': 'Will Newton',
+  'jaimie@getshortcut.co': 'Jaimie Pritchard',
+  'marc@getshortcut.co': 'Marc Levitan',
+  'caren@getshortcut.co': 'Caren Skutch',
+};
+
+// Two-letter initials per assignee, used for lead-row badges
+const ASSIGNEE_INITIALS: Record<AssigneeName, string> = {
+  'Will Newton': 'WN',
+  'Jaimie Pritchard': 'JP',
+  'Marc Levitan': 'ML',
+  'Caren Skutch': 'CS',
+};
+
+// Distinct color per assignee for the badge
+const ASSIGNEE_COLORS: Record<AssigneeName, string> = {
+  'Will Newton': 'bg-indigo-100 text-indigo-800',
+  'Jaimie Pritchard': 'bg-rose-100 text-rose-800',
+  'Marc Levitan': 'bg-emerald-100 text-emerald-800',
+  'Caren Skutch': 'bg-cyan-100 text-cyan-800',
+};
 
 // --- Constants ---
 
@@ -69,11 +95,20 @@ const ALL_STATUSES: OutreachStatus[] = [
 
 // --- Component ---
 
+type TierFilter = 'all' | LeadTier | 'tier_1a';
+
 const WorkhumanLeads: React.FC = () => {
+  const { user } = useAuth();
+  const myAssignee: AssigneeName | null = useMemo(() => {
+    const email = user?.email?.toLowerCase() || '';
+    return EMAIL_TO_ASSIGNEE[email] || null;
+  }, [user]);
+
   const [leads, setLeads] = useState<WorkhumanLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [tierFilter, setTierFilter] = useState<'all' | LeadTier>('all');
+  const [tierFilter, setTierFilter] = useState<TierFilter>('all');
+  const [myLeadsOnly, setMyLeadsOnly] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | OutreachStatus>('all');
   const [industryFilter, setIndustryFilter] = useState('all');
   const [landingPageFilter, setLandingPageFilter] = useState<'all' | 'has' | 'missing'>('all');
@@ -114,14 +149,16 @@ const WorkhumanLeads: React.FC = () => {
 
   const stats = useMemo(() => {
     const tier1 = leads.filter(l => l.tier === 'tier_1').length;
+    const tier1a = leads.filter(l => l.tier_1a).length;
     const tier2 = leads.filter(l => l.tier === 'tier_2').length;
     const tier3 = leads.filter(l => l.tier === 'tier_3').length;
     const emailed = leads.filter(l => l.outreach_status !== 'not_contacted').length;
     const responded = leads.filter(l => ['responded', 'meeting_booked', 'vip_booked'].includes(l.outreach_status)).length;
     const meetings = leads.filter(l => ['meeting_booked', 'vip_booked'].includes(l.outreach_status)).length;
     const vipSlots = leads.filter(l => l.vip_slot_day !== null).length;
-    return { total: leads.length, tier1, tier2, tier3, emailed, responded, meetings, vipSlots };
-  }, [leads]);
+    const myLeads = myAssignee ? leads.filter(l => l.assigned_to === myAssignee).length : 0;
+    return { total: leads.length, tier1, tier1a, tier2, tier3, emailed, responded, meetings, vipSlots, myLeads };
+  }, [leads, myAssignee]);
 
   const filteredLeads = useMemo(() => {
     let result = leads;
@@ -136,8 +173,14 @@ const WorkhumanLeads: React.FC = () => {
       );
     }
 
-    if (tierFilter !== 'all') {
+    if (tierFilter === 'tier_1a') {
+      result = result.filter(l => l.tier_1a);
+    } else if (tierFilter !== 'all') {
       result = result.filter(l => l.tier === tierFilter);
+    }
+
+    if (myLeadsOnly && myAssignee) {
+      result = result.filter(l => l.assigned_to === myAssignee);
     }
 
     if (statusFilter !== 'all') {
@@ -175,7 +218,7 @@ const WorkhumanLeads: React.FC = () => {
     });
 
     return result;
-  }, [leads, searchTerm, tierFilter, statusFilter, industryFilter, landingPageFilter, sortField, sortDir]);
+  }, [leads, searchTerm, tierFilter, myLeadsOnly, myAssignee, statusFilter, industryFilter, landingPageFilter, sortField, sortDir]);
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -193,6 +236,12 @@ const WorkhumanLeads: React.FC = () => {
     setLeads(prev => prev.map(l => l.id === id ? { ...l, outreach_status: status } : l));
     const success = await updateLeadStatus(id, status);
     if (!success) loadLeads(); // revert on failure
+  };
+
+  const handleAssignmentChange = async (id: string, assignee: AssigneeName | null) => {
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, assigned_to: assignee } : l));
+    const ok = await updateLeadAssignment(id, assignee);
+    if (!ok) loadLeads();
   };
 
   const handleTierCycle = async (id: string, currentTier: LeadTier) => {
@@ -318,12 +367,19 @@ const WorkhumanLeads: React.FC = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard label="Total Leads" value={stats.total} icon={<Users size={18} />} color="text-gray-600" />
-          <StatCard label="Tier 1 (VIP)" value={stats.tier1} icon={<Star size={18} />} color="text-amber-600" />
+          <StatCard
+            label="Tier 1A (VIP 200)"
+            value={stats.tier1a}
+            icon={<Star size={18} />}
+            color="text-amber-700"
+            onClick={() => setTierFilter('tier_1a')}
+            active={tierFilter === 'tier_1a'}
+          />
+          <StatCard label="Tier 1" value={stats.tier1} icon={<Star size={18} />} color="text-amber-600" />
           <StatCard label="Tier 2" value={stats.tier2} icon={<Target size={18} />} color="text-blue-600" />
           <StatCard label="Tier 3" value={stats.tier3} icon={<Users size={18} />} color="text-gray-400" />
           <StatCard label="Contacted" value={stats.emailed} icon={<Mail size={18} />} color="text-yellow-600" />
           <StatCard label="Responded" value={stats.responded} icon={<MessageSquare size={18} />} color="text-green-600" />
-          <StatCard label="Meetings" value={stats.meetings} icon={<Calendar size={18} />} color="text-purple-600" />
           <StatCard label="VIP Slots" value={stats.vipSlots} icon={<CheckCircle size={18} />} color="text-amber-600" />
         </div>
 
@@ -351,14 +407,29 @@ const WorkhumanLeads: React.FC = () => {
 
             <select
               value={tierFilter}
-              onChange={e => setTierFilter(e.target.value as 'all' | LeadTier)}
+              onChange={e => setTierFilter(e.target.value as TierFilter)}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
             >
               <option value="all">All Tiers</option>
-              <option value="tier_1">Tier 1 (VIP)</option>
+              <option value="tier_1a">Tier 1A (VIP 200)</option>
+              <option value="tier_1">Tier 1</option>
               <option value="tier_2">Tier 2</option>
               <option value="tier_3">Tier 3</option>
             </select>
+
+            {myAssignee && (
+              <label className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm cursor-pointer transition-colors ${
+                myLeadsOnly ? 'bg-indigo-50 border-indigo-300 text-indigo-800' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={myLeadsOnly}
+                  onChange={e => setMyLeadsOnly(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                My Leads ({stats.myLeads})
+              </label>
+            )}
 
             <select
               value={statusFilter}
@@ -486,7 +557,20 @@ const WorkhumanLeads: React.FC = () => {
                           />
                         </td>
                         <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">{lead.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium text-gray-900">{lead.name}</div>
+                            {lead.tier_1a && (
+                              <span title="Tier 1A (VIP 200)" className="text-amber-600"><Star size={12} fill="currentColor" /></span>
+                            )}
+                            {lead.assigned_to && ASSIGNEE_INITIALS[lead.assigned_to as AssigneeName] && (
+                              <span
+                                title={`Assigned to ${lead.assigned_to}`}
+                                className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${ASSIGNEE_COLORS[lead.assigned_to as AssigneeName]}`}
+                              >
+                                {ASSIGNEE_INITIALS[lead.assigned_to as AssigneeName]}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-gray-400 text-xs">{lead.email?.includes('@no-email.placeholder') ? '' : lead.email}</div>
                         </td>
                         <td className="px-4 py-3 text-gray-700">{lead.company || '—'}</td>
@@ -607,6 +691,7 @@ const WorkhumanLeads: React.FC = () => {
                                 await updateLeadNotes(lead.id, notes);
                               }}
                               onDelete={() => handleDelete(lead.id)}
+                              onAssignmentChange={(assignee) => handleAssignmentChange(lead.id, assignee)}
                             />
                           </td>
                         </tr>
@@ -678,23 +763,39 @@ function SortableHeader<F extends string>({ label, field, currentField, directio
   );
 }
 
-function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+function StatCard({ label, value, icon, color, onClick, active }: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+  onClick?: () => void;
+  active?: boolean;
+}) {
+  const className = `bg-white rounded-lg shadow-sm border p-4 ${
+    onClick ? 'cursor-pointer hover:shadow transition-shadow' : ''
+  } ${active ? 'border-amber-500 ring-2 ring-amber-200' : 'border-gray-200'}`;
+  const content = (
+    <>
       <div className={`flex items-center gap-2 mb-1 ${color}`}>
         {icon}
         <span className="text-xs font-medium text-gray-500">{label}</span>
       </div>
       <div className="text-2xl font-bold text-gray-900">{value}</div>
-    </div>
+    </>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className={`${className} text-left w-full`}>{content}</button>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 
-function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, isCreatingPage, onCreatePage, onCopyUrl }: {
+function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmentChange, isCreatingPage, onCreatePage, onCopyUrl }: {
   lead: WorkhumanLead;
   onVipSlot: (id: string, day: VipSlotDay | null) => void;
   onNotesChange: (notes: string) => void;
   onDelete: () => void;
+  onAssignmentChange: (assignee: AssigneeName | null) => void;
   isCreatingPage?: boolean;
   onCreatePage?: (overrideUrl?: string) => void;
   onCopyUrl?: () => void;
@@ -729,7 +830,21 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, isCreatingP
         <div><span className="text-gray-400">LinkedIn:</span> {lead.linkedin_url ? <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{lead.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}</a> : <span className="text-gray-700">—</span>}</div>
         <div><span className="text-gray-400">Company URL:</span> {lead.company_url ? <a href={lead.company_url.startsWith('http') ? lead.company_url : 'https://' + lead.company_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{lead.company_url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a> : <span className="text-gray-700">—</span>}</div>
         <div><span className="text-gray-400">Score:</span> <span className="text-gray-700">{lead.lead_score} pts</span></div>
+        {lead.tier_1a && <div className="text-amber-700 text-xs flex items-center gap-1"><Star size={12} fill="currentColor" /> Tier 1A (top 200 VIP)</div>}
         {lead.tier_override && <div className="text-amber-600 text-xs">Tier manually overridden</div>}
+        <div className="pt-2">
+          <label className="text-gray-400 block mb-1 text-xs">Assigned to:</label>
+          <select
+            value={lead.assigned_to || ''}
+            onChange={e => onAssignmentChange((e.target.value || null) as AssigneeName | null)}
+            className="w-full px-2 py-1 border border-gray-200 rounded text-xs bg-white"
+          >
+            <option value="">Unassigned</option>
+            {ASSIGNEE_NAMES.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* VIP Slot + Timeline */}

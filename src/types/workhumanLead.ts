@@ -41,9 +41,20 @@ export interface WorkhumanLead {
   page_view_count: number | null;
   page_last_viewed_at: string | null;
   workhuman_attendee_id: string | null;
+  tier_1a: boolean;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type AssigneeName = 'Will Newton' | 'Jaimie Pritchard' | 'Marc Levitan' | 'Caren Skutch';
+
+export const ASSIGNEE_NAMES: AssigneeName[] = [
+  'Will Newton',
+  'Jaimie Pritchard',
+  'Marc Levitan',
+  'Caren Skutch',
+];
 
 export type OutreachChannel = 'workhuman_dm' | 'linkedin_connect' | 'linkedin_dm' | 'email';
 

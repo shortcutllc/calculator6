@@ -253,6 +253,19 @@ export async function updateLeadVipSlot(id: string, day: VipSlotDay | null, time
   return true;
 }
 
+export async function updateLeadAssignment(id: string, assignee: string | null): Promise<boolean> {
+  const { error } = await supabase
+    .from('workhuman_leads')
+    .update({ assigned_to: assignee })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to update assignment:', error);
+    return false;
+  }
+  return true;
+}
+
 export async function updateLeadNotes(id: string, notes: string): Promise<boolean> {
   const { error } = await supabase
     .from('workhuman_leads')
