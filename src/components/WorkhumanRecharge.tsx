@@ -704,16 +704,6 @@ const WorkhumanRecharge: React.FC = () => {
           }
         }
 
-        /* FAQ */
-        .faq-content {
-          max-height: 0;
-          overflow: hidden;
-          transition: max-height 0.3s ease;
-        }
-        .faq-content.open {
-          max-height: 200px;
-        }
-
         /* Shortcut section card CSS */
         .shortcut-section-card {
           position: relative;
@@ -2144,7 +2134,7 @@ const WorkhumanRecharge: React.FC = () => {
                     <span className="faq-icon text-2xl" style={{ color: '#003756', opacity: 0.6 }}>{isOpen ? '\u2212' : '+'}</span>
                   </button>
                   {isOpen && (
-                    <div className="faq-content">
+                    <div>
                       <p className="mt-6 text-base" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>{faq.a}</p>
                     </div>
                   )}
