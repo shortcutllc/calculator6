@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Upload, Search, ChevronDown, ChevronUp, Target, Users,
   Star, Mail, MessageSquare, Calendar, Trash2, X, FileDown,
-  AlertCircle, CheckCircle, Clock, UserCheck
+  AlertCircle, CheckCircle, Clock, UserCheck, ExternalLink, Copy,
+  Sparkles, Loader2, RefreshCw
 } from 'lucide-react';
 import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay } from '../types/workhumanLead';
 import {
@@ -14,6 +15,8 @@ import {
   updateLeadVipSlot,
   updateLeadNotes,
   deleteLead,
+  createLandingPageForLead,
+  bulkCreateLandingPages,
 } from '../services/WorkhumanLeadService';
 import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 import { WorkhumanLeadCSVRow } from '../types/workhumanLead';
@@ -74,6 +77,9 @@ const WorkhumanLeads: React.FC = () => {
   const [sortBy, setSortBy] = useState<'score' | 'company_size' | 'name'>('score');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCSVModal, setShowCSVModal] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [creatingPageIds, setCreatingPageIds] = useState<Set<string>>(new Set());
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
   // --- Data loading ---
 
@@ -176,6 +182,84 @@ const WorkhumanLeads: React.FC = () => {
     await deleteLead(id);
   };
 
+  // --- Selection handlers ---
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredLeads.length && filteredLeads.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredLeads.map(l => l.id)));
+    }
+  };
+
+  // --- Landing page creation ---
+  const handleCreateLandingPage = async (lead: WorkhumanLead, overrideLogoUrl?: string) => {
+    setCreatingPageIds(prev => { const n = new Set(prev); n.add(lead.id); return n; });
+    try {
+      const result = await createLandingPageForLead(lead, overrideLogoUrl);
+      if (result.success) {
+        setLeads(prev => prev.map(l =>
+          l.id === lead.id
+            ? { ...l, landing_page_url: result.url || null, logo_url: result.logoUrl || null, logo_source: result.logoSource || null }
+            : l
+        ));
+      } else {
+        alert('Failed to create landing page: ' + (result.error || 'unknown'));
+      }
+    } finally {
+      setCreatingPageIds(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
+    }
+  };
+
+  const handleBulkCreateLandingPages = async () => {
+    const selected = filteredLeads.filter(l => selectedIds.has(l.id));
+    // Only create for ones that don't already have a page
+    const toCreate = selected.filter(l => !l.landing_page_url);
+    if (toCreate.length === 0) {
+      alert('All selected leads already have landing pages.');
+      return;
+    }
+    if (!confirm(`Create landing pages for ${toCreate.length} lead${toCreate.length !== 1 ? 's' : ''}? (${selected.length - toCreate.length} already have pages and will be skipped)`)) return;
+
+    setBulkProgress({ done: 0, total: toCreate.length });
+    setCreatingPageIds(new Set(toCreate.map(l => l.id)));
+
+    const { succeeded, failed, results } = await bulkCreateLandingPages(toCreate, (done, total) => {
+      setBulkProgress({ done, total });
+    });
+
+    // Update leads state from results
+    setLeads(prev => prev.map(l => {
+      const r = results.find(x => x.leadId === l.id);
+      if (r && r.result.success) {
+        return {
+          ...l,
+          landing_page_url: r.result.url || null,
+          logo_url: r.result.logoUrl || null,
+          logo_source: r.result.logoSource || null,
+        };
+      }
+      return l;
+    }));
+
+    setBulkProgress(null);
+    setCreatingPageIds(new Set());
+    setSelectedIds(new Set());
+    alert(`Created ${succeeded} landing page${succeeded !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}.`);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
   // --- Render ---
 
   return (
@@ -272,9 +356,41 @@ const WorkhumanLeads: React.FC = () => {
           </div>
         </div>
 
-        {/* Results count */}
-        <div className="text-sm text-gray-500 mb-2">
-          Showing {filteredLeads.length} of {stats.total} leads
+        {/* Results count + Bulk action bar */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm text-gray-500">
+            Showing {filteredLeads.length} of {stats.total} leads
+            {selectedIds.size > 0 && (
+              <span className="ml-3 text-amber-700 font-medium">{selectedIds.size} selected</span>
+            )}
+          </div>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Clear
+              </button>
+              <button
+                onClick={handleBulkCreateLandingPages}
+                disabled={bulkProgress !== null}
+                className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 text-white text-sm font-medium px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
+              >
+                {bulkProgress ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    {bulkProgress.done}/{bulkProgress.total}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={14} />
+                    Create landing pages ({selectedIds.size})
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Table */}
@@ -295,6 +411,14 @@ const WorkhumanLeads: React.FC = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="w-10 px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size > 0 && selectedIds.size === filteredLeads.length}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300 cursor-pointer"
+                      />
+                    </th>
                     <th className="text-left px-4 py-3 font-medium text-gray-500">Name / Email</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-500">Company</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-500">Title</th>
@@ -303,6 +427,7 @@ const WorkhumanLeads: React.FC = () => {
                     <th className="text-center px-4 py-3 font-medium text-gray-500">Tier</th>
                     <th className="text-center px-4 py-3 font-medium text-gray-500">Status</th>
                     <th className="text-center px-4 py-3 font-medium text-gray-500">VIP Slot</th>
+                    <th className="text-center px-4 py-3 font-medium text-gray-500">Landing Page</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -310,9 +435,17 @@ const WorkhumanLeads: React.FC = () => {
                   {filteredLeads.map(lead => (
                     <React.Fragment key={lead.id}>
                       <tr
-                        className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${expandedId === lead.id ? 'bg-blue-50/50' : ''}`}
+                        className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${expandedId === lead.id ? 'bg-blue-50/50' : ''} ${selectedIds.has(lead.id) ? 'bg-amber-50/40' : ''}`}
                         onClick={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
                       >
+                        <td className="px-3 py-3 text-center" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(lead.id)}
+                            onChange={() => toggleSelect(lead.id)}
+                            className="rounded border-gray-300 cursor-pointer"
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <div className="font-medium text-gray-900">{lead.name}</div>
                           <div className="text-gray-400 text-xs">{lead.email?.includes('@no-email.placeholder') ? '' : lead.email}</div>
@@ -355,6 +488,42 @@ const WorkhumanLeads: React.FC = () => {
                         <td className="px-4 py-3 text-center text-xs text-gray-500">
                           {lead.vip_slot_day ? DAY_LABELS[lead.vip_slot_day] : '—'}
                         </td>
+                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
+                          {lead.landing_page_url ? (
+                            <div className="inline-flex items-center gap-1">
+                              <a
+                                href={lead.landing_page_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 text-xs"
+                                title={lead.landing_page_url}
+                              >
+                                <ExternalLink size={12} />
+                                Open
+                              </a>
+                              <button
+                                onClick={() => copyToClipboard(lead.landing_page_url!)}
+                                className="text-gray-400 hover:text-gray-600 p-1"
+                                title="Copy URL"
+                              >
+                                <Copy size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleCreateLandingPage(lead)}
+                              disabled={creatingPageIds.has(lead.id) || !lead.company}
+                              className="text-xs bg-amber-100 hover:bg-amber-200 disabled:bg-gray-100 disabled:text-gray-400 text-amber-800 font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1 transition-colors"
+                              title={!lead.company ? 'Company name required' : 'Create landing page'}
+                            >
+                              {creatingPageIds.has(lead.id) ? (
+                                <><Loader2 size={11} className="animate-spin" /> Creating</>
+                              ) : (
+                                <><Sparkles size={11} /> Create</>
+                              )}
+                            </button>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           {expandedId === lead.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                         </td>
@@ -363,10 +532,13 @@ const WorkhumanLeads: React.FC = () => {
                       {/* Expanded detail row */}
                       {expandedId === lead.id && (
                         <tr>
-                          <td colSpan={9} className="bg-gray-50/70 px-6 py-4">
+                          <td colSpan={11} className="bg-gray-50/70 px-6 py-4">
                             <ExpandedLeadRow
                               lead={lead}
                               onVipSlot={handleVipSlot}
+                              isCreatingPage={creatingPageIds.has(lead.id)}
+                              onCreatePage={(overrideUrl) => handleCreateLandingPage(lead, overrideUrl)}
+                              onCopyUrl={() => lead.landing_page_url && copyToClipboard(lead.landing_page_url)}
                               onNotesChange={async (notes) => {
                                 setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, notes } : l));
                                 await updateLeadNotes(lead.id, notes);
@@ -430,19 +602,31 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
   );
 }
 
-function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete }: {
+function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, isCreatingPage, onCreatePage, onCopyUrl }: {
   lead: WorkhumanLead;
   onVipSlot: (id: string, day: VipSlotDay | null) => void;
   onNotesChange: (notes: string) => void;
   onDelete: () => void;
+  isCreatingPage?: boolean;
+  onCreatePage?: (overrideUrl?: string) => void;
+  onCopyUrl?: () => void;
 }) {
   const [notes, setNotes] = useState(lead.notes || '');
+  const [logoOverride, setLogoOverride] = useState('');
+  const [showLogoOverride, setShowLogoOverride] = useState(false);
   const notesTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const handleNotesChange = (val: string) => {
     setNotes(val);
     if (notesTimer.current) clearTimeout(notesTimer.current);
     notesTimer.current = setTimeout(() => onNotesChange(val), 800);
+  };
+
+  const handleReplaceLogo = () => {
+    if (!logoOverride.trim() || !onCreatePage) return;
+    onCreatePage(logoOverride.trim());
+    setLogoOverride('');
+    setShowLogoOverride(false);
   };
 
   return (
@@ -517,6 +701,101 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete }: {
         >
           <Trash2 size={12} /> Remove lead
         </button>
+      </div>
+
+      {/* Landing Page + Logo */}
+      <div className="space-y-3 md:col-span-3 pt-2 border-t border-gray-200">
+        <h4 className="font-medium text-gray-700 mb-2 text-sm flex items-center gap-2">
+          <Sparkles size={14} className="text-amber-600" />
+          Personalized Landing Page
+        </h4>
+
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          {/* Logo preview */}
+          <div className="flex items-center gap-3">
+            {lead.logo_url ? (
+              <div className="w-20 h-20 bg-white border border-gray-200 rounded-lg flex items-center justify-center p-2 overflow-hidden">
+                <img
+                  src={lead.logo_url}
+                  alt={lead.company || ''}
+                  className="max-w-full max-h-full object-contain"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+            ) : (
+              <div className="w-20 h-20 bg-gray-100 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-xs text-gray-400">
+                No logo
+              </div>
+            )}
+            <div className="text-xs text-gray-500">
+              {lead.logo_source && <div>Source: <span className="font-medium text-gray-700">{lead.logo_source}</span></div>}
+              {!lead.logo_source && <div className="text-gray-400">Logo will be auto-discovered</div>}
+            </div>
+          </div>
+
+          {/* URL + actions */}
+          <div className="flex-1 space-y-2">
+            {lead.landing_page_url ? (
+              <>
+                <div className="flex items-center gap-2 text-sm">
+                  <a href={lead.landing_page_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate inline-flex items-center gap-1">
+                    <ExternalLink size={12} /> {lead.landing_page_url}
+                  </a>
+                  <button
+                    onClick={onCopyUrl}
+                    className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                    title="Copy URL"
+                  >
+                    <Copy size={14} />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowLogoOverride(!showLogoOverride)}
+                    className="text-xs text-gray-600 hover:text-gray-800 inline-flex items-center gap-1"
+                  >
+                    <RefreshCw size={11} /> Replace logo
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => onCreatePage?.()}
+                disabled={isCreatingPage || !lead.company}
+                className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 text-white text-sm font-medium px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
+              >
+                {isCreatingPage ? (
+                  <><Loader2 size={14} className="animate-spin" /> Creating...</>
+                ) : (
+                  <><Sparkles size={14} /> Create landing page</>
+                )}
+              </button>
+            )}
+
+            {/* Override logo input */}
+            {showLogoOverride && (
+              <div className="flex gap-2 items-center pt-2">
+                <input
+                  type="text"
+                  value={logoOverride}
+                  onChange={e => setLogoOverride(e.target.value)}
+                  placeholder="Paste image URL (PNG/SVG transparent preferred)"
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
+                />
+                <button
+                  onClick={handleReplaceLogo}
+                  disabled={!logoOverride.trim() || isCreatingPage}
+                  className="bg-gray-800 hover:bg-gray-900 disabled:bg-gray-300 text-white text-sm font-medium px-3 py-1.5 rounded-lg"
+                >
+                  {isCreatingPage ? <Loader2 size={12} className="animate-spin" /> : 'Regenerate'}
+                </button>
+                <button onClick={() => { setShowLogoOverride(false); setLogoOverride(''); }} className="text-gray-400 hover:text-gray-600">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

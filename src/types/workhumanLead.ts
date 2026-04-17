@@ -34,6 +34,10 @@ export interface WorkhumanLead {
   meeting_scheduled_at: string | null;
   linkedin_url: string | null;
   company_url: string | null;
+  landing_page_url: string | null;
+  landing_page_id: string | null;
+  logo_url: string | null;
+  logo_source: string | null;
   created_at: string;
   updated_at: string;
 }

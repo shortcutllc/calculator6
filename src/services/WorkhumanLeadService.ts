@@ -278,3 +278,85 @@ export async function deleteLead(id: string): Promise<boolean> {
   }
   return true;
 }
+
+// --- Landing Page Creation ---
+
+export interface CreateLandingPageResult {
+  success: boolean;
+  url?: string;
+  logoUrl?: string;
+  logoSource?: string;
+  error?: string;
+}
+
+/**
+ * Create a personalized Workhuman Recharge landing page for a single lead.
+ * Calls the netlify function which handles logo discovery + page creation.
+ */
+export async function createLandingPageForLead(
+  lead: Pick<WorkhumanLead, 'id' | 'company' | 'company_url' | 'logo_url'>,
+  overrideLogoUrl?: string
+): Promise<CreateLandingPageResult> {
+  if (!lead.company) {
+    return { success: false, error: 'Company name is required' };
+  }
+
+  try {
+    const resp = await fetch('/.netlify/functions/create-workhuman-landing-page', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        leadId: lead.id,
+        companyName: lead.company,
+        companyDomain: lead.company_url,
+        overrideLogoUrl: overrideLogoUrl || undefined,
+      }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok || !data.success) {
+      return { success: false, error: data.error || 'Unknown error' };
+    }
+
+    return {
+      success: true,
+      url: data.url,
+      logoUrl: data.logoUrl,
+      logoSource: data.logoSource,
+    };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+/**
+ * Bulk create landing pages for multiple leads in parallel (3 at a time).
+ */
+export async function bulkCreateLandingPages(
+  leads: WorkhumanLead[],
+  onProgress?: (done: number, total: number, lastResult?: { company: string; success: boolean }) => void
+): Promise<{ succeeded: number; failed: number; results: Array<{ leadId: string; company: string; result: CreateLandingPageResult }> }> {
+  const results: Array<{ leadId: string; company: string; result: CreateLandingPageResult }> = [];
+  let succeeded = 0;
+  let failed = 0;
+  const CONCURRENCY = 3;
+
+  for (let i = 0; i < leads.length; i += CONCURRENCY) {
+    const batch = leads.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map(async lead => {
+        const result = await createLandingPageForLead(lead);
+        return { leadId: lead.id, company: lead.company || '', result };
+      })
+    );
+
+    for (const r of batchResults) {
+      results.push(r);
+      if (r.result.success) succeeded++;
+      else failed++;
+      onProgress?.(results.length, leads.length, { company: r.company, success: r.result.success });
+    }
+  }
+
+  return { succeeded, failed, results };
+}
