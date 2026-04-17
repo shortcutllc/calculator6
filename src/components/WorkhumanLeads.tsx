@@ -75,7 +75,7 @@ const WorkhumanLeads: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | OutreachStatus>('all');
   const [industryFilter, setIndustryFilter] = useState('all');
   const [landingPageFilter, setLandingPageFilter] = useState<'all' | 'has' | 'missing'>('all');
-  const [sortField, setSortField] = useState<'name' | 'company' | 'title' | 'company_size_normalized' | 'lead_score' | 'tier'>('lead_score');
+  const [sortField, setSortField] = useState<'name' | 'company' | 'title' | 'company_size_normalized' | 'lead_score' | 'tier' | 'page_view_count'>('lead_score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCSVModal, setShowCSVModal] = useState(false);
@@ -157,6 +157,7 @@ const WorkhumanLeads: React.FC = () => {
         case 'company':               av = (a.company || '').toLowerCase(); bv = (b.company || '').toLowerCase(); break;
         case 'title':                 av = (a.title || '').toLowerCase(); bv = (b.title || '').toLowerCase(); break;
         case 'company_size_normalized': av = a.company_size_normalized || 0; bv = b.company_size_normalized || 0; break;
+        case 'page_view_count':       av = a.page_view_count || 0; bv = b.page_view_count || 0; break;
         case 'tier':                  av = tierRank[a.tier]; bv = tierRank[b.tier]; break;
         case 'lead_score':
         default:                      av = a.lead_score; bv = b.lead_score; break;
@@ -450,7 +451,7 @@ const WorkhumanLeads: React.FC = () => {
                     </th>
                     <SortableHeader label="Name / Email" field="name" currentField={sortField} direction={sortDir} onClick={toggleSort} align="left" />
                     <SortableHeader label="Company" field="company" currentField={sortField} direction={sortDir} onClick={toggleSort} align="left" />
-                    <th className="text-center px-4 py-3 font-medium text-gray-500">Landing Page</th>
+                    <SortableHeader label="Landing Page" field="page_view_count" currentField={sortField} direction={sortDir} onClick={toggleSort} align="center" />
                     <SortableHeader label="Title" field="title" currentField={sortField} direction={sortDir} onClick={toggleSort} align="left" />
                     <SortableHeader label="Size" field="company_size_normalized" currentField={sortField} direction={sortDir} onClick={toggleSort} align="left" />
                     <SortableHeader label="Score" field="lead_score" currentField={sortField} direction={sortDir} onClick={toggleSort} align="center" />
@@ -482,24 +483,33 @@ const WorkhumanLeads: React.FC = () => {
                         <td className="px-4 py-3 text-gray-700">{lead.company || '—'}</td>
                         <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                           {lead.landing_page_url ? (
-                            <div className="inline-flex items-center gap-1">
-                              <a
-                                href={lead.landing_page_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 text-xs"
-                                title={lead.landing_page_url}
-                              >
-                                <ExternalLink size={12} />
-                                Open
-                              </a>
-                              <button
-                                onClick={() => copyToClipboard(lead.landing_page_url!)}
-                                className="text-gray-400 hover:text-gray-600 p-1"
-                                title="Copy URL"
-                              >
-                                <Copy size={12} />
-                              </button>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <div className="inline-flex items-center gap-1">
+                                <a
+                                  href={lead.landing_page_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 text-xs"
+                                  title={lead.landing_page_url}
+                                >
+                                  <ExternalLink size={12} />
+                                  Open
+                                </a>
+                                <button
+                                  onClick={() => copyToClipboard(lead.landing_page_url!)}
+                                  className="text-gray-400 hover:text-gray-600 p-1"
+                                  title="Copy URL"
+                                >
+                                  <Copy size={12} />
+                                </button>
+                              </div>
+                              {(lead.page_view_count ?? 0) > 0 ? (
+                                <div className="text-[10px] text-green-700 font-medium" title={lead.page_last_viewed_at ? `Last viewed ${new Date(lead.page_last_viewed_at).toLocaleString()}` : ''}>
+                                  👁 {lead.page_view_count} view{lead.page_view_count === 1 ? '' : 's'}
+                                </div>
+                              ) : (
+                                <div className="text-[10px] text-gray-400">Not viewed</div>
+                              )}
                             </div>
                           ) : (
                             <button
@@ -803,10 +813,18 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, isCreatingP
                     <Copy size={14} />
                   </button>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4 text-xs">
+                  <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full font-medium ${(lead.page_view_count ?? 0) > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                    👁 {lead.page_view_count ?? 0} view{lead.page_view_count === 1 ? '' : 's'}
+                  </div>
+                  {lead.page_last_viewed_at && (
+                    <span className="text-gray-500">
+                      Last viewed {new Date(lead.page_last_viewed_at).toLocaleString()}
+                    </span>
+                  )}
                   <button
                     onClick={() => setShowLogoOverride(!showLogoOverride)}
-                    className="text-xs text-gray-600 hover:text-gray-800 inline-flex items-center gap-1"
+                    className="text-gray-600 hover:text-gray-800 inline-flex items-center gap-1 ml-auto"
                   >
                     <RefreshCw size={11} /> Replace logo
                   </button>

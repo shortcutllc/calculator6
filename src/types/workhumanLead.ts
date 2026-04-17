@@ -38,6 +38,8 @@ export interface WorkhumanLead {
   landing_page_id: string | null;
   logo_url: string | null;
   logo_source: string | null;
+  page_view_count: number | null;
+  page_last_viewed_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -83,6 +83,15 @@ const WorkhumanRecharge: React.FC = () => {
       setLogoUrl(partnerLogo);
       setContactFirstName(cfn);
       if (partnerName) setFormCompany(partnerName);
+
+      // Track the view (fire and forget; skip bots via prerender UA check)
+      const token = data.unique_token;
+      if (token && typeof navigator !== 'undefined' && !/bot|crawler|spider|prerender|headless/i.test(navigator.userAgent || '')) {
+        supabase.rpc('track_landing_page_view', { page_unique_token: token })
+          .then(({ error: rpcErr }) => {
+            if (rpcErr) console.warn('View tracking failed:', rpcErr.message);
+          });
+      }
     };
 
     loadPageConfig();
