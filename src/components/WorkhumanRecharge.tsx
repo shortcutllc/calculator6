@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 
 const WorkhumanRecharge: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
+  const leadIdParam = searchParams.get('lead');
 
   // Page config loaded from DB (generic_landing_pages where page_type='workhuman')
   const [pageLoading, setPageLoading] = useState(!!id);
@@ -95,6 +97,27 @@ const WorkhumanRecharge: React.FC = () => {
 
     loadPageConfig();
   }, [id]);
+
+  // Prefill form from ?lead={uuid} query param if present
+  useEffect(() => {
+    if (!leadIdParam) return;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadIdParam);
+    if (!isUuid) return;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_lead_prefill', { lead_uuid: leadIdParam });
+        if (error || !data || !data[0]) return;
+        const row = data[0];
+        if (row.first_name) setFirstName(row.first_name);
+        if (row.last_name) setLastName(row.last_name);
+        if (row.email) setEmail(row.email);
+        if (row.company) setFormCompany(row.company);
+      } catch (err) {
+        console.warn('Lead prefill failed:', err);
+      }
+    })();
+  }, [leadIdParam]);
 
   // Legacy: pre-fill company when loaded
   useEffect(() => {
@@ -224,27 +247,15 @@ const WorkhumanRecharge: React.FC = () => {
     };
   }, []);
 
-  // FAQ toggle functionality
-  useEffect(() => {
-    const faqItems = document.querySelectorAll('.faq-item');
-
-    faqItems.forEach((item) => {
-      const question = item.querySelector('.faq-question');
-      const content = item.querySelector('.faq-content');
-      const icon = question?.querySelector('.faq-icon');
-
-      question?.addEventListener('click', () => {
-        const isOpen = content?.classList.contains('open');
-        if (isOpen) {
-          content?.classList.remove('open');
-          if (icon) icon.textContent = '+';
-        } else {
-          content?.classList.add('open');
-          if (icon) icon.textContent = '\u2212';
-        }
-      });
+  // FAQ open/closed state (controlled via React)
+  const [openFaqIdxs, setOpenFaqIdxs] = useState<Set<number>>(new Set());
+  const toggleFaq = (idx: number) => {
+    setOpenFaqIdxs(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
     });
-  }, []);
+  };
 
   // Custom smooth scroll with easing
   const smoothScrollTo = (targetId: string) => {
@@ -1084,36 +1095,6 @@ const WorkhumanRecharge: React.FC = () => {
                             onChange={(e) => setFormCompany(e.target.value)}
                             className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                           />
-                        </div>
-                      </div>
-
-                      {/* Title + Employee Count */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Title</label>
-                          <input
-                            type="text"
-                            placeholder="Your role"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Employees</label>
-                          <select
-                            value={employeeCount}
-                            onChange={(e) => setEmployeeCount(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                            style={{ color: employeeCount ? '#003756' : '#9ca3af' }}
-                          >
-                            <option value="">Select</option>
-                            <option value="Under 200">Under 200</option>
-                            <option value="200-500">200-500</option>
-                            <option value="500-2,000">500-2,000</option>
-                            <option value="2,000-5,000">2,000-5,000</option>
-                            <option value="5,000+">5,000+</option>
-                          </select>
                         </div>
                       </div>
 
@@ -2148,17 +2129,28 @@ const WorkhumanRecharge: React.FC = () => {
                 q: 'What does Shortcut do?',
                 a: 'We bring wellness into the workplace. Massage, headshots, beauty, and more. We handle everything on site. One vendor. No extra work for you. If it\'s useful, we can talk for 10 minutes before or after your session.'
               }
-            ].map((faq, idx) => (
-              <div key={idx} className="faq-item rounded-3xl p-8" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0, 55, 86, 0.1)' }}>
-                <button className="faq-question w-full text-left flex items-center justify-between text-xl font-semibold" style={{ color: '#003756' }}>
-                  <span>{faq.q}</span>
-                  <span className="faq-icon text-2xl" style={{ color: '#003756', opacity: 0.6 }}>+</span>
-                </button>
-                <div className="faq-content">
-                  <p className="mt-6 text-base" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>{faq.a}</p>
+            ].map((faq, idx) => {
+              const isOpen = openFaqIdxs.has(idx);
+              return (
+                <div key={idx} className="faq-item rounded-3xl p-8" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0, 55, 86, 0.1)' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleFaq(idx)}
+                    className="faq-question w-full text-left flex items-center justify-between text-xl font-semibold"
+                    style={{ color: '#003756' }}
+                    aria-expanded={isOpen}
+                  >
+                    <span>{faq.q}</span>
+                    <span className="faq-icon text-2xl" style={{ color: '#003756', opacity: 0.6 }}>{isOpen ? '\u2212' : '+'}</span>
+                  </button>
+                  {isOpen && (
+                    <div className="faq-content">
+                      <p className="mt-6 text-base" style={{ color: '#003756', opacity: 0.8, lineHeight: '1.6' }}>{faq.a}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

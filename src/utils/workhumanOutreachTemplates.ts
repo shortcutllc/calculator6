@@ -37,7 +37,7 @@ export const WORKHUMAN_DM_A: Template = {
   charLimit: 500,
   body: `Hey {first_name}!
 
-{sender_name} from Shortcut here. We're running a complimentary massage lounge in the Gratitude Garden at Workhuman and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
+{sender_name} from Shortcut here. We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
 
 We've helped BCG, DraftKings and Wix bring real wellness to their teams and would love to steal 10 minutes after your session to chat about wellness at {company}.
 
@@ -52,7 +52,7 @@ export const WORKHUMAN_DM_B: Template = {
   charLimit: 500,
   body: `Hey {first_name}!
 
-{sender_name} from Shortcut here. We're running a complimentary massage lounge in the Gratitude Garden at Workhuman and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
+{sender_name} from Shortcut here. We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
 
 We've helped BCG, DraftKings and Wix bring real wellness to their teams and would love to steal 10 minutes after your session to chat about wellness at {company} and share what's been working.
 
@@ -79,7 +79,7 @@ export const LINKEDIN_DM_AFTER_ACCEPT: Template = {
 
 Really appreciate the connect.
 
-We're running a complimentary massage lounge in the Gratitude Garden at Workhuman next week and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
+We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman next week and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
 
 Shortcut brings on-site wellness directly to workplaces — massage, headshots, beauty and more, all through one vendor. We work with teams at BCG, DraftKings and Wix and handle everything so HR teams don't have to lift a finger.
 
@@ -104,7 +104,7 @@ export const COLD_EMAIL: EmailTemplate = {
 
 {sender_name} here from Shortcut — we bring on-site wellness directly to workplaces. Massage, headshots, beauty and more, all through one vendor with zero admin headache for HR teams. BCG, DraftKings, Wix and 500+ companies trust us for their employee wellness.
 
-We're running a complimentary massage lounge in the Gratitude Garden at Workhuman Live next week and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
+We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman Live next week and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
 
 No catch — the massage is yours either way. But I'd love to steal 10 minutes after your session to chat about wellness at {company} and share what's been working for teams like yours.
 

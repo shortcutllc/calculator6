@@ -74,13 +74,21 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
 
   const tab = TABS.find(t => t.id === activeTab)!;
 
-  const vars = useMemo(() => ({
-    firstName: (lead.name.split(' ')[0] || '').trim(),
-    company: lead.company || '',
-    senderName,
-    landingPageUrl: lead.landing_page_url || undefined,
-    companySlug: slugFromLandingUrl(lead.landing_page_url) || (lead.company ? sanitizeSlug(lead.company) : ''),
-  }), [lead, senderName]);
+  const vars = useMemo(() => {
+    // Append ?lead={id} to the landing page URL so the form can auto-prefill
+    // when this specific lead clicks through
+    const baseUrl = lead.landing_page_url;
+    const urlWithLead = baseUrl
+      ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}lead=${lead.id}`
+      : undefined;
+    return {
+      firstName: (lead.name.split(' ')[0] || '').trim(),
+      company: lead.company || '',
+      senderName,
+      landingPageUrl: urlWithLead,
+      companySlug: slugFromLandingUrl(lead.landing_page_url) || (lead.company ? sanitizeSlug(lead.company) : ''),
+    };
+  }, [lead, senderName]);
 
   const filled = useMemo(() => fillTemplate(tab.template.body, vars), [tab, vars]);
   const filledSubject = useMemo(() => fillTemplate(EMAIL_SUBJECT_LINES[subjectIdx], vars), [subjectIdx, vars]);
