@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 
 const WorkhumanRecharge: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
@@ -303,41 +302,36 @@ const WorkhumanRecharge: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const name = `${firstName} ${lastName}`.trim();
-      const dayMap: Record<string, string> = {
-        'Day 1 (Apr 27)': 'day_1',
-        'Day 2 (Apr 28)': 'day_2',
-        'Day 3 (Apr 29)': 'day_3',
-      };
+      // Read checkbox state before submission
+      const checkbox = document.querySelector<HTMLInputElement>('input[type="checkbox"][data-chat-optin]');
+      const openToChat = checkbox?.checked ?? true;
 
-      const scoreResult = calculateWorkhumanLeadScore({
-        name,
-        email,
-        company: formCompany,
-        title,
-        companySize: employeeCount,
-        hqLocation: '',
-        industry: '',
-        multiOffice: ''
+      const resp = await fetch('/.netlify/functions/workhuman-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          company: formCompany,
+          title,
+          employeeCount,
+          currentWellness,
+          preferredDay,
+          openToChat,
+        }),
       });
 
-      await supabase.from('workhuman_leads').upsert({
-        name,
-        email,
-        company: formCompany,
-        title,
-        company_size: employeeCount,
-        company_size_normalized: scoreResult.companySizeNormalized,
-        lead_score: scoreResult.score,
-        tier: scoreResult.tier,
-        outreach_status: 'vip_booked',
-        vip_slot_day: dayMap[preferredDay] || null,
-        notes: `Booked via landing page. Current wellness: ${currentWellness}. Employee count: ${employeeCount}.`
-      }, { onConflict: 'email' });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        console.error('Booking submission failed:', resp.status, data);
+      }
 
       setSubmitted(true);
     } catch (err) {
       console.error('Error submitting booking:', err);
+      // Still show confirmation so the user isn't stuck — we'll see the error in logs
+      setSubmitted(true);
     } finally {
       setSubmitting(false);
     }
@@ -1140,7 +1134,7 @@ const WorkhumanRecharge: React.FC = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Preferred Day</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Preferred Time</label>
                           <select
                             value={preferredDay}
                             onChange={(e) => setPreferredDay(e.target.value)}
@@ -1148,10 +1142,24 @@ const WorkhumanRecharge: React.FC = () => {
                             style={{ color: preferredDay ? '#003756' : '#9ca3af' }}
                           >
                             <option value="">Select</option>
-                            <option value="Day 1 (Apr 27)">Day 1 (Apr 27)</option>
-                            <option value="Day 2 (Apr 28)">Day 2 (Apr 28)</option>
-                            <option value="Day 3 (Apr 29)">Day 3 (Apr 29)</option>
-                            <option value="Any day">Any day</option>
+                            <optgroup label="Monday, Apr 27">
+                              <option value="Mon Apr 27 · 1:00-3:00 PM">1:00 – 3:00 PM</option>
+                              <option value="Mon Apr 27 · 3:00-5:30 PM">3:00 – 5:30 PM</option>
+                            </optgroup>
+                            <optgroup label="Tuesday, Apr 28">
+                              <option value="Tue Apr 28 · 8:00-10:00 AM">8:00 – 10:00 AM</option>
+                              <option value="Tue Apr 28 · 10:00 AM-12:00 PM">10:00 AM – 12:00 PM</option>
+                              <option value="Tue Apr 28 · 12:00-2:00 PM">12:00 – 2:00 PM</option>
+                              <option value="Tue Apr 28 · 2:00-4:00 PM">2:00 – 4:00 PM</option>
+                              <option value="Tue Apr 28 · 4:00-5:00 PM">4:00 – 5:00 PM</option>
+                            </optgroup>
+                            <optgroup label="Wednesday, Apr 29">
+                              <option value="Wed Apr 29 · 8:00-10:00 AM">8:00 – 10:00 AM</option>
+                              <option value="Wed Apr 29 · 10:00 AM-12:00 PM">10:00 AM – 12:00 PM</option>
+                              <option value="Wed Apr 29 · 12:00-2:00 PM">12:00 – 2:00 PM</option>
+                              <option value="Wed Apr 29 · 2:00-4:00 PM">2:00 – 4:00 PM</option>
+                            </optgroup>
+                            <option value="Flexible">Flexible / any time</option>
                           </select>
                         </div>
                       </div>
@@ -1161,6 +1169,7 @@ const WorkhumanRecharge: React.FC = () => {
                         <input
                           type="checkbox"
                           defaultChecked
+                          data-chat-optin
                           className="mt-0.5 rounded border-gray-300 text-[#09364f] focus:ring-[#09364f]/20"
                           style={{ width: '16px', height: '16px' }}
                         />
@@ -1189,10 +1198,10 @@ const WorkhumanRecharge: React.FC = () => {
                       </svg>
                     </div>
                     <h3 className="text-2xl font-semibold mb-3" style={{ color: '#003756' }}>
-                      You're booked.
+                      You're in. 🙌
                     </h3>
                     <p className="text-sm mb-6" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.6' }}>
-                      We'll send you a reminder the morning of with exact location and a conference map.
+                      Workhuman opens up official booking Sunday. We'll lock in your exact time then and send you a confirmation by email. Keep an eye on your inbox — looking forward to meeting you in the Gratitude Garden.
                     </p>
                     <a
                       href="https://getshortcut.co"
