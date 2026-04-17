@@ -1000,7 +1000,7 @@ const WorkhumanRecharge: React.FC = () => {
                   maxWidth: '480px',
                 }}
               >
-                We're Shortcut, a corporate wellness company that shows up for your employees — literally. We bring massage, headshots, beauty, and more directly to your workplace, and we've handpicked the {companyName || 'your'} team for early access to a complimentary 15-minute massage at our booth. We'd love to connect while you're there if you're open to it.
+                We're Shortcut. We bring wellness into the workplace. Massage, headshots, beauty, mindfulness and more. One vendor. No logistics. We saved a few spots for the {companyName || 'your'} team at our Workhuman booth. Book a complimentary 15-minute massage. We'll be there if you want to connect after your session.
               </p>
 
               {/* Social proof stats */}
@@ -1017,12 +1017,12 @@ const WorkhumanRecharge: React.FC = () => {
                   <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Companies</div>
                 </div>
                 <div>
-                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>6</div>
-                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Services</div>
+                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>Nationwide</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Coverage</div>
                 </div>
                 <div>
-                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>1</div>
-                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Vendor</div>
+                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>15 min</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Sessions</div>
                 </div>
               </div>
 
@@ -1035,10 +1035,10 @@ const WorkhumanRecharge: React.FC = () => {
                 {!submitted ? (
                   <>
                     <h2 className="text-lg md:text-xl font-bold mb-1" style={{ color: '#003756', letterSpacing: '-0.01em' }}>
-                      Reserve Your Spot
+                      Book Your 15-Minute Massage
                     </h2>
                     <p className="text-xs mb-5" style={{ color: '#003756', opacity: 0.45 }}>
-                      Exclusive early access. Limited spots available.
+                      Pick a time. We'll handle the rest.
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-3">
@@ -1165,7 +1165,7 @@ const WorkhumanRecharge: React.FC = () => {
                           style={{ width: '16px', height: '16px' }}
                         />
                         <span className="text-[12px] leading-relaxed" style={{ color: '#003756', opacity: 0.6 }}>
-                          I'm open to a quick 10-minute chat with the Shortcut team before or after my session.
+                          I'll stick around for a quick 10-minute chat after my session.
                         </span>
                       </label>
 
@@ -1313,7 +1313,7 @@ const WorkhumanRecharge: React.FC = () => {
                     marginBottom: '8px',
                   }}
                 >
-                  All in one
+                  All in One
                 </h3>
                 <p
                   style={{
@@ -1326,7 +1326,7 @@ const WorkhumanRecharge: React.FC = () => {
                     maxWidth: '320px',
                   }}
                 >
-                  One vendor for every office and a dozen ways to breathe easier.
+                  One vendor for your office. A dozen ways to breathe easier.
                 </p>
               </div>
             </div>
@@ -1358,7 +1358,7 @@ const WorkhumanRecharge: React.FC = () => {
                     marginBottom: '8px',
                   }}
                 >
-                  Wellness that works
+                  Wellness That Works
                 </h3>
                 <p
                   style={{
@@ -1371,7 +1371,7 @@ const WorkhumanRecharge: React.FC = () => {
                     maxWidth: '320px',
                   }}
                 >
-                  We pair high quality services with technology that makes wellness a sinch.
+                  High quality services, backed by tech that makes wellness a cinch.
                 </p>
               </div>
             </div>
@@ -1403,7 +1403,7 @@ const WorkhumanRecharge: React.FC = () => {
                     marginBottom: '8px',
                   }}
                 >
-                  The feel good vendor
+                  The Feel-Good Vendor
                 </h3>
                 <p
                   style={{
@@ -1416,7 +1416,7 @@ const WorkhumanRecharge: React.FC = () => {
                     maxWidth: '320px',
                   }}
                 >
-                  Felt by employees, effortless for employers - what keeps our partners coming back.
+                  Felt by employees. Effortless for employers.
                 </p>
               </div>
             </div>
@@ -1850,7 +1850,7 @@ const WorkhumanRecharge: React.FC = () => {
               className="text-base md:text-xl lg:text-2xl max-w-3xl mx-auto"
               style={{ color: '#003756', opacity: 0.7, lineHeight: '1.6' }}
             >
-              Real moments of calm at work — felt by employees, effortless for employers.
+              Most perks get ignored. This one doesn't.
             </p>
           </div>
 
@@ -1871,7 +1871,7 @@ const WorkhumanRecharge: React.FC = () => {
                     className="text-[37px] leading-[43px] tracking-[-0.95px] m-0 font-medium"
                     style={{ color: '#001f1f' }}
                   >
-                    Reset at work
+                    Reset at Work
                   </h3>
 
                   {/* Plus icon button */}
@@ -1899,17 +1899,17 @@ const WorkhumanRecharge: React.FC = () => {
                   <div className="shortcut-checklist-scroll">
                     <div className="space-y-[52px]">
                       {[
-                        { text: 'Chair & table massage', boldText: 'massage' },
-                        { text: 'Office grooming & self-care', boldText: 'self-care' },
-                        { text: 'Headshots & confidence boosts', boldText: 'confidence boosts' },
-                        { text: 'Pop-up wellness experiences', boldText: 'wellness' },
-                        { text: 'On-site, zero planning required', boldText: 'zero planning' },
+                        { text: 'On site. Zero planning required', boldText: 'Zero planning' },
+                        { text: 'Chair and table massage', boldText: 'massage' },
+                        { text: 'Grooming and self care', boldText: 'self care' },
+                        { text: 'Headshots that people actually use', boldText: 'Headshots' },
+                        { text: 'Pop up wellness experience', boldText: 'wellness' },
                       ].concat([
-                        { text: 'Chair & table massage', boldText: 'massage' },
-                        { text: 'Office grooming & self-care', boldText: 'self-care' },
-                        { text: 'Headshots & confidence boosts', boldText: 'confidence boosts' },
-                        { text: 'Pop-up wellness experiences', boldText: 'wellness' },
-                        { text: 'On-site, zero planning required', boldText: 'zero planning' },
+                        { text: 'On site. Zero planning required', boldText: 'Zero planning' },
+                        { text: 'Chair and table massage', boldText: 'massage' },
+                        { text: 'Grooming and self care', boldText: 'self care' },
+                        { text: 'Headshots that people actually use', boldText: 'Headshots' },
+                        { text: 'Pop up wellness experience', boldText: 'wellness' },
                       ]).map((item, idx) => (
                         <div key={idx} className="shortcut-checklist-item flex items-center gap-[11px]">
                           <div
@@ -1956,7 +1956,7 @@ const WorkhumanRecharge: React.FC = () => {
                     className="m-0 text-[19px] leading-[26px] font-normal opacity-64"
                     style={{ color: '#b8337a' }}
                   >
-                    Physical, on-site wellness experiences that help your team recharge and refocus.
+                    Physical, on-site wellness that helps your team reset between meetings.
                   </p>
                 </div>
               </div>
@@ -1995,7 +1995,7 @@ const WorkhumanRecharge: React.FC = () => {
                     className="text-[37px] leading-[43px] tracking-[-0.95px] m-0 font-medium"
                     style={{ color: '#001f1f' }}
                   >
-                    Calm, delivered
+                    Calm, Delivered
                   </h3>
 
                   {/* Plus icon button */}
@@ -2023,17 +2023,17 @@ const WorkhumanRecharge: React.FC = () => {
                   <div className="shortcut-checklist-scroll">
                     <div className="space-y-[52px]">
                       {[
-                        { text: 'One vendor, multiple services', boldText: 'One vendor' },
-                        { text: 'Easy scheduling & sign-ups', boldText: 'Easy' },
+                        { text: 'One vendor. Multiple services', boldText: 'One vendor' },
+                        { text: 'Simple scheduling and sign ups', boldText: 'Simple scheduling' },
                         { text: 'Nationwide provider network', boldText: 'Nationwide' },
                         { text: 'Consistent quarterly programs', boldText: 'Consistent' },
-                        { text: 'Zero admin headaches', boldText: 'Zero admin' },
+                        { text: 'Zero admin work', boldText: 'Zero admin' },
                       ].concat([
-                        { text: 'One vendor, multiple services', boldText: 'One vendor' },
-                        { text: 'Easy scheduling & sign-ups', boldText: 'Easy' },
+                        { text: 'One vendor. Multiple services', boldText: 'One vendor' },
+                        { text: 'Simple scheduling and sign ups', boldText: 'Simple scheduling' },
                         { text: 'Nationwide provider network', boldText: 'Nationwide' },
                         { text: 'Consistent quarterly programs', boldText: 'Consistent' },
-                        { text: 'Zero admin headaches', boldText: 'Zero admin' },
+                        { text: 'Zero admin work', boldText: 'Zero admin' },
                       ]).map((item, idx) => (
                         <div key={idx} className="shortcut-checklist-item flex items-center gap-[11px]">
                           <div
@@ -2080,7 +2080,7 @@ const WorkhumanRecharge: React.FC = () => {
                     className="m-0 text-[19px] leading-[26px] font-normal opacity-64"
                     style={{ color: '#018EA2' }}
                   >
-                    Operational simplicity and ease that remove friction from your day.
+                    We handle the logistics so you don't have to.
                   </p>
                 </div>
               </div>
@@ -2117,27 +2117,27 @@ const WorkhumanRecharge: React.FC = () => {
             {[
               {
                 q: 'What is the Recharge Lounge?',
-                a: 'A complimentary massage activation at Workhuman Live, located in the Gratitude Garden. 6 massage stations, professional therapists, 15-minute sessions between keynotes.'
+                a: 'A space at Workhuman Live where you can step away and reset. We\'re offering 15-minute chair massages throughout the event.'
               },
               {
                 q: 'How long is the massage?',
-                a: '15 minutes. Enough to reset, not enough to miss the next session.'
+                a: '15 minutes.'
               },
               {
                 q: 'Where is the Gratitude Garden?',
-                a: "Inside the Gaylord Palms convention center. We'll send you a map with your booking confirmation."
+                a: 'Inside the Workhuman Live event space. Exact location details will be shared after you book.'
               },
               {
                 q: 'What happens after I book?',
-                a: "You'll receive a confirmation email with your time slot, exact location, and a conference map. We'll also send a reminder the morning of your session."
+                a: 'You\'ll get a confirmation with your time slot and location details. Show up a few minutes early and we\'ll take care of the rest.'
               },
               {
                 q: 'Is this really free?',
-                a: 'Yes. Complimentary for all Workhuman Live attendees. No catch, no pitch required. Just 15 minutes of wellness.'
+                a: 'Yes, it\'s really free. No catch.'
               },
               {
                 q: 'What does Shortcut do?',
-                a: 'We bring massage, headshots, grooming, and mindfulness directly into offices. One vendor, no hassle. 500+ companies trust us to handle their employee wellness.'
+                a: 'We bring wellness into the workplace. Massage, headshots, beauty, and more. We handle everything on site. One vendor. No extra work for you. If it\'s useful, we can talk for 10 minutes before or after your session.'
               }
             ].map((faq, idx) => (
               <div key={idx} className="faq-item rounded-3xl p-8" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0, 55, 86, 0.1)' }}>
