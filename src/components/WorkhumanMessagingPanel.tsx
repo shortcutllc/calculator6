@@ -9,6 +9,16 @@ import {
   fillTemplate, workhumanDmUrl, slugFromLandingUrl, Template,
 } from '../utils/workhumanOutreachTemplates';
 import { logOutreach, fetchOutreachLogForLead } from '../services/WorkhumanLeadService';
+import { useAuth } from '../contexts/AuthContext';
+
+// Map logged-in user email → sender name so emails get attributed to
+// the right person automatically (no manual dropdown required).
+const EMAIL_TO_SENDER: Record<string, SenderName> = {
+  'will@getshortcut.co': 'Will Newton',
+  'jaimie@getshortcut.co': 'Jaimie Pritchard',
+  'marc@getshortcut.co': 'Marc Levitan',
+  'caren@getshortcut.co': 'Caren Skutch',
+};
 
 const CHANNEL_ICONS: Record<OutreachChannel, React.ReactNode> = {
   workhuman_dm: <MessageSquare size={13} />,
@@ -39,9 +49,21 @@ function sanitizeSlug(company: string): string {
 }
 
 export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
+  const { user } = useAuth();
+  const authedSender: SenderName | null = useMemo(() => {
+    const email = user?.email?.toLowerCase() || '';
+    return EMAIL_TO_SENDER[email] || null;
+  }, [user]);
+
   const [senderName, setSenderName] = useState<SenderName>(() => {
-    return (localStorage.getItem('workhuman_sender_name') as SenderName) || SENDER_NAMES[0];
+    // Clean up legacy key from the old system
+    localStorage.removeItem('workhuman_sender_name');
+    // Priority: explicit override in localStorage > auth user > fallback to Will
+    const stored = localStorage.getItem('workhuman_sender_name_override') as SenderName | null;
+    if (stored && SENDER_NAMES.includes(stored)) return stored;
+    return SENDER_NAMES[0];
   });
+  const [manualOverride, setManualOverride] = useState<boolean>(() => !!localStorage.getItem('workhuman_sender_name_override'));
   const [activeTab, setActiveTab] = useState<TabId>('whdm_a');
   const [subjectIdx, setSubjectIdx] = useState(0);
   const [customBody, setCustomBody] = useState<string>('');
@@ -72,10 +94,26 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
     ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(lead.name + (lead.company ? ' ' + lead.company : ''))}`
     : null;
 
-  // Persist sender choice
+  // Sync senderName to auth user unless there's a manual override
   useEffect(() => {
-    localStorage.setItem('workhuman_sender_name', senderName);
-  }, [senderName]);
+    if (!manualOverride && authedSender) {
+      setSenderName(authedSender);
+    }
+  }, [authedSender, manualOverride]);
+
+  // Persist override (only when user explicitly picks a different sender)
+  useEffect(() => {
+    if (manualOverride) {
+      localStorage.setItem('workhuman_sender_name_override', senderName);
+    }
+  }, [senderName, manualOverride]);
+
+  // Clear override: revert to auth-derived sender
+  const clearOverride = () => {
+    localStorage.removeItem('workhuman_sender_name_override');
+    setManualOverride(false);
+    if (authedSender) setSenderName(authedSender);
+  };
 
   // Reset custom body when switching tabs
   useEffect(() => {
@@ -117,18 +155,33 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
       {/* Header row: sender dropdown + history toggle */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2 flex-1 flex-wrap">
           <MessageSquare size={15} className="text-amber-600" />
           <span className="font-medium text-gray-700 text-sm">Outreach</span>
           <span className="text-gray-300">•</span>
           <label className="text-xs text-gray-500">From:</label>
           <select
             value={senderName}
-            onChange={e => setSenderName(e.target.value as SenderName)}
-            className="text-sm border border-gray-200 rounded px-2 py-1 bg-white"
+            onChange={e => { setSenderName(e.target.value as SenderName); setManualOverride(true); }}
+            className={`text-sm border rounded px-2 py-1 bg-white ${manualOverride ? 'border-amber-400' : 'border-gray-200'}`}
+            title={manualOverride ? 'Manual override — click reset to use your logged-in identity' : `Auto-set to logged-in user (${user?.email || 'unknown'})`}
           >
             {SENDER_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
+          {manualOverride && (
+            <button
+              onClick={clearOverride}
+              className="text-[11px] text-amber-700 hover:text-amber-900 underline"
+              title="Reset to logged-in user"
+            >
+              reset
+            </button>
+          )}
+          {!authedSender && user?.email && (
+            <span className="text-[11px] text-red-500" title={`${user.email} isn't mapped to a sender. Using fallback.`}>
+              ⚠ unmapped
+            </span>
+          )}
         </div>
         <button
           onClick={() => setShowHistory(!showHistory)}
