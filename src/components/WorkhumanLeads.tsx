@@ -3,9 +3,9 @@ import {
   Upload, Search, ChevronDown, ChevronUp, Target, Users,
   Star, Mail, MessageSquare, Calendar, Trash2, X, FileDown,
   AlertCircle, CheckCircle, Clock, UserCheck, ExternalLink, Copy,
-  Sparkles, Loader2, RefreshCw
+  Sparkles, Loader2, RefreshCw, Linkedin
 } from 'lucide-react';
-import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay } from '../types/workhumanLead';
+import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay, OutreachChannel } from '../types/workhumanLead';
 import {
   parseCSV,
   bulkInsertLeads,
@@ -17,7 +17,9 @@ import {
   deleteLead,
   createLandingPageForLead,
   bulkCreateLandingPages,
+  fetchOutreachChannelsByLead,
 } from '../services/WorkhumanLeadService';
+import { WorkhumanMessagingPanel } from './WorkhumanMessagingPanel';
 import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 import { WorkhumanLeadCSVRow } from '../types/workhumanLead';
 
@@ -82,6 +84,7 @@ const WorkhumanLeads: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [creatingPageIds, setCreatingPageIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [outreachChannelsByLead, setOutreachChannelsByLead] = useState<Record<string, Set<OutreachChannel>>>({});
 
   // --- Data loading ---
 
@@ -95,6 +98,11 @@ const WorkhumanLeads: React.FC = () => {
   useEffect(() => {
     loadLeads();
   }, [loadLeads]);
+
+  // Load outreach channel summary for badges on each row
+  useEffect(() => {
+    fetchOutreachChannelsByLead().then(setOutreachChannelsByLead);
+  }, [leads.length]);
 
   // --- Computed values ---
 
@@ -458,6 +466,7 @@ const WorkhumanLeads: React.FC = () => {
                     <SortableHeader label="Tier" field="tier" currentField={sortField} direction={sortDir} onClick={toggleSort} align="center" />
                     <th className="text-center px-4 py-3 font-medium text-gray-500">Status</th>
                     <th className="text-center px-4 py-3 font-medium text-gray-500">VIP Slot</th>
+                    <th className="text-center px-2 py-3 font-medium text-gray-500" title="Outreach channels used">Sent</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -563,6 +572,21 @@ const WorkhumanLeads: React.FC = () => {
                         <td className="px-4 py-3 text-center text-xs text-gray-500">
                           {lead.vip_slot_day ? DAY_LABELS[lead.vip_slot_day] : '—'}
                         </td>
+                        <td className="px-2 py-3 text-center">
+                          <div className="inline-flex items-center gap-1 text-gray-400">
+                            {(outreachChannelsByLead[lead.id] || new Set()).has('workhuman_dm') && (
+                              <span title="Workhuman DM sent" className="text-[#1b3a5c]"><MessageSquare size={12} /></span>
+                            )}
+                            {((outreachChannelsByLead[lead.id] || new Set()).has('linkedin_connect') ||
+                              (outreachChannelsByLead[lead.id] || new Set()).has('linkedin_dm')) && (
+                              <span title="LinkedIn outreach" className="text-[#0a66c2]"><Linkedin size={12} /></span>
+                            )}
+                            {(outreachChannelsByLead[lead.id] || new Set()).has('email') && (
+                              <span title="Email sent" className="text-amber-600"><Mail size={12} /></span>
+                            )}
+                            {!outreachChannelsByLead[lead.id]?.size && <span className="text-gray-300">—</span>}
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           {expandedId === lead.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                         </td>
@@ -571,7 +595,7 @@ const WorkhumanLeads: React.FC = () => {
                       {/* Expanded detail row */}
                       {expandedId === lead.id && (
                         <tr>
-                          <td colSpan={11} className="bg-gray-50/70 px-6 py-4">
+                          <td colSpan={12} className="bg-gray-50/70 px-6 py-4">
                             <ExpandedLeadRow
                               lead={lead}
                               onVipSlot={handleVipSlot}
@@ -868,6 +892,11 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, isCreatingP
             )}
           </div>
         </div>
+      </div>
+
+      {/* Messaging panel */}
+      <div className="md:col-span-3 pt-2 border-t border-gray-200">
+        <WorkhumanMessagingPanel lead={lead} />
       </div>
     </div>
   );

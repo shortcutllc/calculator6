@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import { WorkhumanLead, WorkhumanLeadCSVRow, OutreachStatus, LeadTier, VipSlotDay } from '../types/workhumanLead';
+import { WorkhumanLead, WorkhumanLeadCSVRow, OutreachStatus, LeadTier, VipSlotDay, LeadOutreachLog, OutreachChannel } from '../types/workhumanLead';
 import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 
 // --- CSV Parsing ---
@@ -327,6 +327,65 @@ export async function createLandingPageForLead(
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
+}
+
+// --- Outreach Log ---
+
+/**
+ * Log that an outreach message was sent to a lead on a given channel.
+ */
+export async function logOutreach(args: {
+  leadId: string;
+  channel: OutreachChannel;
+  templateId: string;
+  senderName: string;
+  messagePreview: string;
+}): Promise<boolean> {
+  const { error } = await supabase.from('lead_outreach_log').insert({
+    lead_id: args.leadId,
+    channel: args.channel,
+    template_id: args.templateId,
+    sender_name: args.senderName,
+    message_preview: args.messagePreview.substring(0, 500),
+  });
+  if (error) {
+    console.error('Failed to log outreach:', error);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Fetch all outreach log entries for a single lead, newest first.
+ */
+export async function fetchOutreachLogForLead(leadId: string): Promise<LeadOutreachLog[]> {
+  const { data, error } = await supabase
+    .from('lead_outreach_log')
+    .select('*')
+    .eq('lead_id', leadId)
+    .order('sent_at', { ascending: false });
+  if (error) {
+    console.error('Failed to fetch outreach log:', error);
+    return [];
+  }
+  return data || [];
+}
+
+/**
+ * Fetch a summary of which channels have been used for each lead.
+ * Returns a map of leadId → set of channels.
+ */
+export async function fetchOutreachChannelsByLead(): Promise<Record<string, Set<OutreachChannel>>> {
+  const { data, error } = await supabase
+    .from('lead_outreach_log')
+    .select('lead_id, channel');
+  if (error || !data) return {};
+  const result: Record<string, Set<OutreachChannel>> = {};
+  for (const row of data) {
+    if (!result[row.lead_id]) result[row.lead_id] = new Set();
+    result[row.lead_id].add(row.channel as OutreachChannel);
+  }
+  return result;
 }
 
 /**

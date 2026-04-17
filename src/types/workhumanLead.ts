@@ -40,8 +40,22 @@ export interface WorkhumanLead {
   logo_source: string | null;
   page_view_count: number | null;
   page_last_viewed_at: string | null;
+  workhuman_attendee_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type OutreachChannel = 'workhuman_dm' | 'linkedin_connect' | 'linkedin_dm' | 'email';
+
+export interface LeadOutreachLog {
+  id: string;
+  lead_id: string;
+  channel: OutreachChannel;
+  template_id: string | null;
+  sender_name: string;
+  message_preview: string | null;
+  sent_at: string;
+  created_at: string;
 }
 
 export interface WorkhumanLeadCSVRow {
