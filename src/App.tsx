@@ -16,6 +16,7 @@ import PhotographerEventManager from './components/PhotographerEventManager';
 import { HeadshotsPage } from './components/HeadshotsPage';
 import { CustomUrlResolver } from './components/CustomUrlResolver';
 import { SlugResolver } from './components/SlugResolver';
+import { WorkhumanSlugResolver } from './components/WorkhumanSlugResolver';
 import { ProposalProvider } from './contexts/ProposalContext';
 import { HolidayPageProvider } from './contexts/HolidayPageContext';
 import { SocialMediaPageProvider } from './contexts/SocialMediaPageContext';
@@ -89,6 +90,7 @@ function App() {
     location.pathname === '/195-nassau' ||
     location.pathname === '/lower-pyne' ||
     location.pathname.startsWith('/p/') ||
+    location.pathname.startsWith('/r/') ||
     location.pathname.startsWith('/sign/') ||
     location.pathname === '/workhuman-tv' ||
     location.pathname.startsWith('/workhuman/recharge');
@@ -195,6 +197,10 @@ function App() {
               <Route
                 path="/p/:slug"
                 element={<SlugResolver />}
+              />
+              <Route
+                path="/r/:slug"
+                element={<WorkhumanSlugResolver />}
               />
               <Route
                 path="/shared/:id"

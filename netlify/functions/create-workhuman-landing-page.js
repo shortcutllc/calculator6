@@ -28,6 +28,7 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const WORKHUMAN_USER_ID = process.env.WORKHUMAN_LANDING_PAGE_USER_ID || '42c7eb9e-7ab1-4ba4-bfc7-f23d367d4884';
 const PUBLIC_BASE_URL = 'https://proposals.getshortcut.co/workhuman/recharge';
+const SHORT_BASE_URL = 'https://proposals.getshortcut.co/r';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -283,14 +284,15 @@ export const handler = async (event) => {
       return { statusCode: 500, headers: cors, body: JSON.stringify({ error: pageErr.message }) };
     }
 
-    const url = `${PUBLIC_BASE_URL}/${uniqueToken}`;
+    const longUrl = `${PUBLIC_BASE_URL}/${uniqueToken}`;
+    const shortUrl = pageData.slug ? `${SHORT_BASE_URL}/${pageData.slug}` : longUrl;
 
-    // 3. Update workhuman_leads if leadId provided
+    // 3. Update workhuman_leads if leadId provided (store the short URL as primary)
     if (leadId) {
       const { error: updErr } = await supabase
         .from('workhuman_leads')
         .update({
-          landing_page_url: url,
+          landing_page_url: shortUrl,
           landing_page_id: pageData.id,
           logo_url: logo.url,
           logo_source: `${logo.source || 'unknown'}${logo.method ? '/' + logo.method : ''}`,
@@ -306,7 +308,9 @@ export const handler = async (event) => {
         success: true,
         pageId: pageData.id,
         pageToken: uniqueToken,
-        url,
+        slug: pageData.slug,
+        url: shortUrl,
+        longUrl,
         logoUrl: logo.url,
         logoSource: logo.source,
         logoMethod: logo.method,
