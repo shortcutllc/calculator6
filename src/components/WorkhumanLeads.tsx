@@ -74,7 +74,9 @@ const WorkhumanLeads: React.FC = () => {
   const [tierFilter, setTierFilter] = useState<'all' | LeadTier>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | OutreachStatus>('all');
   const [industryFilter, setIndustryFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<'score' | 'company_size' | 'name'>('score');
+  const [landingPageFilter, setLandingPageFilter] = useState<'all' | 'has' | 'missing'>('all');
+  const [sortField, setSortField] = useState<'name' | 'company' | 'title' | 'company_size_normalized' | 'lead_score' | 'tier'>('lead_score');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCSVModal, setShowCSVModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -138,16 +140,43 @@ const WorkhumanLeads: React.FC = () => {
       result = result.filter(l => l.industry === industryFilter);
     }
 
-    if (sortBy === 'score') {
-      result = [...result].sort((a, b) => b.lead_score - a.lead_score);
-    } else if (sortBy === 'company_size') {
-      result = [...result].sort((a, b) => (b.company_size_normalized || 0) - (a.company_size_normalized || 0));
-    } else if (sortBy === 'name') {
-      result = [...result].sort((a, b) => a.name.localeCompare(b.name));
+    if (landingPageFilter === 'has') {
+      result = result.filter(l => !!l.landing_page_url);
+    } else if (landingPageFilter === 'missing') {
+      result = result.filter(l => !l.landing_page_url);
     }
 
+    // Sort
+    const tierRank = { tier_1: 3, tier_2: 2, tier_3: 1 } as const;
+    const multi = sortDir === 'asc' ? 1 : -1;
+    result = [...result].sort((a, b) => {
+      let av: number | string;
+      let bv: number | string;
+      switch (sortField) {
+        case 'name':                  av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
+        case 'company':               av = (a.company || '').toLowerCase(); bv = (b.company || '').toLowerCase(); break;
+        case 'title':                 av = (a.title || '').toLowerCase(); bv = (b.title || '').toLowerCase(); break;
+        case 'company_size_normalized': av = a.company_size_normalized || 0; bv = b.company_size_normalized || 0; break;
+        case 'tier':                  av = tierRank[a.tier]; bv = tierRank[b.tier]; break;
+        case 'lead_score':
+        default:                      av = a.lead_score; bv = b.lead_score; break;
+      }
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * multi;
+      return String(av).localeCompare(String(bv)) * multi;
+    });
+
     return result;
-  }, [leads, searchTerm, tierFilter, statusFilter, industryFilter, sortBy]);
+  }, [leads, searchTerm, tierFilter, statusFilter, industryFilter, landingPageFilter, sortField, sortDir]);
+
+  const toggleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      // Default direction per field
+      setSortDir(field === 'name' || field === 'company' || field === 'title' ? 'asc' : 'desc');
+    }
+  };
 
   // --- Actions ---
 
@@ -345,13 +374,13 @@ const WorkhumanLeads: React.FC = () => {
             </select>
 
             <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as 'score' | 'company_size' | 'name')}
+              value={landingPageFilter}
+              onChange={e => setLandingPageFilter(e.target.value as 'all' | 'has' | 'missing')}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
             >
-              <option value="score">Sort: Score</option>
-              <option value="company_size">Sort: Company Size</option>
-              <option value="name">Sort: Name</option>
+              <option value="all">All Landing Pages</option>
+              <option value="has">Has Landing Page</option>
+              <option value="missing">Missing Landing Page</option>
             </select>
           </div>
         </div>
@@ -419,15 +448,15 @@ const WorkhumanLeads: React.FC = () => {
                         className="rounded border-gray-300 cursor-pointer"
                       />
                     </th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Name / Email</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Company</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Title</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Size</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-500">Score</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-500">Tier</th>
+                    <SortableHeader label="Name / Email" field="name" currentField={sortField} direction={sortDir} onClick={toggleSort} align="left" />
+                    <SortableHeader label="Company" field="company" currentField={sortField} direction={sortDir} onClick={toggleSort} align="left" />
+                    <th className="text-center px-4 py-3 font-medium text-gray-500">Landing Page</th>
+                    <SortableHeader label="Title" field="title" currentField={sortField} direction={sortDir} onClick={toggleSort} align="left" />
+                    <SortableHeader label="Size" field="company_size_normalized" currentField={sortField} direction={sortDir} onClick={toggleSort} align="left" />
+                    <SortableHeader label="Score" field="lead_score" currentField={sortField} direction={sortDir} onClick={toggleSort} align="center" />
+                    <SortableHeader label="Tier" field="tier" currentField={sortField} direction={sortDir} onClick={toggleSort} align="center" />
                     <th className="text-center px-4 py-3 font-medium text-gray-500">Status</th>
                     <th className="text-center px-4 py-3 font-medium text-gray-500">VIP Slot</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-500">Landing Page</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -451,6 +480,42 @@ const WorkhumanLeads: React.FC = () => {
                           <div className="text-gray-400 text-xs">{lead.email?.includes('@no-email.placeholder') ? '' : lead.email}</div>
                         </td>
                         <td className="px-4 py-3 text-gray-700">{lead.company || '—'}</td>
+                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
+                          {lead.landing_page_url ? (
+                            <div className="inline-flex items-center gap-1">
+                              <a
+                                href={lead.landing_page_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 text-xs"
+                                title={lead.landing_page_url}
+                              >
+                                <ExternalLink size={12} />
+                                Open
+                              </a>
+                              <button
+                                onClick={() => copyToClipboard(lead.landing_page_url!)}
+                                className="text-gray-400 hover:text-gray-600 p-1"
+                                title="Copy URL"
+                              >
+                                <Copy size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleCreateLandingPage(lead)}
+                              disabled={creatingPageIds.has(lead.id) || !lead.company}
+                              className="text-xs bg-amber-100 hover:bg-amber-200 disabled:bg-gray-100 disabled:text-gray-400 text-amber-800 font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1 transition-colors"
+                              title={!lead.company ? 'Company name required' : 'Create landing page'}
+                            >
+                              {creatingPageIds.has(lead.id) ? (
+                                <><Loader2 size={11} className="animate-spin" /> Creating</>
+                              ) : (
+                                <><Sparkles size={11} /> Create</>
+                              )}
+                            </button>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate">{lead.title || '—'}</td>
                         <td className="px-4 py-3 text-gray-700">
                           {lead.company_size_normalized ? lead.company_size_normalized.toLocaleString() : '—'}
@@ -487,42 +552,6 @@ const WorkhumanLeads: React.FC = () => {
                         </td>
                         <td className="px-4 py-3 text-center text-xs text-gray-500">
                           {lead.vip_slot_day ? DAY_LABELS[lead.vip_slot_day] : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
-                          {lead.landing_page_url ? (
-                            <div className="inline-flex items-center gap-1">
-                              <a
-                                href={lead.landing_page_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 text-xs"
-                                title={lead.landing_page_url}
-                              >
-                                <ExternalLink size={12} />
-                                Open
-                              </a>
-                              <button
-                                onClick={() => copyToClipboard(lead.landing_page_url!)}
-                                className="text-gray-400 hover:text-gray-600 p-1"
-                                title="Copy URL"
-                              >
-                                <Copy size={12} />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleCreateLandingPage(lead)}
-                              disabled={creatingPageIds.has(lead.id) || !lead.company}
-                              className="text-xs bg-amber-100 hover:bg-amber-200 disabled:bg-gray-100 disabled:text-gray-400 text-amber-800 font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1 transition-colors"
-                              title={!lead.company ? 'Company name required' : 'Create landing page'}
-                            >
-                              {creatingPageIds.has(lead.id) ? (
-                                <><Loader2 size={11} className="animate-spin" /> Creating</>
-                              ) : (
-                                <><Sparkles size={11} /> Create</>
-                              )}
-                            </button>
-                          )}
                         </td>
                         <td className="px-4 py-3">
                           {expandedId === lead.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
@@ -589,6 +618,31 @@ const WorkhumanLeads: React.FC = () => {
 };
 
 // --- Sub-components ---
+
+function SortableHeader<F extends string>({ label, field, currentField, direction, onClick, align = 'left' }: {
+  label: string;
+  field: F;
+  currentField: F;
+  direction: 'asc' | 'desc';
+  onClick: (field: F) => void;
+  align?: 'left' | 'center' | 'right';
+}) {
+  const isActive = currentField === field;
+  const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
+  return (
+    <th className={`${alignClass} px-4 py-3 font-medium text-gray-500`}>
+      <button
+        onClick={() => onClick(field)}
+        className={`inline-flex items-center gap-1 ${alignClass} hover:text-gray-800 transition-colors ${isActive ? 'text-gray-800' : ''}`}
+      >
+        {label}
+        <span className={`text-[10px] ${isActive ? 'text-amber-600' : 'text-gray-300'}`}>
+          {isActive ? (direction === 'asc' ? '▲' : '▼') : '▲▼'}
+        </span>
+      </button>
+    </th>
+  );
+}
 
 function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
   return (
