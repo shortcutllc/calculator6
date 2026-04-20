@@ -619,7 +619,7 @@ const WorkhumanLeads: React.FC = () => {
                             </button>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate">{lead.title || '—'}</td>
+                        <td className="px-4 py-3 text-gray-700 min-w-[260px]">{lead.title || '—'}</td>
                         <td className="px-4 py-3 text-gray-700">
                           {lead.company_size_normalized ? lead.company_size_normalized.toLocaleString() : '—'}
                         </td>
