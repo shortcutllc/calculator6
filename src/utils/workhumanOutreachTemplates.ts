@@ -39,7 +39,7 @@ export const WORKHUMAN_DM: Template = {
 
 {sender_name} here from Shortcut. We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman, offering free 15-minute sessions between talks.
 
-I'm holding a few spots before sign-ups open on Sunday and would be happy to reserve one for you. Just send me your email, and I'll share the booking link. I'd also love to connect and chat about wellness at {company} while we're there.
+I'm holding a few spots before sign-ups open on Sunday and would be happy to reserve one for you. Just send me your email, and I'll share a link to reserve your spot. I'd also love to connect and chat about wellness at {company} while we're there.
 
 See you in Orlando!`,
 };
@@ -75,7 +75,7 @@ Hope to see you there!`,
 
 /**
  * Short email sent after a Workhuman DM reply where the lead shares their
- * email. Just delivers the reservation link — the DM already did the selling.
+ * email. Just delivers the link to reserve their spot — the DM already did the selling.
  */
 export const DM_REPLY_FOLLOWUP_EMAIL: EmailTemplate = {
   id: 'dm_reply_followup_email',
@@ -83,9 +83,9 @@ export const DM_REPLY_FOLLOWUP_EMAIL: EmailTemplate = {
   label: 'DM Reply → Email Follow-up',
   description: 'Send after a Workhuman DM reply with their email. Short, just the link.',
   subjectLines: [
-    'Your Workhuman massage spot — reservation link',
+    'Your Workhuman massage spot — link to reserve',
     '{first_name}, here\'s the link for {company}',
-    'Reservation link for your Workhuman massage',
+    'Link to reserve your Workhuman massage spot',
   ],
   body: `Hey {first_name},
 
