@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -10,6 +10,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 export const WorkhumanSlugResolver = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -32,11 +33,17 @@ export const WorkhumanSlugResolver = () => {
         return;
       }
 
-      navigate(`/workhuman/recharge/${data.unique_token}`, { replace: true });
+      // Preserve query params (e.g. ?lead={uuid}) through the redirect so
+      // the landing page can prefill the form AND attribute the confirmation
+      // email to the right assignee.
+      navigate(
+        `/workhuman/recharge/${data.unique_token}${location.search}${location.hash}`,
+        { replace: true }
+      );
     };
 
     resolve();
-  }, [slug, navigate]);
+  }, [slug, navigate, location.search, location.hash]);
 
   if (notFound) {
     return (
