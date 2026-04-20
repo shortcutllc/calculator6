@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { WorkhumanLead, LeadOutreachLog, OutreachChannel } from '../types/workhumanLead';
 import {
-  WORKHUMAN_DM_A, WORKHUMAN_DM_B, LINKEDIN_CONNECT, LINKEDIN_DM_AFTER_ACCEPT,
+  WORKHUMAN_DM, LINKEDIN_CONNECT, LINKEDIN_DM_AFTER_ACCEPT,
   DM_REPLY_FOLLOWUP_EMAIL, COLD_EMAIL, EMAIL_SUBJECT_LINES, SENDER_NAMES, SenderName,
   fillTemplate, workhumanDmUrl, slugFromLandingUrl, Template,
 } from '../utils/workhumanOutreachTemplates';
@@ -34,11 +34,10 @@ const CHANNEL_LABELS: Record<OutreachChannel, string> = {
   email: 'Email',
 };
 
-type TabId = 'whdm_a' | 'whdm_b' | 'li_connect' | 'li_dm' | 'dm_reply_email' | 'email_body';
+type TabId = 'whdm' | 'li_connect' | 'li_dm' | 'dm_reply_email' | 'email_body';
 
 const TABS: Array<{ id: TabId; label: string; template: Template; channel: OutreachChannel }> = [
-  { id: 'whdm_a', label: 'WH DM (A)', template: WORKHUMAN_DM_A, channel: 'workhuman_dm' },
-  { id: 'whdm_b', label: 'WH DM (B)', template: WORKHUMAN_DM_B, channel: 'workhuman_dm' },
+  { id: 'whdm', label: 'WH DM', template: WORKHUMAN_DM, channel: 'workhuman_dm' },
   { id: 'li_connect', label: 'LI Connect', template: LINKEDIN_CONNECT, channel: 'linkedin_connect' },
   { id: 'li_dm', label: 'LI DM', template: LINKEDIN_DM_AFTER_ACCEPT, channel: 'linkedin_dm' },
   { id: 'dm_reply_email', label: 'DM Reply → Email', template: DM_REPLY_FOLLOWUP_EMAIL, channel: 'email' },
@@ -65,7 +64,7 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
     return SENDER_NAMES[0];
   });
   const [manualOverride, setManualOverride] = useState<boolean>(() => !!localStorage.getItem('workhuman_sender_name_override'));
-  const [activeTab, setActiveTab] = useState<TabId>('whdm_a');
+  const [activeTab, setActiveTab] = useState<TabId>('whdm');
   const [subjectIdx, setSubjectIdx] = useState(0);
   const [customBody, setCustomBody] = useState<string>('');
   const [useCustomBody, setUseCustomBody] = useState(false);

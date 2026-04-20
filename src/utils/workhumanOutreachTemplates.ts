@@ -29,26 +29,11 @@ export interface EmailTemplate extends Template {
   subjectLines: string[];
 }
 
-export const WORKHUMAN_DM_A: Template = {
-  id: 'whdm_a',
+export const WORKHUMAN_DM: Template = {
+  id: 'whdm',
   channel: 'workhuman_dm',
-  label: 'Workhuman DM — Version A',
-  description: 'Standard outreach. Workhuman DMs strip links, so we ask for their email.',
-  charLimit: 500,
-  body: `Hey {first_name}!
-
-{sender_name} from Shortcut here. We're hosting the complimentary massage lounge in the Gratitude Garden at Workhuman — free 15-minute sessions between talks.
-
-Holding spots before sign-ups go live Sunday and would love to reserve one for you. Shoot me your email and I'll send the link — and would love to chat about wellness at {company} while we're all there.
-
-See you in Orlando!`,
-};
-
-export const WORKHUMAN_DM_B: Template = {
-  id: 'whdm_b',
-  channel: 'workhuman_dm',
-  label: 'Workhuman DM — Version B',
-  description: 'Higher-priority accounts — slightly longer, warmer close.',
+  label: 'Workhuman DM',
+  description: 'Workhuman DMs strip links, so we ask for their email and follow up via email.',
   charLimit: 500,
   body: `Hey {first_name}!
 
@@ -139,8 +124,7 @@ Shortcut | getshortcut.co`,
 };
 
 export const ALL_TEMPLATES: Template[] = [
-  WORKHUMAN_DM_A,
-  WORKHUMAN_DM_B,
+  WORKHUMAN_DM,
   LINKEDIN_CONNECT,
   LINKEDIN_DM_AFTER_ACCEPT,
   DM_REPLY_FOLLOWUP_EMAIL,
