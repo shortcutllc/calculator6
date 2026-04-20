@@ -52,7 +52,7 @@ export const LINKEDIN_CONNECT: Template = {
   charLimit: 300,
   body: `Hey {first_name}!
 
-{sender_name} from Shortcut here. We bring on-site massage, headshots, beauty and more to workplaces. Running the massage lounge at Workhuman next week — would love to connect!`,
+{sender_name} from Shortcut here. We bring on-site massage, headshots, beauty and more to workplaces. We're running the massage lounge at Workhuman next week — would love to connect!`,
 };
 
 export const LINKEDIN_DM_AFTER_ACCEPT: Template = {
