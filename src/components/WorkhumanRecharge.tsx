@@ -330,6 +330,10 @@ const WorkhumanRecharge: React.FC = () => {
           currentWellness,
           preferredDay,
           openToChat,
+          // Pass the landing page's lead UUID so the backend can attribute
+          // the confirmation email to the right assignee even if the form
+          // email differs from the lead's stored email.
+          leadId: leadIdParam || null,
         }),
       });
 

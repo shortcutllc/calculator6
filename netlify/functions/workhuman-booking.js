@@ -179,7 +179,7 @@ export const handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     const {
       firstName, lastName, email, company, title, employeeCount,
-      currentWellness, preferredDay, openToChat, landingPageId,
+      currentWellness, preferredDay, openToChat, landingPageId, leadId: leadIdFromUrl,
     } = body;
 
     if (!firstName || !lastName || !email) {
@@ -196,12 +196,27 @@ export const handler = async (event) => {
 
     const name = `${firstName} ${lastName}`.trim();
 
-    // Look up existing lead by email to grab id, landing page, and who owns it
-    const { data: existing } = await supabase
-      .from('workhuman_leads')
-      .select('id, landing_page_url, landing_page_id, assigned_to')
-      .eq('email', email)
-      .maybeSingle();
+    // Look up the lead. Prefer UUID from the landing page URL (trusted source
+    // of truth for WHICH lead is booking) and fall back to email match.
+    // This guarantees the right assignee owns the confirmation email even
+    // when the form email differs from the stored lead email.
+    let existing = null;
+    if (leadIdFromUrl && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadIdFromUrl)) {
+      const { data } = await supabase
+        .from('workhuman_leads')
+        .select('id, landing_page_url, landing_page_id, assigned_to, email')
+        .eq('id', leadIdFromUrl)
+        .maybeSingle();
+      if (data) existing = data;
+    }
+    if (!existing) {
+      const { data } = await supabase
+        .from('workhuman_leads')
+        .select('id, landing_page_url, landing_page_id, assigned_to, email')
+        .eq('email', email)
+        .maybeSingle();
+      if (data) existing = data;
+    }
 
     // Map day string → vip_slot_day for CRM column (day_1 / day_2 / day_3)
     const dayMap = {
@@ -222,8 +237,10 @@ export const handler = async (event) => {
       `Employee count: ${employeeCount || 'n/a'}.`,
     ].join(' ');
 
-    // Upsert the lead — mark as responded / vip_booked
-    const upsertPayload = {
+    // Mark the lead as vip_booked. If we found them (by UUID or email), UPDATE
+    // by id so we don't duplicate rows when the form email differs from the
+    // stored lead email. Only upsert by email when we have no existing match.
+    const mutationPayload = {
       name,
       email,
       company: company || null,
@@ -235,16 +252,20 @@ export const handler = async (event) => {
     };
 
     let leadId = existing?.id || null;
-    const { data: upserted, error: upsertErr } = await supabase
-      .from('workhuman_leads')
-      .upsert(upsertPayload, { onConflict: 'email' })
-      .select('id')
-      .maybeSingle();
-
-    if (upsertErr) {
-      console.error('Lead upsert error:', upsertErr);
-    } else if (upserted?.id) {
-      leadId = upserted.id;
+    if (existing?.id) {
+      const { error: updateErr } = await supabase
+        .from('workhuman_leads')
+        .update(mutationPayload)
+        .eq('id', existing.id);
+      if (updateErr) console.error('Lead update error:', updateErr);
+    } else {
+      const { data: upserted, error: upsertErr } = await supabase
+        .from('workhuman_leads')
+        .upsert(mutationPayload, { onConflict: 'email' })
+        .select('id')
+        .maybeSingle();
+      if (upsertErr) console.error('Lead upsert error:', upsertErr);
+      else if (upserted?.id) leadId = upserted.id;
     }
 
     // Determine sender: assigned_to wins > last outreach sender > Will default.
