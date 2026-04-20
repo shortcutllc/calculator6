@@ -62,6 +62,7 @@ const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
 const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesigns'));
 const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
 const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
+const WorkhumanOutreachQueue = lazy(() => import('./components/WorkhumanOutreachQueue'));
 const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
 
 function App() {
@@ -462,6 +463,21 @@ function App() {
                       </div>
                     }>
                       <WorkhumanLeads />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              {/* Workhuman Rapid Outreach queue — one lead at a time */}
+              <Route
+                path="/workhuman-leads/outreach"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <WorkhumanOutreachQueue />
                     </Suspense>
                   </PrivateRoute>
                 }

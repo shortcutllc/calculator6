@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Upload, Search, ChevronDown, ChevronUp, Target, Users,
   Star, Mail, MessageSquare, Calendar, Trash2, X, FileDown,
   AlertCircle, CheckCircle, Clock, UserCheck, ExternalLink, Copy,
-  Sparkles, Loader2, RefreshCw, Linkedin
+  Sparkles, Loader2, RefreshCw, Linkedin, Zap
 } from 'lucide-react';
 import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay, OutreachChannel, AssigneeName, ASSIGNEE_NAMES } from '../types/workhumanLead';
 import {
@@ -386,6 +387,14 @@ const WorkhumanLeads: React.FC = () => {
         {/* Actions Bar */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
           <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/workhuman-leads/outreach"
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
+              title="Process your assigned Tier 1A leads one at a time"
+            >
+              <Zap size={16} />
+              Rapid Outreach
+            </Link>
             <button
               onClick={() => setShowCSVModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-[#09364f] text-white rounded-lg hover:bg-[#0a4060] transition-colors text-sm font-medium"
