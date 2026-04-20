@@ -5,7 +5,7 @@ import {
 import { WorkhumanLead, LeadOutreachLog, OutreachChannel } from '../types/workhumanLead';
 import {
   WORKHUMAN_DM_A, WORKHUMAN_DM_B, LINKEDIN_CONNECT, LINKEDIN_DM_AFTER_ACCEPT,
-  COLD_EMAIL, EMAIL_SUBJECT_LINES, SENDER_NAMES, SenderName,
+  DM_REPLY_FOLLOWUP_EMAIL, COLD_EMAIL, EMAIL_SUBJECT_LINES, SENDER_NAMES, SenderName,
   fillTemplate, workhumanDmUrl, slugFromLandingUrl, Template,
 } from '../utils/workhumanOutreachTemplates';
 import { logOutreach, fetchOutreachLogForLead } from '../services/WorkhumanLeadService';
@@ -34,14 +34,15 @@ const CHANNEL_LABELS: Record<OutreachChannel, string> = {
   email: 'Email',
 };
 
-type TabId = 'whdm_a' | 'whdm_b' | 'li_connect' | 'li_dm' | 'email_body';
+type TabId = 'whdm_a' | 'whdm_b' | 'li_connect' | 'li_dm' | 'dm_reply_email' | 'email_body';
 
 const TABS: Array<{ id: TabId; label: string; template: Template; channel: OutreachChannel }> = [
   { id: 'whdm_a', label: 'WH DM (A)', template: WORKHUMAN_DM_A, channel: 'workhuman_dm' },
   { id: 'whdm_b', label: 'WH DM (B)', template: WORKHUMAN_DM_B, channel: 'workhuman_dm' },
   { id: 'li_connect', label: 'LI Connect', template: LINKEDIN_CONNECT, channel: 'linkedin_connect' },
   { id: 'li_dm', label: 'LI DM', template: LINKEDIN_DM_AFTER_ACCEPT, channel: 'linkedin_dm' },
-  { id: 'email_body', label: 'Email', template: COLD_EMAIL, channel: 'email' },
+  { id: 'dm_reply_email', label: 'DM Reply → Email', template: DM_REPLY_FOLLOWUP_EMAIL, channel: 'email' },
+  { id: 'email_body', label: 'Cold Email', template: COLD_EMAIL, channel: 'email' },
 ];
 
 function sanitizeSlug(company: string): string {
@@ -91,7 +92,16 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
   }, [lead, senderName]);
 
   const filled = useMemo(() => fillTemplate(tab.template.body, vars), [tab, vars]);
-  const filledSubject = useMemo(() => fillTemplate(EMAIL_SUBJECT_LINES[subjectIdx], vars), [subjectIdx, vars]);
+  // Pick subject lines from the active template if it has them, else fall back
+  // to the standard cold-email rotation.
+  const activeSubjects = useMemo(() => {
+    const t = tab.template as { subjectLines?: string[] };
+    return t.subjectLines && t.subjectLines.length ? t.subjectLines : EMAIL_SUBJECT_LINES;
+  }, [tab]);
+  const filledSubject = useMemo(
+    () => fillTemplate(activeSubjects[subjectIdx % activeSubjects.length], vars),
+    [activeSubjects, subjectIdx, vars]
+  );
 
   const bodyToUse = useCustomBody && customBody ? customBody : filled;
   const charCount = bodyToUse.length;
@@ -123,10 +133,11 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
     if (authedSender) setSenderName(authedSender);
   };
 
-  // Reset custom body when switching tabs
+  // Reset custom body + subject index when switching tabs
   useEffect(() => {
     setCustomBody('');
     setUseCustomBody(false);
+    setSubjectIdx(0);
   }, [activeTab]);
 
   // Load history
@@ -277,7 +288,7 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
         <div className="space-y-1.5">
           <div className="text-xs font-medium text-gray-600">Subject (click to rotate, then copy):</div>
           <div className="flex flex-wrap gap-1">
-            {EMAIL_SUBJECT_LINES.map((line, i) => (
+            {activeSubjects.map((line, i) => (
               <button
                 key={i}
                 onClick={() => setSubjectIdx(i)}

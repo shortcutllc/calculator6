@@ -88,6 +88,30 @@ Would love to steal 10 minutes after your session to chat about wellness at {com
 Hope to see you there!`,
 };
 
+/**
+ * Short email sent after a Workhuman DM reply where the lead shares their
+ * email. Just delivers the reservation link — the DM already did the selling.
+ */
+export const DM_REPLY_FOLLOWUP_EMAIL: EmailTemplate = {
+  id: 'dm_reply_followup_email',
+  channel: 'email',
+  label: 'DM Reply → Email Follow-up',
+  description: 'Send after a Workhuman DM reply with their email. Short, just the link.',
+  subjectLines: [
+    'Your Workhuman massage spot — reservation link',
+    '{first_name}, here\'s the link for {company}',
+    'Reservation link for your Workhuman massage',
+  ],
+  body: `Hey {first_name},
+
+Here is the link to reserve your spot: {landing_page_url}
+
+See you in Orlando!
+
+{sender_name}
+Shortcut | getshortcut.co`,
+};
+
 export const EMAIL_SUBJECT_LINES = [
   '{first_name}, saved you a spot at Workhuman',
   'A little gift for the {company} team at Workhuman Live',
@@ -119,6 +143,7 @@ export const ALL_TEMPLATES: Template[] = [
   WORKHUMAN_DM_B,
   LINKEDIN_CONNECT,
   LINKEDIN_DM_AFTER_ACCEPT,
+  DM_REPLY_FOLLOWUP_EMAIL,
   COLD_EMAIL,
 ];
 
