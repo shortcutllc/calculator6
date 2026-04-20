@@ -30,6 +30,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import { testSupabaseConnection } from './lib/supabaseClient';
 import { Navigation } from './components/Navigation';
+import { useSidebarCollapsed } from './hooks/useSidebarCollapsed';
 import { config } from './config';
 import { LoadingSpinner } from './components/LoadingSpinner';
 
@@ -65,6 +66,7 @@ const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
 
 function App() {
   const location = useLocation();
+  const { collapsed: sidebarCollapsed } = useSidebarCollapsed();
   const isSharedView = location.pathname.startsWith('/shared/') || 
     (location.pathname.startsWith('/proposal/') && location.search.includes('shared=true')) ||
     location.pathname === '/brochure' ||
@@ -120,7 +122,7 @@ function App() {
         <HolidayPageProvider>
         <div className="min-h-screen flex flex-col bg-gray-100">
           {!isSharedView && <Navigation />}
-          <main className={`flex-1 overflow-y-auto ${!isSharedView ? 'md:ml-60 pt-14 md:pt-0' : ''}`}>
+          <main className={`flex-1 overflow-y-auto transition-[margin-left] duration-200 ${!isSharedView ? `${sidebarCollapsed ? 'md:ml-14' : 'md:ml-60'} pt-14 md:pt-0` : ''}`}>
             <Routes>
               <Route path={config.app.routes.login} element={<Login />} />
               <Route path={config.app.routes.register} element={<Register />} />

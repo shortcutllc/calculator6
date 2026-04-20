@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
-  ChevronDown, Clock, Plus, Users, Handshake, Gift, Smartphone,
+  ChevronDown, ChevronLeft, ChevronRight,
+  Clock, Plus, Users, Handshake, Gift, Smartphone,
   Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
+import { useSidebarCollapsed } from '../hooks/useSidebarCollapsed';
 
 interface NavItem {
   label: string;
@@ -96,6 +98,7 @@ export const Navigation: React.FC = () => {
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cleExpanded, setCleExpanded] = useState(false);
+  const { collapsed, toggle } = useSidebarCollapsed();
 
   const isMaster = isMasterAccount(user);
 
@@ -118,40 +121,77 @@ export const Navigation: React.FC = () => {
     setMobileOpen(false);
   };
 
-  const renderSidebarContent = () => (
+  const renderSidebarContent = (isCollapsed: boolean = false, showToggle: boolean = false) => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="px-5 py-5 border-b border-gray-100">
-        <button onClick={() => handleNav('/')} className="hover:opacity-80 transition-opacity">
-          <img src="/shortcut-logo-blue.svg" alt="Shortcut Logo" className="h-7 w-auto" />
+      {/* Logo + collapse toggle */}
+      <div className={`border-b border-gray-100 flex items-center ${isCollapsed ? 'justify-center px-2 py-5' : 'justify-between px-5 py-5'}`}>
+        <button
+          onClick={() => handleNav('/')}
+          className="hover:opacity-80 transition-opacity"
+          title="Home"
+        >
+          <img
+            src="/shortcut-logo-blue.svg"
+            alt="Shortcut Logo"
+            className={isCollapsed ? 'h-7 w-7 object-contain object-left' : 'h-7 w-auto'}
+            style={isCollapsed ? { objectPosition: 'left center' } : undefined}
+          />
         </button>
+        {showToggle && !isCollapsed && (
+          <button
+            onClick={toggle}
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
+            className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
       </div>
 
+      {/* Floating expand button when collapsed */}
+      {showToggle && isCollapsed && (
+        <div className="px-2 pt-2">
+          <button
+            onClick={toggle}
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
+            className="w-full flex items-center justify-center py-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Nav Sections */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+      <div className={`flex-1 overflow-y-auto py-4 space-y-5 ${isCollapsed ? 'px-2' : 'px-3'}`}>
         {NAV_SECTIONS.map((section) => {
           if (section.masterOnly && !isMaster) return null;
 
-          const isCollapsible = section.collapsible;
-          const isExpanded = !isCollapsible || cleExpanded;
+          const isCollapsibleSection = section.collapsible;
+          const isSectionExpanded = !isCollapsibleSection || cleExpanded;
 
           return (
             <div key={section.title}>
-              <button
-                onClick={isCollapsible ? () => setCleExpanded(!cleExpanded) : undefined}
-                className={`flex items-center gap-1 px-2 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 ${
-                  isCollapsible ? 'cursor-pointer hover:text-gray-600' : 'cursor-default'
-                }`}
-              >
-                {section.title}
-                {isCollapsible && (
-                  <ChevronDown
-                    size={12}
-                    className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                  />
-                )}
-              </button>
-              {isExpanded && (
+              {!isCollapsed && (
+                <button
+                  onClick={isCollapsibleSection ? () => setCleExpanded(!cleExpanded) : undefined}
+                  className={`flex items-center gap-1 px-2 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 ${
+                    isCollapsibleSection ? 'cursor-pointer hover:text-gray-600' : 'cursor-default'
+                  }`}
+                >
+                  {section.title}
+                  {isCollapsibleSection && (
+                    <ChevronDown
+                      size={12}
+                      className={`transition-transform ${isSectionExpanded ? 'rotate-180' : ''}`}
+                    />
+                  )}
+                </button>
+              )}
+              {/* Small top margin between sections when collapsed to separate icon groups */}
+              {isCollapsed && <div className="h-px bg-gray-100 mx-2 mb-2" />}
+              {(isCollapsed || isSectionExpanded) && (
                 <div className="space-y-0.5">
                   {section.items.map((item) => {
                     const active = isActive(item.path);
@@ -159,7 +199,11 @@ export const Navigation: React.FC = () => {
                       <button
                         key={item.path}
                         onClick={() => handleNav(item.path)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        title={isCollapsed ? item.label : undefined}
+                        aria-label={item.label}
+                        className={`w-full flex items-center rounded-lg text-sm font-medium transition-colors ${
+                          isCollapsed ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2'
+                        } ${
                           active
                             ? 'bg-shortcut-blue/10 text-shortcut-blue'
                             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -168,7 +212,7 @@ export const Navigation: React.FC = () => {
                         <span className={active ? 'text-shortcut-blue' : 'text-gray-400'}>
                           {item.icon}
                         </span>
-                        {item.label}
+                        {!isCollapsed && <span className="truncate">{item.label}</span>}
                       </button>
                     );
                   })}
@@ -181,14 +225,18 @@ export const Navigation: React.FC = () => {
 
       {/* Footer: User + Sign Out */}
       {user && (
-        <div className="border-t border-gray-100 px-4 py-4">
-          <p className="text-xs text-gray-400 truncate mb-3">{user.email}</p>
+        <div className={`border-t border-gray-100 ${isCollapsed ? 'px-2 py-3' : 'px-4 py-4'}`}>
+          {!isCollapsed && <p className="text-xs text-gray-400 truncate mb-3">{user.email}</p>}
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+            title={isCollapsed ? `Sign out (${user.email})` : undefined}
+            aria-label="Sign out"
+            className={`w-full flex items-center rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors ${
+              isCollapsed ? 'justify-center px-2 py-2' : 'gap-2 px-3 py-2'
+            }`}
           >
             <LogOut size={18} className="text-gray-400" />
-            Sign Out
+            {!isCollapsed && <span>Sign Out</span>}
           </button>
         </div>
       )}
@@ -200,8 +248,12 @@ export const Navigation: React.FC = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-60 bg-white border-r border-gray-200 z-[100]">
-        {renderSidebarContent()}
+      <aside
+        className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 bg-white border-r border-gray-200 z-[100] transition-[width] duration-200 ${
+          collapsed ? 'md:w-14' : 'md:w-60'
+        }`}
+      >
+        {renderSidebarContent(collapsed, true)}
       </aside>
 
       {/* Mobile: Top bar with hamburger */}
@@ -217,7 +269,7 @@ export const Navigation: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile: Sidebar overlay */}
+      {/* Mobile: Sidebar overlay (always full-width when open) */}
       {mobileOpen && (
         <>
           <div
@@ -225,7 +277,7 @@ export const Navigation: React.FC = () => {
             onClick={() => setMobileOpen(false)}
           />
           <aside className="md:hidden fixed inset-y-0 left-0 w-72 bg-white z-[150] shadow-xl">
-            {renderSidebarContent()}
+            {renderSidebarContent(false, false)}
           </aside>
         </>
       )}
