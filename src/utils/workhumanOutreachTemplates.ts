@@ -33,30 +33,30 @@ export const WORKHUMAN_DM_A: Template = {
   id: 'whdm_a',
   channel: 'workhuman_dm',
   label: 'Workhuman DM — Version A',
-  description: 'Standard outreach to all Tier 1 leads',
+  description: 'Standard outreach. Workhuman DMs strip links, so we ask for their email.',
   charLimit: 500,
   body: `Hey {first_name}!
 
-{sender_name} from Shortcut here. We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
+{sender_name} from Shortcut here. We're hosting the complimentary massage lounge in the Gratitude Garden at Workhuman — free 15-minute sessions between talks.
 
-We've helped BCG, DraftKings and Wix bring real wellness to their teams and would love to steal 10 minutes after your session to chat about wellness at {company}.
+Holding spots before sign-ups go live Sunday and would love to reserve one for you. Shoot me your email and I'll send the link — and would love to chat about wellness at {company} while we're all there.
 
-Hope to see you there!`,
+See you in Orlando!`,
 };
 
 export const WORKHUMAN_DM_B: Template = {
   id: 'whdm_b',
   channel: 'workhuman_dm',
   label: 'Workhuman DM — Version B',
-  description: 'Higher-priority accounts — stronger close',
+  description: 'Higher-priority accounts — slightly longer, warmer close.',
   charLimit: 500,
   body: `Hey {first_name}!
 
-{sender_name} from Shortcut here. We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
+{sender_name} here from Shortcut. We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman, offering free 15-minute sessions between talks.
 
-We've helped BCG, DraftKings and Wix bring real wellness to their teams and would love to steal 10 minutes after your session to chat about wellness at {company} and share what's been working.
+I'm holding a few spots before sign-ups open on Sunday and would be happy to reserve one for you. Just send me your email, and I'll share the booking link. I'd also love to connect and chat about wellness at {company} while we're there.
 
-Hope to see you there!`,
+See you in Orlando!`,
 };
 
 export const LINKEDIN_CONNECT: Template = {
