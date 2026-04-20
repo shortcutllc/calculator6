@@ -1105,7 +1105,7 @@ const WorkhumanRecharge: React.FC = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Preferred Time</label>
+                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Preferred Time for a massage</label>
                           <select
                             value={preferredDay}
                             onChange={(e) => setPreferredDay(e.target.value)}

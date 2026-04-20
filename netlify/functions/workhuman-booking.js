@@ -46,6 +46,25 @@ async function findLastOutreachSender(supabase, leadId) {
   return data?.[0]?.sender_name || null;
 }
 
+/**
+ * Pick the sender for the confirmation email.
+ * Priority:
+ *   1. lead.assigned_to — the teammate who owns this Tier 1A lead
+ *   2. Last person who DMed/emailed them in lead_outreach_log
+ *   3. Will Newton (fallback)
+ * Always returns a { name, email, source } object; never null.
+ */
+async function pickSender(supabase, leadId, assignedTo) {
+  if (assignedTo && SENDER_EMAILS[assignedTo]) {
+    return { name: assignedTo, email: SENDER_EMAILS[assignedTo], source: 'assigned_to' };
+  }
+  const lastSender = await findLastOutreachSender(supabase, leadId);
+  if (lastSender && SENDER_EMAILS[lastSender]) {
+    return { name: lastSender, email: SENDER_EMAILS[lastSender], source: 'outreach_log' };
+  }
+  return { name: DEFAULT_SENDER_NAME, email: DEFAULT_SENDER_EMAIL, source: 'default' };
+}
+
 function buildEmail({ firstName, company, senderName }) {
   const firstNameClean = firstName?.trim() || 'there';
   const companyClean = company?.trim() || 'your team';
@@ -177,10 +196,10 @@ export const handler = async (event) => {
 
     const name = `${firstName} ${lastName}`.trim();
 
-    // Look up existing lead by email to grab id and current landing page
+    // Look up existing lead by email to grab id, landing page, and who owns it
     const { data: existing } = await supabase
       .from('workhuman_leads')
-      .select('id, landing_page_url, landing_page_id')
+      .select('id, landing_page_url, landing_page_id, assigned_to')
       .eq('email', email)
       .maybeSingle();
 
@@ -228,11 +247,13 @@ export const handler = async (event) => {
       leadId = upserted.id;
     }
 
-    // Determine sender: last person to message them in the CRM, fallback to Will
-    let senderName = null;
-    if (leadId) senderName = await findLastOutreachSender(supabase, leadId);
-    if (!senderName || !SENDER_EMAILS[senderName]) senderName = DEFAULT_SENDER_NAME;
-    const fromEmail = SENDER_EMAILS[senderName] || DEFAULT_SENDER_EMAIL;
+    // Determine sender: assigned_to wins > last outreach sender > Will default.
+    // This guarantees teammates see confirmation emails come from their own
+    // account for every Tier 1A lead they own, even before they've DMed.
+    const sender = await pickSender(supabase, leadId, existing?.assigned_to);
+    const senderName = sender.name;
+    const fromEmail = sender.email;
+    console.log(`[workhuman-booking] sender=${senderName} source=${sender.source} leadId=${leadId} assignedTo=${existing?.assigned_to || '(none)'}`);
 
     // Build + send email
     const { subject, text } = buildEmail({ firstName, company, senderName });
@@ -257,7 +278,7 @@ export const handler = async (event) => {
       leadId,
       email: emailResult,
       slack: slackResult,
-      sender: { name: senderName, email: fromEmail },
+      sender: { name: senderName, email: fromEmail, source: sender.source },
     });
   } catch (err) {
     console.error('workhuman-booking handler error:', err);
