@@ -62,15 +62,13 @@ export const LINKEDIN_DM_AFTER_ACCEPT: Template = {
   description: 'Send same day they accept',
   body: `Hey {first_name}!
 
-Really appreciate the connect.
+Thanks for connecting — really appreciate it!
 
-We're hosting a complimentary massage lounge in the Gratitude Garden at Workhuman next week and wanted to make sure the {company} team had a spot before they fill up: {landing_page_url}
+Also shot you a DM on the Workhuman app — here's that link I mentioned to grab your massage appointment early before sign-ups open Sunday: {landing_page_url}
 
-Shortcut brings on-site wellness directly to workplaces — massage, headshots, beauty and more, all through one vendor. We work with teams at BCG, DraftKings and Wix and handle everything so HR teams don't have to lift a finger.
+Would love to grab some time with you after your session to chat wellness at {company}.
 
-Would love to steal 10 minutes after your session to chat about wellness at {company} and share what's been working.
-
-Hope to see you there!`,
+See you in Orlando!`,
 };
 
 /**
