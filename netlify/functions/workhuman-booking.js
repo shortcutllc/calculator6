@@ -120,7 +120,7 @@ async function sendEmail({ to, fromName, fromEmail, subject, text }) {
   return { sent: true };
 }
 
-async function postSlack({ name, firstName, company, email, title, employeeCount, preferredDay, currentWellness, openToChat, landingPageUrl, leadId }) {
+async function postSlack({ name, firstName, company, email, title, employeeCount, preferredDay, currentWellness, openToChat, landingPageUrl, leadId, dbError }) {
   const webhook = process.env.SLACK_WEBHOOK_URL_PROPOSALS;
   if (!webhook) {
     console.warn('SLACK_WEBHOOK_URL_PROPOSALS not configured — skipping slack');
@@ -133,8 +133,21 @@ async function postSlack({ name, firstName, company, email, title, employeeCount
   const blocks = [
     {
       type: 'header',
-      text: { type: 'plain_text', text: '🌿 New Workhuman massage booking', emoji: true },
+      text: {
+        type: 'plain_text',
+        text: dbError
+          ? '⚠️ Workhuman booking — DB write FAILED'
+          : '🌿 New Workhuman massage booking',
+        emoji: true,
+      },
     },
+    ...(dbError ? [{
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `*⚠ Silent failure — backfill required.* The booking did NOT write to the CRM. Slack + confirmation email still fired.\n*DB op:* ${dbError.op} · *code:* ${dbError.code || 'n/a'}\n*Message:* ${dbError.message || 'unknown'}${dbError.details ? `\n*Details:* ${dbError.details}` : ''}`,
+      },
+    }] : []),
     {
       type: 'section',
       fields: [
@@ -252,20 +265,35 @@ export const handler = async (event) => {
     };
 
     let leadId = existing?.id || null;
+    // Capture any DB error so we can (a) surface it in Slack to avoid silent
+    // data loss, and (b) return it to the caller so they know the submission
+    // was only partially processed.
+    let dbError = null;
     if (existing?.id) {
       const { error: updateErr } = await supabase
         .from('workhuman_leads')
         .update(mutationPayload)
         .eq('id', existing.id);
-      if (updateErr) console.error('Lead update error:', updateErr);
+      if (updateErr) {
+        console.error('[workhuman-booking] Lead update error:', JSON.stringify(updateErr));
+        dbError = { op: 'update', id: existing.id, message: updateErr.message, code: updateErr.code, details: updateErr.details };
+      }
     } else {
       const { data: upserted, error: upsertErr } = await supabase
         .from('workhuman_leads')
         .upsert(mutationPayload, { onConflict: 'email' })
         .select('id')
         .maybeSingle();
-      if (upsertErr) console.error('Lead upsert error:', upsertErr);
-      else if (upserted?.id) leadId = upserted.id;
+      if (upsertErr) {
+        console.error('[workhuman-booking] Lead upsert error:', JSON.stringify(upsertErr));
+        dbError = { op: 'upsert', email, message: upsertErr.message, code: upsertErr.code, details: upsertErr.details };
+      } else if (upserted?.id) {
+        leadId = upserted.id;
+      } else {
+        // Upsert returned success but no row — unusual, flag it
+        console.error('[workhuman-booking] Upsert returned no row for email', email);
+        dbError = { op: 'upsert', email, message: 'upsert returned no row', code: 'EMPTY_RESULT' };
+      }
     }
 
     // Determine sender: assigned_to wins > last outreach sender > Will default.
@@ -286,20 +314,28 @@ export const handler = async (event) => {
       text,
     });
 
-    // Slack notification (fire and forget — don't block on errors)
+    // Slack notification — also surfaces DB write failures so they can't
+    // be silent. Header flips to ⚠️ and a backfill-required block is added
+    // when dbError is present.
     const slackResult = await postSlack({
       name, firstName, company, email, title, employeeCount,
       preferredDay, currentWellness, openToChat,
       landingPageUrl: existing?.landing_page_url || null,
       leadId,
+      dbError,
     });
 
+    // Return a degraded success if DB failed so the frontend knows something
+    // went wrong even though Slack + email worked. Status 200 keeps the user
+    // flow intact (they still see the thank-you page) but downstream tooling
+    // can detect the issue via success=false.
     return json(200, {
-      success: true,
+      success: !dbError,
       leadId,
       email: emailResult,
       slack: slackResult,
       sender: { name: senderName, email: fromEmail, source: sender.source },
+      dbError,
     });
   } catch (err) {
     console.error('workhuman-booking handler error:', err);
