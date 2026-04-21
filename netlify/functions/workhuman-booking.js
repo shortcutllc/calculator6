@@ -314,6 +314,19 @@ export const handler = async (event) => {
       text,
     });
 
+    // Write email_sent_at to the lead row so the CRM can show a timestamp
+    // for when the confirmation actually went out. Fire-and-forget; don't
+    // block the response if this fails.
+    if (emailResult.sent && leadId) {
+      const { error: stampErr } = await supabase
+        .from('workhuman_leads')
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq('id', leadId);
+      if (stampErr) {
+        console.error('[workhuman-booking] Failed to stamp email_sent_at:', JSON.stringify(stampErr));
+      }
+    }
+
     // Slack notification — also surfaces DB write failures so they can't
     // be silent. Header flips to ⚠️ and a backfill-required block is added
     // when dbError is present.
