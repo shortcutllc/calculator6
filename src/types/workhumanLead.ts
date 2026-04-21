@@ -42,6 +42,7 @@ export interface WorkhumanLead {
   page_last_viewed_at: string | null;
   workhuman_attendee_id: string | null;
   tier_1a: boolean;
+  tier_1b: boolean;
   assigned_to: string | null;
   created_at: string;
   updated_at: string;

@@ -96,7 +96,7 @@ const ALL_STATUSES: OutreachStatus[] = [
 
 // --- Component ---
 
-type TierFilter = 'all' | LeadTier | 'tier_1a';
+type TierFilter = 'all' | LeadTier | 'tier_1a' | 'tier_1b';
 
 const WorkhumanLeads: React.FC = () => {
   const { user } = useAuth();
@@ -151,6 +151,7 @@ const WorkhumanLeads: React.FC = () => {
   const stats = useMemo(() => {
     const tier1 = leads.filter(l => l.tier === 'tier_1').length;
     const tier1a = leads.filter(l => l.tier_1a).length;
+    const tier1b = leads.filter(l => l.tier_1b).length;
     const tier2 = leads.filter(l => l.tier === 'tier_2').length;
     const tier3 = leads.filter(l => l.tier === 'tier_3').length;
     const emailed = leads.filter(l => l.outreach_status !== 'not_contacted').length;
@@ -158,7 +159,7 @@ const WorkhumanLeads: React.FC = () => {
     const meetings = leads.filter(l => ['meeting_booked', 'vip_booked'].includes(l.outreach_status)).length;
     const vipSlots = leads.filter(l => l.vip_slot_day !== null).length;
     const myLeads = myAssignee ? leads.filter(l => l.assigned_to === myAssignee).length : 0;
-    return { total: leads.length, tier1, tier1a, tier2, tier3, emailed, responded, meetings, vipSlots, myLeads };
+    return { total: leads.length, tier1, tier1a, tier1b, tier2, tier3, emailed, responded, meetings, vipSlots, myLeads };
   }, [leads, myAssignee]);
 
   const filteredLeads = useMemo(() => {
@@ -176,6 +177,8 @@ const WorkhumanLeads: React.FC = () => {
 
     if (tierFilter === 'tier_1a') {
       result = result.filter(l => l.tier_1a);
+    } else if (tierFilter === 'tier_1b') {
+      result = result.filter(l => l.tier_1b);
     } else if (tierFilter !== 'all') {
       result = result.filter(l => l.tier === tierFilter);
     }
@@ -376,6 +379,14 @@ const WorkhumanLeads: React.FC = () => {
             onClick={() => setTierFilter('tier_1a')}
             active={tierFilter === 'tier_1a'}
           />
+          <StatCard
+            label="Tier 1B"
+            value={stats.tier1b}
+            icon={<Star size={18} />}
+            color="text-orange-600"
+            onClick={() => setTierFilter('tier_1b')}
+            active={tierFilter === 'tier_1b'}
+          />
           <StatCard label="Tier 1" value={stats.tier1} icon={<Star size={18} />} color="text-amber-600" />
           <StatCard label="Tier 2" value={stats.tier2} icon={<Target size={18} />} color="text-blue-600" />
           <StatCard label="Tier 3" value={stats.tier3} icon={<Users size={18} />} color="text-gray-400" />
@@ -421,7 +432,8 @@ const WorkhumanLeads: React.FC = () => {
             >
               <option value="all">All Tiers</option>
               <option value="tier_1a">Tier 1A (VIP 200)</option>
-              <option value="tier_1">Tier 1</option>
+              <option value="tier_1b">Tier 1B</option>
+              <option value="tier_1">Tier 1 (all)</option>
               <option value="tier_2">Tier 2</option>
               <option value="tier_3">Tier 3</option>
             </select>
@@ -570,6 +582,9 @@ const WorkhumanLeads: React.FC = () => {
                             <div className="font-medium text-gray-900">{lead.name}</div>
                             {lead.tier_1a && (
                               <span title="Tier 1A (VIP 200)" className="text-amber-600"><Star size={12} fill="currentColor" /></span>
+                            )}
+                            {!lead.tier_1a && lead.tier_1b && (
+                              <span title="Tier 1B" className="text-orange-500"><Star size={12} /></span>
                             )}
                             {lead.assigned_to && ASSIGNEE_INITIALS[lead.assigned_to as AssigneeName] && (
                               <span
