@@ -120,7 +120,7 @@ async function sendEmail({ to, fromName, fromEmail, subject, text }) {
   return { sent: true };
 }
 
-async function postSlack({ name, firstName, company, email, title, employeeCount, preferredDay, currentWellness, openToChat, landingPageUrl, leadId, dbError }) {
+async function postSlack({ name, firstName, company, email, phone, title, employeeCount, preferredDay, currentWellness, openToChat, landingPageUrl, leadId, dbError }) {
   const webhook = process.env.SLACK_WEBHOOK_URL_PROPOSALS;
   if (!webhook) {
     console.warn('SLACK_WEBHOOK_URL_PROPOSALS not configured — skipping slack');
@@ -161,7 +161,7 @@ async function postSlack({ name, firstName, company, email, title, employeeCount
     },
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Email:* ${email}\n*Current wellness program:* ${currentWellness || '—'}` },
+      text: { type: 'mrkdwn', text: `*Email:* ${email}${phone ? `\n*Phone:* ${phone}` : ''}\n*Current wellness program:* ${currentWellness || '—'}` },
     },
     {
       type: 'context',
@@ -191,7 +191,7 @@ export const handler = async (event) => {
   try {
     const body = JSON.parse(event.body || '{}');
     const {
-      firstName, lastName, email, company, title, employeeCount,
+      firstName, lastName, email, phone, company, title, employeeCount,
       currentWellness, preferredDay, openToChat, landingPageId, leadId: leadIdFromUrl,
     } = body;
 
@@ -253,6 +253,10 @@ export const handler = async (event) => {
     // Mark the lead as vip_booked. If we found them (by UUID or email), UPDATE
     // by id so we don't duplicate rows when the form email differs from the
     // stored lead email. Only upsert by email when we have no existing match.
+    // Normalize phone: trim, drop obvious junk. Keep raw formatting — we
+    // don't want to silently rewrite what the user typed.
+    const phoneClean = (phone || '').trim() || null;
+
     const mutationPayload = {
       name,
       email,
@@ -263,6 +267,14 @@ export const handler = async (event) => {
       vip_slot_day: vipSlotDay,
       notes,
     };
+    // Only touch phone fields if the user supplied one — otherwise we'd
+    // overwrite an Apollo-enriched number with null.
+    if (phoneClean) {
+      mutationPayload.phone = phoneClean;
+      mutationPayload.mobile_phone = phoneClean; // self-reported is most likely their cell
+      mutationPayload.phone_source = 'self_reported';
+      mutationPayload.phone_enriched_at = new Date().toISOString();
+    }
 
     let leadId = existing?.id || null;
     // Capture any DB error so we can (a) surface it in Slack to avoid silent
@@ -331,7 +343,7 @@ export const handler = async (event) => {
     // be silent. Header flips to ⚠️ and a backfill-required block is added
     // when dbError is present.
     const slackResult = await postSlack({
-      name, firstName, company, email, title, employeeCount,
+      name, firstName, company, email, phone: phoneClean, title, employeeCount,
       preferredDay, currentWellness, openToChat,
       landingPageUrl: existing?.landing_page_url || null,
       leadId,

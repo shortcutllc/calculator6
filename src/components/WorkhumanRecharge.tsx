@@ -17,6 +17,7 @@ const WorkhumanRecharge: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [formCompany, setFormCompany] = useState('');
   const [title, setTitle] = useState('');
   const [employeeCount, setEmployeeCount] = useState('');
@@ -324,6 +325,7 @@ const WorkhumanRecharge: React.FC = () => {
           firstName,
           lastName,
           email,
+          phone: phone.trim() || null,
           company: formCompany,
           title,
           employeeCount,
@@ -1090,6 +1092,21 @@ const WorkhumanRecharge: React.FC = () => {
                             className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
                           />
                         </div>
+                      </div>
+
+                      {/* Phone (optional) */}
+                      <div>
+                        <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>
+                          Phone <span className="text-gray-400 font-normal">(optional)</span>
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="Enter phone number"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          autoComplete="tel"
+                          className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
+                        />
                       </div>
 
                       {/* Wellness + Preferred Day */}
