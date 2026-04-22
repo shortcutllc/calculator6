@@ -1097,7 +1097,7 @@ const WorkhumanRecharge: React.FC = () => {
                       {/* Phone (optional) */}
                       <div>
                         <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>
-                          Phone <span className="text-gray-400 font-normal">(optional)</span>
+                          Phone <span className="text-gray-400 font-normal">— for appointment reminders</span>
                         </label>
                         <input
                           type="tel"
