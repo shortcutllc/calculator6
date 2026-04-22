@@ -1085,8 +1085,26 @@ function V3Loop({ phase, currentIndex }: { phase: 'enter' | 'active' | 'exit'; c
 // ============================================================
 
 export default function WorkhumanTVLoop() {
-  // Version toggle: ?v=2 for refined narrative, ?v=3 for brand story
+  // Version toggle: ?v=2 for refined narrative, ?v=3 for brand story, ?v=4 for Claude Design prototype
   const vParam = new URLSearchParams(window.location.search).get('v');
+
+  // V4 lives as a standalone HTML prototype in /public/workhuman-tv-v4/ (separate from the React app).
+  // Vite's SPA catchall rewrites trailing-slash directory paths to the app shell, so we must
+  // hit index.html explicitly. Forward any incoming search params (?slide, ?pause) so deep
+  // links survive the redirect.
+  useEffect(() => {
+    if (vParam === '4') {
+      const search = new URLSearchParams(window.location.search);
+      search.delete('v');
+      const qs = search.toString();
+      window.location.replace('/workhuman-tv-v4/index.html' + (qs ? `?${qs}` : ''));
+    }
+  }, [vParam]);
+  if (vParam === '4') {
+    // Render nothing while redirecting (avoids flashing the v1 loop).
+    return null;
+  }
+
   const version = vParam === '3' ? 3 : vParam === '2' ? 2 : 1;
   const [isFullscreen, setIsFullscreen] = useState(false);
 
