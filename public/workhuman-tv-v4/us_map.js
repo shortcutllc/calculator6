@@ -63,10 +63,12 @@
 
   async function loadMap() {
     try {
-      await loadScript('https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js');
-      await loadScript('https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js');
+      // Vendored locally to avoid CSP / offline issues. Served same-origin from
+      // public/workhuman-tv-v4/vendor/. Paths are relative to index.html.
+      await loadScript('./vendor/d3.min.js');
+      await loadScript('./vendor/topojson-client.min.js');
 
-      const res = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json');
+      const res = await fetch('./vendor/states-10m.json');
       const topo = await res.json();
 
       // Filter to lower 48 + DC (drop AK=02, HI=15, territories 60/66/69/72/78)
