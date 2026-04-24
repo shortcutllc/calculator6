@@ -4,7 +4,7 @@ import {
   Upload, Search, ChevronDown, ChevronUp, Target, Users,
   Star, Mail, MessageSquare, Calendar, Trash2, X, FileDown,
   AlertCircle, CheckCircle, Clock, UserCheck, ExternalLink, Copy,
-  Sparkles, Loader2, RefreshCw, Linkedin, Zap, UserPlus, CalendarCheck
+  Sparkles, Loader2, RefreshCw, Linkedin, Zap, UserPlus, CalendarCheck, Pencil
 } from 'lucide-react';
 import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay, OutreachChannel, AssigneeName, ASSIGNEE_NAMES } from '../types/workhumanLead';
 import {
@@ -24,6 +24,7 @@ import {
 import { WorkhumanMessagingPanel } from './WorkhumanMessagingPanel';
 import { WorkhumanAddLeadModal } from './WorkhumanAddLeadModal';
 import { WorkhumanBookBoothModal } from './WorkhumanBookBoothModal';
+import { WorkhumanEditLeadModal } from './WorkhumanEditLeadModal';
 import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 import { WorkhumanLeadCSVRow } from '../types/workhumanLead';
 import { useAuth } from '../contexts/AuthContext';
@@ -125,6 +126,7 @@ const WorkhumanLeads: React.FC = () => {
   const [outreachChannelsByLead, setOutreachChannelsByLead] = useState<Record<string, Set<OutreachChannel>>>({});
   const [showAddLead, setShowAddLead] = useState(false);
   const [bookBoothLead, setBookBoothLead] = useState<WorkhumanLead | null>(null);
+  const [editLead, setEditLead] = useState<WorkhumanLead | null>(null);
 
   // --- Data loading ---
 
@@ -737,6 +739,7 @@ const WorkhumanLeads: React.FC = () => {
                               onDelete={() => handleDelete(lead.id)}
                               onAssignmentChange={(assignee) => handleAssignmentChange(lead.id, assignee)}
                               onBookAtBooth={() => setBookBoothLead(lead)}
+                              onEdit={() => setEditLead(lead)}
                             />
                           </td>
                         </tr>
@@ -800,6 +803,18 @@ const WorkhumanLeads: React.FC = () => {
           }}
         />
       )}
+
+      {/* Edit Lead Modal */}
+      {editLead && (
+        <WorkhumanEditLeadModal
+          lead={editLead}
+          onClose={() => setEditLead(null)}
+          onSaved={(patch) => {
+            setLeads(prev => prev.map(l => l.id === editLead.id ? { ...l, ...patch } : l));
+            setEditLead(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -858,7 +873,7 @@ function StatCard({ label, value, icon, color, onClick, active }: {
   );
 }
 
-function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmentChange, isCreatingPage, onCreatePage, onCopyUrl, onBookAtBooth }: {
+function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmentChange, isCreatingPage, onCreatePage, onCopyUrl, onBookAtBooth, onEdit }: {
   lead: WorkhumanLead;
   onVipSlot: (id: string, day: VipSlotDay | null) => void;
   onNotesChange: (notes: string) => void;
@@ -868,6 +883,7 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
   onCreatePage?: (overrideUrl?: string) => void;
   onCopyUrl?: () => void;
   onBookAtBooth?: () => void;
+  onEdit?: () => void;
 }) {
   const [notes, setNotes] = useState(lead.notes || '');
   const [logoOverride, setLogoOverride] = useState('');
@@ -888,7 +904,19 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+      {onEdit && (
+        <div className="flex justify-end mb-3">
+          <button
+            onClick={onEdit}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#09364f] hover:text-[#0a4060] px-3 py-1.5 border border-[#09364f]/20 rounded-lg hover:bg-[#09364f]/5 transition-colors"
+            title="Edit all lead fields"
+          >
+            <Pencil size={12} /> Edit Lead
+          </button>
+        </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Details */}
       <div className="space-y-2 text-sm">
         <h4 className="font-medium text-gray-700 mb-2">Details</h4>
@@ -1093,6 +1121,7 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
       {/* Messaging panel */}
       <div className="md:col-span-3 pt-2 border-t border-gray-200">
         <WorkhumanMessagingPanel lead={lead} />
+      </div>
       </div>
     </div>
   );

@@ -191,6 +191,49 @@ export async function bulkInsertLeads(
 // --- CRUD Operations ---
 
 /**
+ * Generic per-field update. Pass only the fields that changed.
+ * Tier flags: pass tier_1a / tier_1b individually; the service enforces
+ * mutual exclusivity (1A wins if both are true).
+ */
+export async function updateLead(id: string, fields: {
+  name?: string;
+  email?: string;
+  company?: string | null;
+  company_url?: string | null;
+  title?: string | null;
+  phone?: string | null;
+  mobile_phone?: string | null;
+  work_phone?: string | null;
+  linkedin_url?: string | null;
+  industry?: string | null;
+  company_size?: string | null;
+  hq_location?: string | null;
+  tier_1a?: boolean;
+  tier_1b?: boolean;
+  assigned_to?: string | null;
+  notes?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  // Mutual exclusivity: 1A wins if both flags sent
+  const payload: Record<string, unknown> = { ...fields };
+  if (payload.tier_1a === true) payload.tier_1b = false;
+
+  // Normalize email to lowercase
+  if (typeof payload.email === 'string') payload.email = payload.email.trim().toLowerCase();
+  if (typeof payload.name === 'string') payload.name = payload.name.trim();
+
+  const { error } = await supabase
+    .from('workhuman_leads')
+    .update(payload)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to update lead:', error);
+    return { ok: false, error: error.message || error.code || 'update failed' };
+  }
+  return { ok: true };
+}
+
+/**
  * Manually create a single lead in the CRM. Minimum is name + email;
  * other fields are optional. Returns the created row or null on error.
  */
