@@ -406,6 +406,14 @@ const WorkhumanLeads: React.FC = () => {
               <Zap size={16} />
               Rapid Outreach
             </Link>
+            <Link
+              to="/workhuman-leads/booth"
+              className="flex items-center gap-2 px-4 py-2 bg-[#09364f] text-white rounded-lg hover:bg-[#0a4060] transition-colors text-sm font-medium"
+              title="Conference day-of sign-ups and appointments"
+            >
+              <Calendar size={16} />
+              Booth (Day-of)
+            </Link>
             <button
               onClick={() => setShowCSVModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-[#09364f] text-white rounded-lg hover:bg-[#0a4060] transition-colors text-sm font-medium"

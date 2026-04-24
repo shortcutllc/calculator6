@@ -63,6 +63,7 @@ const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesi
 const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
 const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
 const WorkhumanOutreachQueue = lazy(() => import('./components/WorkhumanOutreachQueue'));
+const WorkhumanBooth = lazy(() => import('./components/WorkhumanBooth'));
 const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
 
 function App() {
@@ -478,6 +479,21 @@ function App() {
                       </div>
                     }>
                       <WorkhumanOutreachQueue />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              {/* Workhuman Booth — day-of dashboard for conference sign-ups */}
+              <Route
+                path="/workhuman-leads/booth"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <WorkhumanBooth />
                     </Suspense>
                   </PrivateRoute>
                 }
