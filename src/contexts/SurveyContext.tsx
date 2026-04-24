@@ -24,6 +24,7 @@ interface SurveyContextType {
     respondent?: { name?: string; email?: string }
   ) => Promise<void>;
   getResponses: (surveyId: string) => Promise<SurveyResponse[]>;
+  deleteResponse: (responseId: string) => Promise<void>;
   enableResultsSharing: (id: string) => Promise<string>;
   disableResultsSharing: (id: string) => Promise<void>;
   getSharedResults: (
@@ -285,6 +286,18 @@ export const SurveyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return (data || []).map(transformResponse);
   };
 
+  const deleteResponse = async (responseId: string): Promise<void> => {
+    const { data, error } = await supabase
+      .from('survey_responses')
+      .delete()
+      .eq('id', responseId)
+      .select();
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('Response not found or you do not have permission to delete it');
+    }
+  };
+
   const enableResultsSharing = async (id: string): Promise<string> => {
     const existing = surveys.find(s => s.id === id);
     if (existing?.resultsToken) return existing.resultsToken;
@@ -342,6 +355,7 @@ export const SurveyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     deleteSurvey,
     submitResponse,
     getResponses,
+    deleteResponse,
     enableResultsSharing,
     disableResultsSharing,
     getSharedResults,

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSurvey } from '../contexts/SurveyContext';
 import type { Survey, SurveyResponse } from '../types/survey';
 import { Button } from './Button';
-import { ArrowLeft, Download, Share2, Link as LinkIcon, CheckCircle, X as XIcon, Lock } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Link as LinkIcon, CheckCircle, X as XIcon, Lock, Trash2 } from 'lucide-react';
 
 interface Props {
   survey: Survey;
@@ -24,12 +24,26 @@ const escapeCsv = (val: string): string => {
 };
 
 const SurveyResponsesViewer: React.FC<Props> = ({ survey: initialSurvey, onClose }) => {
-  const { getResponses, enableResultsSharing, disableResultsSharing, surveys } = useSurvey();
+  const { getResponses, deleteResponse, enableResultsSharing, disableResultsSharing, surveys } = useSurvey();
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteResponse = async (responseId: string) => {
+    if (!window.confirm('Delete this response? This cannot be undone.')) return;
+    try {
+      setDeletingId(responseId);
+      await deleteResponse(responseId);
+      setResponses(prev => prev.filter(r => r.id !== responseId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete response');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Keep survey in sync with context (so resultsToken updates re-render immediately)
   const survey = surveys.find(s => s.id === initialSurvey.id) || initialSurvey;
@@ -267,6 +281,9 @@ const SurveyResponsesViewer: React.FC<Props> = ({ survey: initialSurvey, onClose
                     {q.prompt}
                   </th>
                 ))}
+                <th className="px-3 py-2 text-right font-bold text-shortcut-navy-blue whitespace-nowrap">
+                  {' '}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -286,6 +303,17 @@ const SurveyResponsesViewer: React.FC<Props> = ({ survey: initialSurvey, onClose
                       {formatAnswer(r.answers[q.id])}
                     </td>
                   ))}
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      onClick={() => handleDeleteResponse(r.id)}
+                      disabled={deletingId === r.id}
+                      className="p-1.5 rounded text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Delete response"
+                      aria-label="Delete response"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
