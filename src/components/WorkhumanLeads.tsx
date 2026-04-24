@@ -4,7 +4,7 @@ import {
   Upload, Search, ChevronDown, ChevronUp, Target, Users,
   Star, Mail, MessageSquare, Calendar, Trash2, X, FileDown,
   AlertCircle, CheckCircle, Clock, UserCheck, ExternalLink, Copy,
-  Sparkles, Loader2, RefreshCw, Linkedin, Zap
+  Sparkles, Loader2, RefreshCw, Linkedin, Zap, UserPlus, CalendarCheck
 } from 'lucide-react';
 import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay, OutreachChannel, AssigneeName, ASSIGNEE_NAMES } from '../types/workhumanLead';
 import {
@@ -22,6 +22,8 @@ import {
   fetchOutreachChannelsByLead,
 } from '../services/WorkhumanLeadService';
 import { WorkhumanMessagingPanel } from './WorkhumanMessagingPanel';
+import { WorkhumanAddLeadModal } from './WorkhumanAddLeadModal';
+import { WorkhumanBookBoothModal } from './WorkhumanBookBoothModal';
 import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 import { WorkhumanLeadCSVRow } from '../types/workhumanLead';
 import { useAuth } from '../contexts/AuthContext';
@@ -121,6 +123,8 @@ const WorkhumanLeads: React.FC = () => {
   const [creatingPageIds, setCreatingPageIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [outreachChannelsByLead, setOutreachChannelsByLead] = useState<Record<string, Set<OutreachChannel>>>({});
+  const [showAddLead, setShowAddLead] = useState(false);
+  const [bookBoothLead, setBookBoothLead] = useState<WorkhumanLead | null>(null);
 
   // --- Data loading ---
 
@@ -414,6 +418,14 @@ const WorkhumanLeads: React.FC = () => {
               <Calendar size={16} />
               Booth (Day-of)
             </Link>
+            <button
+              onClick={() => setShowAddLead(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+              title="Add a single lead manually"
+            >
+              <UserPlus size={16} />
+              Add Lead
+            </button>
             <button
               onClick={() => setShowCSVModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-[#09364f] text-white rounded-lg hover:bg-[#0a4060] transition-colors text-sm font-medium"
@@ -724,6 +736,7 @@ const WorkhumanLeads: React.FC = () => {
                               }}
                               onDelete={() => handleDelete(lead.id)}
                               onAssignmentChange={(assignee) => handleAssignmentChange(lead.id, assignee)}
+                              onBookAtBooth={() => setBookBoothLead(lead)}
                             />
                           </td>
                         </tr>
@@ -762,6 +775,29 @@ const WorkhumanLeads: React.FC = () => {
         <CSVImportModal
           onClose={() => setShowCSVModal(false)}
           onImportComplete={() => { setShowCSVModal(false); loadLeads(); }}
+        />
+      )}
+
+      {/* Manual Add Lead Modal */}
+      {showAddLead && (
+        <WorkhumanAddLeadModal
+          onClose={() => setShowAddLead(false)}
+          onCreated={(created) => {
+            setLeads(prev => [created, ...prev]);
+            setShowAddLead(false);
+          }}
+        />
+      )}
+
+      {/* Book Booth Appointment Modal */}
+      {bookBoothLead && (
+        <WorkhumanBookBoothModal
+          lead={bookBoothLead}
+          onClose={() => setBookBoothLead(null)}
+          onBooked={(updated) => {
+            setLeads(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
+            setBookBoothLead(null);
+          }}
         />
       )}
     </div>
@@ -822,7 +858,7 @@ function StatCard({ label, value, icon, color, onClick, active }: {
   );
 }
 
-function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmentChange, isCreatingPage, onCreatePage, onCopyUrl }: {
+function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmentChange, isCreatingPage, onCreatePage, onCopyUrl, onBookAtBooth }: {
   lead: WorkhumanLead;
   onVipSlot: (id: string, day: VipSlotDay | null) => void;
   onNotesChange: (notes: string) => void;
@@ -831,6 +867,7 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
   isCreatingPage?: boolean;
   onCreatePage?: (overrideUrl?: string) => void;
   onCopyUrl?: () => void;
+  onBookAtBooth?: () => void;
 }) {
   const [notes, setNotes] = useState(lead.notes || '');
   const [logoOverride, setLogoOverride] = useState('');
@@ -882,7 +919,7 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
       {/* VIP Slot + Timeline */}
       <div className="space-y-3">
         <h4 className="font-medium text-gray-700 mb-2 text-sm">VIP Massage Slot</h4>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(['day_1', 'day_2', 'day_3'] as VipSlotDay[]).map(day => (
             <button
               key={day}
@@ -894,9 +931,21 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
               }`}
             >
               {DAY_LABELS[day]}
+              {lead.vip_slot_day === day && lead.vip_slot_time && (
+                <span className="ml-1 opacity-80">· {lead.vip_slot_time.substring(0, 14)}</span>
+              )}
             </button>
           ))}
         </div>
+        {onBookAtBooth && (
+          <button
+            onClick={onBookAtBooth}
+            className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-[#09364f] hover:text-[#0a4060] px-3 py-1.5 border border-[#09364f]/20 rounded-lg hover:bg-[#09364f]/5 transition-colors"
+            title="Book a massage appointment — auto-adds to Booth dashboard"
+          >
+            <CalendarCheck size={12} /> Book at Booth
+          </button>
+        )}
 
         <h4 className="font-medium text-gray-700 mt-4 mb-2 text-sm">Outreach Timeline</h4>
         <div className="space-y-1 text-xs text-gray-500">

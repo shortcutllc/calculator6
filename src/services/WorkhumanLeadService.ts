@@ -190,6 +190,147 @@ export async function bulkInsertLeads(
 
 // --- CRUD Operations ---
 
+/**
+ * Manually create a single lead in the CRM. Minimum is name + email;
+ * other fields are optional. Returns the created row or null on error.
+ */
+export async function createLead(input: {
+  name: string;
+  email: string;
+  company?: string;
+  title?: string;
+  phone?: string;
+  linkedin_url?: string;
+  tier_1a?: boolean;
+  tier_1b?: boolean;
+  assigned_to?: string | null;
+  notes?: string;
+}): Promise<WorkhumanLead | null> {
+  const payload = {
+    name: input.name.trim(),
+    email: input.email.trim().toLowerCase(),
+    company: input.company?.trim() || null,
+    title: input.title?.trim() || null,
+    phone: input.phone?.trim() || null,
+    mobile_phone: input.phone?.trim() || null,
+    phone_source: input.phone ? 'manual' : null,
+    linkedin_url: input.linkedin_url?.trim() || null,
+    tier: 'tier_1' as const,
+    tier_1a: !!input.tier_1a,
+    tier_1b: !!input.tier_1b && !input.tier_1a,
+    assigned_to: input.assigned_to || null,
+    outreach_status: 'not_contacted' as const,
+    lead_score: 0,
+    source: 'manual',
+    notes: input.notes?.trim() || null,
+  };
+
+  const { data, error } = await supabase
+    .from('workhuman_leads')
+    .insert(payload)
+    .select('*')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to create lead:', error);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Record that a lead booked a massage appointment at the Workhuman booth.
+ * Creates a workhuman_signups row AND updates the lead's vip_slot_day/time
+ * + outreach_status so it appears in both the CRM and the Booth dashboard.
+ */
+export async function bookLeadAtBooth(input: {
+  leadId: string;
+  name: string;
+  email: string;
+  company?: string | null;
+  phone?: string | null;
+  day: VipSlotDay;
+  timeSlot: string;
+  serviceType?: string;
+  bookerNotes?: string;
+  bookedBy?: string;
+}): Promise<{ signupId: string | null; ok: boolean }> {
+  // Derive appointment_at from day_label + time_slot when possible
+  // (Mon Apr 27, Tue Apr 28, Wed Apr 29)
+  const dayToDate: Record<VipSlotDay, string> = {
+    day_1: '2026-04-27',
+    day_2: '2026-04-28',
+    day_3: '2026-04-29',
+  };
+  const dayLabel = ['day_1', 'day_2', 'day_3'].includes(input.day)
+    ? `${({ day_1: 'Mon', day_2: 'Tue', day_3: 'Wed' } as Record<VipSlotDay, string>)[input.day]} ${dayToDate[input.day]}`
+    : null;
+
+  // Try to parse a starting time from the time slot string (e.g. "8:00-10:00 AM")
+  let appointmentAt: string | null = null;
+  try {
+    const startMatch = input.timeSlot.match(/\b(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
+    if (startMatch) {
+      const h = parseInt(startMatch[1], 10);
+      const m = parseInt(startMatch[2] || '0', 10);
+      const meridiem = startMatch[3]?.toUpperCase();
+      let hour24 = h;
+      if (meridiem === 'PM' && h < 12) hour24 = h + 12;
+      if (meridiem === 'AM' && h === 12) hour24 = 0;
+      if (hour24 >= 0 && hour24 <= 23) {
+        appointmentAt = `${dayToDate[input.day]}T${String(hour24).padStart(2, '0')}:${String(m).padStart(2, '0')}:00.000-04:00`;
+      }
+    }
+  } catch { /* ignore parse errors */ }
+
+  // 1. Create workhuman_signups row
+  const firstLast = input.name.trim().split(/\s+/);
+  const { data: signup, error: sErr } = await supabase
+    .from('workhuman_signups')
+    .insert({
+      full_name: input.name.trim(),
+      first_name: firstLast[0] || null,
+      last_name: firstLast.slice(1).join(' ') || null,
+      email: input.email.trim().toLowerCase(),
+      phone: input.phone || null,
+      company: input.company || null,
+      appointment_at: appointmentAt,
+      day_label: dayLabel,
+      time_slot: input.timeSlot.trim(),
+      service_type: input.serviceType || 'Chair Massage',
+      raw_notes: input.bookerNotes || null,
+      matched_lead_id: input.leadId,
+      match_method: 'manual',
+      match_confidence: 1.0,
+      team_notes: input.bookedBy ? `Booked via CRM by ${input.bookedBy}.` : 'Booked via CRM.',
+      team_status: 'scheduled',
+    })
+    .select('id')
+    .maybeSingle();
+
+  if (sErr) {
+    console.error('Failed to create signup:', sErr);
+    return { signupId: null, ok: false };
+  }
+
+  // 2. Update the lead row
+  const { error: lErr } = await supabase
+    .from('workhuman_leads')
+    .update({
+      vip_slot_day: input.day,
+      vip_slot_time: input.timeSlot.trim(),
+      outreach_status: 'vip_booked',
+    })
+    .eq('id', input.leadId);
+
+  if (lErr) {
+    console.error('Failed to update lead with booking:', lErr);
+    return { signupId: signup?.id || null, ok: false };
+  }
+
+  return { signupId: signup?.id || null, ok: true };
+}
+
 export async function fetchLeads(): Promise<WorkhumanLead[]> {
   const { data, error } = await supabase
     .from('workhuman_leads')
