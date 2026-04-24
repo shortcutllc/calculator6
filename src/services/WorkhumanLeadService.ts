@@ -254,7 +254,7 @@ export async function bookLeadAtBooth(input: {
   serviceType?: string;
   bookerNotes?: string;
   bookedBy?: string;
-}): Promise<{ signupId: string | null; ok: boolean }> {
+}): Promise<{ signupId: string | null; ok: boolean; error?: string }> {
   // Derive appointment_at from day_label + time_slot when possible
   // (Mon Apr 27, Tue Apr 28, Wed Apr 29)
   const dayToDate: Record<VipSlotDay, string> = {
@@ -310,7 +310,10 @@ export async function bookLeadAtBooth(input: {
 
   if (sErr) {
     console.error('Failed to create signup:', sErr);
-    return { signupId: null, ok: false };
+    return { signupId: null, ok: false, error: `Signup insert failed: ${sErr.message || sErr.code || 'unknown'}${sErr.hint ? ' — ' + sErr.hint : ''}` };
+  }
+  if (!signup?.id) {
+    return { signupId: null, ok: false, error: 'Signup insert returned no row (likely RLS blocked the response — check workhuman_signups policies).' };
   }
 
   // 2. Update the lead row
@@ -325,10 +328,10 @@ export async function bookLeadAtBooth(input: {
 
   if (lErr) {
     console.error('Failed to update lead with booking:', lErr);
-    return { signupId: signup?.id || null, ok: false };
+    return { signupId: signup.id, ok: false, error: `Lead update failed: ${lErr.message || lErr.code || 'unknown'}` };
   }
 
-  return { signupId: signup?.id || null, ok: true };
+  return { signupId: signup.id, ok: true };
 }
 
 export async function fetchLeads(): Promise<WorkhumanLead[]> {

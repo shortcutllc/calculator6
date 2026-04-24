@@ -106,7 +106,7 @@ export const WorkhumanBookBoothModal: React.FC<Props> = ({ lead, onClose, onBook
         bookedBy,
       });
       if (!result.ok) {
-        setError('Booking saved partially. Check the lead + Booth dashboard.');
+        setError(result.error || 'Booking failed. Check the lead + Booth dashboard.');
         setSubmitting(false);
         return;
       }
