@@ -27,6 +27,7 @@ import { InvoiceProvider } from './contexts/InvoiceContext';
 import { ProAgreementProvider } from './contexts/ProAgreementContext';
 import { GenericLandingPageProvider } from './contexts/GenericLandingPageContext';
 import { SurveyProvider } from './contexts/SurveyContext';
+import { DevTaskProvider } from './contexts/DevTaskContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import { testSupabaseConnection } from './lib/supabaseClient';
@@ -69,6 +70,7 @@ const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
 const SurveyManager = lazy(() => import('./components/SurveyManager'));
 const SurveyDisplay = lazy(() => import('./components/SurveyDisplay'));
 const SurveyResultsPublic = lazy(() => import('./components/SurveyResultsPublic'));
+const DevTaskManager = lazy(() => import('./components/DevTaskManager'));
 
 function App() {
   const location = useLocation();
@@ -666,6 +668,23 @@ function App() {
                       <SurveyDisplay />
                     </Suspense>
                   </SurveyProvider>
+                }
+              />
+              {/* Dev Tasks (internal admin tool) */}
+              <Route
+                path="/dev-tasks"
+                element={
+                  <PrivateRoute>
+                    <DevTaskProvider>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <DevTaskManager />
+                      </Suspense>
+                    </DevTaskProvider>
+                  </PrivateRoute>
                 }
               />
               <Route

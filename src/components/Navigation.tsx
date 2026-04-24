@@ -4,7 +4,7 @@ import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, ChevronLeft, ChevronRight,
   Clock, Plus, Users, Handshake, Gift, Smartphone,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -82,6 +82,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: '2026 Plan', path: '/2026-plan', icon: <TrendingUp size={18} /> },
       { label: '2026 Plan ML', path: '/2026-plan-ml', icon: <TrendingUp size={18} /> },
       { label: 'Sales Comp Model', path: '/sales-comp-model', icon: <Target size={18} /> },
+      { label: 'Dev Tasks', path: '/dev-tasks', icon: <Wrench size={18} /> },
     ],
   },
   {
