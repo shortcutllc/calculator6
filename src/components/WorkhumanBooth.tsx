@@ -152,7 +152,8 @@ const WorkhumanBooth: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dayFilter, setDayFilter] = useState<string>('all');
-  const [myOnly, setMyOnly] = useState(false);
+  // Assignee filter: 'all' | 'mine' | '<teammate name>' | 'unassigned' | 'new_walkin'
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<{
     state: 'idle' | 'uploading' | 'done' | 'error';
@@ -275,11 +276,18 @@ const WorkhumanBooth: React.FC = () => {
     if (dayFilter !== 'all') {
       result = result.filter(s => dayBucket(s) === dayFilter);
     }
-    if (myOnly && myAssignee) {
+    if (assigneeFilter === 'mine' && myAssignee) {
       result = result.filter(s => s._lead?.assigned_to === myAssignee);
+    } else if (assigneeFilter === 'unassigned') {
+      result = result.filter(s => !s._lead?.assigned_to);
+    } else if (assigneeFilter === 'new_walkin') {
+      result = result.filter(s => s._lead?.source === 'whl_booth_signup');
+    } else if (assigneeFilter !== 'all') {
+      // Filter by a specific teammate's name
+      result = result.filter(s => s._lead?.assigned_to === assigneeFilter);
     }
     return result;
-  }, [signups, search, dayFilter, myOnly, myAssignee]);
+  }, [signups, search, dayFilter, assigneeFilter, myAssignee]);
 
   // --- Stats ---
 
@@ -290,7 +298,12 @@ const WorkhumanBooth: React.FC = () => {
     const tier1a = signups.filter(s => s._lead?.tier_1a).length;
     const tier1b = signups.filter(s => s._lead?.tier_1b).length;
     const mine = myAssignee ? signups.filter(s => s._lead?.assigned_to === myAssignee).length : 0;
-    return { total, matched, newLeads, tier1a, tier1b, mine };
+    const perTeammate: Record<string, number> = {};
+    Object.values(SENDER_MAP).forEach(name => {
+      perTeammate[name] = signups.filter(s => s._lead?.assigned_to === name).length;
+    });
+    const unassigned = signups.filter(s => !s._lead?.assigned_to).length;
+    return { total, matched, newLeads, tier1a, tier1b, mine, perTeammate, unassigned };
   }, [signups, myAssignee]);
 
   // --- Render -----------------------------------------------------
@@ -382,19 +395,24 @@ const WorkhumanBooth: React.FC = () => {
               <option value="Thu">Thu — Apr 30</option>
               <option value="Unknown">Unknown</option>
             </select>
-            {myAssignee && (
-              <label className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm cursor-pointer transition-colors ${
-                myOnly ? 'bg-indigo-50 border-indigo-300 text-indigo-800' : 'bg-white border-gray-200 text-gray-600'
-              }`}>
-                <input
-                  type="checkbox"
-                  checked={myOnly}
-                  onChange={e => setMyOnly(e.target.checked)}
-                  className="rounded"
-                />
-                My appointments
-              </label>
-            )}
+            <select
+              value={assigneeFilter}
+              onChange={e => setAssigneeFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+              title="Filter by assigned teammate"
+            >
+              <option value="all">All teammates ({stats.total})</option>
+              {myAssignee && <option value="mine">My appointments ({stats.mine})</option>}
+              <optgroup label="By teammate">
+                {Object.entries(stats.perTeammate).map(([name, count]) => (
+                  <option key={name} value={name}>{name} ({count})</option>
+                ))}
+              </optgroup>
+              <optgroup label="Other">
+                <option value="unassigned">Unassigned ({stats.unassigned})</option>
+                <option value="new_walkin">New walk-ins ({stats.newLeads})</option>
+              </optgroup>
+            </select>
           </div>
         </div>
 
