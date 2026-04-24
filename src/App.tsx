@@ -26,6 +26,7 @@ import { ClientEmailProvider } from './contexts/ClientEmailContext';
 import { InvoiceProvider } from './contexts/InvoiceContext';
 import { ProAgreementProvider } from './contexts/ProAgreementContext';
 import { GenericLandingPageProvider } from './contexts/GenericLandingPageContext';
+import { SurveyProvider } from './contexts/SurveyContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import { testSupabaseConnection } from './lib/supabaseClient';
@@ -65,6 +66,9 @@ const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
 const WorkhumanOutreachQueue = lazy(() => import('./components/WorkhumanOutreachQueue'));
 const WorkhumanBooth = lazy(() => import('./components/WorkhumanBooth'));
 const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
+const SurveyManager = lazy(() => import('./components/SurveyManager'));
+const SurveyDisplay = lazy(() => import('./components/SurveyDisplay'));
+const SurveyResultsPublic = lazy(() => import('./components/SurveyResultsPublic'));
 
 function App() {
   const location = useLocation();
@@ -97,7 +101,9 @@ function App() {
     location.pathname.startsWith('/r/') ||
     location.pathname.startsWith('/sign/') ||
     location.pathname === '/workhuman-tv' ||
-    location.pathname.startsWith('/workhuman/recharge');
+    location.pathname.startsWith('/workhuman/recharge') ||
+    location.pathname.startsWith('/survey/') ||
+    location.pathname.startsWith('/survey-results/');
 
   useEffect(() => {
     // Non-blocking initialization - don't await or block rendering
@@ -629,6 +635,51 @@ function App() {
                       <QRCodeSignDisplay />
                     </Suspense>
                   </QRCodeSignProvider>
+                }
+              />
+              {/* Surveys */}
+              <Route
+                path="/surveys"
+                element={
+                  <PrivateRoute>
+                    <SurveyProvider>
+                      <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                          <LoadingSpinner size="large" />
+                        </div>
+                      }>
+                        <SurveyManager />
+                      </Suspense>
+                    </SurveyProvider>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/survey/:id"
+                element={
+                  <SurveyProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SurveyDisplay />
+                    </Suspense>
+                  </SurveyProvider>
+                }
+              />
+              <Route
+                path="/survey-results/:token"
+                element={
+                  <SurveyProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SurveyResultsPublic />
+                    </Suspense>
+                  </SurveyProvider>
                 }
               />
               <Route
