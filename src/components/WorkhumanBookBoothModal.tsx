@@ -23,12 +23,54 @@ const DAY_OPTIONS: { value: VipSlotDay; label: string }[] = [
   { value: 'day_3', label: 'Wed · Apr 29' },
 ];
 
-// Preset time slots matching the landing page schedule
-const PRESET_SLOTS: Record<VipSlotDay, string[]> = {
-  day_1: ['1:00-3:00 PM', '3:00-5:30 PM'],
-  day_2: ['8:00-10:00 AM', '10:00 AM-12:00 PM', '12:00-2:00 PM', '2:00-4:00 PM', '4:00-5:00 PM'],
-  day_3: ['8:00-10:00 AM', '10:00 AM-12:00 PM', '12:00-2:00 PM', '2:00-4:00 PM'],
+/**
+ * Build exact 15-minute-increment start times between `startMinutes` and
+ * `endMinutes` (inclusive of start, exclusive of end so the last massage
+ * finishes by close). Returns formatted strings like "8:00 AM", "8:15 AM".
+ *
+ * Booth hours (wall-clock, Orlando local):
+ *   Mon Apr 27: 1:00 PM – 5:30 PM   (last start 5:15 PM)
+ *   Tue Apr 28: 8:00 AM – 5:00 PM   (last start 4:45 PM)
+ *   Wed Apr 29: 8:00 AM – 4:00 PM   (last start 3:45 PM)
+ * Each massage = 15 minutes.
+ */
+function format12Hour(hour24: number, minute: number): string {
+  const h = ((hour24 + 11) % 12) + 1; // 0→12, 13→1, etc.
+  const meridiem = hour24 < 12 ? 'AM' : 'PM';
+  return `${h}:${String(minute).padStart(2, '0')} ${meridiem}`;
+}
+
+function buildSlots(startHour: number, startMin: number, endHour: number, endMin: number): string[] {
+  const slots: string[] = [];
+  const startTotal = startHour * 60 + startMin;
+  const endTotal = endHour * 60 + endMin;
+  // 15-min session → last start = close − 15
+  const lastStart = endTotal - 15;
+  for (let t = startTotal; t <= lastStart; t += 15) {
+    slots.push(format12Hour(Math.floor(t / 60), t % 60));
+  }
+  return slots;
+}
+
+const DAY_SLOTS: Record<VipSlotDay, string[]> = {
+  day_1: buildSlots(13, 0, 17, 30),  // Mon 1:00 PM – 5:30 PM
+  day_2: buildSlots(8, 0, 17, 0),    // Tue 8:00 AM – 5:00 PM
+  day_3: buildSlots(8, 0, 16, 0),    // Wed 8:00 AM – 4:00 PM
 };
+
+/** "8:15 AM" → "8:30 AM" (adds 15 minutes) */
+function endTimeFromStart(start: string): string {
+  const m = start.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!m) return '';
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const mer = m[3].toUpperCase();
+  if (mer === 'PM' && h < 12) h += 12;
+  if (mer === 'AM' && h === 12) h = 0;
+  let total = h * 60 + min + 15;
+  total = total % (24 * 60);
+  return format12Hour(Math.floor(total / 60), total % 60);
+}
 
 export const WorkhumanBookBoothModal: React.FC<Props> = ({ lead, onClose, onBooked }) => {
   const { user } = useAuth();
@@ -37,7 +79,7 @@ export const WorkhumanBookBoothModal: React.FC<Props> = ({ lead, onClose, onBook
 
   const [day, setDay] = useState<VipSlotDay>(lead.vip_slot_day || 'day_1');
   const [timeSlot, setTimeSlot] = useState<string>(lead.vip_slot_time || '');
-  const [serviceType, setServiceType] = useState('Chair Massage');
+  const [serviceType, setServiceType] = useState('15-min Chair Massage');
   const [bookerNotes, setBookerNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +159,11 @@ export const WorkhumanBookBoothModal: React.FC<Props> = ({ lead, onClose, onBook
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => { setDay(opt.value); setTimeSlot(''); }}
+                  onClick={() => {
+                    setDay(opt.value);
+                    // Clear slot if it's not valid for the new day
+                    if (!DAY_SLOTS[opt.value].includes(timeSlot)) setTimeSlot('');
+                  }}
                   className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors ${
                     day === opt.value
                       ? 'bg-amber-500 text-white'
@@ -131,30 +177,25 @@ export const WorkhumanBookBoothModal: React.FC<Props> = ({ lead, onClose, onBook
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Time slot</label>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              {PRESET_SLOTS[day].map(slot => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => setTimeSlot(slot)}
-                  className={`px-2 py-1.5 rounded-lg text-xs transition-colors border ${
-                    timeSlot === slot
-                      ? 'bg-amber-500 text-white border-amber-500'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
-            <input
-              type="text"
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              Start time <span className="text-gray-400 font-normal">(15-min increments, 15-min session)</span>
+            </label>
+            <select
               value={timeSlot}
               onChange={e => setTimeSlot(e.target.value)}
-              placeholder="Or type custom (e.g. 3:15 PM)"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
-            />
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+              required
+            >
+              <option value="">Select a start time</option>
+              {DAY_SLOTS[day].map(slot => (
+                <option key={slot} value={slot}>{slot}</option>
+              ))}
+            </select>
+            {timeSlot && (
+              <div className="mt-1.5 text-xs text-gray-500">
+                15-min session ends at {endTimeFromStart(timeSlot)}
+              </div>
+            )}
           </div>
 
           <div>
@@ -164,9 +205,8 @@ export const WorkhumanBookBoothModal: React.FC<Props> = ({ lead, onClose, onBook
               onChange={e => setServiceType(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
             >
-              <option value="Chair Massage">Chair Massage</option>
-              <option value="10-min Chair Massage">10-min Chair Massage</option>
               <option value="15-min Chair Massage">15-min Chair Massage</option>
+              <option value="10-min Chair Massage">10-min Chair Massage</option>
               <option value="Other">Other</option>
             </select>
           </div>
