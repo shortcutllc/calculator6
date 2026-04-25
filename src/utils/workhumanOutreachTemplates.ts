@@ -121,12 +121,78 @@ Hope to see you there!
 Shortcut | getshortcut.co`,
 };
 
+/**
+ * Booking confirmation email — sent after the lead's exact appointment
+ * is locked in (Book at Booth modal or post-Sunday Workhuman booking pass).
+ * Version A is the standard confirmation. Use for leads who already shared
+ * a mobile number on the form.
+ */
+export const BOOKING_CONFIRMATION_A: EmailTemplate = {
+  id: 'booking_confirmation_a',
+  channel: 'email',
+  label: 'Booking Confirmation (A)',
+  description: 'Confirms exact day + time for the booked massage.',
+  subjectLines: [
+    'Your VIP Massage Appointment at Workhuman Live 🎉',
+    'Confirmed — your Workhuman massage is booked, {first_name}',
+    '{first_name}, your massage at Workhuman is locked in',
+  ],
+  body: `Hey {first_name}!
+
+Just wanted to confirm — we've booked your complimentary 15-minute massage at our lounge in the Gratitude Garden at Workhuman Live.
+
+Your appointment is set for {day} at {time} — look out for a confirmation email with all the details.
+
+Feel free to reply with any questions you may have.
+
+We're really looking forward to connecting with you after your session and chatting about wellness at {company}.
+
+See you in Orlando!
+
+{sender_name}
+Shortcut | getshortcut.co`,
+};
+
+/**
+ * Booking confirmation email — Version B for leads we don't have a mobile
+ * number for. Adds a soft "reply with your mobile for a text reminder" ask.
+ */
+export const BOOKING_CONFIRMATION_B: EmailTemplate = {
+  id: 'booking_confirmation_b',
+  channel: 'email',
+  label: 'Booking Confirmation (B — text alert ask)',
+  description: 'Use when we don\'t have a mobile number — asks for one to send text reminders.',
+  subjectLines: [
+    'Your VIP Massage Appointment at Workhuman Live 🎉',
+    'Confirmed — your Workhuman massage is booked, {first_name}',
+    '{first_name}, your massage at Workhuman is locked in',
+  ],
+  body: `Hey {first_name}!
+
+Just wanted to confirm — we've booked your complimentary 15-minute massage at our lounge in the Gratitude Garden at Workhuman Live.
+
+Your appointment is set for {day} at {time} — look out for a confirmation email with all the details.
+
+One quick thing — if you'd like a text reminder before your session, just reply with your mobile number and we'll make sure you don't miss it.
+
+Feel free to reply with any questions you may have as well.
+
+We're really looking forward to connecting with you after your session and chatting about wellness at {company}.
+
+See you in Orlando!
+
+{sender_name}
+Shortcut | getshortcut.co`,
+};
+
 export const ALL_TEMPLATES: Template[] = [
   WORKHUMAN_DM,
   LINKEDIN_CONNECT,
   LINKEDIN_DM_AFTER_ACCEPT,
   DM_REPLY_FOLLOWUP_EMAIL,
   COLD_EMAIL,
+  BOOKING_CONFIRMATION_A,
+  BOOKING_CONFIRMATION_B,
 ];
 
 export interface TemplateVars {
@@ -135,6 +201,10 @@ export interface TemplateVars {
   senderName: string;
   landingPageUrl?: string;
   companySlug?: string;
+  /** Friendly day label for booking confirmations (e.g. "Monday, April 27"). */
+  day?: string;
+  /** Time slot string for booking confirmations (e.g. "1:15 PM"). */
+  time?: string;
 }
 
 /**
@@ -151,7 +221,9 @@ export function fillTemplate(body: string, vars: TemplateVars): string {
     .replace(/\{first_name\}/g, vars.firstName || 'there')
     .replace(/\{sender_name\}/g, vars.senderName || 'Shortcut')
     .replace(/\{company\}/g, vars.company || 'your team')
-    .replace(/\{landing_page_url\}/g, url);
+    .replace(/\{landing_page_url\}/g, url)
+    .replace(/\{day\}/g, vars.day || '[day]')
+    .replace(/\{time\}/g, vars.time || '[time]');
 }
 
 /**

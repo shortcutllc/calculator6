@@ -5,7 +5,9 @@ import {
 import { WorkhumanLead, LeadOutreachLog, OutreachChannel } from '../types/workhumanLead';
 import {
   WORKHUMAN_DM, LINKEDIN_CONNECT, LINKEDIN_DM_AFTER_ACCEPT,
-  DM_REPLY_FOLLOWUP_EMAIL, COLD_EMAIL, EMAIL_SUBJECT_LINES, SENDER_NAMES, SenderName,
+  DM_REPLY_FOLLOWUP_EMAIL, COLD_EMAIL,
+  BOOKING_CONFIRMATION_A, BOOKING_CONFIRMATION_B,
+  EMAIL_SUBJECT_LINES, SENDER_NAMES, SenderName,
   fillTemplate, workhumanDmUrl, slugFromLandingUrl, Template,
 } from '../utils/workhumanOutreachTemplates';
 import { logOutreach, fetchOutreachLogForLead } from '../services/WorkhumanLeadService';
@@ -34,7 +36,7 @@ const CHANNEL_LABELS: Record<OutreachChannel, string> = {
   email: 'Email',
 };
 
-type TabId = 'whdm' | 'li_connect' | 'li_dm' | 'dm_reply_email' | 'email_body';
+type TabId = 'whdm' | 'li_connect' | 'li_dm' | 'dm_reply_email' | 'email_body' | 'booking_a' | 'booking_b';
 
 const TABS: Array<{ id: TabId; label: string; template: Template; channel: OutreachChannel }> = [
   { id: 'whdm', label: 'WH DM', template: WORKHUMAN_DM, channel: 'workhuman_dm' },
@@ -42,6 +44,8 @@ const TABS: Array<{ id: TabId; label: string; template: Template; channel: Outre
   { id: 'li_dm', label: 'LI DM', template: LINKEDIN_DM_AFTER_ACCEPT, channel: 'linkedin_dm' },
   { id: 'dm_reply_email', label: 'DM Reply → Email', template: DM_REPLY_FOLLOWUP_EMAIL, channel: 'email' },
   { id: 'email_body', label: 'Cold Email', template: COLD_EMAIL, channel: 'email' },
+  { id: 'booking_a', label: 'Booking ✓ (A)', template: BOOKING_CONFIRMATION_A, channel: 'email' },
+  { id: 'booking_b', label: 'Booking ✓ (B — ask for mobile)', template: BOOKING_CONFIRMATION_B, channel: 'email' },
 ];
 
 function sanitizeSlug(company: string): string {
@@ -81,12 +85,35 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
     const urlWithLead = baseUrl
       ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}lead=${lead.id}`
       : undefined;
+
+    // Day + time used by booking confirmation templates. We try, in order:
+    //  1. vip_slot_time on the lead (set by Book-at-Booth modal — exact start time)
+    //  2. Time parsed from notes ("Preferred: <day> · <time>")
+    //  3. Empty (renders as [time] placeholder)
+    const dayLabels: Record<string, string> = {
+      day_1: 'Monday, April 27',
+      day_2: 'Tuesday, April 28',
+      day_3: 'Wednesday, April 29',
+    };
+    const day = lead.vip_slot_day ? dayLabels[lead.vip_slot_day] || lead.vip_slot_day : '';
+    let time = (lead.vip_slot_time || '').trim();
+    if (!time && lead.notes) {
+      const m = lead.notes.match(/Preferred:\s*([^.]+?)(?:\.|$)/i);
+      if (m) {
+        const value = m[1].trim();
+        // Strip leading day name + separator (e.g. "Mon Apr 27 · 1:00-3:00 PM" → "1:00-3:00 PM")
+        time = value.replace(/^(Mon|Tue|Wed|Thu)\s+\w+\s+\d+\s*[·\-—]\s*/i, '');
+      }
+    }
+
     return {
       firstName: (lead.name.split(' ')[0] || '').trim(),
       company: lead.company || '',
       senderName,
       landingPageUrl: urlWithLead,
       companySlug: slugFromLandingUrl(lead.landing_page_url) || (lead.company ? sanitizeSlug(lead.company) : ''),
+      day,
+      time,
     };
   }, [lead, senderName]);
 
