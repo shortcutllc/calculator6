@@ -52,6 +52,18 @@ function sanitizeSlug(company: string): string {
   return company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
+/**
+ * Extract a clean first name from a full name string. Strips common
+ * honorifics ("Mrs.", "Dr.", "Mx", etc.) so templates render "Hey Susana"
+ * even when the CRM has "Mrs. Susana Castaneira".
+ */
+const HONORIFIC_RE = /^(Mr|Mrs|Ms|Mx|Dr|Prof|Sir|Madam|Miss|Mister|Mister\.|Mr\.|Mrs\.|Ms\.|Mx\.|Dr\.|Prof\.)\.?\s+/i;
+function cleanFirstName(fullName: string | null | undefined): string {
+  if (!fullName) return '';
+  const stripped = fullName.replace(HONORIFIC_RE, '').trim();
+  return (stripped.split(/\s+/)[0] || '').trim();
+}
+
 export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
   const { user } = useAuth();
   const authedSender: SenderName | null = useMemo(() => {
@@ -107,7 +119,7 @@ export function WorkhumanMessagingPanel({ lead }: { lead: WorkhumanLead }) {
     }
 
     return {
-      firstName: (lead.name.split(' ')[0] || '').trim(),
+      firstName: cleanFirstName(lead.name),
       company: lead.company || '',
       senderName,
       landingPageUrl: urlWithLead,

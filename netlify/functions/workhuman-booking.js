@@ -65,8 +65,14 @@ async function pickSender(supabase, leadId, assignedTo) {
   return { name: DEFAULT_SENDER_NAME, email: DEFAULT_SENDER_EMAIL, source: 'default' };
 }
 
+/** Strip leading honorifics ("Mrs.", "Dr.", etc.) from a name. */
+function stripHonorific(name) {
+  if (!name) return '';
+  return name.replace(/^(Mr|Mrs|Ms|Mx|Dr|Prof|Sir|Madam|Miss|Mister|Mister\.|Mr\.|Mrs\.|Ms\.|Mx\.|Dr\.|Prof\.)\.?\s+/i, '').trim();
+}
+
 function buildEmail({ firstName, company, senderName }) {
-  const firstNameClean = firstName?.trim() || 'there';
+  const firstNameClean = stripHonorific(firstName)?.trim() || 'there';
   const companyClean = company?.trim() || 'your team';
   const senderFirst = (senderName || DEFAULT_SENDER_NAME).split(' ')[0];
 
