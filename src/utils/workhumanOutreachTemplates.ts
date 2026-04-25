@@ -139,15 +139,15 @@ export const BOOKING_CONFIRMATION_A: EmailTemplate = {
   ],
   body: `Hey {first_name}!
 
-Just wanted to confirm — we've booked your complimentary 15-minute massage at our lounge in the Gratitude Garden at Workhuman Live.
+We've booked your complimentary 15-minute massage at our lounge in the Gratitude Garden at Workhuman Live.
 
-Your appointment is set for {day} at {time} — look out for a confirmation email with all the details.
+Your appointment is set for {day} at {time}. Look out for a confirmation email with all the details.
 
 Feel free to reply with any questions you may have.
 
 We're really looking forward to connecting with you after your session and chatting about wellness at {company}.
 
-See you in Orlando!
+Safe travels and see you in Orlando!
 
 {sender_name}
 Shortcut | getshortcut.co`,
@@ -169,17 +169,17 @@ export const BOOKING_CONFIRMATION_B: EmailTemplate = {
   ],
   body: `Hey {first_name}!
 
-Just wanted to confirm — we've booked your complimentary 15-minute massage at our lounge in the Gratitude Garden at Workhuman Live.
+We've booked your complimentary 15-minute massage at our lounge in the Gratitude Garden at Workhuman Live.
 
-Your appointment is set for {day} at {time} — look out for a confirmation email with all the details.
+Your appointment is set for {day} at {time}. Look out for a confirmation email with all the details.
 
-One quick thing — if you'd like a text reminder before your session, just reply with your mobile number and we'll make sure you don't miss it.
+One quick thing. If you'd like a text reminder before your session, just reply with your mobile number and we'll make sure you don't miss it.
 
 Feel free to reply with any questions you may have as well.
 
 We're really looking forward to connecting with you after your session and chatting about wellness at {company}.
 
-See you in Orlando!
+Safe travels and see you in Orlando!
 
 {sender_name}
 Shortcut | getshortcut.co`,
