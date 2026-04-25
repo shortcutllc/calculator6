@@ -134,8 +134,8 @@ export const BOOKING_CONFIRMATION_A: EmailTemplate = {
   description: 'Confirms exact day + time for the booked massage.',
   subjectLines: [
     'Your VIP Massage Appointment at Workhuman Live 🎉',
-    'Confirmed — your Workhuman massage is booked, {first_name}',
-    '{first_name}, your massage at Workhuman is locked in',
+    'Your Workhuman massage is confirmed',
+    'Your massage at Workhuman is locked in',
   ],
   body: `Hey {first_name}!
 
@@ -162,8 +162,8 @@ export const BOOKING_CONFIRMATION_B: EmailTemplate = {
   description: 'Use when we don\'t have a mobile number — asks for one to send text reminders.',
   subjectLines: [
     'Your VIP Massage Appointment at Workhuman Live 🎉',
-    'Confirmed — your Workhuman massage is booked, {first_name}',
-    '{first_name}, your massage at Workhuman is locked in',
+    'Your Workhuman massage is confirmed',
+    'Your massage at Workhuman is locked in',
   ],
   body: `Hey {first_name}!
 
