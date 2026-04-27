@@ -152,6 +152,7 @@ const WorkhumanBooth: React.FC = () => {
 
   const [signups, setSignups] = useState<SignupRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [search, setSearch] = useState('');
   const [dayFilter, setDayFilter] = useState<string>('all');
   // Assignee filter: 'all' | 'mine' | '<teammate name>' | 'unassigned' | 'new_walkin'
@@ -192,10 +193,28 @@ const WorkhumanBooth: React.FC = () => {
       _lead: s.matched_lead_id ? leadMap[s.matched_lead_id] || null : null,
     }));
     setSignups(hydrated);
+    setLastRefreshedAt(new Date());
     setLoading(false);
   }, []);
 
   useEffect(() => { loadSignups(); }, [loadSignups]);
+
+  // Auto-refresh when the user returns to this tab (so reassignments made
+  // in the main CRM propagate without a manual click) and on a 60-second
+  // poll while the tab is visible.
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') loadSignups();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadSignups();
+    }, 60_000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      clearInterval(interval);
+    };
+  }, [loadSignups]);
 
   // --- CSV upload ---
 
@@ -341,10 +360,15 @@ const WorkhumanBooth: React.FC = () => {
           <button
             onClick={loadSignups}
             className="flex items-center gap-2 px-3 py-2 text-gray-600 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
-            title="Refresh from DB"
+            title="Pull fresh data from the CRM. Auto-refreshes when you return to this tab."
           >
             <RefreshCw size={14} /> Refresh
           </button>
+          {lastRefreshedAt && (
+            <span className="text-[11px] text-gray-400" title={lastRefreshedAt.toLocaleString()}>
+              Updated {lastRefreshedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
           {uploadStatus.state === 'uploading' && (
             <div className="text-sm text-gray-500 inline-flex items-center gap-1.5">
               <Loader2 size={14} className="animate-spin" /> {uploadStatus.message}
