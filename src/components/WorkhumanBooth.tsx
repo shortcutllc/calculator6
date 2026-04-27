@@ -265,6 +265,25 @@ const WorkhumanBooth: React.FC = () => {
     await supabase.from('workhuman_signups').update({ team_status: status }).eq('id', id);
   };
 
+  const updateAssignee = async (signupId: string, leadId: string | null, assignee: string | null) => {
+    if (!leadId) return; // can't reassign if no matched lead
+    // Optimistic UI: update _lead.assigned_to in local state
+    setSignups(prev => prev.map(s =>
+      s.id === signupId && s._lead
+        ? { ...s, _lead: { ...s._lead, assigned_to: assignee } }
+        : s
+    ));
+    const { error } = await supabase
+      .from('workhuman_leads')
+      .update({ assigned_to: assignee })
+      .eq('id', leadId);
+    if (error) {
+      console.error('Failed to update assignee:', error);
+      // Revert on error by reloading
+      loadSignups();
+    }
+  };
+
   const appendNote = async (id: string, text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -484,6 +503,7 @@ const WorkhumanBooth: React.FC = () => {
                     onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                     onStatusChange={(status) => updateStatus(s.id, status)}
                     onAppendNote={(text) => appendNote(s.id, text)}
+                    onAssigneeChange={(assignee) => updateAssignee(s.id, s._lead?.id ?? null, assignee)}
                   />
                 ))}
               </tbody>
@@ -505,13 +525,14 @@ function Stat({ label, value, color }: { label: string; value: number; color?: s
 }
 
 function SignupRowView({
-  signup, isExpanded, onToggle, onStatusChange, onAppendNote,
+  signup, isExpanded, onToggle, onStatusChange, onAppendNote, onAssigneeChange,
 }: {
   signup: SignupRow;
   isExpanded: boolean;
   onToggle: () => void;
   onStatusChange: (status: string) => void;
   onAppendNote: (text: string) => void;
+  onAssigneeChange: (assignee: string | null) => void;
 }) {
   const lead = signup._lead;
   const isNewWalkIn = lead?.source === 'whl_booth_signup';
@@ -575,11 +596,23 @@ function SignupRowView({
           {signup.match_method === 'new_lead_created' && <span className="text-purple-700">+ new lead</span>}
           {!signup.match_method && <span className="text-gray-400">—</span>}
         </td>
-        <td className="px-3 py-2">
-          {assignee && ASSIGNEE_INITIALS[assignee] ? (
-            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[10px] font-bold ${ASSIGNEE_COLORS[assignee]}`} title={assignee}>
-              {ASSIGNEE_INITIALS[assignee]}
-            </span>
+        <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
+          {lead ? (
+            <select
+              value={assignee || ''}
+              onChange={e => onAssigneeChange(e.target.value || null)}
+              className={`text-[11px] font-medium rounded-full px-2 py-1 border cursor-pointer min-w-[44px] ${
+                assignee && ASSIGNEE_COLORS[assignee]
+                  ? `${ASSIGNEE_COLORS[assignee]} border-transparent`
+                  : 'bg-gray-50 text-gray-500 border-gray-200'
+              }`}
+              title={assignee ? `Assigned to ${assignee}` : 'Reassign to a teammate'}
+            >
+              <option value="">— (unassigned)</option>
+              {Object.values(SENDER_MAP).map(name => (
+                <option key={name} value={name}>{ASSIGNEE_INITIALS[name]} · {name}</option>
+              ))}
+            </select>
           ) : <span className="text-gray-400 text-xs">—</span>}
         </td>
         <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
