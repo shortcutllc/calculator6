@@ -168,7 +168,9 @@ function useStageScale() {
   React.useEffect(() => {
     const fit = () => {
       const vw = window.innerWidth, vh = window.innerHeight;
-      const s = Math.min(vw / SCREEN_W, vh / SCREEN_H) * 0.98;
+      // Fill the viewport edge-to-edge — no safety margin. On a 55" TV in
+      // portrait (1080×1920 after rotation) this gets full-bleed coverage.
+      const s = Math.min(vw / SCREEN_W, vh / SCREEN_H);
       setScale(s);
     };
     fit();

@@ -304,7 +304,7 @@ function Slide05a_Benefits({ phase }) {
             letterSpacing: '0.2em', textTransform: 'uppercase',
             opacity: phase === 'active' ? 1 : 0,
             transition: 'opacity 0.5s ease 0.15s',
-          }}>Real talk</p>
+          }}>Notice a pattern</p>
           <h1 style={{
             margin: 0, fontFamily: 'Outfit, system-ui, sans-serif',
             fontWeight: 800, fontSize: 170, lineHeight: 0.95,
@@ -315,19 +315,19 @@ function Slide05a_Benefits({ phase }) {
               opacity: phase === 'active' ? 1 : 0,
               transform: phase === 'active' ? 'translateY(0)' : 'translateY(36px)',
               transition: 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.35s',
-            }}>Your team</span>
+            }}>Every company</span>
             <span style={{
               display: 'block',
               opacity: phase === 'active' ? 1 : 0,
               transform: phase === 'active' ? 'translateY(0)' : 'translateY(36px)',
               transition: 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.75s',
-            }}>already has</span>
+            }}>has wellness</span>
             <span style={{
               display: 'block', color: C.CORAL,
               opacity: phase === 'active' ? 1 : 0,
               transform: phase === 'active' ? 'translateY(0)' : 'translateY(36px)',
               transition: 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.15s',
-            }}>wellness benefits.</span>
+            }}>benefits.</span>
           </h1>
           <p style={{
             margin: '60px 0 0 0', fontFamily: 'Outfit, system-ui, sans-serif',
@@ -336,7 +336,7 @@ function Slide05a_Benefits({ phase }) {
             opacity: phase === 'active' ? 1 : 0,
             transition: 'opacity 0.5s ease 1.7s',
           }}>
-            So why does nobody use them?
+            Most go unused.
           </p>
         </div>
       </SlideTransition>
@@ -358,7 +358,7 @@ function Slide05b_Buried({ phase }) {
     { label: '401(k) · Fidelity',               status: 'Contributing' },
     { label: 'HSA · Optum Bank',                status: 'Enrolled' },
     { label: 'Commuter · WageWorks',            status: 'Active' },
-    { label: 'Wellness Stipend · $75/mo',       status: 'Unused', highlight: true },
+    { label: 'Wellness Stipend · $75/mo',       status: '$0 used', highlight: true },
     { label: 'Life · MetLife Basic',            status: 'Active' },
   ];
 
@@ -381,13 +381,13 @@ function Slide05b_Buried({ phase }) {
               opacity: phase === 'active' ? 1 : 0,
               transform: phase === 'active' ? 'translateY(0)' : 'translateY(28px)',
               transition: 'all 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.15s',
-            }}>But they're</span>
+            }}>And easy</span>
             <span style={{
               display: 'block', color: C.CORAL,
               opacity: phase === 'active' ? 1 : 0,
               transform: phase === 'active' ? 'translateY(0)' : 'translateY(28px)',
               transition: 'all 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.5s',
-            }}>buried.</span>
+            }}>to miss.</span>
           </h1>
 
           {/* Portal mock — one big "window" */}
@@ -446,8 +446,10 @@ function Slide05b_Buried({ phase }) {
                     padding: '20px 32px',
                     margin: '0 0 4px 0',
                     borderRadius: 14,
-                    background: highlight ? 'rgba(255,149,115,0.12)' : 'transparent',
-                    border: highlight ? `2px solid ${C.CORAL}` : '2px solid transparent',
+                    // Soft coral border draws the eye to the row without screaming.
+                    // The "$0 used" pill carries the message; no arrow, no red badge.
+                    background: highlight ? 'rgba(255,80,80,0.05)' : 'transparent',
+                    border: highlight ? '2px solid rgba(255,80,80,0.35)' : '2px solid transparent',
                     position: 'relative',
                     opacity: phase === 'active' ? 1 : 0,
                     transform: phase === 'active' ? 'translateX(0)' : 'translateX(-20px)',
@@ -457,9 +459,9 @@ function Slide05b_Buried({ phase }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                       <div style={{
                         width: 36, height: 36, borderRadius: 10,
-                        background: highlight ? C.CORAL : 'rgba(9,54,79,0.08)',
+                        background: 'rgba(9,54,79,0.08)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: highlight ? C.WHITE : labelColor,
+                        color: labelColor,
                         fontFamily: 'Outfit, system-ui, sans-serif', fontWeight: 800, fontSize: 18,
                       }}>{i + 1}</div>
                       <span style={{
@@ -469,34 +471,15 @@ function Slide05b_Buried({ phase }) {
                         letterSpacing: '-0.005em',
                       }}>{it.label}</span>
                     </div>
-                    {/* Right — status pill */}
+                    {/* Right — status pill (muted gray on the wellness row, same as inactive plans) */}
                     <span style={{
                       fontFamily: 'Inter, system-ui, sans-serif',
                       fontWeight: 700, fontSize: 14, letterSpacing: '0.14em',
                       textTransform: 'uppercase',
                       padding: '8px 14px', borderRadius: 999,
-                      background: highlight ? C.CORAL : 'rgba(9,54,79,0.06)',
-                      color: highlight ? C.WHITE : labelColor,
+                      background: 'rgba(9,54,79,0.06)',
+                      color: labelColor,
                     }}>{it.status}</span>
-                    {/* Arrow pointing at the buried item */}
-                    {highlight ? (
-                      <div style={{
-                        position: 'absolute',
-                        left: '100%', marginLeft: 24,
-                        top: '50%', transform: 'translateY(-50%)',
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        opacity: phase === 'active' ? 1 : 0,
-                        transition: `opacity 0.4s ease ${rowDelay + 0.3}s`,
-                        pointerEvents: 'none',
-                      }}>
-                        <span style={{
-                          fontFamily: 'Outfit, system-ui, sans-serif',
-                          fontWeight: 800, fontSize: 28, color: C.CORAL,
-                          whiteSpace: 'nowrap', letterSpacing: '-0.01em',
-                          textShadow: '0 2px 0 rgba(9,54,79,0.03)',
-                        }}>← here</span>
-                      </div>
-                    ) : null}
                   </div>
                 );
               })}
@@ -515,6 +498,135 @@ function Slide05b_Buried({ phase }) {
         </div>
       </SlideTransition>
       <CornerLogo theme="onLight" />
+    </SlideFrame>
+  );
+}
+
+// --- SLIDE 5d: THE GAP — "3 in 4 don't use wellness benefits." ---
+// Sits between Slide05b_Buried and Slide05_WhatWeDo. Beige bg keeps the
+// data-world rhythm with the portal mock; coral hero number gives it punch.
+// Backs the soft "Most go unused" claim with hard data — Gallup wellness
+// program participation, broadly defined (covers stipends, apps, gym, etc.).
+function Slide05d_TheGap({ phase }) {
+  return (
+    <SlideFrame bg={C.BEIGE}>
+      <SlideTransition phase={phase} direction="fade">
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '0 60px',
+        }}>
+          {/* Eyebrow */}
+          <p style={{
+            margin: 0, fontFamily: 'Outfit, system-ui, sans-serif',
+            fontWeight: 700, fontSize: 32, color: 'rgba(9,54,79,0.5)',
+            letterSpacing: '0.2em', textTransform: 'uppercase',
+            marginBottom: 30,
+            opacity: phase === 'active' ? 1 : 0,
+            transition: 'opacity 0.5s ease 0.2s',
+          }}>The gap</p>
+
+          {/* Hero number — scale-in for impact */}
+          <h1 style={{
+            margin: 0, fontFamily: 'Outfit, system-ui, sans-serif',
+            fontWeight: 800, fontSize: 360, lineHeight: 0.92,
+            letterSpacing: '-0.055em', color: C.CORAL,
+            textAlign: 'center',
+            opacity: phase === 'active' ? 1 : 0,
+            transform: phase === 'active' ? 'scale(1)' : 'scale(0.85)',
+            transition: 'all 0.7s cubic-bezier(0.22, 1.3, 0.5, 1) 0.5s',
+          }}>3 in 4</h1>
+
+          {/* Subline */}
+          <p style={{
+            margin: '60px 0 0 0', fontFamily: 'Outfit, system-ui, sans-serif',
+            fontWeight: 600, fontSize: 50, lineHeight: 1.18,
+            color: C.NAVY,
+            letterSpacing: '-0.015em',
+            textAlign: 'center',
+            maxWidth: 880,
+            opacity: phase === 'active' ? 1 : 0,
+            transition: 'opacity 0.5s ease 1.1s',
+          }}>
+            Don't use the wellness benefits<br/>
+            their company offers.
+          </p>
+
+          {/* Source attribution */}
+          <p style={{
+            position: 'absolute', bottom: 90, left: 0, right: 0,
+            margin: 0, fontFamily: 'Inter, system-ui, sans-serif',
+            fontWeight: 700, fontSize: 18, letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'rgba(9,54,79,0.4)',
+            textAlign: 'center',
+            opacity: phase === 'active' ? 1 : 0,
+            transition: 'opacity 0.5s ease 1.6s',
+          }}>
+            Source: Gallup
+          </p>
+        </div>
+      </SlideTransition>
+      <CornerLogo theme="onLight" />
+    </SlideFrame>
+  );
+}
+
+// --- SLIDE 5c: PLOT TWIST — "We're not just a massage company." ---
+// Sits between Slide05_WhatWeDo and Slide06_ServiceList. Coral bg, navy
+// callout on "not just" so the pivot lands. Italic "Surprise." beat below.
+function Slide05c_PlotTwist({ phase }) {
+  return (
+    <SlideFrame bg={C.CORAL}>
+      <SlideTransition phase={phase} direction="up">
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          justifyContent: 'flex-start', padding: '200px 90px 0 90px',
+        }}>
+          <p style={{
+            margin: '0 0 48px 0', fontFamily: 'Outfit, system-ui, sans-serif',
+            fontWeight: 700, fontSize: 32, color: C.NAVY,
+            letterSpacing: '0.2em', textTransform: 'uppercase',
+            opacity: phase === 'active' ? 1 : 0,
+            transition: 'opacity 0.5s ease 0.15s',
+          }}>Plot twist</p>
+          <h1 style={{
+            margin: 0, fontFamily: 'Outfit, system-ui, sans-serif',
+            fontWeight: 800, fontSize: 170, lineHeight: 0.96,
+            letterSpacing: '-0.045em', color: C.WHITE,
+          }}>
+            {[
+              // Spoken cadence: deliberate, like someone reading the line aloud.
+              // "not just" lands tighter (single phrase); "company." gets a bit
+              // more space so the punchline has weight before "Surprise." closes.
+              { word: "We're",    color: C.WHITE, delay: 0.4 },
+              { word: 'not',      color: C.NAVY,  delay: 0.95 },
+              { word: 'just',     color: C.NAVY,  delay: 1.4 },
+              { word: 'a',        color: C.WHITE, delay: 1.95 },
+              { word: 'massage',  color: C.WHITE, delay: 2.5 },
+              { word: 'company.', color: C.WHITE, delay: 3.15 },
+            ].map(({ word, color, delay }) => (
+              <span key={word} style={{
+                display: 'block', color,
+                opacity: phase === 'active' ? 1 : 0,
+                transform: phase === 'active' ? 'translateY(0)' : 'translateY(36px)',
+                transition: `all 0.7s cubic-bezier(0.22, 1, 0.36, 1) ${delay}s`,
+              }}>{word}</span>
+            ))}
+          </h1>
+          <p style={{
+            margin: '60px 0 0 0', fontFamily: 'Outfit, system-ui, sans-serif',
+            fontWeight: 600, fontSize: 48, color: 'rgba(255,255,255,0.9)',
+            letterSpacing: '-0.01em', fontStyle: 'italic',
+            opacity: phase === 'active' ? 1 : 0,
+            transition: 'opacity 0.6s ease 4.0s',
+          }}>
+            Surprise.
+          </p>
+        </div>
+      </SlideTransition>
     </SlideFrame>
   );
 }
@@ -559,5 +671,5 @@ function Slide06_ServiceList({ phase }) {
 Object.assign(window, {
   Slide01_QRHero, Slide02_HelloWorkhuman, Slide03_WeAreShortcut,
   Slide04_Tagline, Slide05a_Benefits, Slide05b_Buried,
-  Slide05_WhatWeDo, Slide06_ServiceList,
+  Slide05_WhatWeDo, Slide05c_PlotTwist, Slide05d_TheGap, Slide06_ServiceList,
 });

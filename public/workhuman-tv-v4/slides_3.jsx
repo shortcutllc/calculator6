@@ -323,7 +323,7 @@ function Slide16_Close({ phase }) {
             marginBottom: 30,
             opacity: phase === 'active' ? 1 : 0,
             transition: 'opacity 0.5s ease 0.2s',
-          }}>Booth 1617 · Workhuman Live</p>
+          }}>Gratitude Garden · Workhuman Live</p>
 
           <h1 style={{
             margin: 0, fontFamily: 'Outfit, system-ui, sans-serif',
