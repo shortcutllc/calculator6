@@ -42,6 +42,7 @@ interface SignupRow {
     tier_1a: boolean;
     tier_1b: boolean;
     source: string | null;
+    research_brief: string | null;
   } | null;
 }
 
@@ -181,7 +182,7 @@ const WorkhumanBooth: React.FC = () => {
     if (leadIds.length) {
       const { data: leads } = await supabase
         .from('workhuman_leads')
-        .select('id, name, company, title, assigned_to, tier, tier_1a, tier_1b, source')
+        .select('id, name, company, title, assigned_to, tier, tier_1a, tier_1b, source, research_brief')
         .in('id', leadIds);
       leadMap = Object.fromEntries((leads || []).map(l => [l.id, l]));
     }
@@ -573,7 +574,32 @@ function SignupDetail({ signup, onAppendNote }: { signup: SignupRow; onAppendNot
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-4">
+      {/* Sales briefing — top-priority info to scan before chatting */}
+      {lead?.research_brief && (
+        <div className="bg-amber-50/40 border border-amber-200 rounded-lg p-4">
+          <h4 className="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <Star size={12} fill="currentColor" /> Sales briefing — {lead.company || 'company'}
+          </h4>
+          <div className="text-sm text-gray-800 space-y-1.5 leading-relaxed">
+            {lead.research_brief.split('\n').filter(l => l.trim()).map((line, i) => {
+              // Strip leading bullet marker, render as a row with our own bullet
+              const text = line.replace(/^\s*[-*]\s+/, '').trim();
+              if (!text) return null;
+              // Bold any "**word**" segments
+              const html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+              return (
+                <div key={i} className="flex gap-2">
+                  <span className="text-amber-600 select-none mt-0.5">•</span>
+                  <span dangerouslySetInnerHTML={{ __html: html }} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Signup details */}
       <div className="space-y-1.5 text-sm">
         <h4 className="font-medium text-gray-700 mb-2 text-xs uppercase tracking-wide">Booking</h4>
@@ -632,6 +658,7 @@ function SignupDetail({ signup, onAppendNote }: { signup: SignupRow; onAppendNot
             {signup.team_notes}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
