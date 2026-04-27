@@ -588,6 +588,7 @@ function SignupDetail({ signup, onAppendNote }: { signup: SignupRow; onAppendNot
   const [noteDraft, setNoteDraft] = useState('');
   const lead = signup._lead;
   const [submitting, setSubmitting] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(true);
 
   const submitNote = async () => {
     if (!noteDraft.trim()) return;
@@ -601,25 +602,36 @@ function SignupDetail({ signup, onAppendNote }: { signup: SignupRow; onAppendNot
     <div className="space-y-4">
       {/* Sales briefing — top-priority info to scan before chatting */}
       {lead?.research_brief && (
-        <div className="bg-amber-50/40 border border-amber-200 rounded-lg p-4">
-          <h4 className="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-            <Star size={12} fill="currentColor" /> Sales briefing — {lead.company || 'company'}
-          </h4>
-          <div className="text-sm text-gray-800 space-y-1.5 leading-relaxed">
-            {lead.research_brief.split('\n').filter(l => l.trim()).map((line, i) => {
-              // Strip leading bullet marker, render as a row with our own bullet
-              const text = line.replace(/^\s*[-*]\s+/, '').trim();
-              if (!text) return null;
-              // Bold any "**word**" segments
-              const html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-              return (
-                <div key={i} className="flex gap-2">
-                  <span className="text-amber-600 select-none mt-0.5">•</span>
-                  <span dangerouslySetInnerHTML={{ __html: html }} />
-                </div>
-              );
-            })}
-          </div>
+        <div className="bg-amber-50/40 border border-amber-200 rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setBriefingOpen(!briefingOpen)}
+            className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-amber-50 transition-colors"
+            aria-expanded={briefingOpen}
+          >
+            <h4 className="text-xs font-semibold text-amber-900 uppercase tracking-wide flex items-center gap-1.5">
+              <Star size={12} fill="currentColor" /> Sales briefing — {lead.company || 'company'}
+            </h4>
+            <div className="flex items-center gap-1.5 text-amber-800/70">
+              <span className="text-[11px] font-medium">{briefingOpen ? 'Hide' : 'Show'}</span>
+              {briefingOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </div>
+          </button>
+          {briefingOpen && (
+            <div className="px-4 pb-4 text-sm text-gray-800 space-y-1.5 leading-relaxed">
+              {lead.research_brief.split('\n').filter(l => l.trim()).map((line, i) => {
+                const text = line.replace(/^\s*[-*]\s+/, '').trim();
+                if (!text) return null;
+                const html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                return (
+                  <div key={i} className="flex gap-2">
+                    <span className="text-amber-600 select-none mt-0.5">•</span>
+                    <span dangerouslySetInnerHTML={{ __html: html }} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
