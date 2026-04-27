@@ -180,9 +180,14 @@ function useStageScale() {
   React.useEffect(() => {
     const fit = () => {
       const vw = window.innerWidth, vh = window.innerHeight;
-      // Fill the viewport edge-to-edge — no safety margin. On a 55" TV in
-      // portrait (1080×1920 after rotation) this gets full-bleed coverage.
-      const s = Math.min(vw / SCREEN_W, vh / SCREEN_H);
+      // COVER the viewport — scale to the larger ratio and let overflow:hidden
+      // crop the dimension that overshoots. Eliminates black bars on TVs
+      // whose actual fullscreen viewport isn't a clean 9:16 (most aren't —
+      // there's usually a few pixels of difference from rotation, OS chrome,
+      // or TV pixel-perfect mode). Slides keep content within ~90px padding
+      // from edges, so the crop is invisible. Switch back to Math.min if any
+      // edge content starts disappearing on a particular TV.
+      const s = Math.max(vw / SCREEN_W, vh / SCREEN_H);
       setScale(s);
     };
     fit();
