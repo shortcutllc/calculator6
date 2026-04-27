@@ -132,7 +132,7 @@ function QRCorner({ theme = 'onDark' }) {
       display: 'flex', alignItems: 'center', gap: 18,
       pointerEvents: 'none',
     }}>
-      <QRCode size={120} fg={C.NAVY} bg={C.WHITE} />
+      <QRCode size={150} fg={C.NAVY} bg={C.WHITE} />
       <p style={{
         margin: 0, fontFamily: 'Inter, system-ui, sans-serif',
         fontWeight: 700, fontSize: 20, lineHeight: 1.15,

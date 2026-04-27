@@ -87,43 +87,53 @@ function AnimatedLogo({ phase, size = 80, color = C.CORAL, wordColor, delay = 0 
   );
 }
 
-// ---------- QR Code (static pattern, visual only) ----------
+// ---------- QR Code (real, scannable) ----------
+// Encodes: https://admin.shortcutpros.com/#/selectEvent/WORKHUMAN
+// 33×33 matrix, error correction M. Generated via Python qrcode lib —
+// recipe is in memory/print_design_system.md.
+//
+// To change the URL: regenerate the matrix and paste the new rows[] below.
+// Higher error correction = larger matrix = smaller cells at the same render
+// size. Stick with M unless the URL gets significantly shorter.
+const QR_MODULES = [
+  '111111100010010010011001101111111',
+  '100000100000011110101010101000001',
+  '101110101111010010001111001011101',
+  '101110101011101010000111101011101',
+  '101110101101010100101011101011101',
+  '100000101110101110001010101000001',
+  '111111101010101010101010101111111',
+  '000000001011101100101100000000000',
+  '101111100110110101011010101111100',
+  '011001000111000011011111001101111',
+  '110000111101100111001010010010110',
+  '000100011100101000110110100011111',
+  '001110110010000100100111010011011',
+  '110011010010001110101101000000111',
+  '011000100110001000101000111011010',
+  '110010001110110010101111011101100',
+  '000000101100100001000011110110001',
+  '110011000100001011011001001101101',
+  '011000111001111101000010010110100',
+  '110001010101100011101110010111111',
+  '100100110100011010001111110111000',
+  '111011011101010100101011011001101',
+  '100011100010000111100100000001110',
+  '101101010110010100100100010001101',
+  '100000101100100101011010111110010',
+  '000000001000010000111100100010101',
+  '111111100000011110100001101010100',
+  '100000101011000000010101100011111',
+  '101110101001101100100110111111011',
+  '101110101100110111001000110011011',
+  '101110101011101001001011101100100',
+  '100000100000100010010110010011100',
+  '111111101011001011011011101100010',
+];
+
 function QRCode({ size = 300, fg = C.NAVY, bg = C.WHITE }) {
-  // 25×25 matrix. Hand-picked pattern that reads as a QR visually.
-  // Includes three positioning squares (top-left, top-right, bottom-left) + timing pattern.
-  const N = 25;
-  const cells = React.useMemo(() => {
-    const m = Array.from({length: N}, () => Array(N).fill(0));
-    // Position squares — 7x7 outer, 5x5 inner white, 3x3 inner black
-    const putFinder = (r, c) => {
-      for (let i = 0; i < 7; i++) for (let j = 0; j < 7; j++) m[r+i][c+j] = 1;
-      for (let i = 1; i < 6; i++) for (let j = 1; j < 6; j++) m[r+i][c+j] = 0;
-      for (let i = 2; i < 5; i++) for (let j = 2; j < 5; j++) m[r+i][c+j] = 1;
-    };
-    putFinder(0, 0); putFinder(0, 18); putFinder(18, 0);
-    // Alignment pattern bottom-right
-    for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) m[18+i][18+j] = 0;
-    for (let i = 18; i < 23; i++) for (let j = 18; j < 23; j++) {
-      if (i === 18 || i === 22 || j === 18 || j === 22) m[i][j] = 1;
-    }
-    m[20][20] = 1;
-    // Timing lines
-    for (let i = 8; i < 17; i++) { m[6][i] = i % 2 === 0 ? 1 : 0; m[i][6] = i % 2 === 0 ? 1 : 0; }
-    // Pseudo-random data region (deterministic)
-    const seed = 1337;
-    let x = seed;
-    const rand = () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff; };
-    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-      const inFinder = (r < 8 && c < 8) || (r < 8 && c > 16) || (r > 16 && c < 8);
-      const inAlign  = r >= 17 && c >= 17;
-      const inTiming = r === 6 || c === 6;
-      if (inFinder || inAlign || inTiming) continue;
-      if (rand() > 0.5) m[r][c] = 1;
-    }
-    return m;
-  }, []);
+  const N = QR_MODULES.length;
   const pad = size * 0.06;
-  const cell = (size - pad * 2) / N;
   return (
     <div style={{
       width: size, height: size, background: bg, borderRadius: size * 0.06,
@@ -131,9 +141,11 @@ function QRCode({ size = 300, fg = C.NAVY, bg = C.WHITE }) {
       boxShadow: '0 20px 48px rgba(0,0,0,0.25)',
     }}>
       <svg width={size - pad * 2} height={size - pad * 2} viewBox={`0 0 ${N} ${N}`} style={{ display: 'block' }}>
-        {cells.flatMap((row, r) => row.map((v, c) => v ? (
-          <rect key={`${r}-${c}`} x={c} y={r} width="1.02" height="1.02" fill={fg} />
-        ) : null))}
+        {QR_MODULES.flatMap((row, r) =>
+          row.split('').map((v, c) => v === '1' ? (
+            <rect key={`${r}-${c}`} x={c} y={r} width="1.02" height="1.02" fill={fg} />
+          ) : null)
+        )}
       </svg>
     </div>
   );
