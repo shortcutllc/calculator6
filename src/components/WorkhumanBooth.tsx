@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Upload, Search, Calendar, CheckCircle, XCircle, Clock,
   Star, User, Phone, Building, Loader2, RefreshCw, AlertCircle, MessageSquare,
-  ChevronDown, ChevronUp, UserPlus, CheckCircle2,
+  ChevronDown, ChevronUp, UserPlus, CheckCircle2, Linkedin,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,6 +43,7 @@ interface SignupRow {
     tier_1b: boolean;
     source: string | null;
     research_brief: string | null;
+    linkedin_url: string | null;
   } | null;
 }
 
@@ -182,7 +183,7 @@ const WorkhumanBooth: React.FC = () => {
     if (leadIds.length) {
       const { data: leads } = await supabase
         .from('workhuman_leads')
-        .select('id, name, company, title, assigned_to, tier, tier_1a, tier_1b, source, research_brief')
+        .select('id, name, company, title, assigned_to, tier, tier_1a, tier_1b, source, research_brief, linkedin_url')
         .in('id', leadIds);
       leadMap = Object.fromEntries((leads || []).map(l => [l.id, l]));
     }
@@ -516,7 +517,30 @@ function SignupRowView({
               </span>
             )}
           </div>
-          <div className="text-[11px] text-gray-400">{signup.email || lead?.name ? (signup.email || '—') : '—'}{signup.phone ? ` · ${signup.phone}` : ''}</div>
+          {lead?.title && (
+            <div className="text-[11px] text-gray-500 italic truncate max-w-[260px]" title={lead.title}>
+              {lead.title}
+            </div>
+          )}
+          <div className="text-[11px] text-gray-400">
+            {signup.email || lead?.name ? (signup.email || '—') : '—'}
+            {signup.phone ? ` · ${signup.phone}` : ''}
+            {lead?.linkedin_url && (
+              <>
+                {' · '}
+                <a
+                  href={lead.linkedin_url.startsWith('http') ? lead.linkedin_url : `https://${lead.linkedin_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#0a66c2] hover:underline inline-flex items-center gap-0.5"
+                  onClick={e => e.stopPropagation()}
+                  title="Open LinkedIn profile"
+                >
+                  <Linkedin size={10} /> LinkedIn
+                </a>
+              </>
+            )}
+          </div>
         </td>
         <td className="px-3 py-2 text-gray-700">{displayCompany}</td>
         <td className="px-3 py-2 text-gray-600 text-[11px] whitespace-nowrap">
@@ -620,6 +644,21 @@ function SignupDetail({ signup, onAppendNote }: { signup: SignupRow; onAppendNot
               {lead.tier_1a ? 'Tier 1A (VIP 200)' : lead.tier_1b ? 'Tier 1B' : lead.tier.replace('tier_', 'Tier ')}
             </span></div>
             <div><span className="text-gray-400">Assigned:</span> <span className="text-gray-700">{lead.assigned_to || '(unassigned)'}</span></div>
+            <div>
+              <span className="text-gray-400">LinkedIn:</span>{' '}
+              {lead.linkedin_url ? (
+                <a
+                  href={lead.linkedin_url.startsWith('http') ? lead.linkedin_url : `https://${lead.linkedin_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#0a66c2] hover:underline inline-flex items-center gap-1"
+                >
+                  <Linkedin size={11} /> {lead.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}
+                </a>
+              ) : (
+                <span className="text-gray-400">—</span>
+              )}
+            </div>
             <div><span className="text-gray-400">Source:</span> <span className="text-gray-700">{lead.source || 'apollo_enrichment'}</span></div>
             <div className="pt-2">
               <Link
