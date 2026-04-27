@@ -481,34 +481,52 @@ const WorkhumanBooth: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-500">
-                  <th className="text-left px-3 py-2 font-medium">When</th>
-                  <th className="text-left px-3 py-2 font-medium">Who</th>
-                  <th className="text-left px-3 py-2 font-medium">Company</th>
-                  <th className="text-left px-3 py-2 font-medium">Match</th>
-                  <th className="text-left px-3 py-2 font-medium">Assigned</th>
-                  <th className="text-left px-3 py-2 font-medium">Status</th>
-                  <th className="w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(s => (
-                  <SignupRowView
-                    key={s.id}
-                    signup={s}
-                    isExpanded={expandedId === s.id}
-                    onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
-                    onStatusChange={(status) => updateStatus(s.id, status)}
-                    onAppendNote={(text) => appendNote(s.id, text)}
-                    onAssigneeChange={(assignee) => updateAssignee(s.id, s._lead?.id ?? null, assignee)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Desktop / tablet table */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hidden md:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-gray-500">
+                    <th className="text-left px-3 py-2 font-medium">When</th>
+                    <th className="text-left px-3 py-2 font-medium">Who</th>
+                    <th className="text-left px-3 py-2 font-medium">Company</th>
+                    <th className="text-left px-3 py-2 font-medium">Match</th>
+                    <th className="text-left px-3 py-2 font-medium">Assigned</th>
+                    <th className="text-left px-3 py-2 font-medium">Status</th>
+                    <th className="w-8" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(s => (
+                    <SignupRowView
+                      key={s.id}
+                      signup={s}
+                      isExpanded={expandedId === s.id}
+                      onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                      onStatusChange={(status) => updateStatus(s.id, status)}
+                      onAppendNote={(text) => appendNote(s.id, text)}
+                      onAssigneeChange={(assignee) => updateAssignee(s.id, s._lead?.id ?? null, assignee)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card list — shows the whole lead per card */}
+            <div className="md:hidden space-y-3">
+              {filtered.map(s => (
+                <SignupCardMobile
+                  key={s.id}
+                  signup={s}
+                  isExpanded={expandedId === s.id}
+                  onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                  onStatusChange={(status) => updateStatus(s.id, status)}
+                  onAppendNote={(text) => appendNote(s.id, text)}
+                  onAssigneeChange={(assignee) => updateAssignee(s.id, s._lead?.id ?? null, assignee)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -638,6 +656,149 @@ function SignupRowView({
         </tr>
       )}
     </>
+  );
+}
+
+/**
+ * Mobile card view for the booth dashboard. Renders the full lead in a
+ * stacked layout so nothing is cut off on a phone screen. Tapping the
+ * card chevron expands the same SignupDetail panel used by the desktop
+ * table row.
+ */
+function SignupCardMobile({
+  signup, isExpanded, onToggle, onStatusChange, onAppendNote, onAssigneeChange,
+}: {
+  signup: SignupRow;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onStatusChange: (status: string) => void;
+  onAppendNote: (text: string) => void;
+  onAssigneeChange: (assignee: string | null) => void;
+}) {
+  const lead = signup._lead;
+  const isNewWalkIn = lead?.source === 'whl_booth_signup';
+  const displayName = lead?.name || signup.full_name || '(unknown)';
+  const displayCompany = lead?.company || signup.company || '—';
+  const displayTitle = lead?.title;
+  const displayEmail = signup.email && !signup.email.includes('@no-email.placeholder') ? signup.email : null;
+  const assignee = lead?.assigned_to;
+  const tierBadge = lead?.tier_1a
+    ? <span title="Tier 1A" className="text-amber-600 inline-flex"><Star size={13} fill="currentColor" /></span>
+    : lead?.tier_1b
+      ? <span title="Tier 1B" className="text-orange-500 inline-flex"><Star size={13} /></span>
+      : null;
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+      {/* Top: time + status pill */}
+      <div className="px-4 py-2.5 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm">
+          <Clock size={14} className="text-amber-600" />
+          <span className="font-semibold text-gray-900">{formatAppointmentTime(signup)}</span>
+          <span className="text-[11px] text-gray-400">{signup.day_label || ''}</span>
+        </div>
+        <select
+          value={signup.team_status}
+          onChange={e => onStatusChange(e.target.value)}
+          className={`text-[11px] font-medium rounded-full px-2 py-1 border cursor-pointer ${STATUS_COLORS[signup.team_status] || 'bg-gray-50 border-gray-200 text-gray-700'}`}
+        >
+          {Object.entries(STATUS_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Identity */}
+      <div className="px-4 py-3">
+        <div className="flex items-start gap-2 mb-1">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-gray-900 text-base leading-tight">{displayName}</span>
+              {tierBadge}
+              {isNewWalkIn && (
+                <span className="bg-purple-100 text-purple-800 text-[10px] font-medium px-1.5 py-0.5 rounded uppercase tracking-wide inline-flex items-center gap-0.5">
+                  <UserPlus size={10} /> new
+                </span>
+              )}
+            </div>
+            {displayTitle && (
+              <div className="text-[12px] text-gray-600 italic mt-0.5 break-words">{displayTitle}</div>
+            )}
+            <div className="text-[12px] text-gray-700 mt-0.5 break-words">{displayCompany}</div>
+          </div>
+        </div>
+
+        {/* Contact: email · phone · LinkedIn — wrap freely on narrow screens */}
+        {(displayEmail || signup.phone || lead?.linkedin_url) && (
+          <div className="text-[11px] text-gray-500 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {displayEmail && <span className="break-all">{displayEmail}</span>}
+            {signup.phone && (
+              <>
+                {displayEmail && <span className="text-gray-300">·</span>}
+                <span>{signup.phone}</span>
+              </>
+            )}
+            {lead?.linkedin_url && (
+              <>
+                <span className="text-gray-300">·</span>
+                <a
+                  href={lead.linkedin_url.startsWith('http') ? lead.linkedin_url : `https://${lead.linkedin_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#0a66c2] hover:underline inline-flex items-center gap-0.5"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Linkedin size={11} /> LinkedIn
+                </a>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Assigned + match info row */}
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="text-[11px] text-gray-500">
+            {signup.match_method === 'email_exact' && '✓ matched on email'}
+            {signup.match_method === 'email_domain_name' && '~ matched on domain + name'}
+            {signup.match_method === 'name_fuzzy_within_company' && '~ matched on name'}
+            {signup.match_method === 'full_name_exact' && '~ matched on full name'}
+            {signup.match_method === 'new_lead_created' && <span className="text-purple-700 font-medium">+ new lead created</span>}
+            {signup.match_method === 'manual' && 'manually entered'}
+            {!signup.match_method && '—'}
+          </div>
+          {lead ? (
+            <select
+              value={assignee || ''}
+              onChange={e => onAssigneeChange(e.target.value || null)}
+              className={`text-[11px] font-medium rounded-full px-2 py-1 border cursor-pointer ${
+                assignee && ASSIGNEE_COLORS[assignee]
+                  ? `${ASSIGNEE_COLORS[assignee]} border-transparent`
+                  : 'bg-gray-50 text-gray-500 border-gray-200'
+              }`}
+            >
+              <option value="">— unassigned</option>
+              {Object.values(SENDER_MAP).map(name => (
+                <option key={name} value={name}>{ASSIGNEE_INITIALS[name]} · {name}</option>
+              ))}
+            </select>
+          ) : <span className="text-[11px] text-gray-400">no lead</span>}
+        </div>
+      </div>
+
+      {/* Footer: expand toggle */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full border-t border-gray-100 px-4 py-2 text-[12px] text-gray-500 hover:bg-gray-50 inline-flex items-center justify-center gap-1.5"
+      >
+        {isExpanded ? <><ChevronUp size={14} /> Hide details</> : <><ChevronDown size={14} /> Briefing + notes</>}
+      </button>
+      {isExpanded && (
+        <div className="border-t border-gray-100 px-3 py-4 bg-gray-50/40">
+          <SignupDetail signup={signup} onAppendNote={onAppendNote} />
+        </div>
+      )}
+    </div>
   );
 }
 
