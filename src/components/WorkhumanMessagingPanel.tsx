@@ -7,6 +7,7 @@ import {
   WORKHUMAN_DM, LINKEDIN_CONNECT, LINKEDIN_DM_AFTER_ACCEPT,
   DM_REPLY_FOLLOWUP_EMAIL, COLD_EMAIL,
   BOOKING_CONFIRMATION_A, BOOKING_CONFIRMATION_B,
+  NO_SHOW_RECOVERY,
   EMAIL_SUBJECT_LINES, SENDER_NAMES, SenderName,
   fillTemplate, workhumanDmUrl, slugFromLandingUrl, Template,
 } from '../utils/workhumanOutreachTemplates';
@@ -36,7 +37,7 @@ const CHANNEL_LABELS: Record<OutreachChannel, string> = {
   email: 'Email',
 };
 
-type TabId = 'whdm' | 'li_connect' | 'li_dm' | 'dm_reply_email' | 'email_body' | 'booking_a' | 'booking_b';
+type TabId = 'whdm' | 'li_connect' | 'li_dm' | 'dm_reply_email' | 'email_body' | 'booking_a' | 'booking_b' | 'no_show';
 
 const TABS: Array<{ id: TabId; label: string; template: Template; channel: OutreachChannel }> = [
   { id: 'whdm', label: 'WH DM', template: WORKHUMAN_DM, channel: 'workhuman_dm' },
@@ -46,6 +47,7 @@ const TABS: Array<{ id: TabId; label: string; template: Template; channel: Outre
   { id: 'email_body', label: 'Cold Email', template: COLD_EMAIL, channel: 'email' },
   { id: 'booking_a', label: 'Booking ✓ (A)', template: BOOKING_CONFIRMATION_A, channel: 'email' },
   { id: 'booking_b', label: 'Booking ✓ (B — ask for mobile)', template: BOOKING_CONFIRMATION_B, channel: 'email' },
+  { id: 'no_show', label: 'No-Show Recovery', template: NO_SHOW_RECOVERY, channel: 'email' },
 ];
 
 function sanitizeSlug(company: string): string {

@@ -141,6 +141,38 @@ const WorkhumanLeads: React.FC = () => {
     loadLeads();
   }, [loadLeads]);
 
+  // Deep-link support: when arrived from `/workhuman-leads?lead=<uuid>` (e.g.
+  // the booth view's "Open in CRM →" button), auto-expand that lead and
+  // scroll it into view as soon as the data arrives. Reset every filter so
+  // the target lead is guaranteed to be visible regardless of what was
+  // selected before. Strip the param from the URL after handling so a
+  // manual refresh doesn't keep re-scrolling.
+  useEffect(() => {
+    if (loading || leads.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get('lead');
+    if (!target) return;
+    const exists = leads.some(l => l.id === target);
+    if (!exists) return;
+    // Clear filters that could hide the lead
+    setSearchTerm('');
+    setTierFilter('all');
+    setMyLeadsOnly(false);
+    setStatusFilter('all');
+    setIndustryFilter('all');
+    setLandingPageFilter('all');
+    setExpandedId(target);
+    // Defer scroll until after the filter reset re-renders
+    setTimeout(() => {
+      const el = document.getElementById(`lead-row-${target}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    // Clean the URL so a manual refresh doesn't re-trigger the scroll
+    params.delete('lead');
+    const newSearch = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${newSearch ? `?${newSearch}` : ''}${window.location.hash}`);
+  }, [loading, leads]);
+
   // Load outreach channel summary for badges on each row
   useEffect(() => {
     fetchOutreachChannelsByLead().then(setOutreachChannelsByLead);
@@ -588,6 +620,7 @@ const WorkhumanLeads: React.FC = () => {
                   {filteredLeads.map(lead => (
                     <React.Fragment key={lead.id}>
                       <tr
+                        id={`lead-row-${lead.id}`}
                         className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${expandedId === lead.id ? 'bg-blue-50/50' : ''} ${selectedIds.has(lead.id) ? 'bg-amber-50/40' : ''}`}
                         onClick={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
                       >
@@ -617,7 +650,30 @@ const WorkhumanLeads: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="text-gray-400 text-xs">{lead.email?.includes('@no-email.placeholder') ? '' : lead.email}</div>
+                          <div className="text-gray-400 text-xs">
+                            {lead.email && !lead.email.includes('@no-email.placeholder') ? (
+                              <a
+                                href={`mailto:${lead.email}`}
+                                onClick={e => e.stopPropagation()}
+                                className="hover:text-[#09364f] hover:underline break-all"
+                              >
+                                {lead.email}
+                              </a>
+                            ) : ''}
+                            {(lead.mobile_phone || lead.phone) && (
+                              <>
+                                {lead.email && !lead.email.includes('@no-email.placeholder') && ' · '}
+                                <a
+                                  href={`sms:${lead.mobile_phone || lead.phone}`}
+                                  onClick={e => e.stopPropagation()}
+                                  className="hover:text-emerald-700 hover:underline"
+                                  title="Text this number"
+                                >
+                                  {lead.mobile_phone || lead.phone}
+                                </a>
+                              </>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-gray-700">{lead.company || '—'}</td>
                         <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
@@ -885,7 +941,16 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
   onBookAtBooth?: () => void;
   onEdit?: () => void;
 }) {
+  const { user } = useAuth();
+  const myFirstName = useMemo(() => {
+    const email = user?.email?.toLowerCase() || '';
+    const assignee = EMAIL_TO_ASSIGNEE[email];
+    return assignee ? assignee.split(' ')[0] : 'Team';
+  }, [user]);
+
   const [notes, setNotes] = useState(lead.notes || '');
+  const [noteDraft, setNoteDraft] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
   const [logoOverride, setLogoOverride] = useState('');
   const [showLogoOverride, setShowLogoOverride] = useState(false);
   const notesTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -894,6 +959,27 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
     setNotes(val);
     if (notesTimer.current) clearTimeout(notesTimer.current);
     notesTimer.current = setTimeout(() => onNotesChange(val), 800);
+  };
+
+  /**
+   * Append a timestamped + name-tagged note to the existing notes blob.
+   * Mirrors the booth-view note adder so a CRM scroll-and-tag pattern
+   * stays consistent across surfaces. New entries land at the top.
+   */
+  const handleAddNote = async () => {
+    const trimmed = noteDraft.trim();
+    if (!trimmed) return;
+    setAddingNote(true);
+    const stamp = new Date().toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    });
+    const newLine = `[${stamp} · ${myFirstName}] ${trimmed}`;
+    const merged = notes ? `${newLine}\n${notes}` : newLine;
+    setNotes(merged);
+    setNoteDraft('');
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    await onNotesChange(merged);
+    setAddingNote(false);
   };
 
   const handleReplaceLogo = () => {
@@ -920,7 +1006,30 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
       {/* Details */}
       <div className="space-y-2 text-sm">
         <h4 className="font-medium text-gray-700 mb-2">Details</h4>
-        <div><span className="text-gray-400">Email:</span> <span className="text-gray-700">{lead.email?.includes('@no-email.placeholder') ? '—' : lead.email}</span></div>
+        <div>
+          <span className="text-gray-400">Email:</span>{' '}
+          {lead.email && !lead.email.includes('@no-email.placeholder') ? (
+            <a href={`mailto:${lead.email}`} className="text-[#09364f] hover:underline break-all">{lead.email}</a>
+          ) : <span className="text-gray-700">—</span>}
+        </div>
+        {(lead.mobile_phone || lead.phone) && (
+          <div>
+            <span className="text-gray-400">Phone:</span>{' '}
+            <a
+              href={`sms:${lead.mobile_phone || lead.phone}`}
+              className="text-emerald-700 hover:underline"
+              title="Text this number"
+            >
+              {lead.mobile_phone || lead.phone}
+            </a>
+            {lead.mobile_phone && lead.phone && lead.mobile_phone !== lead.phone && (
+              <>
+                {' · '}
+                <a href={`tel:${lead.phone}`} className="text-gray-500 hover:underline">{lead.phone}</a>
+              </>
+            )}
+          </div>
+        )}
         <div><span className="text-gray-400">Location:</span> <span className="text-gray-700">{lead.hq_location || '—'}</span></div>
         <div><span className="text-gray-400">Industry:</span> <span className="text-gray-700">{lead.industry || '—'}</span></div>
         <div><span className="text-gray-400">Company size:</span> <span className="text-gray-700">{lead.company_size ? parseInt(lead.company_size).toLocaleString() + ' employees' : '—'}</span></div>
@@ -1001,11 +1110,39 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
       {/* Notes + Delete */}
       <div className="space-y-3">
         <h4 className="font-medium text-gray-700 mb-2 text-sm">Notes</h4>
+
+        {/* Quick add — prepends a timestamped, name-tagged entry without
+            wiping the existing notes blob. */}
+        <div className="flex items-start gap-2">
+          <textarea
+            value={noteDraft}
+            onChange={e => setNoteDraft(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                handleAddNote();
+              }
+            }}
+            placeholder="Quick note (Cmd/Ctrl + Enter to save)…"
+            rows={2}
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
+          />
+          <button
+            onClick={handleAddNote}
+            disabled={!noteDraft.trim() || addingNote}
+            className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 text-white text-xs font-semibold px-3 py-2 rounded-lg inline-flex items-center gap-1.5 self-stretch"
+          >
+            {addingNote ? <Loader2 size={12} className="animate-spin" /> : <MessageSquare size={12} />}
+            Add note
+          </button>
+        </div>
+
+        {/* Free-form blob — auto-saves on debounce, holds the running log */}
         <textarea
           value={notes}
           onChange={e => handleNotesChange(e.target.value)}
-          placeholder="Add notes about this lead..."
-          className="w-full h-24 px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f]"
+          placeholder="No notes yet…"
+          className="w-full h-32 px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#09364f]/20 focus:border-[#09364f] font-mono"
         />
         <button
           onClick={onDelete}
@@ -1138,7 +1275,7 @@ function MobileLeadCard({ lead, expanded, onToggle, onStatusChange, onTierCycle,
   onDelete: () => void;
 }) {
   return (
-    <div className="p-4">
+    <div id={`lead-row-${lead.id}`} className="p-4">
       <div className="flex items-start justify-between cursor-pointer" onClick={onToggle}>
         <div className="flex-1 min-w-0">
           <div className="font-medium text-gray-900 truncate">{lead.name}</div>

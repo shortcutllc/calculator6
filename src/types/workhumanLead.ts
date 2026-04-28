@@ -44,6 +44,12 @@ export interface WorkhumanLead {
   tier_1a: boolean;
   tier_1b: boolean;
   assigned_to: string | null;
+  phone: string | null;
+  mobile_phone: string | null;
+  work_phone: string | null;
+  phone_source: string | null;
+  phone_enriched_at: string | null;
+  source: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -181,6 +181,28 @@ Safe travels and see you in Orlando! Feel free to reply with any questions you m
 Shortcut | getshortcut.co`,
 };
 
+/**
+ * No-show recovery email — for leads who booked but didn't make their booth
+ * appointment. Offers a fresh slot on Tue/Wed.
+ */
+export const NO_SHOW_RECOVERY: EmailTemplate = {
+  id: 'no_show_recovery',
+  channel: 'email',
+  label: 'No-Show Recovery',
+  description: 'Send same-day to a lead who missed their booth massage. Offers a Tue/Wed rebook.',
+  subjectLines: [
+    'Workhuman Massage Appointment - Sorry we missed you!',
+  ],
+  body: `Hey {first_name},
+
+Sorry we missed you at the Zen Zone today. We'd still love to host you for a complimentary massage and chat for a few minutes about what wellness could look like at {company}.
+
+The lounge is open tomorrow and Wednesday in the Gratitude Garden. Stop by or reply here and we'll do our best to hold a slot for you.
+
+{sender_name}
+Shortcut | getshortcut.co`,
+};
+
 export const ALL_TEMPLATES: Template[] = [
   WORKHUMAN_DM,
   LINKEDIN_CONNECT,
@@ -189,6 +211,7 @@ export const ALL_TEMPLATES: Template[] = [
   COLD_EMAIL,
   BOOKING_CONFIRMATION_A,
   BOOKING_CONFIRMATION_B,
+  NO_SHOW_RECOVERY,
 ];
 
 export interface TemplateVars {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Upload, Search, Calendar, CheckCircle, XCircle, Clock,
   Star, User, Phone, Building, Loader2, RefreshCw, AlertCircle, MessageSquare,
-  ChevronDown, ChevronUp, UserPlus, CheckCircle2, Linkedin,
+  ChevronDown, ChevronUp, UserPlus, CheckCircle2, Linkedin, Mail, Smartphone,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,6 +44,8 @@ interface SignupRow {
     source: string | null;
     research_brief: string | null;
     linkedin_url: string | null;
+    phone: string | null;
+    mobile_phone: string | null;
   } | null;
 }
 
@@ -143,6 +145,104 @@ function dayBucket(signup: SignupRow): string {
   return 'Unknown';
 }
 
+/**
+ * Send a no-show recovery email or a reminder SMS for a booth signup.
+ * Triggers the workhuman-booth-send Netlify function which handles SendGrid /
+ * Twilio + appends a note to the signup so the team can see what's gone out.
+ */
+async function sendBoothMessage(signupId: string, action: 'no_show_email' | 'reminder_sms'): Promise<{ ok: boolean; from?: string; error?: string }> {
+  try {
+    const resp = await fetch('/.netlify/functions/workhuman-booth-send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signupId, action }),
+    });
+    const json = await resp.json().catch(() => ({}));
+    if (!resp.ok) return { ok: false, error: json?.error || `HTTP ${resp.status}` };
+    return { ok: true, from: json.from };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * Compact send-button trigger row. Shows an Email and SMS button; each is
+ * disabled when the signup lacks the relevant contact info. Includes a tiny
+ * inline confirmation prompt to avoid accidental fires.
+ */
+function SendButtons({
+  signup, onSent,
+}: { signup: SignupRow; onSent: () => void }) {
+  const [busy, setBusy] = useState<null | 'email' | 'sms'>(null);
+  const [confirm, setConfirm] = useState<null | 'no_show_email' | 'reminder_sms'>(null);
+  const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
+
+  const hasEmail = !!signup.email && !signup.email.includes('@no-email.placeholder');
+  const hasPhone = !!(signup.phone || signup._lead?.mobile_phone || signup._lead?.phone);
+
+  const fire = async (action: 'no_show_email' | 'reminder_sms') => {
+    setBusy(action === 'no_show_email' ? 'email' : 'sms');
+    setConfirm(null);
+    const result = await sendBoothMessage(signup.id, action);
+    setBusy(null);
+    if (result.ok) {
+      setFeedback({ kind: 'ok', msg: action === 'no_show_email' ? `Sent from ${result.from}` : `Texted from ${result.from}` });
+      onSent();
+    } else {
+      setFeedback({ kind: 'err', msg: result.error || 'Failed' });
+    }
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  return (
+    <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+      {confirm ? (
+        <div className="flex items-center gap-1 bg-amber-50 border border-amber-300 rounded px-2 py-1 text-[11px]">
+          <span className="text-amber-900 font-medium">
+            {confirm === 'no_show_email' ? 'Send no-show email?' : 'Send reminder text?'}
+          </span>
+          <button
+            onClick={() => fire(confirm)}
+            className="bg-amber-600 hover:bg-amber-700 text-white px-2 py-0.5 rounded"
+          >Yes</button>
+          <button
+            onClick={() => setConfirm(null)}
+            className="text-gray-600 hover:text-gray-900 px-1"
+          >No</button>
+        </div>
+      ) : feedback ? (
+        <div className={`text-[11px] px-2 py-1 rounded ${feedback.kind === 'ok' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          {feedback.kind === 'ok' ? <CheckCircle size={11} className="inline mr-1" /> : <AlertCircle size={11} className="inline mr-1" />}
+          {feedback.msg}
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setConfirm('no_show_email')}
+            disabled={!hasEmail || busy !== null}
+            title={hasEmail ? 'Send no-show recovery email' : 'No email on file'}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-medium disabled:opacity-40 disabled:cursor-not-allowed bg-white hover:bg-blue-50 border-blue-200 text-blue-700"
+          >
+            {busy === 'email' ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
+            No-show email
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirm('reminder_sms')}
+            disabled={!hasPhone || busy !== null}
+            title={hasPhone ? 'Text a reminder about this booking' : 'No phone on file'}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-medium disabled:opacity-40 disabled:cursor-not-allowed bg-white hover:bg-emerald-50 border-emerald-200 text-emerald-700"
+          >
+            {busy === 'sms' ? <Loader2 size={11} className="animate-spin" /> : <Smartphone size={11} />}
+            Reminder text
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // --- Component --------------------------------------------------
 
 const WorkhumanBooth: React.FC = () => {
@@ -157,7 +257,20 @@ const WorkhumanBooth: React.FC = () => {
   const [dayFilter, setDayFilter] = useState<string>('all');
   // Assignee filter: 'all' | 'mine' | '<teammate name>' | 'unassigned' | 'new_walkin'
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [bulkResult, setBulkResult] = useState<null | { action: 'no_show_email' | 'reminder_sms'; sent: number; failed: number; failures: Array<{ name?: string; error: string }> }>(null);
+  // Holds an in-flight bulk request awaiting explicit confirmation. Surface
+  // the count + sample of names + skip-reason so the user can sanity-check
+  // before a 80+ message blast.
+  const [bulkConfirm, setBulkConfirm] = useState<null | {
+    action: 'no_show_email' | 'reminder_sms';
+    sendable: SignupRow[];
+    skipped: number;
+  }>(null);
   const [uploadStatus, setUploadStatus] = useState<{
     state: 'idle' | 'uploading' | 'done' | 'error';
     message?: string;
@@ -165,8 +278,16 @@ const WorkhumanBooth: React.FC = () => {
   }>({ state: 'idle' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadSignups = useCallback(async () => {
-    setLoading(true);
+  /**
+   * Load signups from Supabase. Two modes:
+   *   - silent=false (default): toggles the loading flag for the initial fetch
+   *     so the user sees a "Loading…" screen
+   *   - silent=true: skips the loading flag so background refreshes don't
+   *     blank-out and re-render the whole list under an actively-interacting
+   *     user (which used to scroll the page and collapse expanded cards)
+   */
+  const loadSignups = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const { data, error } = await supabase
       .from('workhuman_signups')
       .select('*')
@@ -174,7 +295,7 @@ const WorkhumanBooth: React.FC = () => {
       .order('uploaded_at', { ascending: false });
     if (error) {
       console.error('Failed to load signups:', error);
-      setLoading(false);
+      if (!silent) setLoading(false);
       return;
     }
 
@@ -184,7 +305,7 @@ const WorkhumanBooth: React.FC = () => {
     if (leadIds.length) {
       const { data: leads } = await supabase
         .from('workhuman_leads')
-        .select('id, name, company, title, assigned_to, tier, tier_1a, tier_1b, source, research_brief, linkedin_url')
+        .select('id, name, company, title, assigned_to, tier, tier_1a, tier_1b, source, research_brief, linkedin_url, phone, mobile_phone')
         .in('id', leadIds);
       leadMap = Object.fromEntries((leads || []).map(l => [l.id, l]));
     }
@@ -194,21 +315,22 @@ const WorkhumanBooth: React.FC = () => {
     }));
     setSignups(hydrated);
     setLastRefreshedAt(new Date());
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, []);
 
   useEffect(() => { loadSignups(); }, [loadSignups]);
 
   // Auto-refresh when the user returns to this tab (so reassignments made
   // in the main CRM propagate without a manual click) and on a 60-second
-  // poll while the tab is visible.
+  // poll while the tab is visible. Both refreshes run silently so they
+  // don't blank-out the list under an actively-interacting user.
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState === 'visible') loadSignups();
+      if (document.visibilityState === 'visible') loadSignups(true);
     };
     document.addEventListener('visibilitychange', onVis);
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') loadSignups();
+      if (document.visibilityState === 'visible') loadSignups(true);
     }, 60_000);
     return () => {
       document.removeEventListener('visibilitychange', onVis);
@@ -279,8 +401,8 @@ const WorkhumanBooth: React.FC = () => {
       .eq('id', leadId);
     if (error) {
       console.error('Failed to update assignee:', error);
-      // Revert on error by reloading
-      loadSignups();
+      // Revert on error by reloading silently
+      loadSignups(true);
     }
   };
 
@@ -326,8 +448,119 @@ const WorkhumanBooth: React.FC = () => {
       // Filter by a specific teammate's name
       result = result.filter(s => s._lead?.assigned_to === assigneeFilter);
     }
+    if (statusFilter !== 'all') {
+      result = result.filter(s => s.team_status === statusFilter);
+    }
     return result;
-  }, [signups, search, dayFilter, assigneeFilter, myAssignee]);
+  }, [signups, search, dayFilter, assigneeFilter, statusFilter, myAssignee]);
+
+  // --- Bulk send -----------------------------------------------------
+
+  /** Toggle one signup id in the selection set. */
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  /** Select / deselect every currently visible (filtered) signup. */
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      const visibleIds = new Set(filtered.map(s => s.id));
+      const allVisibleSelected = filtered.length > 0 && filtered.every(s => prev.has(s.id));
+      if (allVisibleSelected) {
+        // unselect every visible row but keep any others that were selected
+        const next = new Set(prev);
+        visibleIds.forEach(id => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      visibleIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  // Netlify function timeout caps a single bulk call at ~80 sends; chunk
+  // anything larger client-side so the UI doesn't 502 mid-batch.
+  const BULK_CHUNK_SIZE = 80;
+
+  /**
+   * Step 1 of bulk send: filter the selected signups to those we can
+   * actually deliver to, then open the confirmation panel. The actual
+   * fire happens in confirmBulkSend.
+   */
+  const sendBulk = (action: 'no_show_email' | 'reminder_sms') => {
+    const selected = signups.filter(s => selectedIds.has(s.id));
+    const sendable = selected.filter(s => {
+      if (action === 'no_show_email') {
+        return !!s.email && !s.email.includes('@no-email.placeholder');
+      }
+      return !!(s.phone || s._lead?.mobile_phone || s._lead?.phone);
+    });
+    if (sendable.length === 0) {
+      setBulkResult({
+        action, sent: 0, failed: 0,
+        failures: [{ error: action === 'no_show_email' ? 'None of the selected signups have an email on file.' : 'None of the selected signups have a phone on file.' }],
+      });
+      return;
+    }
+    setBulkConfirm({ action, sendable, skipped: selected.length - sendable.length });
+  };
+
+  /**
+   * Step 2: actually fire after explicit confirmation. Chunks the send
+   * across multiple Netlify invocations of BULK_CHUNK_SIZE each so a
+   * single call never bumps the function timeout.
+   */
+  const confirmBulkSend = async () => {
+    if (!bulkConfirm) return;
+    const { action, sendable } = bulkConfirm;
+    setBulkConfirm(null);
+    setBulkSending(true);
+    setBulkResult(null);
+    setBulkProgress({ done: 0, total: sendable.length });
+
+    let totalSent = 0;
+    let totalFailed = 0;
+    const allFailures: Array<{ name?: string; error: string }> = [];
+
+    try {
+      for (let i = 0; i < sendable.length; i += BULK_CHUNK_SIZE) {
+        const chunk = sendable.slice(i, i + BULK_CHUNK_SIZE);
+        const resp = await fetch('/.netlify/functions/workhuman-booth-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, signupIds: chunk.map(s => s.id) }),
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          totalFailed += chunk.length;
+          allFailures.push({ error: json?.error || `HTTP ${resp.status} on chunk ${Math.floor(i / BULK_CHUNK_SIZE) + 1}` });
+        } else {
+          totalSent += json.sent || 0;
+          totalFailed += json.failed || 0;
+          if (Array.isArray(json.failures)) allFailures.push(...json.failures);
+        }
+        setBulkProgress({ done: Math.min(i + chunk.length, sendable.length), total: sendable.length });
+        // Small breath between chunks; not strictly required but keeps the
+        // load polite to SendGrid / Twilio.
+        if (i + BULK_CHUNK_SIZE < sendable.length) await new Promise(r => setTimeout(r, 1000));
+      }
+      setBulkResult({ action, sent: totalSent, failed: totalFailed, failures: allFailures });
+      await loadSignups(true);
+      clearSelection();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setBulkResult({ action, sent: totalSent, failed: sendable.length - totalSent, failures: [...allFailures, { error: msg }] });
+    } finally {
+      setBulkSending(false);
+      setBulkProgress(null);
+    }
+  };
 
   // --- Stats ---
 
@@ -377,7 +610,7 @@ const WorkhumanBooth: React.FC = () => {
             />
           </label>
           <button
-            onClick={loadSignups}
+            onClick={() => loadSignups(true)}
             className="flex items-center gap-2 px-3 py-2 text-gray-600 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
             title="Pull fresh data from the CRM. Auto-refreshes when you return to this tab."
           >
@@ -458,8 +691,151 @@ const WorkhumanBooth: React.FC = () => {
                 <option value="new_walkin">New walk-ins ({stats.newLeads})</option>
               </optgroup>
             </select>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+              title="Filter by check-in status"
+            >
+              <option value="all">All statuses</option>
+              {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
           </div>
         </div>
+
+        {/* Bulk action bar — appears when 1+ signups are selected */}
+        {selectedIds.size > 0 && (
+          <div className="bg-[#09364f] text-white rounded-lg shadow-md p-3 mb-4 flex flex-wrap items-center gap-3 sticky top-2 z-10">
+            <div className="text-sm font-medium">
+              {selectedIds.size} selected
+            </div>
+            <button
+              onClick={() => sendBulk('no_show_email')}
+              disabled={bulkSending}
+              className="bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white text-xs font-medium px-3 py-1.5 rounded inline-flex items-center gap-1.5"
+            >
+              {bulkSending ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
+              Send no-show emails
+            </button>
+            <button
+              onClick={() => sendBulk('reminder_sms')}
+              disabled={bulkSending}
+              className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white text-xs font-medium px-3 py-1.5 rounded inline-flex items-center gap-1.5"
+            >
+              {bulkSending ? <Loader2 size={12} className="animate-spin" /> : <Smartphone size={12} />}
+              Send reminder texts
+            </button>
+            <div className="text-[11px] text-gray-300">
+              Tip: filter by status / day first, then "Select all"
+            </div>
+            <button
+              onClick={clearSelection}
+              className="ml-auto text-[11px] text-gray-300 hover:text-white underline"
+            >Clear</button>
+          </div>
+        )}
+
+        {/* Bulk progress bar — surfaces during a multi-chunk send so the
+            user can see how far through the batch we are. */}
+        {bulkSending && bulkProgress && (
+          <div className="bg-white rounded-lg border border-gray-200 p-3 mb-4 flex items-center gap-3">
+            <Loader2 size={16} className="animate-spin text-[#09364f]" />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-900">
+                Sending… {bulkProgress.done} / {bulkProgress.total}
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
+                <div
+                  className="h-full bg-[#09364f] transition-all"
+                  style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Explicit confirmation modal — required for any bulk send. Shows
+            count, action, recipient sample, and skip reasons so an accidental
+            click can't fire 100+ messages. */}
+        {bulkConfirm && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setBulkConfirm(null)}>
+            <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
+              <div className={`px-5 py-4 border-b ${bulkConfirm.action === 'no_show_email' ? 'bg-blue-50 border-blue-200' : 'bg-emerald-50 border-emerald-200'} rounded-t-lg`}>
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  {bulkConfirm.action === 'no_show_email' ? <Mail size={18} className="text-blue-600" /> : <Smartphone size={18} className="text-emerald-600" />}
+                  Confirm bulk send
+                </h3>
+                <p className="text-sm text-gray-700 mt-1">
+                  You're about to send <strong>{bulkConfirm.action === 'no_show_email' ? 'no-show recovery emails' : 'reminder texts'}</strong> to <strong>{bulkConfirm.sendable.length} {bulkConfirm.sendable.length === 1 ? 'person' : 'people'}</strong>.
+                </p>
+                {bulkConfirm.skipped > 0 && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    ({bulkConfirm.skipped} selected {bulkConfirm.skipped === 1 ? 'is' : 'are'} missing {bulkConfirm.action === 'no_show_email' ? 'an email' : 'a phone'} and will be skipped.)
+                  </p>
+                )}
+              </div>
+              <div className="px-5 py-4 max-h-64 overflow-y-auto">
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Recipients</div>
+                <ul className="text-xs text-gray-700 space-y-0.5">
+                  {bulkConfirm.sendable.slice(0, 12).map(s => (
+                    <li key={s.id} className="flex justify-between gap-2">
+                      <span className="truncate">{s.full_name || '(no name)'}{s._lead?.company ? ` · ${s._lead.company}` : ''}</span>
+                      <span className="text-gray-400 whitespace-nowrap">{bulkConfirm.action === 'no_show_email' ? s.email : (s.phone || s._lead?.mobile_phone || s._lead?.phone)}</span>
+                    </li>
+                  ))}
+                  {bulkConfirm.sendable.length > 12 && (
+                    <li className="text-gray-400 italic">… and {bulkConfirm.sendable.length - 12} more</li>
+                  )}
+                </ul>
+                {bulkConfirm.sendable.length > BULK_CHUNK_SIZE && (
+                  <div className="mt-3 text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded p-2">
+                    Will send in {Math.ceil(bulkConfirm.sendable.length / BULK_CHUNK_SIZE)} chunks of up to {BULK_CHUNK_SIZE} (≈{Math.ceil(bulkConfirm.sendable.length * 1.25)}s total).
+                  </div>
+                )}
+              </div>
+              <div className="px-5 py-3 border-t border-gray-200 flex items-center justify-end gap-2 bg-gray-50 rounded-b-lg">
+                <button
+                  onClick={() => setBulkConfirm(null)}
+                  className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                >Cancel</button>
+                <button
+                  onClick={confirmBulkSend}
+                  className={`px-4 py-1.5 text-sm font-semibold text-white rounded inline-flex items-center gap-1.5 ${bulkConfirm.action === 'no_show_email' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                >
+                  {bulkConfirm.action === 'no_show_email' ? <Mail size={14} /> : <Smartphone size={14} />}
+                  Send {bulkConfirm.sendable.length} {bulkConfirm.action === 'no_show_email' ? 'email' : 'text'}{bulkConfirm.sendable.length === 1 ? '' : 's'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk result toast */}
+        {bulkResult && (
+          <div className={`rounded-lg p-3 mb-4 text-sm flex items-start gap-2 ${
+            bulkResult.failed === 0 ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-amber-50 border border-amber-200 text-amber-900'
+          }`}>
+            {bulkResult.failed === 0 ? <CheckCircle size={16} className="mt-0.5 flex-shrink-0" /> : <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />}
+            <div className="flex-1">
+              <div className="font-medium">
+                {bulkResult.action === 'no_show_email' ? 'No-show emails' : 'Reminder texts'}: sent {bulkResult.sent}{bulkResult.failed ? `, failed ${bulkResult.failed}` : ''}.
+              </div>
+              {bulkResult.failures.length > 0 && (
+                <ul className="text-xs mt-1.5 space-y-0.5 list-disc pl-4 max-h-24 overflow-y-auto">
+                  {bulkResult.failures.slice(0, 8).map((f, i) => (
+                    <li key={i}>{f.name ? `${f.name} — ` : ''}{f.error}</li>
+                  ))}
+                  {bulkResult.failures.length > 8 && <li>... and {bulkResult.failures.length - 8} more</li>}
+                </ul>
+              )}
+            </div>
+            <button onClick={() => setBulkResult(null)} className="text-current opacity-50 hover:opacity-100">
+              <XCircle size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Results */}
         <div className="text-sm text-gray-500 mb-2">
@@ -487,6 +863,16 @@ const WorkhumanBooth: React.FC = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-gray-500">
+                    <th className="px-3 py-2 w-10">
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && filtered.every(s => selectedIds.has(s.id))}
+                        ref={el => { if (el) el.indeterminate = filtered.some(s => selectedIds.has(s.id)) && !filtered.every(s => selectedIds.has(s.id)); }}
+                        onChange={toggleSelectAll}
+                        className="cursor-pointer"
+                        title="Select all visible"
+                      />
+                    </th>
                     <th className="text-left px-3 py-2 font-medium">When</th>
                     <th className="text-left px-3 py-2 font-medium">Who</th>
                     <th className="text-left px-3 py-2 font-medium">Company</th>
@@ -502,10 +888,13 @@ const WorkhumanBooth: React.FC = () => {
                       key={s.id}
                       signup={s}
                       isExpanded={expandedId === s.id}
+                      isSelected={selectedIds.has(s.id)}
+                      onSelectToggle={() => toggleSelected(s.id)}
                       onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                       onStatusChange={(status) => updateStatus(s.id, status)}
                       onAppendNote={(text) => appendNote(s.id, text)}
                       onAssigneeChange={(assignee) => updateAssignee(s.id, s._lead?.id ?? null, assignee)}
+                      onSent={() => loadSignups(true)}
                     />
                   ))}
                 </tbody>
@@ -514,15 +903,31 @@ const WorkhumanBooth: React.FC = () => {
 
             {/* Mobile card list — shows the whole lead per card */}
             <div className="md:hidden space-y-3">
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className="text-xs text-[#09364f] hover:underline px-2 py-1 inline-flex items-center gap-1"
+              >
+                <input
+                  type="checkbox"
+                  readOnly
+                  checked={filtered.length > 0 && filtered.every(s => selectedIds.has(s.id))}
+                  className="pointer-events-none"
+                />
+                Select all visible ({filtered.length})
+              </button>
               {filtered.map(s => (
                 <SignupCardMobile
                   key={s.id}
                   signup={s}
                   isExpanded={expandedId === s.id}
+                  isSelected={selectedIds.has(s.id)}
+                  onSelectToggle={() => toggleSelected(s.id)}
                   onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                   onStatusChange={(status) => updateStatus(s.id, status)}
                   onAppendNote={(text) => appendNote(s.id, text)}
                   onAssigneeChange={(assignee) => updateAssignee(s.id, s._lead?.id ?? null, assignee)}
+                  onSent={() => loadSignups(true)}
                 />
               ))}
             </div>
@@ -543,14 +948,17 @@ function Stat({ label, value, color }: { label: string; value: number; color?: s
 }
 
 function SignupRowView({
-  signup, isExpanded, onToggle, onStatusChange, onAppendNote, onAssigneeChange,
+  signup, isExpanded, isSelected, onSelectToggle, onToggle, onStatusChange, onAppendNote, onAssigneeChange, onSent,
 }: {
   signup: SignupRow;
   isExpanded: boolean;
+  isSelected: boolean;
+  onSelectToggle: () => void;
   onToggle: () => void;
   onStatusChange: (status: string) => void;
   onAppendNote: (text: string) => void;
   onAssigneeChange: (assignee: string | null) => void;
+  onSent: () => void;
 }) {
   const lead = signup._lead;
   const isNewWalkIn = lead?.source === 'whl_booth_signup';
@@ -565,7 +973,15 @@ function SignupRowView({
 
   return (
     <>
-      <tr className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-blue-50/40' : ''}`} onClick={onToggle}>
+      <tr className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-blue-50/40' : ''} ${isSelected ? 'bg-blue-50/70' : ''}`} onClick={onToggle}>
+        <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onSelectToggle}
+            className="cursor-pointer"
+          />
+        </td>
         <td className="px-3 py-2 text-gray-700 whitespace-nowrap">
           <div className="font-medium text-gray-900">{formatAppointmentTime(signup)}</div>
           <div className="text-[11px] text-gray-400">{signup.day_label || ''}</div>
@@ -586,8 +1002,29 @@ function SignupRowView({
             </div>
           )}
           <div className="text-[11px] text-gray-400">
-            {signup.email || lead?.name ? (signup.email || '—') : '—'}
-            {signup.phone ? ` · ${signup.phone}` : ''}
+            {signup.email ? (
+              <a
+                href={`mailto:${signup.email}`}
+                onClick={e => e.stopPropagation()}
+                className="text-gray-500 hover:text-[#09364f] hover:underline"
+                title="Compose email"
+              >
+                {signup.email}
+              </a>
+            ) : '—'}
+            {signup.phone && (
+              <>
+                {' · '}
+                <a
+                  href={`sms:${signup.phone}`}
+                  onClick={e => e.stopPropagation()}
+                  className="text-gray-500 hover:text-emerald-700 hover:underline"
+                  title="Text this number"
+                >
+                  {signup.phone}
+                </a>
+              </>
+            )}
             {lead?.linkedin_url && (
               <>
                 {' · '}
@@ -650,8 +1087,8 @@ function SignupRowView({
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={7} className="bg-gray-50/70 px-6 py-4">
-            <SignupDetail signup={signup} onAppendNote={onAppendNote} />
+          <td colSpan={8} className="bg-gray-50/70 px-6 py-4">
+            <SignupDetail signup={signup} onAppendNote={onAppendNote} onSent={onSent} />
           </td>
         </tr>
       )}
@@ -666,14 +1103,17 @@ function SignupRowView({
  * table row.
  */
 function SignupCardMobile({
-  signup, isExpanded, onToggle, onStatusChange, onAppendNote, onAssigneeChange,
+  signup, isExpanded, isSelected, onSelectToggle, onToggle, onStatusChange, onAppendNote, onAssigneeChange, onSent,
 }: {
   signup: SignupRow;
   isExpanded: boolean;
+  isSelected: boolean;
+  onSelectToggle: () => void;
   onToggle: () => void;
   onStatusChange: (status: string) => void;
   onAppendNote: (text: string) => void;
   onAssigneeChange: (assignee: string | null) => void;
+  onSent: () => void;
 }) {
   const lead = signup._lead;
   const isNewWalkIn = lead?.source === 'whl_booth_signup';
@@ -689,10 +1129,17 @@ function SignupCardMobile({
       : null;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+    <div className={`bg-white rounded-lg border overflow-hidden shadow-sm ${isSelected ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}>
       {/* Top: time + status pill */}
       <div className="px-4 py-2.5 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onSelectToggle}
+            className="cursor-pointer"
+            onClick={e => e.stopPropagation()}
+          />
           <Clock size={14} className="text-amber-600" />
           <span className="font-semibold text-gray-900">{formatAppointmentTime(signup)}</span>
           <span className="text-[11px] text-gray-400">{signup.day_label || ''}</span>
@@ -731,11 +1178,27 @@ function SignupCardMobile({
         {/* Contact: email · phone · LinkedIn — wrap freely on narrow screens */}
         {(displayEmail || signup.phone || lead?.linkedin_url) && (
           <div className="text-[11px] text-gray-500 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-            {displayEmail && <span className="break-all">{displayEmail}</span>}
+            {displayEmail && (
+              <a
+                href={`mailto:${displayEmail}`}
+                onClick={e => e.stopPropagation()}
+                className="break-all text-gray-500 hover:text-[#09364f] hover:underline"
+                title="Compose email"
+              >
+                {displayEmail}
+              </a>
+            )}
             {signup.phone && (
               <>
                 {displayEmail && <span className="text-gray-300">·</span>}
-                <span>{signup.phone}</span>
+                <a
+                  href={`sms:${signup.phone}`}
+                  onClick={e => e.stopPropagation()}
+                  className="text-gray-500 hover:text-emerald-700 hover:underline"
+                  title="Text this number"
+                >
+                  {signup.phone}
+                </a>
               </>
             )}
             {lead?.linkedin_url && (
@@ -795,14 +1258,14 @@ function SignupCardMobile({
       </button>
       {isExpanded && (
         <div className="border-t border-gray-100 px-3 py-4 bg-gray-50/40">
-          <SignupDetail signup={signup} onAppendNote={onAppendNote} />
+          <SignupDetail signup={signup} onAppendNote={onAppendNote} onSent={onSent} />
         </div>
       )}
     </div>
   );
 }
 
-function SignupDetail({ signup, onAppendNote }: { signup: SignupRow; onAppendNote: (text: string) => void }) {
+function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onAppendNote: (text: string) => void; onSent: () => void }) {
   const [noteDraft, setNoteDraft] = useState('');
   const lead = signup._lead;
   const [submitting, setSubmitting] = useState(false);
@@ -818,6 +1281,12 @@ function SignupDetail({ signup, onAppendNote }: { signup: SignupRow; onAppendNot
 
   return (
     <div className="space-y-4">
+      {/* Quick send actions — no-show recovery email + reminder text */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Send:</span>
+        <SendButtons signup={signup} onSent={onSent} />
+      </div>
+
       {/* Sales briefing — top-priority info to scan before chatting */}
       {lead?.research_brief && (
         <div className="bg-amber-50/40 border border-amber-200 rounded-lg overflow-hidden">
@@ -857,8 +1326,18 @@ function SignupDetail({ signup, onAppendNote }: { signup: SignupRow; onAppendNot
       {/* Signup details */}
       <div className="space-y-1.5 text-sm">
         <h4 className="font-medium text-gray-700 mb-2 text-xs uppercase tracking-wide">Booking</h4>
-        <div><span className="text-gray-400">Email:</span> <span className="text-gray-700">{signup.email || '—'}</span></div>
-        <div><span className="text-gray-400">Phone:</span> <span className="text-gray-700">{signup.phone || '—'}</span></div>
+        <div>
+          <span className="text-gray-400">Email:</span>{' '}
+          {signup.email ? (
+            <a href={`mailto:${signup.email}`} className="text-[#09364f] hover:underline break-all">{signup.email}</a>
+          ) : <span className="text-gray-700">—</span>}
+        </div>
+        <div>
+          <span className="text-gray-400">Phone:</span>{' '}
+          {signup.phone ? (
+            <a href={`sms:${signup.phone}`} className="text-emerald-700 hover:underline">{signup.phone}</a>
+          ) : <span className="text-gray-700">—</span>}
+        </div>
         <div><span className="text-gray-400">Service:</span> <span className="text-gray-700">{signup.service_type || '—'}</span></div>
         <div><span className="text-gray-400">Slot:</span> <span className="text-gray-700">{signup.time_slot || formatAppointmentTime(signup)}</span></div>
         {signup.raw_notes && <div className="pt-1"><span className="text-gray-400">Booker notes:</span> <div className="text-gray-700 text-xs whitespace-pre-wrap">{signup.raw_notes}</div></div>}
