@@ -31,6 +31,17 @@ import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 import { WorkhumanLeadCSVRow } from '../types/workhumanLead';
 import { useAuth } from '../contexts/AuthContext';
 
+/**
+ * "Personal" / manual notes are tagged `[stamp · Name]` by the Add Note
+ * button (CRM and booth). Auto-stubs from booth-signup imports and
+ * landing-page bookings have no author tag, so the regex cleanly
+ * separates real comments from system-generated notes.
+ */
+const MANUAL_NOTE_RE = /\[[^\]]+·\s*[A-Za-z]+\]/;
+function hasManualNote(notes: string | null | undefined): boolean {
+  return !!notes && MANUAL_NOTE_RE.test(notes);
+}
+
 // Auth email → assignee name (mirrors mapping in WorkhumanMessagingPanel)
 const EMAIL_TO_ASSIGNEE: Record<string, AssigneeName> = {
   'will@getshortcut.co': 'Will Newton',
@@ -131,8 +142,15 @@ const WorkhumanLeads: React.FC = () => {
   // lead's workhuman_signups (arrived > scheduled > no_show > cancelled).
   // Powers the "✓ Attended / ✗ No-show / 📅 Booked" badge on each row.
   const [conferenceStatusByLead, setConferenceStatusByLead] = useState<Record<string, { status: string; day_label: string | null }>>({});
-  // Filter toggles: when on, only rows passing the filter are shown
+  // Filter toggles. Two stages:
+  //   hasNotesFilter      → isolate leads that have ANY notes (incl. auto-stubs).
+  //                         When this is on, leads with personal/manual notes
+  //                         (carrying a `[stamp · Name]` author tag) get a
+  //                         secondary-sort boost to the top.
+  //   personalNoteFilter  → strict subset — only leads with a manual note.
+  //                         Useful after toggling Has notes to narrow further.
   const [hasNotesFilter, setHasNotesFilter] = useState(false);
+  const [personalNoteFilter, setPersonalNoteFilter] = useState(false);
   const [showAddLead, setShowAddLead] = useState(false);
   const [bookBoothLead, setBookBoothLead] = useState<WorkhumanLead | null>(null);
   const [editLead, setEditLead] = useState<WorkhumanLead | null>(null);
@@ -172,6 +190,7 @@ const WorkhumanLeads: React.FC = () => {
     setIndustryFilter('all');
     setLandingPageFilter('all');
     setHasNotesFilter(false);
+    setPersonalNoteFilter(false);
     setExpandedId(target);
     setTimeout(() => {
       const el = document.getElementById(`lead-row-${target}`);
@@ -269,6 +288,9 @@ const WorkhumanLeads: React.FC = () => {
     if (hasNotesFilter) {
       result = result.filter(l => (l.notes || '').trim().length > 0);
     }
+    if (personalNoteFilter) {
+      result = result.filter(l => hasManualNote(l.notes));
+    }
 
     if (landingPageFilter === 'has') {
       result = result.filter(l => !!l.landing_page_url);
@@ -289,7 +311,7 @@ const WorkhumanLeads: React.FC = () => {
         case 'company_size_normalized': av = a.company_size_normalized || 0; bv = b.company_size_normalized || 0; break;
         case 'page_view_count':       av = a.page_view_count || 0; bv = b.page_view_count || 0; break;
         case 'tier':                  av = tierRank[a.tier]; bv = tierRank[b.tier]; break;
-        case 'has_notes':             av = (a.notes || '').trim() ? 1 : 0; bv = (b.notes || '').trim() ? 1 : 0; break;
+        case 'has_notes':             av = hasManualNote(a.notes) ? 2 : ((a.notes || '').trim() ? 1 : 0); bv = hasManualNote(b.notes) ? 2 : ((b.notes || '').trim() ? 1 : 0); break;
         case 'lead_score':
         default:                      av = a.lead_score; bv = b.lead_score; break;
       }
@@ -297,8 +319,19 @@ const WorkhumanLeads: React.FC = () => {
       return String(av).localeCompare(String(bv)) * multi;
     });
 
+    // When the "Has notes" filter is on, push leads with personal/manual
+    // notes to the top regardless of the primary sort. Stable sort keeps
+    // primary order within each group.
+    if (hasNotesFilter) {
+      result = [...result].sort((a, b) => {
+        const aManual = hasManualNote(a.notes) ? 1 : 0;
+        const bManual = hasManualNote(b.notes) ? 1 : 0;
+        return bManual - aManual;
+      });
+    }
+
     return result;
-  }, [leads, searchTerm, tierFilter, myLeadsOnly, myAssignee, statusFilter, industryFilter, landingPageFilter, hasNotesFilter, sortField, sortDir]);
+  }, [leads, searchTerm, tierFilter, myLeadsOnly, myAssignee, statusFilter, industryFilter, landingPageFilter, hasNotesFilter, personalNoteFilter, sortField, sortDir]);
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -576,7 +609,9 @@ const WorkhumanLeads: React.FC = () => {
               <option value="missing">Missing Landing Page</option>
             </select>
 
-            {/* Has-notes filter — toggles to show ONLY leads with notes */}
+            {/* Has-notes filter — toggles to show ONLY leads with notes
+                (auto-stubs OR manual). Manual-noted leads float to the
+                top within the filtered set. */}
             <button
               type="button"
               onClick={() => setHasNotesFilter(v => !v)}
@@ -588,7 +623,23 @@ const WorkhumanLeads: React.FC = () => {
               title={hasNotesFilter ? 'Showing only leads with notes — click to clear' : 'Show only leads with notes'}
             >
               <StickyNote size={14} />
-              {hasNotesFilter ? 'Notes only' : 'Has notes'}
+              {hasNotesFilter ? 'Has notes ✓' : 'Has notes'}
+            </button>
+
+            {/* Personal-note filter — strict subset of the above. Only
+                leads with a [stamp · Name] author tag (real comments,
+                not auto-stubs). */}
+            <button
+              type="button"
+              onClick={() => setPersonalNoteFilter(v => !v)}
+              className={`px-3 py-2 border rounded-lg text-sm inline-flex items-center gap-1.5 transition-colors ${
+                personalNoteFilter
+                  ? 'bg-orange-100 text-orange-900 border-orange-300 hover:bg-orange-200'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+              title={personalNoteFilter ? 'Showing only leads with a written-by-team note — click to clear' : 'Show only leads with personal/written notes'}
+            >
+              📝 {personalNoteFilter ? 'Personal note ✓' : 'Personal note only'}
             </button>
 
             {/* Sort selector — column headers cover the table fields, but
@@ -735,9 +786,12 @@ const WorkhumanLeads: React.FC = () => {
                               dayLabel={conferenceStatusByLead[lead.id]?.day_label || null}
                               isWalkIn={lead.source === 'whl_booth_signup' || lead.source === 'whl_booth_conversation'}
                             />
-                            {(lead.notes || '').trim() && (
-                              <span title="Has notes" className="inline-flex text-amber-600">
-                                <StickyNote size={12} />
+                            {hasManualNote(lead.notes) && (
+                              <span
+                                title="Has a personal/written note from the team"
+                                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-0.5"
+                              >
+                                📝 Notes
                               </span>
                             )}
                           </div>
@@ -1463,9 +1517,12 @@ function MobileLeadCard({ lead, expanded, conferenceStatus, conferenceDay, onTog
               dayLabel={conferenceDay || null}
               isWalkIn={lead.source === 'whl_booth_signup' || lead.source === 'whl_booth_conversation'}
             />
-            {(lead.notes || '').trim() && (
-              <span title="Has notes" className="inline-flex text-amber-600">
-                <StickyNote size={13} />
+            {hasManualNote(lead.notes) && (
+              <span
+                title="Has a personal/written note from the team"
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-0.5"
+              >
+                📝 Notes
               </span>
             )}
             <span className="text-xs text-gray-400">{lead.lead_score} pts</span>
