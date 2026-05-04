@@ -307,11 +307,11 @@ const WorkhumanBooth: React.FC = () => {
    */
   const loadSignups = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    // Slim column list — drops heavy fields (raw_row JSONB, raw_notes,
-    // long team_notes blobs, match_confidence, batch ids) that we never
-    // render in the row/card view. team_notes + raw_notes get lazy-loaded
-    // when a row is expanded (see SignupDetail).
-    const SIGNUP_COLS = 'id,external_id,full_name,first_name,last_name,email,phone,company,appointment_at,service_type,day_label,time_slot,matched_lead_id,match_method,team_status,uploaded_at,updated_at';
+    // Slim column list — drops the heavy fields we never render in the
+    // row/card view (raw_row JSONB, raw_notes, match_confidence, batch
+    // ids). team_notes IS included because the "Has notes" filter scans
+    // it; raw_notes is still lazy-loaded when a row expands.
+    const SIGNUP_COLS = 'id,external_id,full_name,first_name,last_name,email,phone,company,appointment_at,service_type,day_label,time_slot,matched_lead_id,match_method,team_status,team_notes,uploaded_at,updated_at';
     const { data, error } = await supabase
       .from('workhuman_signups')
       .select(SIGNUP_COLS)
@@ -338,7 +338,6 @@ const WorkhumanBooth: React.FC = () => {
     const hydrated = (data || []).map(s => ({
       ...s,
       raw_notes: null as string | null,
-      team_notes: null as string | null,
       _lead: s.matched_lead_id ? leadMap[s.matched_lead_id] || null : null,
     }));
     setSignups(hydrated as SignupRow[]);
