@@ -53,6 +53,7 @@ export interface WorkhumanLead {
   personal_email: string | null;
   signup_phone: string | null;
   linked_main_lead_id: string | null;
+  was_waitlisted: boolean;
   created_at: string;
   updated_at: string;
 }

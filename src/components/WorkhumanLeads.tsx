@@ -151,6 +151,7 @@ const WorkhumanLeads: React.FC = () => {
   //                         Useful after toggling Has notes to narrow further.
   const [hasNotesFilter, setHasNotesFilter] = useState(false);
   const [personalNoteFilter, setPersonalNoteFilter] = useState(false);
+  const [waitlistFilter, setWaitlistFilter] = useState(false);
   const [showAddLead, setShowAddLead] = useState(false);
   const [bookBoothLead, setBookBoothLead] = useState<WorkhumanLead | null>(null);
   const [editLead, setEditLead] = useState<WorkhumanLead | null>(null);
@@ -191,6 +192,7 @@ const WorkhumanLeads: React.FC = () => {
     setLandingPageFilter('all');
     setHasNotesFilter(false);
     setPersonalNoteFilter(false);
+    setWaitlistFilter(false);
     setExpandedId(target);
     setTimeout(() => {
       const el = document.getElementById(`lead-row-${target}`);
@@ -250,7 +252,8 @@ const WorkhumanLeads: React.FC = () => {
     const meetings = leads.filter(l => ['meeting_booked', 'vip_booked'].includes(l.outreach_status)).length;
     const vipSlots = leads.filter(l => l.vip_slot_day !== null).length;
     const myLeads = myAssignee ? leads.filter(l => l.assigned_to === myAssignee).length : 0;
-    return { total: leads.length, tier1, tier1a, tier1b, tier2, tier3, emailed, responded, meetings, vipSlots, myLeads };
+    const waitlist = leads.filter(l => l.was_waitlisted).length;
+    return { total: leads.length, tier1, tier1a, tier1b, tier2, tier3, emailed, responded, meetings, vipSlots, myLeads, waitlist };
   }, [leads, myAssignee]);
 
   const filteredLeads = useMemo(() => {
@@ -290,6 +293,9 @@ const WorkhumanLeads: React.FC = () => {
     }
     if (personalNoteFilter) {
       result = result.filter(l => hasManualNote(l.notes));
+    }
+    if (waitlistFilter) {
+      result = result.filter(l => l.was_waitlisted);
     }
 
     if (landingPageFilter === 'has') {
@@ -331,7 +337,7 @@ const WorkhumanLeads: React.FC = () => {
     }
 
     return result;
-  }, [leads, searchTerm, tierFilter, myLeadsOnly, myAssignee, statusFilter, industryFilter, landingPageFilter, hasNotesFilter, personalNoteFilter, sortField, sortDir]);
+  }, [leads, searchTerm, tierFilter, myLeadsOnly, myAssignee, statusFilter, industryFilter, landingPageFilter, hasNotesFilter, personalNoteFilter, waitlistFilter, sortField, sortDir]);
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -502,6 +508,14 @@ const WorkhumanLeads: React.FC = () => {
           <StatCard label="Contacted" value={stats.emailed} icon={<Mail size={18} />} color="text-yellow-600" />
           <StatCard label="Responded" value={stats.responded} icon={<MessageSquare size={18} />} color="text-green-600" />
           <StatCard label="VIP Slots" value={stats.vipSlots} icon={<CheckCircle size={18} />} color="text-amber-600" />
+          <StatCard
+            label="Waitlist"
+            value={stats.waitlist}
+            icon={<Clock size={18} />}
+            color="text-purple-600"
+            onClick={() => setWaitlistFilter(v => !v)}
+            active={waitlistFilter}
+          />
         </div>
 
         {/* Actions Bar */}
@@ -640,6 +654,22 @@ const WorkhumanLeads: React.FC = () => {
               title={personalNoteFilter ? 'Showing only leads with a written-by-team note — click to clear' : 'Show only leads with personal/written notes'}
             >
               📝 {personalNoteFilter ? 'Personal note ✓' : 'Personal note only'}
+            </button>
+
+            {/* Waitlist filter — show only leads who were on a booth waitlist
+                during the conference (was_waitlisted=true). */}
+            <button
+              type="button"
+              onClick={() => setWaitlistFilter(v => !v)}
+              className={`px-3 py-2 border rounded-lg text-sm inline-flex items-center gap-1.5 transition-colors ${
+                waitlistFilter
+                  ? 'bg-purple-100 text-purple-900 border-purple-300 hover:bg-purple-200'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+              title={waitlistFilter ? 'Showing only leads who were on a booth waitlist — click to clear' : 'Show only leads who were on a booth waitlist'}
+            >
+              <Clock size={14} />
+              {waitlistFilter ? 'Waitlist ✓' : 'Waitlist'}
             </button>
 
             {/* Sort selector — column headers cover the table fields, but
@@ -786,6 +816,14 @@ const WorkhumanLeads: React.FC = () => {
                               dayLabel={conferenceStatusByLead[lead.id]?.day_label || null}
                               isWalkIn={lead.source === 'whl_booth_signup' || lead.source === 'whl_booth_conversation'}
                             />
+                            {lead.was_waitlisted && (
+                              <span
+                                title="Was on the booth waitlist for at least one day"
+                                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-0.5"
+                              >
+                                <Clock size={9} /> Waitlisted
+                              </span>
+                            )}
                             {hasManualNote(lead.notes) && (
                               <span
                                 title="Has a personal/written note from the team"
@@ -1517,6 +1555,14 @@ function MobileLeadCard({ lead, expanded, conferenceStatus, conferenceDay, onTog
               dayLabel={conferenceDay || null}
               isWalkIn={lead.source === 'whl_booth_signup' || lead.source === 'whl_booth_conversation'}
             />
+            {lead.was_waitlisted && (
+              <span
+                title="Was on the booth waitlist for at least one day"
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-0.5"
+              >
+                <Clock size={9} /> Waitlisted
+              </span>
+            )}
             {hasManualNote(lead.notes) && (
               <span
                 title="Has a personal/written note from the team"
