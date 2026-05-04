@@ -50,6 +50,7 @@ interface SignupRow {
     personal_email: string | null;
     signup_phone: string | null;
     linked_main_lead_id: string | null;
+    notes: string | null;
   } | null;
 }
 
@@ -331,7 +332,7 @@ const WorkhumanBooth: React.FC = () => {
     if (leadIds.length) {
       const { data: leads } = await supabase
         .from('workhuman_leads')
-        .select('id, name, email, company, title, assigned_to, tier, tier_1a, tier_1b, source, linkedin_url, phone, mobile_phone, personal_email, signup_phone, linked_main_lead_id')
+        .select('id, name, email, company, title, assigned_to, tier, tier_1a, tier_1b, source, linkedin_url, phone, mobile_phone, personal_email, signup_phone, linked_main_lead_id, notes')
         .in('id', leadIds);
       leadMap = Object.fromEntries((leads || []).map(l => [l.id, l as unknown as NonNullable<SignupRow['_lead']>]));
     }
@@ -451,7 +452,19 @@ const WorkhumanBooth: React.FC = () => {
     const who = myAssignee ? myAssignee.split(' ')[0] : 'Team';
     const newLine = `[${stamp} · ${who}] ${trimmed}`;
     const merged = existing ? `${newLine}\n${existing}` : newLine;
-    setSignups(prev => prev.map(s => s.id === id ? { ...s, team_notes: merged } : s));
+    // Optimistically reflect the note in BOTH local fields. The booth view
+    // renders signup._lead?.notes alongside team_notes, so without this the
+    // freshly-added note would only appear under "Team notes" until refresh.
+    setSignups(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const leadExistingLocal = s._lead?.notes || '';
+      const leadMergedLocal = leadExistingLocal ? `${newLine}\n${leadExistingLocal}` : newLine;
+      return {
+        ...s,
+        team_notes: merged,
+        _lead: s._lead ? { ...s._lead, notes: leadMergedLocal } : s._lead,
+      };
+    }));
 
     const writes: Promise<unknown>[] = [
       supabase.from('workhuman_signups').update({ team_notes: merged }).eq('id', id),
@@ -521,10 +534,15 @@ const WorkhumanBooth: React.FC = () => {
       result = result.filter(s => s.team_status === statusFilter);
     }
     if (hasNotesFilter) {
-      // A signup counts as "has notes" if it has a manual team_notes entry
+      // Match the CRM definition of "has notes": manual entry on EITHER
+      // workhuman_signups.team_notes (booth-side) OR workhuman_leads.notes
+      // (CRM-side). Booth-added notes mirror to both, but CRM-added notes
+      // only land on the lead row, so we have to check both.
       // (auto send-receipts excluded), since that's the booth-relevant
       // signal — not the lead-side CRM notes blob.
-      const hasManual = (s: SignupRow) => /\[[^\]]+·\s*[A-Za-z]+\]/.test(s.team_notes || '');
+      const MANUAL_NOTE_RE = /\[[^\]]+·\s*[A-Za-z]+\]/;
+      const hasManual = (s: SignupRow) =>
+        MANUAL_NOTE_RE.test(s.team_notes || '') || MANUAL_NOTE_RE.test(s._lead?.notes || '');
       result = result.filter(hasManual);
     }
     // Sort. Default keeps the chronological order (already sorted by
@@ -535,7 +553,9 @@ const WorkhumanBooth: React.FC = () => {
       // tagged with an author (`[stamp · Name]`). Auto-send receipts
       // (📧 / 📱) are excluded so the sort surfaces leads where someone
       // actually wrote a real note from the booth.
-      const hasNotes = (s: SignupRow) => /\[[^\]]+·\s*[A-Za-z]+\]/.test(s.team_notes || '');
+      const MANUAL_NOTE_RE = /\[[^\]]+·\s*[A-Za-z]+\]/;
+      const hasNotes = (s: SignupRow) =>
+        MANUAL_NOTE_RE.test(s.team_notes || '') || MANUAL_NOTE_RE.test(s._lead?.notes || '');
       result = [...result].sort((a, b) => Number(hasNotes(b)) - Number(hasNotes(a)));
     } else if (boothSort === 'tier') {
       const rank = (s: SignupRow) => s._lead?.tier_1a ? 3 : s._lead?.tier_1b ? 2 : s._lead ? 1 : 0;
@@ -1580,6 +1600,12 @@ function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onA
         {lazyTeamNotes && (
           <div className="mt-3 text-xs text-gray-600 whitespace-pre-wrap border-t border-gray-200 pt-2">
             {lazyTeamNotes}
+          </div>
+        )}
+        {signup._lead?.notes && signup._lead.notes !== lazyTeamNotes && (
+          <div className="mt-3 border-t border-gray-200 pt-2">
+            <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">From CRM lead profile</div>
+            <div className="text-xs text-gray-600 whitespace-pre-wrap">{signup._lead.notes}</div>
           </div>
         )}
       </div>
