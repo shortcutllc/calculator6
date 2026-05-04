@@ -50,6 +50,9 @@ export interface WorkhumanLead {
   phone_source: string | null;
   phone_enriched_at: string | null;
   source: string | null;
+  personal_email: string | null;
+  signup_phone: string | null;
+  linked_main_lead_id: string | null;
   created_at: string;
   updated_at: string;
 }

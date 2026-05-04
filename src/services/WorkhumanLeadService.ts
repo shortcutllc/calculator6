@@ -378,16 +378,29 @@ export async function bookLeadAtBooth(input: {
 }
 
 export async function fetchLeads(): Promise<WorkhumanLead[]> {
-  const { data, error } = await supabase
-    .from('workhuman_leads')
-    .select('*')
-    .order('lead_score', { ascending: false });
-
-  if (error) {
-    console.error('Failed to fetch leads:', error);
-    return [];
+  // PostgREST caps each request at 1000 rows. With ~1300+ leads, an
+  // un-paginated fetch silently truncates the bottom of the list — exactly
+  // the lowest-score walk-in leads we want users to be able to find. Page
+  // through in chunks of 1000 so the CRM sees every lead.
+  const PAGE_SIZE = 1000;
+  const all: WorkhumanLead[] = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('workhuman_leads')
+      .select('*')
+      .order('lead_score', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) {
+      console.error('Failed to fetch leads:', error);
+      break;
+    }
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
   }
-  return data || [];
+  return all;
 }
 
 export async function updateLeadStatus(id: string, status: OutreachStatus): Promise<boolean> {

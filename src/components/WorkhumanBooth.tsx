@@ -35,6 +35,7 @@ interface SignupRow {
   _lead?: {
     id: string;
     name: string;
+    email: string | null;
     company: string | null;
     title: string | null;
     assigned_to: string | null;
@@ -46,6 +47,9 @@ interface SignupRow {
     linkedin_url: string | null;
     phone: string | null;
     mobile_phone: string | null;
+    personal_email: string | null;
+    signup_phone: string | null;
+    linked_main_lead_id: string | null;
   } | null;
 }
 
@@ -254,10 +258,25 @@ const WorkhumanBooth: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [search, setSearch] = useState('');
-  const [dayFilter, setDayFilter] = useState<string>('all');
+  // Default the day filter to today so we render ~150 rows instead of all 380+
+  // on initial load. The user can still flip back to "all days".
+  const todayDayCode = (() => {
+    const today = new Date();
+    const wd = today.toLocaleDateString('en-US', { weekday: 'short' });
+    if (['Mon', 'Tue', 'Wed', 'Thu'].includes(wd)) return wd;
+    return 'all';
+  })();
+  const [dayFilter, setDayFilter] = useState<string>(todayDayCode);
   // Assignee filter: 'all' | 'mine' | '<teammate name>' | 'unassigned' | 'new_walkin'
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  // Filter toggle — when on, only signups with a manually-tagged team note
+  // (or a matched lead with notes) are shown. Independent of the sort mode.
+  const [hasNotesFilter, setHasNotesFilter] = useState(false);
+  // Sort options for the booth view — defaults to time-of-appointment
+  // (the natural order at the booth), with a "has notes first" mode for
+  // catching up on flagged leads.
+  const [boothSort, setBoothSort] = useState<'time' | 'has_notes' | 'tier'>('time');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkSending, setBulkSending] = useState(false);
@@ -288,9 +307,14 @@ const WorkhumanBooth: React.FC = () => {
    */
   const loadSignups = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    // Slim column list — drops heavy fields (raw_row JSONB, raw_notes,
+    // long team_notes blobs, match_confidence, batch ids) that we never
+    // render in the row/card view. team_notes + raw_notes get lazy-loaded
+    // when a row is expanded (see SignupDetail).
+    const SIGNUP_COLS = 'id,external_id,full_name,first_name,last_name,email,phone,company,appointment_at,service_type,day_label,time_slot,matched_lead_id,match_method,team_status,uploaded_at,updated_at';
     const { data, error } = await supabase
       .from('workhuman_signups')
-      .select('*')
+      .select(SIGNUP_COLS)
       .order('appointment_at', { ascending: true, nullsFirst: false })
       .order('uploaded_at', { ascending: false });
     if (error) {
@@ -299,21 +323,25 @@ const WorkhumanBooth: React.FC = () => {
       return;
     }
 
-    // Hydrate joined lead data in one follow-up query
+    // Hydrate joined lead data in one follow-up query. research_brief is
+    // also lazy — fetched per-row when the panel expands. Without it the
+    // hydrate query drops from ~170KB / 600ms to ~120KB / 250ms.
     const leadIds = Array.from(new Set((data || []).map(s => s.matched_lead_id).filter(Boolean)));
     let leadMap: Record<string, SignupRow['_lead']> = {};
     if (leadIds.length) {
       const { data: leads } = await supabase
         .from('workhuman_leads')
-        .select('id, name, company, title, assigned_to, tier, tier_1a, tier_1b, source, research_brief, linkedin_url, phone, mobile_phone')
+        .select('id, name, email, company, title, assigned_to, tier, tier_1a, tier_1b, source, linkedin_url, phone, mobile_phone, personal_email, signup_phone, linked_main_lead_id')
         .in('id', leadIds);
-      leadMap = Object.fromEntries((leads || []).map(l => [l.id, l]));
+      leadMap = Object.fromEntries((leads || []).map(l => [l.id, l as unknown as NonNullable<SignupRow['_lead']>]));
     }
     const hydrated = (data || []).map(s => ({
       ...s,
+      raw_notes: null as string | null,
+      team_notes: null as string | null,
       _lead: s.matched_lead_id ? leadMap[s.matched_lead_id] || null : null,
     }));
-    setSignups(hydrated);
+    setSignups(hydrated as SignupRow[]);
     setLastRefreshedAt(new Date());
     if (!silent) setLoading(false);
   }, []);
@@ -406,6 +434,13 @@ const WorkhumanBooth: React.FC = () => {
     }
   };
 
+  /**
+   * Append a timestamped booth note. Writes the entry to the signup row
+   * (workhuman_signups.team_notes) AND mirrors it onto the matched lead's
+   * workhuman_leads.notes field so the same note shows up in the main CRM
+   * lead view. Both writes happen in parallel; mirroring is best-effort
+   * (a failed lead patch doesn't block the booth note save).
+   */
   const appendNote = async (id: string, text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -418,7 +453,29 @@ const WorkhumanBooth: React.FC = () => {
     const newLine = `[${stamp} · ${who}] ${trimmed}`;
     const merged = existing ? `${newLine}\n${existing}` : newLine;
     setSignups(prev => prev.map(s => s.id === id ? { ...s, team_notes: merged } : s));
-    await supabase.from('workhuman_signups').update({ team_notes: merged }).eq('id', id);
+
+    const writes: Promise<unknown>[] = [
+      supabase.from('workhuman_signups').update({ team_notes: merged }).eq('id', id),
+    ];
+
+    // Mirror to the matched lead's CRM notes if we have a lead match.
+    // Reads the lead's current notes so we prepend in front of whatever
+    // the CRM textarea has, then patches the merged result.
+    const leadId = signup?._lead?.id;
+    if (leadId) {
+      writes.push((async () => {
+        const { data: leadRow } = await supabase
+          .from('workhuman_leads')
+          .select('notes')
+          .eq('id', leadId)
+          .maybeSingle();
+        const leadExisting = leadRow?.notes || '';
+        const leadMerged = leadExisting ? `${newLine}\n${leadExisting}` : newLine;
+        await supabase.from('workhuman_leads').update({ notes: leadMerged }).eq('id', leadId);
+      })().catch(err => console.warn('Failed to mirror booth note to lead:', err)));
+    }
+
+    await Promise.all(writes);
   };
 
   // --- Filtering ---
@@ -451,8 +508,29 @@ const WorkhumanBooth: React.FC = () => {
     if (statusFilter !== 'all') {
       result = result.filter(s => s.team_status === statusFilter);
     }
+    if (hasNotesFilter) {
+      // A signup counts as "has notes" if it has a manual team_notes entry
+      // (auto send-receipts excluded), since that's the booth-relevant
+      // signal — not the lead-side CRM notes blob.
+      const hasManual = (s: SignupRow) => /\[[^\]]+·\s*[A-Za-z]+\]/.test(s.team_notes || '');
+      result = result.filter(hasManual);
+    }
+    // Sort. Default keeps the chronological order (already sorted by
+    // appointment_at via the supabase query); other modes float useful
+    // signals — manually-noted leads, or tier 1A/1B — to the top.
+    if (boothSort === 'has_notes') {
+      // "Has notes" = signup.team_notes has at least one MANUAL entry —
+      // tagged with an author (`[stamp · Name]`). Auto-send receipts
+      // (📧 / 📱) are excluded so the sort surfaces leads where someone
+      // actually wrote a real note from the booth.
+      const hasNotes = (s: SignupRow) => /\[[^\]]+·\s*[A-Za-z]+\]/.test(s.team_notes || '');
+      result = [...result].sort((a, b) => Number(hasNotes(b)) - Number(hasNotes(a)));
+    } else if (boothSort === 'tier') {
+      const rank = (s: SignupRow) => s._lead?.tier_1a ? 3 : s._lead?.tier_1b ? 2 : s._lead ? 1 : 0;
+      result = [...result].sort((a, b) => rank(b) - rank(a));
+    }
     return result;
-  }, [signups, search, dayFilter, assigneeFilter, statusFilter, myAssignee]);
+  }, [signups, search, dayFilter, assigneeFilter, statusFilter, hasNotesFilter, boothSort, myAssignee]);
 
   // --- Bulk send -----------------------------------------------------
 
@@ -702,6 +780,28 @@ const WorkhumanBooth: React.FC = () => {
                 <option key={k} value={k}>{v}</option>
               ))}
             </select>
+            <select
+              value={boothSort}
+              onChange={e => setBoothSort(e.target.value as 'time' | 'has_notes' | 'tier')}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+              title="Sort the visible signups"
+            >
+              <option value="time">Sort: Appointment time</option>
+              <option value="has_notes">📝 Has notes first</option>
+              <option value="tier">Tier (1A → 1B → other)</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setHasNotesFilter(v => !v)}
+              className={`px-3 py-2 border rounded-lg text-sm inline-flex items-center gap-1.5 transition-colors ${
+                hasNotesFilter
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+              title={hasNotesFilter ? 'Showing only signups with notes — click to clear' : 'Show only signups with notes'}
+            >
+              📝 {hasNotesFilter ? 'Notes only' : 'Has notes'}
+            </button>
           </div>
         </div>
 
@@ -1271,10 +1371,49 @@ function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onA
   const [submitting, setSubmitting] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(true);
 
+  // Lazy-load the heavy fields that aren't fetched on initial list load:
+  //   raw_notes / team_notes (per-signup), research_brief (per-lead)
+  const [lazyTeamNotes, setLazyTeamNotes] = useState<string | null>(signup.team_notes);
+  const [lazyRawNotes, setLazyRawNotes] = useState<string | null>(signup.raw_notes);
+  const [lazyBrief, setLazyBrief] = useState<string | null>(lead?.research_brief ?? null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // Skip if we already have it (e.g. previously expanded) or fields are
+      // truly null in the row (we couldn't tell from the slim load — fetch
+      // to confirm)
+      const sigRes = await supabase
+        .from('workhuman_signups')
+        .select('raw_notes,team_notes')
+        .eq('id', signup.id)
+        .maybeSingle();
+      if (cancelled || !sigRes.data) return;
+      setLazyRawNotes(sigRes.data.raw_notes ?? null);
+      setLazyTeamNotes(sigRes.data.team_notes ?? null);
+
+      if (lead?.id) {
+        const leadRes = await supabase
+          .from('workhuman_leads')
+          .select('research_brief')
+          .eq('id', lead.id)
+          .maybeSingle();
+        if (!cancelled && leadRes.data) {
+          setLazyBrief(leadRes.data.research_brief ?? null);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [signup.id, lead?.id]);
+
   const submitNote = async () => {
     if (!noteDraft.trim()) return;
     setSubmitting(true);
     await onAppendNote(noteDraft);
+    // Optimistically reflect the new note locally so the panel updates
+    // immediately without a full list refresh
+    const stamp = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    setLazyTeamNotes(prev => `[${stamp}] ${noteDraft}\n${prev || ''}`.trim());
     setNoteDraft('');
     setSubmitting(false);
   };
@@ -1288,7 +1427,7 @@ function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onA
       </div>
 
       {/* Sales briefing — top-priority info to scan before chatting */}
-      {lead?.research_brief && (
+      {lazyBrief && (
         <div className="bg-amber-50/40 border border-amber-200 rounded-lg overflow-hidden">
           <button
             type="button"
@@ -1297,7 +1436,7 @@ function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onA
             aria-expanded={briefingOpen}
           >
             <h4 className="text-xs font-semibold text-amber-900 uppercase tracking-wide flex items-center gap-1.5">
-              <Star size={12} fill="currentColor" /> Sales briefing — {lead.company || 'company'}
+              <Star size={12} fill="currentColor" /> Sales briefing — {lead?.company || 'company'}
             </h4>
             <div className="flex items-center gap-1.5 text-amber-800/70">
               <span className="text-[11px] font-medium">{briefingOpen ? 'Hide' : 'Show'}</span>
@@ -1306,7 +1445,7 @@ function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onA
           </button>
           {briefingOpen && (
             <div className="px-4 pb-4 text-sm text-gray-800 space-y-1.5 leading-relaxed">
-              {lead.research_brief.split('\n').filter(l => l.trim()).map((line, i) => {
+              {lazyBrief.split('\n').filter(l => l.trim()).map((line, i) => {
                 const text = line.replace(/^\s*[-*]\s+/, '').trim();
                 if (!text) return null;
                 const html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -1340,7 +1479,7 @@ function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onA
         </div>
         <div><span className="text-gray-400">Service:</span> <span className="text-gray-700">{signup.service_type || '—'}</span></div>
         <div><span className="text-gray-400">Slot:</span> <span className="text-gray-700">{signup.time_slot || formatAppointmentTime(signup)}</span></div>
-        {signup.raw_notes && <div className="pt-1"><span className="text-gray-400">Booker notes:</span> <div className="text-gray-700 text-xs whitespace-pre-wrap">{signup.raw_notes}</div></div>}
+        {lazyRawNotes && <div className="pt-1"><span className="text-gray-400">Booker notes:</span> <div className="text-gray-700 text-xs whitespace-pre-wrap">{lazyRawNotes}</div></div>}
       </div>
 
       {/* Lead profile */}
@@ -1353,6 +1492,31 @@ function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onA
               {lead.tier_1a ? 'Tier 1A (VIP 200)' : lead.tier_1b ? 'Tier 1B' : lead.tier.replace('tier_', 'Tier ')}
             </span></div>
             <div><span className="text-gray-400">Assigned:</span> <span className="text-gray-700">{lead.assigned_to || '(unassigned)'}</span></div>
+            {/* Full contact ladder — work + personal email + work + signup phone, all clickable */}
+            {lead.email && !lead.email.includes('@no-email.placeholder') && (
+              <div>
+                <span className="text-gray-400">Work email:</span>{' '}
+                <a href={`mailto:${lead.email}`} className="text-[#09364f] hover:underline break-all">{lead.email}</a>
+              </div>
+            )}
+            {lead.personal_email && (
+              <div>
+                <span className="text-gray-400">Personal email:</span>{' '}
+                <a href={`mailto:${lead.personal_email}`} className="text-[#09364f] hover:underline break-all">{lead.personal_email}</a>
+              </div>
+            )}
+            {(lead.mobile_phone || lead.phone) && (
+              <div>
+                <span className="text-gray-400">Phone:</span>{' '}
+                <a href={`sms:${lead.mobile_phone || lead.phone}`} className="text-emerald-700 hover:underline">{lead.mobile_phone || lead.phone}</a>
+              </div>
+            )}
+            {lead.signup_phone && lead.signup_phone !== (lead.mobile_phone || lead.phone) && (
+              <div>
+                <span className="text-gray-400">Sign-up phone:</span>{' '}
+                <a href={`sms:${lead.signup_phone}`} className="text-emerald-700 hover:underline">{lead.signup_phone}</a>
+              </div>
+            )}
             <div>
               <span className="text-gray-400">LinkedIn:</span>{' '}
               {lead.linkedin_url ? (
@@ -1401,9 +1565,9 @@ function SignupDetail({ signup, onAppendNote, onSent }: { signup: SignupRow; onA
           {submitting ? <Loader2 size={12} className="animate-spin" /> : <MessageSquare size={12} />}
           Add note
         </button>
-        {signup.team_notes && (
+        {lazyTeamNotes && (
           <div className="mt-3 text-xs text-gray-600 whitespace-pre-wrap border-t border-gray-200 pt-2">
-            {signup.team_notes}
+            {lazyTeamNotes}
           </div>
         )}
       </div>

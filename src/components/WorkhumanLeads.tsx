@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Upload, Search, ChevronDown, ChevronUp, Target, Users,
   Star, Mail, MessageSquare, Calendar, Trash2, X, FileDown,
   AlertCircle, CheckCircle, Clock, UserCheck, ExternalLink, Copy,
-  Sparkles, Loader2, RefreshCw, Linkedin, Zap, UserPlus, CalendarCheck, Pencil
+  Sparkles, Loader2, RefreshCw, Linkedin, Zap, UserPlus, CalendarCheck, Pencil,
+  StickyNote
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 import { WorkhumanLead, OutreachStatus, LeadTier, VipSlotDay, OutreachChannel, AssigneeName, ASSIGNEE_NAMES } from '../types/workhumanLead';
 import {
   parseCSV,
@@ -103,6 +105,7 @@ type TierFilter = 'all' | LeadTier | 'tier_1a' | 'tier_1b';
 
 const WorkhumanLeads: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const myAssignee: AssigneeName | null = useMemo(() => {
     const email = user?.email?.toLowerCase() || '';
     return EMAIL_TO_ASSIGNEE[email] || null;
@@ -116,7 +119,7 @@ const WorkhumanLeads: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | OutreachStatus>('all');
   const [industryFilter, setIndustryFilter] = useState('all');
   const [landingPageFilter, setLandingPageFilter] = useState<'all' | 'has' | 'missing'>('all');
-  const [sortField, setSortField] = useState<'name' | 'company' | 'title' | 'company_size_normalized' | 'lead_score' | 'tier' | 'page_view_count'>('lead_score');
+  const [sortField, setSortField] = useState<'name' | 'company' | 'title' | 'company_size_normalized' | 'lead_score' | 'tier' | 'page_view_count' | 'has_notes'>('lead_score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCSVModal, setShowCSVModal] = useState(false);
@@ -124,6 +127,12 @@ const WorkhumanLeads: React.FC = () => {
   const [creatingPageIds, setCreatingPageIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [outreachChannelsByLead, setOutreachChannelsByLead] = useState<Record<string, Set<OutreachChannel>>>({});
+  // Conference status per lead: highest-priority team_status across that
+  // lead's workhuman_signups (arrived > scheduled > no_show > cancelled).
+  // Powers the "✓ Attended / ✗ No-show / 📅 Booked" badge on each row.
+  const [conferenceStatusByLead, setConferenceStatusByLead] = useState<Record<string, { status: string; day_label: string | null }>>({});
+  // Filter toggles: when on, only rows passing the filter are shown
+  const [hasNotesFilter, setHasNotesFilter] = useState(false);
   const [showAddLead, setShowAddLead] = useState(false);
   const [bookBoothLead, setBookBoothLead] = useState<WorkhumanLead | null>(null);
   const [editLead, setEditLead] = useState<WorkhumanLead | null>(null);
@@ -141,41 +150,66 @@ const WorkhumanLeads: React.FC = () => {
     loadLeads();
   }, [loadLeads]);
 
-  // Deep-link support: when arrived from `/workhuman-leads?lead=<uuid>` (e.g.
-  // the booth view's "Open in CRM →" button), auto-expand that lead and
-  // scroll it into view as soon as the data arrives. Reset every filter so
-  // the target lead is guaranteed to be visible regardless of what was
-  // selected before. Strip the param from the URL after handling so a
-  // manual refresh doesn't keep re-scrolling.
+  // Deep-link support: when arrived from `/workhuman-leads?lead=<uuid>`
+  // (e.g. the booth view's "Open in CRM →" button), auto-expand that
+  // lead and scroll it into view as soon as the data arrives. We depend
+  // on `location.search` so navigating to the deep-link from inside the
+  // CRM (which doesn't unmount this component) still re-fires the effect.
+  // Reset every filter so the target lead is guaranteed to be visible.
+  // Strip the param from the URL after handling so a manual refresh
+  // doesn't keep re-scrolling.
   useEffect(() => {
     if (loading || leads.length === 0) return;
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const target = params.get('lead');
     if (!target) return;
     const exists = leads.some(l => l.id === target);
     if (!exists) return;
-    // Clear filters that could hide the lead
     setSearchTerm('');
     setTierFilter('all');
     setMyLeadsOnly(false);
     setStatusFilter('all');
     setIndustryFilter('all');
     setLandingPageFilter('all');
+    setHasNotesFilter(false);
     setExpandedId(target);
-    // Defer scroll until after the filter reset re-renders
     setTimeout(() => {
       const el = document.getElementById(`lead-row-${target}`);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-    // Clean the URL so a manual refresh doesn't re-trigger the scroll
+    }, 150);
     params.delete('lead');
     const newSearch = params.toString();
     window.history.replaceState({}, '', `${window.location.pathname}${newSearch ? `?${newSearch}` : ''}${window.location.hash}`);
-  }, [loading, leads]);
+  }, [loading, leads, location.search]);
 
   // Load outreach channel summary for badges on each row
   useEffect(() => {
     fetchOutreachChannelsByLead().then(setOutreachChannelsByLead);
+  }, [leads.length]);
+
+  // Load conference outcome per lead — single workhuman_signups query,
+  // collapse to one status per lead by priority. Same lifecycle as the
+  // outreach channels load (only fires once per leads.length change).
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('workhuman_signups')
+        .select('matched_lead_id,team_status,day_label')
+        .not('matched_lead_id', 'is', null)
+        .limit(1000);
+      const PRIORITY: Record<string, number> = { arrived: 4, completed: 3, scheduled: 2, no_show: 1, cancelled: 0 };
+      const byLead: Record<string, { status: string; day_label: string | null }> = {};
+      (data || []).forEach(s => {
+        if (!s.matched_lead_id) return;
+        const cur = byLead[s.matched_lead_id];
+        const newScore = PRIORITY[s.team_status] ?? -1;
+        const curScore = cur ? (PRIORITY[cur.status] ?? -1) : -1;
+        if (!cur || newScore > curScore) {
+          byLead[s.matched_lead_id] = { status: s.team_status, day_label: s.day_label };
+        }
+      });
+      setConferenceStatusByLead(byLead);
+    })();
   }, [leads.length]);
 
   // --- Computed values ---
@@ -232,6 +266,9 @@ const WorkhumanLeads: React.FC = () => {
     if (industryFilter !== 'all') {
       result = result.filter(l => l.industry === industryFilter);
     }
+    if (hasNotesFilter) {
+      result = result.filter(l => (l.notes || '').trim().length > 0);
+    }
 
     if (landingPageFilter === 'has') {
       result = result.filter(l => !!l.landing_page_url);
@@ -252,6 +289,7 @@ const WorkhumanLeads: React.FC = () => {
         case 'company_size_normalized': av = a.company_size_normalized || 0; bv = b.company_size_normalized || 0; break;
         case 'page_view_count':       av = a.page_view_count || 0; bv = b.page_view_count || 0; break;
         case 'tier':                  av = tierRank[a.tier]; bv = tierRank[b.tier]; break;
+        case 'has_notes':             av = (a.notes || '').trim() ? 1 : 0; bv = (b.notes || '').trim() ? 1 : 0; break;
         case 'lead_score':
         default:                      av = a.lead_score; bv = b.lead_score; break;
       }
@@ -260,7 +298,7 @@ const WorkhumanLeads: React.FC = () => {
     });
 
     return result;
-  }, [leads, searchTerm, tierFilter, myLeadsOnly, myAssignee, statusFilter, industryFilter, landingPageFilter, sortField, sortDir]);
+  }, [leads, searchTerm, tierFilter, myLeadsOnly, myAssignee, statusFilter, industryFilter, landingPageFilter, hasNotesFilter, sortField, sortDir]);
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -537,6 +575,45 @@ const WorkhumanLeads: React.FC = () => {
               <option value="has">Has Landing Page</option>
               <option value="missing">Missing Landing Page</option>
             </select>
+
+            {/* Has-notes filter — toggles to show ONLY leads with notes */}
+            <button
+              type="button"
+              onClick={() => setHasNotesFilter(v => !v)}
+              className={`px-3 py-2 border rounded-lg text-sm inline-flex items-center gap-1.5 transition-colors ${
+                hasNotesFilter
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+              title={hasNotesFilter ? 'Showing only leads with notes — click to clear' : 'Show only leads with notes'}
+            >
+              <StickyNote size={14} />
+              {hasNotesFilter ? 'Notes only' : 'Has notes'}
+            </button>
+
+            {/* Sort selector — column headers cover the table fields, but
+                sorting by notes/score etc. needs an out-of-band selector
+                (notes don't have their own column). */}
+            <select
+              value={`${sortField}:${sortDir}`}
+              onChange={e => {
+                const [f, d] = e.target.value.split(':');
+                setSortField(f as typeof sortField);
+                setSortDir(d as 'asc' | 'desc');
+              }}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+              title="Sort the visible leads"
+            >
+              <option value="lead_score:desc">Sort: Score (high → low)</option>
+              <option value="lead_score:asc">Sort: Score (low → high)</option>
+              <option value="has_notes:desc">📝 Has notes first</option>
+              <option value="has_notes:asc">No notes first</option>
+              <option value="name:asc">Name (A → Z)</option>
+              <option value="company:asc">Company (A → Z)</option>
+              <option value="tier:asc">Tier (top first)</option>
+              <option value="page_view_count:desc">Page views (high → low)</option>
+              <option value="company_size_normalized:desc">Size (large → small)</option>
+            </select>
           </div>
         </div>
 
@@ -633,7 +710,7 @@ const WorkhumanLeads: React.FC = () => {
                           />
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <div className="font-medium text-gray-900">{lead.name}</div>
                             {lead.tier_1a && (
                               <span title="Tier 1A (VIP 200)" className="text-amber-600"><Star size={12} fill="currentColor" /></span>
@@ -647,6 +724,20 @@ const WorkhumanLeads: React.FC = () => {
                                 className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${ASSIGNEE_COLORS[lead.assigned_to as AssigneeName]}`}
                               >
                                 {ASSIGNEE_INITIALS[lead.assigned_to as AssigneeName]}
+                              </span>
+                            )}
+                            {/* Conference outcome badge — pulled from
+                                workhuman_signups.team_status. Walk-in flag
+                                shown separately when the lead's source
+                                indicates a booth-direct creation. */}
+                            <ConferenceBadge
+                              status={conferenceStatusByLead[lead.id]?.status}
+                              dayLabel={conferenceStatusByLead[lead.id]?.day_label || null}
+                              isWalkIn={lead.source === 'whl_booth_signup' || lead.source === 'whl_booth_conversation'}
+                            />
+                            {(lead.notes || '').trim() && (
+                              <span title="Has notes" className="inline-flex text-amber-600">
+                                <StickyNote size={12} />
                               </span>
                             )}
                           </div>
@@ -789,7 +880,13 @@ const WorkhumanLeads: React.FC = () => {
                               onCreatePage={(overrideUrl) => handleCreateLandingPage(lead, overrideUrl)}
                               onCopyUrl={() => lead.landing_page_url && copyToClipboard(lead.landing_page_url)}
                               onNotesChange={async (notes) => {
-                                setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, notes } : l));
+                                // Persist to the DB but DO NOT touch parent
+                                // state — every setLeads triggers a full
+                                // table re-render (200+ rows), which under
+                                // a debounced typing flow makes it feel
+                                // like the page is "refreshing" and steals
+                                // focus from the textarea. The next manual
+                                // reload will pick up the saved value.
                                 await updateLeadNotes(lead.id, notes);
                               }}
                               onDelete={() => handleDelete(lead.id)}
@@ -813,12 +910,15 @@ const WorkhumanLeads: React.FC = () => {
                   key={lead.id}
                   lead={lead}
                   expanded={expandedId === lead.id}
+                  conferenceStatus={conferenceStatusByLead[lead.id]?.status}
+                  conferenceDay={conferenceStatusByLead[lead.id]?.day_label || null}
                   onToggle={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
                   onStatusChange={handleStatusChange}
                   onTierCycle={handleTierCycle}
                   onVipSlot={handleVipSlot}
                   onNotesChange={async (notes) => {
-                    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, notes } : l));
+                    // See parent comment: skip setLeads so the table
+                    // doesn't re-render under an actively typing user.
                     await updateLeadNotes(lead.id, notes);
                   }}
                   onDelete={() => handleDelete(lead.id)}
@@ -876,6 +976,50 @@ const WorkhumanLeads: React.FC = () => {
 };
 
 // --- Sub-components ---
+
+/**
+ * Renders a small colored badge summarizing what happened at the conference
+ * for this lead, based on their highest-priority workhuman_signups status.
+ * Distinct color/icon per outcome so it's scannable in the dense table.
+ *
+ *   ✓ Attended  — they checked in for at least one massage
+ *   📅 Booked   — booked an appointment but day hasn't run yet (rare now)
+ *   ✗ No-show  — booked but didn't show / cancelled at booth
+ *   🆕 Walk-in — auto-created at the booth, no main CRM history
+ */
+function ConferenceBadge({ status, dayLabel, isWalkIn }: { status?: string; dayLabel: string | null; isWalkIn: boolean }) {
+  if (!status && !isWalkIn) return null;
+  const dayShort = dayLabel ? dayLabel.replace(/^[A-Za-z]+ Apr /, '') : '';
+  if (status === 'arrived' || status === 'completed') {
+    return (
+      <span title={`Attended at booth${dayLabel ? ` (${dayLabel})` : ''}`} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-800 inline-flex items-center gap-0.5">
+        ✓ Attended{dayShort && ` ${dayShort}`}
+      </span>
+    );
+  }
+  if (status === 'no_show' || status === 'cancelled') {
+    return (
+      <span title={`Did not attend${dayLabel ? ` (${dayLabel})` : ''}`} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-800 inline-flex items-center gap-0.5">
+        ✗ No-show{dayShort && ` ${dayShort}`}
+      </span>
+    );
+  }
+  if (status === 'scheduled') {
+    return (
+      <span title={`Booked${dayLabel ? ` (${dayLabel})` : ''}`} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 inline-flex items-center gap-0.5">
+        📅 Booked{dayShort && ` ${dayShort}`}
+      </span>
+    );
+  }
+  if (isWalkIn) {
+    return (
+      <span title="Auto-created at booth — direct walk-in" className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 inline-flex items-center gap-0.5">
+        🆕 Walk-in
+      </span>
+    );
+  }
+  return null;
+}
 
 function SortableHeader<F extends string>({ label, field, currentField, direction, onClick, align = 'left' }: {
   label: string;
@@ -1012,6 +1156,13 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
             <a href={`mailto:${lead.email}`} className="text-[#09364f] hover:underline break-all">{lead.email}</a>
           ) : <span className="text-gray-700">—</span>}
         </div>
+        {lead.personal_email && (
+          <div>
+            <span className="text-gray-400">Personal email:</span>{' '}
+            <a href={`mailto:${lead.personal_email}`} className="text-[#09364f] hover:underline break-all">{lead.personal_email}</a>
+            <span className="ml-1 text-[10px] text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5 align-middle">from booth signup</span>
+          </div>
+        )}
         {(lead.mobile_phone || lead.phone) && (
           <div>
             <span className="text-gray-400">Phone:</span>{' '}
@@ -1028,6 +1179,24 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
                 <a href={`tel:${lead.phone}`} className="text-gray-500 hover:underline">{lead.phone}</a>
               </>
             )}
+          </div>
+        )}
+        {lead.signup_phone && lead.signup_phone !== (lead.mobile_phone || lead.phone) && (
+          <div>
+            <span className="text-gray-400">Sign-up phone:</span>{' '}
+            <a href={`sms:${lead.signup_phone}`} className="text-emerald-700 hover:underline">{lead.signup_phone}</a>
+            <span className="ml-1 text-[10px] text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5 align-middle">from booth signup</span>
+          </div>
+        )}
+        {lead.linked_main_lead_id && (
+          <div className="text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded p-2 mt-1">
+            <span className="font-medium">↗ Walk-in duplicate</span> — booth signup created this row, but the same person already exists in the CRM.{' '}
+            <Link
+              to={`/workhuman-leads?lead=${lead.linked_main_lead_id}`}
+              className="text-purple-900 underline font-medium"
+            >
+              Open the main lead →
+            </Link>
           </div>
         )}
         <div><span className="text-gray-400">Location:</span> <span className="text-gray-700">{lead.hq_location || '—'}</span></div>
@@ -1264,9 +1433,11 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
   );
 }
 
-function MobileLeadCard({ lead, expanded, onToggle, onStatusChange, onTierCycle, onVipSlot, onNotesChange, onDelete }: {
+function MobileLeadCard({ lead, expanded, conferenceStatus, conferenceDay, onToggle, onStatusChange, onTierCycle, onVipSlot, onNotesChange, onDelete }: {
   lead: WorkhumanLead;
   expanded: boolean;
+  conferenceStatus?: string;
+  conferenceDay?: string | null;
   onToggle: () => void;
   onStatusChange: (id: string, status: OutreachStatus) => void;
   onTierCycle: (id: string, tier: LeadTier) => void;
@@ -1280,13 +1451,23 @@ function MobileLeadCard({ lead, expanded, onToggle, onStatusChange, onTierCycle,
         <div className="flex-1 min-w-0">
           <div className="font-medium text-gray-900 truncate">{lead.name}</div>
           <div className="text-xs text-gray-500 truncate">{lead.company || '—'} · {lead.title || '—'}</div>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[lead.tier]}`}>
               {TIER_LABELS[lead.tier]}
             </span>
             <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[lead.outreach_status]}`}>
               {STATUS_LABELS[lead.outreach_status]}
             </span>
+            <ConferenceBadge
+              status={conferenceStatus}
+              dayLabel={conferenceDay || null}
+              isWalkIn={lead.source === 'whl_booth_signup' || lead.source === 'whl_booth_conversation'}
+            />
+            {(lead.notes || '').trim() && (
+              <span title="Has notes" className="inline-flex text-amber-600">
+                <StickyNote size={13} />
+              </span>
+            )}
             <span className="text-xs text-gray-400">{lead.lead_score} pts</span>
           </div>
         </div>
