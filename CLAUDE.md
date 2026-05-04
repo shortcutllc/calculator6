@@ -44,7 +44,7 @@ Rules:
 - **Never commit `.env`, secrets, video/media (.mp4), `node_modules_old/`, vite.config.ts.timestamp-*, or any `supabase/.temp/*` cache files.**
 - **Stage by name, never `git add .` or `git add -A`** — the working tree always has noise (xlsx, prototypes, csvs).
 - One focused commit per deploy. Message describes the *why* in 1-2 sentences.
-- If a build/push hangs > 15s with no output, **kill it** (see [memory/feedback_process_management.md](memory/feedback_process_management.md)) — clean `.git/*.lock` and `.git/refs/remotes/origin/*.lock` before retrying. Don't sit on hung processes.
+- If a build/push hangs > 60s with no output, **kill it** (see [memory/feedback_process_management.md](memory/feedback_process_management.md)) — clean `.git/*.lock` and `.git/refs/remotes/origin/*.lock` before retrying. Don't sit on hung processes.
 - Run deploys in the background when possible so iteration isn't blocked.
 
 Prerequisites that bite if forgotten:
