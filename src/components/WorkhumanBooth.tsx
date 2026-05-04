@@ -457,22 +457,35 @@ const WorkhumanBooth: React.FC = () => {
       supabase.from('workhuman_signups').update({ team_notes: merged }).eq('id', id),
     ];
 
-    // Mirror to the matched lead's CRM notes if we have a lead match.
-    // Reads the lead's current notes so we prepend in front of whatever
-    // the CRM textarea has, then patches the merged result.
-    const leadId = signup?._lead?.id;
-    if (leadId) {
-      writes.push((async () => {
-        const { data: leadRow } = await supabase
-          .from('workhuman_leads')
-          .select('notes')
-          .eq('id', leadId)
-          .maybeSingle();
-        const leadExisting = leadRow?.notes || '';
-        const leadMerged = leadExisting ? `${newLine}\n${leadExisting}` : newLine;
-        await supabase.from('workhuman_leads').update({ notes: leadMerged }).eq('id', leadId);
-      })().catch(err => console.warn('Failed to mirror booth note to lead:', err)));
-    }
+    // Mirror to the matched lead's CRM notes. Re-query the signup row
+    // for the CURRENT matched_lead_id at write time — local state can
+    // be stale if dedupe re-pointed this signup after the page loaded
+    // (this caused Estelle Jackson's note + others to silently miss).
+    // Errors surface to the console (not silently swallowed) so any
+    // future mirror failure is visible.
+    writes.push((async () => {
+      const { data: freshSignup, error: fetchErr } = await supabase
+        .from('workhuman_signups')
+        .select('matched_lead_id')
+        .eq('id', id)
+        .maybeSingle();
+      if (fetchErr) { console.error('[booth note mirror] read signup failed:', fetchErr); return; }
+      const leadId = freshSignup?.matched_lead_id;
+      if (!leadId) return; // truly orphan signup, nothing to mirror to
+      const { data: leadRow, error: leadErr } = await supabase
+        .from('workhuman_leads')
+        .select('notes')
+        .eq('id', leadId)
+        .maybeSingle();
+      if (leadErr) { console.error('[booth note mirror] read lead failed:', leadErr); return; }
+      const leadExisting = leadRow?.notes || '';
+      const leadMerged = leadExisting ? `${newLine}\n${leadExisting}` : newLine;
+      const { error: updateErr } = await supabase
+        .from('workhuman_leads')
+        .update({ notes: leadMerged })
+        .eq('id', leadId);
+      if (updateErr) console.error('[booth note mirror] update lead failed:', updateErr);
+    })());
 
     await Promise.all(writes);
   };
