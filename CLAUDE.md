@@ -28,6 +28,32 @@ netlify deploy --prod  # Deploy to production (Netlify CLI)
 
 ---
 
+## Deploy procedure — ALWAYS run all five steps
+
+A "deploy" means **shipping production AND committing the source AND pushing to origin** — never just one. Production (Netlify) and the git repo drift apart if any step is skipped, and that's how teammates pull a stale main.
+
+```
+1. KILL dev server          ps aux | grep -E 'vite|esbuild' | grep -v grep   → kill any hits
+2. BUILD                    source ~/.nvm/nvm.sh && npm run build
+3. DEPLOY                   netlify deploy --prod --no-build
+4. COMMIT (scoped)          git add <only the files for this change> && git commit -m "..."
+5. PUSH                     PATH="/opt/homebrew/bin:$PATH" git push origin main   (timeout ≥120s)
+```
+
+Rules:
+- **Never commit `.env`, secrets, video/media (.mp4), `node_modules_old/`, vite.config.ts.timestamp-*, or any `supabase/.temp/*` cache files.**
+- **Stage by name, never `git add .` or `git add -A`** — the working tree always has noise (xlsx, prototypes, csvs).
+- One focused commit per deploy. Message describes the *why* in 1-2 sentences.
+- If a build/push hangs > 15s with no output, **kill it** (see [memory/feedback_process_management.md](memory/feedback_process_management.md)) — clean `.git/*.lock` and `.git/refs/remotes/origin/*.lock` before retrying. Don't sit on hung processes.
+- Run deploys in the background when possible so iteration isn't blocked.
+
+Prerequisites that bite if forgotten:
+- `source ~/.nvm/nvm.sh` before any `npm`/`netlify`/`node` command — nvm doesn't auto-load in spawned shells.
+- Push needs `PATH="/opt/homebrew/bin:$PATH"` so git-lfs resolves.
+- If a build silently dies with zero stdout, it's almost always corrupted `node_modules` — `rm -rf node_modules && npm install`.
+
+---
+
 ## Application Overview
 
 This is a **B2B SaaS platform** for corporate wellness proposal generation and event management. It handles the complete lifecycle from initial proposal through execution.
