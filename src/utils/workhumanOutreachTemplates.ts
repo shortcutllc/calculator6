@@ -384,8 +384,8 @@ export const SENDER_TO_CALENDAR: Partial<Record<SenderName, string>> = {
 export function calendarLineForSender(senderName: string | null | undefined): string {
   const link = senderName ? SENDER_TO_CALENDAR[senderName as SenderName] : null;
   return link
-    ? `Does a time work for you to connect this week or next? ${link}`
-    : `Does a time work for you to connect this week or next? Reply with a few options and I'll send a calendar invite.`;
+    ? `Does a time this week or next work for a quick call? Feel free to grab a time from my calendar that works for you: ${link}`
+    : `Does a time this week or next work for a quick call? Feel free to send a few times my way and I'll get an invite over.`;
 }
 
 /**

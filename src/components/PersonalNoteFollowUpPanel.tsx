@@ -232,22 +232,33 @@ export function PersonalNoteFollowUpPanel({
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
     if (link) {
-      // Find the line containing the calendar URL and replace the WHOLE
-      // line with one hyperlinked anchor. Anchor text = whatever prose
-      // preceded the URL on that line (e.g. "Does a time work for you to
-      // connect this week or next?"). Falls back to "Pick a time that
-      // works" if the line is just a bare URL. Robust to CTA wording
-      // changes — never hardcodes the question text.
+      // The canonical CTA pattern is:
+      //   "...grab a time from my calendar that works for you: {URL}"
+      // For Gmail paste, we hyperlink "grab a time from my calendar"
+      // in-place and drop the trailing ": {URL}". Falls back to a
+      // line-level replace if the canonical pattern isn't found
+      // (e.g. AI deviated, or the user edited the body).
       const hrefSafe = link.replace(/&amp;/g, '&');
       const escapedLinkInBody = link.replace(/&/g, '&amp;');
-      const lines = html.split('<br>');
-      const updatedLines = lines.map(line => {
-        if (!line.includes(escapedLinkInBody)) return line;
-        const before = line.replace(escapedLinkInBody, '').trim();
-        const anchorText = before || 'Pick a time that works';
-        return `<a href="${hrefSafe}">${anchorText}</a>`;
-      });
-      html = updatedLines.join('<br>');
+      const phrase = 'grab a time from my calendar';
+      const canonicalPattern = `${phrase} that works for you: ${escapedLinkInBody}`;
+      if (html.includes(canonicalPattern)) {
+        html = html.replace(
+          canonicalPattern,
+          `<a href="${hrefSafe}">${phrase}</a> that works for you.`
+        );
+      } else {
+        // Fallback: line-based replace. Anchor text = prose preceding URL
+        // on its line; defaults to the phrase if line is just a bare URL.
+        const lines = html.split('<br>');
+        const updatedLines = lines.map(line => {
+          if (!line.includes(escapedLinkInBody)) return line;
+          const before = line.replace(escapedLinkInBody, '').trim().replace(/[:?]$/, '').trim();
+          const anchorText = before || phrase;
+          return `<a href="${hrefSafe}">${anchorText}</a>`;
+        });
+        html = updatedLines.join('<br>');
+      }
     }
     return `<div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1a1a1a;">${html}</div>`;
   };
