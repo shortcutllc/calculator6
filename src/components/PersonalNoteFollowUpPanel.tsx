@@ -62,9 +62,19 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
   const [serviceInput, setServiceInput] = useState('');
   const [painPointInput, setPainPointInput] = useState('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  // Manual edits to the body persist across caveat/sender changes — but
+  // there's a "Reset to suggested" button that drops them. The flag
+  // tracks whether the user has typed in the body textarea.
+  const [bodyEdits, setBodyEdits] = useState<string | null>(null);
 
-  // Re-suggest when the lead changes (different notes).
-  useEffect(() => { setSelectedCaveatId(suggestCaveatForNotes(lead.notes)); }, [lead.id, lead.notes]);
+  // Re-suggest when the lead changes (different notes), and clear any
+  // body edits — those are per-lead and shouldn't carry across.
+  useEffect(() => {
+    setSelectedCaveatId(suggestCaveatForNotes(lead.notes));
+    setBodyEdits(null);
+    setServiceInput('');
+    setPainPointInput('');
+  }, [lead.id, lead.notes]);
 
   const suggestedCaveatId = useMemo(() => suggestCaveatForNotes(lead.notes), [lead.notes]);
   const currentCaveat = PERSONAL_NOTE_CAVEATS.find(c => c.id === selectedCaveatId)!;
@@ -85,11 +95,38 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
     calendarLine: calendarLineForSender(senderName),
   }), [lead.name, lead.company, senderName, serviceInput, painPointInput, currentCaveat]);
 
-  const filledBody = useMemo(() => fillTemplate(PERSONAL_NOTE_FOLLOWUP_EMAIL.body, vars), [vars]);
+  const suggestedBody = useMemo(() => fillTemplate(PERSONAL_NOTE_FOLLOWUP_EMAIL.body, vars), [vars]);
+  const filledBody = bodyEdits ?? suggestedBody;
   const filledSubject = useMemo(
     () => fillTemplate(PERSONAL_NOTE_SUBJECT_LINES[subjectIdx], vars),
     [subjectIdx, vars]
   );
+
+  /**
+   * Build an HTML version of the body with the calendar link as a real
+   * `<a href>`. Used for the Copy-as-HTML button so the email pastes into
+   * Gmail compose with the calendar URL hyperlinked behind anchor text.
+   */
+  const buildHtmlBody = (): string => {
+    const link = SENDER_TO_CALENDAR[senderName];
+    let html = filledBody
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+    if (link) {
+      // Replace "Grab a time that works for you: <url>" with a hyperlinked phrase.
+      // The URL has been HTML-escaped by the previous step (& → &amp;), undo for href.
+      const hrefSafe = link.replace(/&amp;/g, '&');
+      const escapedLinkInBody = link.replace(/&/g, '&amp;');
+      const phrase = 'Grab a time that works for you';
+      html = html.replace(
+        `${phrase}: ${escapedLinkInBody}`,
+        `<a href="${hrefSafe}">${phrase}</a>`
+      );
+    }
+    return `<div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1a1a1a;">${html}</div>`;
+  };
 
   const calendarLink = SENDER_TO_CALENDAR[senderName];
   const recipientEmail = lead.email && !lead.email.includes('@no-email.placeholder')
@@ -102,6 +139,34 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 1500);
     } catch (e) { console.error('Copy failed:', e); }
+  };
+
+  /**
+   * Copy the body in BOTH plain-text and rich HTML formats. When pasted
+   * into Gmail compose, the HTML wins and the calendar URL renders as
+   * "Grab a time that works for you" anchor text. Falls back to plain
+   * text-only on browsers that don't support the rich Clipboard API.
+   */
+  const copyAsHtml = async () => {
+    try {
+      const html = buildHtmlBody();
+      const plain = filledBody;
+      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([plain], { type: 'text/plain' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plain);
+      }
+      setCopiedField('html');
+      setTimeout(() => setCopiedField(null), 1500);
+    } catch (e) {
+      console.error('Rich copy failed, falling back to plain:', e);
+      copy(filledBody, 'html');
+    }
   };
 
   const openInEmailClient = () => {
@@ -230,25 +295,47 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
         </div>
       )}
 
-      {/* Body preview */}
+      {/* Body — editable so the teammate can weave specifics from the booth
+          notes (above) into the email beyond what the caveat covers. The
+          notes are the raw material; the caveat is just a starting frame. */}
       <div className="space-y-1">
-        <label className="text-xs text-gray-500 font-medium">Body</label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-gray-500 font-medium">Body — edit freely to incorporate specifics from the conversation</label>
+          {bodyEdits !== null && (
+            <button
+              onClick={() => setBodyEdits(null)}
+              className="text-[11px] text-gray-500 hover:text-gray-700 underline"
+              title="Discard edits and restore the auto-composed body"
+            >
+              Reset to suggested
+            </button>
+          )}
+        </div>
         <textarea
           value={filledBody}
-          readOnly
+          onChange={e => setBodyEdits(e.target.value)}
           rows={14}
-          className="w-full text-xs font-mono border border-gray-200 rounded px-3 py-2 bg-gray-50 leading-relaxed resize-y"
+          className="w-full text-xs font-mono border border-gray-200 rounded px-3 py-2 bg-white leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-300"
         />
       </div>
 
       {/* Action buttons */}
       <div className="flex items-center gap-2 flex-wrap pt-1">
         <button
+          onClick={copyAsHtml}
+          disabled={missingRequired}
+          className="px-3 py-1.5 text-sm rounded font-medium inline-flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Copy with the calendar URL hyperlinked behind 'Grab a time that works for you'. Paste straight into Gmail compose."
+        >
+          {copiedField === 'html' ? <><Check size={14} /> Copied (rich)</> : <><Copy size={14} /> Copy for Gmail</>}
+        </button>
+        <button
           onClick={() => copy(filledBody, 'body')}
           disabled={missingRequired}
           className="px-3 py-1.5 text-sm rounded font-medium inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Copy as plain text — calendar URL stays as a raw link"
         >
-          {copiedField === 'body' ? <><Check size={14} /> Copied body</> : <><Copy size={14} /> Copy body</>}
+          {copiedField === 'body' ? <><Check size={14} /> Copied plain</> : <><Copy size={14} /> Copy plain</>}
         </button>
         <button
           onClick={openInEmailClient}
@@ -273,6 +360,10 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
             to enable
           </span>
         )}
+      </div>
+
+      <div className="text-[11px] text-gray-500 pt-1 leading-relaxed">
+        <strong>Recommended flow:</strong> Read the booth notes above. Edit the body to weave in something specific you actually talked about. Then "Copy for Gmail" → paste into Gmail compose → send. Hit "Mark sent" here so we log it.
       </div>
     </div>
   );

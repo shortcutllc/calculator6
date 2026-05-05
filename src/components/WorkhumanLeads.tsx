@@ -32,16 +32,7 @@ import { calculateWorkhumanLeadScore } from '../utils/workhumanLeadScoring';
 import { WorkhumanLeadCSVRow } from '../types/workhumanLead';
 import { useAuth } from '../contexts/AuthContext';
 
-/**
- * "Personal" / manual notes are tagged `[stamp · Name]` by the Add Note
- * button (CRM and booth). Auto-stubs from booth-signup imports and
- * landing-page bookings have no author tag, so the regex cleanly
- * separates real comments from system-generated notes.
- */
-const MANUAL_NOTE_RE = /\[[^\]]+·\s*[A-Za-z]+\]/;
-function hasManualNote(notes: string | null | undefined): boolean {
-  return !!notes && MANUAL_NOTE_RE.test(notes);
-}
+import { hasManualNote, MANUAL_NOTE_RE } from '../utils/notes';
 
 // Auth email → assignee name (mirrors mapping in WorkhumanMessagingPanel)
 const EMAIL_TO_ASSIGNEE: Record<string, AssigneeName> = {
@@ -529,6 +520,14 @@ const WorkhumanLeads: React.FC = () => {
             >
               <Zap size={16} />
               Rapid Outreach
+            </Link>
+            <Link
+              to="/workhuman-leads/personal-notes"
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+              title="Hand-written post-event follow-ups to leads with a real booth conversation"
+            >
+              <StickyNote size={16} />
+              Personal-Note Outreach
             </Link>
             <Link
               to="/workhuman-leads/booth"

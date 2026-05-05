@@ -65,6 +65,7 @@ const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesi
 const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
 const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
 const WorkhumanOutreachQueue = lazy(() => import('./components/WorkhumanOutreachQueue'));
+const WorkhumanPersonalNoteQueue = lazy(() => import('./components/WorkhumanPersonalNoteQueue'));
 const WorkhumanBooth = lazy(() => import('./components/WorkhumanBooth'));
 const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
 const SurveyManager = lazy(() => import('./components/SurveyManager'));
@@ -487,6 +488,21 @@ function App() {
                       </div>
                     }>
                       <WorkhumanOutreachQueue />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              {/* Workhuman Personal-Note Outreach queue — post-event, hand-written follow-ups */}
+              <Route
+                path="/workhuman-leads/personal-notes"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <WorkhumanPersonalNoteQueue />
                     </Suspense>
                   </PrivateRoute>
                 }
