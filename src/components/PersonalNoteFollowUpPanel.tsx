@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Copy, Check, Mail, Send, Sparkles, StickyNote } from 'lucide-react';
+import { Copy, Check, Mail, Send, Sparkles, StickyNote, Loader2, RefreshCw } from 'lucide-react';
 import { WorkhumanLead } from '../types/workhumanLead';
 import {
   PERSONAL_NOTE_FOLLOWUP_EMAIL,
@@ -67,33 +67,83 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
   // tracks whether the user has typed in the body textarea.
   const [bodyEdits, setBodyEdits] = useState<string | null>(null);
 
+  // Live-LLM AI-generated opener. When set, becomes a selectable option in
+  // the caveat dropdown (top of the list). Cleared on lead change.
+  const [aiCaveat, setAiCaveat] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const AI_CAVEAT_ID = '__ai_generated__';
+
   // Re-suggest when the lead changes (different notes), and clear any
-  // body edits — those are per-lead and shouldn't carry across.
+  // body edits + AI cache — those are per-lead and shouldn't carry across.
   useEffect(() => {
     setSelectedCaveatId(suggestCaveatForNotes(lead.notes));
     setBodyEdits(null);
     setServiceInput('');
     setPainPointInput('');
+    setAiCaveat(null);
+    setAiError(null);
   }, [lead.id, lead.notes]);
 
-  const suggestedCaveatId = useMemo(() => suggestCaveatForNotes(lead.notes), [lead.notes]);
-  const currentCaveat = PERSONAL_NOTE_CAVEATS.find(c => c.id === selectedCaveatId)!;
+  /** Hit the Netlify function and use the result as the active caveat. */
+  const generateAi = async () => {
+    if (!lead.notes) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await fetch('/.netlify/functions/generate-personal-caveat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notes: lead.notes,
+          firstName: cleanFirstName(lead.name),
+          company: lead.company,
+          senderName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || data?.error || 'AI generation failed');
+      const caveat = (data.caveat || '').trim();
+      if (!caveat) throw new Error('Empty AI response');
+      setAiCaveat(caveat);
+      setSelectedCaveatId(AI_CAVEAT_ID);
+      // Drop any prior body edits so the body recomposes with the new AI caveat.
+      setBodyEdits(null);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setAiError(msg);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
-  const vars = useMemo(() => ({
-    firstName: cleanFirstName(lead.name),
-    company: lead.company || 'your team',
-    senderName,
-    service: serviceInput.trim(),
-    painPoint: painPointInput.trim(),
-    personalCaveat: fillTemplate(currentCaveat.body, {
+  const suggestedCaveatId = useMemo(() => suggestCaveatForNotes(lead.notes), [lead.notes]);
+  const isAiSelected = selectedCaveatId === AI_CAVEAT_ID;
+  const currentCaveat = isAiSelected
+    ? null
+    : PERSONAL_NOTE_CAVEATS.find(c => c.id === selectedCaveatId) || PERSONAL_NOTE_CAVEATS[0];
+
+  const vars = useMemo(() => {
+    const baseVars = {
       firstName: cleanFirstName(lead.name),
       company: lead.company || 'your team',
       senderName,
       service: serviceInput.trim(),
       painPoint: painPointInput.trim(),
-    }),
-    calendarLine: calendarLineForSender(senderName),
-  }), [lead.name, lead.company, senderName, serviceInput, painPointInput, currentCaveat]);
+    };
+    // The active caveat is either the AI-generated text (used verbatim — no
+    // template substitution since the AI was already given the lead context)
+    // OR a templated caveat with `{service}` / `{pain_point}` filled in.
+    const personalCaveat = isAiSelected && aiCaveat
+      ? aiCaveat
+      : fillTemplate(currentCaveat?.body || '', baseVars);
+    return {
+      ...baseVars,
+      personalCaveat,
+      calendarLine: calendarLineForSender(senderName),
+    };
+  }, [lead.name, lead.company, senderName, serviceInput, painPointInput, currentCaveat, isAiSelected, aiCaveat]);
 
   const suggestedBody = useMemo(() => fillTemplate(PERSONAL_NOTE_FOLLOWUP_EMAIL.body, vars), [vars]);
   const filledBody = bodyEdits ?? suggestedBody;
@@ -185,9 +235,10 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
     });
   };
 
-  // Variable-input visibility depends on the chosen caveat
-  const needsService = !!currentCaveat.requiresService;
-  const needsPainPoint = !!currentCaveat.requiresPainPoint;
+  // Variable-input visibility depends on the chosen caveat. AI-generated
+  // openers don't have placeholder vars (the model already has the notes).
+  const needsService = !isAiSelected && !!currentCaveat?.requiresService;
+  const needsPainPoint = !isAiSelected && !!currentCaveat?.requiresPainPoint;
   // Greys out actions if a required input is empty
   const missingRequired = (needsService && !serviceInput.trim()) || (needsPainPoint && !painPointInput.trim());
 
@@ -248,25 +299,48 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
         </div>
       </div>
 
-      {/* Caveat scenario picker */}
+      {/* Caveat scenario picker — AI-generated opener (when present)
+          appears at the top, then the 8 templated scenarios. */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <label className="text-xs text-gray-500 font-medium">Conversation scenario</label>
-          {selectedCaveatId === suggestedCaveatId && (
+          <label className="text-xs text-gray-500 font-medium">Opener</label>
+          {isAiSelected ? (
+            <span className="text-[11px] text-purple-700 inline-flex items-center gap-0.5" title="Generated live from the booth notes">
+              <Sparkles size={10} /> AI-generated
+            </span>
+          ) : selectedCaveatId === suggestedCaveatId && (
             <span className="text-[11px] text-purple-700 inline-flex items-center gap-0.5" title="Suggested based on keywords in the notes">
               <Sparkles size={10} /> auto-suggested
             </span>
           )}
         </div>
-        <select
-          value={selectedCaveatId}
-          onChange={e => setSelectedCaveatId(e.target.value)}
-          className="w-full text-sm border border-gray-200 rounded px-2 py-1.5 bg-white"
-        >
-          {PERSONAL_NOTE_CAVEATS.map(c => (
-            <option key={c.id} value={c.id}>{c.label}</option>
-          ))}
-        </select>
+        <div className="flex gap-2">
+          <select
+            value={selectedCaveatId}
+            onChange={e => { setSelectedCaveatId(e.target.value); setBodyEdits(null); }}
+            className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5 bg-white"
+          >
+            {aiCaveat && (
+              <option value={AI_CAVEAT_ID}>✨ AI-generated opener (tailored to your notes)</option>
+            )}
+            {PERSONAL_NOTE_CAVEATS.map(c => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={generateAi}
+            disabled={aiLoading || !lead.notes}
+            className="px-3 py-1.5 text-sm rounded font-medium inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            title="Generate a personalized opener live from the booth notes via Claude"
+          >
+            {aiLoading ? <><Loader2 size={14} className="animate-spin" /> Generating</>
+              : aiCaveat ? <><RefreshCw size={14} /> Regenerate</>
+              : <><Sparkles size={14} /> Generate AI</>}
+          </button>
+        </div>
+        {aiError && (
+          <div className="text-[11px] text-red-600 mt-1">⚠ {aiError}</div>
+        )}
       </div>
 
       {/* Conditional variable inputs */}
