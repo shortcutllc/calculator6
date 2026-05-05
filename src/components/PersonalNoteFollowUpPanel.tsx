@@ -232,15 +232,22 @@ export function PersonalNoteFollowUpPanel({
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
     if (link) {
-      // Replace "Grab a time that works for you: <url>" with a hyperlinked phrase.
-      // The URL has been HTML-escaped by the previous step (& → &amp;), undo for href.
+      // Find the line containing the calendar URL and replace the WHOLE
+      // line with one hyperlinked anchor. Anchor text = whatever prose
+      // preceded the URL on that line (e.g. "Does a time work for you to
+      // connect this week or next?"). Falls back to "Pick a time that
+      // works" if the line is just a bare URL. Robust to CTA wording
+      // changes — never hardcodes the question text.
       const hrefSafe = link.replace(/&amp;/g, '&');
       const escapedLinkInBody = link.replace(/&/g, '&amp;');
-      const phrase = 'Grab a time that works for you';
-      html = html.replace(
-        `${phrase}: ${escapedLinkInBody}`,
-        `<a href="${hrefSafe}">${phrase}</a>`
-      );
+      const lines = html.split('<br>');
+      const updatedLines = lines.map(line => {
+        if (!line.includes(escapedLinkInBody)) return line;
+        const before = line.replace(escapedLinkInBody, '').trim();
+        const anchorText = before || 'Pick a time that works';
+        return `<a href="${hrefSafe}">${anchorText}</a>`;
+      });
+      html = updatedLines.join('<br>');
     }
     return `<div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1a1a1a;">${html}</div>`;
   };
