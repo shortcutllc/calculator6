@@ -514,20 +514,12 @@ const WorkhumanLeads: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              to="/workhuman-leads/outreach"
+              to="/workhuman-leads/personal-notes"
               className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
-              title="Process your assigned Tier 1A leads one at a time"
+              title="One-at-a-time hand-written follow-ups to leads with a real booth conversation"
             >
               <Zap size={16} />
               Rapid Outreach
-            </Link>
-            <Link
-              to="/workhuman-leads/personal-notes"
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
-              title="Hand-written post-event follow-ups to leads with a real booth conversation"
-            >
-              <StickyNote size={16} />
-              Personal-Note Outreach
             </Link>
             <Link
               to="/workhuman-leads/booth"
