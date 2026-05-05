@@ -326,11 +326,21 @@ const WorkhumanBooth: React.FC = () => {
     const leadIds = Array.from(new Set((data || []).map(s => s.matched_lead_id).filter(Boolean)));
     let leadMap: Record<string, SignupRow['_lead']> = {};
     if (leadIds.length) {
-      const { data: leads } = await supabase
-        .from('workhuman_leads')
-        .select('id, name, email, company, title, assigned_to, tier, tier_1a, tier_1b, source, linkedin_url, phone, mobile_phone, personal_email, signup_phone, linked_main_lead_id, notes')
-        .in('id', leadIds);
-      leadMap = Object.fromEntries((leads || []).map(l => [l.id, l as unknown as NonNullable<SignupRow['_lead']>]));
+      // Chunk the .in() lookup. With 600+ unique leadIds the URL crosses
+      // ~24KB and silently fails with a HeadersOverflowError on the client
+      // (which manifested as every signup showing as "no lead match"). 100
+      // ids per batch keeps each URL under 4KB.
+      const BATCH = 100;
+      const all: NonNullable<SignupRow['_lead']>[] = [];
+      for (let i = 0; i < leadIds.length; i += BATCH) {
+        const chunk = leadIds.slice(i, i + BATCH);
+        const { data: leads } = await supabase
+          .from('workhuman_leads')
+          .select('id, name, email, company, title, assigned_to, tier, tier_1a, tier_1b, source, linkedin_url, phone, mobile_phone, personal_email, signup_phone, linked_main_lead_id, notes')
+          .in('id', chunk);
+        if (leads) all.push(...(leads as unknown as NonNullable<SignupRow['_lead']>[]));
+      }
+      leadMap = Object.fromEntries(all.map(l => [l.id, l]));
     }
     const hydrated = (data || []).map(s => ({
       ...s,
