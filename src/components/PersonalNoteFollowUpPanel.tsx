@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Copy, Check, Mail, Send, Sparkles, StickyNote, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Copy, Check, Mail, Send, Sparkles, StickyNote, Loader2, RefreshCw, CheckCircle2, Linkedin, ExternalLink } from 'lucide-react';
 import { WorkhumanLead } from '../types/workhumanLead';
 import {
   PERSONAL_NOTE_FOLLOWUP_EMAIL,
   PERSONAL_NOTE_CAVEATS,
   PERSONAL_NOTE_SUBJECT_LINES,
+  POST_EVENT_LINKEDIN_CONNECT,
   SENDER_TO_CALENDAR,
   SENDER_NAMES,
   SenderName,
@@ -103,6 +104,7 @@ export function PersonalNoteFollowUpPanel({
   // outreach log is the source of truth on lead-change).
   const [sentAt, setSentAt] = useState<string | null>(null);
   const [sendingMark, setSendingMark] = useState(false);
+  const [liSentAt, setLiSentAt] = useState<string | null>(null);
 
   // Re-suggest when the lead changes (different notes), and clear any
   // body edits + AI cache — those are per-lead and shouldn't carry across.
@@ -114,13 +116,18 @@ export function PersonalNoteFollowUpPanel({
     setAiCaveat(null);
     setAiError(null);
     setSentAt(null);
-    // Check the outreach log to see if this template was already sent
+    setLiSentAt(null);
+    // Check the outreach log to see if either template was already sent
     // for this lead in a prior session — if so, surface that state.
     fetchOutreachLogForLead(lead.id).then(log => {
-      const personalSend = log.find(entry =>
+      const emailSend = log.find(entry =>
         entry.template_id?.startsWith(PERSONAL_NOTE_FOLLOWUP_EMAIL.id)
       );
-      if (personalSend) setSentAt(personalSend.sent_at);
+      if (emailSend) setSentAt(emailSend.sent_at);
+      const liSend = log.find(entry =>
+        entry.template_id === POST_EVENT_LINKEDIN_CONNECT.id
+      );
+      if (liSend) setLiSentAt(liSend.sent_at);
     }).catch(() => { /* non-fatal */ });
     if (onSentStateChange) onSentStateChange(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -232,6 +239,37 @@ export function PersonalNoteFollowUpPanel({
     } catch (e) { console.error('Copy failed:', e); }
   };
 
+  // LinkedIn connect note + URL — composed once per render, not memoized
+  // because it's a fast string concat.
+  const liNote = fillTemplate(POST_EVENT_LINKEDIN_CONNECT.body, vars);
+  const liProfileUrl = lead.linkedin_url
+    ? (lead.linkedin_url.startsWith('http') ? lead.linkedin_url : `https://${lead.linkedin_url}`)
+    : (lead.name
+      ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(lead.name + (lead.company ? ' ' + lead.company : ''))}`
+      : null);
+
+  const sendLinkedInConnect = async () => {
+    if (!liProfileUrl) return;
+    // Copy the connection note to clipboard, then open the profile.
+    // LinkedIn's connection-request dialog doesn't accept a pre-filled
+    // note via URL — the teammate pastes it after clicking "Add a note".
+    try { await navigator.clipboard.writeText(liNote); } catch (_) { /* non-fatal */ }
+    setCopiedField('li_note');
+    setTimeout(() => setCopiedField(null), 1500);
+    window.open(liProfileUrl, '_blank', 'noopener');
+    // Optimistically log it. If they didn't actually send the LI invite
+    // there's no harm — they can re-click and we'll log a duplicate
+    // entry, which is fine for now.
+    const ok = await logOutreach({
+      leadId: lead.id,
+      channel: 'linkedin_connect',
+      templateId: POST_EVENT_LINKEDIN_CONNECT.id,
+      senderName,
+      messagePreview: liNote.substring(0, 500),
+    });
+    if (ok) setLiSentAt(new Date().toISOString());
+  };
+
   /**
    * Copy the body in BOTH plain-text and rich HTML formats. When pasted
    * into Gmail compose, the HTML wins and the calendar URL renders as
@@ -323,6 +361,37 @@ export function PersonalNoteFollowUpPanel({
           <div className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{lead.notes}</div>
         </div>
       )}
+
+      {/* LinkedIn quick-connect — copies the connection note to clipboard
+          and opens the lead's profile. Falls back to a name+company
+          search URL when linkedin_url is missing. */}
+      <div className="bg-blue-50 border border-blue-200 rounded p-2.5 flex items-center gap-2 flex-wrap">
+        <Linkedin size={16} className="text-[#0a66c2] shrink-0" />
+        <div className="flex-1 min-w-[120px]">
+          <div className="text-xs font-medium text-gray-900">LinkedIn connection request</div>
+          <div className="text-[11px] text-gray-600 truncate" title={liNote}>{liNote}</div>
+        </div>
+        <button
+          onClick={() => copy(liNote, 'li_note_only')}
+          className="text-[11px] text-gray-700 hover:text-gray-900 inline-flex items-center gap-1 px-2 py-1 border border-gray-200 rounded hover:bg-white"
+          title="Copy just the connection note"
+        >
+          {copiedField === 'li_note_only' ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy note</>}
+        </button>
+        <button
+          onClick={sendLinkedInConnect}
+          disabled={!liProfileUrl}
+          className={`text-xs font-medium inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-white whitespace-nowrap ${liSentAt ? 'bg-green-600 hover:bg-green-700' : 'bg-[#0a66c2] hover:bg-[#0855a3]'} disabled:opacity-50 disabled:cursor-not-allowed`}
+          title={liProfileUrl
+            ? (lead.linkedin_url
+              ? 'Copy the note and open this lead\'s LinkedIn profile in a new tab'
+              : 'No LinkedIn URL on file — opens a name+company search instead')
+            : 'No LinkedIn URL or name to search by'}
+        >
+          {liSentAt ? <><CheckCircle2 size={12} /> Sent {new Date(liSentAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>
+            : <><ExternalLink size={12} /> {lead.linkedin_url ? 'Connect on LinkedIn' : 'Search LinkedIn'}</>}
+        </button>
+      </div>
 
       {/* Subject line */}
       <div className="space-y-1">

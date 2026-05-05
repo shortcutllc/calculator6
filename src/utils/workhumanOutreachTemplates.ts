@@ -257,6 +257,21 @@ export function fillTemplate(body: string, vars: TemplateVars): string {
 // `{pain_point}` only when the chosen caveat needs them.
 // =====================================================================
 
+/**
+ * Short LinkedIn connection note for post-event personal-note leads.
+ * Different from the pre-event LINKEDIN_CONNECT (which said "next week").
+ * Stays under LinkedIn's ~300 char cap. Sent via copy-paste into the
+ * connection-request dialog after opening the lead's LinkedIn profile.
+ */
+export const POST_EVENT_LINKEDIN_CONNECT: Template = {
+  id: 'post_event_linkedin_connect',
+  channel: 'linkedin_connect',
+  label: 'Post-Event LinkedIn Connect Note',
+  description: 'Short connection-request note for leads we met at Workhuman.',
+  charLimit: 300,
+  body: `Hey {first_name}! {sender_name} from Shortcut here. Really enjoyed catching up at Workhuman. Would love to stay in touch as you think about wellness at {company}.`,
+};
+
 export const PERSONAL_NOTE_SUBJECT_LINES = [
   'Great meeting you at Workhuman, {first_name}',
   'Enjoyed our chat at Workhuman, {first_name}',
