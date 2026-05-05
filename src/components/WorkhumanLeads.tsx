@@ -24,6 +24,7 @@ import {
   fetchOutreachChannelsByLead,
 } from '../services/WorkhumanLeadService';
 import { WorkhumanMessagingPanel } from './WorkhumanMessagingPanel';
+import { PersonalNoteFollowUpPanel } from './PersonalNoteFollowUpPanel';
 import { WorkhumanAddLeadModal } from './WorkhumanAddLeadModal';
 import { WorkhumanBookBoothModal } from './WorkhumanBookBoothModal';
 import { WorkhumanEditLeadModal } from './WorkhumanEditLeadModal';
@@ -1515,6 +1516,16 @@ function ExpandedLeadRow({ lead, onVipSlot, onNotesChange, onDelete, onAssignmen
           </div>
         </div>
       </div>
+
+      {/* Personal-note follow-up panel — only renders when the lead has a
+          manual personal note from a real booth conversation. Sits above
+          the standard messaging panel so it's the first thing the team
+          sees on these higher-touch leads. */}
+      {hasManualNote(lead.notes) && (
+        <div className="md:col-span-3 pt-2 border-t border-gray-200">
+          <PersonalNoteFollowUpPanel lead={lead} />
+        </div>
+      )}
 
       {/* Messaging panel */}
       <div className="md:col-span-3 pt-2 border-t border-gray-200">

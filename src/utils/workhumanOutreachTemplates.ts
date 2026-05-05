@@ -203,17 +203,6 @@ The lounge is open tomorrow and Wednesday in the Gratitude Garden. Stop by or re
 Shortcut | getshortcut.co`,
 };
 
-export const ALL_TEMPLATES: Template[] = [
-  WORKHUMAN_DM,
-  LINKEDIN_CONNECT,
-  LINKEDIN_DM_AFTER_ACCEPT,
-  DM_REPLY_FOLLOWUP_EMAIL,
-  COLD_EMAIL,
-  BOOKING_CONFIRMATION_A,
-  BOOKING_CONFIRMATION_B,
-  NO_SHOW_RECOVERY,
-];
-
 export interface TemplateVars {
   firstName: string;
   company: string;
@@ -224,6 +213,14 @@ export interface TemplateVars {
   day?: string;
   /** Time slot string for booking confirmations (e.g. "1:15 PM"). */
   time?: string;
+  /** Service name slotted into caveat #2 ("interest in {service}"). */
+  service?: string;
+  /** Pain point slotted into caveat #4 ("{pain_point} stayed with me"). */
+  painPoint?: string;
+  /** The chosen caveat paragraph for the personal-note master body. */
+  personalCaveat?: string;
+  /** Closing calendar line — varies by whether the sender has a Google Calendar appointment link. */
+  calendarLine?: string;
 }
 
 /**
@@ -242,7 +239,156 @@ export function fillTemplate(body: string, vars: TemplateVars): string {
     .replace(/\{company\}/g, vars.company || 'your team')
     .replace(/\{landing_page_url\}/g, url)
     .replace(/\{day\}/g, vars.day || '[day]')
-    .replace(/\{time\}/g, vars.time || '[time]');
+    .replace(/\{time\}/g, vars.time || '[time]')
+    .replace(/\{service\}/g, vars.service || '[service]')
+    .replace(/\{pain_point\}/g, vars.painPoint || '[pain point]')
+    .replace(/\{personal_caveat\}/g, vars.personalCaveat || '')
+    .replace(/\{calendar_line\}/g, vars.calendarLine || '');
+}
+
+// =====================================================================
+// Post-event personal-note follow-up
+//
+// Sent to leads that the team had a real booth conversation with — i.e.
+// `lead.notes` contains a manual `[stamp · Name]` note. Each lead gets
+// ONE master email body, with one of 8 caveat paragraphs slotted in
+// based on what the conversation was about. The teammate also picks
+// the subject line (3 rotation options) and fills `{service}` /
+// `{pain_point}` only when the chosen caveat needs them.
+// =====================================================================
+
+export const PERSONAL_NOTE_SUBJECT_LINES = [
+  'Great meeting you at Workhuman, {first_name}',
+  'Enjoyed our chat at Workhuman, {first_name}',
+  'Following up from the Gratitude Garden',
+];
+
+export const PERSONAL_NOTE_FOLLOWUP_EMAIL: EmailTemplate = {
+  id: 'personal_note_followup_email',
+  channel: 'email',
+  label: 'Personal Note Follow-Up',
+  description: 'For leads with a real booth conversation. Pick a caveat scenario; vars auto-fill where they can.',
+  subjectLines: PERSONAL_NOTE_SUBJECT_LINES,
+  body: `Hey {first_name},
+
+It was great meeting you at Workhuman last week. Really appreciated you taking the time to chat with us.
+
+{personal_caveat}
+
+I'd love to set up a quick call to talk through what bringing Shortcut to {company} could look like. As a thanks for connecting with us at Workhuman, we'd also love to offer you 10% off your first event.
+
+{calendar_line}
+
+Talk soon,
+{sender_name}
+Shortcut | getshortcut.co`,
+};
+
+/** A scenario the booth conversation matched, with the matching caveat copy. */
+export interface PersonalNoteCaveat {
+  id: string;
+  /** Shown in the dropdown — describes the booth-conversation scenario. */
+  label: string;
+  /** Caveat paragraph that gets slotted into the master email body. */
+  body: string;
+  /** True when the body has a `{service}` placeholder the teammate needs to fill. */
+  requiresService?: boolean;
+  /** True when the body has a `{pain_point}` placeholder the teammate needs to fill. */
+  requiresPainPoint?: boolean;
+  /** Lowercase substrings in `lead.notes` that suggest this caveat fits. */
+  triggerKeywords?: string[];
+}
+
+export const PERSONAL_NOTE_CAVEATS: PersonalNoteCaveat[] = [
+  {
+    id: 'limited_program',
+    label: '1. They have a wellness program but it\'s limited',
+    body: `What you shared about the wellness program at {company} resonated with me. Sounds like there's a real appetite for more and I think we could add a lot to what you've already built.`,
+    triggerKeywords: ['wellness program', 'limited program', 'small program', 'have a program', 'existing program'],
+  },
+  {
+    id: 'specific_service',
+    label: '2. They expressed interest in a specific service',
+    body: `You mentioned being interested in bringing {service} to your team and that stuck with me. That's exactly what we do best and I think it could be something special for {company}.`,
+    requiresService: true,
+    triggerKeywords: ['massage', 'headshot', 'facial', 'manicure', 'mindfulness', 'yoga', 'beauty', 'haircut', 'grooming'],
+  },
+  {
+    id: 'early_stage',
+    label: '3. They\'re early stage, just exploring wellness',
+    body: `Loved hearing that wellness is becoming more of a priority at {company} right now. Sounds like the timing is perfect to explore what that could actually look like in practice.`,
+    triggerKeywords: ['exploring', 'early stage', 'becoming a priority', 'looking into', 'starting to', 'just starting', 'new to wellness'],
+  },
+  {
+    id: 'pain_point',
+    label: '4. They had a specific pain point',
+    body: `What you shared about {pain_point} at {company} stayed with me after our conversation. We've helped a few teams work through exactly that and I think there's something meaningful we could do together.`,
+    requiresPainPoint: true,
+    triggerKeywords: ['burnout', 'stressed', 'overworked', 'turnover', 'morale', 'engagement issue', 'retention', 'rto', 'return to office'],
+  },
+  {
+    id: 'loved_massage',
+    label: '5. They loved the massage and said so',
+    body: `So glad you got to experience the lounge and that reaction you had says it all. Your team deserves that same feeling and I'd love to make it happen at {company}.`,
+    triggerKeywords: ['loved', 'amazing', 'great experience', 'best', 'favorite', 'incredible', 'so good', 'felt great'],
+  },
+  {
+    id: 'large_complex',
+    label: '6. Large company with complex buying process',
+    body: `Valued our conversation and getting to understand how {company} thinks about employee experience at scale. I have a few ideas about how we could work within your structure that I'd love to walk you through.`,
+    triggerKeywords: ['large team', 'thousand', 'global', 'enterprise', 'multiple offices', 'across the country', 'across the world'],
+  },
+  {
+    id: 'curious_noncommittal',
+    label: '7. Curious but noncommittal (default)',
+    body: `It was one of my favorite conversations from the whole conference. I'd love to pick up where we left off and show you what Shortcut could look like for the {company} team.`,
+    // Default — used when nothing else triggers.
+    triggerKeywords: [],
+  },
+  {
+    id: 'short_conversation',
+    label: '8. Short conversation, didn\'t get deep',
+    body: `Even though we only had a few minutes together I walked away wanting to learn more about {company} and share more about what we do. I'd love to carve out some proper time to explore if we'd be a good fit.`,
+    triggerKeywords: ['brief', 'quick chat', 'short conversation', 'didn\'t get deep', 'few minutes', 'short chat'],
+  },
+];
+
+/**
+ * Per-sender Google Calendar appointment link. Used to render the closing
+ * "Grab a time" line. If a sender isn't mapped, the panel falls back to
+ * "reply with a few times that work for you".
+ */
+export const SENDER_TO_CALENDAR: Partial<Record<SenderName, string>> = {
+  'Marc Levitan': 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ32LfkHBgKgbGBFPag5dHw7dU_WZzZdBYZQqU23-XmWnBIIujGNDbRMZ8zGYjf6RSF6duE93uTa',
+  'Jaimie Pritchard': 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0gH9NGyA_MUtu_TRlcGBu4ou78nEKPlygI6OJJrX9LFunmRPuD4OmxOvRQ_5HAoEhHcoYlZ29B',
+  'Will Newton': 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ32vKfzSRhuWGXuzgv0w3x21bOQnmWva5xVuPtCsMF3iq25Oh_vInOsmmHr13npkewS-GnsQRqu',
+  // Caren Skutch: pending — falls through to the reply-with-times fallback below.
+};
+
+/** Closing-line for the master body, varies by whether the sender has a calendar link. */
+export function calendarLineForSender(senderName: string | null | undefined): string {
+  const link = senderName ? SENDER_TO_CALENDAR[senderName as SenderName] : null;
+  return link
+    ? `Grab a time that works for you: ${link}`
+    : `Reply with a few times that work for you and I'll send a calendar invite.`;
+}
+
+/**
+ * Suggest the best caveat id given the lead's free-form notes. Pure keyword
+ * heuristic — no AI call. Returns the first caveat whose triggerKeywords
+ * appear (case-insensitive) anywhere in the notes; falls back to
+ * `curious_noncommittal` when nothing matches.
+ */
+export function suggestCaveatForNotes(notes: string | null | undefined): string {
+  const text = (notes || '').toLowerCase();
+  if (!text) return 'curious_noncommittal';
+  for (const c of PERSONAL_NOTE_CAVEATS) {
+    if (!c.triggerKeywords?.length) continue;
+    if (c.triggerKeywords.some(kw => text.includes(kw.toLowerCase()))) {
+      return c.id;
+    }
+  }
+  return 'curious_noncommittal';
 }
 
 /**
