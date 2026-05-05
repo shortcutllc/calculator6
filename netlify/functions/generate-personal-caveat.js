@@ -166,7 +166,7 @@ Notice the 3-paragraph rhythm: warm meeting-ack → specific context → meeting
 NOTES: "Anna Maria Miller, Bank of Princeton. Mentioned planning their end-of-year holiday party. Wants people to actually feel taken care of, not just fed. Chatted about her family in the area."
 TONE: warm
 SENDER: Will Newton
-CALENDAR ACTION: Grab a time that works for you: https://calendar.google.com/example/will
+CALENDAR ACTION: Does a time work for you to connect this week or next? https://calendar.google.com/example/will
 
 OUTPUT:
 Hey Anna,
@@ -177,7 +177,7 @@ The end-of-year party you mentioned has been on my mind. What you said about wan
 
 I'd love to set up a quick call to talk through what bringing Shortcut to The Bank of Princeton could look like. As a thanks for connecting at Workhuman, your first event with us is 10% off.
 
-Grab a time that works for you: https://calendar.google.com/example/will
+Does a time work for you to connect this week or next? https://calendar.google.com/example/will
 
 Talk soon,
 Will Newton
@@ -187,7 +187,7 @@ Shortcut | getshortcut.co
 NOTES: "Loved the massage. CHRO at Boeing, runs wellness for a 150K person org. Asked about scaling beyond US."
 TONE: enthusiastic
 SENDER: Caren Skutch
-CALENDAR ACTION: Reply with a few times that work for you and I'll send a calendar invite.
+CALENDAR ACTION: Does a time work for you to connect this week or next? Reply with a few options and I'll send a calendar invite.
 
 OUTPUT:
 Hey [first_name],
@@ -198,7 +198,7 @@ The scaling question stuck with me. Running wellness for 150K people across regi
 
 I'd love to grab 15 minutes to talk through what bringing Shortcut to Boeing could look like at that scale. As a thanks for connecting at Workhuman, your first event with us is 10% off.
 
-Reply with a few times that work for you and I'll send a calendar invite.
+Does a time work for you to connect this week or next? Reply with a few options and I'll send a calendar invite.
 
 Talk soon,
 Caren Skutch
@@ -208,7 +208,7 @@ Shortcut | getshortcut.co
 NOTES: "Quick stop at the booth. Has 3 offices in NYC, Boston, SF. Currently doing nothing structured for wellness. Ops Director."
 TONE: direct
 SENDER: Marc Levitan
-CALENDAR ACTION: Grab a time that works for you: https://calendar.google.com/example/marc
+CALENDAR ACTION: Does a time work for you to connect this week or next? https://calendar.google.com/example/marc
 
 OUTPUT:
 Hey [first_name],
@@ -219,7 +219,7 @@ Three offices across NYC, Boston, and SF is the size where ad-hoc wellness gets 
 
 Want 15 minutes to talk through what bringing Shortcut to your team could look like? As a thanks for connecting at Workhuman, your first event with us is 10% off.
 
-Grab a time that works for you: https://calendar.google.com/example/marc
+Does a time work for you to connect this week or next? https://calendar.google.com/example/marc
 
 Talk soon,
 Marc Levitan
@@ -229,7 +229,7 @@ Shortcut | getshortcut.co
 NOTES: "Sarah Chen, VP People at Compass Coffee. 8 cafes across DC. Mentioned her team is mostly Gen Z baristas, hard to retain. Curious about chair massage during peak summer rush."
 TONE: friendly
 SENDER: Jaimie Pritchard
-CALENDAR ACTION: Grab a time that works for you: https://calendar.google.com/example/jaimie
+CALENDAR ACTION: Does a time work for you to connect this week or next? https://calendar.google.com/example/jaimie
 
 OUTPUT:
 Hey Sarah,
@@ -240,7 +240,7 @@ The retention angle for your Gen Z barista team stuck with me, especially the ch
 
 Would love to set up a quick call to talk through what bringing Shortcut to Compass could look like. As a thanks for connecting at Workhuman, your first event with us is 10% off.
 
-Grab a time that works for you: https://calendar.google.com/example/jaimie
+Does a time work for you to connect this week or next? https://calendar.google.com/example/jaimie
 
 Talk soon,
 Jaimie Pritchard
@@ -310,8 +310,8 @@ export const handler = async (event) => {
   const safeTone = VALID_TONES.includes(tone) ? tone : 'warm';
 
   const calendarAction = calendarLink
-    ? `Grab a time that works for you: ${calendarLink}`
-    : `Reply with a few times that work for you and I'll send a calendar invite.`;
+    ? `Does a time work for you to connect this week or next? ${calendarLink}`
+    : `Does a time work for you to connect this week or next? Reply with a few options and I'll send a calendar invite.`;
   const offer = discountLine || 'As a thanks for connecting at Workhuman, your first event with us is 10% off.';
 
   if (!process.env.ANTHROPIC_API_KEY) {
