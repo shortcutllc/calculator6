@@ -9,6 +9,9 @@ import { fetchLeads } from '../services/WorkhumanLeadService';
 import { useAuth } from '../contexts/AuthContext';
 import { PersonalNoteFollowUpPanel } from './PersonalNoteFollowUpPanel';
 import { hasManualNote } from '../utils/notes';
+import { fetchOutreachLogForLead } from '../services/WorkhumanLeadService';
+import { PERSONAL_NOTE_FOLLOWUP_EMAIL } from '../utils/workhumanOutreachTemplates';
+import { CheckCircle2 } from 'lucide-react';
 
 const EMAIL_TO_SENDER: Record<string, SenderName> = {
   'will@getshortcut.co': 'Will Newton',
@@ -83,6 +86,31 @@ const WorkhumanPersonalNoteQueue: React.FC = () => {
   }, [leads.length, index]);
 
   const current = leads[index] || null;
+
+  // Tracks which leads have a logged personal-note send. Populated as the
+  // teammate scrolls through the queue (lazy per-lead lookup) plus
+  // optimistic updates from the panel via `onSentStateChange`.
+  const [sentLeadIds, setSentLeadIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!current) return;
+    let cancelled = false;
+    fetchOutreachLogForLead(current.id).then(log => {
+      if (cancelled) return;
+      const personalSend = log.find(e => e.template_id?.startsWith(PERSONAL_NOTE_FOLLOWUP_EMAIL.id));
+      if (personalSend) {
+        setSentLeadIds(prev => {
+          if (prev.has(current.id)) return prev;
+          const next = new Set(prev);
+          next.add(current.id);
+          return next;
+        });
+      }
+    }).catch(() => { /* non-fatal */ });
+    return () => { cancelled = true; };
+  }, [current]);
+
+  const isCurrentSent = current ? sentLeadIds.has(current.id) : false;
 
   const goPrev = () => setIndex(i => Math.max(0, i - 1));
   const goNext = () => setIndex(i => Math.min(leads.length - 1, i + 1));
@@ -181,10 +209,17 @@ const WorkhumanPersonalNoteQueue: React.FC = () => {
           <>
             {/* Lead identity card */}
             {current && (
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-3">
+              <div className={`bg-white rounded-lg border p-4 mb-3 ${isCurrentSent ? 'border-green-300' : 'border-gray-200'}`}>
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
-                    <div className="font-semibold text-gray-900 text-base">{current.name}</div>
+                    <div className="font-semibold text-gray-900 text-base inline-flex items-center gap-2">
+                      {current.name}
+                      {isCurrentSent && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">
+                          <CheckCircle2 size={11} /> Personal note sent
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-gray-600 mt-0.5">
                       {[current.title, current.company].filter(Boolean).join(' · ') || '—'}
                     </div>
@@ -208,8 +243,21 @@ const WorkhumanPersonalNoteQueue: React.FC = () => {
               </div>
             )}
 
-            {/* Personal-note follow-up panel — same one used in the lead profile expanded view */}
-            {current && <PersonalNoteFollowUpPanel lead={current} />}
+            {/* Personal-note follow-up panel — same one used in the lead profile expanded view.
+                onSentStateChange flips the card-level "Personal note sent" badge above when
+                the teammate hits Mark Sent in the panel — no page refresh needed. */}
+            {current && (
+              <PersonalNoteFollowUpPanel
+                lead={current}
+                onSentStateChange={(sent) => {
+                  setSentLeadIds(prev => {
+                    const next = new Set(prev);
+                    if (sent) next.add(current.id); else next.delete(current.id);
+                    return next;
+                  });
+                }}
+              />
+            )}
 
             {/* Navigation footer */}
             <div className="bg-white rounded-lg border border-gray-200 p-3 mt-3 flex items-center justify-between">

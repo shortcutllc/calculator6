@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Copy, Check, Mail, Send, Sparkles, StickyNote, Loader2, RefreshCw } from 'lucide-react';
+import { Copy, Check, Mail, Send, Sparkles, StickyNote, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { WorkhumanLead } from '../types/workhumanLead';
 import {
   PERSONAL_NOTE_FOLLOWUP_EMAIL,
@@ -12,7 +12,7 @@ import {
   calendarLineForSender,
   suggestCaveatForNotes,
 } from '../utils/workhumanOutreachTemplates';
-import { logOutreach } from '../services/WorkhumanLeadService';
+import { logOutreach, fetchOutreachLogForLead } from '../services/WorkhumanLeadService';
 import { useAuth } from '../contexts/AuthContext';
 
 // Auth email → sender name. Mirrors the mapping in WorkhumanMessagingPanel.
@@ -30,19 +30,41 @@ function cleanFirstName(fullName: string | null | undefined): string {
   return (stripped.split(/\s+/)[0] || '').trim();
 }
 
+export type AiTone = 'warm' | 'friendly' | 'enthusiastic' | 'direct' | 'curious';
+
+const AI_TONES: { id: AiTone; label: string; hint: string }[] = [
+  { id: 'warm', label: 'Warm', hint: 'Default — conversational, friendly but measured' },
+  { id: 'friendly', label: 'Friendly', hint: 'More casual, peer-to-peer' },
+  { id: 'enthusiastic', label: 'Enthusiastic', hint: 'Real energy, earned through specifics' },
+  { id: 'direct', label: 'Direct', hint: 'Minimal warmth padding, get to the point' },
+  { id: 'curious', label: 'Curious', hint: 'Lead with a wondering, invite them in' },
+];
+
 /**
  * Post-event email panel for leads with a real booth conversation
  * (i.e. `lead.notes` contains a manual `[stamp · Name]` entry).
  *
  * Renders the lead's notes prominently so the teammate has full context,
  * then offers a subject + caveat picker that composes the master body.
- * The caveat dropdown auto-suggests based on keywords in the notes.
+ * The caveat dropdown auto-suggests based on keywords in the notes; a
+ * "Generate AI" button replaces it with a live LLM-generated opener
+ * tailored to the specific notes (with a tone selector).
  *
  * Default sender is the lead's `assigned_to`; falls back to the logged-in
  * user. Calendar line varies by sender — falls through to a "reply with
  * times" line for senders without a calendar link configured (Caren).
+ *
+ * `onSentStateChange` lets parents (e.g. the rapid outreach queue) know
+ * when this lead's personal-note follow-up has been marked sent so the
+ * card-level badge can update without a page refresh.
  */
-export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
+export function PersonalNoteFollowUpPanel({
+  lead,
+  onSentStateChange,
+}: {
+  lead: WorkhumanLead;
+  onSentStateChange?: (sent: boolean) => void;
+}) {
   const { user } = useAuth();
 
   const defaultSender: SenderName = useMemo(() => {
@@ -72,8 +94,15 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
   const [aiCaveat, setAiCaveat] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiTone, setAiTone] = useState<AiTone>('warm');
 
   const AI_CAVEAT_ID = '__ai_generated__';
+
+  // Tracks whether THIS template has been marked as sent for this lead
+  // (either earlier in the same session or in a prior session — the
+  // outreach log is the source of truth on lead-change).
+  const [sentAt, setSentAt] = useState<string | null>(null);
+  const [sendingMark, setSendingMark] = useState(false);
 
   // Re-suggest when the lead changes (different notes), and clear any
   // body edits + AI cache — those are per-lead and shouldn't carry across.
@@ -84,6 +113,17 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
     setPainPointInput('');
     setAiCaveat(null);
     setAiError(null);
+    setSentAt(null);
+    // Check the outreach log to see if this template was already sent
+    // for this lead in a prior session — if so, surface that state.
+    fetchOutreachLogForLead(lead.id).then(log => {
+      const personalSend = log.find(entry =>
+        entry.template_id?.startsWith(PERSONAL_NOTE_FOLLOWUP_EMAIL.id)
+      );
+      if (personalSend) setSentAt(personalSend.sent_at);
+    }).catch(() => { /* non-fatal */ });
+    if (onSentStateChange) onSentStateChange(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id, lead.notes]);
 
   /** Hit the Netlify function and use the result as the active caveat. */
@@ -100,6 +140,7 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
           firstName: cleanFirstName(lead.name),
           company: lead.company,
           senderName,
+          tone: aiTone,
         }),
       });
       const data = await res.json();
@@ -226,13 +267,20 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
   };
 
   const markSent = async () => {
-    await logOutreach({
+    setSendingMark(true);
+    const ok = await logOutreach({
       leadId: lead.id,
       channel: 'email',
       templateId: PERSONAL_NOTE_FOLLOWUP_EMAIL.id + ':' + selectedCaveatId,
       senderName,
       messagePreview: filledBody.substring(0, 500),
     });
+    if (ok) {
+      const now = new Date().toISOString();
+      setSentAt(now);
+      if (onSentStateChange) onSentStateChange(true);
+    }
+    setSendingMark(false);
   };
 
   // Variable-input visibility depends on the chosen caveat. AI-generated
@@ -314,11 +362,11 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
             </span>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <select
             value={selectedCaveatId}
             onChange={e => { setSelectedCaveatId(e.target.value); setBodyEdits(null); }}
-            className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5 bg-white"
+            className="flex-1 min-w-[200px] text-sm border border-gray-200 rounded px-2 py-1.5 bg-white"
           >
             {aiCaveat && (
               <option value={AI_CAVEAT_ID}>✨ AI-generated opener (tailored to your notes)</option>
@@ -327,11 +375,21 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
               <option key={c.id} value={c.id}>{c.label}</option>
             ))}
           </select>
+          <select
+            value={aiTone}
+            onChange={e => setAiTone(e.target.value as AiTone)}
+            className="text-sm border border-gray-200 rounded px-2 py-1.5 bg-white"
+            title="Tone for the AI-generated opener"
+          >
+            {AI_TONES.map(t => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
           <button
             onClick={generateAi}
             disabled={aiLoading || !lead.notes}
             className="px-3 py-1.5 text-sm rounded font-medium inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            title="Generate a personalized opener live from the booth notes via Claude"
+            title={`Generate a ${aiTone} opener live from the booth notes via Claude`}
           >
             {aiLoading ? <><Loader2 size={14} className="animate-spin" /> Generating</>
               : aiCaveat ? <><RefreshCw size={14} /> Regenerate</>
@@ -419,14 +477,25 @@ export function PersonalNoteFollowUpPanel({ lead }: { lead: WorkhumanLead }) {
         >
           <Mail size={14} /> Open in email client
         </button>
-        <button
-          onClick={markSent}
-          disabled={missingRequired}
-          className="px-3 py-1.5 text-sm rounded font-medium inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Log this send to the outreach history"
-        >
-          <Send size={14} /> Mark sent
-        </button>
+        {sentAt ? (
+          <button
+            onClick={markSent}
+            disabled={sendingMark}
+            className="px-3 py-1.5 text-sm rounded font-medium inline-flex items-center gap-1.5 bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={`Personal-note follow-up was marked sent on ${new Date(sentAt).toLocaleString()}. Click to log another send.`}
+          >
+            <CheckCircle2 size={14} /> Sent {new Date(sentAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+          </button>
+        ) : (
+          <button
+            onClick={markSent}
+            disabled={missingRequired || sendingMark}
+            className="px-3 py-1.5 text-sm rounded font-medium inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Log this send to the outreach history"
+          >
+            {sendingMark ? <><Loader2 size={14} className="animate-spin" /> Logging</> : <><Send size={14} /> Mark sent</>}
+          </button>
+        )}
         {missingRequired && (
           <span className="text-[11px] text-amber-700">
             {needsService && !serviceInput.trim() && 'Fill in the service '}
