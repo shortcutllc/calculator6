@@ -4,6 +4,7 @@ import {
   ArrowLeft, Upload, Search, Calendar, CheckCircle, XCircle, Clock,
   Star, User, Phone, Building, Loader2, RefreshCw, AlertCircle, MessageSquare,
   ChevronDown, ChevronUp, UserPlus, CheckCircle2, Linkedin, Mail, Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -1122,6 +1123,16 @@ function SignupRowView({
                 <UserPlus size={10} /> new
               </span>
             )}
+            {lead && (
+              <Link
+                to={`/workhuman-leads?lead=${lead.id}`}
+                onClick={e => e.stopPropagation()}
+                className="text-[11px] text-[#09364f] hover:underline inline-flex items-center gap-0.5 ml-1"
+                title="Open this lead in the main CRM"
+              >
+                <ExternalLink size={11} /> CRM
+              </Link>
+            )}
           </div>
           {lead?.title && (
             <div className="text-[11px] text-gray-500 italic truncate max-w-[260px]" title={lead.title}>
@@ -1293,6 +1304,16 @@ function SignupCardMobile({
                 <span className="bg-purple-100 text-purple-800 text-[10px] font-medium px-1.5 py-0.5 rounded uppercase tracking-wide inline-flex items-center gap-0.5">
                   <UserPlus size={10} /> new
                 </span>
+              )}
+              {lead && (
+                <Link
+                  to={`/workhuman-leads?lead=${lead.id}`}
+                  onClick={e => e.stopPropagation()}
+                  className="text-[11px] text-[#09364f] hover:underline inline-flex items-center gap-0.5"
+                  title="Open this lead in the main CRM"
+                >
+                  <ExternalLink size={11} /> CRM
+                </Link>
               )}
             </div>
             {displayTitle && (
