@@ -259,15 +259,10 @@ const WorkhumanBooth: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [search, setSearch] = useState('');
-  // Default the day filter to today so we render ~150 rows instead of all 380+
-  // on initial load. The user can still flip back to "all days".
-  const todayDayCode = (() => {
-    const today = new Date();
-    const wd = today.toLocaleDateString('en-US', { weekday: 'short' });
-    if (['Mon', 'Tue', 'Wed', 'Thu'].includes(wd)) return wd;
-    return 'all';
-  })();
-  const [dayFilter, setDayFilter] = useState<string>(todayDayCode);
+  // Default to "all days" post-event — the conference is over, so there's
+  // no live "today is the day" reason to scope. Users can narrow per-day
+  // via the dropdown if needed.
+  const [dayFilter, setDayFilter] = useState<string>('all');
   // Assignee filter: 'all' | 'mine' | '<teammate name>' | 'unassigned' | 'new_walkin'
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
