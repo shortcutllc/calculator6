@@ -90,11 +90,15 @@ export function PersonalNoteFollowUpPanel({
   // tracks whether the user has typed in the body textarea.
   const [bodyEdits, setBodyEdits] = useState<string | null>(null);
 
-  // Live-LLM AI-generated opener. When set, becomes a selectable option in
-  // the caveat dropdown (top of the list). Cleared on lead change.
+  // Live-LLM AI-generated FULL email body. When set, becomes a selectable
+  // option in the caveat dropdown (top of the list) and replaces the
+  // entire templated body (greeting through sign-off). Cleared on lead
+  // change. The 8 templated caveats still slot into the templated body
+  // — only the AI option swaps the whole thing.
   const [aiCaveat, setAiCaveat] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiMissing, setAiMissing] = useState<string[]>([]);
   const [aiTone, setAiTone] = useState<AiTone>('warm');
 
   const AI_CAVEAT_ID = '__ai_generated__';
@@ -115,6 +119,7 @@ export function PersonalNoteFollowUpPanel({
     setPainPointInput('');
     setAiCaveat(null);
     setAiError(null);
+    setAiMissing([]);
     setSentAt(null);
     setLiSentAt(null);
     // Check the outreach log to see if either template was already sent
@@ -133,11 +138,17 @@ export function PersonalNoteFollowUpPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id, lead.notes]);
 
-  /** Hit the Netlify function and use the result as the active caveat. */
+  /**
+   * Hit the Netlify function and use the result as the FULL email body.
+   * The AI generates greeting through sign-off — replaces the templated
+   * body entirely when AI option is selected. Slot-based caveats are
+   * unaffected.
+   */
   const generateAi = async () => {
     if (!lead.notes) return;
     setAiLoading(true);
     setAiError(null);
+    setAiMissing([]);
     try {
       const res = await fetch('/.netlify/functions/generate-personal-caveat', {
         method: 'POST',
@@ -148,15 +159,17 @@ export function PersonalNoteFollowUpPanel({
           company: lead.company,
           senderName,
           tone: aiTone,
+          calendarLink: SENDER_TO_CALENDAR[senderName] || null,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || data?.error || 'AI generation failed');
-      const caveat = (data.caveat || '').trim();
-      if (!caveat) throw new Error('Empty AI response');
-      setAiCaveat(caveat);
+      const aiBody = (data.body || '').trim();
+      if (!aiBody) throw new Error('Empty AI response');
+      setAiCaveat(aiBody);
+      setAiMissing(Array.isArray(data.missing) ? data.missing : []);
       setSelectedCaveatId(AI_CAVEAT_ID);
-      // Drop any prior body edits so the body recomposes with the new AI caveat.
+      // Drop any prior body edits so the body recomposes with the AI body.
       setBodyEdits(null);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -193,7 +206,13 @@ export function PersonalNoteFollowUpPanel({
     };
   }, [lead.name, lead.company, senderName, serviceInput, painPointInput, currentCaveat, isAiSelected, aiCaveat]);
 
-  const suggestedBody = useMemo(() => fillTemplate(PERSONAL_NOTE_FOLLOWUP_EMAIL.body, vars), [vars]);
+  // When AI option is selected, the AI's body REPLACES the entire templated
+  // body (greeting through sign-off). For the 8 templated caveats, we slot
+  // the caveat into the templated body as before.
+  const suggestedBody = useMemo(() => {
+    if (isAiSelected && aiCaveat) return aiCaveat;
+    return fillTemplate(PERSONAL_NOTE_FOLLOWUP_EMAIL.body, vars);
+  }, [isAiSelected, aiCaveat, vars]);
   const filledBody = bodyEdits ?? suggestedBody;
   const filledSubject = useMemo(
     () => fillTemplate(PERSONAL_NOTE_SUBJECT_LINES[subjectIdx], vars),
@@ -467,6 +486,11 @@ export function PersonalNoteFollowUpPanel({
         </div>
         {aiError && (
           <div className="text-[11px] text-red-600 mt-1">⚠ {aiError}</div>
+        )}
+        {aiMissing.length > 0 && isAiSelected && (
+          <div className="text-[11px] text-amber-700 mt-1">
+            ⚠ AI output is missing: {aiMissing.join(', ').replace(/_/g, ' ')}. Edit the body or regenerate.
+          </div>
         )}
       </div>
 
