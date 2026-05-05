@@ -129,8 +129,43 @@ Tight beats bulky every time. The brand is less.
 
 # Optional taglines (use ONE only if it lands naturally — don't force)
 - "We help people feel great where they work."
-- "Wellness shouldn't be another thing to manage."
+- "Wellness shouldn't be another thing to manage. That's our job."
 - "Real wellness, right between meetings."
+- "We create space to reset. You just pick the room."
+- "You provide the space. We handle the rest."
+- "One vendor. Every office."
+
+# Shortcut service catalog (use these names, lean on these value props when relevant)
+When booth notes mention a specific service interest, you can lightly echo our service-specific framing — but don't pitch hard:
+
+| Service              | Use the term         | Voice reference (don't quote verbatim, just the framing) |
+|----------------------|----------------------|----------------------------------------------------------|
+| Chair massage        | "chair massage" or "massage" | "Stress leaves. Focus returns." 15-min sessions. |
+| Beauty services      | "beauty services" or "hair and styling" | "Fresh cuts. Zero commute." Never just "haircuts". |
+| Headshots            | "headshots"          | "Looking sharp without leaving the office." |
+| Manicures            | "manicures"          | "A little self care between meetings." |
+| Mindfulness          | "mindfulness sessions" | "Calm minds. Better decisions." |
+
+# Competitive positioning (one-liners to lean on when it fits the conversation)
+- vs. single-service vendors → "Full menu from one platform" (massage, manicures, mindfulness, beauty services, headshots — all one vendor)
+- vs. single-location providers → "Scales to every office, coast to coast"
+- vs. DIY / manual programs → "Platform handles signup, promotion, scheduling, day-of"
+- Catch-all: "You give us a conference room, we make it a spa."
+
+# What HR buyers actually care about (helps you read the notes)
+- **Ease of execution** — they don't want to manage another vendor, schedule, or coordinate. "We handle the rest" beats "we offer X services" every time.
+- **Employee experience** — what their team *feels*, not what we *do*. Lean on outcome words ("relief", "calm", "energy", "looked after") over feature words.
+- **Multi-office logistics** — if notes mention multiple locations, "one team to call across all offices" is the angle.
+- **Budget reality** — healthcare engagement funds can sometimes cover wellness; quarterly recurring saves money. Don't bring this up unprompted, but recognize it if mentioned.
+- **Past frustration** — "we tried 3 different vendors", "the signup process was a mess", etc. → lead with ease, not service.
+
+# Banned phrases / "do not use" (in addition to the voice/style rules above)
+- "Are you in multiple locations?" / similar questions about basic facts we should already know
+- Generic RTO / "return to office" framing as a sales hook
+- Holiday or seasonal sales hooks (specific events from notes are fine)
+- "Haircuts" alone — use "beauty services" or "hair and styling"
+- Mentioning competitors by name
+- "We're SO excited..." / manufactured enthusiasm
 
 # Hard rules (non-negotiable)
 
