@@ -344,8 +344,12 @@ export function PersonalNoteFollowUpPanel({
   // openers don't have placeholder vars (the model already has the notes).
   const needsService = !isAiSelected && !!currentCaveat?.requiresService;
   const needsPainPoint = !isAiSelected && !!currentCaveat?.requiresPainPoint;
-  // Greys out actions if a required input is empty
-  const missingRequired = (needsService && !serviceInput.trim()) || (needsPainPoint && !painPointInput.trim());
+  // Source of truth for "is this email ready to send" is the BODY itself,
+  // not the input fields. If the teammate prefers to edit the body
+  // directly (replacing [pain point] / [service] inline) instead of using
+  // the input fields above, that should unlock the action buttons too.
+  const bodyPlaceholderMatch = filledBody.match(/\[(pain point|service)\]/i);
+  const missingRequired = !!bodyPlaceholderMatch;
 
   return (
     <div className="bg-white border-2 border-orange-200 rounded-lg p-4 space-y-3">
@@ -589,11 +593,9 @@ export function PersonalNoteFollowUpPanel({
             {sendingMark ? <><Loader2 size={14} className="animate-spin" /> Logging</> : <><Send size={14} /> Mark sent</>}
           </button>
         )}
-        {missingRequired && (
+        {missingRequired && bodyPlaceholderMatch && (
           <span className="text-[11px] text-amber-700">
-            {needsService && !serviceInput.trim() && 'Fill in the service '}
-            {needsPainPoint && !painPointInput.trim() && 'Fill in the pain point '}
-            to enable
+            Body contains a [{bodyPlaceholderMatch[1]}] placeholder. Fill in the field above, or edit the body to replace it.
           </span>
         )}
       </div>
