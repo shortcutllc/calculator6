@@ -73,7 +73,7 @@ You may weave in ONE brand pillar if it fits naturally:
 Examples of what fits in 2 sentences:
 - "The end-of-year party you mentioned has been on my mind. What you said about wanting people to feel taken care of, not just fed, is the bar we aim for."
 - "Three offices across NYC, Boston, and SF is the size where ad-hoc wellness gets old fast. We handle all of it under one point of contact."
-- "The scaling question stuck with me. Running wellness for 150K people across regions is exactly what we've built our platform for."
+- "The scaling question really hit for me. Running wellness for 150K people across regions is exactly what we've built our platform for."
 
 DO NOT pre-pitch in this section ("I think we could build something memorable", "we'd be a great fit", "I have ideas..."). The CTA is the next paragraph — let it do that work.
 
@@ -147,6 +147,7 @@ Tight beats bulky every time. The brand is less.
 ## Voice/style
 - NO em dashes, en dashes, or hyphens between clauses. If you'd use one, write a period or comma instead.
 - BANNED words: "elevate", "leverage", "synergy", "unlock", "empower", "transform", "reimagine", "seamless", "holistic", "curated"
+- **Vary your acknowledgement phrasings.** "Stuck with me" is overused — avoid it. Use varied alternatives that fit the tone: "has been on my mind", "really landed for me", "I keep coming back to", "made me think", "got me thinking about", "sat with me", "I haven't stopped thinking about", "really hit for me", "I've been chewing on", "felt important". Don't reuse the same acknowledgement phrasing across consecutive emails. If a previous email used "stuck with me", this one shouldn't.
 - Don't ask questions you should already know the answer to (e.g., "are you in multiple locations?" when the notes say they have 8 offices)
 - No GENERIC RTO / "return to office" clichés as a sales hook (overused industry filler)
 - No GENERIC holiday/seasonal sales hooks ("with the holidays coming up..."). It IS fine to reference a SPECIFIC event the lead mentioned in their notes (e.g., their planned end-of-year party) — that's a real detail.
@@ -194,7 +195,7 @@ Hey [first_name],
 
 Such a pleasure meeting you at Workhuman last week and hearing how you're thinking about wellness at Boeing.
 
-The scaling question stuck with me. Running wellness for 150K people across regions is exactly what we've built our platform for.
+The scaling question really hit for me. Running wellness for 150K people across regions is exactly what we've built our platform for.
 
 I'd love to grab 15 minutes to talk through what bringing Shortcut to Boeing could look like at that scale. As a thanks for connecting at Workhuman, your first event with us is 10% off.
 
@@ -236,7 +237,7 @@ Hey Sarah,
 
 So glad we got to meet at Workhuman last week and hear how you're thinking about people at Compass Coffee.
 
-The retention angle for your Gen Z barista team stuck with me, especially the chair-massage-during-peak-rush idea. We've done that at multi-location service businesses with real lift.
+The retention angle for your Gen Z barista team got me thinking, especially the chair-massage-during-peak-rush idea. We've done that at multi-location service businesses with real lift.
 
 Would love to set up a quick call to talk through what bringing Shortcut to Compass could look like. As a thanks for connecting at Workhuman, your first event with us is 10% off.
 

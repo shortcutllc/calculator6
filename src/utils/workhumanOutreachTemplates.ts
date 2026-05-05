@@ -324,7 +324,7 @@ export const PERSONAL_NOTE_CAVEATS: PersonalNoteCaveat[] = [
   {
     id: 'specific_service',
     label: '2. They expressed interest in a specific service',
-    body: `You mentioned being interested in bringing {service} to your team and that stuck with me. That's exactly what we do best and I think it could be something special for {company}.`,
+    body: `You mentioned wanting to bring {service} to your team, which is exactly the kind of thing we do best. I think it could be something special for {company}.`,
     requiresService: true,
     triggerKeywords: ['massage', 'headshot', 'facial', 'manicure', 'mindfulness', 'yoga', 'beauty', 'haircut', 'grooming'],
   },
@@ -337,7 +337,7 @@ export const PERSONAL_NOTE_CAVEATS: PersonalNoteCaveat[] = [
   {
     id: 'pain_point',
     label: '4. They had a specific pain point',
-    body: `What you shared about {pain_point} at {company} stayed with me after our conversation. We've helped a few teams work through exactly that and I think there's something meaningful we could do together.`,
+    body: `What you shared about {pain_point} at {company} is exactly the kind of thing we've helped a few teams work through. I think there's something meaningful we could do together.`,
     requiresPainPoint: true,
     triggerKeywords: ['burnout', 'stressed', 'overworked', 'turnover', 'morale', 'engagement issue', 'retention', 'rto', 'return to office'],
   },
