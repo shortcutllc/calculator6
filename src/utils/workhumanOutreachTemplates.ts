@@ -377,7 +377,7 @@ export const SENDER_TO_CALENDAR: Partial<Record<SenderName, string>> = {
   'Marc Levitan': 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ32LfkHBgKgbGBFPag5dHw7dU_WZzZdBYZQqU23-XmWnBIIujGNDbRMZ8zGYjf6RSF6duE93uTa',
   'Jaimie Pritchard': 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0gH9NGyA_MUtu_TRlcGBu4ou78nEKPlygI6OJJrX9LFunmRPuD4OmxOvRQ_5HAoEhHcoYlZ29B',
   'Will Newton': 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ32vKfzSRhuWGXuzgv0w3x21bOQnmWva5xVuPtCsMF3iq25Oh_vInOsmmHr13npkewS-GnsQRqu',
-  // Caren Skutch: pending — falls through to the reply-with-times fallback below.
+  'Caren Skutch': 'https://calendar.app.google/NiUC9pyqwzNoJBmg8',
 };
 
 /** Closing-line for the master body, varies by whether the sender has a calendar link. */
