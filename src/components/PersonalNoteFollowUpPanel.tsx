@@ -86,9 +86,19 @@ export function PersonalNoteFollowUpPanel({
   const [painPointInput, setPainPointInput] = useState('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
   // Manual edits to the body persist across caveat/sender changes — but
-  // there's a "Reset to suggested" button that drops them. The flag
-  // tracks whether the user has typed in the body textarea.
-  const [bodyEdits, setBodyEdits] = useState<string | null>(null);
+  // there's a "Reset to suggested" button that drops them. Drafts also
+  // autosave to localStorage per-lead so a teammate can close the tab
+  // and come back to where they left off (see effect below).
+  const draftKey = `workhuman_pn_draft_${lead.id}`;
+  const [bodyEdits, setBodyEdits] = useState<string | null>(() => {
+    try { return localStorage.getItem(draftKey); } catch { return null; }
+  });
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(() => {
+    try {
+      const raw = localStorage.getItem(`${draftKey}_savedAt`);
+      return raw ? new Date(raw) : null;
+    } catch { return null; }
+  });
 
   // Live-LLM AI-generated FULL email body. When set, becomes a selectable
   // option in the caveat dropdown (top of the list) and replaces the
@@ -110,11 +120,12 @@ export function PersonalNoteFollowUpPanel({
   const [sendingMark, setSendingMark] = useState(false);
   const [liSentAt, setLiSentAt] = useState<string | null>(null);
 
-  // Re-suggest when the lead changes (different notes), and clear any
-  // body edits + AI cache — those are per-lead and shouldn't carry across.
+  // Re-suggest when the lead changes (different notes), and load any
+  // previously-saved draft from localStorage so the teammate picks up
+  // where they left off. AI cache + sent state are per-lead and don't
+  // carry across.
   useEffect(() => {
     setSelectedCaveatId(suggestCaveatForNotes(lead.notes));
-    setBodyEdits(null);
     setServiceInput('');
     setPainPointInput('');
     setAiCaveat(null);
@@ -122,6 +133,16 @@ export function PersonalNoteFollowUpPanel({
     setAiMissing([]);
     setSentAt(null);
     setLiSentAt(null);
+    // Load draft from localStorage if one exists for this lead
+    try {
+      const draft = localStorage.getItem(`workhuman_pn_draft_${lead.id}`);
+      const savedAtRaw = localStorage.getItem(`workhuman_pn_draft_${lead.id}_savedAt`);
+      setBodyEdits(draft);
+      setDraftSavedAt(savedAtRaw ? new Date(savedAtRaw) : null);
+    } catch {
+      setBodyEdits(null);
+      setDraftSavedAt(null);
+    }
     // Check the outreach log to see if either template was already sent
     // for this lead in a prior session — if so, surface that state.
     fetchOutreachLogForLead(lead.id).then(log => {
@@ -137,6 +158,30 @@ export function PersonalNoteFollowUpPanel({
     if (onSentStateChange) onSentStateChange(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id, lead.notes]);
+
+  // Autosave drafts to localStorage as the teammate types. Debounced 500ms
+  // so we're not hammering localStorage on every keystroke. Cleared
+  // automatically on Mark Sent (the email's been sent, no draft to keep)
+  // and on Reset to suggested (user explicitly threw away their edits).
+  useEffect(() => {
+    if (bodyEdits === null) {
+      try {
+        localStorage.removeItem(`workhuman_pn_draft_${lead.id}`);
+        localStorage.removeItem(`workhuman_pn_draft_${lead.id}_savedAt`);
+      } catch { /* non-fatal */ }
+      setDraftSavedAt(null);
+      return;
+    }
+    const t = setTimeout(() => {
+      try {
+        const now = new Date();
+        localStorage.setItem(`workhuman_pn_draft_${lead.id}`, bodyEdits);
+        localStorage.setItem(`workhuman_pn_draft_${lead.id}_savedAt`, now.toISOString());
+        setDraftSavedAt(now);
+      } catch { /* localStorage might be full or disabled */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [bodyEdits, lead.id]);
 
   /**
    * Hit the Netlify function and use the result as the FULL email body.
@@ -353,6 +398,12 @@ export function PersonalNoteFollowUpPanel({
     if (ok) {
       const now = new Date().toISOString();
       setSentAt(now);
+      // Clear the draft — the email's been sent, no reason to keep editing it.
+      setBodyEdits(null);
+      try {
+        localStorage.removeItem(`workhuman_pn_draft_${lead.id}`);
+        localStorage.removeItem(`workhuman_pn_draft_${lead.id}_savedAt`);
+      } catch { /* non-fatal */ }
       if (onSentStateChange) onSentStateChange(true);
     }
     setSendingMark(false);
@@ -544,19 +595,28 @@ export function PersonalNoteFollowUpPanel({
 
       {/* Body — editable so the teammate can weave specifics from the booth
           notes (above) into the email beyond what the caveat covers. The
-          notes are the raw material; the caveat is just a starting frame. */}
+          notes are the raw material; the caveat is just a starting frame.
+          Edits autosave to localStorage per-lead so closing the tab and
+          coming back picks up where you left off. */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <label className="text-xs text-gray-500 font-medium">Body — edit freely to incorporate specifics from the conversation</label>
-          {bodyEdits !== null && (
-            <button
-              onClick={() => setBodyEdits(null)}
-              className="text-[11px] text-gray-500 hover:text-gray-700 underline"
-              title="Discard edits and restore the auto-composed body"
-            >
-              Reset to suggested
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {bodyEdits !== null && draftSavedAt && (
+              <span className="text-[11px] text-green-700 inline-flex items-center gap-1" title={`Draft autosaved at ${draftSavedAt.toLocaleString()}`}>
+                <CheckCircle2 size={10} /> Draft saved {draftSavedAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+              </span>
+            )}
+            {bodyEdits !== null && (
+              <button
+                onClick={() => setBodyEdits(null)}
+                className="text-[11px] text-gray-500 hover:text-gray-700 underline"
+                title="Discard edits and restore the auto-composed body"
+              >
+                Reset to suggested
+              </button>
+            )}
+          </div>
         </div>
         <textarea
           value={filledBody}
