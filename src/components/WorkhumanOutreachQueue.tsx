@@ -34,16 +34,15 @@ const WorkhumanOutreachQueue: React.FC = () => {
     return EMAIL_TO_SENDER[email] || null;
   }, [user]);
 
-  const [senderName, setSenderName] = useState<SenderName>(() => {
-    const stored = localStorage.getItem('workhuman_sender_name_override') as SenderName | null;
-    if (stored && SENDER_NAMES.includes(stored)) return stored;
-    return SENDER_NAMES[0];
-  });
+  // Queue's senderName is a FILTER — always default to the logged-in user.
+  // Don't read/write `workhuman_sender_name_override` (that key belongs to
+  // the messaging panel's outbound FROM address and was cross-contaminating
+  // the queue, causing Caren to land on Will's leads after he'd touched
+  // the panel).
+  const [senderName, setSenderName] = useState<SenderName>(SENDER_NAMES[0]);
 
   useEffect(() => {
-    if (authedSender && !localStorage.getItem('workhuman_sender_name_override')) {
-      setSenderName(authedSender);
-    }
+    if (authedSender) setSenderName(authedSender);
   }, [authedSender]);
 
   const [leads, setLeads] = useState<WorkhumanLead[]>([]);
@@ -192,9 +191,10 @@ const WorkhumanOutreachQueue: React.FC = () => {
             <select
               value={senderName}
               onChange={e => {
+                // Session-only override — no localStorage write. See header
+                // comment on the senderName state for why.
                 const v = e.target.value as SenderName;
                 setSenderName(v);
-                localStorage.setItem('workhuman_sender_name_override', v);
                 setIndex(0);
               }}
               className="text-sm border border-gray-200 rounded px-2 py-1 bg-white"

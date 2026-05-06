@@ -39,16 +39,16 @@ const WorkhumanPersonalNoteQueue: React.FC = () => {
     return EMAIL_TO_SENDER[email] || null;
   }, [user]);
 
-  const [senderName, setSenderName] = useState<SenderName>(() => {
-    const stored = localStorage.getItem('workhuman_sender_name_override') as SenderName | null;
-    if (stored && SENDER_NAMES.includes(stored)) return stored;
-    return SENDER_NAMES[0];
-  });
+  // Queue's senderName is a FILTER, not a "FROM" identity — always default
+  // to the logged-in user. Don't read or write `workhuman_sender_name_override`
+  // here (that key is for the messaging panel's outbound FROM address). If a
+  // teammate picks someone else from the dropdown to peek at their leads,
+  // that's session-only and resets on refresh — which is the right default
+  // when each teammate's primary use case is processing their own leads.
+  const [senderName, setSenderName] = useState<SenderName>(SENDER_NAMES[0]);
 
   useEffect(() => {
-    if (authedSender && !localStorage.getItem('workhuman_sender_name_override')) {
-      setSenderName(authedSender);
-    }
+    if (authedSender) setSenderName(authedSender);
   }, [authedSender]);
 
   const [leads, setLeads] = useState<WorkhumanLead[]>([]);
@@ -153,8 +153,10 @@ const WorkhumanPersonalNoteQueue: React.FC = () => {
               <select
                 value={senderName}
                 onChange={e => {
+                  // Session-only override (no localStorage write). Refreshing
+                  // the page or returning to the queue resets to the
+                  // logged-in user's leads.
                   setSenderName(e.target.value as SenderName);
-                  localStorage.setItem('workhuman_sender_name_override', e.target.value);
                   reset();
                 }}
                 className="text-sm border border-gray-200 rounded px-2 py-1 bg-white"
