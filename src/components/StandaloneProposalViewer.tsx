@@ -15,6 +15,7 @@ import InstructionalScroller from './InstructionalScroller';
 import InstructionCard from './InstructionCard';
 import ServiceAgreement from './ServiceAgreement';
 import LocationSummary from './LocationSummary';
+import { PartnershipModelsSection } from './PartnershipModelsSection';
 import ChangeConfirmationModal from './ChangeConfirmationModal';
 import { trackProposalChanges, createChangeSet, getChangeDisplayInfo } from '../utils/changeTracker';
 import { ProposalChangeSet, ProposalChange } from '../types/proposal';
@@ -1311,6 +1312,12 @@ export const StandaloneProposalViewer: React.FC = () => {
   const currentOptionName = currentOption?.option_name || proposal?.option_name;
   const currentOptionIndex = proposalOptions.findIndex((opt: any) => opt.id === id);
 
+  // Partnership proposals price differently — the standard cost displays
+  // (Total Investment, per-service Service Cost, per-day Total Cost,
+  // per-location Total Cost) all become misleading because the buyer's
+  // actual cost depends on the partnership model they pick.
+  const isPartnership = !!proposal?.partnership_type;
+
   return (
     <div className="min-h-screen bg-neutral-light-gray">
       {showUpdateIndicator && (
@@ -1633,13 +1640,15 @@ export const StandaloneProposalViewer: React.FC = () => {
                 )}
               </div>
 
-              {/* Total Cost - Prominent Display */}
-              <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl px-4 py-2.5 md:px-5 md:py-3 shadow-sm border border-white/50">
-                <div className="text-right">
-                  <p className="text-[10px] md:text-xs font-bold text-shortcut-blue uppercase tracking-wider mb-0.5 md:mb-1">Total Investment</p>
-                  <p className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(displayData.summary?.totalEventCost || 0)}</p>
+              {/* Total Cost - Prominent Display (hidden in partnership mode — see PartnershipModelsSection for the two-model pricing) */}
+              {!isPartnership && (
+                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl px-4 py-2.5 md:px-5 md:py-3 shadow-sm border border-white/50">
+                  <div className="text-right">
+                    <p className="text-[10px] md:text-xs font-bold text-shortcut-blue uppercase tracking-wider mb-0.5 md:mb-1">Total Investment</p>
+                    <p className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(displayData.summary?.totalEventCost || 0)}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Inline Metrics Row */}
@@ -1714,6 +1723,11 @@ export const StandaloneProposalViewer: React.FC = () => {
           {/* Main Content - Services (Day summary + Location Section) - shown first on mobile after top box */}
           <div className="lg:col-span-8 space-y-6 md:space-y-8 order-1 lg:order-1">
 
+            {/* Verbose per-location / per-day / per-service breakdown.
+                Hidden in partnership mode — partnership proposals lead with
+                the cost-split pitch and don't need redundant operational
+                detail above it. Normal proposals render this unchanged. */}
+            {!isPartnership && (
             <div className="space-y-6 md:space-y-8">
               {displayData.services && Object.entries(displayData.services).map(([location, locationData]: [string, any]) => (
                 <div key={location} className="card-large">
@@ -1928,6 +1942,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         <span className="text-base md:text-lg font-bold text-shortcut-blue">Appointments:</span>
                                         <span className="font-bold text-text-dark text-base md:text-lg">{service.totalAppointments === 'unlimited' ? '∞' : service.totalAppointments}</span>
                                       </div>
+                                      {!isPartnership && (
                                       <div className="flex justify-between items-center py-3 md:py-4 border-b-2 border-gray-200">
                                         <span className="text-base md:text-lg font-bold text-shortcut-blue">Service Cost:</span>
                                         <div className="text-right">
@@ -1946,6 +1961,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                           )}
                                         </div>
                                       </div>
+                                      )}
                                       
                                       {/* Pricing Options Section */}
                                       {displayData.hasPricingOptions && service.pricingOptions && service.pricingOptions.length > 0 && (
@@ -2136,13 +2152,14 @@ export const StandaloneProposalViewer: React.FC = () => {
 
                                 <div className="mt-4 md:mt-8 bg-white rounded-xl p-4 md:p-8 border-2 border-shortcut-navy-blue shadow-md">
                                   <h4 className="text-lg md:text-2xl font-extrabold mb-4 md:mb-6 text-shortcut-navy-blue">Day {dateIndex + 1} Summary</h4>
-                                  <div className="grid grid-cols-2 gap-3 md:gap-6">
+                                  <div className={`grid gap-3 md:gap-6 ${isPartnership ? 'grid-cols-1' : 'grid-cols-2'}`}>
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-3 md:p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-[10px] md:text-xs font-bold text-shortcut-blue mb-2 md:mb-3 uppercase tracking-wider">Appointments</div>
                                       <div className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">
                                         {dateData.totalAppointments === 0 || dateData.totalAppointments === 'unlimited' ? '∞' : (dateData.totalAppointments || 0)}
                                       </div>
                                     </div>
+                                    {!isPartnership && (
                                     <div className="bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-xl p-3 md:p-6 border-2 border-shortcut-teal border-opacity-30">
                                       <div className="text-[10px] md:text-xs font-bold text-shortcut-blue mb-2 md:mb-3 uppercase tracking-wider">Total Cost</div>
                                       {displayData.isAutoRecurring && displayData.autoRecurringDiscount && dateData.originalTotalCost ? (
@@ -2161,6 +2178,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                         <div className="text-xl md:text-3xl font-extrabold text-shortcut-navy-blue">${formatCurrency(dateData.totalCost || 0)}</div>
                                       )}
                                     </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -2172,6 +2190,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 </div>
               ))}
                 </div>
+            )}
 
             {/* Why Shortcut Section - Show CLE version if CLE present, otherwise regular */}
             {isMindfulnessOnlyProposal(displayData) && (
@@ -2196,6 +2215,17 @@ export const StandaloneProposalViewer: React.FC = () => {
             {/* Additional Resources - Show for mindfulness-only proposals in left column */}
             {isMindfulnessOnlyProposal(displayData) && (
               <AdditionalResourcesSection />
+            )}
+
+            {/* Partnership Models — full-width pitch card placed directly
+                above Why Shortcut so it's the centerpiece of the proposal,
+                not a sidebar afterthought. */}
+            {isPartnership && (
+              <PartnershipModelsSection
+                proposalData={displayData}
+                partnershipType={proposal.partnership_type}
+                partnershipRates={proposal.partnership_rates}
+              />
             )}
 
             {/* Unified Service Sections - Why Shortcut + Collapsible Service Details */}
@@ -2292,7 +2322,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                   </p>
                   <div className="pt-4 border-t-2 border-gray-200">
                     <p className="text-base text-text-dark leading-relaxed font-medium">
-                      Courtney Schulnick, an attorney with two decades of experience, now leads mindfulness programs at Shortcut. With extensive training from the Myrna Brind Center for Mindfulness, she brings a unique perspective to corporate wellness. Her workshops help employees achieve balance and vitality, transforming workplace well-being and productivity.
+                      Courtney Schulnick, an attorney with two decades of experience, now leads mindfulness programs at Shortcut. With extensive training from the Myrna Brind Center for Mindfulness, she brings a unique perspective to corporate wellness. Her workshops give employees real tools for handling stress, sharpening focus, and getting through the harder parts of work.
                     </p>
                   </div>
                 </div>
@@ -2308,9 +2338,15 @@ export const StandaloneProposalViewer: React.FC = () => {
                 isAutoRecurring={displayData.isAutoRecurring}
                 autoRecurringDiscount={displayData.autoRecurringDiscount}
                 officeAddress={displayData.officeLocations?.[location] || displayData.officeLocation}
+                isPartnership={isPartnership}
               />
             ))}
 
+            {/* Event Summary lives in the right sidebar — hidden entirely
+                for partnership proposals (the partnership card lives in the
+                main left column above Why Shortcut). */}
+            {!isPartnership && (
+            <>
             {/* Event Summary - Dark Blue */}
             <div className="bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue text-white rounded-2xl shadow-xl border-2 border-shortcut-teal border-opacity-30 p-5 md:p-8">
               <div className="flex items-center justify-between mb-6 md:mb-8">
@@ -2488,6 +2524,8 @@ export const StandaloneProposalViewer: React.FC = () => {
                 })()}
               </div>
             </div>
+            </>
+            )}
 
             {/* Notes Section */}
             <div className="card-large">
@@ -2578,19 +2616,19 @@ export const StandaloneProposalViewer: React.FC = () => {
             <div id="carousel" className="flex overflow-x-auto pb-6 gap-8 hide-scrollbar">
               <div className="card-medium min-w-[280px] sm:min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
                 <div className="w-full aspect-[4/3] relative overflow-hidden">
-                  <img 
+                  <img
                     src="/Seamless Experience.png"
-                    alt="Seamless wellness experiences by Shortcut"
+                    alt="Shortcut handles the logistics so your team just shows up"
                     className="w-full h-full object-cover"
                     onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
                   />
                 </div>
                 <div className="p-6 flex-grow flex flex-col">
                   <h3 className="text-xl font-bold text-shortcut-blue mb-3">
-                    Seamless Experiences
+                    Effortless Logistics
                   </h3>
                   <p className="text-base text-text-dark leading-relaxed flex-grow">
-                    We make wellness effortless. Easily integrate our services and create experiences your team will love.
+                    Schedule once. We handle setup, booking, and cleanup. Your team just shows up.
                   </p>
                 </div>
               </div>
@@ -2609,7 +2647,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                     Revitalizing Impact
                   </h3>
                   <p className="text-base text-text-dark leading-relaxed flex-grow">
-                    Transform office days into feel-good moments. Boost engagement and watch your team thrive with our revitalizing services.
+                    Real wellness, right between meetings. Less stress, sharper focus, more energy in the room.
                   </p>
                 </div>
               </div>

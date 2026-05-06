@@ -3,6 +3,39 @@ import { Database } from './database';
 // Recurring event frequency types
 export type RecurringFrequencyType = 'quarterly' | 'monthly' | 'custom';
 
+// Partnership proposal types — alternative pricing where employees pay
+// per-service (or not at all). See PartnershipModelsSection for the models.
+//   'employee_pay' → Option A only
+//   'subsidized'   → Option B only
+//   'dual'         → Option A + B
+//   'tri'          → Option A + B + C (C = fully employer-paid, free for staff)
+export type PartnershipType = 'employee_pay' | 'subsidized' | 'dual' | 'tri';
+
+export interface PartnershipRates {
+  modelA?: {
+    employeePay?: number;             // default $60
+    employerPerUnfilledAppt?: number; // default $60
+  };
+  modelB?: {
+    employeePay?: number;             // default $30
+    employerHourlyPerPro?: number;    // default $70
+  };
+  modelC?: {
+    employerHourlyPerPro?: number;     // default $139 — full standard rate
+    monthlyPartnerDiscountPct?: number; // default 15 — applied to base total
+  };
+}
+
+export const PARTNERSHIP_DEFAULTS: Required<{
+  modelA: Required<NonNullable<PartnershipRates['modelA']>>;
+  modelB: Required<NonNullable<PartnershipRates['modelB']>>;
+  modelC: Required<NonNullable<PartnershipRates['modelC']>>;
+}> = {
+  modelA: { employeePay: 60, employerPerUnfilledAppt: 60 },
+  modelB: { employeePay: 30, employerHourlyPerPro: 70 },
+  modelC: { employerHourlyPerPro: 139, monthlyPartnerDiscountPct: 15 },
+};
+
 export interface RecurringFrequency {
   type: RecurringFrequencyType;
   occurrences: number; // 4 for quarterly, 12 for monthly, or custom number
@@ -204,6 +237,9 @@ export interface Proposal {
   isTest?: boolean;
   // Proposal type
   proposal_type?: 'event' | 'mindfulness-program';
+  // Partnership proposal fields
+  partnershipType?: PartnershipType | null;
+  partnershipRates?: PartnershipRates | null;
   // Stripe invoice
   stripeInvoiceId?: string | null;
   // Short URL slug

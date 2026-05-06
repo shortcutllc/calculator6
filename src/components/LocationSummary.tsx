@@ -8,6 +8,7 @@ interface LocationSummaryProps {
   isAutoRecurring?: boolean;
   autoRecurringDiscount?: number;
   officeAddress?: string;
+  isPartnership?: boolean;
 }
 
 // Helper function to format date for display
@@ -34,7 +35,7 @@ const formatDate = (dateString: string): string => {
   }
 };
 
-const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, isAutoRecurring, autoRecurringDiscount, officeAddress }) => {
+const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, isAutoRecurring, autoRecurringDiscount, officeAddress, isPartnership }) => {
   const [showAllDates, setShowAllDates] = useState(false);
   const dates = Object.keys(services).sort((a, b) => {
     const aIsTBD = a === 'TBD' || a.startsWith('TBD-');
@@ -139,8 +140,8 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
             {totalAppointments === 0 ? '∞' : totalAppointments}
           </span>
         </div>
-        {/* Cost Per Headshot - only for locations with headshot services */}
-        {(() => {
+        {/* Cost Per Headshot - only for locations with headshot services. Hidden in partnership mode (pricing doesn't apply). */}
+        {!isPartnership && (() => {
           let headshotCost = 0;
           let headshotOriginalCost = 0;
           let headshotAppts = 0;
@@ -181,6 +182,7 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
           }
           return null;
         })()}
+        {!isPartnership && (
         <div className="flex justify-between items-center pt-4 border-t-2 border-shortcut-navy-blue">
           <span className="font-extrabold text-shortcut-navy-blue text-base md:text-lg">Total Cost:</span>
           <div className="text-right">
@@ -201,6 +203,7 @@ const LocationSummary: React.FC<LocationSummaryProps> = ({ location, services, i
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

@@ -59,6 +59,9 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     isTest: dbProposal.is_test || false,
     // Proposal type
     proposal_type: dbProposal.proposal_type || 'event',
+    // Partnership proposal fields
+    partnershipType: dbProposal.partnership_type || null,
+    partnershipRates: dbProposal.partnership_rates || null,
     // Stripe invoice
     stripeInvoiceId: dbProposal.stripe_invoice_id || null,
     // Short URL slug

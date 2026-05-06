@@ -158,6 +158,24 @@ const serviceConfig: Record<string, {
     ],
     features: ['Services for all hair types', 'Premium brand products', 'Sanitation between clients', 'Space left pristine'],
   },
+  hair: {
+    displayName: 'Hair',
+    icon: '💇',
+    iconPath: '/Holiday Proposal/Our Services/Holiday Party Glam/icon.svg',
+    benefits: [
+      { title: 'Polished Look', description: 'Sharp cuts and professional grooming that read well in headshots, meetings, and on-camera', icon: <Sparkles className="w-6 h-6 text-shortcut-blue" /> },
+      { title: 'Time Savings', description: 'Professional styling without leaving the office or taking personal time', icon: <Clock className="w-6 h-6 text-shortcut-blue" /> },
+      { title: 'Inclusive Options', description: 'Services for all hair types, lengths, and styles', icon: <Users className="w-6 h-6 text-shortcut-blue" /> },
+    ],
+    included: [
+      { title: 'Barber Cut', description: 'Professional men\'s haircuts', iconPath: '/Holiday Proposal/Our Services/Holiday Party Glam/icon.svg' },
+      { title: 'Beard Trim', description: 'Shaping and grooming', iconPath: '/Holiday Proposal/Our Services/Holiday Party Glam/icon-1.svg' },
+      { title: 'Salon Cut & Style', description: 'Full haircut and styling', iconPath: '/Holiday Proposal/Our Services/Holiday Party Glam/icon-3.svg' },
+      { title: 'Hot Towel Shave', description: 'Classic barbershop experience', iconPath: '/Holiday Proposal/Our Services/Holiday Party Glam/icon-4.svg' },
+      { title: 'Blowout', description: 'Volume and styling with hot tools', iconPath: '/Holiday Proposal/Our Services/Holiday Party Glam/Frame 1278723.svg' },
+    ],
+    features: ['Services for all hair types', 'Premium brand products', 'Sanitation between clients', 'Space left pristine'],
+  },
 };
 
 // Map various service type strings to their config keys
@@ -168,7 +186,8 @@ const getServiceConfigKey = (serviceType: string): string | null => {
   if (['headshot', 'headshots', 'headshot-hair-makeup'].includes(type)) return 'headshot';
   if (['nails', 'nails-service'].includes(type)) return 'nails';
   if (['facial', 'facials'].includes(type)) return 'facial';
-  if (['hair-makeup', 'hair', 'makeup'].includes(type)) return 'hair-makeup';
+  if (type === 'hair') return 'hair';
+  if (['hair-makeup', 'makeup'].includes(type)) return 'hair-makeup';
 
   return null;
 };

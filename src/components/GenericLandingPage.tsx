@@ -3000,7 +3000,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold mb-6 md:mb-8" style={{ color: 'white', letterSpacing: '-0.02em', lineHeight: '1.15' }}>
             {isReturningClient
               ? 'Ready to Lock In Your 2026 Quarterly Program?'
-              : 'Ready to Transform Your Workplace?'
+              : 'Ready to Make Wellness Effortless?'
             }
           </h2>
           <p className="text-base md:text-xl lg:text-2xl mb-8 md:mb-12 max-w-3xl mx-auto" style={{ color: 'white', opacity: 0.8, lineHeight: '1.6' }}>

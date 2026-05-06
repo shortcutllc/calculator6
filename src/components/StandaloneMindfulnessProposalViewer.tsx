@@ -281,7 +281,7 @@ export const StandaloneMindfulnessProposalViewer: React.FC = () => {
         if (!customization.programIntroCopy && (data.client_name || displayDataToUse?.clientName)) {
           const clientName = data.client_name || displayDataToUse?.clientName || 'your team';
           // Add default intro copy template if it doesn't exist
-          customization.programIntroCopy = `This comprehensive mindfulness program is derived from the evidence-based eight-week Mindfulness-Based Stress Reduction (MBSR) program developed by Jon Kabat-Zinn. We've designed this program to be tailored to ${clientName}'s team, blending proven practices with a flexible approach that can be delivered over three months or a custom, extended schedule to fit seamlessly into your workplace culture.
+          customization.programIntroCopy = `This comprehensive mindfulness program is derived from the evidence-based eight-week Mindfulness-Based Stress Reduction (MBSR) program developed by Jon Kabat-Zinn. We've designed this program to be tailored to ${clientName}'s team, blending proven practices with a flexible approach that can be delivered over three months or a custom, extended schedule that fits your workplace's pace.
 
 We understand the importance of offering impactful wellness solutions that respect your team's time and maintain consistency.`;
         }
@@ -980,7 +980,7 @@ We understand the importance of offering impactful wellness solutions that respe
                   </p>
                   <div className="pt-4 border-t-2 border-gray-200">
                     <p className="text-base text-text-dark leading-relaxed font-medium">
-                      Courtney Schulnick, an attorney with two decades of experience, now leads mindfulness programs at Shortcut. With extensive training from the Myrna Brind Center for Mindfulness, she brings a unique perspective to corporate wellness. Her workshops help employees achieve balance and vitality, transforming workplace well-being and productivity.
+                      Courtney Schulnick, an attorney with two decades of experience, now leads mindfulness programs at Shortcut. With extensive training from the Myrna Brind Center for Mindfulness, she brings a unique perspective to corporate wellness. Her workshops give employees real tools for handling stress, sharpening focus, and getting through the harder parts of work.
                     </p>
                   </div>
                 </div>
@@ -1140,19 +1140,19 @@ We understand the importance of offering impactful wellness solutions that respe
             <div id="carousel" className="flex overflow-x-auto pb-6 gap-8 hide-scrollbar">
               <div className="card-medium min-w-[360px] max-w-[420px] flex-none overflow-hidden flex flex-col p-0">
                 <div className="w-full aspect-[4/3] relative overflow-hidden">
-                  <img 
+                  <img
                     src="/Seamless Experience.png"
-                    alt="Seamless wellness experiences by Shortcut"
+                    alt="Shortcut handles the logistics so your team just shows up"
                     className="w-full h-full object-cover"
                     onError={(e) => console.error('Image failed to load:', (e.target as HTMLImageElement).src)}
                   />
                 </div>
                 <div className="p-6 flex-grow flex flex-col">
                   <h3 className="text-xl font-bold text-shortcut-blue mb-3">
-                    Seamless Experiences
+                    Effortless Logistics
                   </h3>
                   <p className="text-base text-text-dark leading-relaxed flex-grow">
-                    We make wellness effortless. Easily integrate our services and create experiences your team will love.
+                    Schedule once. We handle setup, booking, and cleanup. Your team just shows up.
                   </p>
                 </div>
               </div>
@@ -1171,7 +1171,7 @@ We understand the importance of offering impactful wellness solutions that respe
                     Revitalizing Impact
                   </h3>
                   <p className="text-base text-text-dark leading-relaxed flex-grow">
-                    Transform office days into feel-good moments. Boost engagement and watch your team thrive with our revitalizing services.
+                    Real wellness, right between meetings. Less stress, sharper focus, more energy in the room.
                   </p>
                 </div>
               </div>

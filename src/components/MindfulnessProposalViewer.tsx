@@ -157,7 +157,7 @@ const MindfulnessProposalViewer: React.FC = () => {
         const customization = data.customization || {};
         if (!customization.programIntroCopy && data.client_name) {
           // Add default intro copy template if it doesn't exist
-          customization.programIntroCopy = `This comprehensive mindfulness program is derived from the evidence-based eight-week Mindfulness-Based Stress Reduction (MBSR) program developed by Jon Kabat-Zinn. We've designed this program to be tailored to ${data.client_name}'s team, blending proven practices with a flexible approach that can be delivered over three months or a custom, extended schedule to fit seamlessly into your workplace culture.
+          customization.programIntroCopy = `This comprehensive mindfulness program is derived from the evidence-based eight-week Mindfulness-Based Stress Reduction (MBSR) program developed by Jon Kabat-Zinn. We've designed this program to be tailored to ${data.client_name}'s team, blending proven practices with a flexible approach that can be delivered over three months or a custom, extended schedule that fits your workplace's pace.
 
 We understand the importance of offering impactful wellness solutions that respect your team's time and maintain consistency.`;
         }
