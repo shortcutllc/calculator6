@@ -190,6 +190,34 @@ const WorkhumanPersonalNoteQueue: React.FC = () => {
               Also include unassigned personal-note leads
             </label>
           </div>
+
+          {/* Jump-to-lead dropdown — alphabetical so teammates can skip
+              ahead without clicking Prev/Next through the whole queue.
+              Marked indicators show tier and send status at a glance. */}
+          {leads.length > 1 && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <label className="text-xs text-gray-500 font-medium mb-1 block">Jump to lead</label>
+              <select
+                value={index}
+                onChange={e => setIndex(Number(e.target.value))}
+                className="w-full text-sm border border-gray-200 rounded px-2 py-1.5 bg-white"
+              >
+                {leads
+                  .map((l, i) => ({ l, i }))
+                  .sort((a, b) => (a.l.name || '').localeCompare(b.l.name || ''))
+                  .map(({ l, i }) => {
+                    const tier = l.tier_1a ? ' [1A]' : l.tier_1b ? ' [1B]' : '';
+                    const sent = sentLeadIds.has(l.id) ? ' ✓ sent' : '';
+                    const company = l.company ? ` · ${l.company}` : '';
+                    return (
+                      <option key={l.id} value={i}>
+                        {l.name}{tier}{company}{sent}
+                      </option>
+                    );
+                  })}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Empty state */}
