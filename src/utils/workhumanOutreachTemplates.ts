@@ -13,7 +13,7 @@ export const SENDER_NAMES: SenderName[] = [
   'Caren Skutch',
 ];
 
-export type OutreachChannel = 'workhuman_dm' | 'linkedin_connect' | 'linkedin_dm' | 'email';
+export type OutreachChannel = 'workhuman_dm' | 'linkedin_connect' | 'linkedin_dm' | 'email' | 'sms';
 
 export interface Template {
   id: string;
@@ -207,6 +207,8 @@ export interface TemplateVars {
   firstName: string;
   company: string;
   senderName: string;
+  /** First name slice of senderName, used by SMS where full name reads stiff. */
+  senderFirstName?: string;
   landingPageUrl?: string;
   companySlug?: string;
   /** Friendly day label for booking confirmations (e.g. "Monday, April 27"). */
@@ -233,8 +235,15 @@ export function fillTemplate(body: string, vars: TemplateVars): string {
     : 'https://proposals.getshortcut.co/workhuman/recharge';
   const url = vars.landingPageUrl || fallbackUrl;
 
+  // If senderFirstName isn't passed, derive it from senderName so older
+  // callers don't have to opt in just to use {sender_first_name}.
+  const senderFirstName = vars.senderFirstName
+    || (vars.senderName ? vars.senderName.split(/\s+/)[0] : '')
+    || 'Shortcut';
+
   return body
     .replace(/\{first_name\}/g, vars.firstName || 'there')
+    .replace(/\{sender_first_name\}/g, senderFirstName)
     .replace(/\{sender_name\}/g, vars.senderName || 'Shortcut')
     .replace(/\{company\}/g, vars.company || 'your team')
     .replace(/\{landing_page_url\}/g, url)
@@ -297,6 +306,24 @@ I'd love to set up a quick call to talk through what bringing Shortcut to {compa
 Talk soon,
 {sender_name}
 Shortcut | getshortcut.co`,
+};
+
+/**
+ * Short follow-up text message for personal-noted leads. Sent AFTER the
+ * email has gone out. Casual, exclamation-OK because SMS culture.
+ * Goes through the user's own Messages app, not an automated channel,
+ * so this is a copy-paste-only template (no spintax, no merge edge cases).
+ *
+ * Note: brand voice forbids em dashes between clauses, so we lean on
+ * commas and short sentences instead.
+ */
+export const PERSONAL_NOTE_FOLLOWUP_SMS: Template = {
+  id: 'personal_note_followup_sms',
+  channel: 'sms',
+  label: 'Personal Note Follow-Up SMS',
+  description: 'Quick text nudge after the email goes out. Copy and paste into Messages.',
+  charLimit: 320,
+  body: `Hi {first_name}, {sender_first_name} from Shortcut here. It was a pleasure meeting you at Workhuman last week and I shot over a quick email to continue the conversation. Just wanted to make sure it reached your inbox. Chat soon!`,
 };
 
 /** A scenario the booth conversation matched, with the matching caveat copy. */

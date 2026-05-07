@@ -67,7 +67,7 @@ export const ASSIGNEE_NAMES: AssigneeName[] = [
   'Caren Skutch',
 ];
 
-export type OutreachChannel = 'workhuman_dm' | 'linkedin_connect' | 'linkedin_dm' | 'email';
+export type OutreachChannel = 'workhuman_dm' | 'linkedin_connect' | 'linkedin_dm' | 'email' | 'sms';
 
 export interface LeadOutreachLog {
   id: string;

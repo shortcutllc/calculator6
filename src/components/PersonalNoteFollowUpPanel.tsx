@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Copy, Check, Mail, Send, Sparkles, StickyNote, Loader2, RefreshCw, CheckCircle2, Linkedin, ExternalLink } from 'lucide-react';
+import { Copy, Check, Mail, Send, Sparkles, StickyNote, Loader2, RefreshCw, CheckCircle2, Linkedin, ExternalLink, MessageSquare } from 'lucide-react';
 import { WorkhumanLead } from '../types/workhumanLead';
 import {
   PERSONAL_NOTE_FOLLOWUP_EMAIL,
+  PERSONAL_NOTE_FOLLOWUP_SMS,
   PERSONAL_NOTE_CAVEATS,
   PERSONAL_NOTE_SUBJECT_LINES,
   POST_EVENT_LINKEDIN_CONNECT,
@@ -119,6 +120,7 @@ export function PersonalNoteFollowUpPanel({
   const [sentAt, setSentAt] = useState<string | null>(null);
   const [sendingMark, setSendingMark] = useState(false);
   const [liSentAt, setLiSentAt] = useState<string | null>(null);
+  const [smsSentAt, setSmsSentAt] = useState<string | null>(null);
 
   // Re-suggest when the lead changes (different notes), and load any
   // previously-saved draft from localStorage so the teammate picks up
@@ -133,6 +135,7 @@ export function PersonalNoteFollowUpPanel({
     setAiMissing([]);
     setSentAt(null);
     setLiSentAt(null);
+    setSmsSentAt(null);
     // Load draft from localStorage if one exists for this lead
     try {
       const draft = localStorage.getItem(`workhuman_pn_draft_${lead.id}`);
@@ -154,6 +157,10 @@ export function PersonalNoteFollowUpPanel({
         entry.template_id === POST_EVENT_LINKEDIN_CONNECT.id
       );
       if (liSend) setLiSentAt(liSend.sent_at);
+      const smsSend = log.find(entry =>
+        entry.template_id === PERSONAL_NOTE_FOLLOWUP_SMS.id
+      );
+      if (smsSend) setSmsSentAt(smsSend.sent_at);
     }).catch(() => { /* non-fatal */ });
     if (onSentStateChange) onSentStateChange(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,6 +337,57 @@ export function PersonalNoteFollowUpPanel({
       ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(lead.name + (lead.company ? ' ' + lead.company : ''))}`
       : null);
 
+  // SMS follow-up — short text the teammate copies and sends from their
+  // own phone via Messages. Pick the best phone we have, in priority order:
+  // signup_phone (entered at booth, almost always cell) > mobile_phone
+  // (enrichment) > phone (general). Skip work_phone — that's an office line.
+  const smsPhoneRaw = lead.signup_phone || lead.mobile_phone || lead.phone || null;
+  const smsPhoneDigits = smsPhoneRaw ? (smsPhoneRaw.match(/\d/g) || []).join('') : '';
+  // Format for sms: link. iOS expects E.164 (+1XXXXXXXXXX), works on macOS too.
+  const smsPhoneE164 = smsPhoneDigits.length === 10
+    ? `+1${smsPhoneDigits}`
+    : smsPhoneDigits.length === 11 && smsPhoneDigits.startsWith('1')
+      ? `+${smsPhoneDigits}`
+      : smsPhoneDigits.length >= 10 ? `+${smsPhoneDigits}` : null;
+  // Pretty display: (415) 555-1234 for 10-digit US, raw otherwise.
+  const smsPhoneDisplay = smsPhoneDigits.length === 10
+    ? `(${smsPhoneDigits.slice(0, 3)}) ${smsPhoneDigits.slice(3, 6)}-${smsPhoneDigits.slice(6)}`
+    : smsPhoneRaw;
+  const senderFirstName = (senderName || '').split(/\s+/)[0] || senderName;
+  const smsBody = fillTemplate(PERSONAL_NOTE_FOLLOWUP_SMS.body, {
+    ...vars,
+    senderFirstName,
+  });
+
+  // sms: URL scheme — Apple uses `&body=` per their docs; iOS and macOS both
+  // accept it. Android also accepts `&body=` in modern versions. Rendered as
+  // an actual <a href> below so macOS hands the URL to Messages.app reliably
+  // (assigning to window.location is sometimes silently blocked by the
+  // browser when the click isn't part of a same-tick user gesture).
+  const smsHref = smsPhoneE164
+    ? `sms:${smsPhoneE164}&body=${encodeURIComponent(smsBody)}`
+    : null;
+
+  // Click handler runs synchronously BEFORE the browser hands the sms: URL
+  // off to Messages.app, so the clipboard write and outreach log fire even
+  // if the OS swallows the protocol invocation.
+  const handleSmsClick = async () => {
+    if (!smsHref) return;
+    try { await navigator.clipboard.writeText(smsBody); } catch (_) { /* non-fatal */ }
+    setCopiedField('sms_action');
+    setTimeout(() => setCopiedField(null), 1500);
+    const ok = await logOutreach({
+      leadId: lead.id,
+      channel: 'sms',
+      templateId: PERSONAL_NOTE_FOLLOWUP_SMS.id,
+      senderName,
+      messagePreview: smsBody.substring(0, 500),
+    });
+    if (ok) setSmsSentAt(new Date().toISOString());
+    // Don't call preventDefault — let the <a href="sms:..."> navigate so
+    // macOS routes the URL to Messages.app via the registered handler.
+  };
+
   const sendLinkedInConnect = async () => {
     if (!liProfileUrl) return;
     // Copy the connection note to clipboard, then open the profile.
@@ -483,6 +541,51 @@ export function PersonalNoteFollowUpPanel({
           {liSentAt ? <><CheckCircle2 size={12} /> Sent {new Date(liSentAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>
             : <><ExternalLink size={12} /> {lead.linkedin_url ? 'Connect on LinkedIn' : 'Search LinkedIn'}</>}
         </button>
+      </div>
+
+      {/* SMS follow-up — quick text nudge after the email goes out.
+          Same shape as the LinkedIn block above: shows the body, copy
+          button, and a tap-to-Messages action. Disabled when we have
+          no phone for the lead. */}
+      <div className="bg-emerald-50 border border-emerald-200 rounded p-2.5 flex items-center gap-2 flex-wrap">
+        <MessageSquare size={16} className="text-emerald-700 shrink-0" />
+        <div className="flex-1 min-w-[120px]">
+          <div className="text-xs font-medium text-gray-900">
+            Text follow-up
+            {smsPhoneDisplay && (
+              <span className="ml-1.5 text-[11px] font-normal text-gray-600">to {smsPhoneDisplay}</span>
+            )}
+            {!smsPhoneDisplay && (
+              <span className="ml-1.5 text-[11px] font-normal text-amber-700">no phone on file</span>
+            )}
+          </div>
+          <div className="text-[11px] text-gray-600 truncate" title={smsBody}>{smsBody}</div>
+        </div>
+        <button
+          onClick={() => copy(smsBody, 'sms')}
+          className="text-[11px] text-gray-700 hover:text-gray-900 inline-flex items-center gap-1 px-2 py-1 border border-gray-200 rounded hover:bg-white"
+          title="Copy just the message body"
+        >
+          {copiedField === 'sms' ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy text</>}
+        </button>
+        {smsHref ? (
+          <a
+            href={smsHref}
+            onClick={handleSmsClick}
+            className={`text-xs font-medium inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-white whitespace-nowrap ${smsSentAt ? 'bg-green-600 hover:bg-green-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+            title="Opens Messages.app on macOS (or the system SMS app on iOS) with this lead's number and the message body pre-filled"
+          >
+            {smsSentAt ? <><CheckCircle2 size={12} /> Sent {new Date(smsSentAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>
+              : <><ExternalLink size={12} /> Open in Messages</>}
+          </a>
+        ) : (
+          <span
+            className="text-xs font-medium inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-white whitespace-nowrap bg-emerald-600 opacity-50 cursor-not-allowed"
+            title="No phone on file — add one to the lead to enable SMS"
+          >
+            <ExternalLink size={12} /> Open in Messages
+          </span>
+        )}
       </div>
 
       {/* Subject line */}
