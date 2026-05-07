@@ -64,7 +64,9 @@ const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
 const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesigns'));
 const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
 const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
-const WorkhumanOutreachQueue = lazy(() => import('./components/WorkhumanOutreachQueue'));
+// WorkhumanOutreachQueue (pre-event Tier-1A queue) is no longer routed —
+// /workhuman-leads/outreach now redirects to /personal-notes. Component is
+// kept on disk in case the pre-event flow gets revived for a future event.
 const WorkhumanPersonalNoteQueue = lazy(() => import('./components/WorkhumanPersonalNoteQueue'));
 const WorkhumanBooth = lazy(() => import('./components/WorkhumanBooth'));
 const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
@@ -477,20 +479,17 @@ function App() {
                   </PrivateRoute>
                 }
               />
-              {/* Workhuman Rapid Outreach queue — one lead at a time */}
+              {/* Legacy pre-event outreach queue. The post-event personal-note
+                  queue at /personal-notes is now the single Rapid Outreach
+                  surface — its filter (manual notes + assigned_to) supersedes
+                  the old Tier-1A-only filter, which silently hid most of a
+                  teammate's actionable leads (e.g. all Tier 1B + non-tiered
+                  manual-noted ones). Redirect existing bookmarks rather than
+                  surface a queue that misses their leads. WorkhumanOutreachQueue
+                  is kept around in case we ever want to revive it. */}
               <Route
                 path="/workhuman-leads/outreach"
-                element={
-                  <PrivateRoute>
-                    <Suspense fallback={
-                      <div className="min-h-screen flex items-center justify-center">
-                        <LoadingSpinner size="large" />
-                      </div>
-                    }>
-                      <WorkhumanOutreachQueue />
-                    </Suspense>
-                  </PrivateRoute>
-                }
+                element={<Navigate to="/workhuman-leads/personal-notes" replace />}
               />
               {/* Workhuman Personal-Note Outreach queue — post-event, hand-written follow-ups */}
               <Route
