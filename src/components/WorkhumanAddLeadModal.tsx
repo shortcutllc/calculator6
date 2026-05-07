@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, UserPlus, Loader2 } from 'lucide-react';
 import { createLead } from '../services/WorkhumanLeadService';
 import { WorkhumanLead, ASSIGNEE_NAMES, AssigneeName } from '../types/workhumanLead';
+import { ensureStampedNote } from '../utils/notes';
+import { useAuth } from '../contexts/AuthContext';
+
+// Auth email → first name for stamping notes saved via this modal.
+const EMAIL_TO_FIRST_NAME: Record<string, string> = {
+  'will@getshortcut.co': 'Will',
+  'jaimie@getshortcut.co': 'Jaimie',
+  'marc@getshortcut.co': 'Marc',
+  'caren@getshortcut.co': 'Caren',
+};
 
 interface Props {
   onClose: () => void;
@@ -11,6 +21,11 @@ interface Props {
 type TierChoice = 'standard' | 'tier_1a' | 'tier_1b';
 
 export const WorkhumanAddLeadModal: React.FC<Props> = ({ onClose, onCreated }) => {
+  const { user } = useAuth();
+  const myFirstName = useMemo(
+    () => EMAIL_TO_FIRST_NAME[(user?.email || '').toLowerCase()] || 'Team',
+    [user]
+  );
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
@@ -42,7 +57,9 @@ export const WorkhumanAddLeadModal: React.FC<Props> = ({ onClose, onCreated }) =
         tier_1a: tierChoice === 'tier_1a',
         tier_1b: tierChoice === 'tier_1b',
         assigned_to: assignedTo || null,
-        notes: leadNotes.trim() || undefined,
+        // Stamp on save so the lead surfaces in Rapid Outreach. If the
+        // teammate already typed a [stamp · Name] tag, we leave it alone.
+        notes: ensureStampedNote(leadNotes, myFirstName) || undefined,
       });
       if (!created) {
         setError('Could not create lead. Email may already exist or the request failed.');

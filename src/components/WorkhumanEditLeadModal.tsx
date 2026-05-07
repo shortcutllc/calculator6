@@ -1,7 +1,18 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, Pencil, Loader2 } from 'lucide-react';
 import { updateLead } from '../services/WorkhumanLeadService';
 import { WorkhumanLead, ASSIGNEE_NAMES, AssigneeName } from '../types/workhumanLead';
+import { ensureStampedNote } from '../utils/notes';
+import { useAuth } from '../contexts/AuthContext';
+
+// Auth email → first name for stamping notes saved via this modal.
+// Mirrors EMAIL_TO_ASSIGNEE in WorkhumanLeads.tsx.
+const EMAIL_TO_FIRST_NAME: Record<string, string> = {
+  'will@getshortcut.co': 'Will',
+  'jaimie@getshortcut.co': 'Jaimie',
+  'marc@getshortcut.co': 'Marc',
+  'caren@getshortcut.co': 'Caren',
+};
 
 interface Props {
   lead: WorkhumanLead;
@@ -18,6 +29,11 @@ function tierFromLead(lead: WorkhumanLead): TierChoice {
 }
 
 export const WorkhumanEditLeadModal: React.FC<Props> = ({ lead, onClose, onSaved }) => {
+  const { user } = useAuth();
+  const myFirstName = useMemo(
+    () => EMAIL_TO_FIRST_NAME[(user?.email || '').toLowerCase()] || 'Team',
+    [user]
+  );
   const [name, setName] = useState(lead.name || '');
   const [email, setEmail] = useState(lead.email || '');
   const [company, setCompany] = useState(lead.company || '');
@@ -63,7 +79,10 @@ export const WorkhumanEditLeadModal: React.FC<Props> = ({ lead, onClose, onSaved
       tier_1a: tierChoice === 'tier_1a',
       tier_1b: tierChoice === 'tier_1b',
       assigned_to: assignedTo || null,
-      notes: notes.trim() || null,
+      // Auto-stamp notes that were typed without an author tag, so the
+      // Rapid Outreach queue's manual-note regex still picks them up.
+      // Existing stamped content is preserved unchanged.
+      notes: ensureStampedNote(notes, myFirstName),
     };
 
     const result = await updateLead(lead.id, patch);
