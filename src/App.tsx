@@ -51,6 +51,7 @@ const GenericLandingPageManager = lazy(() => import('./components/GenericLanding
 const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
 const Plan2026 = lazy(() => import('./components/Plan2026'));
 const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
+const BrokerPlan = lazy(() => import('./components/BrokerPlan'));
 const CLELandingPage = lazy(() => import('./components/CLELandingPage'));
 const ClientEmailManager = lazy(() => import('./components/ClientEmailManager'));
 const InvoiceManager = lazy(() => import('./components/InvoiceManager'));
@@ -98,6 +99,7 @@ function App() {
     location.pathname === '/corporatepartnerships' ||
     location.pathname === '/2026-plan' ||
     location.pathname === '/2026-plan-ml' ||
+    location.pathname === '/broker-plan' ||
     location.pathname === '/cle' ||
     location.pathname.startsWith('/cle/') ||
     location.pathname === '/195-nassau' ||
@@ -791,6 +793,18 @@ function App() {
                     </div>
                   }>
                     <Plan2026ML />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/broker-plan"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BrokerPlan />
                   </Suspense>
                 }
               />
