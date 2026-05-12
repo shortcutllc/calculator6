@@ -61,6 +61,25 @@ export interface Service {
   participants?: string | number;
   fixedPrice?: number;
   mindfulnessType?: 'intro' | 'drop-in' | 'mindful-movement';
+  // Stable identifier for the named mindfulness service (preserves identity
+  // past the picker). Falls back to mindfulnessType + classLength when absent
+  // on legacy services.
+  mindfulnessServiceId?:
+    | 'mindful-eating'
+    | 'movement-scan'
+    | 'intro-mindfulness-60'
+    | 'speak-listen'
+    | 'intro' // legacy 40min
+    | 'drop-in' // legacy 30min
+    | 'mindful-movement'; // legacy 60min
+  // Delivery format for mindfulness sessions. Defaults to 'in-person' if absent.
+  mindfulnessFormat?: 'in-person' | 'virtual' | 'blend';
+  // Marketing-facing name of the picked mindfulness service (preserved from
+  // ClientProposalBuilder's preset). Optional — older services may lack it.
+  mindfulnessServiceName?: string;
+  // Marketing-facing description copy. Optional — viewers fall back to the
+  // built-in description map keyed off mindfulnessServiceId / mindfulnessType.
+  mindfulnessDescription?: string;
   // Massage-specific fields
   massageType?: 'chair' | 'table' | 'massage';
   // Nails-specific fields

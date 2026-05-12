@@ -241,25 +241,73 @@ const getServiceImagePath = (serviceType: string): string => {
   }
 };
 
+// Canonical descriptions for the 4 named mindfulness services. Keyed off the
+// mindfulnessServiceId stored on the service object (set by ClientProposalBuilder).
+const MINDFULNESS_SERVICE_DESCRIPTIONS: Record<string, string> = {
+  'mindful-eating': 'Slow down and reconnect through mindful eating and breath awareness. This 30-minute session uses the five senses to invite deeper presence and calm and bring ease to the daily rush.',
+  'movement-scan': 'Release tension with gentle movement and a guided body scan. This 30-minute course awakens body awareness, eases stress, and restores balance.',
+  'intro-mindfulness-60': 'In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.',
+  'speak-listen': 'Learn mindfulness tools to step out of reactivity and more consciously respond. This 60-minute workshop introduces calming techniques to ease stress and deepen meaningful connection.',
+};
+
 // Helper function to get mindfulness service description
 const getMindfulnessDescription = (service: any): string => {
   if (service.serviceType !== 'mindfulness') return '';
-  
-  // Check if it's Mindful Movement variant
+
+  // 1. Prefer description saved on the service itself (most authoritative).
+  if (service.mindfulnessDescription) return service.mindfulnessDescription;
+
+  // 2. Prefer the canonical description for the named service.
+  if (service.mindfulnessServiceId && MINDFULNESS_SERVICE_DESCRIPTIONS[service.mindfulnessServiceId]) {
+    return MINDFULNESS_SERVICE_DESCRIPTIONS[service.mindfulnessServiceId];
+  }
+
+  // 3. Legacy fallback — infer from mindfulnessType + classLength.
   if (service.mindfulnessType === 'mindful-movement') {
     return "Mindful movement is a wonderful way to connect more fully with the present moment by resting attention on sensations that arise within the body moment to moment.";
   }
-  
+
   const classLength = service.classLength || 40;
-  const participants = service.participants || 'unlimited';
-  
+
   if (classLength === 40 || classLength === 60) {
     return "In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.";
   } else if (classLength === 30) {
     return "Our 30-minute drop-in sessions offer a quick and easy way to step out of the \"doing mode\" and into a space of rest and rejuvenation.";
   }
-  
+
   return "Mindfulness meditation session to help your team reduce stress and improve focus.";
+};
+
+// Display name for a mindfulness service — prefers stored name, falls back to
+// canonical name for the service ID, then a generic label.
+const MINDFULNESS_SERVICE_NAMES: Record<string, string> = {
+  'mindful-eating': 'Mindful Eating & Breathe Awareness',
+  'movement-scan': 'Movement & Scan',
+  'intro-mindfulness-60': 'Intro to Mindfulness',
+  'speak-listen': 'Speak & Listen',
+  'intro': 'Intro to Mindfulness (40 min)',
+  'drop-in': 'Drop-in Session',
+  'mindful-movement': 'Mindful Movement',
+};
+
+const getMindfulnessServiceName = (service: any): string => {
+  if (service.mindfulnessServiceName) return service.mindfulnessServiceName;
+  if (service.mindfulnessServiceId && MINDFULNESS_SERVICE_NAMES[service.mindfulnessServiceId]) {
+    return MINDFULNESS_SERVICE_NAMES[service.mindfulnessServiceId];
+  }
+  if (service.mindfulnessType && MINDFULNESS_SERVICE_NAMES[service.mindfulnessType]) {
+    return MINDFULNESS_SERVICE_NAMES[service.mindfulnessType];
+  }
+  return 'Mindfulness Session';
+};
+
+const formatMindfulnessFormat = (format: string | undefined): string => {
+  switch (format) {
+    case 'virtual': return 'Virtual session';
+    case 'blend': return 'Hybrid (in-person + virtual)';
+    case 'in-person':
+    default: return 'In-person session';
+  }
 };
 
 // Helper function to get service descriptions
@@ -3331,22 +3379,42 @@ The Shortcut Team`);
 
                                     <div className="grid gap-0">
                                       {service.serviceType === 'mindfulness' ? (
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                                          <span className="text-sm md:text-base font-bold text-shortcut-blue">Class Length:</span>
-                                          <div className="font-bold text-text-dark">
-                                            {isEditing ? (
-                                              <EditableField
-                                                value={String(service.classLength || 40)}
-                                                onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'classLength'], typeof value === 'string' ? parseFloat(value) || 40 : value)}
-                                                isEditing={isEditing}
-                                                type="number"
-                                                suffix=" minutes"
-                                              />
-                                            ) : (
-                                              <span>{service.classLength || 40} minutes</span>
-                                            )}
+                                        <>
+                                          <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                            <span className="text-sm md:text-base font-bold text-shortcut-blue">Class Length:</span>
+                                            <div className="font-bold text-text-dark">
+                                              {isEditing ? (
+                                                <EditableField
+                                                  value={String(service.classLength || 40)}
+                                                  onChange={(value) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'classLength'], typeof value === 'string' ? parseFloat(value) || 40 : value)}
+                                                  isEditing={isEditing}
+                                                  type="number"
+                                                  suffix=" minutes"
+                                                />
+                                              ) : (
+                                                <span>{service.classLength || 40} minutes</span>
+                                              )}
+                                            </div>
                                           </div>
-                                        </div>
+                                          <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                                            <span className="text-sm md:text-base font-bold text-shortcut-blue">Format:</span>
+                                            <div className="font-bold text-text-dark">
+                                              {isEditing ? (
+                                                <select
+                                                  value={service.mindfulnessFormat || 'in-person'}
+                                                  onChange={(e) => handleFieldChange(['services', location, date, 'services', serviceIndex, 'mindfulnessFormat'], e.target.value)}
+                                                  className="px-3 py-2 border-2 border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                                                >
+                                                  <option value="in-person">In-person</option>
+                                                  <option value="virtual">Virtual</option>
+                                                  <option value="blend">Hybrid (in-person + virtual)</option>
+                                                </select>
+                                              ) : (
+                                                <span>{formatMindfulnessFormat(service.mindfulnessFormat)}</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </>
                                       ) : (
                                         <div className="flex justify-between items-center py-3 border-b border-gray-200">
                                           <span className="text-sm md:text-base font-bold text-shortcut-blue">Total Hours:</span>

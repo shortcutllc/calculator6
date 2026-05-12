@@ -29,9 +29,43 @@ const SERVICE_PRESETS = {
     { appointments: 60, eventTime: 6, pros: 5, price: 4050 }
   ],
   mindfulness: [
-    { appointments: 1, eventTime: 0.5, pros: 1, price: 1225, name: 'Mindful Eating & Breathe Awareness', popular: true },
-    { appointments: 1, eventTime: 0.5, pros: 1, price: 1225, name: 'Movement & Scan' },
-    { appointments: 1, eventTime: 1, pros: 1, price: 1500, name: 'Speak & Listen' }
+    {
+      appointments: 1,
+      eventTime: 0.5,
+      pros: 1,
+      price: 1250,
+      name: 'Mindful Eating & Breathe Awareness',
+      mindfulnessServiceId: 'mindful-eating',
+      description: 'Slow down and reconnect through mindful eating and breath awareness. This 30-minute session uses the five senses to invite deeper presence and calm and bring ease to the daily rush.',
+      popular: true,
+    },
+    {
+      appointments: 1,
+      eventTime: 0.5,
+      pros: 1,
+      price: 1250,
+      name: 'Movement & Scan',
+      mindfulnessServiceId: 'movement-scan',
+      description: 'Release tension with gentle movement and a guided body scan. This 30-minute course awakens body awareness, eases stress, and restores balance.',
+    },
+    {
+      appointments: 1,
+      eventTime: 1,
+      pros: 1,
+      price: 1350,
+      name: 'Intro to Mindfulness',
+      mindfulnessServiceId: 'intro-mindfulness-60',
+      description: 'In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.',
+    },
+    {
+      appointments: 1,
+      eventTime: 1,
+      pros: 1,
+      price: 1500,
+      name: 'Speak & Listen',
+      mindfulnessServiceId: 'speak-listen',
+      description: 'Learn mindfulness tools to step out of reactivity and more consciously respond. This 60-minute workshop introduces calming techniques to ease stress and deepen meaningful connection.',
+    },
   ]
 } as const;
 
@@ -638,10 +672,15 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
     
     // For mindfulness, use fixed price
     if (event.service === 'mindfulness') {
-      // Determine mindfulness type based on event time
-      let mindfulnessType = 'intro';
+      // Pick canonical service identity from the preset if available,
+      // otherwise fall back to deriving type from event time (legacy path).
+      const presetAny = effectivePreset as any;
+      const mindfulnessServiceId: string | undefined = presetAny.mindfulnessServiceId;
+      const serviceName: string | undefined = presetAny.name;
+      const description: string | undefined = presetAny.description;
+
+      let mindfulnessType: 'intro' | 'drop-in' | 'mindful-movement' = 'intro';
       let classLength = 40;
-      
       if (effectivePreset.eventTime === 0.5) {
         classLength = 30;
         mindfulnessType = 'drop-in';
@@ -649,8 +688,8 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
         classLength = 60;
         mindfulnessType = 'mindful-movement';
       }
-      
-      const serviceData = {
+
+      const serviceData: any = {
         serviceType: event.service,
         totalHours: effectivePreset.eventTime,
         numPros: effectivePreset.pros,
@@ -664,10 +703,15 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
         fixedPrice: effectivePreset.price,
         classLength: classLength,
         participants: defaults.participants || 'unlimited',
-        mindfulnessType: mindfulnessType
+        mindfulnessType: mindfulnessType,
+        mindfulnessFormat: 'in-person', // default; editable later in viewer
       };
 
-      // Calculate results for consistency
+      // Preserve named-service identity + description when picker provides them
+      if (mindfulnessServiceId) serviceData.mindfulnessServiceId = mindfulnessServiceId;
+      if (serviceName) serviceData.mindfulnessServiceName = serviceName;
+      if (description) serviceData.mindfulnessDescription = description;
+
       const results = calculateServiceResults(serviceData);
       return {
         ...serviceData,
