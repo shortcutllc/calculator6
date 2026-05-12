@@ -11,6 +11,20 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
+async function notifyEventOps(text, blocks) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL_EVENT_OPS;
+  if (!webhookUrl) return;
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, blocks })
+    });
+  } catch (err) {
+    console.error('Slack notification failed (non-fatal):', err.message);
+  }
+}
+
 export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method not allowed' };
@@ -101,37 +115,25 @@ export const handler = async (event) => {
       console.error('Failed to update agreement status:', updateError);
     }
 
-    // Slack notification
-    const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL_PROPOSALS;
-    if (slackWebhookUrl) {
-      try {
-        await fetch(slackWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: `✅ Agreement Signed: ${agreement.pro_name}`,
-            blocks: [
-              { type: 'header', text: { type: 'plain_text', text: '✅ Pro Agreement Signed!' } },
-              {
-                type: 'section',
-                fields: [
-                  { type: 'mrkdwn', text: `*Pro:* ${agreement.pro_name}` },
-                  { type: 'mrkdwn', text: `*Email:* ${agreement.pro_email}` },
-                  { type: 'mrkdwn', text: `*Status:* Completed` }
-                ]
-              }
-            ]
-          })
-        });
-      } catch (err) {
-        console.error('Slack notification failed (non-fatal):', err.message);
+    // Slack notification (event_ops channel)
+    await notifyEventOps(`✅ Agreement Signed: ${agreement.pro_name}`, [
+      { type: 'header', text: { type: 'plain_text', text: '✅ Pro Agreement Signed!' } },
+      {
+        type: 'section',
+        fields: [
+          { type: 'mrkdwn', text: `*Pro:* ${agreement.pro_name}` },
+          { type: 'mrkdwn', text: `*Email:* ${agreement.pro_email}` },
+          { type: 'mrkdwn', text: `*Status:* Completed` }
+        ]
       }
-    }
+    ]);
   }
 
   // Handle viewed events
   if (eventType === 'form.viewed' || eventType === 'submission.viewed') {
-    // Only upgrade from 'sent' — don't downgrade from 'completed' or 'opened'
+    // Only upgrade from 'sent' — don't downgrade from 'completed' or 'opened'.
+    // Slack notification is gated on this same transition so reopens by the
+    // pro don't spam the channel — one ping per agreement.
     if (agreement.status === 'sent') {
       await supabase
         .from('pro_agreements')
@@ -141,6 +143,18 @@ export const handler = async (event) => {
           updated_at: new Date().toISOString()
         })
         .eq('id', agreement.id);
+
+      await notifyEventOps(`👁️ Agreement Viewed: ${agreement.pro_name}`, [
+        { type: 'header', text: { type: 'plain_text', text: '👁️ Pro Agreement Viewed' } },
+        {
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: `*Pro:* ${agreement.pro_name}` },
+            { type: 'mrkdwn', text: `*Email:* ${agreement.pro_email}` },
+            { type: 'mrkdwn', text: `*Status:* Opened` }
+          ]
+        }
+      ]);
     }
   }
 

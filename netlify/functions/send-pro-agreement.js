@@ -111,7 +111,8 @@ Shortcut Wellness
 // --- Slack Notification ---
 
 async function notifySlack(text, blocks) {
-  const webhookUrl = process.env.SLACK_WEBHOOK_URL_PROPOSALS;
+  // Docuseal agreement notifications go to the event_ops channel.
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL_EVENT_OPS;
   if (!webhookUrl) return;
 
   try {
