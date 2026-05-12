@@ -28,17 +28,24 @@ netlify deploy --prod  # Deploy to production (Netlify CLI)
 
 ---
 
-## Deploy procedure — ALWAYS run all five steps
+## Deploy procedure — ALWAYS run all six steps
 
-A "deploy" means **shipping production AND committing the source AND pushing to origin** — never just one. Production (Netlify) and the git repo drift apart if any step is skipped, and that's how teammates pull a stale main.
+A "deploy" means **shipping production AND committing the source AND pushing to origin AND keeping local main in sync** — never just one. Production (Netlify), origin/main, and local main all drift apart if any step is skipped, and that's how teammates (or future-you) pull a stale main and overwrite work.
 
 ```
 1. KILL dev server          ps aux | grep -E 'vite|esbuild' | grep -v grep   → kill any hits
 2. BUILD                    source ~/.nvm/nvm.sh && npm run build
 3. DEPLOY                   see flag rules below — pick by what changed
 4. COMMIT (scoped)          git add <only the files for this change> && git commit -m "..."
-5. PUSH                     PATH="/opt/homebrew/bin:$PATH" git push origin main   (timeout ≥120s)
+5. PUSH                     PATH="/opt/homebrew/bin:$PATH" git push origin HEAD:main   (timeout ≥120s)
+6. SYNC LOCAL MAIN          fast-forward local main to origin/main — see below
 ```
+
+**Step 6 — fast-forward local main to origin/main:**
+- If working in a **worktree** (path contains `.claude/worktrees/`), local main is checked out in the parent repo. Run:
+  `git -C /Users/willnewton/Documents/GitHub/calculator6 fetch origin && git -C /Users/willnewton/Documents/GitHub/calculator6 merge --ff-only origin/main`
+- If working directly on the **main branch in the main repo**, you can skip this (commit + push already updated local main).
+- This must be a clean fast-forward. If it fails (non-FF), something is wrong with your push — investigate before forcing anything.
 
 **Step 3 — pick the right deploy command:**
 - Only `src/` (frontend) changed → `netlify deploy --prod --no-build` (fast — `--no-build` skips the redundant `npm run build` we just ran).
