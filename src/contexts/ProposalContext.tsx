@@ -342,6 +342,10 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         notes: '',
         is_test: originalProposal.is_test || false,
         proposal_type: originalProposal.proposal_type || 'event',
+        // Preserve pricing options so the duplicate shows them in edit mode
+        pricing_options: originalProposal.pricing_options || {},
+        selected_options: originalProposal.selected_options || {},
+        has_pricing_options: originalProposal.has_pricing_options || false,
         // Reset group fields - duplicate is independent
         proposal_group_id: null,
         option_name: null,
