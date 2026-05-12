@@ -35,10 +35,16 @@ A "deploy" means **shipping production AND committing the source AND pushing to 
 ```
 1. KILL dev server          ps aux | grep -E 'vite|esbuild' | grep -v grep   → kill any hits
 2. BUILD                    source ~/.nvm/nvm.sh && npm run build
-3. DEPLOY                   netlify deploy --prod --no-build
+3. DEPLOY                   see flag rules below — pick by what changed
 4. COMMIT (scoped)          git add <only the files for this change> && git commit -m "..."
 5. PUSH                     PATH="/opt/homebrew/bin:$PATH" git push origin main   (timeout ≥120s)
 ```
+
+**Step 3 — pick the right deploy command:**
+- Only `src/` (frontend) changed → `netlify deploy --prod --no-build` (fast — `--no-build` skips the redundant `npm run build` we just ran).
+- Anything under `netlify/functions/` changed → `netlify deploy --prod` (NO `--no-build`). On this version of netlify-cli, `--no-build` *also* short-circuits function bundling, so functions silently keep running the previously-bundled code. Drop the flag and let Netlify re-bundle.
+- Mixed (both changed) → `netlify deploy --prod` to be safe.
+- **Verify after deploy:** the log should show `Uploading N files` and `... N functions` where N > 0 for whatever you changed. If it says `Uploading 0 files` despite a function change, the bundle was cached — re-run without `--no-build`.
 
 Rules:
 - **Never commit `.env`, secrets, video/media (.mp4), `node_modules_old/`, vite.config.ts.timestamp-*, or any `supabase/.temp/*` cache files.**
