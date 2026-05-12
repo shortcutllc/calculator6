@@ -1,4 +1,6 @@
-exports.handler = async (event, context) => {
+import { createClient } from '@supabase/supabase-js';
+
+export const handler = async (event, context) => {
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -24,6 +26,48 @@ exports.handler = async (event, context) => {
 
     if (!eventType) {
       throw new Error('eventType is required');
+    }
+
+    // Throttle view notifications: if a prior view was recorded for this
+    // proposal within VIEW_NOTIFICATION_WINDOW_HOURS, suppress this Slack
+    // ping. The view row is still written by the client for analytics.
+    // Set VIEW_NOTIFICATION_WINDOW_HOURS=0 to disable throttling.
+    if (eventType === 'view' && proposalId) {
+      try {
+        const windowHours = parseInt(process.env.VIEW_NOTIFICATION_WINDOW_HOURS || '24', 10);
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (windowHours > 0 && supabaseUrl && serviceRoleKey) {
+          const supabase = createClient(supabaseUrl, serviceRoleKey);
+          const now = Date.now();
+          const cutoff = new Date(now - windowHours * 60 * 60 * 1000).toISOString();
+          // Exclude the just-inserted row (give the client insert ~30s headroom)
+          const before = new Date(now - 30 * 1000).toISOString();
+
+          const { count, error: countError } = await supabase
+            .from('proposal_views')
+            .select('*', { count: 'exact', head: true })
+            .eq('proposal_id', proposalId)
+            .gte('viewed_at', cutoff)
+            .lt('viewed_at', before);
+
+          if (!countError && (count || 0) > 0) {
+            console.log(`View notification throttled for ${proposalId}: ${count} prior view(s) in last ${windowHours}h`);
+            return {
+              statusCode: 200,
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ success: true, throttled: true, windowHours, priorViews: count }),
+            };
+          }
+        }
+      } catch (throttleErr) {
+        // Fail open — if the throttling check itself errors, send the notification.
+        console.error('View throttling check failed, sending notification anyway:', throttleErr);
+      }
     }
 
     // Get Slack webhook URL from environment variable
