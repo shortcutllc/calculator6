@@ -42,18 +42,20 @@ export const handler = async (event, context) => {
           const supabase = createClient(supabaseUrl, serviceRoleKey);
           const now = Date.now();
           const cutoff = new Date(now - windowHours * 60 * 60 * 1000).toISOString();
-          // Exclude the just-inserted row (give the client insert ~30s headroom)
-          const before = new Date(now - 30 * 1000).toISOString();
 
+          // The client awaits the proposal_views insert before calling this
+          // function, so the just-inserted row is committed and visible by the
+          // time we query. Total count >= 2 means there's at least one prior
+          // view in the window — throttle. count <= 1 means this is the only
+          // (or first-after-quiet) view — notify.
           const { count, error: countError } = await supabase
             .from('proposal_views')
             .select('*', { count: 'exact', head: true })
             .eq('proposal_id', proposalId)
-            .gte('viewed_at', cutoff)
-            .lt('viewed_at', before);
+            .gte('viewed_at', cutoff);
 
-          if (!countError && (count || 0) > 0) {
-            console.log(`View notification throttled for ${proposalId}: ${count} prior view(s) in last ${windowHours}h`);
+          if (!countError && (count || 0) > 1) {
+            console.log(`View notification throttled for ${proposalId}: ${count} view(s) in last ${windowHours}h`);
             return {
               statusCode: 200,
               headers: {
