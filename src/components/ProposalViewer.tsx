@@ -793,6 +793,22 @@ const ProposalViewer: React.FC = () => {
       ) || 0;
       const nextOrder = maxOrder + 1;
 
+      // Extract pricing options from displayData so the duplicate has them in
+      // the dedicated columns the viewer reads from.
+      const dupPricingOptions: any = {};
+      const dupSelectedOptions: any = {};
+      Object.entries(displayData.services || {}).forEach(([location, locationData]: [string, any]) => {
+        Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
+          dateData.services?.forEach((service: any, serviceIndex: number) => {
+            if (service.pricingOptions && service.pricingOptions.length > 0) {
+              const key = `${location}-${date}-${serviceIndex}`;
+              dupPricingOptions[key] = service.pricingOptions;
+              dupSelectedOptions[key] = service.selectedOption || 0;
+            }
+          });
+        });
+      });
+
       // Create duplicate proposal data
       const duplicateData = {
         data: displayData,
@@ -809,7 +825,10 @@ const ProposalViewer: React.FC = () => {
         option_name: `Option ${nextOrder}`,
         option_order: nextOrder,
         client_email: currentProposal.clientEmail,
-        client_logo_url: currentProposal.clientLogoUrl
+        client_logo_url: currentProposal.clientLogoUrl,
+        pricing_options: dupPricingOptions,
+        selected_options: dupSelectedOptions,
+        has_pricing_options: Object.keys(dupPricingOptions).length > 0
       };
 
       // If this is the first option (current proposal doesn't have a group), update it too
