@@ -59,6 +59,7 @@ const ProAgreementManager = lazy(() => import('./components/ProAgreementManager'
 const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'));
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
+const DraftKingsReport = lazy(() => import('./components/DraftKingsReport'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
@@ -104,6 +105,8 @@ function App() {
     location.pathname.startsWith('/cle/') ||
     location.pathname === '/195-nassau' ||
     location.pathname === '/lower-pyne' ||
+    location.pathname === '/draftkings' ||
+    location.pathname === '/draftkings-report' ||
     location.pathname.startsWith('/p/') ||
     location.pathname.startsWith('/r/') ||
     location.pathname.startsWith('/sign/') ||
@@ -856,6 +859,30 @@ function App() {
                     </div>
                   }>
                     <LowerPyneDashboard />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/draftkings"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <DraftKingsReport />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/draftkings-report"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <DraftKingsReport />
                   </Suspense>
                 }
               />
