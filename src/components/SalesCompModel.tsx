@@ -93,15 +93,23 @@ const EXIT_METRICS = {
   targetPurchaseHigh: 40_000_000,
 };
 
-// ── Equity kicker milestones ──
+// ── Equity grant structure ──
+// Base grant: 2% (590,000 shares) split into two tranches:
+//   - Tranche 1: 1% (295,000 shares) BACKDATED to July 2025
+//   - Tranche 2: 1% (295,000 shares) starting from SIGNING
+// Both tranches: 4-year vest with 1-year cliff
+const BACKDATED_SHARES = 295_000; // 1% backdated to July 2025
+const SIGNING_SHARES = 295_000;   // 1% from signing
+const BASE_SHARES = BACKDATED_SHARES + SIGNING_SHARES; // 2% upfront = 590,000 shares
+
+// Kickers: 4 milestones at +0.5% each = up to +2% (caps at 4% total)
 const EQUITY_KICKERS = [
-  { milestone: 250_000, bonusShares: 73_750, label: '$250K ARR' },
-  { milestone: 500_000, bonusShares: 73_750, label: '$500K ARR' },
-  { milestone: 750_000, bonusShares: 73_750, label: '$750K ARR' },
-  { milestone: 1_000_000, bonusShares: 73_750, label: '$1M ARR' },
+  { milestone: 250_000, bonusShares: 147_500, label: '$250K ARR' },
+  { milestone: 500_000, bonusShares: 147_500, label: '$500K ARR' },
+  { milestone: 750_000, bonusShares: 147_500, label: '$750K ARR' },
+  { milestone: 1_000_000, bonusShares: 147_500, label: '$1M ARR' },
 ];
-const BASE_SHARES = 295_000;
-const MAX_KICKER_SHARES = EQUITY_KICKERS.reduce((s, k) => s + k.bonusShares, 0); // 295,000 total bonus = doubles to 2%
+const MAX_KICKER_SHARES = EQUITY_KICKERS.reduce((s, k) => s + k.bonusShares, 0); // 590,000 = 2% bonus → 4% ceiling
 
 // ── Comp structure presets with accelerators ──
 interface CompStructure {
@@ -136,41 +144,41 @@ const COMP_STRUCTURES: CompStructure[] = [
     id: 'all-commission',
     label: 'All Commission',
     baseSalary: 0,
-    tiers: [{ upTo: Infinity, rate: 20 }],
-    description: 'Flat 20% from dollar one',
+    tiers: [{ upTo: Infinity, rate: 15 }],
+    description: 'Flat 15% from dollar one',
   },
   {
     id: 'low-base',
     label: 'Low Base',
-    baseSalary: 40_000,
+    baseSalary: 30_000,
     tiers: [
-      { upTo: 500_000, rate: 12 },
-      { upTo: 1_000_000, rate: 16 },
-      { upTo: Infinity, rate: 20 },
+      { upTo: 500_000, rate: 10 },
+      { upTo: 1_000_000, rate: 12 },
+      { upTo: Infinity, rate: 15 },
     ],
-    description: '$40K base + accelerators',
+    description: '$30K base + accelerators',
   },
   {
     id: 'mid-base',
     label: 'Mid Base',
-    baseSalary: 60_000,
+    baseSalary: 50_000,
     tiers: [
-      { upTo: 500_000, rate: 10 },
-      { upTo: 1_000_000, rate: 15 },
-      { upTo: Infinity, rate: 20 },
+      { upTo: 500_000, rate: 8 },
+      { upTo: 1_000_000, rate: 11 },
+      { upTo: Infinity, rate: 15 },
     ],
-    description: '$60K base + accelerators',
+    description: '$50K base + accelerators',
   },
   {
     id: 'full-base',
     label: 'Full Base',
-    baseSalary: 90_000,
+    baseSalary: 75_000,
     tiers: [
-      { upTo: 500_000, rate: 8 },
-      { upTo: 1_000_000, rate: 12 },
-      { upTo: Infinity, rate: 18 },
+      { upTo: 500_000, rate: 6 },
+      { upTo: 1_000_000, rate: 9 },
+      { upTo: Infinity, rate: 13 },
     ],
-    description: '$90K base + accelerators',
+    description: '$75K base + accelerators',
   },
 ];
 
@@ -205,8 +213,8 @@ export default function SalesCompModel() {
     setTiers(prev => prev.map((t, i) => i === idx ? { ...t, clients: val } : t));
   };
 
-  // ── Year 1 calculations (always flat 20%, no base) ──
-  const YEAR1_RATE = 20;
+  // ── Year 1 calculations (always flat 15%, no base) ──
+  const YEAR1_RATE = 15;
   const year1 = useMemo(() => {
     const rows = tiers.map(t => {
       const totalArr = t.annualValue * t.clients;
@@ -234,13 +242,13 @@ export default function SalesCompModel() {
 
   // ── Equity valuations ──
   // Real company data: 409A = $1.7M, latest SAFE = $7M
-  // Grant: 295,000 shares (1.00%), NSO, $0.03 strike, 10-year term, 4-year vest, 1-year cliff
+  // Grant: 2% upfront (590,000 shares) split into two tranches, NSO, $0.03 strike, 10-year term
+  //   Tranche 1: 1% (295,000) BACKDATED to July 2025, vests through July 2029
+  //   Tranche 2: 1% (295,000) from signing (May 2026), vests through May 2030
+  // Both: 4-year vest with 1-year cliff
   const VALUATION_409A = 1_700_000;
   const VALUATION_SAFE = 7_000_000;
-  const TOTAL_SHARES = 29_500_000; // 295,000 = 1% → total outstanding
-  const HER_SHARES = 295_000;
-  const VEST_YEARS = 4;
-  const CLIFF_YEARS = 1;
+  const TOTAL_SHARES = 29_500_000; // 295,000 = 1% → 29.5M total outstanding
 
   // ── Equity kicker milestones ──
   const kickerTable = useMemo(() => {
@@ -261,16 +269,23 @@ export default function SalesCompModel() {
   const totalPctWithKickers = (totalSharesWithKickers / TOTAL_SHARES) * 100;
 
   const equityRows = useMemo(() => {
-    const herShares = equityKickersEnabled ? totalSharesWithKickers : HER_SHARES;
+    const herShares = equityKickersEnabled ? totalSharesWithKickers : BASE_SHARES;
     const costBasis = herShares * sharePrice;
 
-    // Vesting schedule for base grant only (kickers vest on achievement)
+    // Two-tranche vesting schedule (calendar year view, base grant only)
+    //   Tranche 1: 295K backdated to July 2025 → cliff July 2026, fully vested July 2029
+    //   Tranche 2: 295K from signing May 2026 → cliff May 2027, fully vested May 2030
     const vestingSchedule = [
-      { year: 1, sharesVested: Math.round(HER_SHARES * 0.25), pctVested: 25 },
-      { year: 2, sharesVested: Math.round(HER_SHARES * 0.50), pctVested: 50 },
-      { year: 3, sharesVested: Math.round(HER_SHARES * 0.75), pctVested: 75 },
-      { year: 4, sharesVested: HER_SHARES, pctVested: 100 },
-    ];
+      { period: 'By Jul 2026', desc: 'Tranche 1 cliff', tranche1: 73_750, tranche2: 0 },
+      { period: 'By May 2027', desc: 'Tranche 2 cliff', tranche1: 147_500, tranche2: 73_750 },
+      { period: 'By Jul 2028', desc: 'T1 3yr / T2 2yr', tranche1: 221_250, tranche2: 147_500 },
+      { period: 'By Jul 2029', desc: 'Tranche 1 fully vested', tranche1: 295_000, tranche2: 221_250 },
+      { period: 'By May 2030', desc: 'Tranche 2 fully vested', tranche1: 295_000, tranche2: 295_000 },
+    ].map(v => ({
+      ...v,
+      totalVested: v.tranche1 + v.tranche2,
+      pctVested: ((v.tranche1 + v.tranche2) / BASE_SHARES) * 100,
+    }));
 
     // Revenue-multiple based valuations tied to company trajectory
     const revenueMultiple = VALUATION_SAFE / COMPANY_TRAJECTORY[0].runRate;
@@ -348,7 +363,7 @@ export default function SalesCompModel() {
         <Section className="mb-10">
           <SectionLabel>Year 2+ Compensation Structure</SectionLabel>
           <p className="text-[15px] text-[#032232]/60 mb-5 leading-relaxed">
-            Year 1 is pure commission at 20%. Starting Year 2, choose a structure. Higher base means more stability; accelerators reward growth. Tables below update automatically.
+            Year 1 is pure commission at 15%. Starting Year 2, choose a structure. Higher base means more stability; accelerators reward growth. Tables below update automatically.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {COMP_STRUCTURES.map(s => (
@@ -392,8 +407,8 @@ export default function SalesCompModel() {
             </button>
           </div>
           <p className="text-[15px] text-[#032232]/60 mb-5 leading-relaxed">
-            Double your equity from 1% to 2% by hitting ARR milestones. Each milestone unlocks an additional
-            73,750 shares at the same $0.03 strike — vesting immediately on achievement.
+            Grow your equity from 2% to 4% by hitting ARR milestones. Each milestone unlocks an additional
+            147,500 shares (0.5%) at the same $0.03 strike, vesting immediately on achievement.
           </p>
 
           {equityKickersEnabled && (
@@ -410,10 +425,10 @@ export default function SalesCompModel() {
                   <tbody>
                     {/* Base grant row */}
                     <tr className="border-b border-[#003756]/[.06] bg-[#003756]/[.02]">
-                      <td className="py-3 px-4 text-[14px] text-[#003756] font-semibold">Signing (base grant)</td>
-                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">295,000</td>
-                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">295,000</td>
-                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">1.00%</td>
+                      <td className="py-3 px-4 text-[14px] text-[#003756] font-semibold">Signing (base grant, 2%)</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">590,000</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">590,000</td>
+                      <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">2.00%</td>
                       <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{fmt(Math.round(BASE_SHARES * (VALUATION_SAFE / TOTAL_SHARES)))}</td>
                       <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{fmt(Math.round(BASE_SHARES * (EXIT_METRICS.targetPurchaseLow / TOTAL_SHARES)))}</td>
                       <td className="py-3 px-4 text-[14px] text-[#032232] font-medium text-right">{fmt(Math.round(BASE_SHARES * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}</td>
@@ -437,12 +452,12 @@ export default function SalesCompModel() {
               <div className="bg-[#003756] rounded-2xl p-6 text-white">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                   <div>
-                    <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">Base Grant (1%)</div>
+                    <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">Base Grant (2%)</div>
                     <div className="text-[1.25rem] font-extrabold">{fmt(Math.round(BASE_SHARES * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}</div>
                     <div className="text-[12px] text-white/50 mt-1">at {fmtK(EXIT_METRICS.targetPurchaseHigh)} valuation</div>
                   </div>
                   <div>
-                    <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">With All Kickers (2%)</div>
+                    <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/50 mb-1">With All Kickers (4%)</div>
                     <div className="text-[1.25rem] font-extrabold">{fmt(Math.round(totalSharesWithKickers * (EXIT_METRICS.targetPurchaseHigh / TOTAL_SHARES)))}</div>
                     <div className="text-[12px] text-white/50 mt-1">at {fmtK(EXIT_METRICS.targetPurchaseHigh)} valuation</div>
                   </div>
@@ -459,11 +474,11 @@ export default function SalesCompModel() {
 
         {/* ── Year 1 Summary Stats ── */}
         <Section className="mb-10">
-          <SectionLabel>Year 1 — Commission Only (20%)</SectionLabel>
+          <SectionLabel>Year 1 — Commission Only (15%)</SectionLabel>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <Stat value={`${year1.totalClients}`} label="Clients Closed" />
             <Stat value={fmtK(year1.totalArr)} label="Total ARR" accent />
-            <Stat value={fmt(year1.totalCommission)} label="Commission @ 20%" />
+            <Stat value={fmt(year1.totalCommission)} label="Commission @ 15%" />
             <Stat
               value={fmt(year1.totalCommission)}
               label="Year 1 Total Comp"
@@ -617,7 +632,7 @@ export default function SalesCompModel() {
         <Section className="mb-10">
           <SectionLabel>Equity Grant — {totalPctWithKickers.toFixed(2)}% (NSO){equityKickersEnabled ? ' with Kickers' : ''}</SectionLabel>
           <p className="text-[15px] text-[#032232]/60 mb-5 leading-relaxed">
-            295,000 shares at ${sharePrice.toFixed(2)} strike price. 10-year term. 4-year vest with 1-year cliff.
+            590,000 shares (2% upfront) at ${sharePrice.toFixed(2)} strike, NSO, 10-year term. Two tranches of 295K each — one backdated to July 2025, one from signing. Each vests over 4 years with a 1-year cliff.
           </p>
 
           {/* Grant summary */}
@@ -630,24 +645,31 @@ export default function SalesCompModel() {
 
           {/* Vesting schedule */}
           <div className="mb-6">
-            <div className="text-[12px] font-semibold text-[#003756]/60 uppercase tracking-wide mb-3">Vesting Schedule</div>
+            <div className="text-[12px] font-semibold text-[#003756]/60 uppercase tracking-wide mb-2">Vesting Schedule (Two Tranches)</div>
+            <p className="text-[13px] text-[#032232]/60 mb-3 leading-relaxed">
+              Tranche 1 (295K shares, backdated July 2025) and Tranche 2 (295K shares, from signing) both vest over 4 years with 1-year cliffs.
+            </p>
             <div className="overflow-x-auto -mx-2 px-2">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr>
-                    {['Year', 'Shares Vested', '% Vested', 'Value at 409A', 'Value at SAFE'].map((h, i) => (
+                    {['Period', 'Tranche 1 (Backdated)', 'Tranche 2 (Signing)', 'Total Vested', '% of 2%', 'Value at SAFE'].map((h, i) => (
                       <th key={i} className={`py-2 px-4 text-[11px] font-bold uppercase tracking-[.08em] text-[#003756] border-b border-[#003756]/10 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {equityRows.vestingSchedule.map((v, vi) => (
-                    <tr key={vi} className={`border-b border-[#003756]/[.06] ${vi === 0 ? 'bg-[#9EFAFF]/10' : ''}`}>
-                      <td className="py-2 px-4 text-[13px] text-[#003756] font-semibold">Year {v.year}{vi === 0 ? ' (cliff)' : ''}</td>
-                      <td className="py-2 px-4 text-[13px] text-[#032232] font-medium text-right">{v.sharesVested.toLocaleString()}</td>
-                      <td className="py-2 px-4 text-[13px] text-[#032232] font-medium text-right">{v.pctVested}%</td>
-                      <td className="py-2 px-4 text-[13px] text-[#032232] font-medium text-right">{fmt(Math.round(v.sharesVested * (VALUATION_409A / TOTAL_SHARES)))}</td>
-                      <td className="py-2 px-4 text-[13px] text-[#018EA2] font-semibold text-right">{fmt(Math.round(v.sharesVested * (VALUATION_SAFE / TOTAL_SHARES)))}</td>
+                    <tr key={vi} className={`border-b border-[#003756]/[.06] ${vi === 0 ? 'bg-[#9EFAFF]/10' : ''} ${vi === equityRows.vestingSchedule.length - 1 ? 'bg-[#9EFAFF]/20' : ''}`}>
+                      <td className="py-2 px-4 text-[13px] text-[#003756] font-semibold">
+                        {v.period}
+                        <span className="block text-[11px] text-[#003756]/50 font-normal">{v.desc}</span>
+                      </td>
+                      <td className="py-2 px-4 text-[13px] text-[#032232] font-medium text-right">{v.tranche1.toLocaleString()}</td>
+                      <td className="py-2 px-4 text-[13px] text-[#032232] font-medium text-right">{v.tranche2.toLocaleString()}</td>
+                      <td className="py-2 px-4 text-[13px] text-[#003756] font-bold text-right">{v.totalVested.toLocaleString()}</td>
+                      <td className="py-2 px-4 text-[13px] text-[#032232] font-medium text-right">{v.pctVested.toFixed(0)}%</td>
+                      <td className="py-2 px-4 text-[13px] text-[#018EA2] font-semibold text-right">{fmt(Math.round(v.totalVested * (VALUATION_SAFE / TOTAL_SHARES)))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -661,7 +683,7 @@ export default function SalesCompModel() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr>
-                  {['Scenario', 'Company Valuation', '295K Shares Value', 'Gain over Strike'].map((h, i) => (
+                  {['Scenario', 'Company Valuation', `${equityRows.herShares.toLocaleString()} Shares Value`, 'Gain over Strike'].map((h, i) => (
                     <th key={i} className={`py-3 px-4 text-[12px] font-bold uppercase tracking-[.08em] text-[#003756] border-b border-[#003756]/10 ${i > 0 ? 'text-right' : ''}`}>{h}</th>
                   ))}
                 </tr>
@@ -687,7 +709,7 @@ export default function SalesCompModel() {
             <Stat
               value={fmt(year1.totalCommission)}
               label="Year 1 Commission"
-              sub={`${year1.totalClients} clients at 20% commission`}
+              sub={`${year1.totalClients} clients at 15% commission`}
             />
             <Stat
               value={fmt(arrTable[arrTable.length - 1].totalComp)}
@@ -716,12 +738,13 @@ export default function SalesCompModel() {
               <li>Baseline pricing: {fmt(quarterlyPrice)} per quarterly event commitment ({fmt(quarterlyPrice * 4)}/yr minimum)</li>
               <li>Selected structure: {activeStructure.label} — {activeStructure.tiers.map(t => `${t.rate}%`).join(' → ')} commission{baseSalary > 0 ? ` + ${fmt(baseSalary)} base` : ', no base salary'}</li>
               <li>Commission paid monthly on collected revenue from prior month</li>
-              <li>Base grant: 295,000 shares (1.00%), NSO, ${sharePrice.toFixed(2)} strike, 10-year term</li>
-              <li>4-year vest with 1-year cliff (25% at cliff, monthly thereafter)</li>
-              {equityKickersEnabled && <li>Equity kickers: +73,750 shares at each ARR milestone ($250K, $500K, $750K, $1M) — doubles to 2%</li>}
+              <li>Base grant: 590,000 shares (2.00%), NSO, ${sharePrice.toFixed(2)} strike, 10-year term</li>
+              <li>Tranche 1: 295,000 shares (1%) backdated to July 2025. Tranche 2: 295,000 shares (1%) from signing</li>
+              <li>Each tranche: 4-year vest with 1-year cliff (25% at cliff, monthly thereafter)</li>
+              {equityKickersEnabled && <li>Equity kickers: +147,500 shares (0.5%) at each ARR milestone ($250K, $500K, $750K, $1M), grows equity from 2% to 4%</li>}
               {equityKickersEnabled && <li>Kicker shares vest immediately on milestone achievement at same $0.03 strike</li>}
               <li>409A valuation: $1.7M | Latest SAFE note: $7M</li>
-              <li>Year 1: Pure commission at 20% of ARR, no base salary</li>
+              <li>Year 1: Pure commission at 15% of ARR, no base salary</li>
               <li>Year 2+: Choice of comp structure with base salary and commission accelerators</li>
               <li>Company trajectory: $825K (2025) → $1.155M (2026) → $1.617M (2027) → $2.1M (2028)</li>
               <li>Potential liquidity event viable by 2028 if growth targets are met</li>
