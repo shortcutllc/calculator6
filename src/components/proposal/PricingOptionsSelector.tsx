@@ -238,35 +238,77 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                 {opt.name}
               </div>
               {editing ? (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: 6,
-                    marginTop: 6,
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <OptionInput
-                    label="Hours"
-                    value={opt.totalHours ?? ''}
-                    onChange={(v) => onEditOption?.(i, 'totalHours', v)}
-                  />
-                  <OptionInput
-                    label="Pros"
-                    value={opt.numPros ?? ''}
-                    onChange={(v) => onEditOption?.(i, 'numPros', v)}
-                  />
-                  <OptionInput
-                    label="$/hr"
-                    value={opt.hourlyRate ?? ''}
-                    onChange={(v) => onEditOption?.(i, 'hourlyRate', v)}
-                  />
-                  <OptionInput
-                    label="Discount %"
-                    value={opt.discountPercent ?? ''}
-                    onChange={(v) => onEditOption?.(i, 'discountPercent', v)}
-                  />
+                <div onClick={(e) => e.stopPropagation()}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 6,
+                      marginTop: 6,
+                    }}
+                  >
+                    <OptionInput
+                      label="Hours"
+                      value={opt.totalHours ?? ''}
+                      onChange={(v) => onEditOption?.(i, 'totalHours', v)}
+                    />
+                    <OptionInput
+                      label="Pros"
+                      value={opt.numPros ?? ''}
+                      onChange={(v) => onEditOption?.(i, 'numPros', v)}
+                    />
+                    <OptionInput
+                      label="$/hr"
+                      value={opt.hourlyRate ?? ''}
+                      onChange={(v) => onEditOption?.(i, 'hourlyRate', v)}
+                    />
+                    <OptionInput
+                      label="Discount %"
+                      value={opt.discountPercent ?? ''}
+                      onChange={(v) => onEditOption?.(i, 'discountPercent', v)}
+                    />
+                  </div>
+                  {/* Read-only appointments — derived from hours/pros and
+                      recomputed on every input change so admin sees the
+                      slot count update in real time. */}
+                  {opt.totalAppointments !== undefined && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: '6px 10px',
+                        background: 'rgba(0,0,0,0.04)',
+                        borderRadius: 6,
+                        fontFamily: T.fontD,
+                        fontSize: 12,
+                        color: T.fgMuted,
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: 6,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: T.fontUi,
+                          fontWeight: 700,
+                          fontSize: 10,
+                          letterSpacing: '0.08em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        Appts
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: T.fontD,
+                          fontWeight: 700,
+                          fontSize: 14,
+                          color: T.navy,
+                        }}
+                      >
+                        {opt.totalAppointments}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 Boolean(opt.numPros || opt.totalHours || opt.totalAppointments) && (
