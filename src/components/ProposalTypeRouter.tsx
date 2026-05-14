@@ -22,6 +22,12 @@ export const ProposalTypeRouter: React.FC = () => {
   const [proposalType, setProposalType] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Partnership proposals (Meta-style employee-pay / subsidized / tri-option
+  // pricing) only have V1 rendering. The V2 viewers don't render
+  // PartnershipModelsSection at all, so a partnership proposal opened in V2
+  // is missing its whole pricing surface. Route them to V1 until we port
+  // the partnership models into the V2 design system.
+  const [isPartnership, setIsPartnership] = useState(false);
 
   // Check if this is a shared view (from query param or /shared/ path)
   const isSharedView = location.pathname.startsWith('/shared/') ||
@@ -49,7 +55,7 @@ export const ProposalTypeRouter: React.FC = () => {
       try {
         const { data, error: fetchError } = await supabase
           .from('proposals')
-          .select('proposal_type, data, user_id')
+          .select('proposal_type, partnership_type, data, user_id')
           .eq('id', id)
           .single();
 
@@ -63,6 +69,7 @@ export const ProposalTypeRouter: React.FC = () => {
           data.data?.mindfulnessProgram?.programId;
 
         setProposalType(isMindfulness ? 'mindfulness-program' : 'event');
+        setIsPartnership(!!data.partnership_type);
 
         // All authenticated users get the admin view (non-shared only)
         setIsOwner(!isSharedView && !!user);
@@ -103,8 +110,12 @@ export const ProposalTypeRouter: React.FC = () => {
   }
 
   // Event proposals: V2 is the default. `?legacy=1` falls back to V1 as an
-  // emergency escape during the cutover.
-  if (useLegacyV1) {
+  // emergency escape during the cutover. Partnership proposals also fall
+  // back to V1 because the V2 viewers don't yet render the
+  // PartnershipModelsSection (Meta employee-pay / subsidized / tri-option
+  // pricing). Restore the V2 path for these once the partnership section
+  // is ported into the design system.
+  if (useLegacyV1 || isPartnership) {
     if (isSharedView) return <StandaloneProposalViewer />;
     return isOwner ? <ProposalViewer /> : <StandaloneProposalViewer />;
   }
