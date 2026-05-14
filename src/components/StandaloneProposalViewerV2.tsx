@@ -214,6 +214,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
     initialState: displayData?.optionsState,
     onChange: persistOptionsState,
     readOnly: isApproved,
+    // When the admin set "let the client build it" on this proposal, every
+    // service starts unchecked so the price reflects only what the client
+    // opts into. Persisted state still wins on subsequent loads.
+    startUnselected: displayData?.startUnselected === true,
   });
 
   // ---- Service-type mix (drives Phase 5 conditional sections) -----------
@@ -2106,7 +2110,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 boxShadow: '0 8px 32px rgba(255,80,80,0.16)',
               }}
             >
-              <Eyebrow color={T.coral}>Final step</Eyebrow>
+              <Eyebrow color={T.coral}>
+                {summary.rows.every((r) => !r.included) ? 'Build your proposal' : 'Final step'}
+              </Eyebrow>
               <h2
                 style={{
                   fontFamily: T.fontD,
@@ -2118,7 +2124,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   margin: '8px 0 12px',
                 }}
               >
-                Ready to move forward?
+                {summary.rows.every((r) => !r.included)
+                  ? 'Pick the services you want.'
+                  : 'Ready to move forward?'}
               </h2>
               <p
                 style={{
@@ -2130,12 +2138,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   maxWidth: 560,
                 }}
               >
-                Approving locks in your selections at <strong style={{ color: T.navy }}>
-                  {formatCurrency(grandTotal)}
-                </strong>{' '}
-                for {summary.rows.filter((r) => r.included).length} service
-                {summary.rows.filter((r) => r.included).length === 1 ? '' : 's'}.
-                Our team will follow up with logistics.
+                {summary.rows.every((r) => !r.included) ? (
+                  <>
+                    Toggle any service above to see your total here. Approve once it looks right — we'll follow up with logistics.
+                  </>
+                ) : (
+                  <>
+                    Approving locks in your selections at{' '}
+                    <strong style={{ color: T.navy }}>{formatCurrency(grandTotal)}</strong>{' '}
+                    for {summary.rows.filter((r) => r.included).length} service
+                    {summary.rows.filter((r) => r.included).length === 1 ? '' : 's'}. Our team will follow up with logistics.
+                  </>
+                )}
               </p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <button
@@ -2314,46 +2328,66 @@ const StandaloneProposalViewerV2: React.FC = () => {
               top: 80,
             }}
           >
-            <Eyebrow color="rgba(255,255,255,0.6)">Proposal total</Eyebrow>
-            <div
-              style={{
-                fontFamily: T.fontD,
-                fontWeight: 800,
-                fontSize: isCompact ? 36 : 44,
-                lineHeight: 1,
-                color: T.aqua,
-                letterSpacing: '-0.025em',
-                marginTop: 8,
-              }}
-            >
-              {formatCurrency(grandTotal)}
-            </div>
-            {summary.discountPercent > 0 && (
-              <div
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 13,
-                  color: 'rgba(255,255,255,0.7)',
-                  marginTop: 6,
-                }}
-              >
-                Subtotal {formatCurrency(summary.subtotal)} · saving{' '}
-                {formatCurrency(summary.discountAmount)} ({summary.discountPercent}%)
-              </div>
-            )}
-            {summary.discountPercent === 0 && summary.totalEvents > 0 && summary.totalEvents < 4 && (
-              <div
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 12,
-                  color: 'rgba(255,255,255,0.65)',
-                  marginTop: 6,
-                }}
-              >
-                Add {4 - summary.totalEvents} more event
-                {4 - summary.totalEvents === 1 ? '' : 's'} for a 15% volume discount.
-              </div>
-            )}
+            {(() => {
+              const nothingSelected = summary.rows.every((r) => !r.included);
+              return (
+                <>
+                  <Eyebrow color="rgba(255,255,255,0.6)">
+                    {nothingSelected ? 'Build your proposal' : 'Proposal total'}
+                  </Eyebrow>
+                  <div
+                    style={{
+                      fontFamily: T.fontD,
+                      fontWeight: 800,
+                      fontSize: isCompact ? 36 : 44,
+                      lineHeight: 1,
+                      color: nothingSelected ? 'rgba(255,255,255,0.55)' : T.aqua,
+                      letterSpacing: '-0.025em',
+                      marginTop: 8,
+                    }}
+                  >
+                    {formatCurrency(grandTotal)}
+                  </div>
+                  {nothingSelected ? (
+                    <div
+                      style={{
+                        fontFamily: T.fontD,
+                        fontSize: 13,
+                        color: 'rgba(255,255,255,0.75)',
+                        marginTop: 8,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      Select services below to see your price.
+                    </div>
+                  ) : summary.discountPercent > 0 ? (
+                    <div
+                      style={{
+                        fontFamily: T.fontD,
+                        fontSize: 13,
+                        color: 'rgba(255,255,255,0.7)',
+                        marginTop: 6,
+                      }}
+                    >
+                      Subtotal {formatCurrency(summary.subtotal)} · saving{' '}
+                      {formatCurrency(summary.discountAmount)} ({summary.discountPercent}%)
+                    </div>
+                  ) : summary.totalEvents > 0 && summary.totalEvents < 4 ? (
+                    <div
+                      style={{
+                        fontFamily: T.fontD,
+                        fontSize: 12,
+                        color: 'rgba(255,255,255,0.65)',
+                        marginTop: 6,
+                      }}
+                    >
+                      Add {4 - summary.totalEvents} more event
+                      {4 - summary.totalEvents === 1 ? '' : 's'} for a 15% volume discount.
+                    </div>
+                  ) : null}
+                </>
+              );
+            })()}
 
             <div
               style={{

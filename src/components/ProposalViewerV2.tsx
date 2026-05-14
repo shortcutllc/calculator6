@@ -2794,6 +2794,105 @@ const ProposalViewerV2: React.FC = () => {
             {displayData?.heroTitle || `${clientName} wellness proposal`}
           </h1>
         )}
+        {/* "Let the client build it" toggle — when on, every service on
+            the client view starts unselected so the price reads $0
+            until they opt services in one by one. Useful for proposals
+            we send as menus rather than fixed bundles. The per-service
+            optionsSelectedDefault still wins if explicitly set. */}
+        {isEditing && (
+          <div
+            style={{
+              marginTop: 20,
+              padding: '14px 16px',
+              background: '#fff',
+              border: '1.5px dashed rgba(0,0,0,0.12)',
+              borderRadius: 12,
+              maxWidth: 720,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 14,
+            }}
+          >
+            <label
+              htmlFor="start-unselected-toggle"
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                width: 38,
+                height: 22,
+                flexShrink: 0,
+                marginTop: 2,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                id="start-unselected-toggle"
+                type="checkbox"
+                checked={editedData?.startUnselected === true}
+                onChange={(e) =>
+                  setTopLevelField('startUnselected', e.target.checked)
+                }
+                style={{
+                  opacity: 0,
+                  width: 0,
+                  height: 0,
+                  position: 'absolute',
+                }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background:
+                    editedData?.startUnselected === true
+                      ? T.success
+                      : 'rgba(0,0,0,0.2)',
+                  borderRadius: 22,
+                  transition: 'background .15s',
+                }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: editedData?.startUnselected === true ? 18 : 2,
+                  width: 18,
+                  height: 18,
+                  background: '#fff',
+                  borderRadius: '50%',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  transition: 'left .15s',
+                }}
+              />
+            </label>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: T.fgMuted,
+                  marginBottom: 4,
+                }}
+              >
+                Let the client build it
+              </div>
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 13,
+                  color: T.navy,
+                  lineHeight: 1.45,
+                }}
+              >
+                Every service starts <strong>unselected</strong> on the client view so the price is $0 until they opt services in. Use this when you're sending a menu, not a fixed bundle.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Test signup / booking-demo link — paste a Coordinator test
             event URL so the prospect can step through the actual
             employee booking flow on a sample event. Surfaces as a

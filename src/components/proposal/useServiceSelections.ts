@@ -50,6 +50,12 @@ interface UseServiceSelectionsArgs {
   onChange?: (state: Record<string, ServiceSelection>) => void;
   /** Disable mutations (e.g. proposal is approved). */
   readOnly?: boolean;
+  /** Proposal-wide override: when true, every service starts NOT included
+   *  so the client has to opt in service-by-service. Persisted state still
+   *  takes precedence — once the client has toggled anything, their picks
+   *  win. Per-service `optionsSelectedDefault === false` also wins; this
+   *  flag is the fallback when nothing else has an opinion. */
+  startUnselected?: boolean;
 }
 
 /**
@@ -63,6 +69,7 @@ export function useServiceSelections({
   initialState,
   onChange,
   readOnly,
+  startUnselected,
 }: UseServiceSelectionsArgs) {
   // Build defaults from staff-set fields on each service if provided.
   // Precedence for the initial frequency:
@@ -93,15 +100,25 @@ export function useServiceSelections({
           ) {
             frequency = service.recurringFrequency.occurrences;
           }
+          // Precedence for `included`:
+          //   1. Per-service `optionsSelectedDefault === false` → off
+          //   2. Proposal-wide `startUnselected` → off
+          //   3. Default → on
+          const includedDefault =
+            service?.optionsSelectedDefault === false
+              ? false
+              : startUnselected
+              ? false
+              : true;
           out[key] = {
-            included: service?.optionsSelectedDefault !== false,
+            included: includedDefault,
             frequency: Math.max(1, frequency),
           };
         });
       });
     });
     return out;
-  }, [servicesByLocation, initialState]);
+  }, [servicesByLocation, initialState, startUnselected]);
 
   const [state, setState] = useState<Record<string, ServiceSelection>>(computedInitial);
 

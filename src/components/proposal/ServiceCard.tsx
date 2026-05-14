@@ -336,7 +336,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                     }}
                   >
                     <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
-                    Add back
+                    Add to proposal
                   </button>
                 )
               )}
