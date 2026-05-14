@@ -7,6 +7,8 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  ArrowDown,
+  ArrowUp,
   ExternalLink,
   FileText,
   Receipt,
@@ -765,6 +767,65 @@ const ProposalViewerV2: React.FC = () => {
     setDisplayData({ ...recalc, customization: currentProposal?.customization });
   };
 
+  // Swap two adjacent services within a date — used by the up/down arrows
+  // in the ServiceBlock edit panel. `direction` is +1 (move down) or -1
+  // (move up). Also swaps the matching pricing_options / selected_options
+  // keys so per-service option state follows the service to its new slot.
+  const handleMoveService = (
+    loc: string,
+    date: string,
+    idx: number,
+    direction: 1 | -1
+  ) => {
+    if (!editedData || !isEditing) return;
+    const services = editedData.services?.[loc]?.[date]?.services;
+    if (!Array.isArray(services)) return;
+    const other = idx + direction;
+    if (other < 0 || other >= services.length) return;
+
+    const updated: any = { ...editedData };
+    const nextArr = [...services];
+    [nextArr[idx], nextArr[other]] = [nextArr[other], nextArr[idx]];
+    updated.services = {
+      ...updated.services,
+      [loc]: {
+        ...updated.services[loc],
+        [date]: {
+          ...updated.services[loc][date],
+          services: nextArr,
+        },
+      },
+    };
+
+    // pricing_options + selected_options are keyed by index, so swap them too.
+    const swapKeys = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return obj;
+      const keyA = `${loc}-${date}-${idx}`;
+      const keyB = `${loc}-${date}-${other}`;
+      if (!(keyA in obj) && !(keyB in obj)) return obj;
+      const out = { ...obj };
+      const a = out[keyA];
+      const b = out[keyB];
+      if (b !== undefined) out[keyA] = b;
+      else delete out[keyA];
+      if (a !== undefined) out[keyB] = a;
+      else delete out[keyB];
+      return out;
+    };
+    if (currentProposal) {
+      (currentProposal as any).pricing_options = swapKeys(
+        (currentProposal as any).pricing_options
+      );
+      (currentProposal as any).selected_options = swapKeys(
+        (currentProposal as any).selected_options
+      );
+    }
+
+    const recalc = recalculateServiceTotals(updated);
+    setEditedData({ ...recalc, customization: currentProposal?.customization });
+    setDisplayData({ ...recalc, customization: currentProposal?.customization });
+  };
+
   const handleAddDay = (loc: string) => {
     if (!editedData || !isEditing) return;
     let key = 'TBD';
@@ -850,6 +911,11 @@ const ProposalViewerV2: React.FC = () => {
       const next = { ...updated.officeLocations };
       delete next[loc];
       updated.officeLocations = Object.keys(next).length > 0 ? next : undefined;
+    }
+    // data.locations is a flat string[] used by Slack payloads / selection
+    // state — drop the removed name so the persisted snapshot is clean.
+    if (Array.isArray(updated.locations)) {
+      updated.locations = updated.locations.filter((l: string) => l !== loc);
     }
     // Drop pricing_options / selected_options for this location too.
     const stripKeys = (obj: any) => {
@@ -1150,6 +1216,14 @@ const ProposalViewerV2: React.FC = () => {
         next[k === oldName ? trimmed : k] = v;
       }
       updated.officeLocations = next;
+    }
+    // data.locations is a flat string[] that some downstream consumers
+    // (Slack notification payload, selection state) read — keep it in
+    // sync with the services-key rename.
+    if (Array.isArray(updated.locations)) {
+      updated.locations = updated.locations.map((l: string) =>
+        l === oldName ? trimmed : l
+      );
     }
     // pricing_options + selected_options use `${location}-${date}-${idx}` keys
     const remapKeys = (obj: any) => {
@@ -3509,6 +3583,17 @@ const ProposalViewerV2: React.FC = () => {
                                       onRemoveService={() =>
                                         handleRemoveService(loc, date, idx)
                                       }
+                                      onMoveUp={() =>
+                                        handleMoveService(loc, date, idx, -1)
+                                      }
+                                      onMoveDown={() =>
+                                        handleMoveService(loc, date, idx, 1)
+                                      }
+                                      canMoveUp={idx > 0}
+                                      canMoveDown={
+                                        idx <
+                                        (dateData?.services?.length || 0) - 1
+                                      }
                                     />
                                   )
                                 )}
@@ -5086,6 +5171,11 @@ interface ServiceBlockProps {
   onChangeMindfulnessType: (t: string) => void;
   onChangeMindfulnessFormat: (f: string) => void;
   onRemoveService: () => void;
+  /** Reorder controls — disabled when at the first/last position. */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }
 const ServiceBlock: React.FC<ServiceBlockProps> = ({
   service,
@@ -5102,6 +5192,10 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
   onChangeMindfulnessType,
   onChangeMindfulnessFormat,
   onRemoveService,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
 }) => {
   return (
     <div style={{ position: 'relative' }}>
@@ -5182,7 +5276,66 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
             suffix="%"
           />
 
-          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: 6,
+              flexWrap: 'wrap',
+            }}
+          >
+            {onMoveUp && (
+              <button
+                type="button"
+                onClick={onMoveUp}
+                disabled={!canMoveUp}
+                title="Move service up — order is preserved on the client view"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '8px 10px',
+                  background: '#fff',
+                  border: '1.5px solid rgba(0,0,0,0.1)',
+                  borderRadius: 10,
+                  cursor: canMoveUp ? 'pointer' : 'not-allowed',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: T.navy,
+                  opacity: canMoveUp ? 1 : 0.4,
+                }}
+              >
+                <ArrowUp size={13} />
+                Up
+              </button>
+            )}
+            {onMoveDown && (
+              <button
+                type="button"
+                onClick={onMoveDown}
+                disabled={!canMoveDown}
+                title="Move service down — order is preserved on the client view"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '8px 10px',
+                  background: '#fff',
+                  border: '1.5px solid rgba(0,0,0,0.1)',
+                  borderRadius: 10,
+                  cursor: canMoveDown ? 'pointer' : 'not-allowed',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: T.navy,
+                  opacity: canMoveDown ? 1 : 0.4,
+                }}
+              >
+                <ArrowDown size={13} />
+                Down
+              </button>
+            )}
             <button
               type="button"
               onClick={onRemoveService}

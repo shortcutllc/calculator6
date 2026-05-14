@@ -269,7 +269,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                   />
                 </div>
               ) : (
-                (opt.numPros || opt.totalHours || opt.totalAppointments) && (
+                Boolean(opt.numPros || opt.totalHours || opt.totalAppointments) && (
                   <div
                     style={{
                       fontFamily: T.fontD,
@@ -305,7 +305,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                 >
                   {formatCurrency(opt.serviceCost)}
                 </span>
-                {opt.discountPercent && opt.discountPercent > 0 && (
+                {(opt.discountPercent ?? 0) > 0 && (
                   <span
                     style={{
                       fontFamily: T.fontUi,
