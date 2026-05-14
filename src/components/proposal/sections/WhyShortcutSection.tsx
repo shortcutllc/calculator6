@@ -73,7 +73,7 @@ const WhyShortcutSection: React.FC<WhyShortcutSectionProps> = ({
     >
       <Eyebrow>Why Shortcut</Eyebrow>
       <CardHeading size="section" style={{ marginTop: 6, marginBottom: 4 }}>
-        Built for in-office wellness that actually shows up
+        Wellness that works.
       </CardHeading>
       <p
         style={{

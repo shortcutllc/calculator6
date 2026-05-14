@@ -1153,7 +1153,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 margin: 0,
               }}
             >
-              {clientName} wellness proposal
+              {displayData?.heroTitle || `${clientName} wellness proposal`}
             </h1>
           </div>
         </div>
@@ -1162,8 +1162,26 @@ const StandaloneProposalViewerV2: React.FC = () => {
             location count so it stays current with the proposal contents.
             Matches the V2 design reference copy. */}
         {(() => {
+          // Word form for small counts ("Two offices") feels more like real
+          // copy than "2 offices". Fall back to digits at 10+.
+          const NUM_WORDS = [
+            'Zero',
+            'One',
+            'Two',
+            'Three',
+            'Four',
+            'Five',
+            'Six',
+            'Seven',
+            'Eight',
+            'Nine',
+          ];
           const officeWord =
-            stats.locationCount === 1 ? 'One office' : `${stats.locationCount} offices`;
+            stats.locationCount < NUM_WORDS.length
+              ? `${NUM_WORDS[stats.locationCount]} office${
+                  stats.locationCount === 1 ? '' : 's'
+                }`
+              : `${stats.locationCount} offices`;
           const dates = (displayData?.eventDates || []).filter(
             (d: string) => d && d !== 'TBD' && !d.startsWith('TBD')
           );

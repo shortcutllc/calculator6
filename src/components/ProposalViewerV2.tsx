@@ -2471,30 +2471,100 @@ const ProposalViewerV2: React.FC = () => {
           )}
         </div>
 
-        {/* Editable client name */}
+        {/* Editable hero title + client name.
+            - clientName drives the sticky header + the default hero title.
+            - heroTitle (new optional field on data) overrides the H1 if set.
+              Empty input clears the override and falls back to the default. */}
         {isEditing ? (
-          <input
-            type="text"
-            value={editedData.clientName || ''}
-            onChange={(e) => setTopLevelField('clientName', e.target.value)}
-            placeholder="Client name"
+          <div
             style={{
-              width: '100%',
-              maxWidth: 720,
-              padding: '8px 12px',
-              fontFamily: T.fontD,
-              fontWeight: 800,
-              fontSize: 48,
-              lineHeight: 1.06,
-              letterSpacing: '-0.025em',
-              color: T.navy,
-              background: '#fff',
-              border: '1.5px dashed rgba(0,0,0,0.18)',
-              borderRadius: 12,
-              outline: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
               marginBottom: 12,
             }}
-          />
+          >
+            <div>
+              <div
+                style={{
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  color: T.fgMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  marginBottom: 4,
+                }}
+              >
+                Client name (header)
+              </div>
+              <input
+                type="text"
+                value={editedData.clientName || ''}
+                onChange={(e) => setTopLevelField('clientName', e.target.value)}
+                placeholder="Client name"
+                style={{
+                  width: '100%',
+                  maxWidth: 720,
+                  padding: '8px 12px',
+                  fontFamily: T.fontD,
+                  fontWeight: 700,
+                  fontSize: 16,
+                  color: T.navy,
+                  background: '#fff',
+                  border: '1.5px solid rgba(0,0,0,0.12)',
+                  borderRadius: 10,
+                  outline: 'none',
+                }}
+              />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  color: T.fgMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  marginBottom: 4,
+                }}
+              >
+                Hero title
+              </div>
+              <input
+                type="text"
+                value={editedData.heroTitle || ''}
+                onChange={(e) => setTopLevelField('heroTitle', e.target.value)}
+                placeholder={`${editedData.clientName || 'Client'} wellness proposal`}
+                style={{
+                  width: '100%',
+                  maxWidth: 720,
+                  padding: '8px 12px',
+                  fontFamily: T.fontD,
+                  fontWeight: 800,
+                  fontSize: 36,
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.025em',
+                  color: T.navy,
+                  background: '#fff',
+                  border: '1.5px dashed rgba(0,0,0,0.18)',
+                  borderRadius: 12,
+                  outline: 'none',
+                }}
+              />
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 12,
+                  color: T.fgMuted,
+                  marginTop: 4,
+                }}
+              >
+                Leave blank to use the default "{editedData.clientName || 'Client'} wellness proposal".
+              </div>
+            </div>
+          </div>
         ) : (
           <h1
             style={{
@@ -2507,7 +2577,7 @@ const ProposalViewerV2: React.FC = () => {
               margin: 0,
             }}
           >
-            {clientName} wellness proposal
+            {displayData?.heroTitle || `${clientName} wellness proposal`}
           </h1>
         )}
         <p
