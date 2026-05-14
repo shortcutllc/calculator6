@@ -144,8 +144,21 @@ const ProposalGalleryAdmin: React.FC = () => {
       .slice(2, 8)}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from('proposal-gallery')
-      .upload(path, f, { upsert: false });
-    if (upErr) throw upErr;
+      .upload(path, f, {
+        upsert: false,
+        contentType: f.type || undefined,
+      });
+    if (upErr) {
+      // Annotate the most-common failure (50MB default bucket cap) so the
+      // user knows exactly which Supabase setting to change.
+      const msg = (upErr as any)?.message || String(upErr);
+      if (/exceeded the maximum|payload too large|413/i.test(msg)) {
+        throw new Error(
+          `${f.name} is too large for the storage bucket. Open Supabase → Storage → proposal-gallery → bump "File size limit" (default is 50MB) and re-try.`
+        );
+      }
+      throw new Error(`${f.name}: ${msg}`);
+    }
     const { data: pub } = supabase.storage
       .from('proposal-gallery')
       .getPublicUrl(path);
@@ -158,7 +171,9 @@ const ProposalGalleryAdmin: React.FC = () => {
       is_published: true,
       sort_order: 0,
     });
-    if (insErr) throw insErr;
+    if (insErr) {
+      throw new Error(`${f.name}: row insert failed — ${insErr.message}`);
+    }
   };
 
   /** Bulk upload — runs uploadOne sequentially across a FileList. Used by the
@@ -821,8 +836,18 @@ const ProposalGalleryAdmin: React.FC = () => {
             <Field label="File">
               <input
                 type="file"
-                accept={mediaType === 'image' ? 'image/*' : 'video/*'}
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                accept="image/*,video/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null;
+                  setFile(f);
+                  // Auto-switch the media-type pill to whatever was picked so
+                  // the row gets tagged correctly without the user having to
+                  // toggle first.
+                  if (f) {
+                    if (f.type.startsWith('video/')) setMediaType('video');
+                    else if (f.type.startsWith('image/')) setMediaType('image');
+                  }
+                }}
                 style={inputStyle}
               />
               {file && (
