@@ -191,12 +191,49 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                   alignItems: 'center',
                   gap: 8,
                   marginBottom: 6,
+                  flexWrap: 'wrap',
                 }}
               >
                 <ServiceTypeChip serviceType={service.serviceType} />
                 {service.massageType && service.massageType !== 'massage' && (
                   <Eyebrow>{service.massageType}</Eyebrow>
                 )}
+                {/* Recurring partner badge — purple chip when this service is
+                    explicitly flagged as recurring on the data. Mirrors V1's
+                    "Recurring (Nx · X% off)" emphasis. */}
+                {(service as any).isRecurring &&
+                  (service as any).recurringFrequency && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '3px 9px',
+                        background:
+                          'linear-gradient(90deg, rgba(159,91,178,.18), rgba(99,91,255,.18))',
+                        color: '#6B2D80',
+                        borderRadius: 9999,
+                        fontFamily: T.fontUi,
+                        fontWeight: 700,
+                        fontSize: 10,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Recurring partner
+                      {(service as any).recurringFrequency?.occurrences && (
+                        <span style={{ opacity: 0.75 }}>
+                          · {(service as any).recurringFrequency.occurrences}×
+                        </span>
+                      )}
+                      {(service as any).recurringDiscount > 0 && (
+                        <span style={{ color: T.success, fontWeight: 800 }}>
+                          {' '}
+                          {(service as any).recurringDiscount}% off
+                        </span>
+                      )}
+                    </span>
+                  )}
               </div>
               <CardHeading
                 size="card"

@@ -49,12 +49,17 @@ import {
   T,
 } from './proposal/shared/primitives';
 import { formatCurrency, SERVICE_DISPLAY } from './proposal/data';
-import AccountTeamCard from './proposal/sidebar/AccountTeamCard';
+import AccountTeamCard, {
+  ACCOUNT_TEAM,
+  DEFAULT_TEAM_EMAIL,
+} from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
+import ServiceAgreementCard from './proposal/ServiceAgreementCard';
 import { generateLineItems } from './StripeInvoiceButton';
-import { InvoiceConfirmationModal, InvoiceLineItem } from './InvoiceConfirmationModal';
+import type { InvoiceLineItem } from './InvoiceConfirmationModal';
+import InvoiceConfirmationModalV2 from './proposal/InvoiceConfirmationModalV2';
 
 // ============================================================================
 // ProposalViewerV2 — internal/admin proposal viewer in the redesign-2026 visual
@@ -309,6 +314,32 @@ const ProposalViewerV2: React.FC = () => {
   // ---- Change history drawer -------------------------------------------
   const [changeSets, setChangeSets] = useState<ProposalChangeSet[]>([]);
   const [showChangeHistory, setShowChangeHistory] = useState(false);
+  const [reviewBusyFor, setReviewBusyFor] = useState<string | null>(null);
+
+  // ---- Admin notes (separate from Save Changes — flips pending_review) --
+  const [adminNotes, setAdminNotes] = useState('');
+  const [adminNotesSaving, setAdminNotesSaving] = useState(false);
+  const [adminNotesSaved, setAdminNotesSaved] = useState(false);
+
+  // ---- Status overrides (force-approve / mark-rejected / mark-sent) -----
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+
+  // ---- Collapsible location / date sections ----------------------------
+  // Keyed by `${loc}` for locations and `${loc}|${date}` for dates.
+  // Default-open in edit mode; default-open everywhere else for parity with
+  // the V1 admin viewer's "expand all" load behavior.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  // ---- Bulk service-type swap state -----------------------------------
+  const [bulkSwapOpen, setBulkSwapOpen] = useState(false);
+  const [bulkSwapFrom, setBulkSwapFrom] = useState<string>('');
+  const [bulkSwapTo, setBulkSwapTo] = useState<string>('massage');
+
+  // ---- Test-send (send proposal email to a staff address) -------------
+  const [testSendOpen, setTestSendOpen] = useState(false);
+  const [testSendEmail, setTestSendEmail] = useState('');
+  const [testSendBusy, setTestSendBusy] = useState(false);
+  const [testSendSent, setTestSendSent] = useState(false);
 
   // ---- Invoice (V2-styled wrapper around the Stripe modal flow) --------
   const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
@@ -318,6 +349,15 @@ const ProposalViewerV2: React.FC = () => {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [invoiceLinkCopied, setInvoiceLinkCopied] = useState(false);
+
+  // -----------------------------------------------------------------------
+  // Hydrate admin notes from proposal.notes when it loads
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    if (currentProposal?.notes && typeof currentProposal.notes === 'string') {
+      setAdminNotes(currentProposal.notes);
+    }
+  }, [currentProposal?.notes]);
 
   // -----------------------------------------------------------------------
   // Initial load
@@ -1294,6 +1334,240 @@ const ProposalViewerV2: React.FC = () => {
       setLogoUploadError(err?.message || 'Upload failed');
     } finally {
       setIsUploadingLogo(false);
+    }
+  };
+
+  // -----------------------------------------------------------------------
+  // Phase 3D — admin polish handlers
+  // -----------------------------------------------------------------------
+
+  /** Account-team override — change which Shortcut staffer the client sees
+   *  as their proposal owner. Persists to `data.accountTeamMemberEmail` and
+   *  saves immediately so it sticks even outside Edit mode. */
+  const handleChangeAccountOwner = async (email: string) => {
+    if (!id) return;
+    try {
+      const next = { ...(editedData || displayData), accountTeamMemberEmail: email };
+      setEditedData((prev: any) => ({ ...(prev || displayData), accountTeamMemberEmail: email }));
+      setDisplayData((prev: any) => ({ ...(prev || displayData), accountTeamMemberEmail: email }));
+      await supabase.from('proposals').update({ data: next }).eq('id', id);
+    } catch (err) {
+      console.error('Failed to set account owner:', err);
+    }
+  };
+
+  /** Force-approve from admin. Skips the client-confirmation flow. */
+  const handleForceApprove = async () => {
+    if (!id) return;
+    if (
+      !window.confirm(
+        'Force-approve this proposal? This locks in the current data without a client click.'
+      )
+    )
+      return;
+    try {
+      setIsStatusUpdating(true);
+      await supabase
+        .from('proposals')
+        .update({
+          status: 'approved',
+          pending_review: false,
+          has_changes: false,
+          change_source: 'staff',
+          reviewed_by: user?.email || null,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+      await getProposal(id);
+      try {
+        await fetch('/.netlify/functions/proposal-event-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventType: 'approve',
+            proposalId: id,
+            clientName: displayData?.clientName || 'Unknown',
+            clientEmail: currentProposal?.clientEmail,
+            proposalType: 'event',
+            totalCost: grandTotal,
+            eventDates: displayData?.eventDates || [],
+            locations: displayData?.locations || [],
+          }),
+        });
+      } catch (notifyErr) {
+        console.warn('Force-approve notification failed (non-fatal):', notifyErr);
+      }
+    } catch (err) {
+      console.error('Force-approve failed:', err);
+      alert('Failed to force-approve.');
+    } finally {
+      setIsStatusUpdating(false);
+    }
+  };
+
+  /** Mark proposal as rejected — useful for archiving a stalled deal. */
+  const handleMarkRejected = async () => {
+    if (!id) return;
+    if (!window.confirm('Mark this proposal as rejected/closed?')) return;
+    try {
+      setIsStatusUpdating(true);
+      await supabase
+        .from('proposals')
+        .update({
+          status: 'rejected',
+          pending_review: false,
+          reviewed_by: user?.email || null,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+      await getProposal(id);
+    } catch (err) {
+      console.error('Mark-rejected failed:', err);
+    } finally {
+      setIsStatusUpdating(false);
+    }
+  };
+
+  /** Open the client-facing version in a new tab for spot-checking. */
+  const handleViewAsClient = () => {
+    if (!id) return;
+    const url = `${window.location.pathname.replace(/^\//, '')}`;
+    // Use the existing slug-resolver shared URL pattern via getProposalUrl
+    const target = getProposalUrl(id, true, currentProposal?.slug);
+    window.open(target.includes('?') ? `${target}&redesign=1` : `${target}?redesign=1`, '_blank');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ = url; // keep tsc happy if minifier warns
+  };
+
+  /** Mark a single changeset as Approved / Rejected. Updates the proposal
+   *  row's review fields + the changeset status badge. */
+  const handleReviewChangeset = async (
+    changeSet: ProposalChangeSet,
+    decision: 'approved' | 'rejected'
+  ) => {
+    if (!id) return;
+    setReviewBusyFor(changeSet.id);
+    try {
+      await supabase
+        .from('proposals')
+        .update({
+          status:
+            decision === 'approved' && changeSet.changeSource === 'client'
+              ? 'approved'
+              : decision === 'rejected'
+              ? 'rejected'
+              : currentProposal?.status,
+          pending_review: false,
+          reviewed_by: user?.email || null,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+      await Promise.all([getProposal(id), fetchChangeSets()]);
+    } catch (err) {
+      console.error('Mark-reviewed failed:', err);
+    } finally {
+      setReviewBusyFor(null);
+    }
+  };
+
+  /** Save admin-only notes. Separate from Save Changes; doesn't recalculate
+   *  service totals. Flips pending_review so staff oncall sees the update. */
+  const handleSaveAdminNotes = async () => {
+    if (!id) return;
+    setAdminNotesSaving(true);
+    try {
+      await supabase
+        .from('proposals')
+        .update({ notes: adminNotes, pending_review: true })
+        .eq('id', id);
+      await getProposal(id);
+      setAdminNotesSaved(true);
+      setTimeout(() => setAdminNotesSaved(false), 3000);
+    } catch (err) {
+      console.error('Save notes failed:', err);
+    } finally {
+      setAdminNotesSaving(false);
+    }
+  };
+
+  /** Toggle a collapsible section open/closed. */
+  const toggleCollapsed = (key: string) =>
+    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  /** Bulk-swap every service of type X across the proposal to type Y.
+   *  Handy for "switch all massage to facial across all dates / locations". */
+  const handleBulkSwap = () => {
+    if (!editedData || !isEditing) return;
+    if (!bulkSwapFrom) {
+      alert('Pick a source service type.');
+      return;
+    }
+    if (bulkSwapFrom === bulkSwapTo) {
+      alert('Source and target must differ.');
+      return;
+    }
+    const updated = { ...editedData };
+    Object.entries(updated.services || {}).forEach(([loc, ld]: [string, any]) => {
+      Object.entries(ld).forEach(([date, dd]: [string, any]) => {
+        (dd.services || []).forEach((s: any, idx: number) => {
+          if (s.serviceType === bulkSwapFrom) {
+            const defaults = SERVICE_DEFAULTS[bulkSwapTo] || {};
+            const next: any = {
+              ...s,
+              serviceType: bulkSwapTo,
+              ...defaults,
+              date: s.date || date,
+              location: s.location || loc,
+              discountPercent: s.discountPercent || 0,
+            };
+            const { totalAppointments, serviceCost, proRevenue } =
+              calculateServiceResults(next);
+            next.totalAppointments = totalAppointments;
+            next.serviceCost = serviceCost;
+            next.proRevenue = proRevenue;
+            updated.services[loc][date].services[idx] = next;
+          }
+        });
+      });
+    });
+    const recalc = recalculateServiceTotals(updated);
+    setEditedData({ ...recalc, customization: currentProposal?.customization });
+    setDisplayData({ ...recalc, customization: currentProposal?.customization });
+    setBulkSwapOpen(false);
+  };
+
+  /** Test-send: dispatches the proposal email to a staff address so we can
+   *  preview the rendered email without spamming the real client. Uses the
+   *  same /functions/v1/proposal-share endpoint but to a custom recipient. */
+  const handleTestSend = async () => {
+    if (!id || !testSendEmail.trim()) {
+      alert('Enter a staff email.');
+      return;
+    }
+    setTestSendBusy(true);
+    try {
+      const res = await fetch(`${config.supabase.url}/functions/v1/proposal-share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.supabase.anonKey}`,
+        },
+        body: JSON.stringify({
+          proposalId: id,
+          clientEmail: testSendEmail.trim(),
+          clientName: `[TEST] ${displayData?.clientName || 'Proposal preview'}`,
+          shareNote: '[Internal test send — not the real client copy]',
+        }),
+      });
+      if (!res.ok) throw new Error('Test send failed');
+      setTestSendSent(true);
+      setTimeout(() => setTestSendSent(false), 4000);
+      setTestSendOpen(false);
+    } catch (err) {
+      console.error('Test send failed:', err);
+      alert('Test send failed. Check the staff email + try again.');
+    } finally {
+      setTestSendBusy(false);
     }
   };
 
@@ -2429,7 +2703,7 @@ const ProposalViewerV2: React.FC = () => {
                   const office = resolveOfficeAddress(loc);
                   return (
                     <div key={loc}>
-                      {/* Location header */}
+                      {/* Location header — clickable to collapse the date stack */}
                       <div
                         style={{
                           marginBottom: 14,
@@ -2441,16 +2715,33 @@ const ProposalViewerV2: React.FC = () => {
                         }}
                       >
                         <div style={{ minWidth: 0, flex: 1 }}>
-                          <div
+                          <button
+                            type="button"
+                            onClick={() => toggleCollapsed(loc)}
                             style={{
-                              display: 'flex',
+                              display: 'inline-flex',
                               alignItems: 'center',
                               gap: 8,
+                              background: 'transparent',
+                              border: 'none',
+                              padding: 0,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                              color: 'inherit',
                             }}
+                            title={collapsed[loc] ? 'Expand location' : 'Collapse location'}
                           >
+                            <ChevronDown
+                              size={14}
+                              color={T.fgMuted}
+                              style={{
+                                transform: collapsed[loc] ? 'rotate(-90deg)' : 'none',
+                                transition: 'transform .15s',
+                              }}
+                            />
                             <MapPin size={16} color={T.fgMuted} />
                             <Eyebrow>{loc}</Eyebrow>
-                          </div>
+                          </button>
                           <div
                             style={{
                               marginLeft: 24,
@@ -2580,7 +2871,13 @@ const ProposalViewerV2: React.FC = () => {
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                      <div
+                        style={{
+                          display: collapsed[loc] ? 'none' : 'flex',
+                          flexDirection: 'column',
+                          gap: 18,
+                        }}
+                      >
                         {Object.entries(byDate || {}).map(
                           ([date, dateData]: [string, any], dateIndex: number) => {
                             // Day-level totals — admin sees the raw appointments
@@ -2838,6 +3135,49 @@ const ProposalViewerV2: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Bulk service-type swap — admin power tool. Only visible in edit
+              mode + when there's at least one service to swap. */}
+          {isEditing && pricingRows.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  // Default the "from" picker to whatever the most common type is.
+                  const counts: Record<string, number> = {};
+                  pricingRows.forEach((r) => {
+                    counts[r.type] = (counts[r.type] || 0) + 1;
+                  });
+                  const top = Object.entries(counts).sort(
+                    (a, b) => b[1] - a[1]
+                  )[0];
+                  setBulkSwapFrom(top ? top[0] : '');
+                  setBulkSwapOpen(true);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '7px 14px',
+                  background: '#fff',
+                  border: '1.5px solid rgba(0,0,0,0.1)',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: T.navy,
+                }}
+              >
+                <Sparkles size={13} />
+                Bulk swap service type
+              </button>
+            </div>
+          )}
+
+          {/* Service agreement preview — same V2 collapsed-by-default card the
+              client sees, so staff can sanity-check the partner-name copy. */}
+          <ServiceAgreementCard clientName={clientName} />
 
           {/* Event-day summary */}
           <EventDaySummaryCard
@@ -3335,6 +3675,111 @@ const ProposalViewerV2: React.FC = () => {
                   Change history ({changeSets.length})
                 </button>
               )}
+              <button
+                type="button"
+                onClick={handleViewAsClient}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  background: 'transparent',
+                  color: 'rgba(255,255,255,0.85)',
+                  border: '1.5px solid rgba(255,255,255,0.18)',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+                title="Open the client-facing version of this proposal in a new tab"
+              >
+                <ExternalLink size={14} />
+                View as client
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTestSendEmail(user?.email || '');
+                  setTestSendOpen(true);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  background: 'transparent',
+                  color: 'rgba(255,255,255,0.85)',
+                  border: '1.5px solid rgba(255,255,255,0.18)',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+                title="Send the proposal email to a staff address for preview"
+              >
+                <Send size={14} />
+                Test send
+              </button>
+              {status !== 'approved' && (
+                <button
+                  type="button"
+                  onClick={handleForceApprove}
+                  disabled={isStatusUpdating}
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    background: 'rgba(30,158,106,0.18)',
+                    color: '#9FE9C4',
+                    border: '1.5px solid rgba(30,158,106,0.35)',
+                    borderRadius: 10,
+                    cursor: isStatusUpdating ? 'wait' : 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    opacity: isStatusUpdating ? 0.6 : 1,
+                  }}
+                  title="Skip the client click — lock in the current data now"
+                >
+                  <CheckCircle2 size={14} />
+                  Force approve
+                </button>
+              )}
+              {status !== 'rejected' && status !== 'approved' && (
+                <button
+                  type="button"
+                  onClick={handleMarkRejected}
+                  disabled={isStatusUpdating}
+                  style={{
+                    width: '100%',
+                    padding: '9px 14px',
+                    background: 'transparent',
+                    color: '#FFB3B3',
+                    border: '1.5px solid rgba(255,80,80,0.3)',
+                    borderRadius: 10,
+                    cursor: isStatusUpdating ? 'wait' : 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    opacity: isStatusUpdating ? 0.6 : 1,
+                  }}
+                >
+                  Mark rejected
+                </button>
+              )}
             </div>
 
             {/* Invoice — V2 styled. Trigger button matches the rest of the
@@ -3365,8 +3810,124 @@ const ProposalViewerV2: React.FC = () => {
             </div>
           </div>
 
-          {/* Account team — shows the current owner (admin sees what client sees) */}
-          <AccountTeamCard email={displayData?.accountTeamMemberEmail} />
+          {/* Account team — shows the current owner + admin dropdown to override */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <AccountTeamCard email={displayData?.accountTeamMemberEmail} />
+            <div
+              style={{
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.06)',
+                borderTop: 'none',
+                borderRadius: '0 0 16px 16px',
+                padding: '12px 18px 14px',
+                marginTop: -8,
+              }}
+            >
+              <Eyebrow style={{ marginBottom: 6 }}>Assigned owner (admin only)</Eyebrow>
+              <select
+                value={
+                  (displayData?.accountTeamMemberEmail as string) ||
+                  DEFAULT_TEAM_EMAIL
+                }
+                onChange={(e) => handleChangeAccountOwner(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '7px 10px',
+                  fontFamily: T.fontD,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  color: T.navy,
+                  border: '1.5px solid rgba(0,0,0,0.1)',
+                  borderRadius: 8,
+                  background: '#fff',
+                  outline: 'none',
+                }}
+              >
+                {Object.values(ACCOUNT_TEAM).map((m) => (
+                  <option key={m.email} value={m.email}>
+                    {m.name} · {m.title.split(' · ')[0]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Admin notes — staff-only memos that don't trigger a full save */}
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid rgba(0,0,0,0.06)',
+              borderRadius: 16,
+              padding: '18px 20px',
+            }}
+          >
+            <Eyebrow style={{ marginBottom: 8 }}>Internal notes (staff only)</Eyebrow>
+            <textarea
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              rows={4}
+              placeholder="Reminders for the account team — not visible to the client."
+              disabled={adminNotesSaving}
+              style={{
+                width: '100%',
+                padding: 10,
+                fontFamily: T.fontD,
+                fontSize: 13,
+                color: T.navy,
+                background: '#fff',
+                border: '1.5px solid rgba(0,0,0,0.1)',
+                borderRadius: 8,
+                outline: 'none',
+                resize: 'vertical',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: 8,
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 11,
+                  color: adminNotesSaved ? T.success : T.fgMuted,
+                }}
+              >
+                {adminNotesSaved ? 'Saved.' : ''}
+              </span>
+              <button
+                type="button"
+                onClick={handleSaveAdminNotes}
+                disabled={
+                  adminNotesSaving ||
+                  adminNotes.trim() === (currentProposal?.notes || '').trim()
+                }
+                style={{
+                  padding: '7px 14px',
+                  background: T.navy,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: adminNotesSaving ? 'wait' : 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  opacity:
+                    adminNotesSaving ||
+                    adminNotes.trim() === (currentProposal?.notes || '').trim()
+                      ? 0.5
+                      : 1,
+                }}
+              >
+                {adminNotesSaving ? 'Saving…' : 'Save notes'}
+              </button>
+            </div>
+          </div>
 
           {/* What's next reference — admin can see the client's expected flow */}
           <WhatsNextCard activeStep={status === 'approved' ? 3 : 1} />
@@ -3717,11 +4278,270 @@ const ProposalViewerV2: React.FC = () => {
         <ChangeHistoryDrawer
           changeSets={changeSets}
           onClose={() => setShowChangeHistory(false)}
+          onReview={handleReviewChangeset}
+          busyFor={reviewBusyFor}
         />
       )}
 
-      {/* ===== Invoice confirm modal ===== */}
-      <InvoiceConfirmationModal
+      {/* ===== Bulk service-type swap modal ===== */}
+      {bulkSwapOpen && (
+        <ModalBackdrop onClose={() => setBulkSwapOpen(false)}>
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 20,
+              padding: 28,
+              maxWidth: 520,
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.22)',
+            }}
+          >
+            <SectionLabel
+              eyebrow="Bulk edit"
+              title="Swap a service type across the proposal"
+              size="card"
+              mb={16}
+            />
+            <p
+              style={{
+                fontFamily: T.fontD,
+                fontSize: 13,
+                color: T.fgMuted,
+                lineHeight: 1.5,
+                marginTop: 0,
+                marginBottom: 16,
+              }}
+            >
+              Replaces every instance of the source service with the target's
+              defaults, preserving discount % and recalculating cost. Use it
+              when a client decides to switch (e.g. all massage → facial).
+            </p>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
+                gap: 10,
+                alignItems: 'end',
+              }}
+            >
+              <div>
+                <Eyebrow style={{ marginBottom: 4 }}>From</Eyebrow>
+                <select
+                  value={bulkSwapFrom}
+                  onChange={(e) => setBulkSwapFrom(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    fontFamily: T.fontD,
+                    fontWeight: 600,
+                    fontSize: 14,
+                    color: T.navy,
+                    border: '1.5px solid rgba(0,0,0,0.1)',
+                    borderRadius: 8,
+                    background: '#fff',
+                    outline: 'none',
+                  }}
+                >
+                  {Array.from(new Set(pricingRows.map((r) => r.type))).map(
+                    (t) => (
+                      <option key={t} value={t}>
+                        {(SERVICE_DISPLAY as any)[t] || t}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 18,
+                  color: T.fgMuted,
+                  paddingBottom: 9,
+                }}
+              >
+                →
+              </div>
+              <div>
+                <Eyebrow style={{ marginBottom: 4 }}>To</Eyebrow>
+                <select
+                  value={bulkSwapTo}
+                  onChange={(e) => setBulkSwapTo(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    fontFamily: T.fontD,
+                    fontWeight: 600,
+                    fontSize: 14,
+                    color: T.navy,
+                    border: '1.5px solid rgba(0,0,0,0.1)',
+                    borderRadius: 8,
+                    background: '#fff',
+                    outline: 'none',
+                  }}
+                >
+                  {SERVICE_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                justifyContent: 'flex-end',
+                marginTop: 20,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setBulkSwapOpen(false)}
+                style={{
+                  padding: '10px 18px',
+                  background: '#fff',
+                  color: T.navy,
+                  border: '1.5px solid rgba(0,0,0,0.12)',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkSwap}
+                style={{
+                  padding: '10px 18px',
+                  background: T.coral,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                Swap services
+              </button>
+            </div>
+          </div>
+        </ModalBackdrop>
+      )}
+
+      {/* ===== Test-send modal ===== */}
+      {testSendOpen && (
+        <ModalBackdrop onClose={() => !testSendBusy && setTestSendOpen(false)}>
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 20,
+              padding: 28,
+              maxWidth: 460,
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.22)',
+            }}
+          >
+            <SectionLabel
+              eyebrow="Internal preview"
+              title="Send a test copy to staff"
+              size="card"
+              mb={14}
+            />
+            <p
+              style={{
+                fontFamily: T.fontD,
+                fontSize: 13,
+                color: T.fgMuted,
+                lineHeight: 1.5,
+                marginTop: 0,
+                marginBottom: 14,
+              }}
+            >
+              Fires the real proposal-share email to whatever address you put
+              here. Use it to QA the rendered email before sending to the
+              actual client.
+            </p>
+            <Eyebrow style={{ marginBottom: 4 }}>Staff email</Eyebrow>
+            <input
+              type="email"
+              value={testSendEmail}
+              onChange={(e) => setTestSendEmail(e.target.value)}
+              style={inputStyle}
+            />
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                justifyContent: 'flex-end',
+                marginTop: 18,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setTestSendOpen(false)}
+                disabled={testSendBusy}
+                style={{
+                  padding: '10px 18px',
+                  background: '#fff',
+                  color: T.navy,
+                  border: '1.5px solid rgba(0,0,0,0.12)',
+                  borderRadius: 10,
+                  cursor: testSendBusy ? 'wait' : 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleTestSend}
+                disabled={testSendBusy || !testSendEmail.trim()}
+                style={{
+                  padding: '10px 18px',
+                  background: T.navy,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 10,
+                  cursor: testSendBusy ? 'wait' : 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  opacity: testSendBusy || !testSendEmail.trim() ? 0.6 : 1,
+                }}
+              >
+                <Send size={13} />
+                {testSendBusy ? 'Sending…' : 'Send test'}
+              </button>
+            </div>
+            {testSendSent && (
+              <div
+                style={{
+                  marginTop: 12,
+                  fontFamily: T.fontD,
+                  fontSize: 13,
+                  color: T.success,
+                }}
+              >
+                Test sent. Check your inbox.
+              </div>
+            )}
+          </div>
+        </ModalBackdrop>
+      )}
+
+      {/* ===== Invoice confirm modal (V2-styled) ===== */}
+      <InvoiceConfirmationModalV2
         isOpen={showInvoiceConfirm}
         onClose={() => {
           setShowInvoiceConfirm(false);
@@ -4433,10 +5253,17 @@ const IconBtn: React.FC<{
 interface ChangeHistoryDrawerProps {
   changeSets: ProposalChangeSet[];
   onClose: () => void;
+  onReview?: (
+    changeSet: ProposalChangeSet,
+    decision: 'approved' | 'rejected'
+  ) => void;
+  busyFor?: string | null;
 }
 const ChangeHistoryDrawer: React.FC<ChangeHistoryDrawerProps> = ({
   changeSets,
   onClose,
+  onReview,
+  busyFor,
 }) => (
   <div
     onClick={onClose}
@@ -4609,6 +5436,64 @@ const ChangeHistoryDrawer: React.FC<ChangeHistoryDrawerProps> = ({
                   </div>
                 ))}
               </div>
+
+              {/* Admin review actions per changeset (mark-reviewed flow).
+                  Skipped if the changeset is already reviewed (not pending). */}
+              {onReview && cs.status === 'pending' && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    paddingTop: 10,
+                    borderTop: '1px solid rgba(0,0,0,0.06)',
+                    display: 'flex',
+                    gap: 8,
+                    justifyContent: 'flex-end',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onReview(cs, 'rejected')}
+                    disabled={busyFor === cs.id}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#fff',
+                      color: T.coral,
+                      border: '1.5px solid rgba(255,80,80,0.3)',
+                      borderRadius: 8,
+                      cursor: busyFor === cs.id ? 'wait' : 'pointer',
+                      fontFamily: T.fontUi,
+                      fontWeight: 700,
+                      fontSize: 12,
+                      opacity: busyFor === cs.id ? 0.6 : 1,
+                    }}
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onReview(cs, 'approved')}
+                    disabled={busyFor === cs.id}
+                    style={{
+                      padding: '6px 12px',
+                      background: T.success,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      cursor: busyFor === cs.id ? 'wait' : 'pointer',
+                      fontFamily: T.fontUi,
+                      fontWeight: 700,
+                      fontSize: 12,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      opacity: busyFor === cs.id ? 0.7 : 1,
+                    }}
+                  >
+                    <Check size={12} />
+                    {busyFor === cs.id ? 'Saving…' : 'Mark reviewed'}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

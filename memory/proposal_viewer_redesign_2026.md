@@ -183,19 +183,19 @@ Compiled after Phase 3A shipped (May 13). Goal: nothing V1 does today disappears
 - [x] **Cost-per-headshot** stat. *Done May 13: rendered as an inline pill under the hero mini-stats only when at least one headshot service has appointments.*
 - [x] **Notes textarea on client view** — quick "anything else we should know?" save-only-when-changed flow that persists to `data.clientNote` and flips `pending_review`. *Done May 13.*
 
-### Phase 3D — admin polish & net-new admin features
+### Phase 3D — admin polish & net-new admin features ✅ shipped
 
-- [ ] **Account-team owner override dropdown** — admin picks `data.accountTeamMemberEmail` (NEW; not in V1)
-- [ ] **Force-approve / mark-rejected** from admin — override client state (NEW)
-- [ ] **"View as client" preview toggle** in admin — render StandaloneProposalViewerV2 inline (NEW)
-- [ ] **Mark-reviewed per changeset** in change-history drawer — Pending / Approved / Rejected status (V1 had badges)
-- [ ] **Save Notes flow** — separate "Save Notes" button + textarea that flips `pending_review` + `has_changes`
-- [ ] **Collapsible location/date sections** — expand/collapse chevron headers
-- [ ] **ServiceAgreement preview inside admin view** — with partner-name personalization
-- [ ] **InvoiceConfirmationModal — restyle to V2 visual language** (currently still V1 Tailwind under a V2 trigger)
-- [ ] **Bulk service-type swap** (NEW) — apply across a date or location
-- [ ] **Test-send** (NEW) — send proposal email to a staff address before going live
-- [ ] **Recurring partner badge + 15%/20% discount emphasis** per service (purple gradient from V1)
+- [x] **Account-team owner override dropdown** — admin picks `data.accountTeamMemberEmail` from the static ACCOUNT_TEAM map. Auto-saves on change; persists outside Edit mode. *Done May 13.*
+- [x] **Force-approve / mark-rejected** from admin. Both write `status` + `reviewed_by` + `reviewed_at` and fire a Slack notification. *Done May 13.*
+- [x] **"View as client" preview** in admin — opens the shared `?redesign=1` URL in a new tab via `getProposalUrl`. *Done May 13 — simpler than embedding a viewer inline.*
+- [x] **Mark-reviewed per changeset** — Approve / Reject buttons under each pending changeset in the change-history drawer. *Done May 13: ChangeHistoryDrawer extended with `onReview` + `busyFor`; handler updates proposal status + review fields.*
+- [x] **Save Notes flow** — separate "Internal notes" textarea in the admin sidebar that persists to `proposal.notes` and flips `pending_review`. *Done May 13.*
+- [x] **Collapsible location sections** — chevron-prefixed location button toggles the whole date stack open/closed. *Done May 13 via `collapsed` state map keyed by location.*
+- [x] **ServiceAgreement preview inside admin view** — `ServiceAgreementCard` rendered above EventDaySummaryCard so staff can sanity-check the partner-name copy. *Done May 13.*
+- [x] **InvoiceConfirmationModal — restyle to V2 visual language** — new `proposal/InvoiceConfirmationModalV2.tsx` with V2 tokens (no V1 Tailwind), same props as V1 modal so swap was a one-line import change. Adds "Save as draft" + "Send to client" footer split + sticky header/footer + V2 navy total card. *Done May 13.*
+- [x] **Bulk service-type swap** (NEW) — admin button in edit mode opens a From → To picker modal; swaps every matching service across the proposal with the new type's defaults and recalcs cost. *Done May 13.*
+- [x] **Test-send** (NEW) — staff button opens a modal that fires `proposal-share` to any email (defaults to current admin's). *Done May 13.*
+- [x] **Recurring partner badge per service** — purple gradient chip on `ServiceCard` next to the service-type chip whenever `service.isRecurring` is true; includes occurrence count + discount %. *Done May 13.*
 
 ### Phase 5 — mindfulness completeness
 
