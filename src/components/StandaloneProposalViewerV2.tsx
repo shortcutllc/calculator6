@@ -696,155 +696,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
     return null;
   };
 
-  // ---- Approved state -----------------------------------------------------
-  if (isApproved) {
-    return (
-      <div
-        className="pv-page pv-page--client"
-        id="proposal-content"
-        style={{ minHeight: '100vh', background: T.beige }}
-      >
-        <div
-          style={{
-            maxWidth: 720,
-            margin: '0 auto',
-            padding: '80px 24px',
-            textAlign: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              margin: '0 auto 20px',
-              borderRadius: 36,
-              background: 'rgba(30,158,106,.14)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CheckCircle2 size={36} color={T.success} strokeWidth={2.25} />
-          </div>
-          <h1
-            style={{
-              fontFamily: T.fontD,
-              fontWeight: 800,
-              fontSize: 44,
-              letterSpacing: '-0.02em',
-              color: T.navy,
-              margin: 0,
-            }}
-          >
-            Proposal approved.
-          </h1>
-          <p
-            style={{
-              fontFamily: T.fontD,
-              fontSize: 16,
-              color: T.fgMuted,
-              lineHeight: 1.55,
-              marginTop: 14,
-              marginBottom: 32,
-            }}
-          >
-            Thanks{contactFirst ? `, ${contactFirst}` : ''}. We've locked in your
-            selections and our team will be in touch with next steps. You can
-            still view this page anytime for reference.
-          </p>
-          <div
-            style={{
-              background: '#fff',
-              padding: 24,
-              borderRadius: 16,
-              border: '1px solid rgba(0,0,0,0.06)',
-              maxWidth: 380,
-              margin: '0 auto',
-            }}
-          >
-            <Eyebrow style={{ marginBottom: 6 }}>Total committed</Eyebrow>
-            <div
-              style={{
-                fontFamily: T.fontD,
-                fontWeight: 800,
-                fontSize: 36,
-                letterSpacing: '-0.02em',
-                color: T.coral,
-              }}
-            >
-              {formatCurrency(grandTotal)}
-            </div>
-            <div
-              style={{
-                fontFamily: T.fontD,
-                fontSize: 13,
-                color: T.fgMuted,
-                marginTop: 6,
-              }}
-            >
-              {summary.rows.filter((r) => r.included).length} service
-              {summary.rows.filter((r) => r.included).length === 1 ? '' : 's'} ·{' '}
-              {summary.totalEvents} event{summary.totalEvents === 1 ? '' : 's'}/year
-            </div>
-          </div>
-
-          {/* Post-approval survey — same component + flow as V1, just rendered
-              inside the new layout. Hidden once a response is already on file. */}
-          {!hasSurveyResponse && id && (
-            <div
-              id="proposal-survey-form"
-              style={{
-                marginTop: 40,
-                maxWidth: 720,
-                marginLeft: 'auto',
-                marginRight: 'auto',
-                textAlign: 'left',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  marginBottom: 12,
-                  justifyContent: 'center',
-                }}
-              >
-                <Sparkles size={20} color={T.coral} />
-                <CardHeading size="item" style={{ margin: 0 }}>
-                  Quick event-details form
-                </CardHeading>
-              </div>
-              <p
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 14,
-                  color: T.fgMuted,
-                  textAlign: 'center',
-                  marginBottom: 18,
-                }}
-              >
-                Helps us prep day-of logistics — takes about 3 minutes.
-              </p>
-              <ProposalSurveyForm
-                proposalId={id}
-                includesMassage={Object.values(displayData?.services || {}).some(
-                  (byDate: any) =>
-                    Object.values(byDate || {}).some((dd: any) =>
-                      (dd?.services || []).some((s: any) => s.serviceType === 'massage')
-                    )
-                )}
-                locations={Object.keys(displayData?.services || {})}
-                officeLocation={displayData?.officeLocation}
-                officeLocations={displayData?.officeLocations}
-                onSuccess={() => setHasSurveyResponse(true)}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   // ---- Main render -------------------------------------------------------
   return (
@@ -1241,6 +1092,93 @@ const StandaloneProposalViewerV2: React.FC = () => {
               currentId={id}
               queryString={queryString}
             />
+          )}
+
+          {/* Banner — proposal approved. Pinned high so it's the first thing
+              clients see when they come back to a locked-in proposal. The
+              StatusPill in the sticky header carries the same signal; this
+              card makes it impossible to miss. */}
+          {isApproved && (
+            <div
+              style={{
+                background:
+                  'linear-gradient(135deg, rgba(30,158,106,.16), rgba(30,158,106,.06))',
+                border: '1px solid rgba(30,158,106,.30)',
+                borderRadius: 16,
+                padding: '20px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: T.success,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <CheckCircle2 size={22} color="#fff" strokeWidth={2.5} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <Eyebrow color={T.success}>Approved</Eyebrow>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontWeight: 800,
+                    fontSize: 20,
+                    color: T.navy,
+                    letterSpacing: '-0.01em',
+                    lineHeight: 1.2,
+                    marginTop: 4,
+                  }}
+                >
+                  This proposal is locked in
+                  {contactFirst ? `, ${contactFirst}` : ''}.
+                </div>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontSize: 13,
+                    color: T.fgMuted,
+                    marginTop: 4,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  We're scheduling next steps — check back here anytime for the
+                  full details. Need to change something? Reach out to your
+                  account team.
+                </div>
+              </div>
+              <div
+                style={{
+                  textAlign: 'right',
+                  flexShrink: 0,
+                  paddingLeft: 16,
+                  borderLeft: '1px solid rgba(30,158,106,.25)',
+                }}
+              >
+                <Eyebrow>Total committed</Eyebrow>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontWeight: 800,
+                    fontSize: 26,
+                    color: T.coral,
+                    letterSpacing: '-0.02em',
+                    marginTop: 4,
+                  }}
+                >
+                  {formatCurrency(grandTotal)}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Banner — you're in client edit mode */}
@@ -2015,86 +1953,252 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
 
 
-          {/* Approve CTA */}
-          <div
-            style={{
-              background: '#fff',
-              border: `2px solid ${T.coral}`,
-              borderRadius: 24,
-              padding: '40px 44px',
-              boxShadow: '0 8px 32px rgba(255,80,80,0.16)',
-            }}
-          >
-            <Eyebrow color={T.coral}>Final step</Eyebrow>
-            <h2
+          {/* Approve CTA — pre-approval is the call-to-action; post-approval
+              the same card flips to a success state with the option to fill
+              the event-details survey. Keeps the page consistent so clients
+              who come back later see the bottom-line + status, not a
+              suddenly-empty section. */}
+          {isApproved ? (
+            <div
               style={{
-                fontFamily: T.fontD,
-                fontWeight: 700,
-                fontSize: 30,
-                lineHeight: 1.15,
-                letterSpacing: '-0.015em',
-                color: T.navy,
-                margin: '8px 0 12px',
+                background: '#fff',
+                border: `2px solid ${T.success}`,
+                borderRadius: 24,
+                padding: '32px 36px',
+                boxShadow: '0 8px 32px rgba(30,158,106,0.14)',
               }}
             >
-              Ready to move forward?
-            </h2>
-            <p
-              style={{
-                fontFamily: T.fontD,
-                fontSize: 15,
-                color: T.fgMuted,
-                lineHeight: 1.55,
-                margin: '0 0 24px',
-                maxWidth: 560,
-              }}
-            >
-              Approving locks in your selections at <strong style={{ color: T.navy }}>
-                {formatCurrency(grandTotal)}
-              </strong>{' '}
-              for {summary.rows.filter((r) => r.included).length} service
-              {summary.rows.filter((r) => r.included).length === 1 ? '' : 's'}.
-              Our team will follow up with logistics.
-            </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => setRequestChangesOpen(true)}
+              <div
                 style={{
-                  padding: '12px 20px',
-                  background: '#fff',
-                  color: T.navy,
-                  border: '1.5px solid rgba(0,0,0,0.12)',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  fontFamily: T.fontUi,
-                  fontWeight: 700,
-                  fontSize: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  marginBottom: 16,
                 }}
               >
-                Request changes
-              </button>
-              <button
-                type="button"
-                onClick={() => setApproveConfirmOpen(true)}
-                disabled={isApproving || summary.rows.every((r) => !r.included)}
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 14,
+                    background: 'rgba(30,158,106,.14)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <CheckCircle2 size={24} color={T.success} strokeWidth={2.5} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <Eyebrow color={T.success}>You're all set</Eyebrow>
+                  <div
+                    style={{
+                      fontFamily: T.fontD,
+                      fontWeight: 800,
+                      fontSize: 24,
+                      color: T.navy,
+                      letterSpacing: '-0.015em',
+                      lineHeight: 1.2,
+                      marginTop: 2,
+                    }}
+                  >
+                    Proposal approved · {formatCurrency(grandTotal)}
+                  </div>
+                </div>
+              </div>
+              <p
                 style={{
-                  padding: '12px 24px',
-                  background: T.coral,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 10,
-                  cursor: isApproving ? 'wait' : 'pointer',
-                  fontFamily: T.fontUi,
-                  fontWeight: 700,
+                  fontFamily: T.fontD,
                   fontSize: 14,
-                  opacity: summary.rows.every((r) => !r.included) ? 0.5 : 1,
+                  color: T.fgMuted,
+                  lineHeight: 1.55,
+                  margin: '0 0 18px',
+                  maxWidth: 560,
                 }}
               >
-                {isApproving ? 'Approving…' : 'Approve proposal'}
-              </button>
+                Your account team has the green light. Need to tweak something?
+                Use Request changes below and we'll get back to you — your
+                selections stay saved either way.
+              </p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {!hasSurveyResponse && (
+                  <a
+                    href="#proposal-survey-form"
+                    style={{
+                      padding: '11px 20px',
+                      background: T.coral,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      fontFamily: T.fontUi,
+                      fontWeight: 700,
+                      fontSize: 13,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
+                    }}
+                  >
+                    <Sparkles size={14} />
+                    Fill the event-day form
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setRequestChangesOpen(true)}
+                  style={{
+                    padding: '11px 20px',
+                    background: '#fff',
+                    color: T.navy,
+                    border: '1.5px solid rgba(0,0,0,0.12)',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 13,
+                  }}
+                >
+                  Request changes
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div
+              style={{
+                background: '#fff',
+                border: `2px solid ${T.coral}`,
+                borderRadius: 24,
+                padding: '40px 44px',
+                boxShadow: '0 8px 32px rgba(255,80,80,0.16)',
+              }}
+            >
+              <Eyebrow color={T.coral}>Final step</Eyebrow>
+              <h2
+                style={{
+                  fontFamily: T.fontD,
+                  fontWeight: 700,
+                  fontSize: 30,
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.015em',
+                  color: T.navy,
+                  margin: '8px 0 12px',
+                }}
+              >
+                Ready to move forward?
+              </h2>
+              <p
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 15,
+                  color: T.fgMuted,
+                  lineHeight: 1.55,
+                  margin: '0 0 24px',
+                  maxWidth: 560,
+                }}
+              >
+                Approving locks in your selections at <strong style={{ color: T.navy }}>
+                  {formatCurrency(grandTotal)}
+                </strong>{' '}
+                for {summary.rows.filter((r) => r.included).length} service
+                {summary.rows.filter((r) => r.included).length === 1 ? '' : 's'}.
+                Our team will follow up with logistics.
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setRequestChangesOpen(true)}
+                  style={{
+                    padding: '12px 20px',
+                    background: '#fff',
+                    color: T.navy,
+                    border: '1.5px solid rgba(0,0,0,0.12)',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 14,
+                  }}
+                >
+                  Request changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApproveConfirmOpen(true)}
+                  disabled={isApproving || summary.rows.every((r) => !r.included)}
+                  style={{
+                    padding: '12px 24px',
+                    background: T.coral,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 10,
+                    cursor: isApproving ? 'wait' : 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    opacity: summary.rows.every((r) => !r.included) ? 0.5 : 1,
+                  }}
+                >
+                  {isApproving ? 'Approving…' : 'Approve proposal'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Post-approval event-details survey — anchor target for the
+              "Fill the event-day form" link above. Only renders for approved
+              proposals that haven't been surveyed yet. */}
+          {isApproved && !hasSurveyResponse && id && (
+            <div
+              id="proposal-survey-form"
+              style={{
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.06)',
+                borderRadius: 20,
+                padding: '28px 32px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  marginBottom: 8,
+                }}
+              >
+                <Sparkles size={20} color={T.coral} />
+                <CardHeading size="card" style={{ margin: 0 }}>
+                  Quick event-details form
+                </CardHeading>
+              </div>
+              <p
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 14,
+                  color: T.fgMuted,
+                  lineHeight: 1.55,
+                  margin: '0 0 18px',
+                }}
+              >
+                Helps us prep day-of logistics — takes about 3 minutes.
+              </p>
+              <ProposalSurveyForm
+                proposalId={id}
+                includesMassage={Object.values(displayData?.services || {}).some(
+                  (byDate: any) =>
+                    Object.values(byDate || {}).some((dd: any) =>
+                      (dd?.services || []).some((s: any) => s.serviceType === 'massage')
+                    )
+                )}
+                locations={Object.keys(displayData?.services || {})}
+                officeLocation={displayData?.officeLocation}
+                officeLocations={displayData?.officeLocations}
+                onSuccess={() => setHasSurveyResponse(true)}
+              />
+            </div>
+          )}
         </main>
 
         {/* --- Sidebar --- */}
@@ -2248,27 +2352,51 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleApprove}
-              disabled={isApproving || summary.rows.every((r) => !r.included)}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                background: T.coral,
-                color: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                fontFamily: T.fontUi,
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: isApproving ? 'wait' : 'pointer',
-                marginBottom: 8,
-                opacity: summary.rows.every((r) => !r.included) ? 0.5 : 1,
-              }}
-            >
-              {isApproving ? 'Approving…' : 'Approve proposal'}
-            </button>
+            {isApproved ? (
+              <div
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(30,158,106,.18)',
+                  color: '#9FE9C4',
+                  border: '1.5px solid rgba(30,158,106,.40)',
+                  borderRadius: 10,
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  marginBottom: 8,
+                }}
+              >
+                <CheckCircle2 size={15} strokeWidth={2.5} />
+                Approved
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setApproveConfirmOpen(true)}
+                disabled={isApproving || summary.rows.every((r) => !r.included)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: T.coral,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 10,
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: isApproving ? 'wait' : 'pointer',
+                  marginBottom: 8,
+                  opacity: summary.rows.every((r) => !r.included) ? 0.5 : 1,
+                }}
+              >
+                {isApproving ? 'Approving…' : 'Approve proposal'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setRequestChangesOpen(true)}
@@ -2296,7 +2424,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 textAlign: 'center',
               }}
             >
-              Selections auto-save as you toggle.
+              {isApproved
+                ? 'Approved — selections are locked.'
+                : 'Selections auto-save as you toggle.'}
             </div>
           </div>
 
