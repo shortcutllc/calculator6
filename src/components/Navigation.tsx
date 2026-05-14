@@ -4,7 +4,7 @@ import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, ChevronLeft, ChevronRight,
   Clock, Plus, Users, Handshake, Gift, Smartphone,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench, Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -29,6 +29,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'New Proposal', path: '/', icon: <Plus size={18} /> },
       { label: 'History', path: '/history', icon: <Clock size={18} /> },
+      { label: 'Gallery', path: '/proposal-gallery-admin', icon: <ImageIcon size={18} /> },
       { label: 'Admin', path: '/admin', icon: <Settings size={18} /> },
     ],
   },

@@ -3,25 +3,32 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ServiceAgreementProps {
   clientName?: string;
+  /** When true, render the agreement body directly without the collapse-button
+   *  header. Used by the redesigned proposal viewer when this component is
+   *  embedded inside its own modal/section. */
+  forceExpanded?: boolean;
 }
 
-const ServiceAgreement: React.FC<ServiceAgreementProps> = ({ clientName }) => {
+const ServiceAgreement: React.FC<ServiceAgreementProps> = ({ clientName, forceExpanded }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const showBody = forceExpanded || isExpanded;
 
   return (
-    <div className="card-large overflow-hidden">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-8 py-6 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors"
-      >
-        <h2 className="text-xl font-extrabold text-shortcut-blue">
-          Service Agreement
-        </h2>
-        {isExpanded ? <ChevronUp size={20} className="text-text-dark-60" /> : <ChevronDown size={20} className="text-text-dark-60" />}
-      </button>
-      
-      {isExpanded && (
-        <div className="px-8 pb-8 prose max-w-none border-t border-gray-200 pt-8">
+    <div className={forceExpanded ? '' : 'card-large overflow-hidden'}>
+      {!forceExpanded && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full px-8 py-6 flex justify-between items-center bg-white hover:bg-neutral-light-gray transition-colors"
+        >
+          <h2 className="text-xl font-extrabold text-shortcut-blue">
+            Service Agreement
+          </h2>
+          {isExpanded ? <ChevronUp size={20} className="text-text-dark-60" /> : <ChevronDown size={20} className="text-text-dark-60" />}
+        </button>
+      )}
+
+      {showBody && (
+        <div className={`prose max-w-none ${forceExpanded ? 'px-0 pb-0' : 'px-8 pb-8 border-t border-gray-200 pt-8'}`}>
           <h3 className="text-lg font-extrabold text-shortcut-blue mb-6">SHORTCUT EVENTS SERVICE AGREEMENT</h3>
 
           <div className="space-y-8">
