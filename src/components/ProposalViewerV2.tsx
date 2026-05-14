@@ -2152,18 +2152,16 @@ const ProposalViewerV2: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
-            <div
+            <img
+              src="/shortcut-logo-blue.svg"
+              alt="Shortcut"
               style={{
-                fontFamily: T.fontD,
-                fontWeight: 800,
-                fontSize: 18,
-                color: T.navy,
-                letterSpacing: '-0.01em',
-                whiteSpace: 'nowrap',
+                height: 22,
+                width: 'auto',
+                display: 'block',
+                flexShrink: 0,
               }}
-            >
-              Shortcut
-            </div>
+            />
             <div
               style={{
                 width: 1,

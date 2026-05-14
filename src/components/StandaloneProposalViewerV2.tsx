@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Download, History as HistoryIcon, HelpCircle, MapPin, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, Download, History as HistoryIcon, HelpCircle, MapPin, Sparkles, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { generatePDF } from '../utils/pdf';
@@ -91,6 +91,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const [clientEditedData, setClientEditedData] = useState<any>(null);
   const [isSubmittingClientChanges, setIsSubmittingClientChanges] = useState(false);
   const [clientEditCommentOpen, setClientEditCommentOpen] = useState(false);
+  // Collapsible location sections (keyed by location string). Default-open.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggleCollapsed = (key: string) =>
+    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
   const [proposalOptions, setProposalOptions] = useState<ProposalOption[]>([]);
 
   // ---- Load proposal ------------------------------------------------------
@@ -849,18 +853,16 @@ const StandaloneProposalViewerV2: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
-            <div
+            <img
+              src="/shortcut-logo-blue.svg"
+              alt="Shortcut"
               style={{
-                fontFamily: T.fontD,
-                fontWeight: 800,
-                fontSize: 18,
-                color: T.navy,
-                letterSpacing: '-0.01em',
-                whiteSpace: 'nowrap',
+                height: 22,
+                width: 'auto',
+                display: 'block',
+                flexShrink: 0,
               }}
-            >
-              Shortcut
-            </div>
+            />
             <div
               style={{
                 width: 1,
@@ -1036,110 +1038,100 @@ const StandaloneProposalViewerV2: React.FC = () => {
         </div>
       </header>
 
-      {/* ===== Hero ===== */}
-      <section style={{ padding: '40px 24px 24px', maxWidth: 1280, margin: '0 auto' }}>
-        {/* Client logo banner — full-width, brand-forward. Falls back to the
-            52×52 initial tile when no logo is on file. */}
-        {clientLogoUrl ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '20px 24px',
-              background: '#fff',
-              borderRadius: 16,
-              border: '1px solid rgba(0,0,0,0.06)',
-              marginBottom: 20,
-              maxWidth: 320,
-              minHeight: 96,
-            }}
-          >
-            <img
-              src={clientLogoUrl}
-              alt={`${clientName} logo`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: 64,
-                width: 'auto',
-                height: 'auto',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-            />
-          </div>
-        ) : (
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 12,
-              background: '#fff',
-              border: '1px solid rgba(0,0,0,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: T.fontD,
-              fontWeight: 800,
-              fontSize: 24,
-              color: T.navy,
-              marginBottom: 18,
-            }}
-          >
-            {initial}
-          </div>
-        )}
-
-        <div style={{ marginBottom: 18 }}>
-          <Eyebrow>Prepared for · {proposalLabel}</Eyebrow>
-          {(contactFirst || proposal?.client_email) && (
+      {/* ===== Hero (compact) =====
+          Compressed from the original ~700px to ~260px so the meat of the
+          proposal (services + pricing) is one short scroll away. Logo sits
+          inline next to the client name; verbose subtitle removed (the new
+          help modal covers that ground for first-time visitors). */}
+      <section style={{ padding: '24px 24px 12px', maxWidth: 1280, margin: '0 auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 18,
+            flexWrap: 'wrap',
+            marginBottom: 14,
+          }}
+        >
+          {clientLogoUrl ? (
             <div
               style={{
-                fontFamily: T.fontD,
-                fontSize: 13,
-                color: T.fgMuted,
-                marginTop: 4,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 14px',
+                background: '#fff',
+                borderRadius: 12,
+                border: '1px solid rgba(0,0,0,0.06)',
+                maxWidth: 220,
+                height: 64,
+                flexShrink: 0,
               }}
             >
-              {contactFirst && <span>{contactFirst} · </span>}
-              {proposal?.client_email}
+              <img
+                src={clientLogoUrl}
+                alt={`${clientName} logo`}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: 44,
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 12,
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: T.fontD,
+                fontWeight: 800,
+                fontSize: 26,
+                color: T.navy,
+                flexShrink: 0,
+              }}
+            >
+              {initial}
             </div>
           )}
-        </div>
 
-        <h1
-          style={{
-            fontFamily: T.fontD,
-            fontWeight: 800,
-            fontSize: 56,
-            lineHeight: 1.06,
-            letterSpacing: '-0.025em',
-            color: T.navy,
-            margin: 0,
-          }}
-        >
-          {clientName} wellness proposal
-        </h1>
-        <p
-          style={{
-            fontFamily: T.fontD,
-            fontSize: 16,
-            color: T.fgMuted,
-            lineHeight: 1.55,
-            marginTop: 12,
-            marginBottom: 32,
-            maxWidth: 720,
-          }}
-        >
-          Review the services we've put together, adjust what's included and how
-          often, then approve when you're ready.
-        </p>
+          <div style={{ minWidth: 0 }}>
+            <Eyebrow style={{ marginBottom: 4 }}>
+              Prepared for · {proposalLabel}
+              {contactFirst && ` · ${contactFirst}`}
+            </Eyebrow>
+            <h1
+              style={{
+                fontFamily: T.fontD,
+                fontWeight: 800,
+                fontSize: 38,
+                lineHeight: 1.1,
+                letterSpacing: '-0.025em',
+                color: T.navy,
+                margin: 0,
+              }}
+            >
+              {clientName} wellness proposal
+            </h1>
+          </div>
+        </div>
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-            gap: 12,
-            maxWidth: 760,
+            gridTemplateColumns:
+              stats.hasHeadshot && stats.costPerHeadshot > 0
+                ? 'repeat(5, minmax(0, 1fr))'
+                : 'repeat(4, minmax(0, 1fr))',
+            gap: 10,
+            maxWidth: 920,
           }}
         >
           <MiniStat label="Locations" value={stats.locationCount} accent="navy" />
@@ -1150,38 +1142,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
             accent="navy"
           />
           <MiniStat label="Total" value={formatCurrency(grandTotal)} accent="coral" />
+          {stats.hasHeadshot && stats.costPerHeadshot > 0 && (
+            <MiniStat
+              label="Per headshot"
+              value={formatCurrency(stats.costPerHeadshot)}
+              accent="aqua"
+            />
+          )}
         </div>
-
-        {/* Optional: cost-per-headshot stat for headshot proposals.
-            Mirrors V1 (lines ~2440 of StandaloneProposalViewer). Only renders
-            when at least one headshot service has appointments on the books. */}
-        {stats.hasHeadshot && stats.costPerHeadshot > 0 && (
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 12,
-              marginTop: 14,
-              padding: '10px 16px',
-              background: '#fff',
-              border: '1px solid rgba(0,0,0,0.06)',
-              borderRadius: 12,
-            }}
-          >
-            <Eyebrow>Cost per headshot</Eyebrow>
-            <span
-              style={{
-                fontFamily: T.fontD,
-                fontWeight: 800,
-                fontSize: 20,
-                color: T.navy,
-                letterSpacing: '-0.015em',
-              }}
-            >
-              {formatCurrency(stats.costPerHeadshot)}
-            </span>
-          </div>
-        )}
       </section>
 
       {/* ===== 2-col body grid ===== */}
@@ -1414,24 +1382,43 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   const officeAddress = resolveOfficeAddress(loc);
                   return (
                   <div key={loc}>
+                    {/* Location header — clickable to collapse the date stack
+                        underneath. Default-open; chevron rotates -90° when collapsed. */}
                     <div style={{ marginBottom: 14 }}>
-                      <div
+                      <button
+                        type="button"
+                        onClick={() => toggleCollapsed(loc)}
+                        title={collapsed[loc] ? 'Expand location' : 'Collapse location'}
                         style={{
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
                           gap: 8,
+                          background: 'transparent',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          color: 'inherit',
                         }}
                       >
+                        <ChevronDown
+                          size={14}
+                          color={T.fgMuted}
+                          style={{
+                            transform: collapsed[loc] ? 'rotate(-90deg)' : 'none',
+                            transition: 'transform .15s',
+                          }}
+                        />
                         <MapPin size={16} color={T.fgMuted} />
                         <Eyebrow>{loc}</Eyebrow>
-                      </div>
+                      </button>
                       {officeAddress && (
                         <div
                           style={{
                             fontFamily: T.fontD,
                             fontSize: 13,
                             color: T.fgMuted,
-                            marginLeft: 24,
+                            marginLeft: 46,
                             marginTop: 2,
                             lineHeight: 1.4,
                           }}
@@ -1441,7 +1428,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div
+                      style={{
+                        display: collapsed[loc] ? 'none' : 'flex',
+                        flexDirection: 'column',
+                        gap: 16,
+                      }}
+                    >
                       {Object.entries(byDate || {}).map(
                         ([date, dateData]: [string, any], dateIndex: number) => {
                           // Day-level totals — sum included services + their frequency.
@@ -1608,47 +1601,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           </div>
 
-          {/* Why Shortcut — variant resolves from serviceTypes (single service,
-              multi-service unified, or CLE). Rendered for every proposal. */}
-          {serviceTypes.length > 0 && (
-            <WhyShortcutSection serviceTypes={serviceTypes} />
-          )}
-
-          {/* Per-service details (Benefits + What's Included + features) for
-              every non-mindfulness service in the proposal. Mindfulness gets
-              its own ParticipantBenefits + AdditionalResources sections
-              below instead, so we filter mindfulness out here. */}
-          {(() => {
-            const detail = serviceTypes.filter((s) => !isMindfulnessLike(s));
-            return detail.length > 0 ? (
-              <ServiceDetailsSection serviceTypes={detail} />
-            ) : null;
-          })()}
-
-          {/* Mindfulness-only sections — only render when at least one
-              mindfulness service exists in the proposal. */}
-          {hasMindfulness && <ParticipantBenefitsSection />}
-          {hasCLE && <CLEOutlineSection />}
-          {hasCLE && <CLEAccreditationSection />}
-          {hasMindfulness && <AdditionalResourcesSection />}
-
-          {/* Event-day summary — per-location at-a-glance */}
-          <EventDaySummaryCard
-            servicesByLocation={displayData.services || {}}
-            rows={summary.rows}
-          />
-
-          {/* Service agreement — collapsed by default. Pulls real terms from
-              the existing ServiceAgreement.tsx; modal personalizes "Partner". */}
-          <ServiceAgreementCard clientName={clientName} />
-
-          {/* Pricing summary card */}
+          {/* Pricing summary card — lifted above Why Shortcut so the bottom-
+              line lands within the first scroll. Same dark-navy treatment as
+              before; the Approve CTA still anchors the page bottom. */}
           <div
             style={{
               background: T.navy,
               color: '#fff',
               borderRadius: 24,
-              padding: '40px 44px',
+              padding: '36px 40px',
               boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             }}
           >
@@ -1657,18 +1618,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
               style={{
                 fontFamily: T.fontD,
                 fontWeight: 700,
-                fontSize: 32,
+                fontSize: 28,
                 lineHeight: 1.1,
                 letterSpacing: '-0.02em',
                 color: '#fff',
-                margin: '8px 0 28px',
+                margin: '6px 0 22px',
               }}
             >
               What you're approving
             </h2>
 
             {/* Line items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
               {summary.rows.map((row) => (
                 <div
                   key={row.key}
@@ -1685,7 +1646,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                       style={{
                         fontFamily: T.fontD,
                         fontWeight: 600,
-                        fontSize: 16,
+                        fontSize: 15,
                         color: '#fff',
                         textDecoration: row.included ? 'none' : 'line-through',
                       }}
@@ -1725,7 +1686,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     <span
                       style={{
                         fontFamily: T.fontD,
-                        fontSize: 13,
+                        fontSize: 12,
                         color: 'rgba(255,255,255,0.55)',
                       }}
                     >
@@ -1736,7 +1697,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     style={{
                       fontFamily: T.fontD,
                       fontWeight: 700,
-                      fontSize: 16,
+                      fontSize: 15,
                       color: '#fff',
                       whiteSpace: 'nowrap',
                       textDecoration: row.included ? 'none' : 'line-through',
@@ -1770,7 +1731,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         style={{
                           fontFamily: T.fontD,
                           fontWeight: 600,
-                          fontSize: 16,
+                          fontSize: 15,
                           color: '#fff',
                         }}
                       >
@@ -1792,7 +1753,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                       style={{
                         fontFamily: T.fontD,
                         fontWeight: 700,
-                        fontSize: 16,
+                        fontSize: 15,
                         color: '#fff',
                         whiteSpace: 'nowrap',
                       }}
@@ -1808,10 +1769,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
               style={{
                 height: 1,
                 background: 'rgba(255,255,255,0.12)',
-                marginBottom: 16,
+                marginBottom: 14,
               }}
             />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div
                 style={{
                   display: 'flex',
@@ -1883,8 +1844,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'baseline',
-                  marginTop: 12,
-                  paddingTop: 12,
+                  marginTop: 10,
+                  paddingTop: 10,
                   borderTop: '1px solid rgba(255,255,255,0.12)',
                 }}
               >
@@ -1892,7 +1853,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   style={{
                     fontFamily: T.fontD,
                     fontWeight: 700,
-                    fontSize: 24,
+                    fontSize: 22,
                     color: '#fff',
                     letterSpacing: '-0.02em',
                   }}
@@ -1903,7 +1864,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   style={{
                     fontFamily: T.fontD,
                     fontWeight: 800,
-                    fontSize: 56,
+                    fontSize: 48,
                     lineHeight: 1,
                     color: T.aqua,
                     letterSpacing: '-0.025em',
@@ -1919,14 +1880,49 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 fontFamily: T.fontD,
                 fontSize: 12,
                 color: 'rgba(255,255,255,0.5)',
-                marginTop: 14,
+                marginTop: 12,
                 marginBottom: 0,
               }}
             >
               Invoice issued before each event. Payment due 48 hours prior to the first scheduled event.
-              Cancellation: 72+ hrs notice = no charge. See the service agreement above for full terms.
+              Cancellation: 72+ hrs notice = no charge. See the service agreement below for full terms.
             </p>
           </div>
+
+          {/* Why Shortcut — variant resolves from serviceTypes (single service,
+              multi-service unified, or CLE). Rendered for every proposal. */}
+          {serviceTypes.length > 0 && (
+            <WhyShortcutSection serviceTypes={serviceTypes} />
+          )}
+
+          {/* Per-service details (Benefits + What's Included + features) for
+              every non-mindfulness service in the proposal. Mindfulness gets
+              its own ParticipantBenefits + AdditionalResources sections
+              below instead, so we filter mindfulness out here. */}
+          {(() => {
+            const detail = serviceTypes.filter((s) => !isMindfulnessLike(s));
+            return detail.length > 0 ? (
+              <ServiceDetailsSection serviceTypes={detail} />
+            ) : null;
+          })()}
+
+          {/* Mindfulness-only sections — only render when at least one
+              mindfulness service exists in the proposal. */}
+          {hasMindfulness && <ParticipantBenefitsSection />}
+          {hasCLE && <CLEOutlineSection />}
+          {hasCLE && <CLEAccreditationSection />}
+          {hasMindfulness && <AdditionalResourcesSection />}
+
+          {/* Event-day summary — per-location at-a-glance */}
+          <EventDaySummaryCard
+            servicesByLocation={displayData.services || {}}
+            rows={summary.rows}
+          />
+
+          {/* Service agreement — collapsed by default. Pulls real terms from
+              the existing ServiceAgreement.tsx; modal personalizes "Partner". */}
+          <ServiceAgreementCard clientName={clientName} />
+
 
           {/* Client notes textarea — quick way for the client to leave a note
               for the account team without going through the full Request
