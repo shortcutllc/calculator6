@@ -5378,6 +5378,64 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
             suffix="%"
           />
 
+          {/* Per-service "starts selected" default for the client view.
+              Stored as service.optionsSelectedDefault — when false, the
+              client view renders this service unchecked even when the
+              proposal-wide "Let the client build it" toggle is off. */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              alignSelf: 'flex-end',
+              minWidth: 0,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: T.fontUi,
+                fontWeight: 700,
+                fontSize: 11,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: T.fgMuted,
+              }}
+            >
+              Starts on for client
+            </div>
+            <label
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 10px',
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.12)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontFamily: T.fontD,
+                fontSize: 13,
+                color: T.navy,
+              }}
+              title="When off, the client view shows this service unchecked so they have to opt in."
+            >
+              <input
+                type="checkbox"
+                checked={(service as any).optionsSelectedDefault !== false}
+                onChange={(e) =>
+                  onFieldChange(
+                    'optionsSelectedDefault',
+                    e.target.checked ? undefined : false
+                  )
+                }
+                style={{ margin: 0 }}
+              />
+              {(service as any).optionsSelectedDefault === false
+                ? 'Off — client opts in'
+                : 'On — pre-selected'}
+            </label>
+          </div>
+
           <div
             style={{
               display: 'flex',

@@ -368,13 +368,32 @@ export const MiniStat: React.FC<MiniStatProps> = ({ label, value, accent = 'neut
   return (
     <div
       style={{
-        padding: '14px 16px',
+        // Horizontal padding shrunk from 16 → 12 so longer eyebrows
+        // (APPOINTMENTS = 12 chars × 11px × 0.1em letter-spacing) don't
+        // brush the right edge of the box on narrow viewports.
+        padding: '14px 12px',
         background: bg,
         borderRadius: 12,
         minWidth: 0,
+        // overflow:hidden traps the eyebrow's trailing letter-spacing
+        // inside the box even when the label is right at the limit.
+        overflow: 'hidden',
       }}
     >
-      <Eyebrow style={{ marginBottom: 4 }}>{label}</Eyebrow>
+      <Eyebrow
+        style={{
+          marginBottom: 4,
+          // Tighter letter-spacing than the default Eyebrow so longer
+          // labels (APPOINTMENTS = 12 chars) fit inside a 120px MiniStat
+          // on a 320px viewport without clipping or overflow. Also drop
+          // a hair of font-size for the same reason.
+          fontSize: 10,
+          letterSpacing: '0.06em',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
+      </Eyebrow>
       <div
         style={{
           fontFamily: T.fontD,
