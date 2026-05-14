@@ -818,6 +818,63 @@ const ProposalViewerV2: React.FC = () => {
     setDisplayData({ ...recalc, customization: currentProposal?.customization });
   };
 
+  // Remove an entire location — drops the services bucket, the matching
+  // office address, and any pricing_options / selected_options keys whose
+  // prefix matches this location. Guarded by a confirm with the date +
+  // service counts so admins don't nuke a populated location by accident.
+  const handleRemoveLocation = (loc: string) => {
+    if (!editedData || !isEditing) return;
+    const dates = editedData.services?.[loc]
+      ? Object.keys(editedData.services[loc])
+      : [];
+    const serviceCount = dates.reduce(
+      (acc, d) => acc + (editedData.services[loc][d]?.services?.length || 0),
+      0
+    );
+    const summary =
+      dates.length === 0
+        ? 'this location'
+        : `"${loc}" and its ${dates.length} date${dates.length === 1 ? '' : 's'}${
+            serviceCount > 0
+              ? ` (${serviceCount} service${serviceCount === 1 ? '' : 's'})`
+              : ''
+          }`;
+    if (!window.confirm(`Remove ${summary}? This can't be undone.`)) return;
+    const updated: any = { ...editedData };
+    if (updated.services && typeof updated.services === 'object') {
+      const next = { ...updated.services };
+      delete next[loc];
+      updated.services = next;
+    }
+    if (updated.officeLocations && typeof updated.officeLocations === 'object') {
+      const next = { ...updated.officeLocations };
+      delete next[loc];
+      updated.officeLocations = Object.keys(next).length > 0 ? next : undefined;
+    }
+    // Drop pricing_options / selected_options for this location too.
+    const stripKeys = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return obj;
+      const next: any = {};
+      const prefix = `${loc}-`;
+      for (const [k, v] of Object.entries(obj)) {
+        if (!k.startsWith(prefix)) next[k] = v;
+      }
+      return next;
+    };
+    if (currentProposal) {
+      (currentProposal as any).pricing_options = stripKeys(
+        (currentProposal as any).pricing_options
+      );
+      (currentProposal as any).selected_options = stripKeys(
+        (currentProposal as any).selected_options
+      );
+    }
+    rebuildEventDates(updated);
+    const recalc = recalculateServiceTotals(updated);
+    setEditedData({ ...recalc, customization: currentProposal?.customization });
+    setDisplayData({ ...recalc, customization: currentProposal?.customization });
+  };
+
   // -----------------------------------------------------------------------
   // Pricing-options editing
   // -----------------------------------------------------------------------
@@ -3040,36 +3097,73 @@ const ProposalViewerV2: React.FC = () => {
                             <MapPin size={16} color={T.fgMuted} />
                             <Eyebrow>{loc}</Eyebrow>
                             {isEditing && (
-                              <span
-                                role="button"
-                                tabIndex={0}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingLocNameFor(loc);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
+                              <>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
                                     e.stopPropagation();
                                     setEditingLocNameFor(loc);
-                                  }
-                                }}
-                                title="Rename location"
-                                style={{
-                                  marginLeft: 4,
-                                  padding: '2px 6px',
-                                  fontFamily: T.fontUi,
-                                  fontWeight: 700,
-                                  fontSize: 10,
-                                  letterSpacing: '0.08em',
-                                  textTransform: 'uppercase',
-                                  color: T.coral,
-                                  border: '1px solid rgba(255,80,80,0.35)',
-                                  borderRadius: 6,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Rename
-                              </span>
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.stopPropagation();
+                                      setEditingLocNameFor(loc);
+                                    }
+                                  }}
+                                  title="Rename location"
+                                  style={{
+                                    marginLeft: 4,
+                                    padding: '2px 6px',
+                                    fontFamily: T.fontUi,
+                                    fontWeight: 700,
+                                    fontSize: 10,
+                                    letterSpacing: '0.08em',
+                                    textTransform: 'uppercase',
+                                    color: T.coral,
+                                    border: '1px solid rgba(255,80,80,0.35)',
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Rename
+                                </span>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveLocation(loc);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.stopPropagation();
+                                      handleRemoveLocation(loc);
+                                    }
+                                  }}
+                                  title="Remove this location and all of its dates"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    marginLeft: 4,
+                                    padding: '2px 6px',
+                                    fontFamily: T.fontUi,
+                                    fontWeight: 700,
+                                    fontSize: 10,
+                                    letterSpacing: '0.08em',
+                                    textTransform: 'uppercase',
+                                    color: T.coral,
+                                    background: 'rgba(255,80,80,0.06)',
+                                    border: '1px solid rgba(255,80,80,0.35)',
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <Trash2 size={11} />
+                                  Remove location
+                                </span>
+                              </>
                             )}
                           </button>
                           )}
