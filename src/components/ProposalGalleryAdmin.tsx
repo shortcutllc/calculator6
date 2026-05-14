@@ -205,8 +205,8 @@ const ProposalGalleryAdmin: React.FC = () => {
             const map: Record<number, string> = {
               1: 'Browser aborted the load.',
               2: 'Network error while fetching the video (CORS or 404?).',
-              3: "Decoder failed — the video's codec isn't supported in this browser. iPhone clips are often HEVC; re-encode to H.264/MP4 (or use Safari).",
-              4: "Source not supported — the file format isn't playable in this browser.",
+              3: "Decoder failed — the codec isn't supported in this browser. iPhone clips are often HEVC/H.265; re-encode to H.264/MP4 (QuickTime Export, Handbrake 'Web Optimized', or ffmpeg) and re-upload.",
+              4: "Source not supported — the file format isn't playable in this browser. Almost always HEVC/H.265 from an iPhone .mov; clients on Chrome/Firefox won't be able to play it either. Re-encode to H.264/MP4 and re-upload, or switch iPhone → Settings → Camera → Formats → Most Compatible.",
             };
             const msg = e ? map[e.code] || `MediaError ${e.code}` : 'Unknown video error.';
             done({ error: msg });
