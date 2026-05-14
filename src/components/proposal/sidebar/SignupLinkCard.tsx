@@ -2,11 +2,15 @@ import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Eyebrow, CardHeading, T } from '../shared/primitives';
 
-// SignupLinkCard — sidebar CTA card that surfaces a free-form demo /
-// sign-up URL pasted by the admin in edit mode. Renders nothing when
-// no URL is set so the sidebar stays clean for proposals that don't
-// need a sign-up flow yet. Used in both V2 viewers (standalone +
-// admin); the URL is read from `data.signupLink` on the proposal.
+// SignupLinkCard — sidebar CTA card that surfaces a test-event URL the
+// admin pasted in edit mode. The point isn't for the prospect to RSVP
+// — it's to let them step through the *employee* booking flow on a
+// sample event so they can feel the tech before greenlighting the
+// real one. Mirrors the framing already shipped in our post-call
+// email template ("experience our seamless booking technology from
+// the employee perspective" → "Try the Demo"). Renders null when no
+// URL is set so default proposals stay clean. The URL is read from
+// `data.signupLink` on the proposal.
 
 interface SignupLinkCardProps {
   url?: string | null;
@@ -34,8 +38,8 @@ const normaliseUrl = (raw: string): string =>
 
 const SignupLinkCard: React.FC<SignupLinkCardProps> = ({
   url,
-  title = 'Sign up for the demo',
-  description = 'Reserve your spot or share the link with your team — it stays open until the event date.',
+  title = 'See the employee booking flow',
+  description = "Step through the same seamless sign-up your team will see on event day — book a sample appointment, no real reservation made.",
 }) => {
   if (!url || !isProbablyValidUrl(url)) return null;
 
@@ -52,7 +56,7 @@ const SignupLinkCard: React.FC<SignupLinkCardProps> = ({
         gap: 12,
       }}
     >
-      <Eyebrow color={T.coral}>Demo sign-up</Eyebrow>
+      <Eyebrow color={T.coral}>Try the booking flow</Eyebrow>
       <CardHeading size="card">{title}</CardHeading>
       <p
         style={{
@@ -85,7 +89,7 @@ const SignupLinkCard: React.FC<SignupLinkCardProps> = ({
           boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
         }}
       >
-        Sign up now
+        Try the demo
         <ExternalLink size={14} />
       </a>
     </div>

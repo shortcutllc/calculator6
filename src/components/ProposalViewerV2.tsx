@@ -2794,9 +2794,12 @@ const ProposalViewerV2: React.FC = () => {
             {displayData?.heroTitle || `${clientName} wellness proposal`}
           </h1>
         )}
-        {/* Demo sign-up link — admin pastes a URL here and the client
-            viewer surfaces it as a "Sign up now" CTA card in the right
-            rail. Leave the URL blank to hide the card entirely. */}
+        {/* Test signup / booking-demo link — paste a Coordinator test
+            event URL so the prospect can step through the actual
+            employee booking flow on a sample event. Surfaces as a
+            "Try the demo" CTA card in the right rail of the client
+            view. Same field the post-call email template pulls from
+            as "Test Signup Link". Leave blank to hide the card. */}
         {isEditing && (
           <div
             style={{
@@ -2819,13 +2822,13 @@ const ProposalViewerV2: React.FC = () => {
                 marginBottom: 8,
               }}
             >
-              Demo sign-up link
+              Test signup link
             </div>
             <input
               type="url"
               value={editedData.signupLink || ''}
               onChange={(e) => setTopLevelField('signupLink', e.target.value)}
-              placeholder="https://… (Calendly, Google Form, internal RSVP, anything)"
+              placeholder="https://admin.shortcutpros.com/#/signup/…"
               style={{
                 width: '100%',
                 padding: '8px 10px',
@@ -2846,7 +2849,7 @@ const ProposalViewerV2: React.FC = () => {
                 marginTop: 6,
               }}
             >
-              When set, the client sees a "Sign up now" card in the right rail (and on mobile, just below the Approve CTA). Leave blank to hide it.
+              Paste a test event URL so the prospect can experience our seamless booking flow from the employee perspective. Shown as a "Try the demo" card in the right rail (and on mobile, just below the Approve CTA). Leave blank to hide.
             </div>
           </div>
         )}
