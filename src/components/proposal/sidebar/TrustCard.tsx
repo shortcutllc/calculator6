@@ -16,16 +16,19 @@ interface TrustClient {
   initials: string;
 }
 
-// Real client roster — order roughly by recency/recognizability. Logos in
-// /public/clients/ override the initials when present. Today only a handful
-// have assets; the rest fall back to initials tiles automatically.
+// Real client roster — same SVG set used on the V1 HolidayProposal trusted-by
+// grid (public/Holiday Proposal/Parnter Logos/). Initials/bg are fallbacks
+// only used when the asset 404s. Order favors well-known names.
 const TRUSTED_CLIENTS: TrustClient[] = [
-  { name: 'DraftKings', logoSrc: '/clients/draftkings.svg', initials: 'DK', bg: '#1F2937' },
-  { name: 'Applecart', logoSrc: '/clients/applecart.svg', initials: 'AC', bg: '#0F766E' },
-  { name: 'Burberry', logoSrc: '/clients/burberry.svg', initials: 'BB', bg: '#1F2937' },
-  { name: 'Workhuman', logoSrc: '/clients/workhuman.svg', initials: 'WH', bg: '#7C3AED' },
-  { name: 'PYN Investments', logoSrc: '/clients/pyn.svg', initials: 'PY', bg: '#0EA5E9' },
-  { name: 'Meta', logoSrc: '/clients/meta.svg', initials: 'M', bg: '#1877F2' },
+  { name: 'DraftKings', logoSrc: '/Holiday Proposal/Parnter Logos/DraftKings.svg', initials: 'DK', bg: '#1F2937' },
+  { name: 'NFL', logoSrc: '/Holiday Proposal/Parnter Logos/NFL.svg', initials: 'NFL', bg: '#013369' },
+  { name: 'Paramount', logoSrc: '/Holiday Proposal/Parnter Logos/Paramount.svg', initials: 'PM', bg: '#0064FF' },
+  { name: 'Warner Bros.', logoSrc: '/Holiday Proposal/Parnter Logos/Warner Bros.svg', initials: 'WB', bg: '#0F1F4B' },
+  { name: 'PwC', logoSrc: '/Holiday Proposal/Parnter Logos/PwC.svg', initials: 'PwC', bg: '#DC6900' },
+  { name: 'BCG', logoSrc: '/Holiday Proposal/Parnter Logos/BCG.svg', initials: 'BCG', bg: '#16573B' },
+  { name: 'Wix', logoSrc: '/Holiday Proposal/Parnter Logos/Wix.svg', initials: 'Wix', bg: '#000000' },
+  { name: 'Tripadvisor', logoSrc: '/Holiday Proposal/Parnter Logos/Tripadvisor.svg', initials: 'TA', bg: '#34E0A1' },
+  { name: 'Betterment', logoSrc: '/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg', initials: 'BM', bg: '#003B49' },
 ];
 
 interface TrustClientTileProps {
