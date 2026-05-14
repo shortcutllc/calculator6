@@ -143,30 +143,50 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
           />
         )}
         {featured?.media_type === 'video' && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <>
+            {/* Fallback first-frame preview for video rows that don't have
+                a poster_url yet (older uploads). Cheap — browser only fetches
+                metadata. */}
+            {!featured.poster_url && (
+              <video
+                src={featured.media_url}
+                preload="metadata"
+                muted
+                playsInline
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            )}
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.92)',
+                position: 'absolute',
+                inset: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
               }}
             >
-              <Play size={20} color={T.navy} strokeWidth={2.5} fill={T.navy} />
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.92)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                }}
+              >
+                <Play size={20} color={T.navy} strokeWidth={2.5} fill={T.navy} />
+              </div>
             </div>
-          </div>
+          </>
         )}
         {!featured && (
           <div
@@ -245,17 +265,34 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
                 }}
               >
                 {t.media_type === 'video' && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Play size={14} color="#fff" strokeWidth={2.5} fill="#fff" />
-                  </div>
+                  <>
+                    {!t.poster_url && (
+                      <video
+                        src={t.media_url}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    )}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Play size={14} color="#fff" strokeWidth={2.5} fill="#fff" />
+                    </div>
+                  </>
                 )}
               </div>
             );

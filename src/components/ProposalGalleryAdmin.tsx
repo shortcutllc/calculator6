@@ -82,6 +82,8 @@ const ProposalGalleryAdmin: React.FC = () => {
   // Drag-and-drop state
   const [isDragOver, setIsDragOver] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  // Per-row thumb regeneration (for older video rows missing poster_url)
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   // Inline-edit caption state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -131,6 +133,78 @@ const ProposalGalleryAdmin: React.FC = () => {
   // the form's caption + featured pin. Multi-file path (drag-drop) ignores
   // caption + featured since they don't apply across a batch; staff can edit
   // each row's caption inline once it's in the library.
+  /** Capture a JPEG thumbnail from the first frame (~1s in) of a video File
+   *  using a hidden <video> + canvas. Returns the JPEG as a Blob or null if
+   *  the browser can't decode the file. Used so video gallery rows have a
+   *  poster_url instead of falling back to a blank gray tile. */
+  const generateVideoPoster = (f: File): Promise<Blob | null> =>
+    new Promise((resolve) => {
+      try {
+        const url = URL.createObjectURL(f);
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.muted = true;
+        video.playsInline = true;
+        video.crossOrigin = 'anonymous';
+        video.src = url;
+
+        const cleanup = () => URL.revokeObjectURL(url);
+        const fail = () => {
+          cleanup();
+          resolve(null);
+        };
+
+        const timeout = setTimeout(fail, 12_000);
+
+        video.addEventListener(
+          'loadedmetadata',
+          () => {
+            // Seek 1 second in (or to 0 if the clip is shorter) — first frame
+            // is often a black flash on cuts from phones.
+            const target = Math.min(1, Math.max(0, (video.duration || 0) / 2));
+            video.currentTime = target;
+          },
+          { once: true }
+        );
+
+        video.addEventListener('error', fail, { once: true });
+
+        video.addEventListener(
+          'seeked',
+          () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = video.videoWidth || 640;
+              canvas.height = video.videoHeight || 360;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) {
+                fail();
+                return;
+              }
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              canvas.toBlob(
+                (blob) => {
+                  clearTimeout(timeout);
+                  cleanup();
+                  resolve(blob);
+                },
+                'image/jpeg',
+                0.85
+              );
+            } catch (err) {
+              console.warn('Poster capture failed:', err);
+              clearTimeout(timeout);
+              fail();
+            }
+          },
+          { once: true }
+        );
+      } catch (err) {
+        console.warn('Poster generator setup failed:', err);
+        resolve(null);
+      }
+    });
+
   const uploadOne = async (
     f: File,
     opts: { applyFormMeta?: boolean } = {}
@@ -139,9 +213,8 @@ const ProposalGalleryAdmin: React.FC = () => {
       ? 'video'
       : 'image';
     const ext = f.name.split('.').pop() || 'bin';
-    const path = `${serviceType}/${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}.${ext}`;
+    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const path = `${serviceType}/${stamp}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from('proposal-gallery')
       .upload(path, f, {
@@ -162,10 +235,58 @@ const ProposalGalleryAdmin: React.FC = () => {
     const { data: pub } = supabase.storage
       .from('proposal-gallery')
       .getPublicUrl(path);
+
+    // Best-effort video poster — capture a JPEG from frame ~1s in and upload
+    // it alongside the source clip. If anything fails we still insert the
+    // row (the tile renderer falls back to a <video preload=metadata>).
+    let posterUrl: string | null = null;
+    let durationSeconds: number | null = null;
+    if (detectedMediaType === 'video') {
+      try {
+        // Sneak the duration off the metadata-only video element used by the
+        // poster generator — saves a second decode pass.
+        const probe = document.createElement('video');
+        probe.preload = 'metadata';
+        probe.src = URL.createObjectURL(f);
+        await new Promise<void>((res) => {
+          const done = () => {
+            durationSeconds = Math.round(probe.duration || 0) || null;
+            URL.revokeObjectURL(probe.src);
+            res();
+          };
+          probe.addEventListener('loadedmetadata', done, { once: true });
+          probe.addEventListener('error', done, { once: true });
+          setTimeout(done, 6_000);
+        });
+      } catch {
+        /* non-fatal — duration is cosmetic */
+      }
+      const poster = await generateVideoPoster(f);
+      if (poster) {
+        const posterPath = `${serviceType}/${stamp}-poster.jpg`;
+        const { error: posterErr } = await supabase.storage
+          .from('proposal-gallery')
+          .upload(posterPath, poster, {
+            upsert: false,
+            contentType: 'image/jpeg',
+          });
+        if (!posterErr) {
+          const { data: posterPub } = supabase.storage
+            .from('proposal-gallery')
+            .getPublicUrl(posterPath);
+          posterUrl = posterPub.publicUrl;
+        } else {
+          console.warn('Poster upload failed (non-fatal):', posterErr.message);
+        }
+      }
+    }
+
     const { error: insErr } = await supabase.from('proposal_gallery').insert({
       service_type: serviceType,
       media_url: pub.publicUrl,
       media_type: opts.applyFormMeta ? mediaType : detectedMediaType,
+      poster_url: posterUrl,
+      duration_seconds: durationSeconds,
       caption: opts.applyFormMeta && caption.trim() ? caption.trim() : null,
       is_featured: opts.applyFormMeta ? isFeatured : false,
       is_published: true,
@@ -287,6 +408,53 @@ const ProposalGalleryAdmin: React.FC = () => {
     if (err) {
       setRows(prev);
       alert('Save failed: ' + err.message);
+    }
+  };
+
+  /** Backfill a poster_url for an existing video row. Fetches the video from
+   *  its public URL, runs the same first-frame capture used on upload,
+   *  uploads the JPEG, and updates the row. Idempotent — overwriting an
+   *  existing poster is fine. */
+  const regenerateThumb = async (row: GalleryRow) => {
+    if (row.media_type !== 'video' || !row.media_url) return;
+    setRegeneratingId(row.id);
+    try {
+      const resp = await fetch(row.media_url);
+      if (!resp.ok) {
+        throw new Error(`Couldn't fetch video (HTTP ${resp.status})`);
+      }
+      const blob = await resp.blob();
+      const fakeFile = new File([blob], `${row.id}.mp4`, {
+        type: blob.type || 'video/mp4',
+      });
+      const poster = await generateVideoPoster(fakeFile);
+      if (!poster) {
+        throw new Error(
+          "Browser couldn't decode the first frame. The clip may be in a codec it doesn't support."
+        );
+      }
+      const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const posterPath = `${row.service_type}/${stamp}-poster.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from('proposal-gallery')
+        .upload(posterPath, poster, {
+          upsert: false,
+          contentType: 'image/jpeg',
+        });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage
+        .from('proposal-gallery')
+        .getPublicUrl(posterPath);
+      await updateRow(row.id, { poster_url: pub.publicUrl });
+    } catch (err) {
+      console.error('Regenerate thumb failed:', err);
+      alert(
+        err instanceof Error
+          ? `Couldn't regenerate thumb — ${err.message}`
+          : 'Couldn\'t regenerate thumb (see console).'
+      );
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -543,8 +711,29 @@ const ProposalGalleryAdmin: React.FC = () => {
                                   })`
                                 : T.lightGray,
                             position: 'relative',
+                            overflow: 'hidden',
                           }}
                         >
+                          {/* Fallback for older video rows that don't have a
+                              poster_url yet — render the actual <video> with
+                              preload=metadata so the browser pulls the first
+                              frame. Cheap, and covers anything uploaded before
+                              the auto-poster path landed. */}
+                          {row.media_type === 'video' && !row.poster_url && (
+                            <video
+                              src={row.media_url}
+                              preload="metadata"
+                              muted
+                              playsInline
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          )}
                           {row.media_type === 'video' && (
                             <div
                               style={{
@@ -703,6 +892,16 @@ const ProposalGalleryAdmin: React.FC = () => {
                             >
                               {row.is_published !== false ? 'Live' : 'Hidden'}
                             </SmallChipButton>
+                            {row.media_type === 'video' && (
+                              <SmallChipButton
+                                onClick={() => regenerateThumb(row)}
+                                icon={<ImageIcon size={11} />}
+                              >
+                                {regeneratingId === row.id
+                                  ? 'Working…'
+                                  : 'Regen thumb'}
+                              </SmallChipButton>
+                            )}
                             <SmallChipButton
                               onClick={() => deleteRow(row)}
                               tone="danger"
