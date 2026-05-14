@@ -47,6 +47,22 @@ export const SERVICE_DESC: Record<string, string> = {
     'Experience personalized makeup artistry that enhances natural beauty and creates stunning looks tailored to each individual.',
 };
 
+// Variant-specific copy for service sub-types. Lookups are keyed by the
+// service's sub-type field — `massageType` for massage rows, `nailsType` for
+// nails. ServiceCard falls back to SERVICE_DESC[serviceType] when no variant
+// match is found, so it's safe to leave sub-types out of these maps.
+export const MASSAGE_TYPE_DESC: Record<string, string> = {
+  chair:
+    "Chair massage brings the spa to the office in 15–20 minute sessions. Our vetted therapists work through tension in the neck, shoulders, and back while employees stay clothed and seated — no setup, no oils, no downtime.",
+  table:
+    'Table massage offers a deeper, longer experience in a quiet space we set up at your office. Therapists work through full-body tension with oils and aromatherapy. Best for half-day and full-day wellness events.',
+};
+
+export const NAILS_TYPE_DESC: Record<string, string> = {
+  'nails-hand-massage':
+    'Classic in-office manicures paired with a relaxing hand massage. Employees get a full reset — shape, buff, polish, plus a quick tension-release in the wrists and forearms.',
+};
+
 // Color palette for service-type chips — preserves existing brand colors per
 // service. Designed to be visually distinct without screaming.
 export const SERVICE_CHIP_COLORS: Record<string, { bg: string; color: string }> = {

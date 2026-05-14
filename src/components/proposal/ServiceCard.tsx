@@ -11,7 +11,13 @@ import {
   T,
 } from './shared/primitives';
 import PricingOptionsSelector, { PricingOptionVariant } from './PricingOptionsSelector';
-import { SERVICE_DISPLAY, SERVICE_DESC, formatCurrency } from './data';
+import {
+  MASSAGE_TYPE_DESC,
+  NAILS_TYPE_DESC,
+  SERVICE_DESC,
+  SERVICE_DISPLAY,
+  formatCurrency,
+} from './data';
 
 // ============================================================================
 // ServiceCard — the single most-used unit in the redesigned proposal viewer.
@@ -40,6 +46,7 @@ export interface ServiceCardService {
   earlyArrival?: number;
   retouchingCost?: number;
   massageType?: string;
+  nailsType?: string;
   // Mindfulness-specific
   classLength?: number;
   participants?: string | number;
@@ -124,9 +131,21 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const isMindful = service.serviceType === 'mindfulness';
   const isHeadshot = service.serviceType === 'headshot' || service.serviceType === 'headshots';
 
+  // Description resolution:
+  //   1. Mindfulness: use the per-service custom mindfulnessDescription if
+  //      the staff set one, else the generic mindfulness blurb.
+  //   2. Massage / Nails: if a sub-type variant exists (chair, table,
+  //      nails-hand-massage) prefer the variant-specific copy.
+  //   3. Otherwise fall back to the generic SERVICE_DESC for the service type.
+  const variantDesc =
+    service.serviceType === 'massage' && service.massageType
+      ? MASSAGE_TYPE_DESC[service.massageType]
+      : service.serviceType === 'nails' && service.nailsType
+      ? NAILS_TYPE_DESC[service.nailsType]
+      : null;
   const desc = isMindful
     ? service.mindfulnessDescription || SERVICE_DESC.mindfulness
-    : SERVICE_DESC[service.serviceType] || '';
+    : variantDesc || SERVICE_DESC[service.serviceType] || '';
   const isShort = desc.length < 180;
   const displayDesc = isShort || expanded ? desc : `${desc.slice(0, 180)}…`;
 
