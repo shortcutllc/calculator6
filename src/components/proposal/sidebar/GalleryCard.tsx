@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowUpRight, ImageIcon, Play } from 'lucide-react';
+import { ArrowUpRight, ImageIcon, Play, X } from 'lucide-react';
 import { Eyebrow, T } from '../shared/primitives';
 import { supabase } from '../../../lib/supabaseClient';
 
 // GalleryCard — real proposal_gallery integration (Phase 6).
 //
-// Pulls published media rows from `proposal_gallery`, filtered to the service
-// types present in the proposal. If no rows come back (e.g. brand-new env,
-// admin hasn't uploaded anything yet), falls back to the V2 placeholder
-// gradient tiles + a small "coming soon" caption. Public read RLS is set in
+// Currently pulls ALL published media rows from `proposal_gallery` (no
+// service-type filter) so the small library doubles as a general showcase
+// across every proposal. The `service_type` column is still populated on
+// each row so we can flip back to per-service filtering later by uncommenting
+// the `.in('service_type', serviceTypes)` clause below.
+//
+// "View all" opens a lightbox modal that grids every published item with
+// hover captions + a fullscreen detail view. Public read RLS is set in
 // migration 20260513000001 so anon shared-link visitors get the same media.
 
 interface GalleryMediaItem {
@@ -43,39 +47,43 @@ const GALLERY_GRADIENTS = [
 
 const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
   const [items, setItems] = useState<GalleryMediaItem[] | null>(null);
+  const [allItems, setAllItems] = useState<GalleryMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (serviceTypes.length === 0) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
+        // Service-agnostic pull for now — fetch every published row so the
+        // gallery doubles as a general showcase. To re-introduce per-service
+        // filtering later, add `.in('service_type', serviceTypes)`.
         const { data, error } = await supabase
           .from('proposal_gallery')
           .select(
             'id, service_type, media_url, media_type, caption, poster_url, duration_seconds, is_featured'
           )
-          .in('service_type', serviceTypes)
           .eq('is_published', true)
           .order('is_featured', { ascending: false })
           .order('sort_order', { ascending: true })
-          .order('created_at', { ascending: false })
-          .limit(5);
+          .order('created_at', { ascending: false });
         if (cancelled) return;
         if (error) {
-          // Table may not exist yet in dev — fall back silently.
           console.warn('proposal_gallery query failed (non-fatal):', error.message);
           setItems([]);
+          setAllItems([]);
         } else {
-          setItems(data || []);
+          const rows = data || [];
+          setAllItems(rows);
+          setItems(rows.slice(0, 5));
         }
       } catch (err) {
         console.warn('proposal_gallery query threw (non-fatal):', err);
-        if (!cancelled) setItems([]);
+        if (!cancelled) {
+          setItems([]);
+          setAllItems([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -83,7 +91,7 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
     return () => {
       cancelled = true;
     };
-  }, [serviceTypes.join('|')]);
+  }, []);
 
   // Feature label is mostly cosmetic — pick massage if present, else first.
   const feature = serviceTypes.includes('massage')
@@ -290,13 +298,14 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
             {loading
               ? 'Loading media…'
               : hasContent
-              ? `${items?.length} clip${items?.length === 1 ? '' : 's'} from past ${feature} events`
+              ? `${allItems.length} from past events`
               : 'Media coming soon'}
           </span>
         </div>
         <button
           type="button"
           disabled={!hasContent}
+          onClick={() => hasContent && setLightboxOpen(true)}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -315,6 +324,287 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
           View all
           <ArrowUpRight size={12} />
         </button>
+      </div>
+
+      {lightboxOpen && (
+        <GalleryLightbox
+          items={allItems}
+          activeId={activeMediaId}
+          onClose={() => {
+            setLightboxOpen(false);
+            setActiveMediaId(null);
+          }}
+          onPickActive={(id) => setActiveMediaId(id)}
+        />
+      )}
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// GalleryLightbox — fullscreen grid view of all published gallery items.
+// Click a thumbnail to enter detail mode (large image/video + caption + nav
+// back to the grid). Escape closes; backdrop click closes; light-blue hover
+// state matches the V2 palette.
+// ----------------------------------------------------------------------------
+interface GalleryLightboxProps {
+  items: GalleryMediaItem[];
+  activeId: string | null;
+  onClose: () => void;
+  onPickActive: (id: string | null) => void;
+}
+const GalleryLightbox: React.FC<GalleryLightboxProps> = ({
+  items,
+  activeId,
+  onClose,
+  onPickActive,
+}) => {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (activeId) onPickActive(null);
+        else onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [activeId, onClose, onPickActive]);
+
+  const active = activeId ? items.find((it) => it.id === activeId) : null;
+
+  return (
+    <div
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(9,54,79,0.85)',
+        zIndex: 90,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 1080,
+          maxHeight: '90vh',
+          background: '#fff',
+          borderRadius: 20,
+          overflow: 'hidden',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div
+          style={{
+            padding: '20px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid rgba(0,0,0,0.06)',
+          }}
+        >
+          <div>
+            <Eyebrow>Gallery</Eyebrow>
+            <div
+              style={{
+                fontFamily: T.fontD,
+                fontWeight: 800,
+                fontSize: 22,
+                color: T.navy,
+                letterSpacing: '-0.015em',
+                marginTop: 4,
+              }}
+            >
+              From past Shortcut events
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            style={{
+              padding: 8,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: T.fgMuted,
+              display: 'inline-flex',
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {active ? (
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 24,
+              gap: 14,
+              background: '#000',
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+              }}
+            >
+              {active.media_type === 'video' ? (
+                <video
+                  src={active.media_url}
+                  poster={active.poster_url || undefined}
+                  controls
+                  autoPlay
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    borderRadius: 12,
+                  }}
+                />
+              ) : (
+                <img
+                  src={active.media_url}
+                  alt={active.caption || ''}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain',
+                    borderRadius: 12,
+                  }}
+                />
+              )}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.85)',
+                  lineHeight: 1.45,
+                }}
+              >
+                {active.caption || ' '}
+              </div>
+              <button
+                type="button"
+                onClick={() => onPickActive(null)}
+                style={{
+                  padding: '7px 14px',
+                  background: 'rgba(255,255,255,0.12)',
+                  color: '#fff',
+                  border: '1.5px solid rgba(255,255,255,0.2)',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                Back to grid
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: 12,
+              }}
+            >
+              {items.map((it) => (
+                <button
+                  key={it.id}
+                  type="button"
+                  onClick={() => onPickActive(it.id)}
+                  title={it.caption || ''}
+                  style={{
+                    aspectRatio: '4 / 3',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    background:
+                      it.poster_url || it.media_type === 'image'
+                        ? `center / cover no-repeat url(${it.poster_url || it.media_url})`
+                        : T.lightGray,
+                    position: 'relative',
+                  }}
+                >
+                  {it.media_type === 'video' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.25)',
+                      }}
+                    >
+                      <Play size={26} color="#fff" strokeWidth={2.5} fill="#fff" />
+                    </div>
+                  )}
+                  {it.caption && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        padding: '8px 10px',
+                        background:
+                          'linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0))',
+                        color: '#fff',
+                        fontFamily: T.fontD,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        textAlign: 'left',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {it.caption}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

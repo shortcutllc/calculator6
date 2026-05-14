@@ -79,6 +79,9 @@ const ProposalGalleryAdmin: React.FC = () => {
   const [isFeatured, setIsFeatured] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  // Drag-and-drop state
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
   // Inline-edit caption state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -124,6 +127,111 @@ const ProposalGalleryAdmin: React.FC = () => {
   }, []);
 
   // ---- Upload --------------------------------------------------------------
+  // Uploads one OR many files. Single-file path (the form-submit click) uses
+  // the form's caption + featured pin. Multi-file path (drag-drop) ignores
+  // caption + featured since they don't apply across a batch; staff can edit
+  // each row's caption inline once it's in the library.
+  const uploadOne = async (
+    f: File,
+    opts: { applyFormMeta?: boolean } = {}
+  ): Promise<void> => {
+    const detectedMediaType: 'image' | 'video' = f.type.startsWith('video/')
+      ? 'video'
+      : 'image';
+    const ext = f.name.split('.').pop() || 'bin';
+    const path = `${serviceType}/${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from('proposal-gallery')
+      .upload(path, f, { upsert: false });
+    if (upErr) throw upErr;
+    const { data: pub } = supabase.storage
+      .from('proposal-gallery')
+      .getPublicUrl(path);
+    const { error: insErr } = await supabase.from('proposal_gallery').insert({
+      service_type: serviceType,
+      media_url: pub.publicUrl,
+      media_type: opts.applyFormMeta ? mediaType : detectedMediaType,
+      caption: opts.applyFormMeta && caption.trim() ? caption.trim() : null,
+      is_featured: opts.applyFormMeta ? isFeatured : false,
+      is_published: true,
+      sort_order: 0,
+    });
+    if (insErr) throw insErr;
+  };
+
+  /** Bulk upload — runs uploadOne sequentially across a FileList. Used by the
+   *  drag-drop handler. Auto-detects image vs video per file from its MIME
+   *  type; caption + featured aren't applied (they don't make sense per-row
+   *  across a batch). Shows a progress counter while in flight. */
+  const handleBulkUpload = async (files: File[]) => {
+    const usable = files.filter(
+      (f) => f.type.startsWith('image/') || f.type.startsWith('video/')
+    );
+    if (usable.length === 0) {
+      setUploadMsg('No images or videos detected in the drop.');
+      setTimeout(() => setUploadMsg(null), 3500);
+      return;
+    }
+    if (!user) {
+      setUploadMsg('Sign in required to upload.');
+      return;
+    }
+    setUploadBusy(true);
+    setUploadMsg(null);
+    setBulkProgress({ done: 0, total: usable.length });
+    let failed = 0;
+    for (let i = 0; i < usable.length; i++) {
+      try {
+        await uploadOne(usable[i]);
+      } catch (err) {
+        console.error('Bulk upload — file failed:', usable[i].name, err);
+        failed++;
+      }
+      setBulkProgress({ done: i + 1, total: usable.length });
+    }
+    setBulkProgress(null);
+    setUploadBusy(false);
+    setUploadMsg(
+      failed === 0
+        ? `Uploaded ${usable.length} file${usable.length === 1 ? '' : 's'}.`
+        : `Uploaded ${usable.length - failed} of ${usable.length} — ${failed} failed (see console).`
+    );
+    await fetchRows();
+    setTimeout(() => setUploadMsg(null), 4000);
+  };
+
+  // Drag-and-drop event handlers. We listen on a single wrapper so the user
+  // can drop anywhere over the form panel, not just on the file picker.
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragOver) setIsDragOver(true);
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only flip back to false when leaving the container itself, not a child.
+    if (e.currentTarget === e.target) setIsDragOver(false);
+  };
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const dropped = Array.from(e.dataTransfer?.files || []);
+    if (dropped.length === 0) return;
+    if (dropped.length === 1) {
+      // Single drop falls back to the form's behavior so the user can still
+      // attach caption + featured pin before clicking Upload.
+      setFile(dropped[0]);
+      if (dropped[0].type.startsWith('video/')) setMediaType('video');
+      else if (dropped[0].type.startsWith('image/')) setMediaType('image');
+      return;
+    }
+    void handleBulkUpload(dropped);
+  };
+
   const handleUpload = async () => {
     if (!file) {
       setUploadMsg('Pick a file first.');
@@ -136,27 +244,7 @@ const ProposalGalleryAdmin: React.FC = () => {
     setUploadBusy(true);
     setUploadMsg(null);
     try {
-      const ext = file.name.split('.').pop() || 'bin';
-      const path = `${serviceType}/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from('proposal-gallery')
-        .upload(path, file, { upsert: false });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage
-        .from('proposal-gallery')
-        .getPublicUrl(path);
-      const { error: insErr } = await supabase.from('proposal_gallery').insert({
-        service_type: serviceType,
-        media_url: pub.publicUrl,
-        media_type: mediaType,
-        caption: caption.trim() || null,
-        is_featured: isFeatured,
-        is_published: true,
-        sort_order: 0,
-      });
-      if (insErr) throw insErr;
+      await uploadOne(file, { applyFormMeta: true });
       setUploadMsg('Uploaded.');
       setFile(null);
       setCaption('');
@@ -622,18 +710,72 @@ const ProposalGalleryAdmin: React.FC = () => {
         <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div
             style={{
-              background: '#fff',
-              border: '1px solid rgba(0,0,0,0.06)',
+              background: isDragOver ? 'rgba(158,250,255,.22)' : '#fff',
+              border: isDragOver
+                ? `2px dashed ${T.aqua}`
+                : '1px solid rgba(0,0,0,0.06)',
               borderRadius: 16,
               padding: '22px 24px',
               position: 'sticky',
               top: 80,
+              transition: 'background .15s, border-color .15s',
             }}
+            onDragOver={onDragOver}
+            onDragEnter={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
           >
             <Eyebrow style={{ marginBottom: 4 }}>Add to library</Eyebrow>
             <CardHeading size="card" style={{ marginBottom: 14 }}>
               Upload an image or clip
             </CardHeading>
+            <p
+              style={{
+                fontFamily: T.fontD,
+                fontSize: 12,
+                color: T.fgMuted,
+                lineHeight: 1.5,
+                margin: '0 0 14px',
+              }}
+            >
+              Drag and drop files anywhere on this panel — multi-file drops
+              upload in bulk, single drops attach to the form so you can add a
+              caption + featured pin before saving.
+            </p>
+            {isDragOver && (
+              <div
+                style={{
+                  padding: '10px 12px',
+                  background: T.aqua,
+                  color: T.navy,
+                  borderRadius: 10,
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  marginBottom: 14,
+                  textAlign: 'center',
+                }}
+              >
+                Drop to upload
+              </div>
+            )}
+            {bulkProgress && (
+              <div
+                style={{
+                  padding: '10px 12px',
+                  background: T.beige,
+                  borderRadius: 10,
+                  fontFamily: T.fontD,
+                  fontSize: 12,
+                  color: T.navy,
+                  marginBottom: 14,
+                }}
+              >
+                Uploading {bulkProgress.done} of {bulkProgress.total}…
+              </div>
+            )}
 
             <Field label="Service type">
               <select
