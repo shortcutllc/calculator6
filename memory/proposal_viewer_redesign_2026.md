@@ -199,17 +199,34 @@ Compiled after Phase 3A shipped (May 13). Goal: nothing V1 does today disappears
 - [x] **Test-send** (NEW) — staff button opens a modal that fires `proposal-share` to any email (defaults to current admin's). *Done May 13.*
 - [x] **Recurring partner badge per service** — purple gradient chip on `ServiceCard` next to the service-type chip whenever `service.isRecurring` is true; includes occurrence count + discount %. *Done May 13.*
 
-### Phase 5 — mindfulness completeness
+### Phase 5 — service marketing sections (originally "mindfulness completeness") ✅ shipped
 
-- [ ] **Why Shortcut section** for mindfulness proposals
-- [ ] **CLE class outline section** for CLE proposals
-- [ ] **CLE accreditation section** for CLE proposals
-- [ ] **Participant Benefits section** for mindfulness-only
-- [ ] **Additional Resources section** for mindfulness-only
-- [ ] **Facilitator card** (Courtney Schulnick) for mindfulness proposals
-- [ ] **Mindfulness 5-slug backfill** — support `mindfulness-soles`, `-movement`, `-pro`, `-cle`, `-pro-reactivity` for legacy proposals (V2 normalized to `mindfulness` + sub-picker)
-- [ ] **PartnershipModelsSection** — alt pricing layout for partnership mode (verify still in V1)
-- [ ] **Mindfulness-only admin layout** mirroring above sections
+Expanded from the original mindfulness-only scope to include the per-service
+Why Shortcut / Your Services sections V2 was missing for non-mindfulness
+proposals. Result: both viewers render the same marketing pass V1 did.
+
+- [x] **WhyShortcutSection** — single-service / unified multi-service / CLE
+      variants resolved from `serviceTypes`. *Shipped May 13 — `proposal/sections/WhyShortcutSection.tsx`.*
+- [x] **ServiceDetailsSection** — per-service Benefits + What's Included +
+      Features checklist for massage / headshot / facial / hair-makeup / nails
+      / headshot+hair-makeup. *Shipped May 13 — `proposal/sections/ServiceDetailsSection.tsx`. Copy lives in `proposal/sections/serviceContent.ts` (single source of truth).*
+- [x] **ParticipantBenefitsSection** — mindfulness-only 3-card grid. *Shipped May 13.*
+- [x] **AdditionalResourcesSection** — mindfulness-only 2-card grid. *Shipped May 13.*
+- [x] **CLEOutlineSection** — collapsible 11-row 60-minute agenda. *Shipped May 13.*
+- [x] **CLEAccreditationSection** — collapsible administration explainer with
+      Ethics & Professionalism credit callout. *Shipped May 13.*
+- [x] **FacilitatorCard** — Courtney photo + bio in the right rail. Renders
+      for mindfulness-only proposals in both viewers. Uses
+      `/Holiday Proposal/Our Services/Mindfulness/Courtney Frame 2x.webp` with
+      PNG fallback + hide-on-error. *Shipped May 13 — `proposal/sidebar/FacilitatorCard.tsx`.*
+- [x] **Mindfulness 5-slug backfill** — `mindfulness-soles`, `-movement`,
+      `-pro`, `-cle`, `-pro-reactivity` registered in `SERVICE_DISPLAY`,
+      `SERVICE_CHIP_COLORS`, `SERVICE_GRAPHIC`, `SERVICE_IMAGE_PATH`. Old
+      proposals render correctly. *Shipped May 13.*
+- [ ] **PartnershipModelsSection** — alt pricing layout for partnership mode.
+      Deferred — V1 usage is rare; verify if still needed before rebuilding.
+- [x] **Admin viewer mirrors all the sections** above. Same `serviceTypes`
+      derivation, same conditional rendering. *Shipped May 13.*
 
 ### Phase 6 — data backend
 

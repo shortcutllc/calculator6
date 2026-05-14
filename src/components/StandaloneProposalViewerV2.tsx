@@ -37,6 +37,13 @@ import ServiceAgreementCard from './proposal/ServiceAgreementCard';
 import RequestChangesModal from './proposal/RequestChangesModal';
 import ApproveConfirmModal from './proposal/ApproveConfirmModal';
 import HelpModal from './proposal/HelpModal';
+import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
+import ServiceDetailsSection from './proposal/sections/ServiceDetailsSection';
+import ParticipantBenefitsSection from './proposal/sections/ParticipantBenefitsSection';
+import AdditionalResourcesSection from './proposal/sections/AdditionalResourcesSection';
+import CLEOutlineSection from './proposal/sections/CLEOutlineSection';
+import CLEAccreditationSection from './proposal/sections/CLEAccreditationSection';
+import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 
 // ============================================================================
 // StandaloneProposalViewerV2 — the new client-facing proposal viewer.
@@ -188,6 +195,31 @@ const StandaloneProposalViewerV2: React.FC = () => {
     onChange: persistOptionsState,
     readOnly: isApproved,
   });
+
+  // ---- Service-type mix (drives Phase 5 conditional sections) -----------
+  // Builds a unique-list of service slugs from displayData. Used to pick the
+  // right "Why Shortcut" variant, decide whether to render mindfulness-only
+  // sections (Participant Benefits / Additional Resources / Facilitator) and
+  // whether the proposal needs CLE-specific sections.
+  const serviceTypes = useMemo(() => {
+    const set = new Set<string>();
+    Object.values(displayData?.services || {}).forEach((byDate: any) => {
+      Object.values(byDate || {}).forEach((dd: any) => {
+        (dd?.services || []).forEach((s: any) => {
+          if (s?.serviceType) set.add(String(s.serviceType));
+        });
+      });
+    });
+    return Array.from(set);
+  }, [displayData]);
+
+  const isMindfulnessLike = (s: string) => s === 'mindfulness' || s.startsWith('mindfulness-');
+  const hasMindfulness = serviceTypes.some(isMindfulnessLike);
+  const isMindfulnessOnly =
+    serviceTypes.length > 0 && serviceTypes.every(isMindfulnessLike);
+  const hasCLE = serviceTypes.some(
+    (s) => s === 'mindfulness-cle' || s.startsWith('mindfulness-cle')
+  );
 
   // ---- Derived stats ------------------------------------------------------
   const stats = useMemo(() => {
@@ -1576,6 +1608,30 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           </div>
 
+          {/* Why Shortcut — variant resolves from serviceTypes (single service,
+              multi-service unified, or CLE). Rendered for every proposal. */}
+          {serviceTypes.length > 0 && (
+            <WhyShortcutSection serviceTypes={serviceTypes} />
+          )}
+
+          {/* Per-service details (Benefits + What's Included + features) for
+              every non-mindfulness service in the proposal. Mindfulness gets
+              its own ParticipantBenefits + AdditionalResources sections
+              below instead, so we filter mindfulness out here. */}
+          {(() => {
+            const detail = serviceTypes.filter((s) => !isMindfulnessLike(s));
+            return detail.length > 0 ? (
+              <ServiceDetailsSection serviceTypes={detail} />
+            ) : null;
+          })()}
+
+          {/* Mindfulness-only sections — only render when at least one
+              mindfulness service exists in the proposal. */}
+          {hasMindfulness && <ParticipantBenefitsSection />}
+          {hasCLE && <CLEOutlineSection />}
+          {hasCLE && <CLEAccreditationSection />}
+          {hasMindfulness && <AdditionalResourcesSection />}
+
           {/* Event-day summary — per-location at-a-glance */}
           <EventDaySummaryCard
             servicesByLocation={displayData.services || {}}
@@ -2186,6 +2242,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
               Selections auto-save as you toggle.
             </div>
           </div>
+
+          {/* Facilitator — only for mindfulness-only proposals. Courtney
+              photo + bio mirroring V1 StandaloneProposalViewer (right rail). */}
+          {isMindfulnessOnly && <FacilitatorCard />}
 
           {/* Account team — driven by data.accountTeamMemberEmail, defaults to Jaimie */}
           <AccountTeamCard email={displayData?.accountTeamMemberEmail} />

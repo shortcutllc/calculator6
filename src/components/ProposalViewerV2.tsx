@@ -57,6 +57,13 @@ import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
+import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
+import ServiceDetailsSection from './proposal/sections/ServiceDetailsSection';
+import ParticipantBenefitsSection from './proposal/sections/ParticipantBenefitsSection';
+import AdditionalResourcesSection from './proposal/sections/AdditionalResourcesSection';
+import CLEOutlineSection from './proposal/sections/CLEOutlineSection';
+import CLEAccreditationSection from './proposal/sections/CLEAccreditationSection';
+import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 import { generateLineItems } from './StripeInvoiceButton';
 import type { InvoiceLineItem } from './InvoiceConfirmationModal';
 import InvoiceConfirmationModalV2 from './proposal/InvoiceConfirmationModalV2';
@@ -1904,6 +1911,28 @@ const ProposalViewerV2: React.FC = () => {
     return { locs, dates, appts };
   }, [displayData]);
 
+  // Service-type mix — drives the same Phase-5 conditional sections as the
+  // client viewer (Why Shortcut / ServiceDetails / mindfulness + CLE blocks).
+  const serviceTypes = useMemo(() => {
+    const set = new Set<string>();
+    Object.values(displayData?.services || {}).forEach((byDate: any) => {
+      Object.values(byDate || {}).forEach((dd: any) => {
+        (dd?.services || []).forEach((s: any) => {
+          if (s?.serviceType) set.add(String(s.serviceType));
+        });
+      });
+    });
+    return Array.from(set);
+  }, [displayData]);
+  const isMindfulnessLike = (s: string) =>
+    s === 'mindfulness' || s.startsWith('mindfulness-');
+  const hasMindfulness = serviceTypes.some(isMindfulnessLike);
+  const isMindfulnessOnly =
+    serviceTypes.length > 0 && serviceTypes.every(isMindfulnessLike);
+  const hasCLE = serviceTypes.some(
+    (s) => s === 'mindfulness-cle' || s.startsWith('mindfulness-cle')
+  );
+
   const pricingRows = useMemo(() => {
     const rows: Array<{
       key: string;
@@ -3175,6 +3204,22 @@ const ProposalViewerV2: React.FC = () => {
             </div>
           )}
 
+          {/* Phase 5 marketing sections — mirror the client viewer so admins
+              see the full payload they're about to ship. */}
+          {serviceTypes.length > 0 && (
+            <WhyShortcutSection serviceTypes={serviceTypes} />
+          )}
+          {(() => {
+            const detail = serviceTypes.filter((s) => !isMindfulnessLike(s));
+            return detail.length > 0 ? (
+              <ServiceDetailsSection serviceTypes={detail} />
+            ) : null;
+          })()}
+          {hasMindfulness && <ParticipantBenefitsSection />}
+          {hasCLE && <CLEOutlineSection />}
+          {hasCLE && <CLEAccreditationSection />}
+          {hasMindfulness && <AdditionalResourcesSection />}
+
           {/* Service agreement preview — same V2 collapsed-by-default card the
               client sees, so staff can sanity-check the partner-name copy. */}
           <ServiceAgreementCard clientName={clientName} />
@@ -3809,6 +3854,10 @@ const ProposalViewerV2: React.FC = () => {
               {isEditing ? 'Edit mode — Save to publish.' : 'Read mode. Tap Edit to make changes.'}
             </div>
           </div>
+
+          {/* Facilitator — mindfulness-only proposals get Courtney's bio in
+              the right rail just like the client view does. */}
+          {isMindfulnessOnly && <FacilitatorCard />}
 
           {/* Account team — shows the current owner + admin dropdown to override */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

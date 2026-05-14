@@ -8,6 +8,15 @@ export const SERVICE_DISPLAY: Record<string, string> = {
   headshot: 'Headshot',
   headshots: 'Headshot',
   mindfulness: 'Mindfulness',
+  // Legacy mindfulness program slugs from V1 (kept so old proposals still
+  // render correctly in V2). The Phase 1 rewrite consolidated these under
+  // `mindfulness` + a `mindfulnessType` field, but live proposals in the
+  // database may still use the old `mindfulness-*` slug.
+  'mindfulness-soles': 'Mindfulness · Soles of the Feet',
+  'mindfulness-movement': 'Mindfulness · Movement & Stillness',
+  'mindfulness-pro': 'Mindfulness · PRO Practice',
+  'mindfulness-cle': 'Mindfulness · CLE Ethics',
+  'mindfulness-pro-reactivity': 'Mindfulness · Stepping Out of Reactivity',
   facial: 'Facial',
   facials: 'Facial',
   nails: 'Nails',
@@ -45,6 +54,12 @@ export const SERVICE_CHIP_COLORS: Record<string, { bg: string; color: string }> 
   headshot: { bg: 'rgba(158,250,255,.40)', color: '#005066' },
   headshots: { bg: 'rgba(158,250,255,.40)', color: '#005066' },
   mindfulness: { bg: 'rgba(247,187,255,.35)', color: '#6B2D80' },
+  // Legacy mindfulness slugs — same color treatment as base mindfulness.
+  'mindfulness-soles': { bg: 'rgba(247,187,255,.35)', color: '#6B2D80' },
+  'mindfulness-movement': { bg: 'rgba(247,187,255,.35)', color: '#6B2D80' },
+  'mindfulness-pro': { bg: 'rgba(247,187,255,.35)', color: '#6B2D80' },
+  'mindfulness-cle': { bg: 'rgba(247,187,255,.35)', color: '#6B2D80' },
+  'mindfulness-pro-reactivity': { bg: 'rgba(247,187,255,.35)', color: '#6B2D80' },
   facial: { bg: 'rgba(255,176,136,.30)', color: '#9F4517' },
   facials: { bg: 'rgba(255,176,136,.30)', color: '#9F4517' },
   nails: { bg: 'rgba(254,220,100,.40)', color: '#7A5400' },
@@ -65,6 +80,11 @@ export const SERVICE_GRAPHIC: Record<
   headshot: { bg: 'linear-gradient(135deg,#9EFAFF,#3DAFB8)', glyph: 'Camera', accent: '#003C5E' },
   headshots: { bg: 'linear-gradient(135deg,#9EFAFF,#3DAFB8)', glyph: 'Camera', accent: '#003C5E' },
   mindfulness: { bg: 'linear-gradient(135deg,#F7BBFF,#9F5BB2)', glyph: 'Sparkles', accent: '#fff' },
+  'mindfulness-soles': { bg: 'linear-gradient(135deg,#F7BBFF,#9F5BB2)', glyph: 'Sparkles', accent: '#fff' },
+  'mindfulness-movement': { bg: 'linear-gradient(135deg,#F7BBFF,#9F5BB2)', glyph: 'Sparkles', accent: '#fff' },
+  'mindfulness-pro': { bg: 'linear-gradient(135deg,#F7BBFF,#9F5BB2)', glyph: 'Sparkles', accent: '#fff' },
+  'mindfulness-cle': { bg: 'linear-gradient(135deg,#F7BBFF,#9F5BB2)', glyph: 'Sparkles', accent: '#fff' },
+  'mindfulness-pro-reactivity': { bg: 'linear-gradient(135deg,#F7BBFF,#9F5BB2)', glyph: 'Sparkles', accent: '#fff' },
   facial: { bg: 'linear-gradient(135deg,#FFE4D6,#FFB088)', glyph: 'Sparkles', accent: '#7A2E0F' },
   facials: { bg: 'linear-gradient(135deg,#FFE4D6,#FFB088)', glyph: 'Sparkles', accent: '#7A2E0F' },
   nails: { bg: 'linear-gradient(135deg,#FEDC64,#EFA31E)', glyph: 'Sparkles', accent: '#5A3700' },
@@ -89,6 +109,11 @@ export const SERVICE_IMAGE_PATH: Record<string, string> = {
   hair: '/Hair Slider.png',
   nails: '/Nails Slider.png',
   mindfulness: '/Mindfulness Slider.png',
+  'mindfulness-soles': '/Mindfulness Slider.png',
+  'mindfulness-movement': '/Mindfulness Slider.png',
+  'mindfulness-pro': '/Mindfulness Slider.png',
+  'mindfulness-cle': '/Mindfulness Slider.png',
+  'mindfulness-pro-reactivity': '/Mindfulness Slider.png',
   'hair-makeup': '/Hair Slider.png',
   'headshot-hair-makeup': '/Headshot Slider.png',
 };
