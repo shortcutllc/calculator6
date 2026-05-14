@@ -10,7 +10,7 @@ Active multi-day rewrite of both proposal-viewer surfaces. **Read this whole fil
 - **Preview URL** (auto-deploys on every push to that branch):
   `https://redesign-2026--resplendent-narwhal-3de33b.netlify.app`
 - **Production** (`proposals.getshortcut.co`) is fully isolated. Deploys only from `main`. Until we explicitly merge `redesign-2026 → main`, real clients see the unchanged V1 viewers.
-- **Feature gate for V2:** `?redesign=1` on any `/proposal/:id?shared=true` URL routes to the new viewer. Without the flag, V1 still renders. Implemented in `ProposalTypeRouter.tsx`.
+- **Feature gate for V2:** ✅ **V2 is now the default** as of the merge-prep cutover. The legacy V1 viewer is reachable via `?legacy=1` as an emergency escape during the first ~release cycle on `main`; after that we delete the V1 viewer files entirely. The old `?redesign=1` flag is preserved as a no-op so any stale bookmarks staff might have keep working.
 - **Worktree:** `/Users/willnewton/Documents/GitHub/calculator6/.claude/worktrees/intelligent-mirzakhani-9317cc` (check out `redesign-2026` there).
 
 ## Source materials
@@ -313,14 +313,52 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5174/redesign-preview 
 
 ## URLs for review
 
+V2 is now the default — `/proposal/:id` lands on V2 with no flag. Append `?legacy=1` to fall back to V1.
+
 | What | URL |
 |---|---|
 | Phase 1 primitives demo | `localhost:5174/redesign-preview` |
-| V2 client view (Applecart — logo, 2 services) | `localhost:5174/proposal/8f9f96af-3b15-46f1-8d2b-bd81676c0895?shared=true&redesign=1` |
-| V2 client view (Burberry — logo + office address) | `localhost:5174/proposal/a369ad5e-84eb-4bbd-afcc-99b684bb82dc?shared=true&redesign=1` |
-| V2 admin view (Applecart — must be signed in) | `localhost:5174/proposal/8f9f96af-3b15-46f1-8d2b-bd81676c0895?redesign=1` |
-| V2 admin view (Burberry — must be signed in) | `localhost:5174/proposal/a369ad5e-84eb-4bbd-afcc-99b684bb82dc?redesign=1` |
+| V2 client view (Applecart) | `localhost:5174/proposal/8f9f96af-3b15-46f1-8d2b-bd81676c0895?shared=true` |
+| V2 client view (Burberry — logo + office address) | `localhost:5174/proposal/a369ad5e-84eb-4bbd-afcc-99b684bb82dc?shared=true` |
+| V2 admin view (signed in) | `localhost:5174/proposal/8f9f96af-3b15-46f1-8d2b-bd81676c0895` |
+| V1 fallback (legacy flag) | append `?legacy=1` to any of the above |
 | Preview deploy of this branch | `https://redesign-2026--resplendent-narwhal-3de33b.netlify.app` |
+
+## Pre-merge verification checklist
+
+Run through these on the preview-deploy URL (or `localhost:5174` after `git pull`) before opening the PR to `main`.
+
+**1. Existing event proposal renders correctly**
+- [ ] Hit `/proposal/<any-existing-uuid>?shared=true` (no flag). Should land on V2 client view. Logo, name, eyebrow, services, pricing summary all populated. **No console errors.**
+- [ ] Same URL signed in (drop `shared=true`). Should land on V2 admin view. Edit toggle works, fields save.
+
+**2. New-proposal flow (the bit you most care about)**
+- [ ] Sign in → "New Proposal" → fill in client + locations + dates → "Generate Proposal" → confirm redirect to `/proposal/<new-id>` lands on V2 admin. Toggle Edit → tweak hours → Save Changes → reload → values persist.
+- [ ] Copy share link from the V2 admin sidebar → open in incognito → V2 client view loads with the same data.
+
+**3. Multi-option proposal**
+- [ ] Create option (sidebar New Option button) → switch options via the OptionsTabs strip → URL updates and totals match.
+
+**4. Mindfulness program proposal**
+- [ ] Open one. Should still load V1 mindfulness viewer (untouched). V2 doesn't claim mindfulness program yet.
+
+**5. PDF download**
+- [ ] V2 client view → click PDF → file downloads with hero + services + pricing intact.
+
+**6. Approve flow**
+- [ ] V2 client view → tweak selections → click Approve → confirm modal → click Yes → page flips to "Proposal approved" state. Slack notification fires.
+
+**7. Request changes flow**
+- [ ] V2 client view → Request changes → write note → submit → sidebar shows "Changes sent" banner. Slack notification fires.
+
+**8. Slug routing**
+- [ ] Hit any `/p/<slug>` link → resolves to `/proposal/<id>?shared=true` → V2 client view.
+
+**9. Legacy fallback works**
+- [ ] Append `?legacy=1` to any proposal URL → V1 viewer renders. (Escape hatch in case a regression surfaces.)
+
+**10. Gallery**
+- [ ] V2 client viewer → right sidebar → Gallery card shows real media (or fallback). Click View all → lightbox opens. (Both Supabase migrations have been run.)
 
 ## How to reset a test proposal after testing approve / request-changes
 

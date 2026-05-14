@@ -1441,7 +1441,9 @@ const ProposalViewerV2: React.FC = () => {
     const url = `${window.location.pathname.replace(/^\//, '')}`;
     // Use the existing slug-resolver shared URL pattern via getProposalUrl
     const target = getProposalUrl(id, true, currentProposal?.slug);
-    window.open(target.includes('?') ? `${target}&redesign=1` : `${target}?redesign=1`, '_blank');
+    // V2 is the default now — no need to append a flag. The clean URL keeps
+    // it portable for staff who copy it elsewhere.
+    window.open(target, '_blank');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _ = url; // keep tsc happy if minifier warns
   };

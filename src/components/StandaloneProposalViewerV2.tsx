@@ -670,7 +670,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
   if (!displayData) return null;
 
   // Preserve current query string when navigating between options
-  const queryString = location.search || '?shared=true&redesign=1';
+  const queryString = location.search || '?shared=true';
 
   const clientName = displayData.clientName || proposal?.client_name || 'Client';
   // Prefer slug for proposal label; fall back to first 8 chars of UUID
