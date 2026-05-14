@@ -1,18 +1,75 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Eyebrow, T } from '../shared/primitives';
 
-// Trust card — big rebooking stat + client-logo grid. Logos are placeholders
-// until you (Will) wire real client logos either via a static asset bundle
-// or a `trusted_by` config table. Static for v1.
+// TrustCard — big rebooking stat + client-logo grid. Real logos drop into
+// `/public/clients/{slug}.svg|png|webp`. The component attempts to load each
+// logo image and falls back to a styled initials tile if the asset 404s, so
+// rolling out the real logos is just "add the file, set has404=false".
 
-const PLACEHOLDER_LOGOS: { name: string; initials: string; bg: string }[] = [
-  { name: 'DraftKings', initials: 'DK', bg: '#1F2937' },
-  { name: 'Applecart', initials: 'AC', bg: '#0F766E' },
-  { name: 'Burberry', initials: 'BB', bg: '#1F2937' },
-  { name: 'Workhuman', initials: 'WH', bg: '#7C3AED' },
-  { name: 'Pyninvestments', initials: 'PY', bg: '#0EA5E9' },
-  { name: 'Meta', initials: 'M', bg: '#1877F2' },
+interface TrustClient {
+  name: string;
+  /** Public asset path. Leave empty to skip the <img> attempt. */
+  logoSrc?: string;
+  /** Tile background to use when no logo asset is found. */
+  bg: string;
+  /** Initials displayed in the fallback. */
+  initials: string;
+}
+
+// Real client roster — order roughly by recency/recognizability. Logos in
+// /public/clients/ override the initials when present. Today only a handful
+// have assets; the rest fall back to initials tiles automatically.
+const TRUSTED_CLIENTS: TrustClient[] = [
+  { name: 'DraftKings', logoSrc: '/clients/draftkings.svg', initials: 'DK', bg: '#1F2937' },
+  { name: 'Applecart', logoSrc: '/clients/applecart.svg', initials: 'AC', bg: '#0F766E' },
+  { name: 'Burberry', logoSrc: '/clients/burberry.svg', initials: 'BB', bg: '#1F2937' },
+  { name: 'Workhuman', logoSrc: '/clients/workhuman.svg', initials: 'WH', bg: '#7C3AED' },
+  { name: 'PYN Investments', logoSrc: '/clients/pyn.svg', initials: 'PY', bg: '#0EA5E9' },
+  { name: 'Meta', logoSrc: '/clients/meta.svg', initials: 'M', bg: '#1877F2' },
 ];
+
+interface TrustClientTileProps {
+  client: TrustClient;
+}
+const TrustClientTile: React.FC<TrustClientTileProps> = ({ client }) => {
+  const [imgFailed, setImgFailed] = useState(!client.logoSrc);
+  return (
+    <div
+      title={client.name}
+      style={{
+        aspectRatio: '16 / 9',
+        borderRadius: 8,
+        background: imgFailed ? client.bg : '#fff',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: T.fontD,
+        fontWeight: 800,
+        fontSize: 14,
+        letterSpacing: '0.04em',
+        overflow: 'hidden',
+        border: imgFailed ? 'none' : '1px solid rgba(0,0,0,0.06)',
+      }}
+    >
+      {!imgFailed && client.logoSrc ? (
+        <img
+          src={client.logoSrc}
+          alt={client.name}
+          onError={() => setImgFailed(true)}
+          style={{
+            maxWidth: '70%',
+            maxHeight: '60%',
+            objectFit: 'contain',
+            display: 'block',
+          }}
+        />
+      ) : (
+        client.initials
+      )}
+    </div>
+  );
+};
 
 const TrustCard: React.FC = () => {
   return (
@@ -68,26 +125,8 @@ const TrustCard: React.FC = () => {
           gap: 8,
         }}
       >
-        {PLACEHOLDER_LOGOS.map((logo) => (
-          <div
-            key={logo.name}
-            title={logo.name}
-            style={{
-              aspectRatio: '16 / 9',
-              borderRadius: 8,
-              background: logo.bg,
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: T.fontD,
-              fontWeight: 800,
-              fontSize: 14,
-              letterSpacing: '0.04em',
-            }}
-          >
-            {logo.initials}
-          </div>
+        {TRUSTED_CLIENTS.map((c) => (
+          <TrustClientTile key={c.name} client={c} />
         ))}
       </div>
     </div>

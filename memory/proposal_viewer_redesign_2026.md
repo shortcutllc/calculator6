@@ -228,12 +228,30 @@ proposals. Result: both viewers render the same marketing pass V1 did.
 - [x] **Admin viewer mirrors all the sections** above. Same `serviceTypes`
       derivation, same conditional rendering. *Shipped May 13.*
 
-### Phase 6 — data backend
+### Phase 6 — data backend ✅ shipped
 
-- [ ] **Real gallery** — `proposal_gallery` table + storage bucket + filter to services in proposal
-- [ ] **Real trust client logos** — replace TrustCard placeholder
-- [ ] **`recurringFrequency` data migration** to `optionsFrequency`
-- [ ] **Service image carousel** in right rail — wire to real assets (Phase 6 GalleryCard work)
+- [x] **Real gallery** — new `proposal_gallery` table + `proposal-gallery`
+      storage bucket. Migration: `supabase/migrations/20260513000001_create_proposal_gallery.sql`.
+      Public-read RLS so anon shared-link visitors get the same media. V2
+      `GalleryCard` now queries `proposal_gallery` with `service_type IN (...)`
+      filter, renders real images/video posters, falls back to V2 gradient
+      tiles + "Media coming soon" when no rows exist.
+      *Apply with `supabase db push` after reviewing the migration.*
+- [x] **Real trust client logos** — `TrustCard` upgraded to attempt to load
+      `/public/clients/{slug}.svg` for each client; falls back to the existing
+      initials tile when the asset 404s. Drop logo files into `public/clients/`
+      to roll out without code changes. Default roster: DraftKings · Applecart
+      · Burberry · Workhuman · PYN Investments · Meta.
+- [x] **`recurringFrequency` data migration** — migration
+      `supabase/migrations/20260513000002_migrate_recurring_to_options_state.sql`
+      backfills `data.optionsState` from legacy `recurringFrequency.occurrences`
+      so V2 reads the same frequency without the hook's fallback. Migration
+      is idempotent and never overwrites existing client overrides. **Run
+      manually when you're ready**; the legacy fallback already keeps the V2
+      viewer correct, so this is normalization only.
+- [x] **Service image carousel in right rail** — covered by the new
+      `GalleryCard` integration (real proposal_gallery media drives both the
+      featured 4:3 tile and the 2×2 thumbnail grid).
 
 ---
 
