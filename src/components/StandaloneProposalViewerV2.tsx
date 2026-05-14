@@ -14,6 +14,7 @@ import ServiceCard from './proposal/ServiceCard';
 import {
   Eyebrow,
   CardHeading,
+  CollapseHead,
   StatusPill,
   MiniStat,
   SectionLabel,
@@ -69,6 +70,26 @@ const formatDateLabel = (raw: string): string => {
   }
 };
 
+/** Compact range like "May 14–22, 2026" (same month/year) or
+ *  "May 14 – Jun 2, 2026" (cross-month). Used in the hero subtitle. */
+const formatDateRange = (first: Date, last: Date): string => {
+  if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime())) return '';
+  if (
+    first.getFullYear() === last.getFullYear() &&
+    first.getMonth() === last.getMonth() &&
+    first.getDate() === last.getDate()
+  ) {
+    return format(first, 'MMM d, yyyy');
+  }
+  if (first.getFullYear() === last.getFullYear()) {
+    if (first.getMonth() === last.getMonth()) {
+      return `${format(first, 'MMM d')}–${format(last, 'd, yyyy')}`;
+    }
+    return `${format(first, 'MMM d')} – ${format(last, 'MMM d, yyyy')}`;
+  }
+  return `${format(first, 'MMM d, yyyy')} – ${format(last, 'MMM d, yyyy')}`;
+};
+
 const StandaloneProposalViewerV2: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -82,9 +103,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
-  const [clientNote, setClientNote] = useState('');
-  const [clientNoteSaving, setClientNoteSaving] = useState(false);
-  const [clientNoteSaved, setClientNoteSaved] = useState(false);
   // Client edit mode — lets the client tweak totalHours, numPros, classLength
   // and pricing-option params, then submit changes for staff review.
   const [isClientEditing, setIsClientEditing] = useState(false);
@@ -161,14 +179,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const status = proposal?.status as string | undefined;
   const isApproved = status === 'approved' || postApproval;
   const hasOriginalSnapshot = !!originalData && proposal?.has_changes;
-
-  // Hydrate the client-side note (data.clientNote) once the proposal lands.
-  // This is the textarea V1 had at the bottom of the standalone viewer.
-  useEffect(() => {
-    if (proposal?.data?.clientNote && typeof proposal.data.clientNote === 'string') {
-      setClientNote(proposal.data.clientNote);
-    }
-  }, [proposal?.data?.clientNote]);
 
   // ---- DB persistence of selection state ---------------------------------
   // Fires when the hook's internal state changes. Writes the new optionsState
@@ -546,30 +556,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
     [id, clientEditedData, isApproved]
   );
 
-  // ---- Save client note (textarea at bottom of body) --------------------
-  // Persists to `data.clientNote`. Sets `pending_review` so staff get notified
-  // via the existing change-source flow without flipping the full has_changes
-  // state — V1 separates "Save Notes" from "Submit Changes" the same way.
-  const handleSaveClientNote = useCallback(async () => {
-    if (!id || !liveData || isApproved) return;
-    setClientNoteSaving(true);
-    try {
-      const nextData = { ...liveData, clientNote };
-      const { error } = await supabase
-        .from('proposals')
-        .update({ data: nextData, pending_review: true })
-        .eq('id', id);
-      if (error) throw error;
-      setClientNoteSaved(true);
-      setTimeout(() => setClientNoteSaved(false), 3000);
-    } catch (err) {
-      console.error('Failed to save client note:', err);
-      alert('We hit an issue saving your note. Please try again.');
-    } finally {
-      setClientNoteSaving(false);
-    }
-  }, [id, liveData, isApproved, clientNote]);
-
   // ---- PDF download — same flow as V1: html2canvas on #proposal-content
   const [isDownloading, setIsDownloading] = useState(false);
   const handleDownloadPdf = useCallback(async () => {
@@ -874,16 +860,29 @@ const StandaloneProposalViewerV2: React.FC = () => {
             <div
               style={{
                 fontFamily: T.fontD,
-                fontWeight: 600,
                 fontSize: 14,
-                color: T.navy,
+                color: T.fgMuted,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 minWidth: 0,
               }}
             >
-              {clientName}
+              <span style={{ fontWeight: 600 }}>{clientName}</span>
+              {(() => {
+                const current = proposalOptions.find((o: any) => o.id === id);
+                if (proposalOptions.length > 1 && current?.option_name) {
+                  return (
+                    <>
+                      <span style={{ margin: '0 6px' }}> · </span>
+                      <span
+                        style={{ fontWeight: 700, color: T.navy }}
+                      >{current.option_name}</span>
+                    </>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
 
@@ -1122,6 +1121,45 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </h1>
           </div>
         </div>
+
+        {/* Hero subtitle — short, dynamic. Pulls from displayData.eventDates +
+            location count so it stays current with the proposal contents.
+            Matches the V2 design reference copy. */}
+        {(() => {
+          const officeWord =
+            stats.locationCount === 1 ? 'One office' : `${stats.locationCount} offices`;
+          const dates = (displayData?.eventDates || []).filter(
+            (d: string) => d && d !== 'TBD' && !d.startsWith('TBD')
+          );
+          let dateRange = '';
+          if (dates.length > 0) {
+            try {
+              const sorted = [...dates].sort();
+              const first = new Date(sorted[0]);
+              const last = new Date(sorted[sorted.length - 1]);
+              dateRange = formatDateRange(first, last);
+            } catch {
+              dateRange = '';
+            }
+          }
+          const optionVerb = proposalOptions.length > 1 ? 'Pick an option below, ' : '';
+          return (
+            <p
+              style={{
+                fontFamily: T.fontD,
+                fontSize: 15,
+                lineHeight: 1.55,
+                color: T.fgMuted,
+                margin: '12px 0 24px',
+                maxWidth: 720,
+              }}
+            >
+              {officeWord}
+              {dateRange ? `, ${dateRange}` : ''}. {optionVerb}toggle services on or off,
+              and approve when you're ready.
+            </p>
+          );
+        })()}
 
         <div
           style={{
@@ -1375,57 +1413,126 @@ const StandaloneProposalViewerV2: React.FC = () => {
               title="Services, dates, and locations"
               size="section"
               mb={24}
+              action={<Eyebrow>Toggle, repeat, or expand any row</Eyebrow>}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {Object.entries(displayData.services || {}).map(
                 ([loc, byDate]: [string, any]) => {
                   const officeAddress = resolveOfficeAddress(loc);
+                  // Roll up per-location stats for the CollapseHead right-rail
+                  // (date count · included appts · location subtotal). Pulls
+                  // from the selection state so the numbers track client
+                  // toggles in real time.
+                  let locAppts = 0;
+                  let locCost = 0;
+                  let locUnlimited = false;
+                  Object.entries(byDate || {}).forEach(
+                    ([d, dd]: [string, any]) => {
+                      (dd?.services || []).forEach((svc: any, idx: number) => {
+                        const k = selectionKey(loc, d, idx);
+                        const s = get(k);
+                        if (!s.included) return;
+                        const a = svc?.totalAppointments;
+                        if (a === 'unlimited' || a === '∞') {
+                          locUnlimited = true;
+                        } else {
+                          locAppts += (Number(a) || 0) * (s.frequency || 1);
+                        }
+                        locCost +=
+                          (Number(svc?.serviceCost) || 0) * (s.frequency || 1);
+                      });
+                    }
+                  );
+                  const dateCount = Object.keys(byDate || {}).length;
                   return (
                   <div key={loc}>
-                    {/* Location header — clickable to collapse the date stack
-                        underneath. Default-open; chevron rotates -90° when collapsed. */}
+                    {/* Location header — uses the V2 CollapseHead primitive
+                        (aqua-tile chevron + clickable row). Right side shows
+                        per-location stats. Default-open; chevron rotates when
+                        closed. */}
                     <div style={{ marginBottom: 14 }}>
-                      <button
-                        type="button"
+                      <CollapseHead
+                        open={!collapsed[loc]}
                         onClick={() => toggleCollapsed(loc)}
-                        title={collapsed[loc] ? 'Expand location' : 'Collapse location'}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          background: 'transparent',
-                          border: 'none',
-                          padding: 0,
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          color: 'inherit',
-                        }}
-                      >
-                        <ChevronDown
-                          size={14}
-                          color={T.fgMuted}
-                          style={{
-                            transform: collapsed[loc] ? 'rotate(-90deg)' : 'none',
-                            transition: 'transform .15s',
-                          }}
-                        />
-                        <MapPin size={16} color={T.fgMuted} />
-                        <Eyebrow>{loc}</Eyebrow>
-                      </button>
-                      {officeAddress && (
-                        <div
-                          style={{
-                            fontFamily: T.fontD,
-                            fontSize: 13,
-                            color: T.fgMuted,
-                            marginLeft: 46,
-                            marginTop: 2,
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {officeAddress}
-                        </div>
-                      )}
+                        left={
+                          <div>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                marginBottom: 2,
+                              }}
+                            >
+                              <MapPin size={14} color={T.fgMuted} />
+                              <Eyebrow>Location</Eyebrow>
+                            </div>
+                            <CardHeading size="item">{loc}</CardHeading>
+                            {officeAddress && (
+                              <div
+                                style={{
+                                  fontFamily: T.fontD,
+                                  fontSize: 13,
+                                  color: T.fgMuted,
+                                  marginTop: 4,
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {officeAddress}
+                              </div>
+                            )}
+                          </div>
+                        }
+                        right={
+                          <>
+                            <span
+                              style={{
+                                fontFamily: T.fontUi,
+                                fontSize: 12,
+                                color: T.fgMuted,
+                              }}
+                            >
+                              {dateCount} date{dateCount === 1 ? '' : 's'}
+                            </span>
+                            <span
+                              style={{
+                                width: 4,
+                                height: 4,
+                                borderRadius: '50%',
+                                background: 'rgba(0,0,0,0.2)',
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontFamily: T.fontUi,
+                                fontSize: 12,
+                                color: T.fgMuted,
+                              }}
+                            >
+                              {locUnlimited ? '∞' : locAppts.toLocaleString('en-US')} appts
+                            </span>
+                            <span
+                              style={{
+                                width: 4,
+                                height: 4,
+                                borderRadius: '50%',
+                                background: 'rgba(0,0,0,0.2)',
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontFamily: T.fontD,
+                                fontWeight: 700,
+                                fontSize: 14,
+                                color: T.navy,
+                                letterSpacing: '-0.01em',
+                              }}
+                            >
+                              {formatCurrency(locCost)}
+                            </span>
+                          </>
+                        }
+                      />
                     </div>
 
                     <div
@@ -1613,20 +1720,28 @@ const StandaloneProposalViewerV2: React.FC = () => {
               boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             }}
           >
-            <Eyebrow color="rgba(255,255,255,0.55)">Pricing summary</Eyebrow>
-            <h2
+            {/* Heading row — design has the title on the left + an
+                "N of total included" eyebrow on the right. */}
+            <div
               style={{
-                fontFamily: T.fontD,
-                fontWeight: 700,
-                fontSize: 28,
-                lineHeight: 1.1,
-                letterSpacing: '-0.02em',
-                color: '#fff',
-                margin: '6px 0 22px',
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                gap: 12,
+                flexWrap: 'wrap',
+                marginBottom: 22,
               }}
             >
-              What you're approving
-            </h2>
+              <CardHeading
+                size="section"
+                style={{ color: '#fff', fontSize: 28 }}
+              >
+                Pricing summary
+              </CardHeading>
+              <Eyebrow color="rgba(255,255,255,0.55)">
+                {summary.rows.filter((r) => r.included).length} of {summary.rows.length} included
+              </Eyebrow>
+            </div>
 
             {/* Line items */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
@@ -1924,94 +2039,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
           <ServiceAgreementCard clientName={clientName} />
 
 
-          {/* Client notes textarea — quick way for the client to leave a note
-              for the account team without going through the full Request
-              Changes flow. Persists to `data.clientNote` and sets
-              pending_review so the team gets the same notification. */}
-          {!isApproved && !showingOriginal && (
-            <div
-              style={{
-                background: '#fff',
-                border: '1px solid rgba(0,0,0,0.06)',
-                borderRadius: 16,
-                padding: '22px 24px',
-              }}
-            >
-              <Eyebrow style={{ marginBottom: 6 }}>Notes for our team</Eyebrow>
-              <CardHeading size="item" style={{ marginBottom: 12 }}>
-                Anything else we should know?
-              </CardHeading>
-              <textarea
-                value={clientNote}
-                onChange={(e) => setClientNote(e.target.value)}
-                rows={4}
-                placeholder="Optional — questions, day-of preferences, special accommodations…"
-                disabled={clientNoteSaving}
-                style={{
-                  width: '100%',
-                  padding: 12,
-                  fontFamily: T.fontD,
-                  fontSize: 14,
-                  color: T.navy,
-                  background: '#fff',
-                  border: '1.5px solid rgba(0,0,0,0.1)',
-                  borderRadius: 10,
-                  outline: 'none',
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
-                }}
-              />
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: 10,
-                  gap: 10,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: T.fontD,
-                    fontSize: 12,
-                    color: clientNoteSaved ? T.success : T.fgMuted,
-                  }}
-                >
-                  {clientNoteSaved
-                    ? 'Saved — your account team will see this.'
-                    : 'Not a binding edit — just a heads-up.'}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleSaveClientNote}
-                  disabled={
-                    clientNoteSaving ||
-                    (clientNote.trim() ===
-                      (liveData?.clientNote || '').trim())
-                  }
-                  style={{
-                    padding: '8px 16px',
-                    background: T.navy,
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 10,
-                    cursor: clientNoteSaving ? 'wait' : 'pointer',
-                    fontFamily: T.fontUi,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    opacity:
-                      clientNoteSaving ||
-                      clientNote.trim() === (liveData?.clientNote || '').trim()
-                        ? 0.5
-                        : 1,
-                  }}
-                >
-                  {clientNoteSaving ? 'Saving…' : 'Save note'}
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Approve CTA */}
           <div
