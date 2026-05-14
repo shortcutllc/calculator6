@@ -76,7 +76,10 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${Math.min(options.length, 3)}, minmax(0, 1fr))`,
+          // auto-fit collapses 3-up to 2-up to 1-up as the viewport
+          // shrinks below the minmax floor, so the option tabs reflow
+          // cleanly on phones/tablets without a JS breakpoint.
+          gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))`,
           gap: 14,
         }}
       >

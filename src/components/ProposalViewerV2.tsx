@@ -48,6 +48,7 @@ import {
   StatusPill,
   T,
 } from './proposal/shared/primitives';
+import { useIsCompact, useIsMobile } from './proposal/shared/useIsMobile';
 import { formatCurrency, SERVICE_DISPLAY } from './proposal/data';
 import AccountTeamCard, {
   ACCOUNT_TEAM,
@@ -272,6 +273,10 @@ const ProposalViewerV2: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { getProposal, updateProposal, currentProposal, loading, error } = useProposal();
+  // Responsive flags drive inline-style switches for the major layout
+  // surfaces (body grid columns, hero type scale, card padding).
+  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
 
   // ---- Data state -------------------------------------------------------
   const [isLoading, setIsLoading] = useState(true);
@@ -2140,7 +2145,7 @@ const ProposalViewerV2: React.FC = () => {
           zIndex: 30,
           background: '#fff',
           borderBottom: '1px solid rgba(0,0,0,0.06)',
-          padding: '12px 24px',
+          padding: isCompact ? '10px 16px' : '12px 24px',
         }}
       >
         <div
@@ -2150,7 +2155,10 @@ const ProposalViewerV2: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 16,
+            gap: isCompact ? 10 : 16,
+            // Phones: let the action-button cluster drop onto its own row
+            // rather than crushing the client name out of view.
+            flexWrap: isCompact ? 'wrap' : 'nowrap',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
@@ -2204,7 +2212,18 @@ const ProposalViewerV2: React.FC = () => {
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: isCompact ? 6 : 10,
+              flexShrink: 0,
+              // Phones: allow the admin action buttons to wrap onto a
+              // second line so they don't overflow the row.
+              flexWrap: isCompact ? 'wrap' : 'nowrap',
+              justifyContent: isCompact ? 'flex-start' : 'flex-end',
+            }}
+          >
             <StatusPill status={status} />
             {isEditing ? (
               <button
@@ -2284,7 +2303,13 @@ const ProposalViewerV2: React.FC = () => {
       </header>
 
       {/* ===== Hero ===== */}
-      <section style={{ padding: '40px 24px 24px', maxWidth: 1280, margin: '0 auto' }}>
+      <section
+        style={{
+          padding: isCompact ? '24px 16px 16px' : '40px 24px 24px',
+          maxWidth: 1280,
+          margin: '0 auto',
+        }}
+      >
         {/* Client logo banner (or upload control in edit mode) */}
         {isEditing ? (
           <div
@@ -2570,7 +2595,9 @@ const ProposalViewerV2: React.FC = () => {
             style={{
               fontFamily: T.fontD,
               fontWeight: 800,
-              fontSize: 56,
+              // Scale the admin hero from 56px desktop → 30px compact
+              // phones so the title doesn't dominate the viewport.
+              fontSize: isCompact ? 30 : isMobile ? 38 : 56,
               lineHeight: 1.06,
               letterSpacing: '-0.025em',
               color: T.navy,
@@ -2598,7 +2625,9 @@ const ProposalViewerV2: React.FC = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+            // auto-fit reflows the 4 hero mini-stats into 2-up on
+            // tablets and 1-up on phones.
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
             gap: 12,
             maxWidth: 760,
           }}
@@ -2652,12 +2681,14 @@ const ProposalViewerV2: React.FC = () => {
       {/* ===== 2-col body grid ===== */}
       <section
         style={{
-          padding: '24px 24px 96px',
+          padding: isCompact ? '16px 16px 80px' : '24px 24px 96px',
           maxWidth: 1280,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 340px',
-          gap: 32,
+          // Mobile/tablet: drop to a single column so the sidebar stacks
+          // below the main column.
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 340px',
+          gap: isMobile ? 20 : 32,
           alignItems: 'flex-start',
         }}
       >
@@ -3336,7 +3367,7 @@ const ProposalViewerV2: React.FC = () => {
               background: T.navy,
               color: '#fff',
               borderRadius: 24,
-              padding: '40px 44px',
+              padding: isCompact ? '24px 22px' : isMobile ? '28px 28px' : '40px 44px',
               boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             }}
           >
@@ -3345,7 +3376,7 @@ const ProposalViewerV2: React.FC = () => {
               style={{
                 fontFamily: T.fontD,
                 fontWeight: 700,
-                fontSize: 32,
+                fontSize: isCompact ? 22 : isMobile ? 26 : 32,
                 lineHeight: 1.1,
                 letterSpacing: '-0.02em',
                 color: '#fff',
@@ -3651,9 +3682,11 @@ const ProposalViewerV2: React.FC = () => {
               background: T.navy,
               color: '#fff',
               borderRadius: 16,
-              padding: '22px 24px',
+              padding: isCompact ? '18px 20px' : '22px 24px',
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-              position: 'sticky',
+              // Mobile collapses to a single column — keep sticky only on
+              // the 2-column desktop layout.
+              position: isMobile ? 'static' : 'sticky',
               top: 80,
             }}
           >

@@ -20,6 +20,7 @@ import {
   SectionLabel,
   T,
 } from './proposal/shared/primitives';
+import { useIsCompact, useIsMobile } from './proposal/shared/useIsMobile';
 import {
   useServiceSelections,
   selectionKey,
@@ -93,6 +94,10 @@ const formatDateRange = (first: Date, last: Date): string => {
 const StandaloneProposalViewerV2: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  // Responsive flags drive inline-style switches for the major layout
+  // surfaces (body grid columns, hero type scale, card padding).
+  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [proposal, setProposal] = useState<any>(null);
@@ -712,7 +717,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
           zIndex: 30,
           background: '#fff',
           borderBottom: '1px solid rgba(0,0,0,0.06)',
-          padding: '12px 24px',
+          padding: isCompact ? '10px 16px' : '12px 24px',
         }}
       >
         <div
@@ -722,7 +727,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 16,
+            gap: isCompact ? 10 : 16,
+            // Phones: let the action-button cluster drop onto its own row
+            // rather than crushing the client name out of view.
+            flexWrap: isCompact ? 'wrap' : 'nowrap',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
@@ -773,7 +781,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: isCompact ? 6 : 10,
+              flexShrink: 0,
+              // Phones: allow Edit / How it works / PDF to wrap onto a
+              // second line if they collectively outgrow the row.
+              flexWrap: isCompact ? 'wrap' : 'nowrap',
+              justifyContent: isCompact ? 'flex-start' : 'flex-end',
+            }}
+          >
             <StatusPill status={(status as any) || 'draft'} />
             {isClientEditing ? (
               <>
@@ -929,7 +948,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
           proposal (services + pricing) is one short scroll away. Logo sits
           inline next to the client name; verbose subtitle removed (the new
           help modal covers that ground for first-time visitors). */}
-      <section style={{ padding: '24px 24px 12px', maxWidth: 1280, margin: '0 auto' }}>
+      <section
+        style={{
+          padding: isCompact ? '16px 16px 8px' : '24px 24px 12px',
+          maxWidth: 1280,
+          margin: '0 auto',
+        }}
+      >
         <div
           style={{
             display: 'flex',
@@ -997,8 +1022,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
               style={{
                 fontFamily: T.fontD,
                 fontWeight: 800,
-                fontSize: 38,
-                lineHeight: 1.1,
+                // Scale h1 from 38px desktop → 28px compact phones so it
+                // doesn't wrap to four lines on the smallest devices.
+                fontSize: isCompact ? 26 : isMobile ? 30 : 38,
+                lineHeight: 1.12,
                 letterSpacing: '-0.025em',
                 color: T.navy,
                 margin: 0,
@@ -1074,12 +1101,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
       {/* ===== 2-col body grid ===== */}
       <section
         style={{
-          padding: '24px 24px 96px',
+          padding: isCompact ? '16px 16px 80px' : '24px 24px 96px',
           maxWidth: 1280,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 340px',
-          gap: 32,
+          // Mobile/tablet: drop to a single column so the sidebar stacks
+          // below the main column. The Live Total + change-status banner
+          // ride along for the scroll on phones.
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 340px',
+          gap: isMobile ? 20 : 32,
           alignItems: 'flex-start',
         }}
       >
@@ -1629,7 +1659,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               background: T.navy,
               color: '#fff',
               borderRadius: 24,
-              padding: '36px 40px',
+              padding: isCompact ? '24px 22px' : isMobile ? '28px 28px' : '36px 40px',
               boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             }}
           >
@@ -2070,7 +2100,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 background: '#fff',
                 border: `2px solid ${T.coral}`,
                 borderRadius: 24,
-                padding: '40px 44px',
+                padding: isCompact ? '28px 22px' : isMobile ? '32px 28px' : '40px 44px',
                 boxShadow: '0 8px 32px rgba(255,80,80,0.16)',
               }}
             >
@@ -2079,7 +2109,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 style={{
                   fontFamily: T.fontD,
                   fontWeight: 700,
-                  fontSize: 30,
+                  fontSize: isCompact ? 22 : isMobile ? 26 : 30,
                   lineHeight: 1.15,
                   letterSpacing: '-0.015em',
                   color: T.navy,
@@ -2268,9 +2298,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
               background: T.navy,
               color: '#fff',
               borderRadius: 16,
-              padding: '22px 24px',
+              padding: isCompact ? '18px 20px' : '22px 24px',
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-              position: 'sticky',
+              // Mobile collapses to a single column — sticky positioning
+              // would pin the card to the top of the (now lone) column,
+              // which fights the natural scroll. Keep sticky only on the
+              // 2-column desktop layout.
+              position: isMobile ? 'static' : 'sticky',
               top: 80,
             }}
           >
@@ -2279,7 +2313,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               style={{
                 fontFamily: T.fontD,
                 fontWeight: 800,
-                fontSize: 44,
+                fontSize: isCompact ? 36 : 44,
                 lineHeight: 1,
                 color: T.aqua,
                 letterSpacing: '-0.025em',

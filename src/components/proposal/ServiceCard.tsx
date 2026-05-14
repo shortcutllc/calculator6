@@ -445,11 +445,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             </p>
           )}
 
-          {/* Param grid — stacked label/value cells in a 4-col grid */}
+          {/* Param grid — stacked label/value cells. auto-fit lets the
+              4-up desktop layout collapse to 2-up on tablets and 1-up
+              on phones without a JS breakpoint. */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0,1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
               gap: '16px 24px',
               maxWidth: 640,
               paddingTop: 12,
