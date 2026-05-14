@@ -9,6 +9,16 @@ Shortcut is an all-in-one corporate wellness platform delivering in-person and v
 
 ---
 
+## ⚠️ Active redesign in progress — `redesign-2026` branch
+
+A major redesign of both proposal viewers is underway on the `redesign-2026` branch (NOT main). Production is untouched. Full details in [memory/proposal_viewer_redesign_2026.md](memory/proposal_viewer_redesign_2026.md) — read that before touching `StandaloneProposalViewer*` / `ProposalViewer*` files.
+
+- Branch: `redesign-2026` (auto-deploys to preview URL: `redesign-2026--resplendent-narwhal-3de33b.netlify.app`)
+- Workflow: edit → review on `localhost:5174` → commit + push → preview deploys automatically. Production untouched until explicit merge to `main`.
+- Status: Phase 2 (Standalone client viewer) ~complete. Phase 3 (Internal admin viewer) next.
+
+---
+
 ## Tech Stack
 - **Frontend:** React 18 + TypeScript + Vite
 - **Styling:** Tailwind CSS

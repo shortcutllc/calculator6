@@ -3,6 +3,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { StandaloneProposalViewer } from './StandaloneProposalViewer';
+import StandaloneProposalViewerV2 from './StandaloneProposalViewerV2';
 import { StandaloneMindfulnessProposalViewer } from './StandaloneMindfulnessProposalViewer';
 import ProposalViewer from './ProposalViewer';
 import MindfulnessProposalViewer from './MindfulnessProposalViewer';
@@ -22,8 +23,13 @@ export const ProposalTypeRouter: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Check if this is a shared view (from query param or /shared/ path)
-  const isSharedView = location.pathname.startsWith('/shared/') || 
+  const isSharedView = location.pathname.startsWith('/shared/') ||
     location.search.includes('shared=true');
+
+  // Feature flag: ?redesign=1 routes the shared/client view to the V2 viewer
+  // currently being built on the redesign-2026 branch. Once V2 is feature
+  // complete this branches gets dropped and V2 becomes the only viewer.
+  const useRedesignV2 = location.search.includes('redesign=1');
 
   useEffect(() => {
     if (!id) {
@@ -87,6 +93,9 @@ export const ProposalTypeRouter: React.FC = () => {
     if (proposalType === 'mindfulness-program') {
       return <StandaloneMindfulnessProposalViewer />;
     }
+    if (useRedesignV2) {
+      return <StandaloneProposalViewerV2 />;
+    }
     return <StandaloneProposalViewer />;
   }
 
@@ -96,6 +105,9 @@ export const ProposalTypeRouter: React.FC = () => {
   }
 
   // For event proposals: route to admin view if owner, otherwise client view
+  if (!isOwner && useRedesignV2) {
+    return <StandaloneProposalViewerV2 />;
+  }
   return isOwner ? <ProposalViewer /> : <StandaloneProposalViewer />;
 };
 

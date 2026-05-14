@@ -60,6 +60,7 @@ const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
 const DraftKingsReport = lazy(() => import('./components/DraftKingsReport'));
+const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
@@ -883,6 +884,20 @@ function App() {
                     </div>
                   }>
                     <DraftKingsReport />
+                  </Suspense>
+                }
+              />
+              {/* Temporary preview route for the proposal-viewer redesign.
+                  Remove once the real viewers are migrated. */}
+              <Route
+                path="/redesign-preview"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <RedesignPreview />
                   </Suspense>
                 }
               />
