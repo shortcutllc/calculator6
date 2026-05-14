@@ -14,21 +14,28 @@ interface TrustClient {
   bg: string;
   /** Initials displayed in the fallback. */
   initials: string;
+  /** Optional max-width % override — thin wide marks (e.g. Betterment) need
+   *  more horizontal room than squarer marks (DraftKings) to read at the
+   *  same visual weight. Defaults to 78%. */
+  scaleW?: number;
+  /** Optional max-height % override. Defaults to 64%. */
+  scaleH?: number;
 }
 
 // Real client roster — same SVG set used on the V1 HolidayProposal trusted-by
 // grid (public/Holiday Proposal/Parnter Logos/). Initials/bg are fallbacks
 // only used when the asset 404s. Order favors well-known names.
 const TRUSTED_CLIENTS: TrustClient[] = [
-  { name: 'DraftKings', logoSrc: '/Holiday Proposal/Parnter Logos/DraftKings.svg', initials: 'DK', bg: '#1F2937' },
-  { name: 'NFL', logoSrc: '/Holiday Proposal/Parnter Logos/NFL.svg', initials: 'NFL', bg: '#013369' },
-  { name: 'Paramount', logoSrc: '/Holiday Proposal/Parnter Logos/Paramount.svg', initials: 'PM', bg: '#0064FF' },
-  { name: 'Warner Bros.', logoSrc: '/Holiday Proposal/Parnter Logos/Warner Bros.svg', initials: 'WB', bg: '#0F1F4B' },
-  { name: 'PwC', logoSrc: '/Holiday Proposal/Parnter Logos/PwC.svg', initials: 'PwC', bg: '#DC6900' },
-  { name: 'BCG', logoSrc: '/Holiday Proposal/Parnter Logos/BCG.svg', initials: 'BCG', bg: '#16573B' },
-  { name: 'Wix', logoSrc: '/Holiday Proposal/Parnter Logos/Wix.svg', initials: 'Wix', bg: '#000000' },
-  { name: 'Tripadvisor', logoSrc: '/Holiday Proposal/Parnter Logos/Tripadvisor.svg', initials: 'TA', bg: '#34E0A1' },
-  { name: 'Betterment', logoSrc: '/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg', initials: 'BM', bg: '#003B49' },
+  { name: 'DraftKings', logoSrc: '/Holiday Proposal/Parnter Logos/DraftKings.svg', initials: 'DK', bg: '#1F2937', scaleW: 78, scaleH: 56 },
+  { name: 'NFL', logoSrc: '/Holiday Proposal/Parnter Logos/NFL.svg', initials: 'NFL', bg: '#013369', scaleW: 60, scaleH: 72 },
+  { name: 'Paramount', logoSrc: '/Holiday Proposal/Parnter Logos/Paramount.svg', initials: 'PM', bg: '#0064FF', scaleW: 82, scaleH: 60 },
+  { name: 'Warner Bros.', logoSrc: '/Holiday Proposal/Parnter Logos/Warner Bros.svg', initials: 'WB', bg: '#0F1F4B', scaleW: 70, scaleH: 70 },
+  { name: 'PwC', logoSrc: '/Holiday Proposal/Parnter Logos/PwC.svg', initials: 'PwC', bg: '#DC6900', scaleW: 60, scaleH: 70 },
+  { name: 'BCG', logoSrc: '/Holiday Proposal/Parnter Logos/BCG.svg', initials: 'BCG', bg: '#16573B', scaleW: 72, scaleH: 60 },
+  { name: 'Wix', logoSrc: '/Holiday Proposal/Parnter Logos/Wix.svg', initials: 'Wix', bg: '#000000', scaleW: 60, scaleH: 50 },
+  { name: 'Tripadvisor', logoSrc: '/Holiday Proposal/Parnter Logos/Tripadvisor.svg', initials: 'TA', bg: '#34E0A1', scaleW: 86, scaleH: 56 },
+  // Betterment ships a very wide vector; give it most of the tile width.
+  { name: 'Betterment', logoSrc: '/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg', initials: 'BM', bg: '#003B49', scaleW: 95, scaleH: 70 },
 ];
 
 interface TrustClientTileProps {
@@ -61,8 +68,8 @@ const TrustClientTile: React.FC<TrustClientTileProps> = ({ client }) => {
           alt={client.name}
           onError={() => setImgFailed(true)}
           style={{
-            maxWidth: '70%',
-            maxHeight: '60%',
+            maxWidth: `${client.scaleW ?? 78}%`,
+            maxHeight: `${client.scaleH ?? 64}%`,
             objectFit: 'contain',
             display: 'block',
           }}
@@ -117,7 +124,7 @@ const TrustCard: React.FC = () => {
             color: T.navy,
           }}
         >
-          rebook within 6 months
+          rebook with Shortcut
         </span>
       </div>
 

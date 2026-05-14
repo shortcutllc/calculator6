@@ -230,6 +230,16 @@ proposals. Result: both viewers render the same marketing pass V1 did.
 
 ### Phase 6 — data backend ✅ shipped
 
+**How to apply the Supabase migrations (they are NOT auto-applied):**
+
+1. Open the Supabase dashboard for project `oxigtmlqqfbhzekpdalt` → SQL Editor.
+2. Paste the contents of `supabase/migrations/20260513000001_create_proposal_gallery.sql` and run it. This creates the `proposal_gallery` table + `proposal-gallery` storage bucket + RLS.
+3. (Optional) Paste `supabase/migrations/20260513000002_migrate_recurring_to_options_state.sql` and run it. This normalizes legacy `recurringFrequency` data onto `optionsState`. Not strictly required — the V2 hook has a legacy fallback that keeps the viewer correct without it. Apply when you're ready to drop the fallback in a future commit.
+4. Alternative: `cd` to the repo root, link the project once with `SUPABASE_ACCESS_TOKEN=... supabase link --project-ref oxigtmlqqfbhzekpdalt`, then `supabase db push`.
+
+**Gallery upload UI lives at:** `/proposal-gallery-admin` — staff-only library manager. Lists every `proposal_gallery` row grouped by service type with featured/published/delete controls plus an upload form (service + image/video + caption + featured pin). When the table is missing it surfaces a clear hint pointing to the migration file.
+
+
 - [x] **Real gallery** — new `proposal_gallery` table + `proposal-gallery`
       storage bucket. Migration: `supabase/migrations/20260513000001_create_proposal_gallery.sql`.
       Public-read RLS so anon shared-link visitors get the same media. V2
