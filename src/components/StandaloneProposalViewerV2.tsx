@@ -556,6 +556,42 @@ const StandaloneProposalViewerV2: React.FC = () => {
     [id, clientEditedData, isApproved]
   );
 
+  // ---- Pricing-option click (read-only client view) --------------------
+  // Always-on path so clients can pick Half day / Full day / Premium tiers
+  // without entering edit mode. Mirrors the selected option's cost +
+  // appointments + proRevenue onto the base service, persists the new
+  // `selectedOption` in both data.services and the dedicated selected_options
+  // JSONB column (V1 parity), and updates local state so the price flips
+  // immediately.
+  const handleSelectPricingOption = useCallback(
+    async (loc: string, date: string, idx: number, optIdx: number) => {
+      if (!id || isApproved || !proposal?.data) return;
+      const next = JSON.parse(JSON.stringify(proposal.data));
+      const svc = next.services?.[loc]?.[date]?.services?.[idx];
+      if (!svc?.pricingOptions?.[optIdx]) return;
+      svc.selectedOption = optIdx;
+      const sel = svc.pricingOptions[optIdx];
+      if (sel) {
+        if (sel.totalAppointments !== undefined) svc.totalAppointments = sel.totalAppointments;
+        if (sel.serviceCost !== undefined) svc.serviceCost = sel.serviceCost;
+        if (sel.proRevenue !== undefined) svc.proRevenue = sel.proRevenue;
+        if (sel.discountPercent !== undefined) svc.discountPercent = sel.discountPercent;
+      }
+      setProposal((p: any) => ({ ...p, data: next }));
+      const key = `${loc}-${date}-${idx}`;
+      const so = { ...(proposal.selected_options || {}), [key]: optIdx };
+      try {
+        await supabase
+          .from('proposals')
+          .update({ data: next, selected_options: so })
+          .eq('id', id);
+      } catch (err) {
+        console.error('Persist selectedOption failed:', err);
+      }
+    },
+    [id, proposal, isApproved]
+  );
+
   // ---- PDF download — same flow as V1: html2canvas on #proposal-content
   const [isDownloading, setIsDownloading] = useState(false);
   const handleDownloadPdf = useCallback(async () => {
@@ -1161,33 +1197,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
           );
         })()}
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              stats.hasHeadshot && stats.costPerHeadshot > 0
-                ? 'repeat(5, minmax(0, 1fr))'
-                : 'repeat(4, minmax(0, 1fr))',
-            gap: 10,
-            maxWidth: 920,
-          }}
-        >
-          <MiniStat label="Locations" value={stats.locationCount} accent="navy" />
-          <MiniStat label="Event dates" value={stats.dateCount} accent="navy" />
-          <MiniStat
-            label="Appointments"
-            value={stats.appointmentCount.toLocaleString('en-US')}
-            accent="navy"
-          />
-          <MiniStat label="Total" value={formatCurrency(grandTotal)} accent="coral" />
-          {stats.hasHeadshot && stats.costPerHeadshot > 0 && (
-            <MiniStat
-              label="Per headshot"
-              value={formatCurrency(stats.costPerHeadshot)}
-              accent="aqua"
-            />
-          )}
-        </div>
+        {/* Hero mini-stats grid removed — the lifted Pricing summary card
+            below carries the same numbers (services, dates, total) and the
+            dark sidebar Live Total card keeps it sticky for scroll. */}
       </section>
 
       {/* ===== 2-col body grid ===== */}
@@ -1301,62 +1313,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   }}
                 >
                   Click "View current" in the header to return to your selections.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Banner — changes requested confirmation */}
-          {(requestSent || proposal?.has_changes) && !isApproved && !showingOriginal && (
-            <div
-              style={{
-                background: 'rgba(255,80,80,0.08)',
-                border: `1px solid rgba(255,80,80,0.25)`,
-                borderRadius: 12,
-                padding: '14px 18px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background: T.coral,
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: T.fontUi,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  flexShrink: 0,
-                }}
-              >
-                ✓
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: T.fontD,
-                    fontWeight: 700,
-                    fontSize: 14,
-                    color: T.navy,
-                  }}
-                >
-                  Change request sent to your account team
-                </div>
-                <div
-                  style={{
-                    fontFamily: T.fontD,
-                    fontSize: 12,
-                    color: T.fgMuted,
-                    marginTop: 2,
-                  }}
-                >
-                  We'll follow up shortly — you can keep this page open or check back later.
                 </div>
               </div>
             </div>
@@ -1628,22 +1584,23 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                                 )
                                             : undefined
                                         }
-                                        onSelectPricingOption={
-                                          isClientEditing
-                                            ? (optIdx) =>
-                                                clientHandleFieldChange(
-                                                  [
-                                                    'services',
-                                                    loc,
-                                                    date,
-                                                    'services',
-                                                    String(idx),
-                                                    'selectedOption',
-                                                  ],
-                                                  optIdx
-                                                )
-                                            : undefined
-                                        }
+                                        onSelectPricingOption={(optIdx) => {
+                                          if (isClientEditing) {
+                                            clientHandleFieldChange(
+                                              [
+                                                'services',
+                                                loc,
+                                                date,
+                                                'services',
+                                                String(idx),
+                                                'selectedOption',
+                                              ],
+                                              optIdx
+                                            );
+                                          } else {
+                                            handleSelectPricingOption(loc, date, idx, optIdx);
+                                          }
+                                        }}
                                         onEditPricingOption={
                                           isClientEditing
                                             ? (optIdx, field, value) =>
@@ -2124,6 +2081,65 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
         {/* --- Sidebar --- */}
         <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Compact change-request notice — lives in the sidebar so it
+              doesn't eat hero space. Tracks `requestSent` (just submitted
+              this session) or `proposal.has_changes` (persisted). */}
+          {(requestSent || proposal?.has_changes) && !isApproved && !showingOriginal && (
+            <div
+              style={{
+                background: 'rgba(255,80,80,0.08)',
+                border: '1px solid rgba(255,80,80,0.25)',
+                borderRadius: 12,
+                padding: '10px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <div
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  background: T.coral,
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  flexShrink: 0,
+                }}
+              >
+                ✓
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    color: T.navy,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  Changes sent
+                </div>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontSize: 11,
+                    color: T.fgMuted,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Your account team will follow up shortly.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Live Total card */}
           <div
             style={{
