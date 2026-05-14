@@ -966,6 +966,52 @@ const ProposalViewerV2: React.FC = () => {
   };
 
   // -----------------------------------------------------------------------
+  // Auto-recurring discount control
+  //
+  // `auto` — let `recalculateServiceTotals` decide based on date count.
+  //          We clear the explicit flags so the auto-calc rule fires.
+  // `off`  — staff has explicitly turned the discount off. We set
+  //          `isAutoRecurring: false` and clear `autoRecurringDiscount`.
+  // `fixed` — staff picked a specific %. We set `isAutoRecurring: true`
+  //          and `autoRecurringDiscount: <value>`.
+  //
+  // Either way, we re-run `recalculateServiceTotals` so the per-service
+  // discount math fires immediately and the pricing summary updates.
+  // -----------------------------------------------------------------------
+  const handleChangeAutoRecurring = (
+    mode: 'auto' | 'off' | 'fixed',
+    value?: number
+  ) => {
+    if (!editedData || !isEditing) return;
+    const updated = { ...editedData };
+    if (mode === 'auto') {
+      // Drop both flags so the recalculator's date-count rule decides.
+      delete updated.isAutoRecurring;
+      delete updated.autoRecurringDiscount;
+    } else if (mode === 'off') {
+      updated.isAutoRecurring = false;
+      updated.autoRecurringDiscount = undefined;
+    } else {
+      updated.isAutoRecurring = true;
+      updated.autoRecurringDiscount = value || 15;
+    }
+    const recalc = recalculateServiceTotals(updated);
+    setEditedData({ ...recalc, customization: currentProposal?.customization });
+    setDisplayData({ ...recalc, customization: currentProposal?.customization });
+  };
+
+  // Resolve the current admin "mode" for the picker from the data shape.
+  // V1 leaves `isAutoRecurring === undefined` to mean "auto", `false` to mean
+  // "off", and `true + autoRecurringDiscount` to mean "fixed".
+  const autoRecurringMode: 'auto' | 'off' | 'fixed' =
+    displayData?.isAutoRecurring === false
+      ? 'off'
+      : displayData?.isAutoRecurring === true &&
+        typeof displayData?.autoRecurringDiscount === 'number'
+      ? 'fixed'
+      : 'auto';
+
+  // -----------------------------------------------------------------------
   // Office address per location
   // -----------------------------------------------------------------------
   const handleSetOfficeAddress = (loc: string, address: string) => {
@@ -2751,6 +2797,18 @@ const ProposalViewerV2: React.FC = () => {
                                     dayNumber={dateIndex + 1}
                                     appointments={hasUnlimited ? 'unlimited' : dayAppts}
                                     totalCost={dayCost}
+                                    originalCost={
+                                      typeof dateData?.originalTotalCost === 'number'
+                                        ? dateData.originalTotalCost
+                                        : undefined
+                                    }
+                                    discountLabel={
+                                      typeof displayData?.autoRecurringDiscount ===
+                                        'number' &&
+                                      displayData.autoRecurringDiscount > 0
+                                        ? `${displayData.autoRecurringDiscount}% recurring discount`
+                                        : undefined
+                                    }
                                   />
                                 </div>
                               )}
@@ -2809,6 +2867,11 @@ const ProposalViewerV2: React.FC = () => {
               gratuityValue={(displayData?.gratuityValue as number | null) ?? null}
               onChangeGratuityType={handleGratuityTypeChange}
               onChangeGratuityValue={handleGratuityValueChange}
+              autoRecurringMode={autoRecurringMode}
+              autoRecurringDiscount={displayData?.autoRecurringDiscount}
+              autoRecurringApplied={displayData?.autoRecurringDiscount}
+              autoRecurringSavings={displayData?.autoRecurringSavings}
+              onChangeAutoRecurring={handleChangeAutoRecurring}
             />
           )}
 
@@ -2973,6 +3036,25 @@ const ProposalViewerV2: React.FC = () => {
                 <span>Subtotal</span>
                 <span style={{ color: '#fff' }}>{formatCurrency(subtotal)}</span>
               </div>
+              {typeof displayData?.autoRecurringDiscount === 'number' &&
+                displayData.autoRecurringDiscount > 0 &&
+                typeof displayData?.autoRecurringSavings === 'number' &&
+                displayData.autoRecurringSavings > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontFamily: T.fontD,
+                      fontSize: 14,
+                      color: T.aqua,
+                    }}
+                  >
+                    <span>
+                      Recurring discount · {displayData.autoRecurringDiscount}%
+                    </span>
+                    <span>−{formatCurrency(displayData.autoRecurringSavings)}</span>
+                  </div>
+                )}
               {gratuity && (
                 <div
                   style={{
@@ -4736,6 +4818,12 @@ interface PricingExtrasEditorProps {
   gratuityValue: number | null;
   onChangeGratuityType: (t: '' | 'percentage' | 'dollar') => void;
   onChangeGratuityValue: (v: number) => void;
+  // Auto-recurring discount — picker controls
+  autoRecurringMode: 'auto' | 'off' | 'fixed';
+  autoRecurringDiscount: number | undefined;
+  autoRecurringApplied: number | undefined;
+  autoRecurringSavings: number | undefined;
+  onChangeAutoRecurring: (mode: 'auto' | 'off' | 'fixed', value?: number) => void;
 }
 const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
   customLineItems,
@@ -4746,6 +4834,11 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
   gratuityValue,
   onChangeGratuityType,
   onChangeGratuityValue,
+  autoRecurringMode,
+  autoRecurringDiscount,
+  autoRecurringApplied,
+  autoRecurringSavings,
+  onChangeAutoRecurring,
 }) => (
   <div
     style={{
@@ -4912,6 +5005,109 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
           ))}
         </div>
       )}
+    </div>
+
+    {/* Auto-recurring discount */}
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+          gap: 8,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Eyebrow>Auto-recurring discount</Eyebrow>
+        {autoRecurringApplied && autoRecurringApplied > 0 ? (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '3px 9px',
+              background: 'rgba(30,158,106,.12)',
+              color: T.success,
+              borderRadius: 999,
+              fontFamily: T.fontUi,
+              fontWeight: 700,
+              fontSize: 11,
+              letterSpacing: '0.02em',
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: T.success,
+              }}
+            />
+            {autoRecurringApplied}% applied
+            {typeof autoRecurringSavings === 'number' && autoRecurringSavings > 0 && (
+              <span style={{ fontWeight: 600 }}>
+                · saves {formatCurrency(autoRecurringSavings)}
+              </span>
+            )}
+          </span>
+        ) : null}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <select
+          value={
+            autoRecurringMode === 'auto'
+              ? 'auto'
+              : autoRecurringMode === 'off'
+              ? 'off'
+              : String(autoRecurringDiscount ?? 15)
+          }
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === 'auto') onChangeAutoRecurring('auto');
+            else if (v === 'off') onChangeAutoRecurring('off');
+            else onChangeAutoRecurring('fixed', Number(v));
+          }}
+          style={{
+            padding: '8px 12px',
+            fontFamily: T.fontD,
+            fontWeight: 600,
+            fontSize: 14,
+            color: T.navy,
+            border: '1.5px solid rgba(0,0,0,0.1)',
+            borderRadius: 8,
+            background: '#fff',
+            outline: 'none',
+          }}
+        >
+          <option value="auto">Auto (15% at 4+, 20% at 9+ dates)</option>
+          <option value="off">No discount</option>
+          <option value="10">Fixed 10%</option>
+          <option value="15">Fixed 15%</option>
+          <option value="20">Fixed 20%</option>
+        </select>
+      </div>
+      <div
+        style={{
+          fontFamily: T.fontD,
+          fontSize: 12,
+          color: T.fgMuted,
+          marginTop: 6,
+          lineHeight: 1.5,
+        }}
+      >
+        Applies a percentage discount across every service in this proposal.
+        Headshot retouching is excluded from the discount. Per-service recurring
+        contracts always win — set those on individual services if you need finer
+        control.
+      </div>
     </div>
 
     {/* Gratuity */}

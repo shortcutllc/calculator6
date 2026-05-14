@@ -50,6 +50,9 @@ export interface ServiceCardService {
   // Pricing options sub-card
   pricingOptions?: PricingOptionVariant[];
   selectedOption?: number;
+  // Set by recalculateServiceTotals when auto-recurring discount fires —
+  // used by ServiceCard to show the strike-through original price + chip.
+  originalServiceCost?: number;
 }
 
 interface ServiceCardProps {
@@ -128,6 +131,16 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const displayDesc = isShort || expanded ? desc : `${desc.slice(0, 180)}…`;
 
   const lineCost = (service.serviceCost || 0) * frequency;
+
+  // Auto-recurring discount applied — set by recalculateServiceTotals on
+  // service.originalServiceCost. We surface a strike-through + chip so the
+  // savings is obvious next to the price.
+  const hasRecurringDiscount =
+    typeof service.originalServiceCost === 'number' &&
+    service.originalServiceCost > service.serviceCost;
+  const originalLineCost = hasRecurringDiscount
+    ? (service.originalServiceCost || 0) * frequency
+    : 0;
 
   const handleEdit = (field: keyof ServiceCardService) => (
     e: React.ChangeEvent<HTMLInputElement>
@@ -253,6 +266,19 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 )
               )}
               <div style={{ textAlign: 'right' }}>
+                {hasRecurringDiscount && (
+                  <div
+                    style={{
+                      fontFamily: T.fontD,
+                      fontSize: 13,
+                      color: T.fgMuted,
+                      textDecoration: 'line-through',
+                      marginBottom: 2,
+                    }}
+                  >
+                    {formatCurrency(frequency > 1 ? originalLineCost : service.originalServiceCost || 0)}
+                  </div>
+                )}
                 {frequency > 1 ? (
                   <>
                     <div
@@ -260,7 +286,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                         fontFamily: T.fontD,
                         fontWeight: 700,
                         fontSize: 28,
-                        color: T.navy,
+                        color: hasRecurringDiscount ? T.success : T.navy,
                         letterSpacing: '-0.025em',
                         lineHeight: 1,
                         whiteSpace: 'nowrap',
@@ -291,7 +317,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                         fontFamily: T.fontD,
                         fontWeight: 700,
                         fontSize: 28,
-                        color: T.navy,
+                        color: hasRecurringDiscount ? T.success : T.navy,
                         letterSpacing: '-0.025em',
                         lineHeight: 1,
                         whiteSpace: 'nowrap',
@@ -303,6 +329,27 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                       {isMindful ? 'per session' : 'per event day'}
                     </Eyebrow>
                   </>
+                )}
+                {hasRecurringDiscount && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '3px 9px',
+                      marginTop: 8,
+                      background: 'rgba(30,158,106,.12)',
+                      color: T.success,
+                      borderRadius: 999,
+                      fontFamily: T.fontUi,
+                      fontWeight: 700,
+                      fontSize: 10,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Recurring discount
+                  </span>
                 )}
               </div>
             </div>

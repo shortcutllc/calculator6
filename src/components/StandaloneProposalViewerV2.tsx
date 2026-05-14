@@ -1000,6 +1000,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                   dayNumber={dateIndex + 1}
                                   appointments={hasUnlimited ? 'unlimited' : dayAppts}
                                   totalCost={dayCost}
+                                  originalCost={
+                                    typeof dateData?.originalTotalCost === 'number'
+                                      ? dateData.originalTotalCost
+                                      : undefined
+                                  }
+                                  discountLabel={
+                                    typeof displayData?.autoRecurringDiscount ===
+                                      'number' &&
+                                    displayData.autoRecurringDiscount > 0
+                                      ? `${displayData.autoRecurringDiscount}% recurring discount`
+                                      : undefined
+                                  }
                                 />
                               )}
                             </div>
@@ -1237,6 +1249,25 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   <span>−{formatCurrency(summary.discountAmount)}</span>
                 </div>
               )}
+              {typeof displayData?.autoRecurringDiscount === 'number' &&
+                displayData.autoRecurringDiscount > 0 &&
+                typeof displayData?.autoRecurringSavings === 'number' &&
+                displayData.autoRecurringSavings > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontFamily: T.fontD,
+                      fontSize: 14,
+                      color: T.aqua,
+                    }}
+                  >
+                    <span>
+                      Recurring discount · {displayData.autoRecurringDiscount}%
+                    </span>
+                    <span>−{formatCurrency(displayData.autoRecurringSavings)}</span>
+                  </div>
+                )}
               {gratuity && (
                 <div
                   style={{
