@@ -52,6 +52,7 @@ import {
 } from './proposal/shared/primitives';
 import { useIsCompact, useIsMobile } from './proposal/shared/useIsMobile';
 import { formatCurrency, SERVICE_DISPLAY } from './proposal/data';
+import { selectionKey } from './proposal/useServiceSelections';
 import AccountTeamCard, {
   ACCOUNT_TEAM,
   DEFAULT_TEAM_EMAIL,
@@ -664,6 +665,69 @@ const ProposalViewerV2: React.FC = () => {
   const setTopLevelField = (key: string, value: any) => handleFieldChange([key], value);
   const setCustomizationField = (key: string, value: any) =>
     handleFieldChange(['customization', key], value);
+
+  // Special-case handler for the per-service "Starts on for client"
+  // checkbox. Setting the field alone isn't enough — the standalone
+  // viewer reads persisted `data.optionsState[key]` first and only falls
+  // back to `optionsSelectedDefault` when nothing is in optionsState. If
+  // a client already loaded the proposal, optionsState[key] is populated
+  // and would shadow the new admin default. Clearing the matching
+  // optionsState entry makes the new default actually take effect.
+  // Toggle the proposal-wide "Let the client build it" flag. Same staleness
+  // trap as the per-service toggle — if a client already loaded the
+  // proposal, optionsState is fully populated and would beat the new
+  // startUnselected default. Wipe optionsState in one go so the new
+  // default actually wins on the next client load.
+  const handleSetStartUnselected = (next: boolean) => {
+    if (!editedData || !isEditing) return;
+    const updated: any = { ...editedData };
+    updated.startUnselected = next ? true : undefined;
+    if (updated.optionsState) updated.optionsState = undefined;
+    setEditedData({ ...updated });
+    setDisplayData({ ...updated });
+  };
+
+  const handleSetOptionsSelectedDefault = (
+    loc: string,
+    date: string,
+    idx: number,
+    next: boolean
+  ) => {
+    if (!editedData || !isEditing) return;
+    const updated: any = { ...editedData };
+    // 1. Write the per-service default
+    if (!updated.services?.[loc]?.[date]?.services?.[idx]) return;
+    updated.services = {
+      ...updated.services,
+      [loc]: {
+        ...updated.services[loc],
+        [date]: {
+          ...updated.services[loc][date],
+          services: updated.services[loc][date].services.map((s: any, i: number) =>
+            i === idx
+              ? { ...s, optionsSelectedDefault: next ? undefined : false }
+              : s
+          ),
+        },
+      },
+    };
+    // 2. Clear the matching optionsState entry so the new default takes
+    //    effect on the client view. Without this, a client who already
+    //    loaded the proposal has persisted `included: true` which beats
+    //    `optionsSelectedDefault: false` in the hook's precedence.
+    if (updated.optionsState && typeof updated.optionsState === 'object') {
+      const key = selectionKey(loc, date, idx);
+      if (key in updated.optionsState) {
+        const cleaned = { ...updated.optionsState };
+        delete cleaned[key];
+        updated.optionsState =
+          Object.keys(cleaned).length > 0 ? cleaned : undefined;
+      }
+    }
+    const recalc = recalculateServiceTotals(updated);
+    setEditedData({ ...recalc, customization: currentProposal?.customization });
+    setDisplayData({ ...recalc, customization: currentProposal?.customization });
+  };
 
   const handleServiceTypeChange = (loc: string, date: string, idx: number, newType: string) => {
     if (!editedData || !isEditing) return;
@@ -2830,7 +2894,7 @@ const ProposalViewerV2: React.FC = () => {
                 type="checkbox"
                 checked={editedData?.startUnselected === true}
                 onChange={(e) =>
-                  setTopLevelField('startUnselected', e.target.checked)
+                  handleSetStartUnselected(e.target.checked)
                 }
                 style={{
                   opacity: 0,
@@ -3695,6 +3759,14 @@ const ProposalViewerV2: React.FC = () => {
                                       canMoveDown={
                                         idx <
                                         (dateData?.services?.length || 0) - 1
+                                      }
+                                      onSetSelectedDefault={(next) =>
+                                        handleSetOptionsSelectedDefault(
+                                          loc,
+                                          date,
+                                          idx,
+                                          next
+                                        )
                                       }
                                     />
                                   )
@@ -5278,6 +5350,10 @@ interface ServiceBlockProps {
   onMoveDown?: () => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
+  /** Per-service "Starts on for client" toggle. Separate from onFieldChange
+   *  because the admin handler also has to clear any persisted optionsState
+   *  entry to make the new default actually take effect on the client view. */
+  onSetSelectedDefault?: (next: boolean) => void;
 }
 const ServiceBlock: React.FC<ServiceBlockProps> = ({
   service,
@@ -5298,6 +5374,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
   onMoveDown,
   canMoveUp,
   canMoveDown,
+  onSetSelectedDefault,
 }) => {
   return (
     <div style={{ position: 'relative' }}>
@@ -5422,12 +5499,16 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
               <input
                 type="checkbox"
                 checked={(service as any).optionsSelectedDefault !== false}
-                onChange={(e) =>
-                  onFieldChange(
-                    'optionsSelectedDefault',
-                    e.target.checked ? undefined : false
-                  )
-                }
+                onChange={(e) => {
+                  if (onSetSelectedDefault) {
+                    onSetSelectedDefault(e.target.checked);
+                  } else {
+                    onFieldChange(
+                      'optionsSelectedDefault',
+                      e.target.checked ? undefined : false
+                    );
+                  }
+                }}
                 style={{ margin: 0 }}
               />
               {(service as any).optionsSelectedDefault === false
