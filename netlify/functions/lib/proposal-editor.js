@@ -74,6 +74,7 @@ const OPERATION_HANDLERS = {
   set_discount: handleSetDiscount,
   add_pricing_options: handleAddPricingOptions,
   remove_pricing_options: handleRemovePricingOptions,
+  select_pricing_option: handleSelectPricingOption,
   update_customization: handleUpdateCustomization,
   update_client_info: handleUpdateClientInfo,
   set_status: handleSetStatus,
@@ -81,7 +82,9 @@ const OPERATION_HANDLERS = {
   remove_location: handleRemoveLocation,
   rename_location: handleRenameLocation,
   change_date: handleChangeDate,
-  set_cle_state: handleSetCLEState
+  set_cle_state: handleSetCLEState,
+  move_service: handleMoveService,
+  set_proposal_field: handleSetProposalField
 };
 
 /**
@@ -260,7 +263,11 @@ function handleUpdateService(proposalData, customization, proposalRecord, op) {
     'totalHours', 'numPros', 'appTime', 'proHourly', 'hourlyRate',
     'earlyArrival', 'retouchingCost', 'discountPercent', 'classLength',
     'fixedPrice', 'participants', 'mindfulnessType', 'headshotTier',
-    'massageType'
+    'massageType', 'nailsType',
+    // V2 client-view options: optionsSelectedDefault (false → service
+    // starts unchecked on the client view), optionsFrequency (default
+    // frequency for "X per year" picker).
+    'optionsSelectedDefault', 'optionsFrequency'
   ];
 
   const appliedUpdates = [];
@@ -290,6 +297,28 @@ function handleUpdateService(proposalData, customization, proposalRecord, op) {
           service.mindfulnessType = value;
           appliedUpdates.push(`mindfulnessType → ${value}`);
         }
+      }
+      else if (key === 'optionsSelectedDefault') {
+        // Boolean field — don't coerce false to 0.
+        service[key] = value === false ? false : (value === undefined || value === null ? undefined : Boolean(value));
+        // The standalone reads proposal.data.optionsState[key] before
+        // falling back to optionsSelectedDefault. If a client already
+        // loaded this proposal, optionsState[key] is populated and would
+        // shadow the new default — clear it so this change actually
+        // takes effect on the next client load. Key format matches
+        // useServiceSelections.selectionKey().
+        const optKey = `${location}|${normalizedDate}|${serviceIndex}`;
+        if (proposalData.optionsState && optKey in proposalData.optionsState) {
+          const cleaned = { ...proposalData.optionsState };
+          delete cleaned[optKey];
+          proposalData.optionsState = Object.keys(cleaned).length > 0 ? cleaned : undefined;
+        }
+        appliedUpdates.push(`${key} → ${value}`);
+      }
+      else if (key === 'nailsType') {
+        // String enum — preserve as-is.
+        service[key] = value;
+        appliedUpdates.push(`${key} → ${value}`);
       }
       else {
         service[key] = typeof value === 'number' ? value : Number(value) || value;
@@ -744,6 +773,164 @@ function handleChangeDate(proposalData, customization, proposalRecord, op) {
   return {
     op: 'change_date',
     description: `Changed date from ${oldDate} to ${newDate} at ${location}`
+  };
+}
+
+/**
+ * Move a service one slot up or down within its date. Swaps with the
+ * neighbour at serviceIndex + direction. Also swaps the matching keys in
+ * pricing_options / selected_options / optionsState so per-service state
+ * follows the service to its new slot. Mirror of the admin's
+ * handleMoveService in ProposalViewerV2.
+ */
+function handleMoveService(proposalData, customization, proposalRecord, op) {
+  const { location, date, serviceIndex, direction } = op;
+  const normalizedDate = normalizeDate(date);
+  validateServicePath(proposalData, location, normalizedDate, serviceIndex);
+
+  if (direction !== 1 && direction !== -1) {
+    throw new Error('move_service requires "direction" of 1 (down) or -1 (up)');
+  }
+  const services = proposalData.services[location][normalizedDate].services;
+  const other = serviceIndex + direction;
+  if (other < 0 || other >= services.length) {
+    throw new Error(
+      `move_service: cannot move service ${serviceIndex} ${direction > 0 ? 'down' : 'up'} — already at the ${direction > 0 ? 'last' : 'first'} position (${services.length} service${services.length === 1 ? '' : 's'})`
+    );
+  }
+
+  [services[serviceIndex], services[other]] = [services[other], services[serviceIndex]];
+
+  // Swap the matching keys in optionsState and on the proposalRecord
+  // (pricing_options / selected_options live in separate DB columns the
+  // edit handler will sync). Key format for optionsState follows
+  // useServiceSelections.selectionKey(): `${loc}|${date}|${idx}`.
+  const swapInMap = (obj, sep) => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const keyA = `${location}${sep}${normalizedDate}${sep}${serviceIndex}`;
+    const keyB = `${location}${sep}${normalizedDate}${sep}${other}`;
+    if (!(keyA in obj) && !(keyB in obj)) return obj;
+    const out = { ...obj };
+    const a = out[keyA];
+    const b = out[keyB];
+    if (b !== undefined) out[keyA] = b; else delete out[keyA];
+    if (a !== undefined) out[keyB] = a; else delete out[keyB];
+    return out;
+  };
+  if (proposalData.optionsState) {
+    proposalData.optionsState = swapInMap(proposalData.optionsState, '|');
+  }
+
+  return {
+    op: 'move_service',
+    description: `Moved service ${serviceIndex} ${direction > 0 ? 'down' : 'up'} at ${location} on ${normalizedDate}`
+  };
+}
+
+/**
+ * Set top-level proposal data fields that aren't otherwise exposed via
+ * specific ops. Limited to a known allowlist so the bot can't write
+ * arbitrary keys onto the data object.
+ *
+ * Allowed fields:
+ *   - startUnselected (boolean)       → proposal-wide "Let the client
+ *                                       build it" mode. Clears optionsState.
+ *   - signupLink (string)             → test signup URL shown in sidebar
+ *   - signupLinkTitle (string)        → optional copy override for card title
+ *   - signupLinkDescription (string)  → optional copy override for card body
+ *   - heroTitle (string)              → custom hero h1 override
+ *   - accountTeamMemberEmail (string) → switch which account-team card shows
+ */
+function handleSetProposalField(proposalData, customization, proposalRecord, op) {
+  const allowed = new Set([
+    'startUnselected',
+    'signupLink',
+    'signupLinkTitle',
+    'signupLinkDescription',
+    'heroTitle',
+    'accountTeamMemberEmail'
+  ]);
+  if (!op.field || !allowed.has(op.field)) {
+    throw new Error(
+      `set_proposal_field requires "field" to be one of: ${Array.from(allowed).join(', ')}`
+    );
+  }
+
+  const field = op.field;
+  let value = op.value;
+
+  // Normalise common types
+  if (field === 'startUnselected') {
+    value = value === true || value === 'true' ? true : undefined;
+  } else if (
+    field === 'signupLink' ||
+    field === 'signupLinkTitle' ||
+    field === 'signupLinkDescription' ||
+    field === 'heroTitle' ||
+    field === 'accountTeamMemberEmail'
+  ) {
+    if (value !== null && value !== undefined && typeof value !== 'string') {
+      value = String(value);
+    }
+    // Empty string → unset so the card / hero falls back to defaults
+    if (value === '' || value == null) value = undefined;
+  }
+
+  if (value === undefined) {
+    delete proposalData[field];
+  } else {
+    proposalData[field] = value;
+  }
+
+  // Flipping the proposal-wide build-it toggle has to wipe optionsState
+  // for the same shadow reason explained on update_service — persisted
+  // per-service selection state would beat the new default.
+  if (field === 'startUnselected' && proposalData.optionsState) {
+    proposalData.optionsState = undefined;
+  }
+
+  return {
+    op: 'set_proposal_field',
+    description: `Set ${field} → ${value === undefined ? '(cleared)' : value}`
+  };
+}
+
+/**
+ * Set which pricing option is selected as the default for a service.
+ * Index-based; out-of-bounds is rejected.
+ */
+function handleSelectPricingOption(proposalData, customization, proposalRecord, op) {
+  const { location, date, serviceIndex, optionIndex } = op;
+  const normalizedDate = normalizeDate(date);
+  validateServicePath(proposalData, location, normalizedDate, serviceIndex);
+
+  const service = proposalData.services[location][normalizedDate].services[serviceIndex];
+  if (!Array.isArray(service.pricingOptions) || service.pricingOptions.length === 0) {
+    throw new Error(
+      `select_pricing_option: service at ${location}/${normalizedDate}[${serviceIndex}] has no pricing options. Call add_pricing_options first.`
+    );
+  }
+  const idx = Number(optionIndex);
+  if (!Number.isInteger(idx) || idx < 0 || idx >= service.pricingOptions.length) {
+    throw new Error(
+      `select_pricing_option: optionIndex ${optionIndex} is out of bounds. Service has ${service.pricingOptions.length} option${service.pricingOptions.length === 1 ? '' : 's'} (0–${service.pricingOptions.length - 1}).`
+    );
+  }
+  service.selectedOption = idx;
+
+  // Mirror the selected option's totals onto the base service so
+  // recalculateProposalSummary picks up the right numbers.
+  const opt = service.pricingOptions[idx];
+  if (opt) {
+    if (typeof opt.serviceCost === 'number') service.serviceCost = opt.serviceCost;
+    if (typeof opt.totalAppointments === 'number') service.totalAppointments = opt.totalAppointments;
+    if (typeof opt.totalHours === 'number') service.totalHours = opt.totalHours;
+    if (typeof opt.numPros === 'number') service.numPros = opt.numPros;
+  }
+
+  return {
+    op: 'select_pricing_option',
+    description: `Selected option ${idx + 1} (${opt?.name || 'unnamed'}) for ${service.serviceType} at ${location} on ${normalizedDate}`
   };
 }
 

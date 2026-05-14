@@ -199,21 +199,54 @@ When editing proposals, use these operations:
 - remove_service: Remove a single service by index from a location/date
 - remove_date: Remove an entire day (all services on that date) from a location. Requires location and date.
 - update_service: Change service fields (totalHours, numPros, appTime, hourlyRate, etc.)
+- move_service: Reorder a service within its date (direction: -1 to move up, 1 to move down). The new order shows up on the client view.
 - set_recurring: Make a service recurring (frequency: { type: "quarterly"|"monthly"|"custom", occurrences: number })
 - remove_recurring: Remove recurring from a service
 - set_gratuity: Add gratuity (type: "percentage"|"dollar", value: number)
 - remove_gratuity: Remove gratuity
 - set_discount: Set discount percentage on a service
+- add_pricing_options: Generate 3 pricing variants (standard, +25% hours, +50% hours) for a service
+- remove_pricing_options: Drop pricing variants from a service
+- select_pricing_option: Pick which variant is the default-selected one (location, date, serviceIndex, optionIndex)
 - update_client_info: Update client name, email, or logo
 - add_location: Add a new office location
 - remove_location: Remove a location and all its services
 - rename_location: Rename a location (oldName, newName)
 - change_date: Move all services from one date to another at a location (location, oldDate, newDate)
 - set_status: Change status (draft, pending, approved)
-- update_customization: Update proposal display settings
+- update_customization: Update proposal display settings (legacy customization keys only)
+- set_proposal_field: Set proposal-wide fields not covered by other ops. Required: field (one of "startUnselected", "signupLink", "signupLinkTitle", "signupLinkDescription", "heroTitle", "accountTeamMemberEmail") and value. Pass empty string or null to clear the field.
 
 Field aliases for update_service: appointmentTime→appTime, hours→totalHours, pros→numPros, rate→hourlyRate, discount→discountPercent
-update_service also accepts: massageType ("chair"|"table"|"massage"), nailsType ("nails"|"nails-hand-massage"), headshotTier ("basic"|"premium"|"executive"), mindfulnessType ("intro"|"drop-in"|"mindful-movement")
+update_service also accepts: massageType ("chair"|"table"|"massage"), nailsType ("nails"|"nails-hand-massage"), headshotTier ("basic"|"premium"|"executive"), mindfulnessType ("intro"|"drop-in"|"mindful-movement"), optionsSelectedDefault (false → service starts unchecked on the client view), optionsFrequency (default frequency on the "X per year" picker)
+
+## V2 Client-View Controls (build-your-own + sidebar extras)
+The redesigned client viewer lets staff shape how the proposal lands for the prospect. Use these when the user asks for behavior that doesn't fit standard ops.
+
+### "Let the client build it" mode
+- Set proposal-wide so every service starts unchecked on the client view. The price reads $0 until the prospect opts services in. Use this when sending a *menu*, not a fixed bundle.
+- Operation: \`{ op: "set_proposal_field", field: "startUnselected", value: true }\` (or value: false to switch back).
+- Per-service override: set \`optionsSelectedDefault: false\` on the service via update_service to force that one service unchecked, even when the proposal-wide flag is off.
+- Per-service override the other way: set \`optionsSelectedDefault: true\` to keep one service pre-selected when the rest are opt-in.
+- When you flip either flag, the server automatically clears the matching persisted selection state so the new default actually takes effect on the next client load.
+
+### Test signup link (employee booking demo)
+- Pastes a Coordinator test event URL so the prospect can step through the *employee* booking flow on a sample event. Surfaces as a "Try the demo" card in the client viewer's right rail (and just under the Approve CTA on mobile). Same field the post-call email template reads as "Test Signup Link".
+- Set: \`{ op: "set_proposal_field", field: "signupLink", value: "https://admin.shortcutpros.com/#/signup/..." }\`
+- Optional copy override: \`signupLinkTitle\` and \`signupLinkDescription\` change the card title + body. Leave them unset for brand defaults.
+
+### Hero title override
+- Default hero reads "{ClientName} wellness proposal". To override, set \`{ op: "set_proposal_field", field: "heroTitle", value: "..." }\`. Empty string clears back to the default.
+
+### Account team override
+- Default account-team card shows Jaimie. To switch, set \`{ op: "set_proposal_field", field: "accountTeamMemberEmail", value: "caren@getshortcut.co" }\` (or whichever team member's email).
+
+## Pricing Options (V2 multi-option pricing card)
+Each service can carry up to N pricing variants the client clicks between (e.g. Standard / Premium / Best Value).
+- add_pricing_options spins up 3 variants based on the current service params (standard, +25% hours, +50% hours).
+- select_pricing_option picks which one is selected when the client first lands — index 0 is the first variant. The selected option's totals become the headline price.
+- remove_pricing_options drops the variants and goes back to a single-price service.
+- The client viewer renders these as side-by-side cards above the Approve CTA — selecting one updates the live total instantly.
 
 ## Date Format
 Always use YYYY-MM-DD format for dates (e.g., 2026-02-18).
@@ -308,15 +341,15 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              op: { type: 'string', description: 'Operation type: add_service, remove_service, remove_date, update_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state' },
+              op: { type: 'string', description: 'Operation type: add_service, remove_service, remove_date, update_service, move_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state, add_pricing_options, remove_pricing_options, select_pricing_option, set_proposal_field' },
               location: { type: 'string' },
               date: { type: 'string' },
               serviceIndex: { type: 'integer' },
               service: { type: 'object', description: 'For add_service: the service config' },
-              updates: { type: 'object', description: 'For update_service: field updates' },
+              updates: { type: 'object', description: 'For update_service: field updates. Supports totalHours, numPros, appTime, hourlyRate, proHourly, earlyArrival, retouchingCost, discountPercent, classLength, fixedPrice, participants, mindfulnessType, headshotTier, massageType, nailsType, optionsSelectedDefault (boolean — when false, this service starts unchecked on the client view), optionsFrequency (integer — default frequency for the "X per year" picker)' },
               frequency: { type: 'object', description: 'For set_recurring: { type, occurrences }' },
               type: { type: 'string', description: 'For set_gratuity: percentage or dollar' },
-              value: { type: 'number', description: 'For set_gratuity: the amount' },
+              value: { description: 'For set_gratuity: the amount (number). For set_proposal_field: the value to write (type depends on field).' },
               discountPercent: { type: 'number', description: 'For set_discount' },
               status: { type: 'string', description: 'For set_status: draft, pending, approved' },
               clientName: { type: 'string', description: 'For update_client_info' },
@@ -328,7 +361,10 @@ const TOOLS = [
               oldDate: { type: 'string', description: 'For change_date: current date in YYYY-MM-DD format or "TBD"' },
               newDate: { type: 'string', description: 'For change_date: new date in YYYY-MM-DD format or "TBD"' },
               officeAddress: { type: 'string', description: 'For add_location: office street address' },
-              cleState: { type: 'string', enum: ['NY', 'PA', 'CA', 'TX', 'FL'], description: 'For set_cle_state: which state\'s CLE accreditation applies' }
+              cleState: { type: 'string', enum: ['NY', 'PA', 'CA', 'TX', 'FL'], description: 'For set_cle_state: which state\'s CLE accreditation applies' },
+              direction: { type: 'integer', enum: [-1, 1], description: 'For move_service: -1 to move up, 1 to move down. Service swaps with its neighbour.' },
+              optionIndex: { type: 'integer', description: 'For select_pricing_option: zero-based index of the pricing option to select.' },
+              field: { type: 'string', enum: ['startUnselected', 'signupLink', 'signupLinkTitle', 'signupLinkDescription', 'heroTitle', 'accountTeamMemberEmail'], description: 'For set_proposal_field: which proposal-wide field to write.' }
             },
             required: ['op']
           }
