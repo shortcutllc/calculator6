@@ -28,6 +28,7 @@ import FaqCard from './proposal/sidebar/FaqCard';
 import GalleryCard from './proposal/sidebar/GalleryCard';
 import OptionsTabs, { ProposalOption } from './proposal/OptionsTabs';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
+import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
 import RequestChangesModal from './proposal/RequestChangesModal';
 
@@ -921,48 +922,89 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {Object.entries(byDate || {}).map(
-                        ([date, dateData]: [string, any]) => (
-                          <div key={date}>
+                        ([date, dateData]: [string, any], dateIndex: number) => {
+                          // Day-level totals — sum included services + their frequency.
+                          // Mirrors what shows in the live pricing summary so the client
+                          // sees a consistent number when looking at one date.
+                          let dayAppts = 0;
+                          let dayCost = 0;
+                          let hasUnlimited = false;
+                          (dateData?.services || []).forEach(
+                            (service: any, idx: number) => {
+                              const k = selectionKey(loc, date, idx);
+                              const s = get(k);
+                              if (!s.included) return;
+                              const a = service?.totalAppointments;
+                              if (a === 'unlimited' || a === '∞') {
+                                hasUnlimited = true;
+                              } else {
+                                dayAppts += (Number(a) || 0) * (s.frequency || 1);
+                              }
+                              dayCost +=
+                                (Number(service?.serviceCost) || 0) *
+                                (s.frequency || 1);
+                            }
+                          );
+                          return (
                             <div
-                              style={{
-                                fontFamily: T.fontUi,
-                                fontWeight: 700,
-                                fontSize: 12,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.1em',
-                                color: T.fgMuted,
-                                marginBottom: 8,
-                              }}
-                            >
-                              {formatDateLabel(date)}
-                            </div>
-                            <div
+                              key={date}
                               style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: 12,
                               }}
                             >
-                              {(dateData?.services || []).map(
-                                (service: any, idx: number) => {
-                                  const key = selectionKey(loc, date, idx);
-                                  const sel = get(key);
-                                  return (
-                                    <ServiceCard
-                                      key={key}
-                                      service={service}
-                                      included={sel.included}
-                                      frequency={sel.frequency}
-                                      onToggleInclude={(next) => setIncluded(key, next)}
-                                      onChangeFrequency={(next) => setFrequency(key, next)}
-                                      internalView={false}
-                                    />
-                                  );
-                                }
+                              <div
+                                style={{
+                                  fontFamily: T.fontUi,
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.1em',
+                                  color: T.fgMuted,
+                                }}
+                              >
+                                {formatDateLabel(date)}
+                              </div>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 12,
+                                }}
+                              >
+                                {(dateData?.services || []).map(
+                                  (service: any, idx: number) => {
+                                    const key = selectionKey(loc, date, idx);
+                                    const sel = get(key);
+                                    return (
+                                      <ServiceCard
+                                        key={key}
+                                        service={service}
+                                        included={sel.included}
+                                        frequency={sel.frequency}
+                                        onToggleInclude={(next) =>
+                                          setIncluded(key, next)
+                                        }
+                                        onChangeFrequency={(next) =>
+                                          setFrequency(key, next)
+                                        }
+                                        internalView={false}
+                                      />
+                                    );
+                                  }
+                                )}
+                              </div>
+                              {(dateData?.services || []).length > 0 && (
+                                <DaySummaryBox
+                                  dayNumber={dateIndex + 1}
+                                  appointments={hasUnlimited ? 'unlimited' : dayAppts}
+                                  totalCost={dayCost}
+                                />
                               )}
                             </div>
-                          </div>
-                        )
+                          );
+                        }
                       )}
                     </div>
                   </div>

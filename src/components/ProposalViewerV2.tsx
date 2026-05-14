@@ -52,6 +52,7 @@ import { formatCurrency, SERVICE_DISPLAY } from './proposal/data';
 import AccountTeamCard from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
+import DaySummaryBox from './proposal/DaySummaryBox';
 import { generateLineItems } from './StripeInvoiceButton';
 import { InvoiceConfirmationModal, InvoiceLineItem } from './InvoiceConfirmationModal';
 
@@ -2535,7 +2536,24 @@ const ProposalViewerV2: React.FC = () => {
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                         {Object.entries(byDate || {}).map(
-                          ([date, dateData]: [string, any]) => (
+                          ([date, dateData]: [string, any], dateIndex: number) => {
+                            // Day-level totals — admin sees the raw appointments
+                            // and revenue per date. Mirrors V1's "Day N Summary"
+                            // pattern; auto-recurring discount math feeds in once
+                            // Phase 3D ships that picker.
+                            let dayAppts = 0;
+                            let dayCost = 0;
+                            let hasUnlimited = false;
+                            (dateData?.services || []).forEach((s: any) => {
+                              const a = s?.totalAppointments;
+                              if (a === 'unlimited' || a === '∞') {
+                                hasUnlimited = true;
+                              } else {
+                                dayAppts += Number(a) || 0;
+                              }
+                              dayCost += Number(s?.serviceCost) || 0;
+                            });
+                            return (
                             <div key={date}>
                               {/* Date header */}
                               <div
@@ -2727,8 +2745,18 @@ const ProposalViewerV2: React.FC = () => {
                                   )
                                 )}
                               </div>
+                              {(dateData?.services || []).length > 0 && (
+                                <div style={{ marginTop: 12 }}>
+                                  <DaySummaryBox
+                                    dayNumber={dateIndex + 1}
+                                    appointments={hasUnlimited ? 'unlimited' : dayAppts}
+                                    totalCost={dayCost}
+                                  />
+                                </div>
+                              )}
                             </div>
-                          )
+                            );
+                          }
                         )}
                       </div>
                     </div>
