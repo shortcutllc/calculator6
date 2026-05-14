@@ -60,6 +60,11 @@ interface ServiceCardProps {
   onFieldChange?: (field: keyof ServiceCardService, value: any) => void;
   /** Pricing-options selection handler */
   onSelectPricingOption?: (index: number) => void;
+  /** Pricing-options editing handlers (admin only, used when editing && internalView) */
+  onEditPricingOption?: (index: number, field: keyof PricingOptionVariant, value: any) => void;
+  onAddPricingOption?: () => void;
+  onRemovePricingOption?: (index: number) => void;
+  onGeneratePricingOptions?: () => void;
   /** Service image on the left side */
   showImage?: boolean;
   /** Tighter padding for nested contexts */
@@ -98,6 +103,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   editing = false,
   onFieldChange,
   onSelectPricingOption,
+  onEditPricingOption,
+  onAddPricingOption,
+  onRemovePricingOption,
+  onGeneratePricingOptions,
   showImage = true,
   compact = false,
   included = true,
@@ -400,7 +409,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                     />
                   }
                 />
-                {/* Internal-only cells (staff/admin editor only) */}
+                {/* Internal-only cells (staff/admin editor only) — show
+                    the full pro-pay picture: app time, client hourly rate,
+                    pro hourly pay, early-arrival bonus, retouching (headshot).
+                    For headshot, hourlyRate is derived from photographerCost
+                    so we hide that cell; for everyone else, both rates are
+                    visible side-by-side so margin is legible. */}
                 {internalView && (
                   <>
                     <ParamCell
@@ -415,20 +429,37 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                         />
                       }
                     />
+                    {!isHeadshot && (
+                      <ParamCell
+                        label="Hourly rate"
+                        hint="charged to client"
+                        value={
+                          <Editable
+                            value={service.hourlyRate}
+                            editing={editing}
+                            prefix="$"
+                            width={64}
+                            onChange={handleEdit('hourlyRate')}
+                          />
+                        }
+                      />
+                    )}
                     <ParamCell
-                      label={isHeadshot ? 'Pro hourly' : 'Hourly rate'}
+                      label="Pro hourly"
+                      hint="paid to pro"
                       value={
                         <Editable
-                          value={isHeadshot ? service.proHourly : service.hourlyRate}
+                          value={service.proHourly}
                           editing={editing}
                           prefix="$"
                           width={64}
-                          onChange={handleEdit(isHeadshot ? 'proHourly' : 'hourlyRate')}
+                          onChange={handleEdit('proHourly')}
                         />
                       }
                     />
                     <ParamCell
                       label="Early arrival"
+                      hint="per pro, flat"
                       value={
                         <Editable
                           value={service.earlyArrival}
@@ -442,6 +473,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                     {isHeadshot && (
                       <ParamCell
                         label="Retouching"
+                        hint="per appt"
                         value={
                           <Editable
                             value={service.retouchingCost}
@@ -492,17 +524,25 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         </div>
       </div>
 
-      {/* Pricing options sub-card */}
-      {service.pricingOptions && service.pricingOptions.length > 0 && (
+      {/* Pricing options sub-card.
+          In admin editing mode (`editing && internalView`) we surface
+          per-option editors plus Add / Remove / Generate. */}
+      {(service.pricingOptions && service.pricingOptions.length > 0) ||
+      (editing && internalView) ? (
         <div style={{ marginTop: 20 }}>
           <PricingOptionsSelector
-            options={service.pricingOptions}
+            options={service.pricingOptions || []}
             selected={service.selectedOption || 0}
             onSelect={onSelectPricingOption}
             disabled={!included}
+            editing={editing && internalView}
+            onEditOption={onEditPricingOption}
+            onAddOption={onAddPricingOption}
+            onRemoveOption={onRemovePricingOption}
+            onGenerateOptions={onGeneratePricingOptions}
           />
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

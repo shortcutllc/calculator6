@@ -6,6 +6,7 @@ import { StandaloneProposalViewer } from './StandaloneProposalViewer';
 import StandaloneProposalViewerV2 from './StandaloneProposalViewerV2';
 import { StandaloneMindfulnessProposalViewer } from './StandaloneMindfulnessProposalViewer';
 import ProposalViewer from './ProposalViewer';
+import ProposalViewerV2 from './ProposalViewerV2';
 import MindfulnessProposalViewer from './MindfulnessProposalViewer';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -104,9 +105,11 @@ export const ProposalTypeRouter: React.FC = () => {
     return isOwner ? <MindfulnessProposalViewer /> : <StandaloneMindfulnessProposalViewer />;
   }
 
-  // For event proposals: route to admin view if owner, otherwise client view
-  if (!isOwner && useRedesignV2) {
-    return <StandaloneProposalViewerV2 />;
+  // For event proposals: route to admin view if owner, otherwise client view.
+  // ?redesign=1 swaps both the client and admin views into the V2 redesign
+  // until Phase 3+ ship and the flag is dropped.
+  if (useRedesignV2) {
+    return isOwner ? <ProposalViewerV2 /> : <StandaloneProposalViewerV2 />;
   }
   return isOwner ? <ProposalViewer /> : <StandaloneProposalViewer />;
 };

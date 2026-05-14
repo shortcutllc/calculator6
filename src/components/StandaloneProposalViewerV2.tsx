@@ -168,17 +168,33 @@ const StandaloneProposalViewerV2: React.FC = () => {
     return { locationCount, dateCount, appointmentCount };
   }, [displayData]);
 
+  // ---- Custom line items (staff-set extras: catering, travel, etc.) -----
+  const customLineItems = useMemo<any[]>(
+    () =>
+      Array.isArray(displayData?.customLineItems) ? displayData.customLineItems : [],
+    [displayData?.customLineItems]
+  );
+  const customItemsTotal = useMemo(
+    () =>
+      customLineItems.reduce(
+        (sum: number, it: any) => sum + (Number(it.amount) || 0),
+        0
+      ),
+    [customLineItems]
+  );
+
   // ---- Gratuity (staff-set add-on, optional per project decision) --------
+  const gratuityBase = summary.subtotal + customItemsTotal;
   const gratuity = useMemo(() => {
     const type = displayData?.gratuityType as string | null | undefined;
     const value = displayData?.gratuityValue as number | null | undefined;
     if (!type || value == null) return null;
     const amount =
-      type === 'percentage' ? (summary.subtotal * value) / 100 : value;
+      type === 'percentage' ? (gratuityBase * value) / 100 : value;
     return { type, value, amount };
-  }, [displayData?.gratuityType, displayData?.gratuityValue, summary.subtotal]);
+  }, [displayData?.gratuityType, displayData?.gratuityValue, gratuityBase]);
 
-  const grandTotal = summary.total + (gratuity?.amount || 0);
+  const grandTotal = summary.total + customItemsTotal + (gratuity?.amount || 0);
 
   // ---- Approve flow -------------------------------------------------------
   const handleApprove = useCallback(async () => {
@@ -1085,6 +1101,61 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   </span>
                 </div>
               ))}
+              {customLineItems
+                .filter((it: any) => (Number(it.amount) || 0) > 0 || it.name)
+                .map((it: any, i: number) => (
+                  <div
+                    key={it.id || `custom-${i}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: T.fontD,
+                          fontWeight: 600,
+                          fontSize: 16,
+                          color: '#fff',
+                        }}
+                      >
+                        {it.name || 'Custom item'}
+                      </span>
+                      {it.description && (
+                        <span
+                          style={{
+                            fontFamily: T.fontD,
+                            fontSize: 12,
+                            color: 'rgba(255,255,255,0.55)',
+                          }}
+                        >
+                          {it.description}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: T.fontD,
+                        fontWeight: 700,
+                        fontSize: 16,
+                        color: '#fff',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {formatCurrency(Number(it.amount) || 0)}
+                    </span>
+                  </div>
+                ))}
             </div>
 
             {/* Totals */}
@@ -1106,7 +1177,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 }}
               >
                 <span>Subtotal</span>
-                <span style={{ color: '#fff' }}>{formatCurrency(summary.subtotal)}</span>
+                <span style={{ color: '#fff' }}>
+                  {formatCurrency(summary.subtotal + customItemsTotal)}
+                </span>
               </div>
               {summary.discountPercent > 0 && (
                 <div

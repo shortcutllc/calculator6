@@ -40,8 +40,9 @@ Active multi-day rewrite of both proposal-viewer surfaces. **Read this whole fil
 | **2B** — Pricing summary + custom note + approve flow + DB persistence + date formatting + slug eyebrow + isRecurring legacy fallback | ✅ shipped | `StandaloneProposalViewerV2.tsx`, `useServiceSelections.ts` |
 | **2C** — Sidebar modules: AccountTeam + Gallery (placeholder) + WhatsNext + Trust + FAQ | ✅ shipped | `src/components/proposal/sidebar/*.tsx` (5 new files) |
 | **2D** — OptionsTabs (multi-option) + EventDaySummaryCard + ServiceAgreementCard + RequestChangesModal + survey CTA + PDF wire-up + partner logo banner + office address per location | ✅ shipped | `OptionsTabs.tsx`, `EventDaySummaryCard.tsx`, `ServiceAgreementCard.tsx`, `RequestChangesModal.tsx`, `ServiceAgreement.tsx` (added `forceExpanded` prop), `sidebar/FaqCard.tsx` (rewrote with real agreement terms), `StandaloneProposalViewerV2.tsx` |
-| **3** — Internal/admin viewer (`ProposalViewerV2.tsx`) | **NEXT** — not started | TBD |
-| **4** — Modals: ChangeConfirmationModal restyle, ApproveConfirmModal, ChangeHistoryDrawer | not started | TBD |
+| **3A** — Internal/admin viewer baseline: shell, hero (editable name/logo/note), service blocks via `ServiceCard` `editing` + `internalView` + service-type/massage/nails/mindfulness sub-pickers + discount %, add/remove service + day, date picker per day, multi-option strip (rename/reorder/remove/create/link), admin actions sidebar (Send-to-Client, Copy link, Stripe invoice, View Changes toggle, Change history), Send-to-Client modal, Link-existing modal, ChangeHistoryDrawer, View-original toggle, save flow, ?redesign=1 gate for admin | ✅ shipped | `ProposalViewerV2.tsx`, `ProposalTypeRouter.tsx` (admin V2 routing) |
+| **3B** — Inline pricing-options editor, account-team owner override dropdown, force-approve from admin, ServiceAgreement preview inside admin view | not started | TBD |
+| **4** — Modals: ChangeConfirmationModal restyle, ApproveConfirmModal polish (admin approve confirm), notification-prefs modal | not started | TBD |
 | **5** — Mindfulness-only proposal sections (Why Shortcut / Participant Benefits / CLE outline / Resources) | not started | `MindfulnessProposalContent.tsx` restyle |
 | **6** — Gallery backend + Trust real logos + recurring data migration | not started | New `proposal_gallery` table + storage bucket |
 
@@ -74,6 +75,7 @@ src/styles/
 
 src/components/
   StandaloneProposalViewerV2.tsx           ← the new client-facing viewer (Phase 2)
+  ProposalViewerV2.tsx                     ← the new admin viewer (Phase 3A) — shell + edit + multi-option + send + change history
   RedesignPreview.tsx                      ← /redesign-preview route — primitives demo
 
 src/components/proposal/
@@ -145,24 +147,100 @@ Audit done in Phase 2D. Mappings between existing DB fields and new UI:
 
 ---
 
+## Feature-parity audit & checklist — V1 features V2 must carry forward
+
+Compiled after Phase 3A shipped (May 13). Goal: nothing V1 does today disappears in V2. Tick the box when an item is fully implemented in V2 with matching design integrity.
+
+**Design-integrity rule:** Every V2 surface must use the V2 design system (T tokens + primitives). No V1 Tailwind utility classes or V1-styled components rendered inline. See [feedback_v2_design_integrity.md](https://example.local/feedback_v2_design_integrity.md).
+
+**Last audit pass: May 13.** Verified clean across `ProposalViewerV2.tsx`, `StandaloneProposalViewerV2.tsx`, and `proposal/*`:
+- 0 V1 Tailwind utility classes (`bg-shortcut-*`, `card-medium`, `text-shortcut-*`, etc.)
+- 0 V1 component imports (`Button`, `EditableField`, `ServiceAgreement` raw, `StripeInvoiceButton` raw)
+- Only off-palette hex codes are `#fff` (white-in-dark-context) + `#FCFAF7` / `#FBF7F3` / `#D5DDE3` / `#D1D5DB` (V2 paper/border tones from `primitives.tsx`) + `#8C5A07` (V2 pending-review amber from `STATUS_MAP`)
+- One remaining V1-styled element mounted from V2: `InvoiceConfirmationModal` (queued for Phase 3D restyle); its trigger UI in the sidebar is V2-styled via `SidebarInvoicePanel`.
+- Re-run this audit (`grep -nE "(bg-shortcut|text-shortcut|card-medium|shortcut-teal|shortcut-navy)" V2_files`) before every commit to catch regressions.
+
+### Phase 3B — parity-critical (both viewers)
+
+- [x] **Custom line items** — admin add/edit/remove rows (name, optional description, amount); render in pricing summary of both V2 viewers. *Wired May 13 via `PricingExtrasEditor` in admin + extra rows in both pricing summary cards.*
+- [x] **Gratuity picker (admin)** — type selector (none / percentage / dollar) + value input. *Wired May 13 via `PricingExtrasEditor`; client summary already rendered gratuity from Phase 2B.*
+- [x] **Office address per location** — admin per-location text input with Google Places autocomplete. *Wired May 13: inline `office-edit-${loc}` input under each location header, persists to `data.officeLocations[loc]`, autocomplete via existing global `window.google.maps.places`.*
+- [x] **Pricing-options inline editor** — per-option editable params (totalHours, hourlyRate, numPros, discountPercent) + Add Option + Remove Option + Generate-options button. *Wired May 13: `PricingOptionsSelector` extended with `editing` mode + handlers; admin viewer wires `handleEditPricingOption / handleAddPricingOption / handleRemovePricingOption / handleGeneratePricingOptions` and re-runs `calculateServiceResults` per option.*
+- [x] **Stripe invoice control — re-style to V2** — replace white-box wrapper with V2-styled card. *Done May 13: new `SidebarInvoicePanel` matches sidebar dark palette (navy/coral/ghost buttons + custom status pill); underlying `InvoiceConfirmationModal` flow reused but trigger UI is V2. NOTE: the modal itself still uses V1 Tailwind — restyle queued in Phase 3D.*
+- [x] **Pro-level numbers editable + reflected in admin summary** — Hourly rate (charged) + Pro hourly (paid) + Early arrival all editable in ServiceCard internal view for every service type, not just headshot. *Done May 13: ServiceCard internalView shows both rates side-by-side with hint labels; pricing-options editor + handleFieldChange both persist `proRevenue` so margin stays correct on option switches.*
+- [x] **Admin internal financials breakdown** — Pro Revenue + Net Profit + Profit Margin rows inlined inside the existing dark Pricing Summary card (V1 pattern: same blue box). Admin-only — appears below the public Total with an "Internal · admin only" eyebrow + dashed white-alpha divider. Net Profit / Margin tinted with `T.aqua` (positive) or `T.coral` (negative). *Done May 13. Earlier iteration used a separate white `InternalFinancialsCard` that broke design integrity — removed; standalone V2 viewer never renders these rows (read-only client view).*
+- [ ] **Day-level summary box** (client view) — per-date appointments + cost inside each date block
+- [ ] **Auto-recurring discount picker (admin)** — No / 10% / 15% / 20% + per-service savings callout
+
+### Phase 3C — client UX completeness
+
+- [ ] **Client edit mode for service params** — totalHours, numPros, hourlyRate, classLength, mindfulnessFormat editable from client side (V1 behavior)
+- [ ] **Client-editable pricing options** — per-option params editable from client view
+- [ ] **Approve confirmation modal** — confirm step before commit
+- [ ] **View Your Changes / View Current toggle** for clients post-edit
+- [ ] **Large multi-option comparison grid** — replace compact OptionsTabs with prominent cards showing cost + apt count
+- [ ] **Help modal** — "Review / Edit / Confirm" cards from V1 info icon
+- [ ] **Cost-per-headshot** calc display for headshot services
+- [ ] **Notes textarea on client view** — for ad-hoc commentary (V1 had this at the bottom)
+
+### Phase 3D — admin polish & net-new admin features
+
+- [ ] **Account-team owner override dropdown** — admin picks `data.accountTeamMemberEmail` (NEW; not in V1)
+- [ ] **Force-approve / mark-rejected** from admin — override client state (NEW)
+- [ ] **"View as client" preview toggle** in admin — render StandaloneProposalViewerV2 inline (NEW)
+- [ ] **Mark-reviewed per changeset** in change-history drawer — Pending / Approved / Rejected status (V1 had badges)
+- [ ] **Save Notes flow** — separate "Save Notes" button + textarea that flips `pending_review` + `has_changes`
+- [ ] **Collapsible location/date sections** — expand/collapse chevron headers
+- [ ] **ServiceAgreement preview inside admin view** — with partner-name personalization
+- [ ] **InvoiceConfirmationModal — restyle to V2 visual language** (currently still V1 Tailwind under a V2 trigger)
+- [ ] **Bulk service-type swap** (NEW) — apply across a date or location
+- [ ] **Test-send** (NEW) — send proposal email to a staff address before going live
+- [ ] **Recurring partner badge + 15%/20% discount emphasis** per service (purple gradient from V1)
+
+### Phase 5 — mindfulness completeness
+
+- [ ] **Why Shortcut section** for mindfulness proposals
+- [ ] **CLE class outline section** for CLE proposals
+- [ ] **CLE accreditation section** for CLE proposals
+- [ ] **Participant Benefits section** for mindfulness-only
+- [ ] **Additional Resources section** for mindfulness-only
+- [ ] **Facilitator card** (Courtney Schulnick) for mindfulness proposals
+- [ ] **Mindfulness 5-slug backfill** — support `mindfulness-soles`, `-movement`, `-pro`, `-cle`, `-pro-reactivity` for legacy proposals (V2 normalized to `mindfulness` + sub-picker)
+- [ ] **PartnershipModelsSection** — alt pricing layout for partnership mode (verify still in V1)
+- [ ] **Mindfulness-only admin layout** mirroring above sections
+
+### Phase 6 — data backend
+
+- [ ] **Real gallery** — `proposal_gallery` table + storage bucket + filter to services in proposal
+- [ ] **Real trust client logos** — replace TrustCard placeholder
+- [ ] **`recurringFrequency` data migration** to `optionsFrequency`
+- [ ] **Service image carousel** in right rail — wire to real assets (Phase 6 GalleryCard work)
+
+---
+
 ## Open gaps (deferred to later phases)
 
-| Gap | Land in phase |
-|---|---|
-| Discount Percentage per service (editable in admin) | Phase 3 (internal viewer) |
-| Service helper functions (Massage Type chooser, Nails Type chooser, Headshot Package, Mindfulness Service ID picker, Mindfulness Format picker) — these are the per-service-type edit affordances | Phase 3 |
-| Add/remove date, location, service | Phase 3 |
-| Stripe invoice (Send invoice / Invoice status badge) | Phase 3 |
-| Share-with-client modal (admin) | Phase 3 |
-| Send-to-client email | Phase 3 |
-| Multi-option management (link existing / reorder / remove) | Phase 3 |
-| Admin force-approve, Change History drawer | Phase 3 + Phase 4 |
-| Client-side inline edit (V1 lets clients tweak params) | Decide in Phase 3 — wire `editing` prop, add Submit/Cancel pair |
-| `recurringFrequency` data migration to `optionsFrequency` | Phase 6 cleanup |
-| Real gallery (`proposal_gallery` table + storage bucket) | Phase 6 |
-| Trust card real client logos | Phase 6 |
-| Account team override UI (admin dropdown to pick owner) | Phase 3 |
-| Mindfulness-only proposal layout (Why Shortcut / Participant Benefits / CLE outline / Resources) | Phase 5 |
+| Gap | Land in phase | Status |
+|---|---|---|
+| Discount Percentage per service (editable in admin) | Phase 3A | ✅ shipped in `ProposalViewerV2.tsx` `NumberField` |
+| Service-type / Massage / Nails / Mindfulness type / Mindfulness format choosers in admin | Phase 3A | ✅ shipped in `ServiceBlock` (inline component) |
+| Add/remove date, add/remove service | Phase 3A | ✅ shipped (`handleAddService`, `handleRemoveService`, `handleAddDay`, `handleRemoveDay`, `handleDateChange`) |
+| Stripe invoice button | Phase 3A | ✅ shipped (reuses `<StripeInvoiceButton>` inside admin sidebar) |
+| Send-to-client modal | Phase 3A | ✅ shipped |
+| Multi-option management (link existing / reorder / remove / rename / create) | Phase 3A | ✅ shipped via `ProposalOptionsBar` + Link modal |
+| Change History drawer | Phase 3A | ✅ shipped via `ChangeHistoryDrawer` (right slide-over) |
+| Logo upload (admin) | Phase 3A | ✅ shipped |
+| Editable client name + customNote in admin | Phase 3A | ✅ shipped |
+| View-original toggle | Phase 3A | ✅ shipped (sidebar "View client changes" button) |
+| Inline pricing-options editor (Half day / Full day variant params) | Phase 3B | not started — admin can change selectedOption but not edit option params |
+| Admin force-approve (and reject pending-review) UI | Phase 3B | not started |
+| Account team override UI (admin dropdown to pick owner) | Phase 3B | not started |
+| ServiceAgreement preview inside admin view | Phase 3B | not started |
+| Client-side inline edit (V1 lets clients tweak params) | Decide in Phase 3B | open question — V2 client view is read-only by design |
+| `recurringFrequency` data migration to `optionsFrequency` | Phase 6 cleanup | not started |
+| Real gallery (`proposal_gallery` table + storage bucket) | Phase 6 | not started |
+| Trust card real client logos | Phase 6 | not started |
+| Mindfulness-only proposal layout (Why Shortcut / Participant Benefits / CLE outline / Resources) | Phase 5 | not started |
 
 ---
 
@@ -170,7 +248,7 @@ Audit done in Phase 2D. Mappings between existing DB fields and new UI:
 
 **Spawn this prompt in a fresh session** to resume:
 
-> I'm continuing a multi-day proposal-viewer redesign on the `redesign-2026` branch. Read `memory/proposal_viewer_redesign_2026.md` first — it has the full Phase status, data wiring map, file inventory, and open gaps. The current state is: Phase 2 (StandaloneProposalViewerV2) complete; Phase 3 (Internal/admin ProposalViewerV2) is next. Workflow is local-review-first on `localhost:5174` — start a detached dev server with `nohup npm run dev > /tmp/vite-dev.log 2>&1 & disown`. Don't deploy unprompted. Don't touch V1 files. Check out `redesign-2026` first if the worktree isn't already on it.
+> I'm continuing a multi-day proposal-viewer redesign on the `redesign-2026` branch. Read `memory/proposal_viewer_redesign_2026.md` first — it has the full Phase status, data wiring map, file inventory, and open gaps. The current state is: Phase 2 (StandaloneProposalViewerV2) and Phase 3A (admin `ProposalViewerV2`) shipped. Phase 3B (pricing-options inline editor, account-team override dropdown, admin force-approve, ServiceAgreement preview in admin) is next. Workflow is local-review-first on `localhost:5174` — start a detached dev server with `nohup npm run dev > /tmp/vite-dev.log 2>&1 & disown`. Don't deploy unprompted. Don't touch V1 files. Check out `redesign-2026` first if the worktree isn't already on it.
 
 Verify before any work:
 ```bash
@@ -191,8 +269,10 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5174/redesign-preview 
 | What | URL |
 |---|---|
 | Phase 1 primitives demo | `localhost:5174/redesign-preview` |
-| V2 client view with sample (Applecart — logo, 2 services) | `localhost:5174/proposal/8f9f96af-3b15-46f1-8d2b-bd81676c0895?shared=true&redesign=1` |
+| V2 client view (Applecart — logo, 2 services) | `localhost:5174/proposal/8f9f96af-3b15-46f1-8d2b-bd81676c0895?shared=true&redesign=1` |
 | V2 client view (Burberry — logo + office address) | `localhost:5174/proposal/a369ad5e-84eb-4bbd-afcc-99b684bb82dc?shared=true&redesign=1` |
+| V2 admin view (Applecart — must be signed in) | `localhost:5174/proposal/8f9f96af-3b15-46f1-8d2b-bd81676c0895?redesign=1` |
+| V2 admin view (Burberry — must be signed in) | `localhost:5174/proposal/a369ad5e-84eb-4bbd-afcc-99b684bb82dc?redesign=1` |
 | Preview deploy of this branch | `https://redesign-2026--resplendent-narwhal-3de33b.netlify.app` |
 
 ## How to reset a test proposal after testing approve / request-changes
