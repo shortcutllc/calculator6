@@ -3,8 +3,10 @@ import { useParams, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { StandaloneProposalViewer } from './StandaloneProposalViewer';
+import StandaloneProposalViewerV2 from './StandaloneProposalViewerV2';
 import { StandaloneMindfulnessProposalViewer } from './StandaloneMindfulnessProposalViewer';
 import ProposalViewer from './ProposalViewer';
+import ProposalViewerV2 from './ProposalViewerV2';
 import MindfulnessProposalViewer from './MindfulnessProposalViewer';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,8 +24,19 @@ export const ProposalTypeRouter: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Check if this is a shared view (from query param or /shared/ path)
-  const isSharedView = location.pathname.startsWith('/shared/') || 
+  const isSharedView = location.pathname.startsWith('/shared/') ||
     location.search.includes('shared=true');
+
+  // V2 (redesign-2026) is now the default viewer for event proposals.
+  // `?legacy=1` is an emergency escape hatch that falls back to V1 — leave
+  // it in place for ~1 release cycle in case a regression surfaces in prod;
+  // we can drop V1 entirely once we're confident.
+  const useLegacyV1 = location.search.includes('legacy=1');
+  // Back-compat alias — old links saved by staff might still use `?redesign=1`;
+  // honor them as V2 (it's already the default but a no-op flag is safer than
+  // a 404 if anyone has it bookmarked).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _legacyRedesignFlag = location.search.includes('redesign=1');
 
   useEffect(() => {
     if (!id) {
@@ -82,21 +95,21 @@ export const ProposalTypeRouter: React.FC = () => {
     );
   }
 
-  // For shared views, always use standalone viewers
-  if (isSharedView) {
-    if (proposalType === 'mindfulness-program') {
-      return <StandaloneMindfulnessProposalViewer />;
-    }
-    return <StandaloneProposalViewer />;
-  }
-
-  // For non-shared views: route to admin view if owner, otherwise client view
+  // Mindfulness-program proposals always use the dedicated mindfulness
+  // viewers — V2 doesn't have a mindfulness equivalent yet (Phase 5+ scope).
   if (proposalType === 'mindfulness-program') {
+    if (isSharedView) return <StandaloneMindfulnessProposalViewer />;
     return isOwner ? <MindfulnessProposalViewer /> : <StandaloneMindfulnessProposalViewer />;
   }
 
-  // For event proposals: route to admin view if owner, otherwise client view
-  return isOwner ? <ProposalViewer /> : <StandaloneProposalViewer />;
+  // Event proposals: V2 is the default. `?legacy=1` falls back to V1 as an
+  // emergency escape during the cutover.
+  if (useLegacyV1) {
+    if (isSharedView) return <StandaloneProposalViewer />;
+    return isOwner ? <ProposalViewer /> : <StandaloneProposalViewer />;
+  }
+  if (isSharedView) return <StandaloneProposalViewerV2 />;
+  return isOwner ? <ProposalViewerV2 /> : <StandaloneProposalViewerV2 />;
 };
 
 export default ProposalTypeRouter;

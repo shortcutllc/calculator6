@@ -2,6 +2,10 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* New proposal-viewer redesign tokens + component classes.
+   Namespaced under .pv-* / --pv-* so it cannot collide with existing styles. */
+@import './styles/proposal-viewer.css';
+
 @layer base {
   html {
     font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;

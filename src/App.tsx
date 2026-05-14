@@ -60,6 +60,8 @@ const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
 const DraftKingsReport = lazy(() => import('./components/DraftKingsReport'));
+const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
+const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
@@ -883,6 +885,35 @@ function App() {
                     </div>
                   }>
                     <DraftKingsReport />
+                  </Suspense>
+                }
+              />
+              {/* Temporary preview route for the proposal-viewer redesign.
+                  Remove once the real viewers are migrated. */}
+              <Route
+                path="/redesign-preview"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <RedesignPreview />
+                  </Suspense>
+                }
+              />
+              {/* Staff-only library manager for V2 GalleryCard media. Reads /
+                  writes the proposal_gallery table + proposal-gallery storage
+                  bucket created by migration 20260513000001. */}
+              <Route
+                path="/proposal-gallery-admin"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <ProposalGalleryAdmin />
                   </Suspense>
                 }
               />

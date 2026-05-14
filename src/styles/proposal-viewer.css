@@ -1,0 +1,612 @@
+/* =============================================================
+   Shortcut Proposal Viewer — design CSS package
+   =============================================================
+   Drop-in stylesheet for the proposals.getshortcut.co experience
+   (both StandaloneProposalViewer and the internal ProposalViewer).
+
+   Layered so it composes cleanly with Tailwind or a vanilla CSS
+   pipeline:
+     @layer tokens     — CSS custom properties (the source of truth)
+     @layer base       — page resets and font setup
+     @layer components — `.pv-*` building blocks used by viewer
+     @layer utilities  — single-property escape hatches
+
+   Import once at the root of the proposals app:
+     import './styles/proposal-viewer.css';
+   Then apply the classes documented in the README to the
+   existing ProposalViewer.tsx / StandaloneProposalViewer.tsx markup.
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   Fonts — Outfit (display) + Inter (UI)
+   Already loaded in calculator6's index.html; included here as a
+   safety net for standalone consumers.
+   ------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+/* =============================================================
+   TOKENS
+   ============================================================= */
+@layer tokens {
+  :root {
+    /* ---- Brand color ---- */
+    --pv-navy:        #09364F;
+    --pv-deep-navy:   #003C5E;
+    --pv-coral:       #FF5050;
+    --pv-aqua:        #9EFAFF;
+    --pv-teal:        #0098AD;
+    --pv-pink:        #F7BBFF;
+    --pv-yellow:      #FEDC64;
+
+    /* ---- Surface ---- */
+    --pv-beige:       #F8F1EB;     /* client-view page bg */
+    --pv-light-gray:  #F1F6F5;     /* internal page bg + utility */
+    --pv-white:       #FFFFFF;
+
+    /* ---- Foreground / state ---- */
+    --pv-fg:          var(--pv-navy);
+    --pv-fg-muted:    rgba(3, 34, 50, 0.6);
+    --pv-fg-on-navy:  #FFFFFF;
+    --pv-fg-on-navy-muted: rgba(255, 255, 255, 0.65);
+
+    --pv-success:     #1E9E6A;
+    --pv-warning:     #B87009;
+    --pv-warning-bg:  rgba(254, 220, 100, 0.25);
+    --pv-error:       #E24B4B;
+
+    /* ---- Borders ---- */
+    --pv-border-subtle:   rgba(0, 0, 0, 0.06);
+    --pv-border-default:  rgba(0, 0, 0, 0.08);
+    --pv-border-dashed:   rgba(0, 0, 0, 0.07);
+    --pv-border-strong:   rgba(0, 0, 0, 0.15);
+    --pv-border-on-navy:  rgba(255, 255, 255, 0.18);
+
+    /* ---- Shadows ---- */
+    --pv-shadow-sm:
+      0 2px 8px rgba(0,0,0,0.06),
+      0 1px 4px rgba(0,0,0,0.04),
+      0 0 0 1px rgba(0,0,0,0.03);
+    --pv-shadow-card:
+      0 4px 16px rgba(0,0,0,0.08),
+      0 2px 8px rgba(0,0,0,0.06),
+      0 0 0 1px rgba(0,0,0,0.04);
+    --pv-shadow-elevated:
+      0 10px 30px rgba(9, 54, 79, 0.22);
+    --pv-shadow-cta:
+      0 12px 32px rgba(255, 80, 80, 0.10);
+
+    /* ---- Radii ---- */
+    --pv-radius-xs:   8px;
+    --pv-radius-sm:   12px;
+    --pv-radius-md:   16px;
+    --pv-radius-lg:   20px;
+    --pv-radius-xl:   24px;
+    --pv-radius-pill: 9999px;
+
+    /* ---- Spacing (4pt scale) ---- */
+    --pv-sp-1:  4px;
+    --pv-sp-2:  8px;
+    --pv-sp-3:  12px;
+    --pv-sp-4:  16px;
+    --pv-sp-5:  20px;
+    --pv-sp-6:  24px;
+    --pv-sp-7:  28px;
+    --pv-sp-8:  32px;
+    --pv-sp-10: 40px;
+    --pv-sp-12: 48px;
+    --pv-sp-14: 56px;
+    --pv-sp-16: 64px;
+
+    /* ---- Standard card paddings ---- */
+    --pv-pad-sm: 16px 18px;
+    --pv-pad-md: 22px 24px;
+    --pv-pad-lg: 28px 32px;
+    --pv-pad-xl: 40px 44px;
+
+    /* ---- Typography ---- */
+    --pv-font-display: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --pv-font-ui:      'Inter',  system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* Type scale (px, integer values so they snap on screen) */
+    --pv-fs-hero:    56px;
+    --pv-fs-section: 32px;
+    --pv-fs-card:    22px;
+    --pv-fs-item:    20px;
+    --pv-fs-body:    15px;
+    --pv-fs-sm:      13px;
+    --pv-fs-xs:      12px;
+    --pv-fs-eyebrow: 11px;
+
+    --pv-lh-hero:    1.06;
+    --pv-lh-section: 1.10;
+    --pv-lh-card:    1.15;
+    --pv-lh-item:    1.20;
+    --pv-lh-body:    1.55;
+    --pv-lh-sm:      1.50;
+
+    --pv-ls-hero:    -0.025em;
+    --pv-ls-section: -0.020em;
+    --pv-ls-card:    -0.015em;
+    --pv-ls-item:    -0.010em;
+    --pv-ls-eyebrow:  0.10em;
+
+    /* ---- Layout ---- */
+    --pv-page-gutter:   40px;    /* client view */
+    --pv-page-gutter-x: 32px;    /* internal view */
+    --pv-max-content:   1280px;  /* page max-width */
+    --pv-max-prose:     1080px;  /* one-column body */
+    --pv-sidebar-width: 340px;
+  }
+
+  /* The internal view runs on a light-gray surface instead of beige. */
+  .pv-page--internal {
+    --pv-page-bg: var(--pv-light-gray);
+    --pv-page-gutter: var(--pv-page-gutter-x);
+  }
+  .pv-page--client {
+    --pv-page-bg: var(--pv-beige);
+  }
+}
+
+/* =============================================================
+   BASE
+   ============================================================= */
+@layer base {
+  .pv-page {
+    background: var(--pv-page-bg, var(--pv-beige));
+    color: var(--pv-fg);
+    font-family: var(--pv-font-display);
+    min-height: 100vh;
+  }
+  .pv-page,
+  .pv-page *,
+  .pv-page *::before,
+  .pv-page *::after {
+    box-sizing: border-box;
+  }
+  .pv-page :focus-visible {
+    outline: 2px solid var(--pv-aqua);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* =============================================================
+   COMPONENTS
+   ============================================================= */
+@layer components {
+
+  /* ----- Type primitives ----- */
+  .pv-eyebrow {
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: var(--pv-fs-eyebrow);
+    color: var(--pv-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--pv-ls-eyebrow);
+  }
+  .pv-eyebrow--on-navy { color: rgba(255,255,255,0.55); }
+  .pv-eyebrow--coral   { color: var(--pv-coral); }
+
+  .pv-h-hero {
+    font-family: var(--pv-font-display);
+    font-weight: 700;
+    font-size: var(--pv-fs-hero);
+    line-height: var(--pv-lh-hero);
+    letter-spacing: var(--pv-ls-hero);
+    color: var(--pv-navy);
+    margin: 0;
+  }
+  .pv-h-section {
+    font-family: var(--pv-font-display);
+    font-weight: 700;
+    font-size: var(--pv-fs-section);
+    line-height: var(--pv-lh-section);
+    letter-spacing: var(--pv-ls-section);
+    color: var(--pv-navy);
+    margin: 0;
+  }
+  .pv-h-card {
+    font-family: var(--pv-font-display);
+    font-weight: 700;
+    font-size: var(--pv-fs-card);
+    line-height: var(--pv-lh-card);
+    letter-spacing: var(--pv-ls-card);
+    color: var(--pv-navy);
+    margin: 0;
+  }
+  .pv-h-item {
+    font-family: var(--pv-font-display);
+    font-weight: 700;
+    font-size: var(--pv-fs-item);
+    line-height: var(--pv-lh-item);
+    letter-spacing: var(--pv-ls-item);
+    color: var(--pv-navy);
+    margin: 0;
+  }
+  .pv-body {
+    font-family: var(--pv-font-display);
+    font-size: var(--pv-fs-body);
+    line-height: var(--pv-lh-body);
+    color: var(--pv-fg-muted);
+    margin: 0;
+  }
+  .pv-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--pv-fs-xs);
+  }
+
+  /* Section header pattern: eyebrow over heading, optional action on the right */
+  .pv-section-label {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--pv-sp-4);
+    margin-bottom: var(--pv-sp-5);
+  }
+  .pv-section-label > .pv-eyebrow { margin-bottom: 6px; }
+
+  /* ----- Cards ----- */
+  .pv-card {
+    background: var(--pv-white);
+    border: 1px solid var(--pv-border-subtle);
+    border-radius: var(--pv-radius-md);
+    padding: var(--pv-pad-md);
+  }
+  .pv-card--lg     { border-radius: var(--pv-radius-lg); padding: var(--pv-pad-lg); }
+  .pv-card--xl     { border-radius: var(--pv-radius-xl); padding: var(--pv-pad-xl); }
+  .pv-card--navy {
+    background: var(--pv-navy);
+    color: var(--pv-fg-on-navy);
+    border: none;
+    box-shadow: var(--pv-shadow-elevated);
+  }
+  .pv-card--cta {
+    border: 2px solid var(--pv-coral);
+    border-radius: var(--pv-radius-xl);
+    padding: var(--pv-sp-8) var(--pv-sp-10);
+    box-shadow: var(--pv-shadow-cta);
+  }
+  .pv-card--elevated { box-shadow: var(--pv-shadow-card); }
+
+  /* ----- Status pill ----- */
+  .pv-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pv-sp-2);
+    padding: 5px 12px;
+    border-radius: var(--pv-radius-pill);
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: var(--pv-fs-xs);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  .pv-status::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.85;
+    flex-shrink: 0;
+  }
+  .pv-status--draft           { background: var(--pv-light-gray);          color: var(--pv-navy); }
+  .pv-status--sent            { background: rgba(158,250,255,0.4);          color: var(--pv-navy); }
+  .pv-status--pending-review  { background: rgba(254,220,100,0.25);         color: var(--pv-warning); }
+  .pv-status--has-changes     { background: rgba(255,80,80,0.12);           color: var(--pv-coral); }
+  .pv-status--approved        { background: rgba(30,158,106,0.14);          color: var(--pv-success); }
+
+  /* ----- Service type chip ----- */
+  .pv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--pv-radius-pill);
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: var(--pv-fs-eyebrow);
+    text-transform: uppercase;
+    letter-spacing: var(--pv-ls-eyebrow);
+  }
+  .pv-chip--massage     { background: rgba(255,80,80,0.10);   color: #C73A3A; }
+  .pv-chip--headshot    { background: rgba(158,250,255,0.40); color: #005066; }
+  .pv-chip--mindfulness { background: rgba(247,187,255,0.35); color: #6B2D80; }
+  .pv-chip--facial      { background: rgba(255,176,136,0.30); color: #9F4517; }
+  .pv-chip--nails       { background: rgba(254,220,100,0.40); color: #7A5400; }
+  .pv-chip--hair        { background: rgba(201,232,255,0.50); color: #1A4F7A; }
+  .pv-chip--hair-makeup { background: rgba(251,194,235,0.40); color: #7A2E6B; }
+
+  /* ----- Buttons ----- */
+  .pv-btn {
+    --pv-btn-bg:   var(--pv-aqua);
+    --pv-btn-fg:   var(--pv-navy);
+    --pv-btn-pad:  12px 28px;
+    --pv-btn-fs:   14px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: var(--pv-btn-pad);
+    border: none;
+    border-radius: var(--pv-radius-pill);
+    background: var(--pv-btn-bg);
+    color: var(--pv-btn-fg);
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: var(--pv-btn-fs);
+    line-height: 1;
+    cursor: pointer;
+    transition: transform .3s, background .15s, color .15s;
+  }
+  .pv-btn:active   { transform: scale(0.97); }
+  .pv-btn--sm      { --pv-btn-pad: 8px 18px;  --pv-btn-fs: 13px; }
+  .pv-btn--lg      { --pv-btn-pad: 14px 34px; }
+  .pv-btn--coral   { --pv-btn-bg: var(--pv-coral); --pv-btn-fg: #fff; }
+  .pv-btn--navy    { --pv-btn-bg: var(--pv-navy);  --pv-btn-fg: #fff; }
+  .pv-btn--secondary {
+    --pv-btn-bg: transparent;
+    --pv-btn-fg: var(--pv-navy);
+    border: 2px solid var(--pv-navy);
+    padding: 10px 26px;
+  }
+  .pv-btn--ghost {
+    --pv-btn-bg: transparent;
+    --pv-btn-fg: var(--pv-navy);
+    --pv-btn-pad: 6px 12px;
+  }
+
+  /* ----- Toggle switch ----- */
+  .pv-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pv-sp-2);
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: var(--pv-fs-xs);
+    color: var(--pv-fg-muted);
+    letter-spacing: 0.02em;
+  }
+  .pv-toggle__track {
+    position: relative;
+    display: inline-block;
+    width: 32px; height: 18px;
+    border-radius: var(--pv-radius-pill);
+    background: #D5DDE3;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .pv-toggle__thumb {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: left .2s;
+  }
+  .pv-toggle[aria-pressed="true"] { color: var(--pv-navy); }
+  .pv-toggle[aria-pressed="true"] .pv-toggle__track { background: var(--pv-success); }
+  .pv-toggle[aria-pressed="true"] .pv-toggle__thumb { left: 16px; }
+
+  /* ----- Param grid (the fix for the appointment/label collision) ----- */
+  .pv-param-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--pv-sp-4) var(--pv-sp-6);
+    padding-top: var(--pv-sp-3);
+    border-top: 1px dashed var(--pv-border-dashed);
+    max-width: 640px;
+  }
+  .pv-param-cell {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .pv-param-cell__label {
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: var(--pv-fs-eyebrow);
+    color: var(--pv-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--pv-ls-eyebrow);
+    margin-bottom: var(--pv-sp-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pv-param-cell__value {
+    font-family: var(--pv-font-display);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--pv-navy);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  /* ----- Stat tile (used in hero + per-location summary) ----- */
+  .pv-stat {
+    padding: 14px 16px;
+    border-radius: var(--pv-radius-sm);
+    background: var(--pv-light-gray);
+    min-width: 0;
+  }
+  .pv-stat__label {
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: var(--pv-fs-eyebrow);
+    color: var(--pv-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .pv-stat__value {
+    font-family: var(--pv-font-display);
+    font-weight: 700;
+    font-size: var(--pv-fs-item);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--pv-navy);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pv-stat--aqua  { background: var(--pv-aqua); }
+  .pv-stat--navy  { background: rgba(9,54,79,0.06); }
+  .pv-stat--coral { background: rgba(255,80,80,0.12); }
+  .pv-stat--coral .pv-stat__value { color: var(--pv-coral); }
+
+  /* ----- Collapse header (used for Location / Date rows) ----- */
+  .pv-collapse-row {
+    width: 100%;
+    padding: 18px 22px;
+    background: transparent;
+    border: 1px solid var(--pv-border-default);
+    border-radius: var(--pv-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pv-sp-3);
+    cursor: pointer;
+    text-align: left;
+  }
+  .pv-collapse-row__caret {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--pv-light-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .2s, background .15s;
+    transform: rotate(-90deg);
+  }
+  .pv-collapse-row[aria-expanded="true"] .pv-collapse-row__caret {
+    transform: rotate(0deg);
+    background: var(--pv-aqua);
+  }
+
+  /* ----- Sidebar (right rail) ----- */
+  .pv-sidebar {
+    width: var(--pv-sidebar-width);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--pv-sp-4);
+  }
+
+  /* ----- Page layout shells ----- */
+  .pv-header {
+    background: var(--pv-white);
+    border-bottom: 1px solid var(--pv-border-subtle);
+    padding: 18px var(--pv-page-gutter);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pv-sp-6);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .pv-hero {
+    padding: var(--pv-sp-12) var(--pv-page-gutter) var(--pv-sp-10);
+  }
+  .pv-hero__inner {
+    max-width: var(--pv-max-content);
+    margin: 0 auto;
+  }
+  .pv-body-grid {
+    max-width: var(--pv-max-content);
+    margin: 0 auto;
+    padding: 0 var(--pv-page-gutter) var(--pv-sp-14);
+    display: grid;
+    grid-template-columns: 1fr var(--pv-sidebar-width);
+    gap: var(--pv-sp-8);
+    align-items: flex-start;
+  }
+  .pv-body-grid__main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--pv-sp-12);
+  }
+  @media (max-width: 960px) {
+    .pv-body-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ----- Dividers ----- */
+  .pv-divider-dashed {
+    border: none;
+    border-top: 1px dashed var(--pv-border-dashed);
+    margin: 0;
+  }
+
+  /* ----- Badge: "× N / yr" recurring indicator ----- */
+  .pv-recur-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--pv-radius-pill);
+    background: var(--pv-aqua);
+    color: var(--pv-navy);
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .pv-recur-badge--excluded {
+    background: rgba(0,0,0,0.06);
+    color: var(--pv-fg-muted);
+    text-transform: uppercase;
+  }
+
+  /* ----- Excluded / dimmed service card ----- */
+  .pv-service-card[data-included="false"] {
+    opacity: 0.55;
+  }
+  .pv-service-card[data-included="false"] .pv-h-card {
+    text-decoration: line-through;
+  }
+  .pv-service-card__excluded-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: var(--pv-radius-pill);
+    background: var(--pv-navy);
+    color: #fff;
+    font-family: var(--pv-font-ui);
+    font-weight: 700;
+    font-size: var(--pv-fs-eyebrow);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+  }
+}
+
+/* =============================================================
+   UTILITIES
+   ============================================================= */
+@layer utilities {
+  .pv-stack    { display: flex; flex-direction: column; }
+  .pv-row      { display: flex; align-items: center; }
+  .pv-grow     { flex: 1; min-width: 0; }
+  .pv-shrink-0 { flex-shrink: 0; }
+  .pv-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pv-nowrap   { white-space: nowrap; }
+
+  /* spacing helpers — gap on flex/grid parents */
+  .pv-gap-1  { gap: var(--pv-sp-1); }
+  .pv-gap-2  { gap: var(--pv-sp-2); }
+  .pv-gap-3  { gap: var(--pv-sp-3); }
+  .pv-gap-4  { gap: var(--pv-sp-4); }
+  .pv-gap-5  { gap: var(--pv-sp-5); }
+  .pv-gap-6  { gap: var(--pv-sp-6); }
+  .pv-gap-8  { gap: var(--pv-sp-8); }
+  .pv-gap-12 { gap: var(--pv-sp-12); }
+}
