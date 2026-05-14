@@ -725,12 +725,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
             maxWidth: 1280,
             margin: '0 auto',
             display: 'flex',
-            alignItems: 'center',
+            // Phones: stack logo/name row on top, buttons row below.
+            // Flex-wrap alone wouldn't trigger because the right cluster
+            // has no width constraint — column direction sidesteps that.
+            flexDirection: isCompact ? 'column' : 'row',
+            alignItems: isCompact ? 'stretch' : 'center',
             justifyContent: 'space-between',
-            gap: isCompact ? 10 : 16,
-            // Phones: let the action-button cluster drop onto its own row
-            // rather than crushing the client name out of view.
-            flexWrap: isCompact ? 'wrap' : 'nowrap',
+            gap: isCompact ? 8 : 16,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
@@ -2308,7 +2309,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               top: 80,
             }}
           >
-            <Eyebrow color="rgba(255,255,255,0.6)">Your total today</Eyebrow>
+            <Eyebrow color="rgba(255,255,255,0.6)">Proposal total</Eyebrow>
             <div
               style={{
                 fontFamily: T.fontD,

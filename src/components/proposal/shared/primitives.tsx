@@ -7,6 +7,7 @@ import {
   SERVICE_IMAGE_PATH,
   FREQ_OPTIONS,
 } from '../data';
+import { useIsCompact } from './useIsMobile';
 
 // ============================================================================
 // Tokens — convenience shortcuts for the design system CSS variables. Use
@@ -399,23 +400,29 @@ export const SectionLabel: React.FC<SectionLabelProps> = ({
   action,
   size = 'card',
   mb = 16,
-}) => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      marginBottom: mb,
-      gap: 16,
-    }}
-  >
-    <div>
-      {eyebrow && <Eyebrow style={{ marginBottom: 6 }}>{eyebrow}</Eyebrow>}
-      <CardHeading size={size}>{title}</CardHeading>
+}) => {
+  const isCompact = useIsCompact();
+  return (
+    <div
+      style={{
+        display: 'flex',
+        // Phones: stack the action under the title so a long eyebrow
+        // label doesn't get wedged against a multi-line section title.
+        flexDirection: isCompact ? 'column' : 'row',
+        alignItems: isCompact ? 'flex-start' : 'flex-end',
+        justifyContent: 'space-between',
+        marginBottom: mb,
+        gap: isCompact ? 8 : 16,
+      }}
+    >
+      <div>
+        {eyebrow && <Eyebrow style={{ marginBottom: 6 }}>{eyebrow}</Eyebrow>}
+        <CardHeading size={size}>{title}</CardHeading>
+      </div>
+      {action}
     </div>
-    {action}
-  </div>
-);
+  );
+};
 
 // ============================================================================
 // CollapseHead — expand/collapse button for Location/Date headers
@@ -426,49 +433,66 @@ interface CollapseHeadProps {
   left: React.ReactNode;
   right?: React.ReactNode;
 }
-export const CollapseHead: React.FC<CollapseHeadProps> = ({ open, onClick, left, right }) => (
-  <button
-    onClick={onClick}
-    style={{
-      width: '100%',
-      padding: '18px 22px',
-      background: 'transparent',
-      border: '1px solid rgba(0,0,0,0.08)',
-      borderRadius: 16,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      cursor: 'pointer',
-      textAlign: 'left',
-      gap: 12,
-    }}
-  >
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-      <div
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          background: open ? T.aqua : T.lightGray,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-          transition: 'transform .2s',
-        }}
-      >
-        <ChevronDown size={16} color={T.navy} strokeWidth={2.5} />
+export const CollapseHead: React.FC<CollapseHeadProps> = ({ open, onClick, left, right }) => {
+  const isCompact = useIsCompact();
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%',
+        padding: isCompact ? '14px 16px' : '18px 22px',
+        background: 'transparent',
+        border: '1px solid rgba(0,0,0,0.08)',
+        borderRadius: 16,
+        display: 'flex',
+        // Phones: stack the right-rail stats below the title so a multi-
+        // stat right cluster doesn't shove the title off-screen.
+        flexDirection: isCompact ? 'column' : 'row',
+        alignItems: isCompact ? 'stretch' : 'center',
+        justifyContent: 'space-between',
+        cursor: 'pointer',
+        textAlign: 'left',
+        gap: isCompact ? 8 : 12,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            background: open ? T.aqua : T.lightGray,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+            transition: 'transform .2s',
+          }}
+        >
+          <ChevronDown size={16} color={T.navy} strokeWidth={2.5} />
+        </div>
+        <div style={{ minWidth: 0 }}>{left}</div>
       </div>
-      <div style={{ minWidth: 0 }}>{left}</div>
-    </div>
-    {right && (
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-        {right}
-      </div>
-    )}
-  </button>
-);
+      {right && (
+        <div
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: isCompact ? 8 : 10,
+            // Phones: align the stat cluster to the left under the title
+            // and allow it to wrap if the operator stacks four stats.
+            flexWrap: isCompact ? 'wrap' : 'nowrap',
+            paddingLeft: isCompact ? 40 : 0,
+          }}
+        >
+          {right}
+        </div>
+      )}
+    </button>
+  );
+};
 
 // ============================================================================
 // ServiceTypeChip — small colored chip showing the service type

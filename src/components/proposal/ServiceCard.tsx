@@ -10,6 +10,7 @@ import {
   Editable,
   T,
 } from './shared/primitives';
+import { useIsCompact, useIsMobile } from './shared/useIsMobile';
 import PricingOptionsSelector, { PricingOptionVariant } from './PricingOptionsSelector';
 import {
   MASSAGE_TYPE_DESC,
@@ -126,6 +127,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   showSelectionControls = true,
   internalView = false,
 }) => {
+  // Mobile = stack image above content + drop the title/price row to wrap.
+  // Compact = phones (< md) where the image + title row gets aggressive.
+  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const [expanded, setExpanded] = useState(false);
 
   const isMindful = service.serviceType === 'mindfulness';
@@ -184,12 +189,23 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       }}
     >
 
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      <div
+        style={{
+          display: 'flex',
+          // Mobile: stack image on top so the title + body get the full
+          // card width instead of being crushed into a 150px column.
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 14 : 20,
+          alignItems: isMobile ? 'stretch' : 'flex-start',
+        }}
+      >
         {showImage && (
           <ServiceImage
             serviceType={service.serviceType}
-            height={compact ? 120 : 160}
-            width={compact ? 180 : 220}
+            // On mobile, render the image full-width at a short banner
+            // aspect so it reads as a header rather than a thumbnail.
+            height={isMobile ? 140 : compact ? 120 : 160}
+            width={isMobile ? '100%' : compact ? 180 : 220}
           />
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -201,6 +217,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               justifyContent: 'space-between',
               gap: 12,
               marginBottom: 8,
+              // Phones: allow the toggle/price column to wrap below the
+              // title block when the row gets too tight.
+              flexWrap: isCompact ? 'wrap' : 'nowrap',
             }}
           >
             <div style={{ minWidth: 0 }}>
