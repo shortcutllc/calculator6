@@ -99,7 +99,19 @@ const Hero: React.FC<{
   byLocation: LocationBreakdown[];
   total: number;
   cutsLabel: string;
-}> = ({ clientName, service, byLocation, total, cutsLabel }) => (
+  /** Number of pricing models the section is actually rendering — drives
+   *  the "X ways to split the cost" line. Was hard-coded to "Two" before,
+   *  which was wrong for `tri` (3 cards) and for `employee_pay` /
+   *  `subsidized` (1 card). */
+  optionCount: number;
+}> = ({ clientName, service, byLocation, total, cutsLabel, optionCount }) => {
+  const splitLine =
+    optionCount === 1
+      ? 'Here are the details.'
+      : optionCount === 2
+      ? 'Two ways to split the cost.'
+      : 'Three ways to split the cost.';
+  return (
   <div className="card-large bg-gradient-to-br from-shortcut-navy-blue to-shortcut-dark-blue text-white">
     <p className="text-xs font-bold text-shortcut-teal uppercase tracking-wider mb-3">Partnership Proposal</p>
     <h2 className="text-white text-2xl md:text-4xl font-extrabold mb-3 leading-tight">
@@ -113,10 +125,11 @@ const Hero: React.FC<{
         </React.Fragment>
       ))}
       {byLocation.length > 1 && <> · <span className="font-bold text-white">{total} total</span></>}.
-      {' '}Two ways to split the cost.
+      {' '}{splitLine}
     </p>
   </div>
-);
+  );
+};
 
 // === OPTION CARDS =============================================================
 const OptionCard: React.FC<{
@@ -437,6 +450,7 @@ export const PartnershipModelsSection: React.FC<PartnershipModelsSectionProps> =
         byLocation={byLocation}
         total={inputs.totalAppointments}
         cutsLabel={cutsLabel}
+        optionCount={(showA ? 1 : 0) + (showB ? 1 : 0) + (showC ? 1 : 0)}
       />
 
       <WhyThisWorks />
