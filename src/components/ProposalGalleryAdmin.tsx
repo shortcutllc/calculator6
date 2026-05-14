@@ -133,41 +133,86 @@ const ProposalGalleryAdmin: React.FC = () => {
   // the form's caption + featured pin. Multi-file path (drag-drop) ignores
   // caption + featured since they don't apply across a batch; staff can edit
   // each row's caption inline once it's in the library.
-  /** Capture a JPEG thumbnail from the first frame (~1s in) of a video File
-   *  using a hidden <video> + canvas. Returns the JPEG as a Blob or null if
-   *  the browser can't decode the file. Used so video gallery rows have a
-   *  poster_url instead of falling back to a blank gray tile. */
-  const generateVideoPoster = (f: File): Promise<Blob | null> =>
+  /** Decode a video element to a JPEG poster using a hidden <video> + canvas.
+   *  `source` can be either a local File or a `{ url }` reference (used by
+   *  regenerateThumb so we can load directly from Supabase with proper CORS
+   *  headers instead of round-tripping through a blob). Returns `{blob}` on
+   *  success or `{error}` with a human-readable reason on failure. */
+  const generateVideoPoster = (
+    source: File | { url: string }
+  ): Promise<{ blob: Blob } | { error: string }> =>
     new Promise((resolve) => {
+      let objectUrl: string | null = null;
       try {
-        const url = URL.createObjectURL(f);
         const video = document.createElement('video');
-        video.preload = 'metadata';
+        video.preload = 'auto';
         video.muted = true;
         video.playsInline = true;
-        video.crossOrigin = 'anonymous';
-        video.src = url;
+        if ('url' in source) {
+          // Direct-load with anonymous CORS so the canvas isn't tainted —
+          // Supabase public buckets respond with Access-Control-Allow-Origin:*
+          video.crossOrigin = 'anonymous';
+          video.src = source.url;
+        } else {
+          objectUrl = URL.createObjectURL(source);
+          video.src = objectUrl;
+        }
 
-        const cleanup = () => URL.revokeObjectURL(url);
-        const fail = () => {
+        const cleanup = () => {
+          if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+        const done = (result: { blob: Blob } | { error: string }) => {
           cleanup();
-          resolve(null);
+          resolve(result);
         };
 
-        const timeout = setTimeout(fail, 12_000);
+        // Hard time-cap so a hung decoder doesn't lock the UI.
+        const timeout = setTimeout(() => {
+          done({
+            error:
+              "Decoder didn't return a frame in 15s. The clip may be in a codec your browser doesn't support (iPhone HEVC, AV1) or larger than the browser can handle.",
+          });
+        }, 15_000);
 
         video.addEventListener(
           'loadedmetadata',
           () => {
-            // Seek 1 second in (or to 0 if the clip is shorter) — first frame
-            // is often a black flash on cuts from phones.
             const target = Math.min(1, Math.max(0, (video.duration || 0) / 2));
-            video.currentTime = target;
+            // Some Safari builds need a microtask before seek works.
+            setTimeout(() => {
+              try {
+                video.currentTime = target;
+              } catch (err) {
+                clearTimeout(timeout);
+                done({
+                  error:
+                    err instanceof Error
+                      ? `Seek failed: ${err.message}`
+                      : 'Seek failed (unknown error).',
+                });
+              }
+            }, 0);
           },
           { once: true }
         );
 
-        video.addEventListener('error', fail, { once: true });
+        video.addEventListener(
+          'error',
+          () => {
+            clearTimeout(timeout);
+            // MediaError codes — surface something specific instead of "decode failed":
+            const e = video.error;
+            const map: Record<number, string> = {
+              1: 'Browser aborted the load.',
+              2: 'Network error while fetching the video (CORS or 404?).',
+              3: "Decoder failed — the video's codec isn't supported in this browser. iPhone clips are often HEVC; re-encode to H.264/MP4 (or use Safari).",
+              4: "Source not supported — the file format isn't playable in this browser.",
+            };
+            const msg = e ? map[e.code] || `MediaError ${e.code}` : 'Unknown video error.';
+            done({ error: msg });
+          },
+          { once: true }
+        );
 
         video.addEventListener(
           'seeked',
@@ -178,30 +223,48 @@ const ProposalGalleryAdmin: React.FC = () => {
               canvas.height = video.videoHeight || 360;
               const ctx = canvas.getContext('2d');
               if (!ctx) {
-                fail();
+                clearTimeout(timeout);
+                done({ error: 'Could not get a 2D canvas context.' });
                 return;
               }
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               canvas.toBlob(
                 (blob) => {
                   clearTimeout(timeout);
-                  cleanup();
-                  resolve(blob);
+                  if (blob) done({ blob });
+                  else
+                    done({
+                      error:
+                        "Canvas couldn't export the frame as JPEG (likely a CORS taint — the video must be served with Access-Control-Allow-Origin: *).",
+                    });
                 },
                 'image/jpeg',
                 0.85
               );
             } catch (err) {
-              console.warn('Poster capture failed:', err);
               clearTimeout(timeout);
-              fail();
+              const msg = err instanceof Error ? err.message : String(err);
+              // SecurityError → tainted canvas due to CORS
+              if (/security|tainted/i.test(msg)) {
+                done({
+                  error:
+                    'Canvas was tainted — the video file is missing CORS headers. (Storage RLS or bucket CORS config.)',
+                });
+              } else {
+                done({ error: `Frame draw failed: ${msg}` });
+              }
             }
           },
           { once: true }
         );
       } catch (err) {
-        console.warn('Poster generator setup failed:', err);
-        resolve(null);
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        resolve({
+          error:
+            err instanceof Error
+              ? `Poster setup failed: ${err.message}`
+              : 'Poster setup failed (unknown).',
+        });
       }
     });
 
@@ -261,12 +324,12 @@ const ProposalGalleryAdmin: React.FC = () => {
       } catch {
         /* non-fatal — duration is cosmetic */
       }
-      const poster = await generateVideoPoster(f);
-      if (poster) {
+      const posterResult = await generateVideoPoster(f);
+      if ('blob' in posterResult) {
         const posterPath = `${serviceType}/${stamp}-poster.jpg`;
         const { error: posterErr } = await supabase.storage
           .from('proposal-gallery')
-          .upload(posterPath, poster, {
+          .upload(posterPath, posterResult.blob, {
             upsert: false,
             contentType: 'image/jpeg',
           });
@@ -278,6 +341,11 @@ const ProposalGalleryAdmin: React.FC = () => {
         } else {
           console.warn('Poster upload failed (non-fatal):', posterErr.message);
         }
+      } else {
+        // Non-fatal — the row still gets inserted; <video> fallback will
+        // paint the first frame at render-time. Log so the user can see why
+        // in DevTools if they're hunting.
+        console.warn('Poster generation skipped:', posterResult.error);
       }
     }
 
@@ -419,25 +487,41 @@ const ProposalGalleryAdmin: React.FC = () => {
     if (row.media_type !== 'video' || !row.media_url) return;
     setRegeneratingId(row.id);
     try {
-      const resp = await fetch(row.media_url);
-      if (!resp.ok) {
-        throw new Error(`Couldn't fetch video (HTTP ${resp.status})`);
+      // Direct-load path first — proper CORS, no decode of an opaque blob,
+      // gives the browser its best shot at the original codec. Falls back
+      // to fetch+blob if the direct load can't paint (e.g. inline CORS
+      // restriction we can't predict).
+      let posterResult = await generateVideoPoster({ url: row.media_url });
+      if ('error' in posterResult) {
+        console.warn('Direct-load poster failed:', posterResult.error);
+        // Fallback: try via blob
+        try {
+          const resp = await fetch(row.media_url);
+          if (!resp.ok) {
+            throw new Error(`Couldn't fetch video (HTTP ${resp.status})`);
+          }
+          const blob = await resp.blob();
+          const fakeFile = new File([blob], `${row.id}.mp4`, {
+            type: blob.type || 'video/mp4',
+          });
+          posterResult = await generateVideoPoster(fakeFile);
+        } catch (fetchErr) {
+          throw new Error(
+            posterResult.error +
+              ` (Fallback fetch also failed: ${
+                fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+              })`
+          );
+        }
       }
-      const blob = await resp.blob();
-      const fakeFile = new File([blob], `${row.id}.mp4`, {
-        type: blob.type || 'video/mp4',
-      });
-      const poster = await generateVideoPoster(fakeFile);
-      if (!poster) {
-        throw new Error(
-          "Browser couldn't decode the first frame. The clip may be in a codec it doesn't support."
-        );
+      if ('error' in posterResult) {
+        throw new Error(posterResult.error);
       }
       const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const posterPath = `${row.service_type}/${stamp}-poster.jpg`;
       const { error: upErr } = await supabase.storage
         .from('proposal-gallery')
-        .upload(posterPath, poster, {
+        .upload(posterPath, posterResult.blob, {
           upsert: false,
           contentType: 'image/jpeg',
         });
