@@ -1,10 +1,14 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Download, MapPin, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Download, History as HistoryIcon, HelpCircle, MapPin, Sparkles, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { generatePDF } from '../utils/pdf';
+import {
+  calculateServiceResults,
+  recalculateServiceTotals,
+} from '../utils/proposalGenerator';
 import ProposalSurveyForm from './ProposalSurveyForm';
 import ServiceCard from './proposal/ServiceCard';
 import {
@@ -31,6 +35,8 @@ import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
 import RequestChangesModal from './proposal/RequestChangesModal';
+import ApproveConfirmModal from './proposal/ApproveConfirmModal';
+import HelpModal from './proposal/HelpModal';
 
 // ============================================================================
 // StandaloneProposalViewerV2 — the new client-facing proposal viewer.
@@ -66,6 +72,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const [postApproval, setPostApproval] = useState(false);
   const [requestChangesOpen, setRequestChangesOpen] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [showingOriginal, setShowingOriginal] = useState(false);
+  const [clientNote, setClientNote] = useState('');
+  const [clientNoteSaving, setClientNoteSaving] = useState(false);
+  const [clientNoteSaved, setClientNoteSaved] = useState(false);
+  // Client edit mode — lets the client tweak totalHours, numPros, classLength
+  // and pricing-option params, then submit changes for staff review.
+  const [isClientEditing, setIsClientEditing] = useState(false);
+  const [clientEditedData, setClientEditedData] = useState<any>(null);
+  const [isSubmittingClientChanges, setIsSubmittingClientChanges] = useState(false);
+  const [clientEditCommentOpen, setClientEditCommentOpen] = useState(false);
   const [proposalOptions, setProposalOptions] = useState<ProposalOption[]>([]);
 
   // ---- Load proposal ------------------------------------------------------
@@ -117,9 +135,29 @@ const StandaloneProposalViewerV2: React.FC = () => {
     };
   }, [id]);
 
-  const displayData = proposal?.data;
+  // Data resolution priority:
+  // 1. If the client is actively editing → render the edit buffer
+  // 2. If the client toggled "view original" → render the pre-change snapshot
+  // 3. Otherwise → render the live persisted `proposal.data`
+  const liveData = proposal?.data;
+  const originalData = proposal?.original_data;
+  const displayData =
+    isClientEditing && clientEditedData
+      ? clientEditedData
+      : showingOriginal && originalData
+      ? originalData
+      : liveData;
   const status = proposal?.status as string | undefined;
   const isApproved = status === 'approved' || postApproval;
+  const hasOriginalSnapshot = !!originalData && proposal?.has_changes;
+
+  // Hydrate the client-side note (data.clientNote) once the proposal lands.
+  // This is the textarea V1 had at the bottom of the standalone viewer.
+  useEffect(() => {
+    if (proposal?.data?.clientNote && typeof proposal.data.clientNote === 'string') {
+      setClientNote(proposal.data.clientNote);
+    }
+  }, [proposal?.data?.clientNote]);
 
   // ---- DB persistence of selection state ---------------------------------
   // Fires when the hook's internal state changes. Writes the new optionsState
@@ -157,16 +195,33 @@ const StandaloneProposalViewerV2: React.FC = () => {
     const locationCount = Object.keys(services).length;
     let dateCount = 0;
     let appointmentCount = 0;
+    // Headshot-specific roll-up for "cost per headshot" stat (V1 parity).
+    let headshotCost = 0;
+    let headshotAppts = 0;
+    let hasHeadshot = false;
     Object.values(services).forEach((byDate: any) => {
       Object.values(byDate || {}).forEach((dateData: any) => {
         dateCount += 1;
         (dateData?.services || []).forEach((s: any) => {
           const apt = Number(s?.totalAppointments) || 0;
           appointmentCount += apt;
+          if (s?.serviceType === 'headshot' || s?.serviceType === 'headshots') {
+            hasHeadshot = true;
+            headshotCost += Number(s?.serviceCost) || 0;
+            headshotAppts += apt;
+          }
         });
       });
     });
-    return { locationCount, dateCount, appointmentCount };
+    const costPerHeadshot =
+      hasHeadshot && headshotAppts > 0 ? headshotCost / headshotAppts : 0;
+    return {
+      locationCount,
+      dateCount,
+      appointmentCount,
+      hasHeadshot,
+      costPerHeadshot,
+    };
   }, [displayData]);
 
   // ---- Custom line items (staff-set extras: catering, travel, etc.) -----
@@ -290,6 +345,194 @@ const StandaloneProposalViewerV2: React.FC = () => {
     },
     [id, displayData, isApproved]
   );
+
+  // ---- Client edit mode handlers ----------------------------------------
+  // Mirrors the V1 standalone viewer pattern: clients can tweak basic params
+  // (totalHours / numPros / classLength / mindfulnessFormat) plus pricing-
+  // option params. Submitting writes the new `data` snapshot and lets the
+  // server-side trigger handle client_data / original_data attribution.
+  const enterClientEditMode = useCallback(() => {
+    if (!liveData) return;
+    setShowingOriginal(false);
+    setClientEditedData(
+      recalculateServiceTotals(JSON.parse(JSON.stringify(liveData)))
+    );
+    setIsClientEditing(true);
+  }, [liveData]);
+
+  const cancelClientEditMode = useCallback(() => {
+    if (
+      JSON.stringify(clientEditedData) !== JSON.stringify(liveData) &&
+      !window.confirm('Discard your unsaved changes?')
+    ) {
+      return;
+    }
+    setClientEditedData(null);
+    setIsClientEditing(false);
+  }, [clientEditedData, liveData]);
+
+  // Generic field-change handler used by ServiceCard's `editing` mode for the
+  // client. Path mirrors the admin viewer's handleFieldChange shape:
+  // ['services', location, date, 'services', index, field]. We only allow
+  // client-safe fields here — internal fields are gated by ServiceCard's
+  // `internalView={false}` rendering.
+  const clientHandleFieldChange = useCallback(
+    (path: string[], value: any) => {
+      if (!isClientEditing || !clientEditedData) return;
+      const next = JSON.parse(JSON.stringify(clientEditedData));
+      let target: any = next;
+      for (let i = 0; i < path.length - 1; i++) target = target[path[i]];
+      target[path[path.length - 1]] = value;
+      // Service-level recalc when we touched a service param
+      if (path.length >= 6 && path[0] === 'services' && path[3] === 'services') {
+        const service = target;
+        if (!service.pricingOptions || service.pricingOptions.length === 0) {
+          const recalc = calculateServiceResults({ ...service });
+          service.totalAppointments = recalc.totalAppointments;
+          service.serviceCost = recalc.serviceCost;
+          service.proRevenue = recalc.proRevenue;
+        }
+      }
+      setClientEditedData(recalculateServiceTotals(next));
+    },
+    [isClientEditing, clientEditedData]
+  );
+
+  const clientEditPricingOption = useCallback(
+    (
+      loc: string,
+      date: string,
+      idx: number,
+      optIdx: number,
+      field: string,
+      value: any
+    ) => {
+      if (!isClientEditing || !clientEditedData) return;
+      const next = JSON.parse(JSON.stringify(clientEditedData));
+      const svc = next.services?.[loc]?.[date]?.services?.[idx];
+      if (!svc?.pricingOptions?.[optIdx]) return;
+      svc.pricingOptions[optIdx] = {
+        ...svc.pricingOptions[optIdx],
+        [field]: value,
+      };
+      // Recalc the affected option from the merged service params
+      const opt = svc.pricingOptions[optIdx];
+      const merged = {
+        ...svc,
+        totalHours: opt.totalHours ?? svc.totalHours,
+        hourlyRate: opt.hourlyRate ?? svc.hourlyRate,
+        numPros: opt.numPros ?? svc.numPros,
+        discountPercent:
+          opt.discountPercent !== undefined
+            ? opt.discountPercent
+            : svc.discountPercent || 0,
+      };
+      const { totalAppointments, serviceCost, proRevenue } =
+        calculateServiceResults(merged);
+      svc.pricingOptions[optIdx] = {
+        ...opt,
+        totalAppointments,
+        serviceCost,
+        proRevenue,
+        discountPercent: merged.discountPercent,
+      };
+      // Mirror onto base service if this is the selected option
+      if ((svc.selectedOption || 0) === optIdx) {
+        svc.totalAppointments = totalAppointments;
+        svc.serviceCost = serviceCost;
+        svc.proRevenue = proRevenue;
+        svc.discountPercent = merged.discountPercent;
+      }
+      setClientEditedData(recalculateServiceTotals(next));
+    },
+    [isClientEditing, clientEditedData]
+  );
+
+  // Submit the client's edits. Comment captured via RequestChangesModal flow
+  // for consistency. Writes the new `data` snapshot + flips the change flags;
+  // the proposals trigger sorts out `original_data` / `client_data` history.
+  const submitClientChanges = useCallback(
+    async (note: string) => {
+      if (!id || !clientEditedData || isApproved) return;
+      setIsSubmittingClientChanges(true);
+      try {
+        const nextData = {
+          ...clientEditedData,
+          clientChangesNote: note,
+          clientChangesAt: new Date().toISOString(),
+        };
+        const { error } = await supabase
+          .from('proposals')
+          .update({
+            data: nextData,
+            has_changes: true,
+            pending_review: true,
+            change_source: 'client',
+          })
+          .eq('id', id);
+        if (error) throw error;
+        try {
+          await fetch('/.netlify/functions/proposal-event-notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventType: 'changes_submitted',
+              proposalId: id,
+              clientName: nextData.clientName || 'Unknown',
+              clientEmail: nextData.clientEmail,
+              proposalType: 'event',
+              totalCost: nextData?.summary?.totalEventCost || 0,
+              eventDates: nextData.eventDates || [],
+              locations: nextData.locations || [],
+            }),
+          });
+        } catch (notifyErr) {
+          console.warn('Change notification failed (non-fatal):', notifyErr);
+        }
+        // Refresh the persisted proposal + drop out of edit mode
+        const { data: refreshed } = await supabase
+          .from('proposals')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (refreshed) setProposal(refreshed);
+        setClientEditedData(null);
+        setIsClientEditing(false);
+        setClientEditCommentOpen(false);
+        setRequestSent(true);
+      } catch (err) {
+        console.error('Submit client changes failed:', err);
+        alert('We hit an issue sending your changes. Please try again.');
+      } finally {
+        setIsSubmittingClientChanges(false);
+      }
+    },
+    [id, clientEditedData, isApproved]
+  );
+
+  // ---- Save client note (textarea at bottom of body) --------------------
+  // Persists to `data.clientNote`. Sets `pending_review` so staff get notified
+  // via the existing change-source flow without flipping the full has_changes
+  // state — V1 separates "Save Notes" from "Submit Changes" the same way.
+  const handleSaveClientNote = useCallback(async () => {
+    if (!id || !liveData || isApproved) return;
+    setClientNoteSaving(true);
+    try {
+      const nextData = { ...liveData, clientNote };
+      const { error } = await supabase
+        .from('proposals')
+        .update({ data: nextData, pending_review: true })
+        .eq('id', id);
+      if (error) throw error;
+      setClientNoteSaved(true);
+      setTimeout(() => setClientNoteSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save client note:', err);
+      alert('We hit an issue saving your note. Please try again.');
+    } finally {
+      setClientNoteSaving(false);
+    }
+  }, [id, liveData, isApproved, clientNote]);
 
   // ---- PDF download — same flow as V1: html2canvas on #proposal-content
   const [isDownloading, setIsDownloading] = useState(false);
@@ -610,8 +853,130 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <StatusPill status={(status as any) || 'draft'} />
+            {isClientEditing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={cancelClientEditMode}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    background: 'transparent',
+                    border: '1.5px solid rgba(0,0,0,0.12)',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    color: T.navy,
+                  }}
+                >
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientEditCommentOpen(true)}
+                  disabled={isSubmittingClientChanges}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 16px',
+                    background: T.coral,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 10,
+                    cursor: isSubmittingClientChanges ? 'wait' : 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
+                    opacity: isSubmittingClientChanges ? 0.7 : 1,
+                  }}
+                >
+                  {isSubmittingClientChanges ? 'Sending…' : 'Submit changes'}
+                </button>
+              </>
+            ) : (
+              !isApproved &&
+              !showingOriginal && (
+                <button
+                  type="button"
+                  onClick={enterClientEditMode}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    background: T.navy,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 13,
+                  }}
+                  title="Tweak hours, pros, and pricing options"
+                >
+                  Edit
+                </button>
+              )
+            )}
+            {hasOriginalSnapshot && !isApproved && !isClientEditing && (
+              <button
+                type="button"
+                onClick={() => setShowingOriginal((v) => !v)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 14px',
+                  background: showingOriginal ? T.lightGray : 'transparent',
+                  border: '1.5px solid rgba(0,0,0,0.08)',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  color: T.navy,
+                }}
+                title={
+                  showingOriginal
+                    ? 'View your current selections'
+                    : 'View the proposal as originally sent'
+                }
+              >
+                <HistoryIcon size={14} />
+                {showingOriginal ? 'View current' : 'View original'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 12px',
+                background: 'transparent',
+                border: '1.5px solid rgba(0,0,0,0.08)',
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontFamily: T.fontUi,
+                fontWeight: 700,
+                fontSize: 13,
+                color: T.navy,
+              }}
+              title="How this works"
+            >
+              <HelpCircle size={14} />
+              How it works
+            </button>
             <button
               type="button"
               onClick={handleDownloadPdf}
@@ -754,6 +1119,37 @@ const StandaloneProposalViewerV2: React.FC = () => {
           />
           <MiniStat label="Total" value={formatCurrency(grandTotal)} accent="coral" />
         </div>
+
+        {/* Optional: cost-per-headshot stat for headshot proposals.
+            Mirrors V1 (lines ~2440 of StandaloneProposalViewer). Only renders
+            when at least one headshot service has appointments on the books. */}
+        {stats.hasHeadshot && stats.costPerHeadshot > 0 && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 12,
+              marginTop: 14,
+              padding: '10px 16px',
+              background: '#fff',
+              border: '1px solid rgba(0,0,0,0.06)',
+              borderRadius: 12,
+            }}
+          >
+            <Eyebrow>Cost per headshot</Eyebrow>
+            <span
+              style={{
+                fontFamily: T.fontD,
+                fontWeight: 800,
+                fontSize: 20,
+                color: T.navy,
+                letterSpacing: '-0.015em',
+              }}
+            >
+              {formatCurrency(stats.costPerHeadshot)}
+            </span>
+          </div>
+        )}
       </section>
 
       {/* ===== 2-col body grid ===== */}
@@ -779,8 +1175,101 @@ const StandaloneProposalViewerV2: React.FC = () => {
             />
           )}
 
+          {/* Banner — you're in client edit mode */}
+          {isClientEditing && (
+            <div
+              style={{
+                background: 'rgba(158,250,255,.22)',
+                border: '1px solid rgba(0,152,173,.25)',
+                borderRadius: 12,
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  background: T.aqua,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Sparkles size={16} color={T.navy} strokeWidth={2.25} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    color: T.navy,
+                  }}
+                >
+                  You're editing this proposal
+                </div>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontSize: 12,
+                    color: T.fgMuted,
+                    marginTop: 2,
+                  }}
+                >
+                  Tweak hours, professionals, class lengths, and pricing options inline.
+                  Submit changes when you're ready and we'll review.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Banner — viewing the original (pre-change) snapshot */}
+          {showingOriginal && (
+            <div
+              style={{
+                background: 'rgba(254,220,100,.25)',
+                border: '1px solid rgba(140,90,7,.25)',
+                borderRadius: 12,
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <HistoryIcon size={18} color="#8C5A07" />
+              <div>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    color: T.navy,
+                  }}
+                >
+                  Viewing the proposal as originally sent
+                </div>
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontSize: 12,
+                    color: T.fgMuted,
+                    marginTop: 2,
+                  }}
+                >
+                  Click "View current" in the header to return to your selections.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Banner — changes requested confirmation */}
-          {(requestSent || proposal?.has_changes) && !isApproved && (
+          {(requestSent || proposal?.has_changes) && !isApproved && !showingOriginal && (
             <div
               style={{
                 background: 'rgba(255,80,80,0.08)',
@@ -990,6 +1479,52 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                           setFrequency(key, next)
                                         }
                                         internalView={false}
+                                        editing={isClientEditing}
+                                        onFieldChange={
+                                          isClientEditing
+                                            ? (field, value) =>
+                                                clientHandleFieldChange(
+                                                  [
+                                                    'services',
+                                                    loc,
+                                                    date,
+                                                    'services',
+                                                    String(idx),
+                                                    field as string,
+                                                  ],
+                                                  value
+                                                )
+                                            : undefined
+                                        }
+                                        onSelectPricingOption={
+                                          isClientEditing
+                                            ? (optIdx) =>
+                                                clientHandleFieldChange(
+                                                  [
+                                                    'services',
+                                                    loc,
+                                                    date,
+                                                    'services',
+                                                    String(idx),
+                                                    'selectedOption',
+                                                  ],
+                                                  optIdx
+                                                )
+                                            : undefined
+                                        }
+                                        onEditPricingOption={
+                                          isClientEditing
+                                            ? (optIdx, field, value) =>
+                                                clientEditPricingOption(
+                                                  loc,
+                                                  date,
+                                                  idx,
+                                                  optIdx,
+                                                  field as string,
+                                                  value
+                                                )
+                                            : undefined
+                                        }
                                       />
                                     );
                                   }
@@ -1337,6 +1872,95 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </p>
           </div>
 
+          {/* Client notes textarea — quick way for the client to leave a note
+              for the account team without going through the full Request
+              Changes flow. Persists to `data.clientNote` and sets
+              pending_review so the team gets the same notification. */}
+          {!isApproved && !showingOriginal && (
+            <div
+              style={{
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.06)',
+                borderRadius: 16,
+                padding: '22px 24px',
+              }}
+            >
+              <Eyebrow style={{ marginBottom: 6 }}>Notes for our team</Eyebrow>
+              <CardHeading size="item" style={{ marginBottom: 12 }}>
+                Anything else we should know?
+              </CardHeading>
+              <textarea
+                value={clientNote}
+                onChange={(e) => setClientNote(e.target.value)}
+                rows={4}
+                placeholder="Optional — questions, day-of preferences, special accommodations…"
+                disabled={clientNoteSaving}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  fontFamily: T.fontD,
+                  fontSize: 14,
+                  color: T.navy,
+                  background: '#fff',
+                  border: '1.5px solid rgba(0,0,0,0.1)',
+                  borderRadius: 10,
+                  outline: 'none',
+                  resize: 'vertical',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: 10,
+                  gap: 10,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: T.fontD,
+                    fontSize: 12,
+                    color: clientNoteSaved ? T.success : T.fgMuted,
+                  }}
+                >
+                  {clientNoteSaved
+                    ? 'Saved — your account team will see this.'
+                    : 'Not a binding edit — just a heads-up.'}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSaveClientNote}
+                  disabled={
+                    clientNoteSaving ||
+                    (clientNote.trim() ===
+                      (liveData?.clientNote || '').trim())
+                  }
+                  style={{
+                    padding: '8px 16px',
+                    background: T.navy,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 10,
+                    cursor: clientNoteSaving ? 'wait' : 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    opacity:
+                      clientNoteSaving ||
+                      clientNote.trim() === (liveData?.clientNote || '').trim()
+                        ? 0.5
+                        : 1,
+                  }}
+                >
+                  {clientNoteSaving ? 'Saving…' : 'Save note'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Approve CTA */}
           <div
             style={{
@@ -1398,7 +2022,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={handleApprove}
+                onClick={() => setApproveConfirmOpen(true)}
                 disabled={isApproving || summary.rows.every((r) => !r.included)}
                 style={{
                   padding: '12px 24px',
@@ -1596,6 +2220,37 @@ const StandaloneProposalViewerV2: React.FC = () => {
         onClose={() => setRequestChangesOpen(false)}
         onSubmit={handleSubmitChangeRequest}
         previousNote={displayData?.clientChangesNote}
+      />
+
+      {/* Approve confirmation modal — soft gate before locking in */}
+      <ApproveConfirmModal
+        open={approveConfirmOpen}
+        onClose={() => !isApproving && setApproveConfirmOpen(false)}
+        onConfirm={async () => {
+          await handleApprove();
+          setApproveConfirmOpen(false);
+        }}
+        busy={isApproving}
+        total={grandTotal}
+        servicesIncluded={summary.rows.filter((r) => r.included).length}
+        servicesTotal={summary.rows.length}
+        optionName={
+          proposalOptions.find((o: any) => o.id === id)?.option_name || null
+        }
+        clientFirstName={contactFirst || undefined}
+      />
+
+      {/* Help / "how this works" modal */}
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/* Submit-changes comment modal — opens from the header "Submit changes"
+          button while the client is in edit mode. Reuses RequestChangesModal
+          for its proven comment-capture UX. */}
+      <RequestChangesModal
+        open={clientEditCommentOpen}
+        onClose={() => !isSubmittingClientChanges && setClientEditCommentOpen(false)}
+        onSubmit={submitClientChanges}
+        previousNote=""
       />
     </div>
   );

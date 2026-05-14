@@ -172,16 +172,16 @@ Compiled after Phase 3A shipped (May 13). Goal: nothing V1 does today disappears
 - [x] **Day-level summary box** (both viewers) — per-date appointments + cost inside each date block. *Done May 13: new shared `DaySummaryBox` primitive in `src/components/proposal/`; uses `MiniStat` tiles with `aqua` + `coral` accents inside a white card. Client viewer sums by **included** services × frequency; admin viewer sums raw revenue per date. Supports `originalCost` + `discountLabel` for the future auto-recurring callout.*
 - [x] **Auto-recurring discount picker (admin)** — Auto (15/20 by date count) / Off / fixed 10/15/20%. *Decision May 13: Model A — kept V1's `data.isAutoRecurring` + `data.autoRecurringDiscount` flags alongside V2's per-service frequency × volume-discount. `recalculateServiceTotals` already owned the math; UI added to `PricingExtrasEditor`. Pricing summary in both viewers shows a "Recurring discount · N%" savings line; `DaySummaryBox` shows strike-through original when `dateData.originalTotalCost` is set; `ServiceCard` shows a green "Recurring discount" chip + strike-through original when `service.originalServiceCost` is set.*
 
-### Phase 3C — client UX completeness
+### Phase 3C — client UX completeness ✅ shipped
 
-- [ ] **Client edit mode for service params** — totalHours, numPros, hourlyRate, classLength, mindfulnessFormat editable from client side (V1 behavior)
-- [ ] **Client-editable pricing options** — per-option params editable from client view
-- [ ] **Approve confirmation modal** — confirm step before commit
-- [ ] **View Your Changes / View Current toggle** for clients post-edit
-- [ ] **Large multi-option comparison grid** — replace compact OptionsTabs with prominent cards showing cost + apt count
-- [ ] **Help modal** — "Review / Edit / Confirm" cards from V1 info icon
-- [ ] **Cost-per-headshot** calc display for headshot services
-- [ ] **Notes textarea on client view** — for ad-hoc commentary (V1 had this at the bottom)
+- [x] **Client edit mode for service params** — totalHours, numPros, classLength, mindfulnessFormat editable from the client side (matches V1). *Done May 13: new `isClientEditing` state in `StandaloneProposalViewerV2`; ServiceCard wired with `editing` + `onFieldChange` for non-internal fields. Header swaps to Discard / Submit changes.*
+- [x] **Client-editable pricing options** — per-option params editable from client view. *Done May 13: `PricingOptionsSelector.editing` no longer gated on `internalView`; admin-only Add/Remove/Generate buttons stay gated but per-option Hours/Pros/$/hr/Discount inputs are visible to clients in edit mode.*
+- [x] **Approve confirmation modal** — confirm step before commit. *Done May 13 via new `ApproveConfirmModal` (Total / Services included / "Yes, approve" CTA).*
+- [x] **View Your Changes / View Current toggle** for clients post-edit. *Done May 13: when `proposal.has_changes` is true and `proposal.original_data` exists, the header shows a "View original" toggle that swaps the rendered snapshot.*
+- [x] **Large multi-option comparison grid** — replaced compact `OptionsTabs` with prominent cards (active = navy fill + lift, approved = green outline + check, best-value = coral chip; stats row for locations / dates / appts). *Done May 13.*
+- [x] **Help modal** — "Review / Edit / Confirm" cards triggered by a `?` icon in the header. *Done May 13 via new `HelpModal`.*
+- [x] **Cost-per-headshot** stat. *Done May 13: rendered as an inline pill under the hero mini-stats only when at least one headshot service has appointments.*
+- [x] **Notes textarea on client view** — quick "anything else we should know?" save-only-when-changed flow that persists to `data.clientNote` and flips `pending_review`. *Done May 13.*
 
 ### Phase 3D — admin polish & net-new admin features
 

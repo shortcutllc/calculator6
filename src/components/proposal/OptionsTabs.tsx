@@ -1,12 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle2 } from 'lucide-react';
 import { Eyebrow, T } from './shared/primitives';
 import { formatCurrency } from './data';
 
-// OptionsTabs — top-of-body tabs for multi-option proposals.
+// OptionsTabs — large comparison grid for multi-option proposals.
 // When a proposal belongs to a `proposal_group_id`, sibling proposals (one
 // per "option" like Light / Standard / Full) are fetched and rendered as
-// pickable tabs. Clicking a tab navigates to that sibling proposal's URL.
+// pickable comparison cards. Clicking a card navigates to that option's URL.
+// The active option gets a navy border + "Viewing" pill; approved options
+// get a green status callout.
 
 export interface ProposalOption {
   id: string;
@@ -45,18 +48,42 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
   const navigate = useNavigate();
   if (!options || options.length < 2) return null;
 
+  // Show the cheapest "Most affordable" hint to help the client compare
+  const cheapest = options.reduce(
+    (best, o) => {
+      const m = optionMetrics(o);
+      if (!best || m.cost < best.cost) return { id: o.id, cost: m.cost };
+      return best;
+    },
+    null as { id: string; cost: number } | null
+  );
+
   return (
     <div style={{ marginBottom: 32 }}>
-      <Eyebrow style={{ marginBottom: 12 }}>Choose an option to view</Eyebrow>
+      <Eyebrow style={{ marginBottom: 6 }}>Multi-option proposal</Eyebrow>
+      <div
+        style={{
+          fontFamily: T.fontD,
+          fontWeight: 700,
+          fontSize: 20,
+          color: T.navy,
+          letterSpacing: '-0.01em',
+          marginBottom: 16,
+        }}
+      >
+        Pick the option that fits — compare side by side
+      </div>
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${Math.min(options.length, 3)}, minmax(0, 1fr))`,
-          gap: 12,
+          gap: 14,
         }}
       >
         {options.map((opt) => {
           const active = opt.id === currentId;
+          const approved = opt.status === 'approved';
+          const cheapestHere = cheapest && cheapest.id === opt.id && options.length > 1;
           const m = optionMetrics(opt);
           return (
             <button
@@ -65,22 +92,29 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
               onClick={() => navigate(`/proposal/${opt.id}${queryString}`)}
               style={{
                 textAlign: 'left',
-                background: '#fff',
+                background: active ? T.navy : '#fff',
+                color: active ? '#fff' : T.navy,
                 border: active
                   ? `2px solid ${T.navy}`
+                  : approved
+                  ? `2px solid ${T.success}`
                   : '1.5px solid rgba(0,0,0,0.08)',
-                borderRadius: 16,
-                padding: '18px 20px',
+                borderRadius: 18,
+                padding: '24px 24px',
                 cursor: 'pointer',
-                transition: 'border-color .15s, box-shadow .15s',
-                boxShadow: active ? '0 4px 16px rgba(9,54,79,0.10)' : 'none',
+                transition: 'border-color .15s, box-shadow .15s, transform .15s',
+                boxShadow: active
+                  ? '0 8px 24px rgba(9,54,79,0.18)'
+                  : '0 2px 8px rgba(0,0,0,0.04)',
+                transform: active ? 'translateY(-2px)' : 'none',
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 6,
+                gap: 14,
                 minWidth: 0,
               }}
             >
+              {/* Top row — option name + status callouts */}
               <div
                 style={{
                   display: 'flex',
@@ -89,62 +123,120 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
                   gap: 8,
                 }}
               >
-                <Eyebrow>
+                <Eyebrow color={active ? 'rgba(255,255,255,0.65)' : T.fgMuted}>
                   {opt.option_name || `Option ${opt.option_order ?? ''}`}
                 </Eyebrow>
-                {active && (
-                  <span
-                    style={{
-                      fontFamily: T.fontUi,
-                      fontWeight: 700,
-                      fontSize: 10,
-                      letterSpacing: '0.1em',
-                      textTransform: 'uppercase',
-                      color: T.navy,
-                      background: T.aqua,
-                      padding: '2px 8px',
-                      borderRadius: 9999,
-                    }}
-                  >
-                    Viewing
-                  </span>
-                )}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {cheapestHere && !active && (
+                    <span
+                      style={{
+                        fontFamily: T.fontUi,
+                        fontWeight: 700,
+                        fontSize: 10,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: T.coral,
+                        background: 'rgba(255,80,80,0.10)',
+                        padding: '3px 8px',
+                        borderRadius: 9999,
+                      }}
+                    >
+                      Best value
+                    </span>
+                  )}
+                  {approved && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontFamily: T.fontUi,
+                        fontWeight: 700,
+                        fontSize: 10,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: T.success,
+                        background: 'rgba(30,158,106,.14)',
+                        padding: '3px 8px',
+                        borderRadius: 9999,
+                      }}
+                    >
+                      <CheckCircle2 size={11} strokeWidth={3} />
+                      Approved
+                    </span>
+                  )}
+                  {active && (
+                    <span
+                      style={{
+                        fontFamily: T.fontUi,
+                        fontWeight: 700,
+                        fontSize: 10,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: T.navy,
+                        background: T.aqua,
+                        padding: '3px 8px',
+                        borderRadius: 9999,
+                      }}
+                    >
+                      Viewing
+                    </span>
+                  )}
+                </div>
               </div>
-              <div
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 13,
-                  color: T.fgMuted,
-                }}
-              >
-                {m.locationCount} location{m.locationCount === 1 ? '' : 's'} ·{' '}
-                {m.dateCount} date{m.dateCount === 1 ? '' : 's'} ·{' '}
-                {m.appointmentCount.toLocaleString('en-US')} appts
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-                <span
+
+              {/* Big price */}
+              <div>
+                <div
                   style={{
                     fontFamily: T.fontD,
-                    fontWeight: 700,
-                    fontSize: 22,
-                    color: T.navy,
-                    letterSpacing: '-0.02em',
+                    fontWeight: 800,
+                    fontSize: 36,
+                    color: active ? T.aqua : T.navy,
+                    letterSpacing: '-0.025em',
+                    lineHeight: 1,
                   }}
                 >
                   {formatCurrency(m.cost)}
-                </span>
-                <span
+                </div>
+                <div
                   style={{
                     fontFamily: T.fontUi,
                     fontWeight: 700,
                     fontSize: 10,
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
-                    color: T.fgMuted,
+                    color: active ? 'rgba(255,255,255,0.55)' : T.fgMuted,
+                    marginTop: 4,
                   }}
                 >
-                  total
-                </span>
+                  Total locked in
+                </div>
+              </div>
+
+              {/* Stats row */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: 10,
+                  borderTop: active
+                    ? '1px solid rgba(255,255,255,0.12)'
+                    : '1px solid rgba(0,0,0,0.06)',
+                  paddingTop: 14,
+                }}
+              >
+                <Stat
+                  active={active}
+                  label="Locations"
+                  value={m.locationCount}
+                />
+                <Stat active={active} label="Dates" value={m.dateCount} />
+                <Stat
+                  active={active}
+                  label="Appts"
+                  value={m.appointmentCount.toLocaleString('en-US')}
+                />
               </div>
             </button>
           );
@@ -153,5 +245,41 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
     </div>
   );
 };
+
+const Stat: React.FC<{
+  active: boolean;
+  label: string;
+  value: React.ReactNode;
+}> = ({ active, label, value }) => (
+  <div style={{ minWidth: 0 }}>
+    <div
+      style={{
+        fontFamily: T.fontUi,
+        fontWeight: 700,
+        fontSize: 10,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        color: active ? 'rgba(255,255,255,0.55)' : T.fgMuted,
+      }}
+    >
+      {label}
+    </div>
+    <div
+      style={{
+        fontFamily: T.fontD,
+        fontWeight: 700,
+        fontSize: 17,
+        color: active ? '#fff' : T.navy,
+        letterSpacing: '-0.01em',
+        marginTop: 2,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}
+    >
+      {value}
+    </div>
+  </div>
+);
 
 export default OptionsTabs;

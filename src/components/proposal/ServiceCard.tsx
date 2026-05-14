@@ -572,8 +572,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       </div>
 
       {/* Pricing options sub-card.
-          In admin editing mode (`editing && internalView`) we surface
-          per-option editors plus Add / Remove / Generate. */}
+          - Always rendered when the service has options (read-only view).
+          - When `editing` is on, per-option params become editable inline.
+          - Admin-only affordances (Add option / Generate / Remove) are gated
+            on `internalView` so clients see fewer destructive controls. */}
       {(service.pricingOptions && service.pricingOptions.length > 0) ||
       (editing && internalView) ? (
         <div style={{ marginTop: 20 }}>
@@ -582,11 +584,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             selected={service.selectedOption || 0}
             onSelect={onSelectPricingOption}
             disabled={!included}
-            editing={editing && internalView}
+            editing={editing}
             onEditOption={onEditPricingOption}
-            onAddOption={onAddPricingOption}
-            onRemoveOption={onRemovePricingOption}
-            onGenerateOptions={onGeneratePricingOptions}
+            onAddOption={internalView ? onAddPricingOption : undefined}
+            onRemoveOption={internalView ? onRemovePricingOption : undefined}
+            onGenerateOptions={internalView ? onGeneratePricingOptions : undefined}
           />
         </div>
       ) : null}
