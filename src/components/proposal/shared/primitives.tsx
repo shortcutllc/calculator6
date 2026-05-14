@@ -192,7 +192,6 @@ export const ServiceImage: React.FC<ServiceImageProps> = ({
           borderRadius: 16,
           overflow: 'hidden',
           flexShrink: 0,
-          background: g.bg,
           ...style,
         }}
       >
@@ -200,7 +199,18 @@ export const ServiceImage: React.FC<ServiceImageProps> = ({
           src={photo}
           alt=""
           onError={() => setImgFailed(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          // The shipped PNGs have a baked-in decorative border. Scaling
+          // the img with transform:scale crops that ring uniformly from
+          // the center — using margin/width% would skew because CSS
+          // margin% is resolved against the parent's WIDTH only, so the
+          // vertical shift wouldn't match the horizontal one.
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+            transform: 'scale(1.1)',
+          }}
         />
       </div>
     );

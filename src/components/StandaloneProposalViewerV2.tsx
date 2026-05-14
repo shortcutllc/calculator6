@@ -2293,19 +2293,23 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           )}
 
-          {/* Live Total card */}
+          {/* Live Total card — desktop only.
+              On desktop this is sticky so price + Approve stay visible
+              as the user scrolls. On mobile the sidebar stacks below the
+              main column, so this card lands directly under the white
+              Approve CTA and renders a duplicate Approve button. The
+              bottom Approve CTA already shows the locked-in total and
+              serves the conversion role, so we skip this entirely on
+              mobile. */}
+          {!isMobile && (
           <div
             style={{
               background: T.navy,
               color: '#fff',
               borderRadius: 16,
-              padding: isCompact ? '18px 20px' : '22px 24px',
+              padding: '22px 24px',
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-              // Mobile collapses to a single column — sticky positioning
-              // would pin the card to the top of the (now lone) column,
-              // which fights the natural scroll. Keep sticky only on the
-              // 2-column desktop layout.
-              position: isMobile ? 'static' : 'sticky',
+              position: 'sticky',
               top: 80,
             }}
           >
@@ -2464,6 +2468,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 : 'Selections auto-save as you toggle.'}
             </div>
           </div>
+          )}
 
           {/* Facilitator — only for mindfulness-only proposals. Courtney
               photo + bio mirroring V1 StandaloneProposalViewer (right rail). */}
