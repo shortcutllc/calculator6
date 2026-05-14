@@ -55,6 +55,7 @@ import AccountTeamCard, {
   DEFAULT_TEAM_EMAIL,
 } from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
+import SignupLinkCard from './proposal/sidebar/SignupLinkCard';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
@@ -308,6 +309,9 @@ const ProposalViewerV2: React.FC = () => {
 
   // ---- Office address editing -------------------------------------------
   const [editingOfficeFor, setEditingOfficeFor] = useState<string | null>(null);
+  // ---- Location name editing — `null` when nothing is being renamed,
+  // otherwise the current name of the location whose label is in an input.
+  const [editingLocNameFor, setEditingLocNameFor] = useState<string | null>(null);
 
   // ---- Multi-option state ----------------------------------------------
   const [proposalOptions, setProposalOptions] = useState<any[]>([]);
@@ -1062,6 +1066,57 @@ const ProposalViewerV2: React.FC = () => {
         typeof displayData?.autoRecurringDiscount === 'number'
       ? 'fixed'
       : 'auto';
+
+  // -----------------------------------------------------------------------
+  // Rename a location — moves the services bucket, the matching office
+  // address, and any pricing_options / selected_options whose key starts
+  // with `${oldName}-` over to the new name. No-op if the new name is
+  // empty, unchanged, or already in use.
+  // -----------------------------------------------------------------------
+  const handleRenameLocation = (oldName: string, newName: string) => {
+    if (!editedData || !isEditing) return;
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) return;
+    const updated: any = { ...editedData };
+
+    if (updated.services && typeof updated.services === 'object') {
+      if (updated.services[trimmed]) return; // name collision — bail
+      const next: any = {};
+      for (const [k, v] of Object.entries(updated.services)) {
+        next[k === oldName ? trimmed : k] = v;
+      }
+      updated.services = next;
+    }
+    if (updated.officeLocations && typeof updated.officeLocations === 'object') {
+      const next: any = {};
+      for (const [k, v] of Object.entries(updated.officeLocations)) {
+        next[k === oldName ? trimmed : k] = v;
+      }
+      updated.officeLocations = next;
+    }
+    // pricing_options + selected_options use `${location}-${date}-${idx}` keys
+    const remapKeys = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return obj;
+      const next: any = {};
+      const prefix = `${oldName}-`;
+      for (const [k, v] of Object.entries(obj)) {
+        next[k.startsWith(prefix) ? `${trimmed}-${k.slice(prefix.length)}` : k] = v;
+      }
+      return next;
+    };
+    if (currentProposal) {
+      // Mirror the rename into the DB-shaped fields ProposalContext writes
+      (currentProposal as any).pricing_options = remapKeys(
+        (currentProposal as any).pricing_options
+      );
+      (currentProposal as any).selected_options = remapKeys(
+        (currentProposal as any).selected_options
+      );
+    }
+
+    setEditedData({ ...updated });
+    setDisplayData({ ...updated });
+  };
 
   // -----------------------------------------------------------------------
   // Office address per location
@@ -2608,6 +2663,62 @@ const ProposalViewerV2: React.FC = () => {
             {displayData?.heroTitle || `${clientName} wellness proposal`}
           </h1>
         )}
+        {/* Demo sign-up link — admin pastes a URL here and the client
+            viewer surfaces it as a "Sign up now" CTA card in the right
+            rail. Leave the URL blank to hide the card entirely. */}
+        {isEditing && (
+          <div
+            style={{
+              marginTop: 20,
+              padding: '14px 16px',
+              background: '#fff',
+              border: '1.5px dashed rgba(0,0,0,0.12)',
+              borderRadius: 12,
+              maxWidth: 720,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: T.fontUi,
+                fontWeight: 700,
+                fontSize: 11,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: T.fgMuted,
+                marginBottom: 8,
+              }}
+            >
+              Demo sign-up link
+            </div>
+            <input
+              type="url"
+              value={editedData.signupLink || ''}
+              onChange={(e) => setTopLevelField('signupLink', e.target.value)}
+              placeholder="https://… (Calendly, Google Form, internal RSVP, anything)"
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                fontFamily: T.fontD,
+                fontSize: 14,
+                color: T.navy,
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.12)',
+                borderRadius: 8,
+                outline: 'none',
+              }}
+            />
+            <div
+              style={{
+                fontFamily: T.fontD,
+                fontSize: 12,
+                color: T.fgMuted,
+                marginTop: 6,
+              }}
+            >
+              When set, the client sees a "Sign up now" card in the right rail (and on mobile, just below the Approve CTA). Leave blank to hide it.
+            </div>
+          </div>
+        )}
         <p
           style={{
             fontFamily: T.fontD,
@@ -2846,6 +2957,62 @@ const ProposalViewerV2: React.FC = () => {
                         }}
                       >
                         <div style={{ minWidth: 0, flex: 1 }}>
+                          {isEditing && editingLocNameFor === loc ? (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                marginLeft: 22, // line up with the chevron+pin row
+                              }}
+                            >
+                              <input
+                                type="text"
+                                defaultValue={loc}
+                                autoFocus
+                                placeholder="Location name"
+                                onBlur={(e) => {
+                                  handleRenameLocation(loc, e.target.value);
+                                  setEditingLocNameFor(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleRenameLocation(
+                                      loc,
+                                      (e.target as HTMLInputElement).value
+                                    );
+                                    setEditingLocNameFor(null);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setEditingLocNameFor(null);
+                                  }
+                                }}
+                                style={{
+                                  padding: '4px 8px',
+                                  fontFamily: T.fontUi,
+                                  fontWeight: 700,
+                                  fontSize: 11,
+                                  letterSpacing: '0.1em',
+                                  textTransform: 'uppercase',
+                                  color: T.fgMuted,
+                                  background: '#fff',
+                                  border: '1.5px dashed rgba(0,0,0,0.18)',
+                                  borderRadius: 6,
+                                  outline: 'none',
+                                  minWidth: 200,
+                                }}
+                              />
+                              <div
+                                style={{
+                                  fontFamily: T.fontD,
+                                  fontSize: 11,
+                                  color: T.fgMuted,
+                                }}
+                              >
+                                Enter to save · Esc to cancel
+                              </div>
+                            </div>
+                          ) : (
                           <button
                             type="button"
                             onClick={() => toggleCollapsed(loc)}
@@ -2872,7 +3039,40 @@ const ProposalViewerV2: React.FC = () => {
                             />
                             <MapPin size={16} color={T.fgMuted} />
                             <Eyebrow>{loc}</Eyebrow>
+                            {isEditing && (
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingLocNameFor(loc);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.stopPropagation();
+                                    setEditingLocNameFor(loc);
+                                  }
+                                }}
+                                title="Rename location"
+                                style={{
+                                  marginLeft: 4,
+                                  padding: '2px 6px',
+                                  fontFamily: T.fontUi,
+                                  fontWeight: 700,
+                                  fontSize: 10,
+                                  letterSpacing: '0.08em',
+                                  textTransform: 'uppercase',
+                                  color: T.coral,
+                                  border: '1px solid rgba(255,80,80,0.35)',
+                                  borderRadius: 6,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Rename
+                              </span>
+                            )}
                           </button>
+                          )}
                           <div
                             style={{
                               marginLeft: 24,
@@ -3958,6 +4158,17 @@ const ProposalViewerV2: React.FC = () => {
               {isEditing ? 'Edit mode — Save to publish.' : 'Read mode. Tap Edit to make changes.'}
             </div>
           </div>
+
+          {/* Demo sign-up — preview of the CTA card that the client viewer
+              renders when an admin pastes a URL in edit mode. The paste
+              UI lives in the "Demo sign-up link" row above the sidebar
+              (in the main column's edit panel) so the admin can copy a
+              URL in once and see how it'll appear here. */}
+          <SignupLinkCard
+            url={displayData?.signupLink}
+            title={displayData?.signupLinkTitle}
+            description={displayData?.signupLinkDescription}
+          />
 
           {/* Facilitator — mindfulness-only proposals get Courtney's bio in
               the right rail just like the client view does. */}

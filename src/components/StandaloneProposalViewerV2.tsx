@@ -32,6 +32,7 @@ import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
 import TrustCard from './proposal/sidebar/TrustCard';
 import FaqCard from './proposal/sidebar/FaqCard';
 import GalleryCard from './proposal/sidebar/GalleryCard';
+import SignupLinkCard from './proposal/sidebar/SignupLinkCard';
 import OptionsTabs, { ProposalOption } from './proposal/OptionsTabs';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
@@ -2469,6 +2470,17 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           </div>
           )}
+
+          {/* Demo sign-up — surfaces an admin-pasted URL as a CTA card.
+              Renders nothing when data.signupLink is empty, so default
+              proposals stay clean. Position it near the top so on mobile
+              (where the sidebar stacks below the main column) it's the
+              first sidebar card visitors hit after the Approve CTA. */}
+          <SignupLinkCard
+            url={displayData?.signupLink}
+            title={displayData?.signupLinkTitle}
+            description={displayData?.signupLinkDescription}
+          />
 
           {/* Facilitator — only for mindfulness-only proposals. Courtney
               photo + bio mirroring V1 StandaloneProposalViewer (right rail). */}
