@@ -208,6 +208,16 @@ const DecisionGrid: React.FC<{
   const cols = (showA ? 1 : 0) + (showB ? 1 : 0) + (showC ? 1 : 0);
   if (cols === 0) return null;
 
+  // Only Option A's employer cost varies with fill rate (best vs worst).
+  // B and C are flat. Old layout had separate "Best case" / "Worst case"
+  // rows which duplicated identical values down the B and C columns; new
+  // layout collapses to a single "Your cost" row, showing A as a range
+  // and B / C as the flat values they actually are. The per-fill-rate
+  // breakdown for A still lives in the FillRateTable below.
+  const aCostCell =
+    modelA.best === modelA.worst
+      ? `$${formatMoney(modelA.best)}`
+      : `$${formatMoney(modelA.best)} – $${formatMoney(modelA.worst)}`;
   return (
     <div className="card-large bg-white border-2 border-shortcut-blue border-opacity-15">
       <h3 className="text-lg md:text-xl font-extrabold text-shortcut-navy-blue mb-4">Side by side</h3>
@@ -223,18 +233,29 @@ const DecisionGrid: React.FC<{
           </thead>
           <tbody>
             <tr className="border-t border-shortcut-blue/10">
-              <td className="px-4 py-3 font-semibold text-text-dark">Best case for you</td>
-              {showA && <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">${formatMoney(modelA.best)}</td>}
-              {showB && <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">${formatMoney(modelB.flat)}</td>}
-              {showC && <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">${formatMoney(modelC.flat)}</td>}
+              <td className="px-4 py-3 font-semibold text-text-dark">Your cost</td>
+              {showA && (
+                <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">
+                  {aCostCell}
+                  {modelA.best !== modelA.worst && (
+                    <div className="text-xs font-medium text-text-dark-60 mt-0.5">scales with fill rate</div>
+                  )}
+                </td>
+              )}
+              {showB && (
+                <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">
+                  ${formatMoney(modelB.flat)}
+                  <div className="text-xs font-medium text-text-dark-60 mt-0.5">flat — same either way</div>
+                </td>
+              )}
+              {showC && (
+                <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">
+                  ${formatMoney(modelC.flat)}
+                  <div className="text-xs font-medium text-text-dark-60 mt-0.5">flat — same either way</div>
+                </td>
+              )}
             </tr>
             <tr className="border-t border-shortcut-blue/10 bg-neutral-light-gray/40">
-              <td className="px-4 py-3 font-semibold text-text-dark">Worst case for you</td>
-              {showA && <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">${formatMoney(modelA.worst)}</td>}
-              {showB && <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">${formatMoney(modelB.flat)}</td>}
-              {showC && <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">${formatMoney(modelC.flat)}</td>}
-            </tr>
-            <tr className="border-t border-shortcut-blue/10">
               <td className="px-4 py-3 font-semibold text-text-dark">Cost per {unitLabel} to employee</td>
               {showA && <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">${modelA.employee}</td>}
               {showB && <td className="px-4 py-3 text-right font-bold text-shortcut-navy-blue">${modelB.employee}</td>}
@@ -248,7 +269,12 @@ const DecisionGrid: React.FC<{
           Option A is cheapest for you when employees show up. Option B costs more in the best case but is fixed regardless of demand.
         </p>
       )}
-      {showC && (
+      {showA && showC && (
+        <p className="text-xs text-text-dark-60 mt-3">
+          Option A varies with fill rate — see the breakdown below. {showB ? 'Options B and C are' : 'Option C is'} flat regardless of demand.
+        </p>
+      )}
+      {!showA && showC && (
         <p className="text-xs text-text-dark-60 mt-3">
           Option C is the simplest sell internally — staff sees zero out-of-pocket cost — and the predictable flat option, with the 15% monthly partner discount baked in.
         </p>
@@ -423,10 +449,19 @@ export const PartnershipModelsSection: React.FC<PartnershipModelsSectionProps> =
   const totalProHours = inputs.numPros * inputs.totalHours;
   const bFlat = totalProHours * modelBRates.employerHourlyPerPro;
   const bPerLocationCost = numLocations > 0 ? bFlat / numLocations : bFlat;
+  // Math footer string. atomic === every row has the same staffing config.
+  // - atomic + 1 loc → "2 pros × 7 hrs = 14 pro-hours × $70/hr = $980"
+  // - atomic + N locs → per-location breakdown × N
+  // - non-atomic → just total pro-hours math
+  // The previous label said "${numPros} pro-hours" which was both wrong
+  // arithmetic (2 × 70 ≠ 980) and confusing — "pros" and "pro-hours" are
+  // not the same number.
   const bMathFooter =
     atomic && numLocations > 1
       ? `${atomic.pros} pro${atomic.pros === 1 ? '' : 's'} · ${atomic.hours} hours each = $${formatMoney(bPerLocationCost)} per location × ${numLocations} locations = $${formatMoney(bFlat)}`
-      : `${inputs.numPros} pro-hour${inputs.numPros === 1 ? '' : 's'} × $${modelBRates.employerHourlyPerPro}/hr = $${formatMoney(bFlat)}`;
+      : atomic
+      ? `${atomic.pros} pro${atomic.pros === 1 ? '' : 's'} × ${atomic.hours} hours = ${totalProHours} pro-hour${totalProHours === 1 ? '' : 's'} × $${modelBRates.employerHourlyPerPro}/hr = $${formatMoney(bFlat)}`
+      : `${totalProHours} pro-hour${totalProHours === 1 ? '' : 's'} × $${modelBRates.employerHourlyPerPro}/hr = $${formatMoney(bFlat)}`;
 
   // Option C — employer pays the full standard hourly rate (default $139/pro/hr),
   // then the monthly-partner discount comes off the top. Math is derived from
@@ -440,7 +475,9 @@ export const PartnershipModelsSection: React.FC<PartnershipModelsSectionProps> =
   const cMathFooter =
     atomic && numLocations > 1
       ? `${atomic.pros} pro${atomic.pros === 1 ? '' : 's'} · ${atomic.hours} hrs × $${modelCRates.employerHourlyPerPro}/hr = $${formatMoney(cPerLocationCost)} per location × ${numLocations} locations = $${formatMoney(cOriginalTotal)}`
-      : `${inputs.numPros} pro-hour${inputs.numPros === 1 ? '' : 's'} × $${modelCRates.employerHourlyPerPro}/hr = $${formatMoney(cOriginalTotal)}`;
+      : atomic
+      ? `${atomic.pros} pro${atomic.pros === 1 ? '' : 's'} × ${atomic.hours} hrs = ${totalProHours} pro-hour${totalProHours === 1 ? '' : 's'} × $${modelCRates.employerHourlyPerPro}/hr = $${formatMoney(cOriginalTotal)}`
+      : `${totalProHours} pro-hour${totalProHours === 1 ? '' : 's'} × $${modelCRates.employerHourlyPerPro}/hr = $${formatMoney(cOriginalTotal)}`;
 
   return (
     <div className="space-y-6">
