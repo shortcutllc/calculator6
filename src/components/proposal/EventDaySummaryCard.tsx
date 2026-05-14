@@ -73,7 +73,9 @@ const EventDaySummaryCard: React.FC<EventDaySummaryCardProps> = ({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                  // auto-fit reflows 4 mini-stats into 2-up or 1-up
+                  // on narrower viewports.
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
                   gap: 8,
                   marginBottom: 14,
                 }}

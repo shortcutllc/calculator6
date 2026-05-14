@@ -155,7 +155,10 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${options.length}, minmax(0,1fr))`,
+          // auto-fit collapses to fewer columns on narrow viewports —
+          // 1 to N options reflow without crushing the cells below
+          // readability.
+          gridTemplateColumns: `repeat(auto-fit, minmax(180px, 1fr))`,
           gap: 10,
         }}
       >
