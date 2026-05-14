@@ -333,7 +333,16 @@ const FillRateTable: React.FC<{
 // Sits directly under the hero. Three reassurance points, brand voice
 // (specifics over superlatives, no banned words). Replaces the old
 // "What's the same either way" block — which was operational filler.
-const WhyThisWorks: React.FC = () => {
+const WhyThisWorks: React.FC<{ service: string }> = ({ service }) => {
+  // `service` is the hero-noun like "Hair", "Massage", "Facial" — we
+  // splice it into the copy so the bullets read naturally for whatever
+  // service this partnership covers. Previously hard-coded to "Hair Pro"
+  // and "salons and barbers", which read odd on a chair-massage proposal.
+  const proLabel = `${service} Pro`;
+  const sourceLine =
+    service === 'Hair'
+      ? 'We pull from the top salons and barbers in your market and vet every one. Licensed, insured, and tested before they ever set foot in your office.'
+      : `We hand-pick the top ${service.toLowerCase()} pros in your market and vet every one. Licensed, insured, and tested before they ever set foot in your office.`;
   const points: Array<{ icon: React.ReactNode; title: string; body: string }> = [
     {
       icon: <Calendar className="w-6 h-6 text-shortcut-blue" strokeWidth={1.75} />,
@@ -343,12 +352,12 @@ const WhyThisWorks: React.FC = () => {
     {
       icon: <ShieldCheck className="w-6 h-6 text-shortcut-blue" strokeWidth={1.75} />,
       title: 'Pros recruited, not posted',
-      body: 'We pull from the top salons and barbers in your market and vet every one. Licensed, insured, and tested before they ever set foot in your office.',
+      body: sourceLine,
     },
     {
       icon: <Repeat className="w-6 h-6 text-shortcut-blue" strokeWidth={1.75} />,
       title: 'Same pros, every visit',
-      body: 'Once your team finds a Hair Pro they like, that’s who keeps coming back. No rotating cast.',
+      body: `Once your team finds a ${proLabel} they like, that’s who keeps coming back. No rotating cast.`,
     },
   ];
 
@@ -490,7 +499,7 @@ export const PartnershipModelsSection: React.FC<PartnershipModelsSectionProps> =
         optionCount={(showA ? 1 : 0) + (showB ? 1 : 0) + (showC ? 1 : 0)}
       />
 
-      <WhyThisWorks />
+      <WhyThisWorks service={service} />
 
       {/* Row 1: A and B side by side (or solo if only one is selected). */}
       <div className={`grid gap-6 ${showA && showB ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
