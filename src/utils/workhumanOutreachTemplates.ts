@@ -333,8 +333,10 @@ export const PERSONAL_NOTE_FOLLOWUP_SMS: Template = {
  * Sequence 2 (the simple reply-to-thread follow-up) carries the highest
  * reply rate of any touch we've ever sent (14.29% vs 12.24% for the
  * first touch), and the winning pattern is short + low-pressure + no
- * re-pitch. These two are deliberately tiny. Pick whichever fits the
- * read on the conversation.
+ * re-pitch. All three are deliberately tiny. The first ("Following up
+ * on the note below") is the verbatim 14.29% top performer from the
+ * 116-campaign analysis — default to it. Pick another only if the read
+ * on the conversation calls for it.
  *
  * Vars: {first_name}, {company}, {sender_name}. No {calendar_line} on
  * purpose — the first email already carried the calendar CTA; a second
@@ -345,11 +347,24 @@ export const PERSONAL_NOTE_FOLLOWUP_SMS: Template = {
  */
 export const PERSONAL_NOTE_FOLLOWUP_2_VARIATIONS: Template[] = [
   {
+    id: 'personal_note_followup_2_proven',
+    channel: 'email',
+    label: 'Follow-up 2 · "Following up on the note below" (14.29% — top performer)',
+    description:
+      'The single highest-replying touch in our SmartLead history (Email 2 Variant A, 116-campaign analysis). Verbatim except the dash is dropped for brand voice. Use this first unless you have a reason not to.',
+    body: `Hi {first_name}, hope your week is treating you well.
+
+Following up on the note below. Wondering if we could connect?
+
+Thanks,
+{sender_name}`,
+  },
+  {
     id: 'personal_note_followup_2_bump',
     channel: 'email',
-    label: 'Follow-up 2 · Soft bump (default)',
+    label: 'Follow-up 2 · Soft bump',
     description:
-      'The proven seq-2 winner: short, reply on the same thread, no new ask. Use when the booth chat was friendly but you got no read on urgency.',
+      'Short, reply on the same thread, no new ask. Use when the booth chat was friendly but you got no read on urgency.',
     body: `Hey {first_name},
 
 Bumping this back up in case it got buried. No worries at all if now isn't the time, the post-Workhuman inbox is no joke.
