@@ -72,9 +72,13 @@ const CITY_WORDS = new Set([
 ]);
 const STOP = new Set(['and', 'of', 'the', 'for', 'at']);
 
+// Fold accents/diacritics so "Schrödinger" == "Schrodinger" (NFD decompose,
+// strip combining marks). Without this, ö -> space and the names fragment.
+const foldAccents = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
 function normCore(s) {
   if (!s || typeof s !== 'string') return '';
-  return s
+  return foldAccents(s)
     .toLowerCase()
     .replace(/[.,]/g, ' ')
     .replace(/\b(inc|llc|l l c|corp|corporation|co|company|ltd|limited|the)\b/g, ' ')
