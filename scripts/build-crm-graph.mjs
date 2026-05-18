@@ -25,7 +25,6 @@ if (!/^https?:\/\//i.test(SUPABASE_URL) || !SUPABASE_SERVICE_ROLE_KEY) {
 const log = (...a) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...a);
 const DAY = 86400000;
 const NOW = Date.now();
-const EXPAND_GAP_DAYS = 90; // gap between 1st and 2nd site to count as "expander"
 const ACTIVE_DAYS = 547;    // last completed <= ~18mo => active
 const LAPSED_DAYS = 1095;   // <= ~36mo => lapsed; older => churned
 
@@ -157,6 +156,24 @@ function specialHandling(k) {
 }
 
 const titleCase = (s) => s.split(' ').map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(' ');
+
+// City canonicalizer (deterministic, like canonState). Collapses spelling /
+// case / abbreviation variants of the SAME city. Genuinely distinct places
+// (Brooklyn, Manhattan Beach, Cambridge) are left separate on purpose.
+const CITY_ALIASES = {
+  'new york': 'New York', 'new york city': 'New York', nyc: 'New York',
+  ny: 'New York', manhattan: 'New York', 'new york ny': 'New York',
+  'san francisco': 'San Francisco', sf: 'San Francisco',
+  'san francisco bay area': 'San Francisco', 'bay area': 'San Francisco',
+  'los angeles': 'Los Angeles', la: 'Los Angeles',
+};
+function canonCity(c) {
+  if (!c) return null;
+  let s = String(c).trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.,]+$/, '').trim();
+  if (s.includes(',')) s = s.split(',')[0].trim(); // "new york, ny" -> "new york"
+  if (!s) return null;
+  return CITY_ALIASES[s] || titleCase(s);
+}
 // When an event name lacks a city but ends in a known city word, recover it
 // (used only as a fallback when the address has no city).
 function nameCity(raw) {
@@ -229,7 +246,7 @@ function build(events) {
     const ck = r.key;
     if (r.display) forcedDisplay.set(ck, r.display);
     const st = canonState(e.address_state);
-    const city = e.address_city || nameCity(e.client_name) || null;
+    const city = canonCity(e.address_city || nameCity(e.client_name));
     const siteKey = `${ck}|${st || ''}|${city || ''}`;
     if (!companies.has(ck)) companies.set(ck, { evs: [], sites: new Map() });
     const c = companies.get(ck);
@@ -295,8 +312,11 @@ function build(events) {
     else if (completed.length <= 1) trajectory = 'one_off';
     else if (sitesArr.length === 1) trajectory = 'single_site_deep';
     else {
+      // expander + multi_site_flat merged: "grew beyond one office" IS the
+      // signal (DraftKings slow, BCG fast — both qualify). Speed is kept as
+      // the site_expansion_days attribute, NOT the classifier gate.
       expansionDays = siteFirsts.length >= 2 ? Math.round((siteFirsts[1] - siteFirsts[0]) / DAY) : null;
-      trajectory = expansionDays != null && expansionDays > EXPAND_GAP_DAYS ? 'expander' : 'multi_site_flat';
+      trajectory = 'multi_site_grower';
     }
 
     const etMix = {};
@@ -338,9 +358,9 @@ function build(events) {
       ]),
       top_category: mode(evs.map((e) => e.category)),
       states: uniq(evs.map((e) => canonState(e.address_state))),
-      cities: uniq(evs.map((e) => e.address_city || nameCity(e.client_name))),
+      cities: uniq(evs.map((e) => canonCity(e.address_city || nameCity(e.client_name)))),
       primary_state: mode(evs.map((e) => canonState(e.address_state))),
-      primary_city: mode(evs.map((e) => e.address_city || nameCity(e.client_name))),
+      primary_city: mode(evs.map((e) => canonCity(e.address_city || nameCity(e.client_name)))),
       sum_payment_completed: completed.reduce((s, e) => s + (Number(e.payment) || 0), 0) || null,
       sum_mobile_revenue_completed: completed.reduce((s, e) => s + (Number(e.mobile_revenue) || 0), 0) || null,
       ...ctc,
@@ -392,7 +412,7 @@ function summarize(companyRows, siteRows, candidates) {
   const traj = {};
   for (const c of companyRows) traj[c.trajectory] = (traj[c.trajectory] || 0) + 1;
   const real = companyRows.filter((c) => !c.is_internal && !c.special_handling); // exclude internal + venues
-  const expanders = real.filter((c) => c.trajectory === 'expander');
+  const growers = real.filter((c) => c.trajectory === 'multi_site_grower');
   const singleDeep = real.filter((c) => c.trajectory === 'single_site_deep');
   log('================ COMPANY GRAPH SUMMARY ================');
   const nInternal = companyRows.filter((c) => c.is_internal).length;
@@ -407,7 +427,7 @@ function summarize(companyRows, siteRows, candidates) {
   for (const k of ['bcg', 'wlrk', 'baxter x br']) {
     const c = companyRows.find((x) => x.canonical_key === k);
     if (c) {
-      log(`    ${c.display_name}: ${c.completed_events} completed, ${c.total_sites} sites, type=${c.primary_event_type}, traj=${c.trajectory}`);
+      log(`    ${c.display_name}: ${c.completed_events} completed, ${c.total_sites} sites, type=${c.primary_event_type}, traj=${c.trajectory}, site#1->#2 gap=${c.site_expansion_days}d`);
       for (const s of siteRows.filter((s) => s.company_key === k)) log(`        site: ${s.site_label} (${s.completed_events} completed)`);
     } else log(`    [${k}] not found`);
   }
@@ -415,12 +435,12 @@ function summarize(companyRows, siteRows, candidates) {
   for (const c of real) am[c.activity_status] = (am[c.activity_status] || 0) + 1;
   log(`  recency (real cohort): ${JSON.stringify(am)}`);
   const playA = singleDeep.filter((c) => c.activity_status === 'active');
-  log(`  >> EXPANDERS: ${expanders.length} total — ${expanders.filter((c) => c.activity_status === 'active').length} still active (clone the active ones)`);
+  log(`  >> MULTI-SITE GROWERS: ${growers.length} total — ${growers.filter((c) => c.activity_status === 'active').length} still active (clone the active ones; expansion speed = site_expansion_days attribute, not a gate)`);
   log(`  >> Play A pool (single-site-deep AND active): ${playA.length}  [was ${singleDeep.length} ignoring recency — recency matters]`);
   const demoed = real.filter((c) => c.demoed_not_closed);
   log(`  >> DEMOED-NOT-CLOSED: ${demoed.length} — reached a demo, never converted (loss-analysis + lookalike fuel); ${demoed.filter((c) => c.activity_status === 'active').length} demoed recently`);
-  log('  top expanders by sites served (with recency):');
-  for (const c of [...expanders].sort((a, b) => b.total_sites - a.total_sites).slice(0, 8)) {
+  log('  top multi-site growers by sites served (with recency):');
+  for (const c of [...growers].sort((a, b) => b.total_sites - a.total_sites).slice(0, 8)) {
     log(`    ${c.display_name}: ${c.total_sites} sites, ${c.completed_events}c (24mo=${c.completed_last_24mo}), last ${(c.last_completed_at || '').slice(0, 7) || '—'} → ${c.activity_status}  [${(c.cities || []).slice(0, 6).join(' / ')}]`);
   }
   log('  top companies by LIFETIME completed (note recency flag):');
