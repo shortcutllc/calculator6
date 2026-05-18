@@ -18,8 +18,9 @@
  *          SUPABASE_SERVICE_ROLE_KEY="$(netlify env:get SUPABASE_SERVICE_ROLE_KEY | tr -d ' \r\n')"
  *   # Phase 1 (free):
  *   node .claude/worktrees/<wt>/scripts/enrich-companies.mjs --limit 20
- *   # Phase 2 (spends, capped):
- *   export APOLLO_API_KEY="$(netlify env:get APOLLO_API_KEY | tr -d ' \r\n')"
+ *   # Phase 2 (spends, capped). APOLLO_API_KEY lives in openclaw's .env,
+ *   # NOT Netlify (Apollo is the openclaw cold-outreach stack):
+ *   export APOLLO_API_KEY="$(grep '^APOLLO_API_KEY=' /Users/willnewton/.openclaw/workspace/.env | cut -d= -f2- | tr -d ' \r\n')"
  *   node .claude/worktrees/<wt>/scripts/enrich-companies.mjs --confirm --token <token> --budget 20
  */
 
@@ -53,6 +54,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const FREE = new Set(['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
   'aol.com', 'me.com', 'msn.com', 'live.com', 'proton.me', 'protonmail.com', 'gmx.com',
   'mail.com', 'comcast.net', 'verizon.net', 'sbcglobal.net', 'att.net']);
+// Shortcut's own domains — event contacts are often OUR salesperson, so these
+// pollute contact_domains. Never enrich these (would just look up Shortcut).
+const BLOCK = new Set(['getshortcut.co', 'shortcut.co', 'shortcutpros.com', 'admin.shortcutpros.com']);
 
 // ---- ported verbatim from search_with_cache.js ----
 function generateToken() {
@@ -95,7 +99,7 @@ function loadCache() { try { return JSON.parse(readFileSync(CACHE_FILE, 'utf8'))
 function pickDomain(domains) {
   for (const d of domains || []) {
     const dd = String(d).toLowerCase().replace(/^www\./, '').trim();
-    if (dd && dd.includes('.') && !FREE.has(dd)) return dd;
+    if (dd && dd.includes('.') && !FREE.has(dd) && !BLOCK.has(dd)) return dd;
   }
   return null;
 }
@@ -172,8 +176,10 @@ async function phase2() {
   if (state.token !== TOKEN) { console.error('  ❌ Invalid token. Use the exact token from Phase 1.'); process.exit(1); }
 
   const budget = state.budget;
+  log(`  (APOLLO_API_KEY length: ${AK.length})`);
   const cache = loadCache();
   let spent = 0;
+  let lastErr = '';
   const stats = { success: 0, wrong_domain: 0, fail: 0, error: 0 };
   for (const c of state.candidates) {
     if (budget !== null && spent >= budget) { log(`  Budget ${budget} reached — stopping.`); break; }
@@ -196,7 +202,7 @@ async function phase2() {
         } else { status = 'wrong_domain'; }
         spent += 1; // Apollo charged: org returned (success OR wrong_domain)
       } else { status = 'fail'; }
-    } catch { status = 'error'; }
+    } catch (e) { status = 'error'; lastErr = e.message; }
 
     stats[status] += 1;
     cache[c.domain] = { status, industry, employees, hqCity, hqState, fetched_at: new Date().toISOString() };
@@ -206,7 +212,7 @@ async function phase2() {
         ext_hq_city: hqCity, ext_hq_state: hqState, ext_enriched_at: new Date().toISOString(),
       }).eq('id', c.id);
     }
-    log(`  ${c.name?.slice(0, 30).padEnd(30)} ${c.domain.padEnd(24)} ${status}${status === 'success' ? `  ${employees || '?'} emp / ${industry || '?'}` : ''}`);
+    log(`  ${c.name?.slice(0, 30).padEnd(30)} ${c.domain.padEnd(24)} ${status}${status === 'success' ? `  ${employees || '?'} emp / ${industry || '?'}` : ''}${status === 'error' ? `  (${lastErr})` : ''}`);
     writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
     await sleep(300);
   }
