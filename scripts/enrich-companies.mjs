@@ -157,7 +157,8 @@ async function phase1() {
     budget: BUDGET,
     candidates: candidates.map((c) => ({ id: c.id, key: c.canonical_key, name: c.display_name, domain: c._domain })),
   }, null, 2));
-  log(`\n  📋 Pending saved. To APPROVE and spend up to ${ceiling} credits, run:`);
+  const cap = BUDGET !== null ? Math.min(ceiling, BUDGET) : ceiling;
+  log(`\n  📋 Pending saved. To APPROVE and spend up to ${cap} credit${cap === 1 ? '' : 's'}, run:`);
   log(`  node scripts/enrich-companies.mjs --confirm --token ${token}${BUDGET !== null ? ` --budget ${BUDGET}` : ''}`);
   log(`  (token expires in 30 min; nothing was charged)\n`);
 }
