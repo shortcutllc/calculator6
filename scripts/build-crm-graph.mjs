@@ -472,8 +472,19 @@ function summarize(companyRows, siteRows, candidates) {
 
 async function upsert(table, rows, conflict, ignoreDup = false) {
   for (let i = 0; i < rows.length; i += 500) {
-    const { error } = await sb.from(table).upsert(rows.slice(i, i + 500), { onConflict: conflict, ignoreDuplicates: ignoreDup });
-    if (error) throw new Error(`upsert ${table}: ${error.message}`);
+    const batch = rows.slice(i, i + 500);
+    let attempt = 0;
+    for (;;) {
+      try {
+        const { error } = await sb.from(table).upsert(batch, { onConflict: conflict, ignoreDuplicates: ignoreDup });
+        if (error) throw new Error(error.message);
+        break;
+      } catch (e) {
+        attempt += 1;
+        if (attempt > 4) throw new Error(`upsert ${table} failed after ${attempt} attempts: ${e.message}`);
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt)); // backoff on transient fetch failures
+      }
+    }
     log(`  ${table}: ${Math.min(i + 500, rows.length)}/${rows.length}`);
   }
 }
