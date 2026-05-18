@@ -141,7 +141,10 @@ function emailDomain(e) {
 }
 // Shortcut's own activations/popups (curated): not a client. "baxter x br"
 // is already resolved away from the "shortcut" prefix, so it is NOT internal.
-const isInternalKey = (k) => typeof k === 'string' && (k === 'shortcut' || k.startsWith('shortcut '));
+// Shortcut's own activations + QA-artifact test names — not real prospects.
+const isInternalKey = (k) => typeof k === 'string' && (
+  k === 'shortcut' || k.startsWith('shortcut ')
+  || k === 'test' || k.startsWith('test ') || k.includes('claude test'));
 
 // Curated venues / coworking / events-industry — real revenue, NOT ICP.
 function specialHandling(k) {
@@ -219,7 +222,8 @@ function build(events) {
   const companies = new Map(); // key -> { evs, sites: Map(siteKey -> evs) }
   const forcedDisplay = new Map(); // curated-override display names
   for (const e of events) {
-    if (e.is_test_event === true) continue;
+    // Test events are kept (they = a demo reached). is_internal QA names are
+    // still excluded downstream via the real-cohort filter.
     const r = resolveCompany(e.client_name);
     if (!r) continue;
     const ck = r.key;
@@ -239,15 +243,21 @@ function build(events) {
   const siteRows = [];
   for (const [ck, c] of companies) {
     const evs = c.evs;
-    const completed = evs.filter((e) => e.status === 'Completed');
+    const completed = evs.filter((e) => e.status === 'Completed' && e.is_test_event !== true);
+    const testEvents = evs.filter((e) => e.is_test_event === true);
     const cancelled = evs.filter((e) => e.status === 'Cancelled');
     const pending = evs.filter((e) => e.status === 'Pending');
     const nonCanc = evs.filter((e) => e.status !== 'Cancelled');
     const startsAll = nonCanc.map((e) => ts(e.start_time)).filter(Boolean);
     const compTimes = completed.map((e) => ts(e.start_time)).filter(Boolean);
+    // reached a demo but never a real completed event = high-intent loss
+    const demoedNotClosed = completed.length === 0 && testEvents.length >= 1;
+    // recency from completed times, else fall back to demo (test) times
+    const recencyTimes = compTimes.length
+      ? compTimes : testEvents.map((e) => ts(e.start_time)).filter(Boolean);
     const c12 = compTimes.filter((t) => NOW - t <= 365 * DAY).length;
     const c24 = compTimes.filter((t) => NOW - t <= 730 * DAY).length;
-    const lastC = compTimes.length ? Math.max(...compTimes) : null;
+    const lastC = recencyTimes.length ? Math.max(...recencyTimes) : null;
     const ageDays = lastC == null ? null : (NOW - lastC) / DAY;
     const activityStatus = lastC == null ? 'never_completed'
       : ageDays <= ACTIVE_DAYS ? 'active'
@@ -281,7 +291,8 @@ function build(events) {
     const siteFirsts = sitesArr.map((s) => ts(s.first_event_at)).filter(Boolean).sort((a, b) => a - b);
     let trajectory;
     let expansionDays = null;
-    if (completed.length <= 1) trajectory = 'one_off';
+    if (demoedNotClosed) trajectory = 'demoed_not_closed';
+    else if (completed.length <= 1) trajectory = 'one_off';
     else if (sitesArr.length === 1) trajectory = 'single_site_deep';
     else {
       expansionDays = siteFirsts.length >= 2 ? Math.round((siteFirsts[1] - siteFirsts[0]) / DAY) : null;
@@ -315,6 +326,8 @@ function build(events) {
       tenure_days: startsAll.length ? Math.round((Math.max(...startsAll) - Math.min(...startsAll)) / DAY) : null,
       trajectory,
       site_expansion_days: expansionDays,
+      test_events: testEvents.length,
+      demoed_not_closed: demoedNotClosed,
       activity_status: activityStatus,
       completed_last_12mo: c12,
       completed_last_24mo: c24,
@@ -404,6 +417,8 @@ function summarize(companyRows, siteRows, candidates) {
   const playA = singleDeep.filter((c) => c.activity_status === 'active');
   log(`  >> EXPANDERS: ${expanders.length} total — ${expanders.filter((c) => c.activity_status === 'active').length} still active (clone the active ones)`);
   log(`  >> Play A pool (single-site-deep AND active): ${playA.length}  [was ${singleDeep.length} ignoring recency — recency matters]`);
+  const demoed = real.filter((c) => c.demoed_not_closed);
+  log(`  >> DEMOED-NOT-CLOSED: ${demoed.length} — reached a demo, never converted (loss-analysis + lookalike fuel); ${demoed.filter((c) => c.activity_status === 'active').length} demoed recently`);
   log('  top expanders by sites served (with recency):');
   for (const c of [...expanders].sort((a, b) => b.total_sites - a.total_sites).slice(0, 8)) {
     log(`    ${c.display_name}: ${c.total_sites} sites, ${c.completed_events}c (24mo=${c.completed_last_24mo}), last ${(c.last_completed_at || '').slice(0, 7) || '—'} → ${c.activity_status}  [${(c.cities || []).slice(0, 6).join(' / ')}]`);
