@@ -23,8 +23,6 @@ const log = (...a) => console.log(...a);
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 
 const sizeNum = (n) => parseInt(String(n || '').replace(/[^\d]/g, ''), 10) || 0;
-const sizeBand = (x) => (!x ? null : x <= 50 ? '1-50' : x <= 200 ? '51-200' : x <= 500 ? '201-500'
-  : x <= 1000 ? '501-1000' : x <= 5000 ? '1001-5000' : x <= 10000 ? '5001-10000' : '10001+');
 const titleCat = (t) => {
   const s = (t || '').toLowerCase();
   if (/hr|people|talent|human resources/.test(s)) return 'HR/People';
@@ -89,10 +87,24 @@ async function readAll(t, cols, mod) {
   // winner firmographic profile (from our high-fit real companies)
   const real = companies.filter((c) => !c.is_internal && !c.special_handling);
   const winnerCos = real.filter((c) => c.fit_score >= 70 && !c.demoed_not_closed && c.completed_events > 0);
-  const winInd = {}; const winBand = {};
-  for (const c of winnerCos) { const f = firmoOf(c); if (f.ind) winInd[f.ind] = (winInd[f.ind] || 0) + 1; const b = sizeBand(f.hc); if (b) winBand[b] = (winBand[b] || 0) + 1; }
+  const winInd = {};
+  const winHC = [];
+  for (const c of winnerCos) { const f = firmoOf(c); if (f.ind) winInd[f.ind] = (winInd[f.ind] || 0) + 1; if (f.hc > 0) winHC.push(f.hc); }
+  winHC.sort((a, b) => a - b);
   const topInd = new Set(Object.entries(winInd).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k]) => k));
-  const topBand = new Set(Object.entries(winBand).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k));
+  const pct = (p) => (winHC.length ? winHC[Math.min(winHC.length - 1, Math.floor(p * winHC.length))] : 0);
+  const P10 = pct(0.10); const P25 = pct(0.25); const P75 = pct(0.75); const P90 = pct(0.90);
+  // Size score 0–30: reward proximity to the winner mid-market heartland;
+  // strongly dampen mega-caps (way above p90 — not representative of our
+  // wins, brutal to land). Fixes Play B v1 surfacing Amazon/IBM over
+  // Schrödinger-shaped mid-market companies.
+  const sizeScore = (hc) => {
+    if (!hc) return 8;                          // unknown size — low-neutral
+    if (hc >= P25 && hc <= P75) return 30;      // winner heartland
+    if (hc >= P10 && hc <= P90) return 18;      // adjacent
+    if (hc < P10) return 8;                     // too small
+    return 4;                                   // mega-cap vs our winners — dampened
+  };
 
   // ---------- PLAY A: under-served active clients that are big multi-office ----------
   const playA = [];
@@ -128,10 +140,9 @@ async function readAll(t, cols, mod) {
     const e = byDom.get(p.domain); if (!e) continue;             // need firmographics
     const ind = Object.entries(e.ind).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
     const hc = e.hc.length ? e.hc.sort((a, b) => a - b)[e.hc.length >> 1] : 0;
-    const band = sizeBand(hc);
     let s = 0;
     if (ind && topInd.has(ind)) s += 45;
-    if (band && topBand.has(band)) s += 30;
+    s += sizeScore(hc);
     if (p.cat && GOOD.has(p.cat)) s += 25; else if (p.cat) s += 8;
     if (s < 40) continue;                                        // weak resemblance — drop
     const gate = await preflight(sb, { email: p.email, domain: p.domain });
