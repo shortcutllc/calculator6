@@ -15,6 +15,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const DRY = process.argv.includes('--dry');
+const RECONCILE = process.argv.includes('--reconcile'); // live: also delete superseded orphan company rows
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 if (!/^https?:\/\//i.test(SUPABASE_URL) || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -487,6 +488,39 @@ async function selectMap(table, keyCol) {
   return m;
 }
 
+// Orphan reconcile: rows in crm_companies whose canonical_key the CURRENT
+// build no longer produces = superseded by a normalization change (e.g. the
+// accent fold turned "schr dinger" into "schrodinger"). Lists always; only
+// deletes on a live run explicitly invoked with --reconcile.
+async function reconcile(companyRows) {
+  const produced = new Set(companyRows.map((c) => c.canonical_key));
+  const existing = [];
+  for (let f = 0; ; f += 1000) {
+    const { data, error } = await sb.from('crm_companies')
+      .select('canonical_key, display_name, completed_events, is_internal, special_handling, ext_enriched_at')
+      .range(f, f + 999);
+    if (error) throw new Error(`select crm_companies: ${error.message}`);
+    existing.push(...data);
+    if (data.length < 1000) break;
+  }
+  const orphans = existing.filter((r) => !produced.has(r.canonical_key));
+  log(`\n  RECONCILE: ${existing.length} rows in crm_companies, ${produced.size} produced this build → ${orphans.length} orphan(s) (old keys a normalization change replaced)`);
+  for (const o of [...orphans].sort((a, b) => b.completed_events - a.completed_events)) {
+    const tag = o.is_internal ? 'internal' : o.special_handling ? 'venue' : 'COHORT';
+    log(`    "${o.display_name}"  key="${o.canonical_key}"  ${o.completed_events}c  [${tag}]${o.ext_enriched_at ? ' (has stranded enrichment)' : ''}`);
+  }
+  if (orphans.length && !DRY && RECONCILE) {
+    const keys = orphans.map((o) => o.canonical_key);
+    for (let i = 0; i < keys.length; i += 100) {
+      const { error } = await sb.from('crm_companies').delete().in('canonical_key', keys.slice(i, i + 100));
+      if (error) throw new Error(`reconcile delete: ${error.message}`);
+    }
+    log(`  ✅ Deleted ${orphans.length} superseded orphan rows.`);
+  } else if (orphans.length) {
+    log(`  (no deletion — ${DRY ? 'dry run' : 'pass --reconcile on a live run to remove these'})`);
+  }
+}
+
 (async () => {
   log(DRY ? 'DRY RUN — no writes' : 'LIVE RUN — will write the company graph');
   log('Reading crm_events...');
@@ -527,6 +561,7 @@ async function selectMap(table, keyCol) {
     }
   }
 
+  await reconcile(companyRows);
   summarize(companyRows, siteRows, candidates);
   log('DONE');
 })().catch((err) => {
