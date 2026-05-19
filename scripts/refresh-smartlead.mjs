@@ -25,6 +25,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const FULL = args.includes('--full');
 const CACHE_ONLY = args.includes('--cache-only');
+// Rolling window the ingest honors so the cron never re-processes the full
+// lifetime — only Smartlead activity in the last N days (default 30). The
+// one-time historical backfill runs ingest WITHOUT this env (full history).
+const di = args.indexOf('--days');
+const SINCE_DAYS = di !== -1 && args[di + 1] ? String(parseInt(args[di + 1], 10) || 30) : '30';
 
 const SMARTLEAD_API_KEY = (() => {
   try {
@@ -60,7 +65,7 @@ function run(cmd, cmdArgs, cwd, extraEnv) {
 
   if (CACHE_ONLY) { log('--cache-only: skipping ingest. DONE'); return; }
 
-  log('Step 2/2 — re-ingest Track B (idempotent upsert of the delta)...');
-  await run('node', [join(HERE, 'ingest-outreach-corpus.mjs')], HERE);
+  log(`Step 2/2 — re-ingest Track B (idempotent; window = last ${SINCE_DAYS} days)...`);
+  await run('node', [join(HERE, 'ingest-outreach-corpus.mjs')], HERE, { REFRESH_SINCE_DAYS: SINCE_DAYS });
   log('Ingest complete. Pre-flight gate is fresh. DONE');
 })().catch((e) => { console.error('REFRESH_ERROR:', e.message); process.exit(1); });

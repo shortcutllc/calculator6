@@ -76,8 +76,20 @@ function ingestCache() {
   for (const [cid, c] of Object.entries(j.campaigns_processed || {})) {
     campaigns.set(String(cid), { campaign_id: String(cid), name: c.name || null, status: c.status || null, leads: c.leads ?? null, src_updated_at: tsv(c.updated_at) });
   }
+  // Rolling window: the refresh cron sets REFRESH_SINCE_DAYS so we only
+  // re-process Smartlead leads with activity in the last N days (the lifetime
+  // is already in Supabase from the one-time backfill, which runs WITHOUT
+  // this env). Unset = full history (backfill behavior, unchanged).
+  const sinceDays = parseInt(process.env.REFRESH_SINCE_DAYS || '', 10);
+  const cutoff = Number.isFinite(sinceDays) && sinceDays > 0 ? Date.now() - sinceDays * 86400000 : null;
   let n = 0;
+  let skipped = 0;
   for (const [email, L] of Object.entries(j.leads || {})) {
+    if (cutoff) {
+      const st = L.sent_time ? Date.parse(L.sent_time) : NaN;
+      const rt = L.reply_time ? Date.parse(L.reply_time) : NaN;
+      if (!((Number.isFinite(st) && st >= cutoff) || (Number.isFinite(rt) && rt >= cutoff))) { skipped += 1; continue; }
+    }
     mergeContact(email, { name: L.lead_name, first_seen: tsv(L.sent_time) }, 'cache', 0);
     addSend(email, String(L.campaign_id ?? ''), L.sent_time, L.reply_time, L.is_bounced);
     if (L.reply_sentiment !== undefined || L.reply_content !== undefined) {
@@ -85,7 +97,7 @@ function ingestCache() {
     }
     n += 1;
   }
-  log(`cache: ${campaigns.size} campaigns, ${n} leads`);
+  log(`cache: ${campaigns.size} campaigns, ${n} leads${cutoff ? ` (window last ${sinceDays}d — skipped ${skipped} out-of-window)` : ' (full history)'}`);
 }
 
 // ---------- 2. positive_responders.json ----------
