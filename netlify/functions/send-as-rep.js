@@ -14,7 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { preflight } from './lib/preflight.js';
-import { getAccessToken, sendEmail, lc } from './lib/gmail.js';
+import { getAccessToken, sendEmail, getSignature, lc } from './lib/gmail.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -75,7 +75,8 @@ export const handler = async (event) => {
   let sent;
   try {
     const accessToken = await getAccessToken(sb, fromEmail);
-    sent = await sendEmail(accessToken, { from: fromEmail, to, subject, body: text });
+    const signatureHtml = await getSignature(accessToken, fromEmail);
+    sent = await sendEmail(accessToken, { from: fromEmail, to, subject, body: text, signatureHtml });
   } catch (e) {
     return json(502, { error: `Send failed: ${e.message}` });
   }

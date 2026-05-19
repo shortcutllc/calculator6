@@ -79,24 +79,57 @@ export async function getAccessToken(sb, email) {
   return j.access_token;
 }
 
-/** RFC 2822 message, base64url-encoded for gmail.users.messages.send. */
-function buildRaw({ from, to, subject, body }) {
+const escapeHtml = (s) => String(s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * The rep's Gmail signature for `fromEmail`. The Gmail API send endpoint does
+ * NOT auto-append the web client's signature, so we fetch and add it. Returns
+ * HTML string or null. Degrades silently (e.g. if the token lacks settings
+ * read) — a missing signature must never block a send.
+ */
+export async function getSignature(accessToken, fromEmail) {
+  try {
+    const r = await fetch(`${GMAIL}/settings/sendAs`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const list = j.sendAs || [];
+    const want = lc(fromEmail);
+    const match = list.find((s) => lc(s.sendAsEmail) === want)
+      || list.find((s) => s.isPrimary) || list[0];
+    const sig = match?.signature?.trim();
+    return sig ? sig : null;
+  } catch {
+    return null;
+  }
+}
+
+/** RFC 2822 text/html message, base64url-encoded for messages.send. */
+function buildRaw({ from, to, subject, bodyHtml }) {
   const headers = [
     `From: ${from}`,
     `To: ${to}`,
     `Subject: ${subject}`,
     'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset="UTF-8"',
-    'Content-Transfer-Encoding: 7bit',
+    'Content-Type: text/html; charset="UTF-8"',
   ];
-  const mime = `${headers.join('\r\n')}\r\n\r\n${body}`;
+  const mime = `${headers.join('\r\n')}\r\n\r\n${bodyHtml}`;
   return Buffer.from(mime, 'utf-8').toString('base64')
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/** Send an email as the rep. Returns { id, threadId }. */
-export async function sendEmail(accessToken, { from, to, subject, body }) {
-  const raw = buildRaw({ from, to, subject, body });
+/**
+ * Send an email as the rep. `body` is the rep-approved plain text; it is
+ * HTML-escaped and newline-converted. `signatureHtml` (already HTML, from
+ * getSignature) is appended verbatim after a separator. Returns { id, threadId }.
+ */
+export async function sendEmail(accessToken, { from, to, subject, body, signatureHtml }) {
+  const bodyHtml = escapeHtml(body).replace(/\r?\n/g, '<br>');
+  const sigBlock = signatureHtml ? `<br><br>${signatureHtml}` : '';
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${bodyHtml}${sigBlock}</div>`;
+  const raw = buildRaw({ from, to, subject, bodyHtml: html });
   const r = await fetch(`${GMAIL}/messages/send`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },

@@ -48,6 +48,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
   const [gmail, setGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
   const [toEmail, setToEmail] = useState('');
   const [sending, setSending] = useState<string | null>(null);
+  const [confirmLabel, setConfirmLabel] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<
     { label: string; kind: 'ok' | 'blocked' | 'err'; text: string; canForce?: boolean } | null
   >(null);
@@ -89,7 +90,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
   };
 
   const sendDraft = async (label: string, force = false) => {
-    setSending(label); setSendResult(null);
+    setSending(label); setSendResult(null); setConfirmLabel(null);
     try {
       const res = await authedFetch('/.netlify/functions/send-as-rep', {
         method: 'POST',
@@ -252,13 +253,31 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
                       className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono leading-relaxed"
                     />
                     <div className="flex items-center gap-3 pt-1">
-                      <button
-                        onClick={() => sendDraft(d.label)}
-                        disabled={!gmail?.connected || !toEmail.trim() || sending === d.label}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Send size={14} /> {sending === d.label ? 'Sending…' : 'Send via Gmail'}
-                      </button>
+                      {confirmLabel === d.label ? (
+                        <>
+                          <button
+                            onClick={() => sendDraft(d.label)}
+                            disabled={sending === d.label}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-700 rounded disabled:opacity-40"
+                          >
+                            <Send size={14} /> {sending === d.label ? 'Sending…' : `Confirm send to ${toEmail.trim()}`}
+                          </button>
+                          <button
+                            onClick={() => setConfirmLabel(null)}
+                            className="text-xs text-gray-500 hover:text-gray-800"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => { setSendResult(null); setConfirmLabel(d.label); }}
+                          disabled={!gmail?.connected || !toEmail.trim() || sending === d.label}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Send size={14} /> Send via Gmail
+                        </button>
+                      )}
                       {!gmail?.connected && (
                         <span className="text-xs text-gray-400">Connect Gmail to send</span>
                       )}
@@ -323,6 +342,35 @@ const SalesIntelligence: React.FC = () => {
   const [search, setSearch] = useState('');
   const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null);
   const [gmailNotice, setGmailNotice] = useState<string | null>(null);
+  const [pageGmail, setPageGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
+
+  const refreshGmail = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/.netlify/functions/gmail-status', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const j = await res.json();
+      if (res.ok) setPageGmail({ connected: !!j.connected, email: j.email || null });
+    } catch { /* best-effort */ }
+  }, []);
+
+  const connectGmailPage = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/.netlify/functions/gmail-oauth-start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: '{}',
+      });
+      const j = await res.json();
+      if (res.ok && j.url) window.open(j.url, '_blank', 'noopener');
+    } catch { /* surfaced via banner on return */ }
+  }, []);
+
+  useEffect(() => { refreshGmail(); }, [refreshGmail]);
 
   useEffect(() => {
     const g = new URLSearchParams(window.location.search).get('gmail');
@@ -333,8 +381,9 @@ const SalesIntelligence: React.FC = () => {
         : g === 'noretoken' ? 'Gmail returned no refresh token. Remove the app at myaccount.google.com/permissions, then connect again.'
         : 'Gmail connection failed. Please try connecting again.',
     );
+    if (g === 'connected') refreshGmail();
     window.history.replaceState({}, '', window.location.pathname);
-  }, []);
+  }, [refreshGmail]);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -379,9 +428,23 @@ const SalesIntelligence: React.FC = () => {
         <h1 className="text-3xl font-extrabold text-shortcut-navy-blue flex items-center gap-3">
           <Target size={28} /> Sales Intelligence
         </h1>
-        <button onClick={load} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
-          <RefreshCw size={16} /> Reload
-        </button>
+        <div className="flex items-center gap-4">
+          {pageGmail?.connected ? (
+            <span className="flex items-center gap-1.5 text-sm text-green-700">
+              <Mail size={15} /> {pageGmail.email}
+            </span>
+          ) : (
+            <button
+              onClick={connectGmailPage}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              <Mail size={15} /> Connect Gmail
+            </button>
+          )}
+          <button onClick={load} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
+            <RefreshCw size={16} /> Reload
+          </button>
+        </div>
       </div>
       <p className="text-sm text-gray-500 mb-6">
         {generatedAt
