@@ -23,7 +23,8 @@ const CORS = {
 };
 const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const GMAIL_CAMPAIGN = 'gmail-direct';
+const GMAIL_CAMPAIGN = 'gmail-direct';      // confirmed API send
+const GMAIL_OPEN_CAMPAIGN = 'gmail-open';   // opened in Gmail web compose (intent to send)
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
@@ -43,6 +44,7 @@ export const handler = async (event) => {
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'Invalid JSON body' }); }
 
+  const mode = body.mode === 'open' ? 'open' : 'send';
   const to = lc(body.to);
   const fromEmail = lc(body.fromEmail);
   const subject = (body.subject || '').toString().trim();
@@ -50,7 +52,8 @@ export const handler = async (event) => {
   const acknowledgedCaution = body.acknowledgedCaution === true;
 
   if (!to || !EMAIL_RE.test(to)) return json(400, { error: 'A valid recipient email is required' });
-  if (!fromEmail) return json(400, { error: 'fromEmail (the connected Gmail) is required' });
+  // 'open' mode opens Gmail web compose and does not need our OAuth connection.
+  if (mode === 'send' && !fromEmail) return json(400, { error: 'fromEmail (the connected Gmail) is required' });
   if (!subject) return json(400, { error: 'Subject is required' });
   if (text.trim().length < 10) return json(400, { error: 'Body looks empty' });
 
@@ -69,6 +72,30 @@ export const handler = async (event) => {
   }
   if (gate.recommendation === 'caution_recently_contacted' && !acknowledgedCaution) {
     return json(409, { blocked: true, reason: 'recently_contacted', detail: gate.last_contact, preflight: gate });
+  }
+
+  // "Open in Gmail": build a web-compose deep link, record intent so the
+  // gate dedupes, and let the rep send from Gmail (signature added natively).
+  if (mode === 'open') {
+    const p = new URLSearchParams({ view: 'cm', fs: '1', to, su: subject, body: text });
+    if (fromEmail) p.set('authuser', fromEmail);
+    const openUrl = `https://mail.google.com/mail/?${p.toString()}`;
+
+    const now = new Date().toISOString();
+    try {
+      await sb.from('outreach_contacts').upsert(
+        { email: to, email_domain: to.split('@')[1] || null, source: 'gmail-open', first_seen: now, ingested_at: now },
+        { onConflict: 'email', ignoreDuplicates: true },
+      );
+      await sb.from('outreach_sends').upsert(
+        { email: to, campaign_id: GMAIL_OPEN_CAMPAIGN, sent_time: now, ingested_at: now },
+        { onConflict: 'email,campaign_id' },
+      );
+    } catch (e) {
+      console.error('open recorded with errors (non-fatal):', e.message);
+    }
+
+    return json(200, { success: true, mode: 'open', open_url: openUrl, preflight: gate });
   }
 
   // Send via the rep's Gmail.

@@ -121,6 +121,38 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
     }
   };
 
+  const openInGmail = async (label: string) => {
+    setSending(label); setSendResult(null); setConfirmLabel(null);
+    try {
+      const res = await authedFetch('/.netlify/functions/send-as-rep', {
+        method: 'POST',
+        body: JSON.stringify({
+          mode: 'open',
+          play: target.play, rank: target.rank,
+          to: toEmail.trim(), fromEmail: gmail?.email,
+          subject: subjects[label], body: bodies[label],
+        }),
+      });
+      const j = await res.json();
+      if (res.status === 409 && j.blocked) {
+        setSendResult({
+          label, kind: 'blocked',
+          text: j.reason === 'suppressed' ? 'Blocked: recipient is suppressed / do-not-contact.'
+            : j.reason === 'already_client' ? 'Blocked: already an active client.'
+            : 'Caution: contacted in the last 90 days. Use Send via Gmail to override.',
+        });
+        return;
+      }
+      if (!res.ok || !j.success || !j.open_url) throw new Error(j.error || `Failed (${res.status})`);
+      window.open(j.open_url, '_blank', 'noopener');
+      setSendResult({ label, kind: 'ok', text: 'Opened in Gmail. Send from there to finish.' });
+    } catch (e) {
+      setSendResult({ label, kind: 'err', text: e instanceof Error ? e.message : 'Could not open in Gmail' });
+    } finally {
+      setSending(null);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -270,16 +302,25 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
                           </button>
                         </>
                       ) : (
-                        <button
-                          onClick={() => { setSendResult(null); setConfirmLabel(d.label); }}
-                          disabled={!gmail?.connected || !toEmail.trim() || sending === d.label}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Send size={14} /> Send via Gmail
-                        </button>
+                        <>
+                          <button
+                            onClick={() => { setSendResult(null); setConfirmLabel(d.label); }}
+                            disabled={!gmail?.connected || !toEmail.trim() || sending === d.label}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Send size={14} /> Send via Gmail
+                          </button>
+                          <button
+                            onClick={() => openInGmail(d.label)}
+                            disabled={!toEmail.trim() || sending === d.label}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Mail size={14} /> Open in Gmail
+                          </button>
+                        </>
                       )}
                       {!gmail?.connected && (
-                        <span className="text-xs text-gray-400">Connect Gmail to send</span>
+                        <span className="text-xs text-gray-400">Connect Gmail for direct send · Open in Gmail works without it</span>
                       )}
                       {sendResult?.label === d.label && (
                         <span
