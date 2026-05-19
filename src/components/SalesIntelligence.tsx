@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle } from 'lucide-react';
+import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
@@ -19,6 +19,145 @@ interface ReconRow {
   bucket: string; total: number; title_breakdown: Record<string, number>;
   generated_at: string;
 }
+
+interface DraftDirection { label: string; subject: string; body: string }
+interface DraftResponse {
+  target: Record<string, unknown>;
+  preflight: { recommendation?: string; suppressed?: boolean; is_client?: boolean; contacted?: boolean } | null;
+  drafts: DraftDirection[];
+  fight_for: string | null;
+  fight_for_reason: string | null;
+  grounding_note: string;
+}
+type DraftTarget = { play: 'A' | 'B'; rank: number; company: string };
+
+const RECO_COPY: Record<string, { tone: string; text: string }> = {
+  skip_suppressed: { tone: 'bg-red-50 text-red-700', text: 'Suppressed / do-not-contact. Do not send.' },
+  skip_already_client: { tone: 'bg-amber-50 text-amber-700', text: 'Already an active client. This is an expansion touch, not a cold pitch.' },
+  caution_recently_contacted: { tone: 'bg-amber-50 text-amber-700', text: 'Contacted in the last 90 days with no reply. Consider a different angle or waiting.' },
+  ok_to_proceed: { tone: 'bg-green-50 text-green-700', text: 'Clear to reach out. No prior contact or suppression found.' },
+};
+
+const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ target, onClose }) => {
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [data, setData] = useState<DraftResponse | null>(null);
+  const [bodies, setBodies] = useState<Record<string, string>>({});
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true); setErr(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not signed in');
+        const res = await fetch('/.netlify/functions/draft-outreach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ play: target.play, rank: target.rank }),
+        });
+        const j = await res.json();
+        if (!res.ok || !j.success) throw new Error(j.error || `Request failed (${res.status})`);
+        if (cancelled) return;
+        setData(j);
+        setBodies(Object.fromEntries((j.drafts || []).map((d: DraftDirection) => [d.label, d.body])));
+        setSubjects(Object.fromEntries((j.drafts || []).map((d: DraftDirection) => [d.label, d.subject])));
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to draft');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [target]);
+
+  const copy = (label: string) => {
+    const text = `Subject: ${subjects[label] || ''}\n\n${bodies[label] || ''}`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(label);
+      setTimeout(() => setCopied((c) => (c === label ? null : c)), 1800);
+    });
+  };
+
+  const reco = data?.preflight?.recommendation || '';
+  const recoMeta = RECO_COPY[reco];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl my-8">
+        <div className="flex items-start justify-between p-5 border-b border-gray-200">
+          <div>
+            <h2 className="text-lg font-bold text-shortcut-navy-blue flex items-center gap-2">
+              <PenLine size={18} /> Draft outreach — {target.company}
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Play {target.play} · rank {target.rank} · human-in-the-loop. Review, edit, then copy. Nothing is sent.
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {loading && <div className="py-12 text-center text-gray-400">Drafting in brand voice…</div>}
+          {err && (
+            <div className="bg-red-50 text-red-700 p-3 rounded flex items-center gap-2 text-sm">
+              <AlertCircle size={16} /> {err}
+            </div>
+          )}
+          {data && !loading && (
+            <>
+              {recoMeta && (
+                <div className={`text-sm px-3 py-2 rounded ${recoMeta.tone}`}>
+                  <span className="font-semibold uppercase text-xs tracking-wide">Pre-flight: </span>
+                  {recoMeta.text}
+                </div>
+              )}
+              {data.fight_for && (
+                <div className="text-sm bg-blue-50 text-blue-800 px-3 py-2 rounded">
+                  <span className="font-semibold">Recommended: {data.fight_for}.</span>{' '}
+                  {data.fight_for_reason}
+                </div>
+              )}
+              {(data.drafts || []).map((d) => (
+                <div key={d.label} className="border border-gray-200 rounded">
+                  <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    <span className={`text-xs font-bold uppercase tracking-wide ${
+                      data.fight_for === d.label ? 'text-blue-700' : 'text-gray-500'}`}>
+                      {d.label}{data.fight_for === d.label ? ' · recommended' : ''}
+                    </span>
+                    <button
+                      onClick={() => copy(d.label)}
+                      className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900"
+                    >
+                      {copied === d.label ? <Check size={14} /> : <Copy size={14} />}
+                      {copied === d.label ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    <input
+                      value={subjects[d.label] ?? ''}
+                      onChange={(e) => setSubjects((s) => ({ ...s, [d.label]: e.target.value }))}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-medium"
+                    />
+                    <textarea
+                      value={bodies[d.label] ?? ''}
+                      onChange={(e) => setBodies((b) => ({ ...b, [d.label]: e.target.value }))}
+                      rows={Math.min(16, Math.max(6, (bodies[d.label] || '').split('\n').length + 1))}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono leading-relaxed"
+                    />
+                  </div>
+                </div>
+              ))}
+              <p className="text-xs text-gray-400">{data.grounding_note}</p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
@@ -48,6 +187,7 @@ const SalesIntelligence: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -156,6 +296,7 @@ const SalesIntelligence: React.FC = () => {
                 <th className={th}>#</th><th className={th}>Company</th><th className={th}>Fit</th>
                 <th className={th}>Employees</th><th className={th}>Industry</th>
                 <th className={th}>We serve</th><th className={th}>Offices</th>
+                <th className={th}></th>
               </tr>
             </thead>
             <tbody>
@@ -168,6 +309,14 @@ const SalesIntelligence: React.FC = () => {
                   <td className={td}>{r.industry}</td>
                   <td className={td}>{r.sites_served}</td>
                   <td className={`${td} text-gray-500`}>{r.sites_list}</td>
+                  <td className={td}>
+                    <button
+                      onClick={() => setDraftTarget({ play: 'A', rank: r.rank, company: r.company_name })}
+                      className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                    >
+                      <PenLine size={14} /> Draft
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -181,6 +330,7 @@ const SalesIntelligence: React.FC = () => {
                 <th className={th}>#</th><th className={th}>Company</th><th className={th}>Score</th>
                 <th className={th}>Employees</th><th className={th}>Industry</th>
                 <th className={th}>Contact</th><th className={th}>Title</th>
+                <th className={th}></th>
               </tr>
             </thead>
             <tbody>
@@ -193,6 +343,14 @@ const SalesIntelligence: React.FC = () => {
                   <td className={td}>{r.industry}</td>
                   <td className={td}>{r.contact_name}</td>
                   <td className={`${td} text-gray-500`}>{r.contact_title} <span className="text-xs text-gray-400">({r.title_category})</span></td>
+                  <td className={td}>
+                    <button
+                      onClick={() => setDraftTarget({ play: 'B', rank: r.rank, company: r.company_name })}
+                      className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                    >
+                      <PenLine size={14} /> Draft
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -218,6 +376,10 @@ const SalesIntelligence: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {draftTarget && (
+        <DraftModal target={draftTarget} onClose={() => setDraftTarget(null)} />
       )}
     </div>
   );
