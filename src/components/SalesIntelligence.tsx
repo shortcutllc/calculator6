@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check } from 'lucide-react';
+import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
@@ -45,6 +45,80 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
   const [bodies, setBodies] = useState<Record<string, string>>({});
   const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
+  const [gmail, setGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
+  const [toEmail, setToEmail] = useState('');
+  const [sending, setSending] = useState<string | null>(null);
+  const [sendResult, setSendResult] = useState<
+    { label: string; kind: 'ok' | 'blocked' | 'err'; text: string; canForce?: boolean } | null
+  >(null);
+
+  const authedFetch = async (path: string, init?: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    return fetch(path, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        ...(init?.headers || {}),
+      },
+    });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authedFetch('/.netlify/functions/gmail-status', { method: 'GET' });
+        const j = await res.json();
+        if (!cancelled && res.ok) setGmail({ connected: !!j.connected, email: j.email || null });
+      } catch { /* status is best-effort; copy path still works */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const connectGmail = async () => {
+    try {
+      const res = await authedFetch('/.netlify/functions/gmail-oauth-start', { method: 'POST', body: '{}' });
+      const j = await res.json();
+      if (!res.ok || !j.url) throw new Error(j.error || 'Could not start Gmail connect');
+      window.open(j.url, '_blank', 'noopener');
+    } catch (e) {
+      setSendResult({ label: '', kind: 'err', text: e instanceof Error ? e.message : 'Connect failed' });
+    }
+  };
+
+  const sendDraft = async (label: string, force = false) => {
+    setSending(label); setSendResult(null);
+    try {
+      const res = await authedFetch('/.netlify/functions/send-as-rep', {
+        method: 'POST',
+        body: JSON.stringify({
+          play: target.play, rank: target.rank,
+          to: toEmail.trim(), fromEmail: gmail?.email,
+          subject: subjects[label], body: bodies[label],
+          acknowledgedCaution: force,
+        }),
+      });
+      const j = await res.json();
+      if (res.status === 409 && j.blocked) {
+        const recent = j.reason === 'recently_contacted';
+        setSendResult({
+          label, kind: 'blocked', canForce: recent,
+          text: j.reason === 'suppressed' ? 'Blocked: recipient is suppressed / do-not-contact.'
+            : j.reason === 'already_client' ? 'Blocked: already an active client.'
+            : 'Caution: contacted in the last 90 days with no reply.',
+        });
+        return;
+      }
+      if (!res.ok || !j.success) throw new Error(j.error || `Send failed (${res.status})`);
+      setSendResult({ label, kind: 'ok', text: `Sent to ${toEmail.trim()}.` });
+    } catch (e) {
+      setSendResult({ label, kind: 'err', text: e instanceof Error ? e.message : 'Send failed' });
+    } finally {
+      setSending(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +167,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
               <PenLine size={18} /> Draft outreach — {target.company}
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Play {target.play} · rank {target.rank} · human-in-the-loop. Review, edit, then copy. Nothing is sent.
+              Play {target.play} · rank {target.rank} · human-in-the-loop. Review and edit before sending. The pre-flight gate re-checks the recipient on send.
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
@@ -120,6 +194,36 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
                   {data.fight_for_reason}
                 </div>
               )}
+
+              <div className="flex flex-wrap items-center gap-3 border border-gray-200 rounded p-3 bg-gray-50">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                    Send to
+                  </label>
+                  <input
+                    type="email"
+                    value={toEmail}
+                    onChange={(e) => setToEmail(e.target.value)}
+                    placeholder="recipient@company.com"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {gmail?.connected ? (
+                    <span className="flex items-center gap-1.5 text-green-700">
+                      <Mail size={15} /> {gmail.email}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={connectGmail}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded hover:bg-white"
+                    >
+                      <Mail size={15} /> Connect Gmail
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {(data.drafts || []).map((d) => (
                 <div key={d.label} className="border border-gray-200 rounded">
                   <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
@@ -147,6 +251,36 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
                       rows={Math.min(16, Math.max(6, (bodies[d.label] || '').split('\n').length + 1))}
                       className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono leading-relaxed"
                     />
+                    <div className="flex items-center gap-3 pt-1">
+                      <button
+                        onClick={() => sendDraft(d.label)}
+                        disabled={!gmail?.connected || !toEmail.trim() || sending === d.label}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Send size={14} /> {sending === d.label ? 'Sending…' : 'Send via Gmail'}
+                      </button>
+                      {!gmail?.connected && (
+                        <span className="text-xs text-gray-400">Connect Gmail to send</span>
+                      )}
+                      {sendResult?.label === d.label && (
+                        <span
+                          className={`text-xs ${
+                            sendResult.kind === 'ok' ? 'text-green-700'
+                              : sendResult.kind === 'blocked' ? 'text-amber-700' : 'text-red-700'
+                          }`}
+                        >
+                          {sendResult.text}
+                          {sendResult.canForce && (
+                            <button
+                              onClick={() => sendDraft(d.label, true)}
+                              className="ml-2 underline font-medium"
+                            >
+                              Send anyway
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -188,6 +322,19 @@ const SalesIntelligence: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null);
+  const [gmailNotice, setGmailNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const g = new URLSearchParams(window.location.search).get('gmail');
+    if (!g) return;
+    setGmailNotice(
+      g === 'connected' ? 'Gmail connected. You can now send drafts from your inbox.'
+        : g === 'denied' ? 'Gmail connection was declined.'
+        : g === 'noretoken' ? 'Gmail returned no refresh token. Remove the app at myaccount.google.com/permissions, then connect again.'
+        : 'Gmail connection failed. Please try connecting again.',
+    );
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -241,6 +388,15 @@ const SalesIntelligence: React.FC = () => {
           ? `Lists generated ${formatDistanceToNow(new Date(generatedAt), { addSuffix: true })} — read-only; regenerated on schedule.`
           : 'No data generated yet.'}
       </p>
+
+      {gmailNotice && (
+        <div className="bg-blue-50 text-blue-800 p-3 rounded flex items-center justify-between gap-2 mb-4 text-sm">
+          <span className="flex items-center gap-2"><Mail size={16} /> {gmailNotice}</span>
+          <button onClick={() => setGmailNotice(null)} className="text-blue-500 hover:text-blue-700">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded flex items-center gap-2 mb-4">
