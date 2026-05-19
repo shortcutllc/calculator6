@@ -78,7 +78,28 @@ async function replaceAll(table, rows) {
     'id, canonical_key, display_name, trajectory, activity_status, completed_events, last_event_at, fit_score, fit_breakdown, ext_industry, ext_employee_size, contact_domains, contacts, is_internal, special_handling, demoed_not_closed');
   const sites = await readAll('crm_sites', 'company_id, city');
   const persons = await readAll('apollo_person_cache', 'email, email_domain, company_headcount, industry, linkedin_url, location');
-  const ocs = await readAll('outreach_contacts', 'email, name, title, company, email_domain, crm_company_id, linkedin_url, location');
+  const ocs = await readAll('outreach_contacts', 'email, name, title, company, email_domain, crm_company_id, linkedin_url, location, source');
+
+  // Per-contact engagement state for Play B badges/filters: did we email them,
+  // how many times, when last, did they reply (+ sentiment). Bulk-loaded once.
+  const sendsAll = await readAll('outreach_sends', 'email, sent_time, reply_time');
+  const sendByEmail = new Map();
+  for (const s of sendsAll) {
+    const e = lc(s.email); if (!e) continue;
+    const cur = sendByEmail.get(e) || { count: 0, last: null, replied: false };
+    cur.count += 1;
+    if (s.sent_time && (!cur.last || s.sent_time > cur.last)) cur.last = s.sent_time;
+    if (s.reply_time) cur.replied = true;
+    sendByEmail.set(e, cur);
+  }
+  const repliesAll = await readAll('outreach_replies', 'email, reply_sentiment, reply_date');
+  const replyByEmail = new Map();
+  for (const r of repliesAll) {
+    const e = lc(r.email); if (!e) continue;
+    const cur = replyByEmail.get(e);
+    // prefer a non-null sentiment, else keep presence
+    if (!cur || (r.reply_sentiment && !cur.sentiment)) replyByEmail.set(e, { sentiment: r.reply_sentiment || cur?.sentiment || null });
+  }
 
   // Free contact-detail fallback (no Apollo spend): email -> {linkedin,location}
   // and domain -> a representative {linkedin,location} from already-paid Apollo.
@@ -182,7 +203,7 @@ async function replaceAll(table, rows) {
     const cat = titleCat(o.title);
     const cur = prospects.get(dom);
     const rank = cat && GOOD.has(cat) ? 2 : cat ? 1 : 0;
-    if (!cur || rank > cur._rank) prospects.set(dom, { domain: dom, company: o.company, email: o.email, name: o.name, title: o.title, linkedin: o.linkedin_url || null, location: o.location || null, cat, _rank: rank });
+    if (!cur || rank > cur._rank) prospects.set(dom, { domain: dom, company: o.company, email: o.email, name: o.name, title: o.title, linkedin: o.linkedin_url || null, location: o.location || null, source: o.source || null, cat, _rank: rank });
   }
   const playB = [];
   for (const p of prospects.values()) {
@@ -198,15 +219,32 @@ async function replaceAll(table, rows) {
     if (gate.recommendation === 'skip_suppressed' || gate.recommendation === 'skip_already_client'
       || gate.recommendation === 'caution_recently_contacted') continue;
     const apoF = apolloByEmail.get(lc(p.email)) || apolloByDom.get(p.domain) || {};
+    const em = lc(p.email);
+    const snd = em ? sendByEmail.get(em) : null;
+    const rep = em ? replyByEmail.get(em) : null;
+    const isLeadgen = (p.source || '').includes('apollo-leadgen');
+    // priority: replied > no_reply > net_new(leadgen) > re_engage(corpus, unsent)
+    let engagementState;
+    if (snd && (snd.replied || rep)) engagementState = 'replied';
+    else if (snd) engagementState = 'no_reply';
+    else if (isLeadgen) engagementState = 'net_new';
+    else engagementState = 're_engage';
     playB.push({
       company: p.company || p.domain, domain: p.domain, score: s, industry: ind, emp: hc,
       contact: p.name, title: p.title, title_cat: p.cat || '-',
       email: p.email || null,
       linkedin: p.linkedin || apoF.linkedin || null,
       location: p.location || apoF.location || null,
+      engagement_state: engagementState,
+      touches: snd ? snd.count : 0,
+      last_contacted_at: snd ? snd.last : null,
+      reply_sentiment: rep ? rep.sentiment : null,
+      is_leadgen: isLeadgen,
     });
   }
-  playB.sort((a, b) => b.score - a.score);
+  // Sort: warmest first (replied), then by score within state.
+  const stateRank = { replied: 0, no_reply: 1, net_new: 2, re_engage: 3 };
+  playB.sort((a, b) => (stateRank[a.engagement_state] - stateRank[b.engagement_state]) || (b.score - a.score));
 
   // ---------- RECONCILIATION: closed vs replied-not-closed vs never-reached ----------
   const replies = await readAll('outreach_replies', 'email, reply_sentiment');
@@ -247,6 +285,9 @@ async function replaceAll(table, rows) {
     employees: String(r.emp), industry: r.industry, contact_name: r.contact,
     contact_title: r.title, title_category: r.title_cat,
     contact_email: r.email, contact_linkedin: r.linkedin, contact_location: r.location,
+    engagement_state: r.engagement_state, touches: r.touches,
+    last_contacted_at: r.last_contacted_at, reply_sentiment: r.reply_sentiment,
+    is_leadgen: r.is_leadgen,
     generated_at: genAt,
   })));
   await replaceAll('crm_reconciliation', Object.entries(recon).map(([bucket, m]) => ({

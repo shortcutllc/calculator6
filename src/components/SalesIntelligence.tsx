@@ -17,7 +17,18 @@ interface PlayBRow {
   employees: string; industry: string; contact_name: string;
   contact_title: string; title_category: string; generated_at: string;
   contact_email: string | null; contact_linkedin: string | null; contact_location: string | null;
+  engagement_state: 'replied' | 'no_reply' | 'net_new' | 're_engage' | null;
+  touches: number | null; last_contacted_at: string | null;
+  reply_sentiment: string | null; is_leadgen: boolean | null;
 }
+const PB_STATE: Record<string, { label: string; tone: string; hint: string }> = {
+  replied:   { label: 'Replied',   tone: 'bg-green-100 text-green-800', hint: 'Emailed & they responded — warmest, never closed' },
+  no_reply:  { label: 'No reply',  tone: 'bg-gray-100 text-gray-700',   hint: 'Emailed, silent — needs a new angle' },
+  net_new:   { label: 'Net-new',   tone: 'bg-blue-100 text-blue-800',   hint: 'Freshly sourced, never touched' },
+  re_engage: { label: 'Re-engage', tone: 'bg-amber-100 text-amber-800', hint: 'In our world but never actually emailed' },
+};
+type PBFilter = 'all' | 'replied' | 'no_reply' | 'net_new' | 're_engage';
+type PBSort = 'state' | 'score' | 'recent' | 'touches';
 interface ReconRow {
   bucket: string; total: number; title_breakdown: Record<string, number>;
   generated_at: string;
@@ -461,7 +472,16 @@ interface CardData {
   };
 }
 
-const CRMCard: React.FC<{ target: CardTarget; onClose: () => void; onDraft: (t: DraftTarget) => void }> = ({ target, onClose, onDraft }) => {
+const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="flex gap-2 text-sm py-0.5">
+    <span className="w-28 shrink-0 text-gray-400">{label}</span>
+    <span className="text-gray-800 break-words">{children || <span className="text-gray-300">—</span>}</span>
+  </div>
+);
+
+// Fetches + renders the CRM picture. Used both in the side drawer and inline
+// (Workhuman-style row dropdown) so the two surfaces never drift.
+const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) => void; inline?: boolean }> = ({ target, onDraft, inline }) => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [d, setD] = useState<CardData | null>(null);
@@ -499,38 +519,20 @@ const CRMCard: React.FC<{ target: CardTarget; onClose: () => void; onDraft: (t: 
       last_sent: d.history.last_sent || '', days_since: 0, touches: d.history.emailed_count, thread_id: null } });
   };
 
-  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="flex gap-2 text-sm py-0.5">
-      <span className="w-28 shrink-0 text-gray-400">{label}</span>
-      <span className="text-gray-800 break-words">{children || <span className="text-gray-300">—</span>}</span>
-    </div>
-  );
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={onClose}>
-      <div className="bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between p-5 border-b border-gray-200 sticky top-0 bg-white">
-          <div>
-            <h2 className="text-lg font-bold text-shortcut-navy-blue">
-              {d?.identity.name || d?.company?.name || target.company}
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {[d?.identity.title, d?.identity.company || d?.company?.name].filter(Boolean).join(' · ') || target.company}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={draftFromCard} disabled={!d}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40">
-              <PenLine size={14} /> Draft
-            </button>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
-          </div>
+    <div className={inline ? 'p-4 space-y-4 bg-gray-50' : 'p-5 space-y-5'}>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-500">
+          {[d?.identity.title, d?.identity.company || d?.company?.name].filter(Boolean).join(' · ')}
         </div>
-
-        <div className="p-5 space-y-5">
-          {loading && <div className="py-16 text-center text-gray-400">Loading CRM card…</div>}
-          {err && <div className="bg-red-50 text-red-700 p-3 rounded flex items-center gap-2 text-sm"><AlertCircle size={16} /> {err}</div>}
-          {d && !loading && (
+        <button onClick={draftFromCard} disabled={!d}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40">
+          <PenLine size={14} /> Draft
+        </button>
+      </div>
+      {loading && <div className="py-12 text-center text-gray-400">Loading CRM card…</div>}
+      {err && <div className="bg-red-50 text-red-700 p-3 rounded flex items-center gap-2 text-sm"><AlertCircle size={16} /> {err}</div>}
+      {d && !loading && (
             <>
               {d.preflight && (
                 <div className={`text-sm px-3 py-2 rounded ${
@@ -616,12 +618,22 @@ const CRMCard: React.FC<{ target: CardTarget; onClose: () => void; onDraft: (t: 
                 )}
               </section>
             </>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
+
+const CRMCard: React.FC<{ target: CardTarget; onClose: () => void; onDraft: (t: DraftTarget) => void }> = ({ target, onClose, onDraft }) => (
+  <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={onClose}>
+    <div className="bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-start justify-between p-5 border-b border-gray-200 sticky top-0 bg-white z-10">
+        <h2 className="text-lg font-bold text-shortcut-navy-blue">{target.company}</h2>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+      </div>
+      <CRMCardContent target={target} onDraft={onDraft} />
+    </div>
+  </div>
+);
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
@@ -656,6 +668,9 @@ const SalesIntelligence: React.FC = () => {
   const [search, setSearch] = useState('');
   const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null);
   const [cardTarget, setCardTarget] = useState<CardTarget | null>(null);
+  const [pbFilter, setPbFilter] = useState<PBFilter>('all');
+  const [pbSort, setPbSort] = useState<PBSort>('state');
+  const [pbExpanded, setPbExpanded] = useState<string | null>(null);
   const [gmailNotice, setGmailNotice] = useState<string | null>(null);
   const [pageGmail, setPageGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
 
@@ -750,12 +765,28 @@ const SalesIntelligence: React.FC = () => {
     () => playA.filter((x) => !search || x.company_name?.toLowerCase().includes(search.toLowerCase())),
     [playA, search],
   );
-  const fb = useMemo(
-    () => playB.filter((x) => !search
+  const pbCounts = useMemo(() => {
+    const c: Record<string, number> = { all: playB.length, replied: 0, no_reply: 0, net_new: 0, re_engage: 0 };
+    for (const x of playB) if (x.engagement_state) c[x.engagement_state] = (c[x.engagement_state] || 0) + 1;
+    return c;
+  }, [playB]);
+
+  const fb = useMemo(() => {
+    const sRank: Record<string, number> = { replied: 0, no_reply: 1, net_new: 2, re_engage: 3 };
+    let rows = playB.filter((x) => !search
       || x.company_name?.toLowerCase().includes(search.toLowerCase())
-      || x.contact_title?.toLowerCase().includes(search.toLowerCase())),
-    [playB, search],
-  );
+      || x.contact_name?.toLowerCase().includes(search.toLowerCase())
+      || x.contact_email?.toLowerCase().includes(search.toLowerCase())
+      || x.contact_title?.toLowerCase().includes(search.toLowerCase()));
+    if (pbFilter !== 'all') rows = rows.filter((x) => x.engagement_state === pbFilter);
+    const cmp: Record<PBSort, (a: PlayBRow, b: PlayBRow) => number> = {
+      state: (a, b) => (sRank[a.engagement_state || 'z'] - sRank[b.engagement_state || 'z']) || (b.score - a.score),
+      score: (a, b) => b.score - a.score,
+      touches: (a, b) => (b.touches || 0) - (a.touches || 0),
+      recent: (a, b) => new Date(b.last_contacted_at || 0).getTime() - new Date(a.last_contacted_at || 0).getTime(),
+    };
+    return [...rows].sort(cmp[pbSort]);
+  }, [playB, search, pbFilter, pbSort]);
 
   const th = 'text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 py-2';
   const td = 'px-3 py-2 text-sm text-gray-800 border-t border-gray-100';
@@ -898,51 +929,111 @@ const SalesIntelligence: React.FC = () => {
           </table>
         </div>
       ) : tab === 'playB' ? (
-        <div className="overflow-x-auto border border-gray-200 rounded">
-          <table className="min-w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className={th}>#</th><th className={th}>Company</th><th className={th}>Score</th>
-                <th className={th}>Employees</th><th className={th}>Industry</th>
-                <th className={th}>Contact</th><th className={th}>Title</th>
-                <th className={th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {fb.map((r) => (
-                <tr key={`${r.rank}-${r.domain}`} className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => setCardTarget({ company: r.company_name, email: r.contact_email, domain: r.domain })}>
-                  <td className={td}>{r.rank}</td>
-                  <td className={`${td} font-medium`}>{r.company_name}</td>
-                  <td className={td}>{r.score}</td>
-                  <td className={td}>{r.employees}</td>
-                  <td className={td}>{r.industry}</td>
-                  <td className={td}>
-                    <div>{r.contact_name}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      {r.contact_email
-                        ? <span className="text-gray-500">{r.contact_email}</span>
-                        : <span className="italic">no email</span>}
-                      {r.contact_linkedin && (
-                        <a href={r.contact_linkedin} target="_blank" rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-shortcut-navy-blue hover:underline">in</a>
-                      )}
-                    </div>
-                  </td>
-                  <td className={`${td} text-gray-500`}>{r.contact_title} <span className="text-xs text-gray-400">({r.title_category})</span></td>
-                  <td className={td}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDraftTarget({ play: 'B', rank: r.rank, company: r.company_name, prefillEmail: r.contact_email }); }}
-                      className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
-                    >
-                      <PenLine size={14} /> Draft
-                    </button>
-                  </td>
+        <div>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {(['all', 'replied', 'no_reply', 'net_new', 're_engage'] as PBFilter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setPbFilter(f)}
+                title={f === 'all' ? 'Everything' : PB_STATE[f].hint}
+                className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                  pbFilter === f
+                    ? 'border-shortcut-navy-blue bg-shortcut-navy-blue text-white'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+              >
+                {f === 'all' ? 'All' : PB_STATE[f].label} <span className="opacity-70">({pbCounts[f] ?? 0})</span>
+              </button>
+            ))}
+            <div className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+              <span>Sort</span>
+              <select
+                value={pbSort}
+                onChange={(e) => setPbSort(e.target.value as PBSort)}
+                className="border border-gray-300 rounded px-2 py-1 text-xs"
+              >
+                <option value="state">Warmest first</option>
+                <option value="score">Lookalike score</option>
+                <option value="recent">Most recently contacted</option>
+                <option value="touches">Most touches</option>
+              </select>
+            </div>
+          </div>
+          <div className="overflow-x-auto border border-gray-200 rounded">
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className={th}></th><th className={th}>#</th><th className={th}>Company</th>
+                  <th className={th}>State</th><th className={th}>Score</th>
+                  <th className={th}>Contact</th><th className={th}>Title</th>
+                  <th className={th}>Last touch</th><th className={th}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {fb.map((r) => {
+                  const key = `${r.rank}-${r.domain}`;
+                  const open = pbExpanded === key;
+                  const st = r.engagement_state ? PB_STATE[r.engagement_state] : null;
+                  return (
+                    <React.Fragment key={key}>
+                      <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setPbExpanded(open ? null : key)}>
+                        <td className={`${td} text-gray-400`}>{open ? '▾' : '▸'}</td>
+                        <td className={td}>{r.rank}</td>
+                        <td className={`${td} font-medium`}>{r.company_name}</td>
+                        <td className={td}>
+                          {st && (
+                            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${st.tone}`} title={st.hint}>
+                              {st.label}
+                              {r.engagement_state === 'replied' && r.reply_sentiment ? ` · ${r.reply_sentiment}` : ''}
+                              {r.is_leadgen ? ' · fresh' : ''}
+                            </span>
+                          )}
+                        </td>
+                        <td className={td}>{r.score}</td>
+                        <td className={td}>
+                          <div>{r.contact_name}</div>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            {r.contact_email
+                              ? <span className="text-gray-500">{r.contact_email}</span>
+                              : <span className="italic">no email</span>}
+                            {r.contact_linkedin && (
+                              <a href={r.contact_linkedin} target="_blank" rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-shortcut-navy-blue hover:underline">in</a>
+                            )}
+                          </div>
+                        </td>
+                        <td className={`${td} text-gray-500`}>{r.contact_title} <span className="text-xs text-gray-400">({r.title_category})</span></td>
+                        <td className={td}>
+                          {r.last_contacted_at
+                            ? <span className="text-gray-600">{new Date(r.last_contacted_at).toLocaleDateString()}{r.touches ? ` · ${r.touches}×` : ''}</span>
+                            : <span className="text-gray-300">never</span>}
+                        </td>
+                        <td className={td}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDraftTarget({ play: 'B', rank: r.rank, company: r.company_name, prefillEmail: r.contact_email }); }}
+                            className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                          >
+                            <PenLine size={14} /> Draft
+                          </button>
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr>
+                          <td colSpan={9} className="border-t border-gray-100 p-0">
+                            <CRMCardContent
+                              inline
+                              target={{ company: r.company_name, email: r.contact_email, domain: r.domain }}
+                              onDraft={(t) => setDraftTarget(t)}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : tab === 'followups' ? (
         <div className="overflow-x-auto border border-gray-200 rounded">
