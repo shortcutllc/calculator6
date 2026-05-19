@@ -23,9 +23,19 @@ interface ReconRow {
 }
 
 interface DraftDirection { label: string; subject: string; body: string }
+interface ContactHistory {
+  email: string | null;
+  emailed_count: number;
+  first_sent: string | null;
+  last_sent: string | null;
+  replied: boolean;
+  sends: Array<{ campaign_id: string | null; sent_time: string | null; replied: boolean; bounced: boolean; touches: number }>;
+  replies: Array<{ date: string | null; sentiment: string | null; is_ooo: boolean; source: string | null; content: string | null }>;
+}
 interface DraftResponse {
   target: Record<string, unknown>;
   preflight: { recommendation?: string; suppressed?: boolean; is_client?: boolean; contacted?: boolean } | null;
+  history?: ContactHistory;
   drafts: DraftDirection[];
   fight_for: string | null;
   fight_for_reason: string | null;
@@ -57,6 +67,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
   const [bodies, setBodies] = useState<Record<string, string>>({});
   const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const [gmail, setGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
   const [toEmail, setToEmail] = useState(target.followup?.email || target.prefillEmail || '');
   const [sending, setSending] = useState<string | null>(null);
@@ -247,6 +258,64 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
                 <div className="text-sm bg-blue-50 text-blue-800 px-3 py-2 rounded">
                   <span className="font-semibold">Recommended: {data.fight_for}.</span>{' '}
                   {data.fight_for_reason}
+                </div>
+              )}
+
+              {data.history && data.history.emailed_count > 0 && (
+                <div className="border border-gray-200 rounded">
+                  <button
+                    onClick={() => setShowHistory((v) => !v)}
+                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-gray-50"
+                  >
+                    <span className="text-gray-700">
+                      <span className="font-semibold">Contact history</span>{' '}
+                      · emailed {data.history.emailed_count}× · last{' '}
+                      {data.history.last_sent ? new Date(data.history.last_sent).toLocaleDateString() : '—'}
+                      {data.history.replies.length > 0
+                        ? ` · ${data.history.replies.length} repl${data.history.replies.length === 1 ? 'y' : 'ies'}`
+                        : ' · no reply'}
+                    </span>
+                    <span className="text-xs text-gray-400">{showHistory ? 'hide' : 'show'}</span>
+                  </button>
+                  {showHistory && (
+                    <div className="border-t border-gray-100 p-3 space-y-3 max-h-72 overflow-y-auto">
+                      {data.history.replies.length > 0 && (
+                        <div className="space-y-2">
+                          {data.history.replies.map((rp, i) => (
+                            <div key={i} className="text-sm">
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span className="font-medium">
+                                  {rp.date ? new Date(rp.date).toLocaleDateString() : 'reply'}
+                                </span>
+                                {rp.sentiment && (
+                                  <span className={`px-1.5 py-0.5 rounded ${
+                                    rp.sentiment === 'positive' ? 'bg-green-100 text-green-700'
+                                      : rp.sentiment === 'negative' ? 'bg-red-100 text-red-700'
+                                      : 'bg-gray-100 text-gray-600'}`}>
+                                    {rp.sentiment}{rp.is_ooo ? ' · OOO' : ''}
+                                  </span>
+                                )}
+                                <span className="text-gray-400">{rp.source}</span>
+                              </div>
+                              <div className="text-gray-700 whitespace-pre-wrap mt-0.5">
+                                {rp.content || <span className="text-gray-400 italic">replied (no text captured)</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500">
+                        Sends:{' '}
+                        {data.history.sends.map((s, i) => (
+                          <span key={i} className="inline-block mr-2">
+                            {s.sent_time ? new Date(s.sent_time).toLocaleDateString() : '?'}
+                            {s.touches > 1 ? `(×${s.touches})` : ''}
+                            {s.replied ? ' ✓' : ''}{s.bounced ? ' ⚠bounce' : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
