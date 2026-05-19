@@ -156,6 +156,19 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
   const lineCost = (service.serviceCost || 0) * frequency;
 
+  // When pricing options exist, the selected option drives the effective
+  // hours/pros. Selecting an option mirrors serviceCost + totalAppointments
+  // onto the base service but deliberately NOT totalHours/numPros (copying
+  // those contaminates future recalculations). So the summary must read the
+  // selected option's values directly — otherwise it shows stale base hours
+  // while the price/appointments update. Mirrors V1 (StandaloneProposalViewer).
+  const selectedOpt =
+    service.pricingOptions && service.pricingOptions.length > 0
+      ? service.pricingOptions[service.selectedOption || 0]
+      : null;
+  const displayHours = selectedOpt?.totalHours ?? service.totalHours;
+  const displayPros = selectedOpt?.numPros ?? service.numPros;
+
   // Auto-recurring discount applied — set by recalculateServiceTotals on
   // service.originalServiceCost. We surface a strike-through + chip so the
   // savings is obvious next to the price.
@@ -549,7 +562,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                   label="Total hours"
                   value={
                     <Editable
-                      value={service.totalHours}
+                      value={displayHours}
                       editing={editing}
                       suffix="h"
                       width={56}
@@ -561,7 +574,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                   label="# of pros"
                   value={
                     <Editable
-                      value={service.numPros}
+                      value={displayPros}
                       editing={editing}
                       width={48}
                       onChange={handleEdit('numPros')}
