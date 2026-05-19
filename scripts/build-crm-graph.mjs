@@ -109,6 +109,10 @@ function prettyDisplay(raw) {
   if (m2 && LOC_SUFFIX_2.has(m2[2].toLowerCase()) && m2[1].trim().length >= 2) s = m2[1].trim();
   return s || String(raw).trim();
 }
+// Human-confirmed merges from /education, loaded in main() before build():
+// canonical_key (raw_name) -> proposed_company_key. Empty until populated.
+const confirmedAlias = new Map();
+
 // Owner-authoritative curated company overrides (Will, 2026-05-18). These are
 // DECIDED — applied deterministically (NOT staged for review). Sites still
 // split by event address, so BCG/WLRK get "<display> — <City>, <ST>" labels.
@@ -135,6 +139,10 @@ function resolveCompany(rawName) {
   if (t[0] === 'draftkings') {
     return { key: 'draftkings', display: 'DraftKings' };
   }
+  // Human-confirmed merges from /education (crm_alias_candidates status=
+  // confirmed) — applied AFTER the hardcoded curated ones. This is what makes
+  // /education approvals actually collapse the graph.
+  if (confirmedAlias.has(base)) return { key: confirmedAlias.get(base), display: null };
   return { key: base, display: null };
 }
 
@@ -534,6 +542,17 @@ async function reconcile(companyRows) {
 
 (async () => {
   log(DRY ? 'DRY RUN — no writes' : 'LIVE RUN — will write the company graph');
+  // Apply human-confirmed merges from /education before building.
+  {
+    const { data, error } = await sb.from('crm_alias_candidates')
+      .select('raw_name, proposed_company_key').eq('status', 'confirmed');
+    if (error) throw new Error(`crm_alias_candidates: ${error.message}`);
+    for (const r of data || []) {
+      if (r.raw_name && r.proposed_company_key) confirmedAlias.set(r.raw_name, r.proposed_company_key);
+    }
+    log(`Confirmed /education merges applied: ${confirmedAlias.size}`);
+  }
+
   log('Reading crm_events...');
   const events = await readEvents();
   log(`Building graph from ${events.length} events...`);
