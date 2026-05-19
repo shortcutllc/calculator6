@@ -187,6 +187,25 @@ export const handler = async (event) => {
     gate = { recommendation: 'unknown', error: e.message };
   }
 
+  // 2b. Proven patterns: top real Shortcut emails by measured reply rate.
+  // Grounds the draft in "what actually converted", not just brand voice.
+  // Degrades silently if the corpus isn't ingested yet (table empty/absent).
+  let provenPatterns = [];
+  try {
+    const { data: tpls } = await sb.from('outreach_templates')
+      .select('subject, body, reply_rate, sent, campaign_name')
+      .gte('sent', 25)
+      .not('body', 'is', null)
+      .order('reply_rate', { ascending: false })
+      .limit(12);
+    provenPatterns = (tpls || [])
+      .filter((t) => t.body && t.body.trim().length > 80)
+      .slice(0, 3)
+      .map((t, i) => `Pattern ${i + 1} (replied ${(Number(t.reply_rate) * 100).toFixed(0)}% over ${t.sent} sends)\n`
+        + `Subject: ${t.subject || '(continues thread, no subject)'}\n`
+        + `${t.body.slice(0, 700)}`);
+  } catch { /* corpus optional */ }
+
   // 3. Draft via Claude
   const userContent = [
     `Prospect context (JSON):`,
@@ -195,11 +214,14 @@ export const handler = async (event) => {
     `Pre-flight history (JSON, read-only — use to inform tone, do not mention it explicitly):`,
     JSON.stringify(gate, null, 2),
     ``,
+    provenPatterns.length
+      ? `PROVEN PATTERNS — real Shortcut emails with the highest measured reply rates. These earned replies from buyers like this one. Do NOT copy them. Study what works (the hook, the length, how direct the ask is, the register) and apply that to THIS prospect in Shortcut's voice:\n\n${provenPatterns.join('\n\n---\n\n')}\n`
+      : ``,
     repName ? `Sign emails from: ${repName}` : `No rep name provided — sign "Best," with no name.`,
     play === 'A'
       ? `This is an EXISTING client we want to expand to more of their offices/teams. Acknowledge the existing relationship warmly and specifically. Do not pitch as if they have never heard of us.`
       : `This is a NET-NEW prospect who looks like our best-fit winning customers. They do not know us yet.`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 
   let result;
   try {
@@ -226,6 +248,8 @@ export const handler = async (event) => {
     drafts: result.directions || [],
     fight_for: result.fight_for || null,
     fight_for_reason: result.fight_for_reason || null,
-    grounding_note: 'v1: grounded on prospect context + brand voice. Winning-template corpus not yet ingested.',
+    grounding_note: provenPatterns.length
+      ? `Grounded on prospect context, brand voice, and ${provenPatterns.length} top-performing real Shortcut emails by measured reply rate.`
+      : 'Grounded on prospect context + brand voice. Winning-template corpus not yet ingested.',
   });
 };
