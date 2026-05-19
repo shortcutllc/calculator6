@@ -4,7 +4,7 @@ import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, ChevronLeft, ChevronRight,
   Clock, Plus, Users, Handshake, Gift, Smartphone,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench, Image as ImageIcon
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench, GitMerge, Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -38,6 +38,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Upcoming Events', path: '/upcoming-events', icon: <CalendarCheck size={18} /> },
       { label: 'Sales Intelligence', path: '/sales-intelligence', icon: <Target size={18} /> },
+      { label: 'Entity Review', path: '/education', icon: <GitMerge size={18} /> },
       { label: 'Client Emails', path: '/client-emails', icon: <Mail size={18} /> },
       { label: 'Agreements', path: '/pro-agreements', icon: <FileSignature size={18} /> },
       { label: 'QR Codes', path: '/qr-code-signs', icon: <QrCode size={18} /> },

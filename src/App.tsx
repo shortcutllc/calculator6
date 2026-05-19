@@ -65,6 +65,7 @@ const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmi
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
 const SalesIntelligence = lazy(() => import('./components/SalesIntelligence'));
+const EducationReview = lazy(() => import('./components/EducationReview'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
 const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesigns'));
 const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
@@ -440,6 +441,21 @@ function App() {
                       </div>
                     }>
                       <SalesIntelligence />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              {/* Entity Review (/education) */}
+              <Route
+                path="/education"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <EducationReview />
                     </Suspense>
                   </PrivateRoute>
                 }
