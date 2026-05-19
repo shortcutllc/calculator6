@@ -22,6 +22,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { preflight } from './lib/preflight.js';
+import { contactHistory } from './lib/contact-history.js';
 
 const MODEL = 'claude-sonnet-4-5-20250929';
 
@@ -200,38 +201,10 @@ export const handler = async (event) => {
     gate = { recommendation: 'unknown', error: e.message };
   }
 
-  // 2a. Full contact history (which sends, when, replies + content/sentiment).
-  // Read-only; surfaced in the modal and summarised into the prompt so the
-  // draft is aware of what was said before. Reply text is untrusted inbound
-  // content — used only as read context for a human-reviewed draft.
-  let history = { email: preflightEmail, emailed_count: 0, first_sent: null, last_sent: null, replied: false, sends: [], replies: [] };
-  if (preflightEmail) {
-    try {
-      const { data: sends } = await sb.from('outreach_sends')
-        .select('campaign_id, sent_time, reply_time, is_bounced, touch_count')
-        .eq('email', preflightEmail).order('sent_time', { ascending: true });
-      const { data: reps } = await sb.from('outreach_replies')
-        .select('campaign_id, reply_date, reply_content, reply_sentiment, is_ooo, manual_category, sentiment_source')
-        .eq('email', preflightEmail).order('reply_date', { ascending: true });
-      const s = sends || [];
-      const r = reps || [];
-      history = {
-        email: preflightEmail,
-        emailed_count: s.reduce((n, x) => n + (x.touch_count || 1), 0),
-        first_sent: s[0]?.sent_time || null,
-        last_sent: s.length ? s[s.length - 1].sent_time : null,
-        replied: r.length > 0 || s.some((x) => x.reply_time),
-        sends: s.map((x) => ({ campaign_id: x.campaign_id, sent_time: x.sent_time, replied: !!x.reply_time, bounced: !!x.is_bounced, touches: x.touch_count || 1 })),
-        replies: r.map((x) => ({
-          date: x.reply_date,
-          sentiment: x.reply_sentiment || x.manual_category || null,
-          is_ooo: !!x.is_ooo,
-          source: x.sentiment_source,
-          content: x.reply_content ? String(x.reply_content).slice(0, 1500) : null,
-        })),
-      };
-    } catch { /* history optional */ }
-  }
+  // 2a. Full contact history — shared lib (also powers the standalone CRM
+  // card, so the two surfaces can't drift). Reply text is untrusted inbound
+  // content; summarised into the prompt only as quoted, read-only context.
+  const history = await contactHistory(sb, preflightEmail);
 
   // 2b. Proven patterns: top real Shortcut emails by measured reply rate.
   // Grounds the draft in "what actually converted", not just brand voice.

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail } from 'lucide-react';
+import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
@@ -8,9 +8,10 @@ type TabId = 'playA' | 'playB' | 'followups' | 'recon';
 interface PlayARow {
   rank: number; play_score: number; fit_score: number; company_name: string;
   employees: string; industry: string; sites_served: number; sites_list: string;
-  generated_at: string;
+  generated_at: string; company_id: string | null;
   last_event_at: string | null; months_since_event: number | null; play_status: string | null;
 }
+type CardTarget = { company: string; email?: string | null; domain?: string | null; companyId?: string | null };
 interface PlayBRow {
   rank: number; score: number; company_name: string; domain: string;
   employees: string; industry: string; contact_name: string;
@@ -444,6 +445,184 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
   );
 };
 
+interface CardData {
+  identity: { email: string | null; name: string | null; title: string | null; company: string | null;
+    domain: string | null; linkedin_url: string | null; location: string | null; headcount: string | null;
+    industry: string | null; source: string | null; stage: string | null; years_in_role: string | null;
+    email_status: string | null };
+  company: { name: string; trajectory: string | null; activity_status: string | null; completed_events: number;
+    last_event_at: string | null; months_since_event: number | null; fit_score: number | null;
+    industry: string | null; employees: string | null; sites_we_serve: number; cities: string[] } | null;
+  preflight: { recommendation?: string; suppressed?: boolean; is_client?: boolean } | null;
+  history: ContactHistory;
+  plays: {
+    play_a: { rank: number; play_score: number; play_status: string | null } | null;
+    play_b: { rank: number; score: number; contact_title: string | null; title_category: string | null } | null;
+  };
+}
+
+const CRMCard: React.FC<{ target: CardTarget; onClose: () => void; onDraft: (t: DraftTarget) => void }> = ({ target, onClose, onDraft }) => {
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [d, setD] = useState<CardData | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true); setErr(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not signed in');
+        const res = await fetch('/.netlify/functions/contact-card', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ email: target.email, domain: target.domain, companyId: target.companyId }),
+        });
+        const j = await res.json();
+        if (!res.ok || !j.success) throw new Error(j.error || `Failed (${res.status})`);
+        if (!cancelled) setD(j);
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to load');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [target]);
+
+  const draftFromCard = () => {
+    if (!d) return;
+    if (d.plays.play_b) onDraft({ company: target.company, play: 'B', rank: d.plays.play_b.rank, prefillEmail: d.identity.email });
+    else if (d.plays.play_a) onDraft({ company: target.company, play: 'A', rank: d.plays.play_a.rank });
+    else if (d.identity.email) onDraft({ company: target.company, followup: {
+      email: d.identity.email, name: d.identity.name, title: d.identity.title, company: d.identity.company,
+      last_sent: d.history.last_sent || '', days_since: 0, touches: d.history.emailed_count, thread_id: null } });
+  };
+
+  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="flex gap-2 text-sm py-0.5">
+      <span className="w-28 shrink-0 text-gray-400">{label}</span>
+      <span className="text-gray-800 break-words">{children || <span className="text-gray-300">—</span>}</span>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={onClose}>
+      <div className="bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-5 border-b border-gray-200 sticky top-0 bg-white">
+          <div>
+            <h2 className="text-lg font-bold text-shortcut-navy-blue">
+              {d?.identity.name || d?.company?.name || target.company}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {[d?.identity.title, d?.identity.company || d?.company?.name].filter(Boolean).join(' · ') || target.company}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={draftFromCard} disabled={!d}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40">
+              <PenLine size={14} /> Draft
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {loading && <div className="py-16 text-center text-gray-400">Loading CRM card…</div>}
+          {err && <div className="bg-red-50 text-red-700 p-3 rounded flex items-center gap-2 text-sm"><AlertCircle size={16} /> {err}</div>}
+          {d && !loading && (
+            <>
+              {d.preflight && (
+                <div className={`text-sm px-3 py-2 rounded ${
+                  d.preflight.suppressed ? 'bg-red-50 text-red-700'
+                    : d.preflight.is_client ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}>
+                  Pre-flight: {RECO_COPY[d.preflight.recommendation || 'ok_to_proceed']?.text || d.preflight.recommendation}
+                </div>
+              )}
+
+              <section>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Identity</h3>
+                <Row label="Email">{d.identity.email}{d.identity.email_status ? <span className="text-xs text-gray-400"> ({d.identity.email_status})</span> : null}</Row>
+                <Row label="Location"><span className="inline-flex items-center gap-1"><MapPin size={12} />{d.identity.location}</span></Row>
+                <Row label="LinkedIn">{d.identity.linkedin_url
+                  ? <a href={d.identity.linkedin_url} target="_blank" rel="noreferrer" className="text-shortcut-navy-blue hover:underline inline-flex items-center gap-1">profile <ExternalLink size={11} /></a> : null}</Row>
+                <Row label="Source">{d.identity.source}</Row>
+                <Row label="Stage">{d.identity.stage}</Row>
+                <Row label="Yrs in role">{d.identity.years_in_role}</Row>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1"><Building2 size={13} /> Company / CRM</h3>
+                {d.company ? (
+                  <>
+                    <Row label="Company">{d.company.name}</Row>
+                    <Row label="Industry">{d.company.industry}</Row>
+                    <Row label="Employees">{d.company.employees}</Row>
+                    <Row label="Trajectory">{d.company.trajectory}</Row>
+                    <Row label="Activity">{d.company.activity_status}</Row>
+                    <Row label="Events run">{d.company.completed_events}</Row>
+                    <Row label="Last event">{d.company.last_event_at
+                      ? `${new Date(d.company.last_event_at).toLocaleDateString()}${d.company.months_since_event ? ` (${d.company.months_since_event}mo ago)` : ''}` : null}</Row>
+                    <Row label="We serve">{d.company.sites_we_serve} site(s){d.company.cities.length ? `: ${d.company.cities.join(', ')}` : ''}</Row>
+                    <Row label="Fit score">{d.company.fit_score}</Row>
+                  </>
+                ) : <p className="text-sm text-gray-400">Not matched to a CRM company (net-new / no event history).</p>}
+              </section>
+
+              {(d.plays.play_a || d.plays.play_b) && (
+                <section>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">In plays</h3>
+                  {d.plays.play_a && <Row label="Play A">rank #{d.plays.play_a.rank} · {d.plays.play_a.play_status || 'expand'}</Row>}
+                  {d.plays.play_b && <Row label="Play B">rank #{d.plays.play_b.rank} · score {d.plays.play_b.score}</Row>}
+                </section>
+              )}
+
+              <section>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+                  <Clock size={13} /> History — emailed {d.history.emailed_count}× {d.history.replies.length ? `· ${d.history.replies.length} repl${d.history.replies.length === 1 ? 'y' : 'ies'}` : '· no reply'}
+                </h3>
+                {d.history.emailed_count === 0 ? (
+                  <p className="text-sm text-gray-400">No outreach on record.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {d.history.replies.map((rp, i) => (
+                      <div key={i} className="text-sm border-l-2 border-gray-200 pl-3">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className="font-medium">{rp.date ? new Date(rp.date).toLocaleDateString() : 'reply'}</span>
+                          {rp.sentiment && (
+                            <span className={`px-1.5 py-0.5 rounded ${
+                              rp.sentiment === 'positive' ? 'bg-green-100 text-green-700'
+                                : rp.sentiment === 'negative' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                              {rp.sentiment}{rp.is_ooo ? ' · OOO' : ''}
+                            </span>
+                          )}
+                          <span className="text-gray-400">{rp.source}</span>
+                        </div>
+                        <div className="text-gray-700 whitespace-pre-wrap mt-1">
+                          {rp.content || <span className="text-gray-400 italic">replied (no text captured)</span>}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-xs text-gray-500">
+                      Sends:{' '}
+                      {d.history.sends.map((s, i) => (
+                        <span key={i} className="inline-block mr-2">
+                          {s.sent_time ? new Date(s.sent_time).toLocaleDateString() : '?'}
+                          {s.touches > 1 ? `(×${s.touches})` : ''}{s.replied ? ' ✓' : ''}{s.bounced ? ' ⚠' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
   { id: 'playB', label: 'Play B — Net-New', icon: <Crosshair size={18} /> },
@@ -476,6 +655,7 @@ const SalesIntelligence: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null);
+  const [cardTarget, setCardTarget] = useState<CardTarget | null>(null);
   const [gmailNotice, setGmailNotice] = useState<string | null>(null);
   const [pageGmail, setPageGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
 
@@ -679,7 +859,8 @@ const SalesIntelligence: React.FC = () => {
             </thead>
             <tbody>
               {fa.map((r) => (
-                <tr key={r.rank} className="hover:bg-gray-50">
+                <tr key={r.rank} className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setCardTarget({ company: r.company_name, companyId: r.company_id })}>
                   <td className={td}>{r.rank}</td>
                   <td className={`${td} font-medium`}>
                     {r.company_name}
@@ -705,7 +886,7 @@ const SalesIntelligence: React.FC = () => {
                   </td>
                   <td className={td}>
                     <button
-                      onClick={() => setDraftTarget({ play: 'A', rank: r.rank, company: r.company_name })}
+                      onClick={(e) => { e.stopPropagation(); setDraftTarget({ play: 'A', rank: r.rank, company: r.company_name }); }}
                       className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
                     >
                       <PenLine size={14} /> Draft
@@ -729,7 +910,8 @@ const SalesIntelligence: React.FC = () => {
             </thead>
             <tbody>
               {fb.map((r) => (
-                <tr key={`${r.rank}-${r.domain}`} className="hover:bg-gray-50">
+                <tr key={`${r.rank}-${r.domain}`} className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setCardTarget({ company: r.company_name, email: r.contact_email, domain: r.domain })}>
                   <td className={td}>{r.rank}</td>
                   <td className={`${td} font-medium`}>{r.company_name}</td>
                   <td className={td}>{r.score}</td>
@@ -743,6 +925,7 @@ const SalesIntelligence: React.FC = () => {
                         : <span className="italic">no email</span>}
                       {r.contact_linkedin && (
                         <a href={r.contact_linkedin} target="_blank" rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="text-shortcut-navy-blue hover:underline">in</a>
                       )}
                     </div>
@@ -750,7 +933,7 @@ const SalesIntelligence: React.FC = () => {
                   <td className={`${td} text-gray-500`}>{r.contact_title} <span className="text-xs text-gray-400">({r.title_category})</span></td>
                   <td className={td}>
                     <button
-                      onClick={() => setDraftTarget({ play: 'B', rank: r.rank, company: r.company_name, prefillEmail: r.contact_email })}
+                      onClick={(e) => { e.stopPropagation(); setDraftTarget({ play: 'B', rank: r.rank, company: r.company_name, prefillEmail: r.contact_email }); }}
                       className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
                     >
                       <PenLine size={14} /> Draft
@@ -780,7 +963,8 @@ const SalesIntelligence: React.FC = () => {
               </thead>
               <tbody>
                 {followups.map((r) => (
-                  <tr key={r.email} className="hover:bg-gray-50">
+                  <tr key={r.email} className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setCardTarget({ company: r.company || r.email, email: r.email })}>
                     <td className={td}>
                       <div>{r.name || '—'}</div>
                       <div className="text-xs text-gray-500">{r.email}</div>
@@ -791,7 +975,7 @@ const SalesIntelligence: React.FC = () => {
                     <td className={td}>{r.touches}</td>
                     <td className={td}>
                       <button
-                        onClick={() => setDraftTarget({ company: r.company || r.email, followup: r })}
+                        onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
                         className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
                       >
                         <PenLine size={14} /> Draft follow-up
@@ -823,6 +1007,14 @@ const SalesIntelligence: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {cardTarget && (
+        <CRMCard
+          target={cardTarget}
+          onClose={() => setCardTarget(null)}
+          onDraft={(t) => { setCardTarget(null); setDraftTarget(t); }}
+        />
       )}
 
       {draftTarget && (
