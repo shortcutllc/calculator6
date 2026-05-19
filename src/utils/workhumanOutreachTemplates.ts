@@ -326,6 +326,69 @@ export const PERSONAL_NOTE_FOLLOWUP_SMS: Template = {
   body: `Hi {first_name}, {sender_first_name} from Shortcut here. It was a pleasure meeting you at Workhuman last week and I shot over a quick email to continue the conversation. Just wanted to make sure it reached your inbox. Chat soon!`,
 };
 
+/**
+ * Follow-up #2 — sent when the first personal-note email got no reply
+ * (~3-5 business days later). Reply ON the original thread, NO new
+ * subject line — that's the single biggest lever in our SmartLead data:
+ * Sequence 2 (the simple reply-to-thread follow-up) carries the highest
+ * reply rate of any touch we've ever sent (14.29% vs 12.24% for the
+ * first touch), and the winning pattern is short + low-pressure + no
+ * re-pitch. All three are deliberately tiny. The first ("Following up
+ * on the note below") is the verbatim 14.29% top performer from the
+ * 116-campaign analysis — default to it. Pick another only if the read
+ * on the conversation calls for it.
+ *
+ * Vars: {first_name}, {company}, {sender_name}. No {calendar_line} on
+ * purpose — the first email already carried the calendar CTA; a second
+ * hard link here reads pushy and depresses replies. Teammate can paste
+ * a time manually if a thread is clearly warm.
+ *
+ * Brand voice: calm, human, no em dashes, no "transformation/unlock".
+ */
+export const PERSONAL_NOTE_FOLLOWUP_2_VARIATIONS: Template[] = [
+  {
+    id: 'personal_note_followup_2_proven',
+    channel: 'email',
+    label: 'Follow-up 2 · "Following up on the note below" (14.29% — top performer)',
+    description:
+      'The single highest-replying touch in our SmartLead history (Email 2 Variant A, 116-campaign analysis). Verbatim except the dash is dropped for brand voice. Use this first unless you have a reason not to.',
+    body: `Hi {first_name}, hope your week is treating you well.
+
+Following up on the note below. Wondering if we could connect?
+
+Thanks,
+{sender_name}`,
+  },
+  {
+    id: 'personal_note_followup_2_bump',
+    channel: 'email',
+    label: 'Follow-up 2 · Soft bump',
+    description:
+      'Short, reply on the same thread, no new ask. Use when the booth chat was friendly but you got no read on urgency.',
+    body: `Hey {first_name},
+
+Bumping this back up in case it got buried. No worries at all if now isn't the time, the post-Workhuman inbox is no joke.
+
+Whenever {company} is ready to talk wellness, I'm around.
+
+{sender_name}`,
+  },
+  {
+    id: 'personal_note_followup_2_referral',
+    channel: 'email',
+    label: 'Follow-up 2 · Referral or revive',
+    description:
+      'Gives them an easy out and a low-effort yes. Use when they were warm but it may not be their call, or when you want to surface the right owner.',
+    body: `Hey {first_name},
+
+Following up once more. If on-site wellness sits with someone else at {company}, point me their way and I'll take it from there.
+
+If the timing just isn't right, no problem at all. The 10% off from Workhuman holds whenever you want to pick this back up.
+
+{sender_name}`,
+  },
+];
+
 /** A scenario the booth conversation matched, with the matching caveat copy. */
 export interface PersonalNoteCaveat {
   id: string;

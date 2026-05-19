@@ -177,13 +177,21 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   return (
     <div
       style={{
-        background: '#fff',
+        // Excluded-state design:
+        // - Text stays full opacity so the client can still read what
+        //   they'd be opting into.
+        // - Soft cream background tint signals "this is opt-in"
+        //   without the cumulative dimming of an opacity:0.7 wrapper.
+        // - The service image dims (handled below on ServiceImage) and
+        //   the title gets a line-through, so the visual cue carries
+        //   from picture + title — not by killing the whole card.
         border: '1px solid rgba(0,0,0,0.06)',
         borderRadius: 20,
         padding: compact ? '16px 18px' : '22px 24px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        opacity: included ? 1 : 0.7,
-        transition: 'opacity .2s, background .2s',
+        boxShadow: included
+          ? '0 4px 16px rgba(0,0,0,0.06)'
+          : '0 2px 8px rgba(0,0,0,0.04)',
+        transition: 'background .2s, box-shadow .2s',
         background: included ? '#fff' : '#FBF7F3',
         position: 'relative',
       }}
@@ -206,6 +214,18 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             // aspect so it reads as a header rather than a thumbnail.
             height={isMobile ? 140 : compact ? 120 : 160}
             width={isMobile ? '100%' : compact ? 180 : 220}
+            // When the service is opt-in (not included), dim + slightly
+            // desaturate the image. Carries the "you're not getting
+            // this yet" signal without killing the rest of the card.
+            style={
+              included
+                ? undefined
+                : {
+                    opacity: 0.55,
+                    filter: 'grayscale(0.35)',
+                    transition: 'opacity .2s, filter .2s',
+                  }
+            }
           />
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -361,7 +381,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                         fontFamily: T.fontD,
                         fontWeight: 700,
                         fontSize: 28,
-                        color: hasRecurringDiscount ? T.success : T.navy,
+                        // Mute price slightly when excluded so the strong
+                        // navy/success color doesn't compete with the
+                        // "Add to proposal" CTA across from it.
+                        color: !included
+                          ? T.fgMuted
+                          : hasRecurringDiscount
+                          ? T.success
+                          : T.navy,
                         letterSpacing: '-0.025em',
                         lineHeight: 1,
                         whiteSpace: 'nowrap',
@@ -392,7 +419,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                         fontFamily: T.fontD,
                         fontWeight: 700,
                         fontSize: 28,
-                        color: hasRecurringDiscount ? T.success : T.navy,
+                        // Same muted-when-excluded treatment as the
+                        // recurring branch above — keeps the "Add to
+                        // proposal" CTA across from it as the brightest
+                        // thing in the row.
+                        color: !included
+                          ? T.fgMuted
+                          : hasRecurringDiscount
+                          ? T.success
+                          : T.navy,
                         letterSpacing: '-0.025em',
                         lineHeight: 1,
                         whiteSpace: 'nowrap',

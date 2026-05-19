@@ -4,6 +4,7 @@ import { WorkhumanLead } from '../types/workhumanLead';
 import {
   PERSONAL_NOTE_FOLLOWUP_EMAIL,
   PERSONAL_NOTE_FOLLOWUP_SMS,
+  PERSONAL_NOTE_FOLLOWUP_2_VARIATIONS,
   PERSONAL_NOTE_CAVEATS,
   PERSONAL_NOTE_SUBJECT_LINES,
   POST_EVENT_LINKEDIN_CONNECT,
@@ -783,6 +784,42 @@ export function PersonalNoteFollowUpPanel({
 
       <div className="text-[11px] text-gray-500 pt-1 leading-relaxed">
         <strong>Recommended flow:</strong> Read the booth notes above. Edit the body to weave in something specific you actually talked about. Then "Copy for Gmail" → paste into Gmail compose → send. Hit "Mark sent" here so we log it.
+      </div>
+
+      {/* Follow-up #2 — only relevant if the first email got no reply.
+          Reply ON the original Gmail thread (no new subject). These are
+          deliberately tiny; our SmartLead data shows the simple seq-2
+          bump out-replies every other touch. Copy-only, additive — does
+          not touch the main email's subject/caveat/AI/send machinery. */}
+      <div className="border-t border-gray-200 pt-3 mt-1 space-y-2">
+        <div className="flex items-center gap-1.5">
+          <RefreshCw size={13} className="text-gray-500" />
+          <span className="text-xs font-semibold text-gray-700">
+            No reply after a few days? Follow-up 2
+          </span>
+        </div>
+        <p className="text-[11px] text-gray-500 leading-relaxed">
+          Reply on the <strong>same Gmail thread</strong> — no new subject. Keep it as short as these are; the simple bump is our highest-reply touch.
+        </p>
+        {PERSONAL_NOTE_FOLLOWUP_2_VARIATIONS.map(v => {
+          const fu2Body = fillTemplate(v.body, vars);
+          const fieldKey = `fu2_${v.id}`;
+          return (
+            <div key={v.id} className="border border-gray-200 rounded p-2.5 bg-gray-50 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium text-gray-700">{v.label}</span>
+                <button
+                  onClick={() => copy(fu2Body, fieldKey)}
+                  className="px-2 py-1 text-[11px] border border-gray-300 rounded bg-white hover:bg-gray-100 inline-flex items-center gap-1 shrink-0"
+                  title={v.description}
+                >
+                  {copiedField === fieldKey ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
+                </button>
+              </div>
+              <div className="text-[11px] text-gray-600 whitespace-pre-line leading-relaxed">{fu2Body}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
