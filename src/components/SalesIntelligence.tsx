@@ -3,7 +3,7 @@ import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle,
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
-type TabId = 'playA' | 'playB' | 'recon';
+type TabId = 'playA' | 'playB' | 'followups' | 'recon';
 
 interface PlayARow {
   rank: number; play_score: number; fit_score: number; company_name: string;
@@ -30,7 +30,17 @@ interface DraftResponse {
   fight_for_reason: string | null;
   grounding_note: string;
 }
-type DraftTarget = { play: 'A' | 'B'; rank: number; company: string; prefillEmail?: string | null };
+interface FollowupRow {
+  email: string; name: string | null; title: string | null; company: string | null;
+  last_sent: string; days_since: number; touches: number; thread_id: string | null;
+}
+type DraftTarget = {
+  company: string;
+  play?: 'A' | 'B';
+  rank?: number;
+  prefillEmail?: string | null;
+  followup?: FollowupRow;
+};
 
 const RECO_COPY: Record<string, { tone: string; text: string }> = {
   skip_suppressed: { tone: 'bg-red-50 text-red-700', text: 'Suppressed / do-not-contact. Do not send.' },
@@ -47,7 +57,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
   const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
   const [gmail, setGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
-  const [toEmail, setToEmail] = useState(target.prefillEmail || '');
+  const [toEmail, setToEmail] = useState(target.followup?.email || target.prefillEmail || '');
   const [sending, setSending] = useState<string | null>(null);
   const [confirmLabel, setConfirmLabel] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<
@@ -99,6 +109,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
           play: target.play, rank: target.rank,
           to: toEmail.trim(), fromEmail: gmail?.email,
           subject: subjects[label], body: bodies[label],
+          threadId: target.followup?.thread_id || undefined,
           acknowledgedCaution: force,
         }),
       });
@@ -161,10 +172,17 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Not signed in');
+        const draftBody = target.followup
+          ? { followup: {
+              to: target.followup.email, name: target.followup.name, title: target.followup.title,
+              company: target.followup.company, days_since: target.followup.days_since,
+              touch_number: (target.followup.touches || 1) + 1,
+            } }
+          : { play: target.play, rank: target.rank };
         const res = await fetch('/.netlify/functions/draft-outreach', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({ play: target.play, rank: target.rank }),
+          body: JSON.stringify(draftBody),
         });
         const j = await res.json();
         if (!res.ok || !j.success) throw new Error(j.error || `Request failed (${res.status})`);
@@ -198,10 +216,12 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
         <div className="flex items-start justify-between p-5 border-b border-gray-200">
           <div>
             <h2 className="text-lg font-bold text-shortcut-navy-blue flex items-center gap-2">
-              <PenLine size={18} /> Draft outreach — {target.company}
+              <PenLine size={18} /> {target.followup ? 'Follow-up' : 'Draft outreach'} — {target.company}
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Play {target.play} · rank {target.rank} · human-in-the-loop. Review and edit before sending. The pre-flight gate re-checks the recipient on send.
+              {target.followup
+                ? `Follow-up #${(target.followup.touches || 1) + 1} · no reply in ${target.followup.days_since}d · sends on the same Gmail thread.`
+                : `Play ${target.play} · rank ${target.rank}`} · human-in-the-loop. Review and edit before sending. The pre-flight gate re-checks the recipient on send.
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
@@ -357,6 +377,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
   { id: 'playB', label: 'Play B — Net-New', icon: <Crosshair size={18} /> },
+  { id: 'followups', label: 'Follow-ups', icon: <Send size={18} /> },
   { id: 'recon', label: 'Reconciliation', icon: <BarChart3 size={18} /> },
 ];
 
@@ -379,6 +400,8 @@ const SalesIntelligence: React.FC = () => {
   const [playA, setPlayA] = useState<PlayARow[]>([]);
   const [playB, setPlayB] = useState<PlayBRow[]>([]);
   const [recon, setRecon] = useState<ReconRow[]>([]);
+  const [followups, setFollowups] = useState<FollowupRow[] | null>(null);
+  const [fuLoading, setFuLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -447,6 +470,29 @@ const SalesIntelligence: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadFollowups = useCallback(async () => {
+    setFuLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const res = await fetch('/.netlify/functions/followups', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const j = await res.json();
+      if (!res.ok || !j.success) throw new Error(j.error || `Failed (${res.status})`);
+      setFollowups(j.followups || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load follow-ups');
+      setFollowups([]);
+    } finally {
+      setFuLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'followups' && followups === null && !fuLoading) loadFollowups();
+  }, [tab, followups, fuLoading, loadFollowups]);
 
   const generatedAt = playA[0]?.generated_at || playB[0]?.generated_at || recon[0]?.generated_at || null;
 
@@ -525,7 +571,7 @@ const SalesIntelligence: React.FC = () => {
         ))}
       </div>
 
-      {tab !== 'recon' && (
+      {(tab === 'playA' || tab === 'playB') && (
         <div className="flex items-center justify-between mb-3 gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
@@ -628,6 +674,48 @@ const SalesIntelligence: React.FC = () => {
             </tbody>
           </table>
         </div>
+      ) : tab === 'followups' ? (
+        <div className="overflow-x-auto border border-gray-200 rounded">
+          {fuLoading ? (
+            <div className="py-16 text-center text-gray-400">Loading follow-up queue…</div>
+          ) : !followups || followups.length === 0 ? (
+            <div className="py-16 text-center text-gray-400">
+              No one is due for a follow-up. Sends with no reply show here after 4 days.
+            </div>
+          ) : (
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className={th}>Contact</th><th className={th}>Company</th>
+                  <th className={th}>Title</th><th className={th}>No reply</th>
+                  <th className={th}>Touches</th><th className={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {followups.map((r) => (
+                  <tr key={r.email} className="hover:bg-gray-50">
+                    <td className={td}>
+                      <div>{r.name || '—'}</div>
+                      <div className="text-xs text-gray-500">{r.email}</div>
+                    </td>
+                    <td className={td}>{r.company || '—'}</td>
+                    <td className={`${td} text-gray-500`}>{r.title || '—'}</td>
+                    <td className={td}>{r.days_since}d</td>
+                    <td className={td}>{r.touches}</td>
+                    <td className={td}>
+                      <button
+                        onClick={() => setDraftTarget({ company: r.company || r.email, followup: r })}
+                        className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                      >
+                        <PenLine size={14} /> Draft follow-up
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       ) : (
         <div className="space-y-4">
           {recon.map((r) => (
@@ -651,7 +739,14 @@ const SalesIntelligence: React.FC = () => {
       )}
 
       {draftTarget && (
-        <DraftModal target={draftTarget} onClose={() => setDraftTarget(null)} />
+        <DraftModal
+          target={draftTarget}
+          onClose={() => {
+            const wasFollowup = !!draftTarget.followup;
+            setDraftTarget(null);
+            if (wasFollowup) setFollowups(null); // refetch queue (touch incremented / dropped)
+          }}
+        />
       )}
     </div>
   );

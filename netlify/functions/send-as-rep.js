@@ -47,7 +47,9 @@ export const handler = async (event) => {
   const mode = body.mode === 'open' ? 'open' : 'send';
   const to = lc(body.to);
   const fromEmail = lc(body.fromEmail);
-  const subject = (body.subject || '').toString().trim();
+  const threadId = body.threadId ? String(body.threadId) : null; // set => follow-up in this Gmail thread
+  let subject = (body.subject || '').toString().trim();
+  if (threadId && subject && !/^re:/i.test(subject)) subject = `Re: ${subject}`;
   const text = (body.body || '').toString();
   const acknowledgedCaution = body.acknowledgedCaution === true;
 
@@ -103,20 +105,31 @@ export const handler = async (event) => {
   try {
     const accessToken = await getAccessToken(sb, fromEmail);
     const signatureHtml = await getSignature(accessToken, fromEmail);
-    sent = await sendEmail(accessToken, { from: fromEmail, to, subject, body: text, signatureHtml });
+    sent = await sendEmail(accessToken, { from: fromEmail, to, subject, body: text, signatureHtml, threadId });
   } catch (e) {
     return json(502, { error: `Send failed: ${e.message}` });
   }
 
-  // Record so the gate sees this contact next time. Best-effort.
+  // Record so the gate sees this contact next time, and track cadence
+  // (touch_count/thread) for the follow-up queue. Best-effort.
   const now = new Date().toISOString();
   try {
     await sb.from('outreach_contacts').upsert(
       { email: to, email_domain: to.split('@')[1] || null, source: 'gmail-direct', first_seen: now, ingested_at: now },
       { onConflict: 'email', ignoreDuplicates: true },
     );
+    // Read-modify-write the touch count (one row per email,campaign; a
+    // follow-up upserts the same row so we can't count rows). Human-paced
+    // sends => the race window is irrelevant.
+    const { data: prev } = await sb.from('outreach_sends')
+      .select('touch_count').eq('email', to).eq('campaign_id', GMAIL_CAMPAIGN).maybeSingle();
     await sb.from('outreach_sends').upsert(
-      { email: to, campaign_id: GMAIL_CAMPAIGN, sent_time: now, ingested_at: now },
+      {
+        email: to, campaign_id: GMAIL_CAMPAIGN, sent_time: now, ingested_at: now,
+        touch_count: (prev?.touch_count || 0) + 1,
+        thread_id: sent.threadId || threadId || null,
+        message_id: sent.id || null,
+      },
       { onConflict: 'email,campaign_id' },
     );
   } catch (e) {

@@ -120,19 +120,31 @@ export const handler = async (event) => {
 
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { return jsonResponse(400, { error: 'Invalid JSON body' }); }
-  const play = body.play === 'A' ? 'A' : body.play === 'B' ? 'B' : null;
+  const followup = body.followup && body.followup.to ? body.followup : null;
+  const play = followup ? null : (body.play === 'A' ? 'A' : body.play === 'B' ? 'B' : null);
   const rank = Number(body.rank);
-  if (!play || !Number.isFinite(rank)) {
-    return jsonResponse(400, { error: 'Body must include play ("A"|"B") and a numeric rank' });
+  if (!followup && (!play || !Number.isFinite(rank))) {
+    return jsonResponse(400, { error: 'Body must include play ("A"|"B") and a numeric rank, or a followup {to}' });
   }
   const repName = (body.repName && String(body.repName).trim()) || (user.email ? String(user.email).split('@')[0] : '');
 
-  // 1. Load the ranked target
+  // 1. Load the target
   const target = {};
   let preflightEmail = null;
   let preflightDomain = null;
 
-  if (play === 'A') {
+  if (followup) {
+    const fto = String(followup.to).trim().toLowerCase();
+    Object.assign(target, {
+      kind: 'follow_up',
+      company: followup.company || null,
+      known_contact: { name: followup.name || null, title: followup.title || null },
+      days_since_last_email: followup.days_since ?? null,
+      this_is_touch_number: followup.touch_number ?? 2,
+    });
+    preflightEmail = fto;
+    preflightDomain = fto.split('@')[1] || null;
+  } else if (play === 'A') {
     const { data: row, error } = await sb.from('crm_play_a')
       .select('company_id, company_name, employees, industry, sites_served, sites_list, fit_score')
       .eq('rank', rank).maybeSingle();
@@ -218,9 +230,11 @@ export const handler = async (event) => {
       ? `PROVEN PATTERNS — real Shortcut emails with the highest measured reply rates. These earned replies from buyers like this one. Do NOT copy them. Study what works (the hook, the length, how direct the ask is, the register) and apply that to THIS prospect in Shortcut's voice:\n\n${provenPatterns.join('\n\n---\n\n')}\n`
       : ``,
     repName ? `Sign emails from: ${repName}` : `No rep name provided — sign "Best," with no name.`,
-    play === 'A'
-      ? `This is an EXISTING client we want to expand to more of their offices/teams. Acknowledge the existing relationship warmly and specifically. Do not pitch as if they have never heard of us.`
-      : `This is a NET-NEW prospect who looks like our best-fit winning customers. They do not know us yet.`,
+    followup
+      ? `This is a FOLLOW-UP (touch #${target.this_is_touch_number}) to someone who has NOT replied to a prior email about ${target.days_since_last_email ?? 'a few'} days ago. Keep it short, warm, and low-pressure. Briefly reference that you reached out before, then add a fresh reason to reply (a new angle, a concrete offer, or a single easy question). Do NOT just say "bumping this" or "circling back". No guilt, no pressure. It will be sent on the same email thread, so do not re-introduce Shortcut from scratch.`
+      : play === 'A'
+        ? `This is an EXISTING client we want to expand to more of their offices/teams. Acknowledge the existing relationship warmly and specifically. Do not pitch as if they have never heard of us.`
+        : `This is a NET-NEW prospect who looks like our best-fit winning customers. They do not know us yet.`,
   ].filter(Boolean).join('\n');
 
   let result;
@@ -241,8 +255,8 @@ export const handler = async (event) => {
 
   return jsonResponse(200, {
     success: true,
-    play,
-    rank,
+    play: play || (followup ? 'followup' : null),
+    rank: Number.isFinite(rank) ? rank : null,
     target,
     preflight: gate,
     drafts: result.directions || [],

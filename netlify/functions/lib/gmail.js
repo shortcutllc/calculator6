@@ -125,15 +125,18 @@ function buildRaw({ from, to, subject, bodyHtml }) {
  * HTML-escaped and newline-converted. `signatureHtml` (already HTML, from
  * getSignature) is appended verbatim after a separator. Returns { id, threadId }.
  */
-export async function sendEmail(accessToken, { from, to, subject, body, signatureHtml }) {
+export async function sendEmail(accessToken, { from, to, subject, body, signatureHtml, threadId }) {
   const bodyHtml = escapeHtml(body).replace(/\r?\n/g, '<br>');
   const sigBlock = signatureHtml ? `<br><br>${signatureHtml}` : '';
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${bodyHtml}${sigBlock}</div>`;
   const raw = buildRaw({ from, to, subject, bodyHtml: html });
+  // threadId attaches the message to an existing Gmail thread (follow-ups).
+  // Gmail also requires the subject to match the thread to keep it grouped.
+  const payload = threadId ? { raw, threadId } : { raw };
   const r = await fetch(`${GMAIL}/messages/send`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ raw }),
+    body: JSON.stringify(payload),
   });
   const j = await r.json();
   if (!r.ok) throw new Error(`gmail send failed: ${j.error?.message || r.status}`);
