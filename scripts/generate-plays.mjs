@@ -75,7 +75,7 @@ async function replaceAll(table, rows) {
 
 (async () => {
   const companies = await readAll('crm_companies',
-    'id, canonical_key, display_name, trajectory, activity_status, completed_events, fit_score, fit_breakdown, ext_industry, ext_employee_size, contact_domains, contacts, is_internal, special_handling, demoed_not_closed');
+    'id, canonical_key, display_name, trajectory, activity_status, completed_events, last_event_at, fit_score, fit_breakdown, ext_industry, ext_employee_size, contact_domains, contacts, is_internal, special_handling, demoed_not_closed');
   const sites = await readAll('crm_sites', 'company_id, city');
   const persons = await readAll('apollo_person_cache', 'email, email_domain, company_headcount, industry, linkedin_url, location');
   const ocs = await readAll('outreach_contacts', 'email, name, title, company, email_domain, crm_company_id, linkedin_url, location');
@@ -144,19 +144,28 @@ async function replaceAll(table, rows) {
     return 4;                                   // mega-cap vs our winners — dampened
   };
 
-  // ---------- PLAY A: under-served active clients that are big multi-office ----------
+  // ---------- PLAY A: under-served clients to expand OR re-engage ----------
+  // Include active (≤18mo) AND lapsed (≤36mo). Churned/never excluded — those
+  // are re-acquisition, not warm expansion. A client we last served >6mo ago
+  // is tagged re_engage so the page + drafter treat the gap explicitly.
   const playA = [];
   for (const c of real) {
-    if (c.activity_status !== 'active' || !c.completed_events) continue;
+    if (!c.completed_events) continue;
+    if (c.activity_status !== 'active' && c.activity_status !== 'lapsed') continue;
     const ourSites = siteCount.get(c.id) || 0;
     const f = firmoOf(c);
     if (f.hc < 500) continue;                 // big enough to have many offices
     if (ourSites > Math.max(2, Math.ceil(f.hc / 4000))) continue; // we already serve a lot of them
     const headroom = Math.round(f.hc / Math.max(1, ourSites));
+    const monthsSince = c.last_event_at
+      ? Math.floor((Date.now() - new Date(c.last_event_at).getTime()) / (30 * 86400000))
+      : null;
+    const playStatus = monthsSince != null && monthsSince > 6 ? 're_engage' : 'expand';
     playA.push({
       company_id: c.id, company: c.display_name, fit: c.fit_score, trajectory: c.trajectory,
       our_sites: ourSites, cities: [...(siteCities.get(c.id) || [])].join(' / '),
       emp: f.hc, industry: f.ind || c.ext_industry || '?',
+      last_event_at: c.last_event_at || null, months_since_event: monthsSince, play_status: playStatus,
       score: Math.round(c.fit_score * 0.5 + Math.min(50, headroom / 100)),
     });
   }
@@ -227,7 +236,9 @@ async function replaceAll(table, rows) {
   await replaceAll('crm_play_a', playA.map((r, i) => ({
     rank: i + 1, play_score: r.score, fit_score: r.fit, company_id: r.company_id,
     company_name: r.company, employees: String(r.emp), industry: r.industry,
-    sites_served: r.our_sites, sites_list: r.cities, generated_at: genAt,
+    sites_served: r.our_sites, sites_list: r.cities,
+    last_event_at: r.last_event_at, months_since_event: r.months_since_event, play_status: r.play_status,
+    generated_at: genAt,
   })));
   await replaceAll('crm_play_b', playB.map((r, i) => ({
     rank: i + 1, score: r.score, company_name: String(r.company), domain: r.domain,

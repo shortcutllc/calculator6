@@ -146,13 +146,14 @@ export const handler = async (event) => {
     preflightDomain = fto.split('@')[1] || null;
   } else if (play === 'A') {
     const { data: row, error } = await sb.from('crm_play_a')
-      .select('company_id, company_name, employees, industry, sites_served, sites_list, fit_score')
+      .select('company_id, company_name, employees, industry, sites_served, sites_list, fit_score, last_event_at, months_since_event, play_status')
       .eq('rank', rank).maybeSingle();
     if (error || !row) return jsonResponse(404, { error: `Play A rank ${rank} not found` });
     Object.assign(target, {
-      kind: 'expand_existing_client',
+      kind: row.play_status === 're_engage' ? 're_engage_lapsed_client' : 'expand_existing_client',
       company: row.company_name, employees: row.employees, industry: row.industry,
       sites_we_serve: row.sites_served, sites_list: row.sites_list, fit_score: row.fit_score,
+      last_event_at: row.last_event_at, months_since_last_event: row.months_since_event,
     });
     if (row.company_id) {
       const { data: c } = await sb.from('crm_companies')
@@ -232,9 +233,11 @@ export const handler = async (event) => {
     repName ? `Sign emails from: ${repName}` : `No rep name provided — sign "Best," with no name.`,
     followup
       ? `This is a FOLLOW-UP (touch #${target.this_is_touch_number}) to someone who has NOT replied to a prior email about ${target.days_since_last_email ?? 'a few'} days ago. Keep it short, warm, and low-pressure. Briefly reference that you reached out before, then add a fresh reason to reply (a new angle, a concrete offer, or a single easy question). Do NOT just say "bumping this" or "circling back". No guilt, no pressure. It will be sent on the same email thread, so do not re-introduce Shortcut from scratch.`
-      : play === 'A'
-        ? `This is an EXISTING client we want to expand to more of their offices/teams. Acknowledge the existing relationship warmly and specifically. Do not pitch as if they have never heard of us.`
-        : `This is a NET-NEW prospect who looks like our best-fit winning customers. They do not know us yet.`,
+      : play === 'A' && target.kind === 're_engage_lapsed_client'
+        ? `This is a RE-ENGAGEMENT. They are a past client but it has been about ${target.months_since_last_event ?? 'several'} months since their last event with us. Acknowledge the gap naturally and without apology or guilt. Reference the prior work warmly, then give a concrete, specific reason to come back now (a new offering, a seasonal moment, a fresh idea for their teams). Do NOT pitch as if they have never heard of us, and do NOT pretend it has been business-as-usual.`
+        : play === 'A'
+          ? `This is an EXISTING, currently-active client we want to expand to more of their offices/teams. Acknowledge the existing relationship warmly and specifically. Do not pitch as if they have never heard of us.`
+          : `This is a NET-NEW prospect who looks like our best-fit winning customers. They do not know us yet.`,
   ].filter(Boolean).join('\n');
 
   let result;

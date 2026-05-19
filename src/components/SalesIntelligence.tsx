@@ -9,6 +9,7 @@ interface PlayARow {
   rank: number; play_score: number; fit_score: number; company_name: string;
   employees: string; industry: string; sites_served: number; sites_list: string;
   generated_at: string;
+  last_event_at: string | null; months_since_event: number | null; play_status: string | null;
 }
 interface PlayBRow {
   rank: number; score: number; company_name: string; domain: string;
@@ -603,6 +604,7 @@ const SalesIntelligence: React.FC = () => {
                 <th className={th}>#</th><th className={th}>Company</th><th className={th}>Fit</th>
                 <th className={th}>Employees</th><th className={th}>Industry</th>
                 <th className={th}>We serve</th><th className={th}>Offices</th>
+                <th className={th}>Last event</th>
                 <th className={th}></th>
               </tr>
             </thead>
@@ -610,12 +612,26 @@ const SalesIntelligence: React.FC = () => {
               {fa.map((r) => (
                 <tr key={r.rank} className="hover:bg-gray-50">
                   <td className={td}>{r.rank}</td>
-                  <td className={`${td} font-medium`}>{r.company_name}</td>
+                  <td className={`${td} font-medium`}>
+                    {r.company_name}
+                    {r.play_status === 're_engage' && (
+                      <span className="ml-2 text-xs font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                        Re-engage
+                      </span>
+                    )}
+                  </td>
                   <td className={td}>{r.fit_score}</td>
                   <td className={td}>{r.employees}</td>
                   <td className={td}>{r.industry}</td>
                   <td className={td}>{r.sites_served}</td>
                   <td className={`${td} text-gray-500`}>{r.sites_list}</td>
+                  <td className={td}>
+                    {r.last_event_at
+                      ? <span className={r.play_status === 're_engage' ? 'text-amber-700' : 'text-gray-600'}>
+                          {r.months_since_event != null ? `${r.months_since_event}mo ago` : new Date(r.last_event_at).toLocaleDateString()}
+                        </span>
+                      : <span className="text-gray-300">—</span>}
+                  </td>
                   <td className={td}>
                     <button
                       onClick={() => setDraftTarget({ play: 'A', rank: r.rank, company: r.company_name })}
