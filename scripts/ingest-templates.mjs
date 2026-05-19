@@ -87,7 +87,7 @@ async function upsert(rows) {
       try {
         const { error } = await sb.from('outreach_templates')
           .upsert(batch, { onConflict: 'campaign_id,seq_number', ignoreDuplicates: false });
-        if (error) throw new Error(error.message);
+        if (error) throw new Error([error.message, error.code, error.details, error.hint].filter(Boolean).join(' | ') || 'unknown supabase error');
         break;
       } catch (e) {
         if (a >= 4) throw new Error(`upsert outreach_templates: ${e.message}`);
@@ -116,12 +116,20 @@ async function upsert(rows) {
     const steps = Array.isArray(seq) ? seq : seq.data || [];
     const st = stats.get(cid) || { sent: 0, replied: 0 };
     const rate = st.sent > 0 ? Number((st.replied / st.sent).toFixed(4)) : null;
+    const seenSeq = new Set();
+    let idx = 0;
     for (const s of steps) {
       const body = htmlToText(s.email_body);
-      if (!body && !s.subject) continue;
+      if (!body && !s.subject) { idx += 1; continue; }
+      // seq_number can repeat or be null across steps/variants → guarantee a
+      // unique (campaign_id, seq_number) so the batch upsert can't collide.
+      let sn = Number.isFinite(s.seq_number) ? s.seq_number : idx + 1;
+      while (seenSeq.has(sn)) sn += 100;
+      seenSeq.add(sn);
+      idx += 1;
       rows.push({
         campaign_id: cid,
-        seq_number: s.seq_number ?? 0,
+        seq_number: sn,
         campaign_name: c.name || null,
         subject: s.subject || null,
         body: body || null,

@@ -14,6 +14,7 @@ interface PlayBRow {
   rank: number; score: number; company_name: string; domain: string;
   employees: string; industry: string; contact_name: string;
   contact_title: string; title_category: string; generated_at: string;
+  contact_email: string | null; contact_linkedin: string | null; contact_location: string | null;
 }
 interface ReconRow {
   bucket: string; total: number; title_breakdown: Record<string, number>;
@@ -29,7 +30,7 @@ interface DraftResponse {
   fight_for_reason: string | null;
   grounding_note: string;
 }
-type DraftTarget = { play: 'A' | 'B'; rank: number; company: string };
+type DraftTarget = { play: 'A' | 'B'; rank: number; company: string; prefillEmail?: string | null };
 
 const RECO_COPY: Record<string, { tone: string; text: string }> = {
   skip_suppressed: { tone: 'bg-red-50 text-red-700', text: 'Suppressed / do-not-contact. Do not send.' },
@@ -46,7 +47,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
   const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
   const [gmail, setGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
-  const [toEmail, setToEmail] = useState('');
+  const [toEmail, setToEmail] = useState(target.prefillEmail || '');
   const [sending, setSending] = useState<string | null>(null);
   const [confirmLabel, setConfirmLabel] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<
@@ -601,11 +602,22 @@ const SalesIntelligence: React.FC = () => {
                   <td className={td}>{r.score}</td>
                   <td className={td}>{r.employees}</td>
                   <td className={td}>{r.industry}</td>
-                  <td className={td}>{r.contact_name}</td>
+                  <td className={td}>
+                    <div>{r.contact_name}</div>
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      {r.contact_email
+                        ? <span className="text-gray-500">{r.contact_email}</span>
+                        : <span className="italic">no email</span>}
+                      {r.contact_linkedin && (
+                        <a href={r.contact_linkedin} target="_blank" rel="noopener noreferrer"
+                          className="text-shortcut-navy-blue hover:underline">in</a>
+                      )}
+                    </div>
+                  </td>
                   <td className={`${td} text-gray-500`}>{r.contact_title} <span className="text-xs text-gray-400">({r.title_category})</span></td>
                   <td className={td}>
                     <button
-                      onClick={() => setDraftTarget({ play: 'B', rank: r.rank, company: r.company_name })}
+                      onClick={() => setDraftTarget({ play: 'B', rank: r.rank, company: r.company_name, prefillEmail: r.contact_email })}
                       className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
                     >
                       <PenLine size={14} /> Draft

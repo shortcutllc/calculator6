@@ -77,8 +77,23 @@ async function replaceAll(table, rows) {
   const companies = await readAll('crm_companies',
     'id, canonical_key, display_name, trajectory, activity_status, completed_events, fit_score, fit_breakdown, ext_industry, ext_employee_size, contact_domains, contacts, is_internal, special_handling, demoed_not_closed');
   const sites = await readAll('crm_sites', 'company_id, city');
-  const persons = await readAll('apollo_person_cache', 'email_domain, company_headcount, industry');
-  const ocs = await readAll('outreach_contacts', 'email, name, title, company, email_domain, crm_company_id');
+  const persons = await readAll('apollo_person_cache', 'email, email_domain, company_headcount, industry, linkedin_url, location');
+  const ocs = await readAll('outreach_contacts', 'email, name, title, company, email_domain, crm_company_id, linkedin_url, location');
+
+  // Free contact-detail fallback (no Apollo spend): email -> {linkedin,location}
+  // and domain -> a representative {linkedin,location} from already-paid Apollo.
+  const apolloByEmail = new Map();
+  const apolloByDom = new Map();
+  for (const p of persons) {
+    const em = lc(p.email);
+    if (em && (p.linkedin_url || p.location) && !apolloByEmail.has(em)) {
+      apolloByEmail.set(em, { linkedin: p.linkedin_url || null, location: p.location || null });
+    }
+    const d = lc(p.email_domain)?.replace(/^www\./, '');
+    if (d && (p.linkedin_url || p.location) && !apolloByDom.has(d)) {
+      apolloByDom.set(d, { linkedin: p.linkedin_url || null, location: p.location || null });
+    }
+  }
 
   const siteCount = new Map();
   const siteCities = new Map();
@@ -156,7 +171,7 @@ async function replaceAll(table, rows) {
     const cat = titleCat(o.title);
     const cur = prospects.get(dom);
     const rank = cat && GOOD.has(cat) ? 2 : cat ? 1 : 0;
-    if (!cur || rank > cur._rank) prospects.set(dom, { domain: dom, company: o.company, email: o.email, name: o.name, title: o.title, cat, _rank: rank });
+    if (!cur || rank > cur._rank) prospects.set(dom, { domain: dom, company: o.company, email: o.email, name: o.name, title: o.title, linkedin: o.linkedin_url || null, location: o.location || null, cat, _rank: rank });
   }
   const playB = [];
   for (const p of prospects.values()) {
@@ -171,7 +186,14 @@ async function replaceAll(table, rows) {
     const gate = await preflight(sb, { email: p.email, domain: p.domain });
     if (gate.recommendation === 'skip_suppressed' || gate.recommendation === 'skip_already_client'
       || gate.recommendation === 'caution_recently_contacted') continue;
-    playB.push({ company: p.company || p.domain, domain: p.domain, score: s, industry: ind, emp: hc, contact: p.name, title: p.title, title_cat: p.cat || '-' });
+    const apoF = apolloByEmail.get(lc(p.email)) || apolloByDom.get(p.domain) || {};
+    playB.push({
+      company: p.company || p.domain, domain: p.domain, score: s, industry: ind, emp: hc,
+      contact: p.name, title: p.title, title_cat: p.cat || '-',
+      email: p.email || null,
+      linkedin: p.linkedin || apoF.linkedin || null,
+      location: p.location || apoF.location || null,
+    });
   }
   playB.sort((a, b) => b.score - a.score);
 
@@ -210,7 +232,9 @@ async function replaceAll(table, rows) {
   await replaceAll('crm_play_b', playB.map((r, i) => ({
     rank: i + 1, score: r.score, company_name: String(r.company), domain: r.domain,
     employees: String(r.emp), industry: r.industry, contact_name: r.contact,
-    contact_title: r.title, title_category: r.title_cat, generated_at: genAt,
+    contact_title: r.title, title_category: r.title_cat,
+    contact_email: r.email, contact_linkedin: r.linkedin, contact_location: r.location,
+    generated_at: genAt,
   })));
   await replaceAll('crm_reconciliation', Object.entries(recon).map(([bucket, m]) => ({
     bucket, total: Object.values(m).reduce((x, y) => x + y, 0), title_breakdown: m, generated_at: genAt,
