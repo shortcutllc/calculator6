@@ -157,8 +157,10 @@ async function replaceAll(table, rows) {
     if (f.hc < 500) continue;                 // big enough to have many offices
     if (ourSites > Math.max(2, Math.ceil(f.hc / 4000))) continue; // we already serve a lot of them
     const headroom = Math.round(f.hc / Math.max(1, ourSites));
+    // Clamp at 0: a future last_event_at means an event is already booked
+    // ahead (very active) — never treat that as months-since-lapsed.
     const monthsSince = c.last_event_at
-      ? Math.floor((Date.now() - new Date(c.last_event_at).getTime()) / (30 * 86400000))
+      ? Math.max(0, Math.floor((Date.now() - new Date(c.last_event_at).getTime()) / (30 * 86400000)))
       : null;
     const playStatus = monthsSince != null && monthsSince > 6 ? 're_engage' : 'expand';
     playA.push({

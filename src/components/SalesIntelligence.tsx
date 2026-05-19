@@ -697,7 +697,9 @@ const SalesIntelligence: React.FC = () => {
                   <td className={td}>
                     {r.last_event_at
                       ? <span className={r.play_status === 're_engage' ? 'text-amber-700' : 'text-gray-600'}>
-                          {r.months_since_event != null ? `${r.months_since_event}mo ago` : new Date(r.last_event_at).toLocaleDateString()}
+                          {r.months_since_event != null && r.months_since_event > 0
+                            ? `${r.months_since_event}mo ago`
+                            : new Date(r.last_event_at).toLocaleDateString()}
                         </span>
                       : <span className="text-gray-300">—</span>}
                   </td>
