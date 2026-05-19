@@ -50,6 +50,29 @@ async function readAll(t, cols, mod) {
   return out;
 }
 
+// Snapshot table refresh: clear then chunk-insert, backoff on transient fetch fails.
+async function replaceAll(table, rows) {
+  for (let a = 0; ; a += 1) {
+    const { error } = await sb.from(table).delete().not('id', 'is', null);
+    if (!error) break;
+    if (a >= 4) throw new Error(`clear ${table}: ${error.message}`);
+    await new Promise((r) => setTimeout(r, 1000 * 2 ** (a + 1)));
+  }
+  for (let i = 0; i < rows.length; i += 500) {
+    const batch = rows.slice(i, i + 500);
+    for (let a = 0; ; a += 1) {
+      try {
+        const { error } = await sb.from(table).insert(batch);
+        if (error) throw new Error(error.message);
+        break;
+      } catch (e) {
+        if (a >= 4) throw new Error(`insert ${table} after ${a} tries: ${e.message}`);
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** (a + 1)));
+      }
+    }
+  }
+}
+
 (async () => {
   const companies = await readAll('crm_companies',
     'id, canonical_key, display_name, trajectory, activity_status, completed_events, fit_score, fit_breakdown, ext_industry, ext_employee_size, contact_domains, contacts, is_internal, special_handling, demoed_not_closed');
@@ -116,7 +139,7 @@ async function readAll(t, cols, mod) {
     if (ourSites > Math.max(2, Math.ceil(f.hc / 4000))) continue; // we already serve a lot of them
     const headroom = Math.round(f.hc / Math.max(1, ourSites));
     playA.push({
-      company: c.display_name, fit: c.fit_score, trajectory: c.trajectory,
+      company_id: c.id, company: c.display_name, fit: c.fit_score, trajectory: c.trajectory,
       our_sites: ourSites, cities: [...(siteCities.get(c.id) || [])].join(' / '),
       emp: f.hc, industry: f.ind || c.ext_industry || '?',
       score: Math.round(c.fit_score * 0.5 + Math.min(50, headroom / 100)),
@@ -176,6 +199,23 @@ async function readAll(t, cols, mod) {
     ...playB.map((r, i) => [i + 1, r.company, r.domain, r.score, r.industry, r.emp, r.contact, r.title, r.title_cat])]));
   writeFileSync(`${ROOT}/reconciliation.csv`, csv([['bucket', 'title_category', 'count'],
     ...Object.entries(recon).flatMap(([b, m]) => Object.entries(m).map(([t, n]) => [b, t, n]))]));
+
+  // ---------- persist for the /sales-intelligence page ----------
+  const genAt = new Date().toISOString();
+  await replaceAll('crm_play_a', playA.map((r, i) => ({
+    rank: i + 1, play_score: r.score, fit_score: r.fit, company_id: r.company_id,
+    company_name: r.company, employees: String(r.emp), industry: r.industry,
+    sites_served: r.our_sites, sites_list: r.cities, generated_at: genAt,
+  })));
+  await replaceAll('crm_play_b', playB.map((r, i) => ({
+    rank: i + 1, score: r.score, company_name: String(r.company), domain: r.domain,
+    employees: String(r.emp), industry: r.industry, contact_name: r.contact,
+    contact_title: r.title, title_category: r.title_cat, generated_at: genAt,
+  })));
+  await replaceAll('crm_reconciliation', Object.entries(recon).map(([bucket, m]) => ({
+    bucket, total: Object.values(m).reduce((x, y) => x + y, 0), title_breakdown: m, generated_at: genAt,
+  })));
+  log(`Persisted to Supabase (crm_play_a/b/reconciliation) @ ${genAt}`);
 
   log(`\n=== PLAY A — under-served active clients to expand (${playA.length}) ===`);
   for (const r of playA.slice(0, 15)) log(`  ${String(r.score).padStart(3)}  ${r.company?.slice(0, 26).padEnd(26)} fit=${r.fit} ${String(r.emp).padStart(6)}emp  we serve ${r.our_sites} (${r.cities})  ${r.industry}`);

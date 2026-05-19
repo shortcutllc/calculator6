@@ -64,6 +64,7 @@ const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
+const SalesIntelligence = lazy(() => import('./components/SalesIntelligence'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
 const WorkhumanBoothDesigns = lazy(() => import('./components/WorkhumanBoothDesigns'));
 const WorkhumanTVLoop = lazy(() => import('./components/WorkhumanTVLoop'));
@@ -424,6 +425,21 @@ function App() {
                       </div>
                     }>
                       <UpcomingEvents />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
+              {/* Sales Intelligence */}
+              <Route
+                path="/sales-intelligence"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SalesIntelligence />
                     </Suspense>
                   </PrivateRoute>
                 }
