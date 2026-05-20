@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock } from 'lucide-react';
+import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
-type TabId = 'playA' | 'playB' | 'followups' | 'recon';
+type TabId = 'playA' | 'playB' | 'followups' | 'drafts' | 'recon';
+interface SavedDraftRow {
+  id: string; recipient_email: string | null; subject: string; body: string;
+  direction_label: string | null; source_company: string | null; source_contact: string | null;
+  source_title: string | null; target_kind: string | null; target_ref: Record<string, unknown>;
+  preflight_reco: string | null; note: string | null; created_at: string;
+}
 
 interface PlayARow {
   rank: number; play_score: number; fit_score: number; company_name: string;
@@ -63,6 +69,8 @@ type DraftTarget = {
   rank?: number;
   prefillEmail?: string | null;
   followup?: FollowupRow;
+  // Reopen a previously-saved draft: skip the LLM fetch, prefill the modal.
+  savedDraft?: { id: string; subject: string; body: string; direction_label: string; recipient_email: string | null };
 };
 
 const RECO_COPY: Record<string, { tone: string; text: string }> = {
@@ -193,6 +201,18 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
     let cancelled = false;
     (async () => {
       setLoading(true); setErr(null);
+      // Reopening a saved draft: skip the LLM fetch, prefill from the saved row.
+      if (target.savedDraft) {
+        const sd = target.savedDraft;
+        setData({
+          target: {}, preflight: null, drafts: [{ label: sd.direction_label || 'saved', subject: sd.subject, body: sd.body }],
+          fight_for: sd.direction_label || null, fight_for_reason: null, grounding_note: 'Reopened from saved drafts.',
+        });
+        setSubjects({ [sd.direction_label || 'saved']: sd.subject });
+        setBodies({ [sd.direction_label || 'saved']: sd.body });
+        setLoading(false);
+        return;
+      }
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Not signed in');
@@ -231,6 +251,49 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
     });
   };
 
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const saveDraft = async (label: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not signed in');
+      // Reconstruct the target_ref so the modal can reopen with full context.
+      const targetRef: Record<string, unknown> = { company: target.company };
+      if (target.play) { targetRef.play = target.play; targetRef.rank = target.rank; }
+      if (target.followup) targetRef.followup = target.followup;
+      if (target.prefillEmail) targetRef.prefillEmail = target.prefillEmail;
+      const kind = target.followup ? 'followup' : target.play ? `play${target.play}` : 'contact';
+      const { error } = await supabase.from('saved_drafts').insert({
+        user_id: user.id,
+        recipient_email: toEmail.trim() || null,
+        subject: subjects[label] || '',
+        body: bodies[label] || '',
+        direction_label: label,
+        source_company: target.company,
+        source_contact: target.followup?.name || null,
+        source_title: target.followup?.title || null,
+        target_kind: kind,
+        target_ref: targetRef,
+        preflight_reco: data?.preflight?.recommendation || null,
+      });
+      if (error) throw error;
+      setSaved((s) => ({ ...s, [label]: true }));
+      setTimeout(() => setSaved((s) => ({ ...s, [label]: false })), 1800);
+    } catch (e) {
+      setSendResult({ label, kind: 'err', text: e instanceof Error ? e.message : 'Save failed' });
+    }
+  };
+
+  const deleteSavedDraft = async () => {
+    if (!target.savedDraft?.id) return;
+    try {
+      const { error } = await supabase.from('saved_drafts').delete().eq('id', target.savedDraft.id);
+      if (error) throw error;
+      onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Delete failed');
+    }
+  };
+
   const reco = data?.preflight?.recommendation || '';
   const recoMeta = RECO_COPY[reco];
 
@@ -248,7 +311,18 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
                 : `Play ${target.play} · rank ${target.rank}`} · human-in-the-loop. Review and edit before sending. The pre-flight gate re-checks the recipient on send.
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+          <div className="flex items-center gap-3">
+            {target.savedDraft && (
+              <button
+                onClick={deleteSavedDraft}
+                className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800"
+                title="Remove this saved draft"
+              >
+                <Trash2 size={14} /> Delete saved
+              </button>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+          </div>
         </div>
 
         <div className="p-5 space-y-4">
@@ -367,13 +441,23 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
                       data.fight_for === d.label ? 'text-blue-700' : 'text-gray-500'}`}>
                       {d.label}{data.fight_for === d.label ? ' · recommended' : ''}
                     </span>
-                    <button
-                      onClick={() => copy(d.label)}
-                      className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900"
-                    >
-                      {copied === d.label ? <Check size={14} /> : <Copy size={14} />}
-                      {copied === d.label ? 'Copied' : 'Copy'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => saveDraft(d.label)}
+                        className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900"
+                        title="Save this draft to come back to later"
+                      >
+                        {saved[d.label] ? <BookmarkCheck size={14} className="text-green-700" /> : <Bookmark size={14} />}
+                        {saved[d.label] ? 'Saved' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => copy(d.label)}
+                        className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900"
+                      >
+                        {copied === d.label ? <Check size={14} /> : <Copy size={14} />}
+                        {copied === d.label ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
                   </div>
                   <div className="p-3 space-y-2">
                     <input
@@ -639,6 +723,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
   { id: 'playB', label: 'Play B — Net-New', icon: <Crosshair size={18} /> },
   { id: 'followups', label: 'Follow-ups', icon: <Send size={18} /> },
+  { id: 'drafts', label: 'Drafts', icon: <Bookmark size={18} /> },
   { id: 'recon', label: 'Reconciliation', icon: <BarChart3 size={18} /> },
 ];
 
@@ -662,6 +747,8 @@ const SalesIntelligence: React.FC = () => {
   const [playB, setPlayB] = useState<PlayBRow[]>([]);
   const [recon, setRecon] = useState<ReconRow[]>([]);
   const [followups, setFollowups] = useState<FollowupRow[] | null>(null);
+  const [savedDrafts, setSavedDrafts] = useState<SavedDraftRow[] | null>(null);
+  const [sdLoading, setSdLoading] = useState(false);
   const [fuLoading, setFuLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -758,6 +845,27 @@ const SalesIntelligence: React.FC = () => {
   useEffect(() => {
     if (tab === 'followups' && followups === null && !fuLoading) loadFollowups();
   }, [tab, followups, fuLoading, loadFollowups]);
+
+  const loadSavedDrafts = useCallback(async () => {
+    setSdLoading(true);
+    try {
+      const { data, error } = await supabase.from('saved_drafts').select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setSavedDrafts(data || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load drafts');
+      setSavedDrafts([]);
+    } finally {
+      setSdLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Refetch when entering Drafts tab AND whenever the draft modal closes
+    // (a save/delete inside the modal should be reflected on return).
+    if (tab === 'drafts' && !draftTarget) loadSavedDrafts();
+  }, [tab, draftTarget, loadSavedDrafts]);
 
   const generatedAt = playA[0]?.generated_at || playB[0]?.generated_at || recon[0]?.generated_at || null;
 
@@ -1071,6 +1179,71 @@ const SalesIntelligence: React.FC = () => {
                       >
                         <PenLine size={14} /> Draft follow-up
                       </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : tab === 'drafts' ? (
+        <div className="overflow-x-auto border border-gray-200 rounded">
+          {sdLoading ? (
+            <div className="py-16 text-center text-gray-400">Loading saved drafts…</div>
+          ) : !savedDrafts || savedDrafts.length === 0 ? (
+            <div className="py-16 text-center text-gray-400">
+              No saved drafts. Hit <Bookmark size={12} className="inline-block -mt-0.5" /> Save in the draft modal to park one for later.
+            </div>
+          ) : (
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className={th}>Saved</th><th className={th}>Company</th>
+                  <th className={th}>To</th><th className={th}>Subject</th>
+                  <th className={th}>Source</th><th className={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {savedDrafts.map((sd) => (
+                  <tr key={sd.id} className="hover:bg-gray-50">
+                    <td className={`${td} text-gray-500 text-xs whitespace-nowrap`}>
+                      {formatDistanceToNow(new Date(sd.created_at), { addSuffix: true })}
+                    </td>
+                    <td className={`${td} font-medium`}>{sd.source_company || '—'}</td>
+                    <td className={`${td} text-gray-600`}>{sd.recipient_email || <span className="italic text-gray-400">no recipient</span>}</td>
+                    <td className={td}>
+                      <div className="text-gray-800 max-w-md truncate" title={sd.subject}>{sd.subject || <span className="italic text-gray-400">no subject</span>}</div>
+                      <div className="text-xs text-gray-400 max-w-md truncate" title={sd.body}>{(sd.body || '').slice(0, 120)}</div>
+                    </td>
+                    <td className={`${td} text-xs text-gray-500`}>
+                      {sd.target_kind || '—'}{sd.direction_label ? ` · ${sd.direction_label}` : ''}
+                    </td>
+                    <td className={td}>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setDraftTarget({
+                            company: sd.source_company || sd.recipient_email || 'Saved draft',
+                            ...((sd.target_ref || {}) as Partial<DraftTarget>),
+                            savedDraft: {
+                              id: sd.id, subject: sd.subject, body: sd.body,
+                              direction_label: sd.direction_label || 'saved',
+                              recipient_email: sd.recipient_email,
+                            },
+                          })}
+                          className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                        >
+                          <PenLine size={14} /> Open
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const { error } = await supabase.from('saved_drafts').delete().eq('id', sd.id);
+                            if (!error) loadSavedDrafts();
+                          }}
+                          className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
