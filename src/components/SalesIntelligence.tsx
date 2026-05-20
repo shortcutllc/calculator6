@@ -610,8 +610,8 @@ interface ThreadMessage {
 // gmail-thread function. Bodies aren't stored in our DB; they live in Gmail.
 // Collapsed by default; clicking the toggle fetches + expands. Shows last
 // sent + last received as a preview, with "Show full thread" for the rest.
-const ThreadView: React.FC<{ threadId: string }> = ({ threadId }) => {
-  const [open, setOpen] = useState(false);
+const ThreadView: React.FC<{ threadId: string; defaultOpen?: boolean }> = ({ threadId, defaultOpen = false }) => {
+  const [open, setOpen] = useState(defaultOpen);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -643,6 +643,10 @@ const ThreadView: React.FC<{ threadId: string }> = ({ threadId }) => {
     if (!loaded && !loading) load();
     setOpen((v) => !v);
   };
+
+  // Auto-load when opened by default (rapid mode passes defaultOpen=true so
+  // prior contact is visible immediately).
+  useEffect(() => { if (open && !loaded && !loading) load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [open]);
 
   // When collapsed: show a small "View thread" button.
   if (!open) {
@@ -943,13 +947,24 @@ const RapidQueue: React.FC<{
     : modeOverride === 'followup' ? false
     : inferredFirstOutreach;
 
-  // Reset manual mode override whenever we advance to a new lead.
-  useEffect(() => { setModeOverride(null); }, [idx]);
+  // On-demand draft generation — instant navigation between leads, draft
+  // only fires when the rep clicks Generate. Auto-loading was making
+  // skim-through painful (10-15s per lead waiting on Anthropic).
+  const [draftRequested, setDraftRequested] = useState(false);
 
-  // Fetch a fresh draft each time the cursor moves to a new lead (or mode toggled).
+  // Reset per-lead state whenever we advance.
+  useEffect(() => {
+    setModeOverride(null);
+    setDraftRequested(false);
+    setDrafts([]); setSubject(''); setBody(''); setActiveLabel(null);
+    setRecommended(null); setRecommendedReason(null); setGroundingNote(null);
+    setActionMsg(null); setErr(null);
+  }, [idx]);
+
+  // Fetch a fresh draft only when requested (or when mode is toggled mid-stream).
   useEffect(() => {
     let cancelled = false;
-    if (!cur) return;
+    if (!cur || !draftRequested) return;
     setDraftLoading(true); setErr(null); setActionMsg(null);
     setDrafts([]); setSubject(''); setBody(''); setActiveLabel(null);
     setRecommended(null); setRecommendedReason(null); setGroundingNote(null);
@@ -990,7 +1005,7 @@ const RapidQueue: React.FC<{
       }
     })();
     return () => { cancelled = true; };
-  }, [idx, cur, isFirstOutreach]);
+  }, [idx, cur, isFirstOutreach, draftRequested]);
 
   const switchDirection = (label: string) => {
     const d = drafts.find((x) => x.label === label);
@@ -1117,10 +1132,11 @@ const RapidQueue: React.FC<{
       else if (e.key === 's' || e.key === 'S') { e.preventDefault(); send(); }
       else if (e.key === 'o' || e.key === 'O') { e.preventDefault(); openGmail(); }
       else if (e.key === 'd' || e.key === 'D') { e.preventDefault(); save(); }
+      else if (e.key === 'g' || e.key === 'G') { e.preventDefault(); if (!draftRequested) setDraftRequested(true); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, skip, back, send, openGmail, save]);
+  }, [onClose, skip, back, send, openGmail, save, draftRequested]);
 
   if (!cur) {
     return createPortal(
@@ -1171,7 +1187,7 @@ const RapidQueue: React.FC<{
             )}
           </div>
           <span className="hidden md:inline text-gray-400">
-            <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">S</kbd> send · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">O</kbd> open · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">D</kbd> save · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">→</kbd> skip · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">Esc</kbd> exit
+            <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">G</kbd> draft · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">S</kbd> send · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">O</kbd> open · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">D</kbd> save · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">→</kbd> skip · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">Esc</kbd> exit
           </span>
         </div>
       </div>
@@ -1207,8 +1223,8 @@ const RapidQueue: React.FC<{
 
           {cur.thread_id && (
             <div className="border-t border-gray-100 pt-3">
-              <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Gmail thread</div>
-              <ThreadView threadId={cur.thread_id} />
+              <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Gmail thread (latest sent + latest reply)</div>
+              <ThreadView threadId={cur.thread_id} defaultOpen />
             </div>
           )}
 
@@ -1221,6 +1237,25 @@ const RapidQueue: React.FC<{
         </div>
 
         <div className="lg:col-span-3 space-y-3">
+          {/* On-demand draft: instant navigation; the LLM call only happens
+              when the rep decides to engage. Skip-through stays fast. */}
+          {!draftRequested && !draftLoading && drafts.length === 0 && !err && (
+            <div className="border border-gray-200 rounded p-8 text-center bg-gray-50 space-y-3">
+              <div className="text-sm text-gray-600">
+                Skim the context, then draft when you're ready to engage.
+              </div>
+              <button
+                onClick={() => setDraftRequested(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-shortcut-navy-blue rounded hover:opacity-90"
+              >
+                <PenLine size={14} /> Generate draft
+                <kbd className="text-[10px] opacity-70 ml-1 bg-white/20 px-1 rounded">G</kbd>
+              </button>
+              <div className="text-xs text-gray-400">
+                Or hit <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">→</kbd> / <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">J</kbd> to skip to the next lead.
+              </div>
+            </div>
+          )}
           {draftLoading && <div className="py-12 text-center text-gray-400 border border-gray-200 rounded">Drafting in brand voice…</div>}
           {err && <div className="bg-red-50 text-red-700 p-3 rounded flex items-center gap-2 text-sm"><AlertCircle size={16} /> {err}</div>}
           {!draftLoading && !err && drafts.length > 0 && (
