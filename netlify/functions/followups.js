@@ -18,7 +18,9 @@ const CORS = {
 };
 const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
 
-const COMPANION = ['gmail-direct', 'gmail-open'];
+// Any rep-attributed Gmail send qualifies (sender_email is set by send-as-rep,
+// gmail-sent-crawl, and gmail-historical-sweep). Old corpus / Smartlead rows
+// have sender_email = NULL and are excluded — they aren't ours to follow up on.
 const MIN_DAYS = 4;     // give them time to reply before nudging
 const MAX_TOUCHES = 3;  // total emails per person before we stop
 const MAX_RESULTS = 200;
@@ -47,12 +49,14 @@ export const handler = async (event) => {
     if (!myEmail) return json(200, { success: true, scope: 'mine', count: 0, followups: [], note: 'No Gmail connected — connect to see your follow-ups.' });
   }
 
-  // Companion sends with no reply.
+  // Any rep-attributed Gmail send with no reply (companion, daily crawl,
+  // historical sweep — all set sender_email; legacy/Smartlead corpus is NULL
+  // and stays out of the follow-up queue by design).
   const sends = [];
   for (let from = 0; ; from += 1000) {
     let q = sb.from('outreach_sends')
       .select('email, campaign_id, sent_time, touch_count, thread_id, sender_email')
-      .in('campaign_id', COMPANION)
+      .not('sender_email', 'is', null)
       .is('reply_time', null);
     if (myEmail) q = q.eq('sender_email', myEmail);
     const { data, error: e } = await q.range(from, from + 999);
