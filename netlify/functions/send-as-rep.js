@@ -90,7 +90,7 @@ export const handler = async (event) => {
         { onConflict: 'email', ignoreDuplicates: true },
       );
       await sb.from('outreach_sends').upsert(
-        { email: to, campaign_id: GMAIL_OPEN_CAMPAIGN, sent_time: now, ingested_at: now },
+        { email: to, campaign_id: GMAIL_OPEN_CAMPAIGN, sent_time: now, ingested_at: now, sender_email: fromEmail || null },
         { onConflict: 'email,campaign_id' },
       );
     } catch (e) {
@@ -129,6 +129,7 @@ export const handler = async (event) => {
         touch_count: (prev?.touch_count || 0) + 1,
         thread_id: sent.threadId || threadId || null,
         message_id: sent.id || null,
+        sender_email: fromEmail,                 // attribute the send to this rep
       },
       { onConflict: 'email,campaign_id' },
     );

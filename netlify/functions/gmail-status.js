@@ -29,16 +29,13 @@ export const handler = async (event) => {
   const { data: { user }, error } = await sb.auth.getUser(authHeader.replace('Bearer ', ''));
   if (error || !user) return json(401, { error: 'Invalid or expired token' });
 
-  // Prefer the account this user connected; fall back to any connected account.
-  let { data: acct } = await sb.from('gmail_accounts')
+  // Per-rep: ONLY this user's connected account. No fallback to "any
+  // connected" — sends/follow-ups must be attributed to the actual rep,
+  // and the rep's own consent is required before send-as-rep will use their
+  // token. If not connected, the UI shows the Connect button.
+  const { data: acct } = await sb.from('gmail_accounts')
     .select('email, watch_expiration, connected_at')
     .eq('supabase_user_id', user.id).maybeSingle();
-  if (!acct) {
-    const r = await sb.from('gmail_accounts')
-      .select('email, watch_expiration, connected_at')
-      .order('connected_at', { ascending: false }).limit(1).maybeSingle();
-    acct = r.data || null;
-  }
 
   return json(200, {
     connected: !!acct,

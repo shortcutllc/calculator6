@@ -47,7 +47,7 @@ interface ContactHistory {
   first_sent: string | null;
   last_sent: string | null;
   replied: boolean;
-  sends: Array<{ campaign_id: string | null; sent_time: string | null; replied: boolean; bounced: boolean; touches: number }>;
+  sends: Array<{ campaign_id: string | null; sent_time: string | null; replied: boolean; bounced: boolean; touches: number; sender_email: string | null }>;
   replies: Array<{ date: string | null; sentiment: string | null; is_ooo: boolean; source: string | null; content: string | null }>;
 }
 interface DraftResponse {
@@ -62,6 +62,7 @@ interface DraftResponse {
 interface FollowupRow {
   email: string; name: string | null; title: string | null; company: string | null;
   last_sent: string; days_since: number; touches: number; thread_id: string | null;
+  sender_email?: string | null;
 }
 type DraftTarget = {
   company: string;
@@ -692,9 +693,10 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
                     <div className="text-xs text-gray-500">
                       Sends:{' '}
                       {d.history.sends.map((s, i) => (
-                        <span key={i} className="inline-block mr-2">
+                        <span key={i} className="inline-block mr-2" title={s.sender_email ? `sent by ${s.sender_email}` : 'legacy (no sender attribution)'}>
                           {s.sent_time ? new Date(s.sent_time).toLocaleDateString() : '?'}
                           {s.touches > 1 ? `(×${s.touches})` : ''}{s.replied ? ' ✓' : ''}{s.bounced ? ' ⚠' : ''}
+                          {s.sender_email ? ` · ${s.sender_email.split('@')[0]}` : ''}
                         </span>
                       ))}
                     </div>
@@ -823,17 +825,20 @@ const SalesIntelligence: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const loadFollowups = useCallback(async () => {
-    setFuLoading(true);
+  const [fuScope, setFuScope] = useState<'mine' | 'team'>('mine');
+  const [fuNote, setFuNote] = useState<string | null>(null);
+  const loadFollowups = useCallback(async (scope: 'mine' | 'team') => {
+    setFuLoading(true); setFuNote(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
-      const res = await fetch('/.netlify/functions/followups', {
+      const res = await fetch(`/.netlify/functions/followups?scope=${scope}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const j = await res.json();
       if (!res.ok || !j.success) throw new Error(j.error || `Failed (${res.status})`);
       setFollowups(j.followups || []);
+      if (j.note) setFuNote(j.note);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load follow-ups');
       setFollowups([]);
@@ -843,8 +848,8 @@ const SalesIntelligence: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (tab === 'followups' && followups === null && !fuLoading) loadFollowups();
-  }, [tab, followups, fuLoading, loadFollowups]);
+    if (tab === 'followups') loadFollowups(fuScope);
+  }, [tab, fuScope, loadFollowups]);
 
   const loadSavedDrafts = useCallback(async () => {
     setSdLoading(true);
@@ -1144,47 +1149,71 @@ const SalesIntelligence: React.FC = () => {
           </div>
         </div>
       ) : tab === 'followups' ? (
-        <div className="overflow-x-auto border border-gray-200 rounded">
-          {fuLoading ? (
-            <div className="py-16 text-center text-gray-400">Loading follow-up queue…</div>
-          ) : !followups || followups.length === 0 ? (
-            <div className="py-16 text-center text-gray-400">
-              No one is due for a follow-up. Sends with no reply show here after 4 days.
-            </div>
-          ) : (
-            <table className="min-w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className={th}>Contact</th><th className={th}>Company</th>
-                  <th className={th}>Title</th><th className={th}>No reply</th>
-                  <th className={th}>Touches</th><th className={th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {followups.map((r) => (
-                  <tr key={r.email} className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setCardTarget({ company: r.company || r.email, email: r.email })}>
-                    <td className={td}>
-                      <div>{r.name || '—'}</div>
-                      <div className="text-xs text-gray-500">{r.email}</div>
-                    </td>
-                    <td className={td}>{r.company || '—'}</td>
-                    <td className={`${td} text-gray-500`}>{r.title || '—'}</td>
-                    <td className={td}>{r.days_since}d</td>
-                    <td className={td}>{r.touches}</td>
-                    <td className={td}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
-                        className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
-                      >
-                        <PenLine size={14} /> Draft follow-up
-                      </button>
-                    </td>
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            {(['mine', 'team'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setFuScope(s)}
+                className={`text-xs px-3 py-1 rounded-full border transition ${
+                  fuScope === s
+                    ? 'border-shortcut-navy-blue bg-shortcut-navy-blue text-white'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+              >
+                {s === 'mine' ? 'My follow-ups' : 'Whole team'}
+              </button>
+            ))}
+            {fuNote && <span className="text-xs text-amber-700 ml-3">{fuNote}</span>}
+          </div>
+          <div className="overflow-x-auto border border-gray-200 rounded">
+            {fuLoading ? (
+              <div className="py-16 text-center text-gray-400">Loading follow-up queue…</div>
+            ) : !followups || followups.length === 0 ? (
+              <div className="py-16 text-center text-gray-400">
+                No one is due for a follow-up. Sends with no reply show here after 4 days.
+              </div>
+            ) : (
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className={th}>Contact</th><th className={th}>Company</th>
+                    <th className={th}>Title</th><th className={th}>No reply</th>
+                    <th className={th}>Touches</th>
+                    {fuScope === 'team' && <th className={th}>Sent by</th>}
+                    <th className={th}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {followups.map((r) => (
+                    <tr key={r.email} className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => setCardTarget({ company: r.company || r.email, email: r.email })}>
+                      <td className={td}>
+                        <div>{r.name || '—'}</div>
+                        <div className="text-xs text-gray-500">{r.email}</div>
+                      </td>
+                      <td className={td}>{r.company || '—'}</td>
+                      <td className={`${td} text-gray-500`}>{r.title || '—'}</td>
+                      <td className={td}>{r.days_since}d</td>
+                      <td className={td}>{r.touches}</td>
+                      {fuScope === 'team' && (
+                        <td className={`${td} text-xs text-gray-500`}>
+                          {r.sender_email ? r.sender_email.split('@')[0] : <span className="italic text-gray-400">—</span>}
+                        </td>
+                      )}
+                      <td className={td}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
+                          className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                        >
+                          <PenLine size={14} /> Draft follow-up
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       ) : tab === 'drafts' ? (
         <div className="overflow-x-auto border border-gray-200 rounded">

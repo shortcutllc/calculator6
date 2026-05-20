@@ -37,14 +37,25 @@ export const handler = async (event) => {
   const { data: { user }, error } = await sb.auth.getUser(authHeader.replace('Bearer ', ''));
   if (error || !user) return json(401, { error: 'Invalid or expired token' });
 
+  // Per-rep scope by default. ?scope=team shows everyone's companion sends.
+  const scope = (event.queryStringParameters?.scope === 'team') ? 'team' : 'mine';
+  let myEmail = null;
+  if (scope === 'mine') {
+    const { data: acct } = await sb.from('gmail_accounts')
+      .select('email').eq('supabase_user_id', user.id).maybeSingle();
+    myEmail = acct?.email || null;
+    if (!myEmail) return json(200, { success: true, scope: 'mine', count: 0, followups: [], note: 'No Gmail connected — connect to see your follow-ups.' });
+  }
+
   // Companion sends with no reply.
   const sends = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error: e } = await sb.from('outreach_sends')
-      .select('email, campaign_id, sent_time, touch_count, thread_id')
+    let q = sb.from('outreach_sends')
+      .select('email, campaign_id, sent_time, touch_count, thread_id, sender_email')
       .in('campaign_id', COMPANION)
-      .is('reply_time', null)
-      .range(from, from + 999);
+      .is('reply_time', null);
+    if (myEmail) q = q.eq('sender_email', myEmail);
+    const { data, error: e } = await q.range(from, from + 999);
     if (e) return json(502, { error: `query failed: ${e.message}` });
     sends.push(...data);
     if (data.length < 1000) break;
@@ -84,8 +95,9 @@ export const handler = async (event) => {
       days_since: s.days_since,
       touches: s.touch_count || 1,
       thread_id: s.thread_id || null,
+      sender_email: s.sender_email || null,
     });
   }
 
-  return json(200, { success: true, count: out.length, followups: out });
+  return json(200, { success: true, scope, my_email: myEmail, count: out.length, followups: out });
 };
