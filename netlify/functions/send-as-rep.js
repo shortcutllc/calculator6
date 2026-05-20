@@ -14,7 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { preflight } from './lib/preflight.js';
-import { getAccessToken, sendEmail, getSignature, lc } from './lib/gmail.js';
+import { getAccessToken, sendEmail, getSignature, getThread, lc } from './lib/gmail.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -47,7 +47,7 @@ export const handler = async (event) => {
   const mode = body.mode === 'open' ? 'open' : 'send';
   const to = lc(body.to);
   const fromEmail = lc(body.fromEmail);
-  const threadId = body.threadId ? String(body.threadId) : null; // set => follow-up in this Gmail thread
+  const threadId = body.threadId ? String(body.threadId) : null; // set => reply in this Gmail thread
   let subject = (body.subject || '').toString().trim();
   if (threadId && subject && !/^re:/i.test(subject)) subject = `Re: ${subject}`;
   const text = (body.body || '').toString();
@@ -56,7 +56,25 @@ export const handler = async (event) => {
   if (!to || !EMAIL_RE.test(to)) return json(400, { error: 'A valid recipient email is required' });
   // 'open' mode opens Gmail web compose and does not need our OAuth connection.
   if (mode === 'send' && !fromEmail) return json(400, { error: 'fromEmail (the connected Gmail) is required' });
-  if (!subject) return json(400, { error: 'Subject is required' });
+  // Subject: when replying in a thread, Gmail uses the thread's existing
+  // subject. If the caller passed nothing, pull the thread's latest subject
+  // from Gmail and prepend "Re: ". Only require a subject for FRESH sends.
+  if (!subject && threadId && mode === 'send') {
+    try {
+      const accessToken0 = await getAccessToken(sb, fromEmail);
+      const thr = await getThread(accessToken0, threadId);
+      const msgs = thr?.messages || [];
+      // walk from end for the most recent subject header
+      for (let i = msgs.length - 1; i >= 0; i -= 1) {
+        const h = (msgs[i].payload?.headers || []).find((x) => x.name?.toLowerCase() === 'subject');
+        if (h?.value) { subject = /^re:/i.test(h.value) ? h.value : `Re: ${h.value}`; break; }
+      }
+    } catch { /* fall through */ }
+  }
+  if (!subject) {
+    if (threadId && mode === 'send') subject = '(continued)';  // last-resort for in-thread sends
+    else return json(400, { error: 'Subject is required' });
+  }
   if (text.trim().length < 10) return json(400, { error: 'Body looks empty' });
 
   // HARD pre-flight gate before any real send.

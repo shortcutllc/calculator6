@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
@@ -931,12 +932,21 @@ const RapidQueue: React.FC<{
   const [groundingNote, setGroundingNote] = useState<string | null>(null);
   const [sending, setSending] = useState<null | 'send' | 'open' | 'save'>(null);
   const [actionMsg, setActionMsg] = useState<{ kind: 'ok' | 'err' | 'blocked'; text: string; canForce?: boolean } | null>(null);
+  // Manual override of the inferred draft mode (when the system says
+  // never_emailed but the rep knows they've emailed, or vice versa).
+  const [modeOverride, setModeOverride] = useState<'followup' | 'first_outreach' | null>(null);
 
   const cur = queue[idx];
   const total = queue.length;
-  const isFirstOutreach = cur ? (cur.state === 'never_emailed' || cur.state === 'unknown_no_inbox') : false;
+  const inferredFirstOutreach = cur ? (cur.state === 'never_emailed' || cur.state === 'unknown_no_inbox') : false;
+  const isFirstOutreach = modeOverride === 'first_outreach' ? true
+    : modeOverride === 'followup' ? false
+    : inferredFirstOutreach;
 
-  // Fetch a fresh draft each time the cursor moves to a new lead.
+  // Reset manual mode override whenever we advance to a new lead.
+  useEffect(() => { setModeOverride(null); }, [idx]);
+
+  // Fetch a fresh draft each time the cursor moves to a new lead (or mode toggled).
   useEffect(() => {
     let cancelled = false;
     if (!cur) return;
@@ -1001,7 +1011,9 @@ const RapidQueue: React.FC<{
   }, [advance]);
 
   const send = useCallback(async (force = false) => {
-    if (!cur || sending || !subject.trim() || !body.trim() || !fromGmail) return;
+    // Subject is only required for fresh sends — in-thread replies inherit it from the thread.
+    if (!cur || sending || !body.trim() || !fromGmail) return;
+    if (!subject.trim() && !cur.thread_id) return;
     setSending('send'); setActionMsg(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -1111,32 +1123,56 @@ const RapidQueue: React.FC<{
   }, [onClose, skip, back, send, openGmail, save]);
 
   if (!cur) {
-    return (
-      <div className="fixed inset-0 z-50 bg-white p-8 flex flex-col items-center justify-center">
+    return createPortal(
+      <div className="fixed inset-0 z-[100] bg-white p-8 flex flex-col items-center justify-center">
         <h2 className="text-2xl font-bold mb-2">Queue empty</h2>
         <button onClick={onClose} className="text-sm text-shortcut-navy-blue hover:underline">Close</button>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   const stMeta = FU_STATE[cur.state] || FU_STATE.no_reply;
   const tierMeta = cur.tier ? (TIER_BADGE[cur.tier] || null) : null;
+  const draftModeLabel = isFirstOutreach
+    ? 'First outreach (no prior email — Workhuman in-person)'
+    : `Follow-up · touch #${(cur.touches || 0) + 1}${cur.thread_id ? ' · threaded into prior Gmail conversation' : ''}`;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="text-sm font-semibold text-shortcut-navy-blue">Rapid outreach</div>
-          <div className="text-sm text-gray-600">{idx + 1} of {total}</div>
-          <div className="text-xs text-gray-500">
-            sent {stats.sent} · saved {stats.saved} · skipped {stats.skipped}{stats.blocked ? ` · blocked ${stats.blocked}` : ''}
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-white overflow-y-auto">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+        <div className="px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="text-sm font-semibold text-shortcut-navy-blue">Rapid outreach</div>
+            <div className="text-sm text-gray-600">{idx + 1} of {total}</div>
+            <div className="text-xs text-gray-500">
+              sent {stats.sent} · saved {stats.saved} · skipped {stats.skipped}{stats.blocked ? ` · blocked ${stats.blocked}` : ''}
+            </div>
           </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="hidden md:inline text-xs text-gray-400">
+        <div className="px-6 pb-3 flex items-center justify-between gap-4 flex-wrap text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`font-semibold px-1.5 py-0.5 rounded ${isFirstOutreach ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+              Mode: {isFirstOutreach ? 'First outreach' : 'Follow-up'}
+            </span>
+            <span className="text-gray-500">{draftModeLabel}</span>
+            <button
+              onClick={() => setModeOverride(isFirstOutreach ? 'followup' : 'first_outreach')}
+              className="text-shortcut-navy-blue hover:underline"
+              title="Force the drafter to switch mode for this lead"
+            >
+              Switch to {isFirstOutreach ? 'follow-up' : 'first outreach'}
+            </button>
+            {modeOverride && (
+              <button onClick={() => setModeOverride(null)} className="text-gray-400 hover:text-gray-700">
+                (reset)
+              </button>
+            )}
+          </div>
+          <span className="hidden md:inline text-gray-400">
             <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">S</kbd> send · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">O</kbd> open · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">D</kbd> save · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">→</kbd> skip · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">Esc</kbd> exit
           </span>
-          <button onClick={onClose} className="ml-3 text-gray-400 hover:text-gray-700"><X size={20} /></button>
         </div>
       </div>
 
@@ -1273,7 +1309,8 @@ const RapidQueue: React.FC<{
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
