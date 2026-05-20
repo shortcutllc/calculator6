@@ -23,6 +23,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 const DRY = process.argv.includes('--dry');
+// Re-evaluate sentiment on every row that has reply_content using the current
+// classifier (catches stale 'positive'/'neutral' labels on long OOO autoreplies
+// or rejections the old heuristic missed). Manual labels are always preserved.
+const RECLASSIFY_ALL = process.argv.includes('--reclassify-all');
 const BASE = 'https://server.smartlead.ai/api/v1';
 const SK = (process.env.SMARTLEAD_API_KEY || '').trim();
 const URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
@@ -90,6 +94,66 @@ async function leadIdByEmail(email) {
 
 (async () => {
   log(DRY ? 'DRY RUN — no writes' : 'LIVE RUN');
+
+  // ---------- PASS 1: re-classify ALL existing reply_content (no Smartlead) ----------
+  // Stricter classifier catches stale 'positive'/'neutral' on long OOO autoreplies
+  // and rejections the old heuristic missed. NEVER overwrite manual labels.
+  if (RECLASSIFY_ALL) {
+    log('--reclassify-all: re-evaluating sentiment on every reply with content');
+    const all = [];
+    for (let f = 0; ; f += 1000) {
+      const { data, error } = await sb.from('outreach_replies')
+        .select('id, email, reply_content, reply_sentiment, sentiment_source')
+        .not('reply_content', 'is', null)
+        .neq('sentiment_source', 'manual')   // human labels trump regex
+        .range(f, f + 999);
+      if (error) throw new Error(error.message);
+      all.push(...data);
+      if (data.length < 1000) break;
+    }
+    log(`  candidates (have content, not manual): ${all.length}`);
+    const changes = { unchanged: 0, updated: 0, by_to: {} };
+    const reSuppress = [];
+    for (const r of all) {
+      const c = classify(r.reply_content);
+      if (c.sentiment === r.reply_sentiment) { changes.unchanged += 1; continue; }
+      changes.updated += 1;
+      const k = `${r.reply_sentiment || 'null'}->${c.sentiment || 'null'}`;
+      changes.by_to[k] = (changes.by_to[k] || 0) + 1;
+      if (c.suppress && r.email) reSuppress.push({ email: lc(r.email), reason: 'do_not_contact', source: 'reply', detail: { kind: c.reason, snippet: r.reply_content.slice(0, 140) } });
+      if (!DRY) {
+        const { error } = await sb.from('outreach_replies')
+          .update({ reply_sentiment: c.sentiment }).eq('id', r.id);
+        if (error) log(`  update err id=${r.id}: ${error.message}`);
+      }
+    }
+    log(`  unchanged: ${changes.unchanged}   updated: ${changes.updated}`);
+    log(`  transitions: ${JSON.stringify(changes.by_to)}`);
+    log(`  new suppressions discovered: ${reSuppress.length}`);
+    if (!DRY && reSuppress.length) {
+      // de-dup by email before upsert
+      const map = new Map();
+      for (const s of reSuppress) if (!map.has(s.email)) map.set(s.email, s);
+      const rows = [...map.values()];
+      for (let i = 0; i < rows.length; i += 100) {
+        const { error } = await sb.from('crm_suppression')
+          .upsert(rows.slice(i, i + 100), { onConflict: 'email', ignoreDuplicates: false });
+        if (error) log(`  suppression upsert error: ${error.message}`);
+      }
+      log(`  crm_suppression upserted: ${rows.length}`);
+    }
+  }
+
+  // When run as --reclassify-all alone, skip the Smartlead fetch pass (which
+  // takes ~1 call per null-content row). Run plain `enrich-replies.mjs` after
+  // the daily cron to scoop up new presence-only rows.
+  if (RECLASSIFY_ALL) {
+    log(DRY ? 'DRY — nothing written. Re-run without --dry to apply.'
+      : 'DONE — re-run generate-plays so Play B reflects updated sentiment + suppressions.');
+    return;
+  }
+
+  // ---------- PASS 2: fetch reply BODIES we don't have yet (Smartlead) ----------
   // backlog: replies with no text but a fetchable campaign
   const rows = [];
   for (let f = 0; ; f += 1000) {
