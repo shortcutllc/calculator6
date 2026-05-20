@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions, RecurringFrequency } from '../types/proposal';
 import { getProposalUrl } from './url';
+import { MINDFULNESS_CATALOG_BY_ID } from './mindfulnessCatalog';
 
 // Helper function to calculate recurring discount based on occurrences
 export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
@@ -497,43 +498,57 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
               date: serviceDate
             };
 
-            // Ensure classLength and mindfulnessType are synced for mindfulness services
+            // Ensure classLength and mindfulnessType are synced for mindfulness services.
+            // When a catalog id is present we use it as the source of truth
+            // (so picks like "Intro 60 min — $1,350" survive recalculation
+            // instead of getting overwritten by the legacy 3-bucket map).
             if (mappedService.serviceType === 'mindfulness') {
-              let targetClassLength = 45;
-              let targetFixedPrice = 1375;
-              let targetMindfulnessType = 'intro';
+              const catalog = mappedService.mindfulnessServiceId
+                ? MINDFULNESS_CATALOG_BY_ID[mappedService.mindfulnessServiceId]
+                : undefined;
+              if (catalog) {
+                mappedService.classLength = catalog.classLength;
+                mappedService.mindfulnessType = catalog.mindfulnessType;
+                mappedService.fixedPrice = catalog.fixedPrice;
+              } else {
+                // Legacy fallback for proposals created before the shared
+                // catalog existed. Same as the original sync logic.
+                let targetClassLength = 45;
+                let targetFixedPrice = 1375;
+                let targetMindfulnessType = 'intro';
 
-              if (mappedService.mindfulnessType === 'drop-in') {
-                targetClassLength = 30;
-                targetFixedPrice = 1250;
-                targetMindfulnessType = 'drop-in';
-              } else if (mappedService.mindfulnessType === 'mindful-movement') {
-                targetClassLength = 60;
-                targetFixedPrice = 1500;
-                targetMindfulnessType = 'mindful-movement';
-              } else if (mappedService.mindfulnessType === 'intro') {
-                targetClassLength = 45;
-                targetFixedPrice = 1375;
-                targetMindfulnessType = 'intro';
-              } else if (mappedService.classLength) {
-                if (mappedService.classLength === 30) {
+                if (mappedService.mindfulnessType === 'drop-in') {
                   targetClassLength = 30;
                   targetFixedPrice = 1250;
                   targetMindfulnessType = 'drop-in';
-                } else if (mappedService.classLength === 60) {
+                } else if (mappedService.mindfulnessType === 'mindful-movement') {
                   targetClassLength = 60;
                   targetFixedPrice = 1500;
                   targetMindfulnessType = 'mindful-movement';
-                } else {
+                } else if (mappedService.mindfulnessType === 'intro') {
                   targetClassLength = 45;
                   targetFixedPrice = 1375;
                   targetMindfulnessType = 'intro';
+                } else if (mappedService.classLength) {
+                  if (mappedService.classLength === 30) {
+                    targetClassLength = 30;
+                    targetFixedPrice = 1250;
+                    targetMindfulnessType = 'drop-in';
+                  } else if (mappedService.classLength === 60) {
+                    targetClassLength = 60;
+                    targetFixedPrice = 1500;
+                    targetMindfulnessType = 'mindful-movement';
+                  } else {
+                    targetClassLength = 45;
+                    targetFixedPrice = 1375;
+                    targetMindfulnessType = 'intro';
+                  }
                 }
-              }
 
-              mappedService.classLength = targetClassLength;
-              mappedService.mindfulnessType = targetMindfulnessType;
-              mappedService.fixedPrice = targetFixedPrice;
+                mappedService.classLength = targetClassLength;
+                mappedService.mindfulnessType = targetMindfulnessType;
+                mappedService.fixedPrice = targetFixedPrice;
+              }
             }
 
             allServicesForLocation.push(mappedService);
@@ -593,53 +608,57 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
       let dayTotalProRevenue = 0;
 
       (dayData as any).services.forEach((service: any) => {
-        // Ensure classLength and mindfulnessType are synced for mindfulness services
+        // Ensure classLength and mindfulnessType are synced for mindfulness services.
+        // When a catalog id is present we use it as the source of truth
+        // (so picks like "Intro 60 min — $1,350" survive recalculation
+        // instead of getting overwritten by the legacy 3-bucket map).
         if (service.serviceType === 'mindfulness') {
-          // Determine correct values: prioritize mindfulnessType if it exists, otherwise use classLength
-          let targetClassLength = 45;
-          let targetFixedPrice = 1375;
-          let targetMindfulnessType = 'intro';
+          const catalog = service.mindfulnessServiceId
+            ? MINDFULNESS_CATALOG_BY_ID[service.mindfulnessServiceId]
+            : undefined;
+          if (catalog) {
+            (service as any).classLength = catalog.classLength;
+            (service as any).mindfulnessType = catalog.mindfulnessType;
+            (service as any).fixedPrice = catalog.fixedPrice;
+          } else {
+            // Legacy fallback for proposals created before the shared
+            // catalog existed. Same as the original sync logic.
+            let targetClassLength = 45;
+            let targetFixedPrice = 1375;
+            let targetMindfulnessType = 'intro';
 
-          // If mindfulnessType exists, use it to determine classLength
-          if (service.mindfulnessType === 'drop-in') {
-            targetClassLength = 30;
-            targetFixedPrice = 1250;
-            targetMindfulnessType = 'drop-in';
-          } else if (service.mindfulnessType === 'mindful-movement') {
-            targetClassLength = 60;
-            targetFixedPrice = 1500;
-            targetMindfulnessType = 'mindful-movement';
-          } else if (service.mindfulnessType === 'intro') {
-            targetClassLength = 45;
-            targetFixedPrice = 1375;
-            targetMindfulnessType = 'intro';
-          } else if (service.classLength) {
-            // No mindfulnessType, infer from classLength
-            if (service.classLength === 30) {
+            if (service.mindfulnessType === 'drop-in') {
               targetClassLength = 30;
               targetFixedPrice = 1250;
               targetMindfulnessType = 'drop-in';
-            } else if (service.classLength === 60) {
+            } else if (service.mindfulnessType === 'mindful-movement') {
               targetClassLength = 60;
               targetFixedPrice = 1500;
               targetMindfulnessType = 'mindful-movement';
-            } else {
-              // Default to intro (45 minutes)
+            } else if (service.mindfulnessType === 'intro') {
               targetClassLength = 45;
               targetFixedPrice = 1375;
               targetMindfulnessType = 'intro';
+            } else if (service.classLength) {
+              if (service.classLength === 30) {
+                targetClassLength = 30;
+                targetFixedPrice = 1250;
+                targetMindfulnessType = 'drop-in';
+              } else if (service.classLength === 60) {
+                targetClassLength = 60;
+                targetFixedPrice = 1500;
+                targetMindfulnessType = 'mindful-movement';
+              } else {
+                targetClassLength = 45;
+                targetFixedPrice = 1375;
+                targetMindfulnessType = 'intro';
+              }
             }
-          } else {
-            // No mindfulnessType and no classLength, default to intro
-            targetClassLength = 45;
-            targetFixedPrice = 1375;
-            targetMindfulnessType = 'intro';
-          }
 
-          // Apply the determined values
-          (service as any).classLength = targetClassLength;
-          (service as any).mindfulnessType = targetMindfulnessType;
-          (service as any).fixedPrice = targetFixedPrice;
+            (service as any).classLength = targetClassLength;
+            (service as any).mindfulnessType = targetMindfulnessType;
+            (service as any).fixedPrice = targetFixedPrice;
+          }
         }
         
         let { totalAppointments, serviceCost, proRevenue: baseProRevenue } = calculateServiceResults(service);

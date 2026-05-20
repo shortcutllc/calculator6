@@ -38,6 +38,13 @@ import {
   generatePricingOptionsForService,
   recalculateServiceTotals,
 } from '../utils/proposalGenerator';
+import {
+  MINDFULNESS_CATALOG_BY_ID,
+  MINDFULNESS_SELECT_OPTIONS,
+  DEFAULT_MINDFULNESS_ID,
+  applyMindfulnessEntry,
+  resolveMindfulnessEntry,
+} from '../utils/mindfulnessCatalog';
 import { trackProposalChanges } from '../utils/changeTracker';
 import { ProposalChangeSet } from '../types/proposal';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -156,17 +163,24 @@ const SERVICE_DEFAULTS: Record<string, any> = {
     retouchingCost: 40,
   },
   mindfulness: {
-    appTime: 45,
-    totalHours: 0.75,
+    // Mindfulness defaults derive from the shared catalog (default id is
+    // 'intro') so the "Add mindfulness service" flow lands on the same
+    // entry as the calculator. classLength / totalHours / fixedPrice /
+    // mindfulnessType / mindfulnessServiceId all come from the catalog.
+    appTime: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].classLength,
+    totalHours: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].classLength / 60,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 45,
+    classLength: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].classLength,
     participants: 'unlimited',
-    fixedPrice: 1375,
-    mindfulnessType: 'intro',
+    fixedPrice: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].fixedPrice,
+    mindfulnessType: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].mindfulnessType,
+    mindfulnessServiceId: DEFAULT_MINDFULNESS_ID,
+    mindfulnessServiceName: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].name,
+    mindfulnessDescription: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].description,
   },
   'hair-makeup': {
     appTime: 20,
@@ -211,11 +225,12 @@ const NAILS_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'nails-hand-massage', label: '+ Hand massage' },
 ];
 
-const MINDFULNESS_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'intro', label: 'Intro (45 min, $1,375)' },
-  { value: 'drop-in', label: 'Drop-in (30 min, $1,250)' },
-  { value: 'mindful-movement', label: 'Mindful Movement (60 min, $1,500)' },
-];
+// Mindfulness offerings — sourced from the shared catalog so the viewer
+// stays in sync with the calculator (Home.tsx). The select binds to the
+// catalog `id` (stored on the service as `mindfulnessServiceId`), not to
+// the legacy 3-bucket `mindfulnessType`, so we can disambiguate offerings
+// that share a bucket but differ in length/price (e.g. the two Intros).
+const MINDFULNESS_TYPE_OPTIONS = MINDFULNESS_SELECT_OPTIONS;
 
 const MINDFULNESS_FORMAT_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'in-person', label: 'In-person' },
@@ -742,13 +757,30 @@ const ProposalViewerV2: React.FC = () => {
       discountPercent: current.discountPercent || 0,
       massageType: newType === 'massage' ? current.massageType || 'massage' : undefined,
       nailsType: newType === 'nails' ? current.nailsType || 'nails' : undefined,
-      mindfulnessType:
-        newType === 'mindfulness' ? current.mindfulnessType || 'intro' : undefined,
-      classLength: newType === 'mindfulness' ? current.classLength || 45 : undefined,
       participants:
         newType === 'mindfulness' ? current.participants || 'unlimited' : undefined,
-      fixedPrice: newType === 'mindfulness' ? current.fixedPrice || 1375 : undefined,
     };
+    if (newType === 'mindfulness') {
+      // Resolve a catalog entry from whatever the prior service had
+      // (id, type, classLength) and apply it — guarantees every
+      // catalog-derived field is consistent regardless of how the
+      // service was originally created.
+      const entry = resolveMindfulnessEntry({
+        mindfulnessServiceId: current.mindfulnessServiceId,
+        mindfulnessType: current.mindfulnessType,
+        classLength: current.classLength,
+      });
+      applyMindfulnessEntry(next, entry);
+    } else {
+      // Leaving mindfulness — clear all mindfulness-only fields so the
+      // service doesn't carry stale catalog metadata.
+      next.mindfulnessServiceId = undefined;
+      next.mindfulnessServiceName = undefined;
+      next.mindfulnessDescription = undefined;
+      next.mindfulnessType = undefined;
+      next.classLength = undefined;
+      next.fixedPrice = undefined;
+    }
     const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
     next.totalAppointments = totalAppointments;
     next.serviceCost = serviceCost;
@@ -756,24 +788,23 @@ const ProposalViewerV2: React.FC = () => {
     handleFieldChange(['services', loc, date, 'services', idx], next);
   };
 
-  const handleMindfulnessTypeChange = (loc: string, date: string, idx: number, mt: string) => {
+  // `serviceId` is a mindfulness catalog id (e.g. 'intro-mindfulness-60').
+  // Applies the full catalog entry — classLength, fixedPrice, name,
+  // description, and the legacy `mindfulnessType` bucket — so the menu
+  // pick matches the calculator and isn't rewritten by the legacy
+  // recalculation sync (proposalGenerator defers to mindfulnessServiceId).
+  const handleMindfulnessTypeChange = (
+    loc: string,
+    date: string,
+    idx: number,
+    serviceId: string
+  ) => {
     if (!editedData || !isEditing) return;
+    const entry = MINDFULNESS_CATALOG_BY_ID[serviceId];
+    if (!entry) return;
     const current = editedData.services[loc][date].services[idx];
-    let cl = 45;
-    let fp = 1375;
-    if (mt === 'drop-in') {
-      cl = 30;
-      fp = 1250;
-    } else if (mt === 'mindful-movement') {
-      cl = 60;
-      fp = 1500;
-    }
-    const next: any = {
-      ...current,
-      mindfulnessType: mt,
-      classLength: cl,
-      fixedPrice: fp,
-    };
+    const next: any = { ...current };
+    applyMindfulnessEntry(next, entry);
     const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
     next.totalAppointments = totalAppointments;
     next.serviceCost = serviceCost;
@@ -5434,8 +5465,17 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
           {service.serviceType === 'mindfulness' && (
             <>
               <SelectField
-                label="Mindfulness package"
-                value={service.mindfulnessType || 'intro'}
+                label="Mindfulness service"
+                // Resolve the catalog id so legacy proposals (which only
+                // stored `mindfulnessType` + `classLength`) still light up
+                // the closest matching entry in the dropdown.
+                value={
+                  resolveMindfulnessEntry({
+                    mindfulnessServiceId: (service as any).mindfulnessServiceId,
+                    mindfulnessType: service.mindfulnessType,
+                    classLength: service.classLength,
+                  }).id
+                }
                 onChange={onChangeMindfulnessType}
                 options={MINDFULNESS_TYPE_OPTIONS}
               />

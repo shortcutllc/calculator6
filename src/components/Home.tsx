@@ -5,6 +5,11 @@ import { useProposal } from '../contexts/ProposalContext';
 import ProposalOptionsModal from './ProposalOptionsModal';
 import { Button } from './Button';
 import { prepareProposalFromCalculation } from '../utils/proposalGenerator';
+import {
+  MINDFULNESS_CATALOG_BY_ID,
+  MINDFULNESS_SELECT_OPTIONS,
+  resolveMindfulnessEntry,
+} from '../utils/mindfulnessCatalog';
 
 interface Service {
   serviceType: string;
@@ -1760,20 +1765,15 @@ const Home: React.FC = () => {
                             Mindfulness Service
                           </label>
                           <select
-                            value={service.mindfulnessServiceId || service.mindfulnessType || (service.classLength === 30 ? 'drop-in' : service.classLength === 60 ? 'mindful-movement' : 'intro')}
+                            value={
+                              resolveMindfulnessEntry({
+                                mindfulnessServiceId: service.mindfulnessServiceId,
+                                mindfulnessType: service.mindfulnessType,
+                                classLength: service.classLength,
+                              }).id
+                            }
                             onChange={(e) => {
-                              const selectedId = e.target.value;
-                              // Catalog: id -> { classLength, fixedPrice, name, description, mindfulnessType }
-                              const CATALOG: Record<string, { classLength: number; fixedPrice: number; name: string; description: string; mindfulnessType: string }> = {
-                                'mindful-eating': { classLength: 30, fixedPrice: 1250, name: 'Mindful Eating & Breathe Awareness', description: 'Slow down and reconnect through mindful eating and breath awareness. This 30-minute session uses the five senses to invite deeper presence and calm and bring ease to the daily rush.', mindfulnessType: 'drop-in' },
-                                'movement-scan': { classLength: 30, fixedPrice: 1250, name: 'Movement & Scan', description: 'Release tension with gentle movement and a guided body scan. This 30-minute course awakens body awareness, eases stress, and restores balance.', mindfulnessType: 'drop-in' },
-                                'intro-mindfulness-60': { classLength: 60, fixedPrice: 1350, name: 'Intro to Mindfulness', description: 'In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.', mindfulnessType: 'mindful-movement' },
-                                'speak-listen': { classLength: 60, fixedPrice: 1500, name: 'Speak & Listen', description: 'Learn mindfulness tools to step out of reactivity and more consciously respond. This 60-minute workshop introduces calming techniques to ease stress and deepen meaningful connection.', mindfulnessType: 'mindful-movement' },
-                                'intro': { classLength: 40, fixedPrice: 1375, name: 'Intro to Mindfulness (40 min)', description: 'In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.', mindfulnessType: 'intro' },
-                                'drop-in': { classLength: 30, fixedPrice: 1250, name: 'Drop-in Session', description: 'Our 30-minute drop-in sessions offer a quick and easy way to step out of the "doing mode" and into a space of rest and rejuvenation.', mindfulnessType: 'drop-in' },
-                                'mindful-movement': { classLength: 60, fixedPrice: 1500, name: 'Mindful Movement', description: 'Mindful movement is a wonderful way to connect more fully with the present moment by resting attention on sensations that arise within the body moment to moment.', mindfulnessType: 'mindful-movement' },
-                              };
-                              const entry = CATALOG[selectedId];
+                              const entry = MINDFULNESS_CATALOG_BY_ID[e.target.value];
                               if (!entry) return;
                               updateService(index, {
                                 classLength: entry.classLength,
@@ -1782,20 +1782,18 @@ const Home: React.FC = () => {
                                 fixedPrice: entry.fixedPrice,
                                 serviceCost: entry.fixedPrice,
                                 mindfulnessType: entry.mindfulnessType,
-                                mindfulnessServiceId: selectedId,
+                                mindfulnessServiceId: entry.id,
                                 mindfulnessServiceName: entry.name,
                                 mindfulnessDescription: entry.description,
                               });
                             }}
                             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                           >
-                            <option value="mindful-eating">Mindful Eating &amp; Breathe Awareness — 30 min ($1,250)</option>
-                            <option value="movement-scan">Movement &amp; Scan — 30 min ($1,250)</option>
-                            <option value="drop-in">Drop-in Session — 30 min ($1,250)</option>
-                            <option value="intro">Intro to Mindfulness — 40 min ($1,375)</option>
-                            <option value="intro-mindfulness-60">Intro to Mindfulness — 60 min ($1,350)</option>
-                            <option value="mindful-movement">Mindful Movement — 60 min ($1,500)</option>
-                            <option value="speak-listen">Speak &amp; Listen — 60 min ($1,500)</option>
+                            {MINDFULNESS_SELECT_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
                           </select>
                         </div>
 
