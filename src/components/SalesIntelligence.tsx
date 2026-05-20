@@ -222,6 +222,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
               to: target.followup.email, name: target.followup.name, title: target.followup.title,
               company: target.followup.company, days_since: target.followup.days_since,
               touch_number: (target.followup.touches || 1) + 1,
+              thread_id: target.followup.thread_id,  // lets the backend pull your prior email body from Gmail
             } }
           : { play: target.play, rank: target.rank };
         const res = await fetch('/.netlify/functions/draft-outreach', {

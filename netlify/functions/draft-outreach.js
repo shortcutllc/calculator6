@@ -23,6 +23,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { preflight } from './lib/preflight.js';
 import { contactHistory } from './lib/contact-history.js';
+import { getAccessToken, getThread, bodyFromPayload, lc } from './lib/gmail.js';
 
 const MODEL = 'claude-sonnet-4-5-20250929';
 
@@ -209,21 +210,77 @@ export const handler = async (event) => {
   // 2b. Proven patterns: top real Shortcut emails by measured reply rate.
   // Grounds the draft in "what actually converted", not just brand voice.
   // Degrades silently if the corpus isn't ingested yet (table empty/absent).
+  // Follow-ups have a SHARPLY different shape than cold opens — short,
+  // threaded, one question. So in follow-up mode, ground on seq>=2 templates
+  // (Shortcut's actual email-2/3/5 winners), not the longer seq-1 intros.
+  // Bias to the same step number when possible (touch 2 ≈ seq 2 voice).
   let provenPatterns = [];
   try {
-    const { data: tpls } = await sb.from('outreach_templates')
-      .select('subject, body, reply_rate, sent, campaign_name')
-      .gte('sent', 25)
-      .not('body', 'is', null)
-      .order('reply_rate', { ascending: false })
-      .limit(12);
-    provenPatterns = (tpls || [])
-      .filter((t) => t.body && t.body.trim().length > 80)
-      .slice(0, 3)
-      .map((t, i) => `Pattern ${i + 1} (replied ${(Number(t.reply_rate) * 100).toFixed(0)}% over ${t.sent} sends)\n`
-        + `Subject: ${t.subject || '(continues thread, no subject)'}\n`
-        + `${t.body.slice(0, 700)}`);
+    let q = sb.from('outreach_templates')
+      .select('subject, body, reply_rate, sent, campaign_name, seq_number')
+      .not('body', 'is', null);
+    if (followup) {
+      q = q.gte('seq_number', 2).gte('sent', 10);  // lower volume floor — follow-up bodies are scarcer
+    } else {
+      q = q.gte('sent', 25);
+    }
+    const { data: tpls } = await q.order('reply_rate', { ascending: false }).limit(20);
+    const wanted = followup ? (target.this_is_touch_number || 2) : null;
+    const ordered = (tpls || []).filter((t) => t.body && t.body.trim().length > 40);
+    // Prefer same-seq matches first when in follow-up mode
+    if (wanted) ordered.sort((a, b) => {
+      const aMatch = a.seq_number === wanted ? 0 : 1;
+      const bMatch = b.seq_number === wanted ? 0 : 1;
+      return aMatch - bMatch || (b.reply_rate || 0) - (a.reply_rate || 0);
+    });
+    // Dedupe near-identical bodies (Shortcut reuses bodies across campaigns)
+    const seen = new Set();
+    const uniq = ordered.filter((t) => {
+      const k = t.body.trim().slice(0, 80);
+      if (seen.has(k)) return false; seen.add(k); return true;
+    });
+    provenPatterns = uniq.slice(0, 3).map((t, i) =>
+      `Pattern ${i + 1} (seq ${t.seq_number}, replied ${(Number(t.reply_rate) * 100).toFixed(0)}% over ${t.sent} sends)\n`
+      + `Subject: ${t.subject || '(continues thread, no subject)'}\n`
+      + `${t.body.slice(0, 700)}`);
   } catch { /* corpus optional */ }
+
+  // For follow-ups: pull the rep's PRIOR EMAIL BODY directly from Gmail so the
+  // drafter actually knows what was said. We store thread_id on the send but
+  // not the body (bodies live in Gmail). Best-effort: degrades silently if
+  // the rep isn't connected or the thread isn't reachable.
+  let priorEmail = null;
+  if (followup && followup.thread_id) {
+    try {
+      const { data: acct } = await sb.from('gmail_accounts')
+        .select('email').eq('supabase_user_id', user.id).maybeSingle();
+      if (acct?.email) {
+        const tok = await getAccessToken(sb, acct.email);
+        const thr = await getThread(tok, followup.thread_id);
+        const msgs = thr?.messages || [];
+        // Find most recent SENT message (by the rep). Walk from end.
+        for (let i = msgs.length - 1; i >= 0; i -= 1) {
+          const m = msgs[i];
+          const fromRaw = (m.payload?.headers || []).find((h) => h.name?.toLowerCase() === 'from')?.value || '';
+          const fromEmail = lc((fromRaw.match(/<([^>]+)>/) || [, fromRaw])[1]);
+          const isSent = (m.labelIds || []).includes('SENT') || fromEmail === lc(acct.email);
+          if (!isSent) continue;
+          const subject = (m.payload?.headers || []).find((h) => h.name?.toLowerCase() === 'subject')?.value || '';
+          let body = bodyFromPayload(m.payload) || '';
+          if (/<\s*(div|p|br|html|body)/i.test(body)) {
+            body = body.replace(/<\s*br\s*\/?>/gi, '\n').replace(/<\/(div|p)>/gi, '\n').replace(/<[^>]+>/g, '')
+              .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+              .replace(/&#39;|&rsquo;|&apos;/gi, "'").replace(/&quot;/gi, '"');
+          }
+          // Strip quoted history so we get just what they wrote
+          const cut = body.search(/\n?\s*(From:\s|On .+? wrote:|-{2,} ?Original Message|Sent from my )/i);
+          if (cut > 0) body = body.slice(0, cut);
+          priorEmail = { subject, body: body.replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000) };
+          break;
+        }
+      }
+    } catch { /* drafter still works without prior email body */ }
+  }
 
   // 3. Draft via Claude
   const userContent = [
@@ -243,9 +300,19 @@ export const handler = async (event) => {
     provenPatterns.length
       ? `PROVEN PATTERNS — real Shortcut emails with the highest measured reply rates. These earned replies from buyers like this one. Do NOT copy them. Study what works (the hook, the length, how direct the ask is, the register) and apply that to THIS prospect in Shortcut's voice:\n\n${provenPatterns.join('\n\n---\n\n')}\n`
       : ``,
+    priorEmail
+      ? `THE EMAIL YOU PREVIOUSLY SENT (this is what they didn't reply to — your follow-up will land directly underneath it on the same thread):\n\nSubject: ${priorEmail.subject || '(no subject)'}\n\n${priorEmail.body}\n\nYour follow-up MUST be aware of this email specifically. Do not restate what you already said. Do not re-introduce Shortcut or re-pitch the offer that's already in the thread.`
+      : ``,
     repName ? `Sign emails from: ${repName}` : `No rep name provided — sign "Best," with no name.`,
     followup
-      ? `This is a FOLLOW-UP (touch #${target.this_is_touch_number}) to someone who has NOT replied to a prior email about ${target.days_since_last_email ?? 'a few'} days ago. Keep it short, warm, and low-pressure. Briefly reference that you reached out before, then add a fresh reason to reply (a new angle, a concrete offer, or a single easy question). Do NOT just say "bumping this" or "circling back". No guilt, no pressure. It will be sent on the same email thread, so do not re-introduce Shortcut from scratch.`
+      ? `This is a FOLLOW-UP (touch #${target.this_is_touch_number}) to someone who hasn't replied in ~${target.days_since_last_email ?? 'a few'} days. Match Shortcut's established follow-up shape EXACTLY — this is not optional:\n`
+        + `  • Length: UNDER 30 WORDS. Two short sentences. The proven follow-ups above are this length for a reason.\n`
+        + `  • Structure: one line acknowledging the prior note ("Following up on my note below" or a small variation), one line that's a single easy question.\n`
+        + `  • Do NOT re-pitch, re-introduce Shortcut, restate the offer, list services, or repeat anything from the prior email above. The prior email is sitting right under your follow-up — they can see it.\n`
+        + `  • No "circling back" or "bumping this" alone — pair the bump with one concrete question or angle.\n`
+        + `  • No guilt, no pressure, no "did you see my last email", no "just wanted to make sure this didn't get lost".\n`
+        + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+        + `  • If you have a fresh angle (a new offering, a specific question about their setup, a tightly-relevant insight), use it as the one question. Otherwise use the proven default: "Wondering if we can connect?"`
       : play === 'A' && target.kind === 're_engage_lapsed_client'
         ? `This is a RE-ENGAGEMENT. They are a past client but it has been about ${target.months_since_last_event ?? 'several'} months since their last event with us. Acknowledge the gap naturally and without apology or guilt. Reference the prior work warmly, then give a concrete, specific reason to come back now (a new offering, a seasonal moment, a fresh idea for their teams). Do NOT pitch as if they have never heard of us, and do NOT pretend it has been business-as-usual.`
         : play === 'A'
