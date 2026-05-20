@@ -13,6 +13,7 @@
 import { writeFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { preflight } from './preflight.mjs';
+import { assigneeForGmail, repFromCampaignName } from '../netlify/functions/lib/assignee.js';
 
 const ROOT = '/Users/willnewton/Documents/GitHub/calculator6';
 const URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
@@ -82,15 +83,35 @@ async function replaceAll(table, rows) {
 
   // Per-contact engagement state for Play B badges/filters: did we email them,
   // how many times, when last, did they reply (+ sentiment). Bulk-loaded once.
-  const sendsAll = await readAll('outreach_sends', 'email, sent_time, reply_time');
+  const sendsAll = await readAll('outreach_sends', 'email, sent_time, reply_time, sender_email, campaign_id');
+  // Campaigns: needed to attribute legacy Smartlead sends to a rep via
+  // campaign name (sender_email is null for those rows).
+  const campaignsAll = await readAll('outreach_campaigns', 'campaign_id, name');
+  const campaignNameById = new Map(campaignsAll.map((c) => [String(c.campaign_id), c.name || null]));
   const sendByEmail = new Map();
   for (const s of sendsAll) {
     const e = lc(s.email); if (!e) continue;
-    const cur = sendByEmail.get(e) || { count: 0, last: null, replied: false };
+    const cur = sendByEmail.get(e) || { count: 0, last: null, replied: false, latest_sender_email: null, latest_campaign_id: null };
     cur.count += 1;
-    if (s.sent_time && (!cur.last || s.sent_time > cur.last)) cur.last = s.sent_time;
+    if (s.sent_time && (!cur.last || s.sent_time > cur.last)) {
+      cur.last = s.sent_time;
+      cur.latest_sender_email = s.sender_email || null;
+      cur.latest_campaign_id = s.campaign_id ? String(s.campaign_id) : null;
+    }
     if (s.reply_time) cur.replied = true;
     sendByEmail.set(e, cur);
+  }
+  // Resolve "last touched by" for each email: prefer sender_email (companion
+  // sends), else derive rep name from campaign_name (legacy Smartlead).
+  const lastSenderByEmail = new Map();
+  for (const [email, agg] of sendByEmail.entries()) {
+    let name = null; let attribEmail = agg.latest_sender_email || null;
+    if (attribEmail) name = assigneeForGmail(attribEmail);
+    if (!name && agg.latest_campaign_id) {
+      const cname = campaignNameById.get(agg.latest_campaign_id);
+      name = repFromCampaignName(cname);
+    }
+    if (name || attribEmail) lastSenderByEmail.set(email, { name, email: attribEmail });
   }
   const repliesAll = await readAll('outreach_replies', 'email, reply_sentiment, reply_date');
   const replyByEmail = new Map();
@@ -229,6 +250,7 @@ async function replaceAll(table, rows) {
     else if (snd) engagementState = 'no_reply';
     else if (isLeadgen) engagementState = 'net_new';
     else engagementState = 're_engage';
+    const ls = em ? lastSenderByEmail.get(em) : null;
     playB.push({
       company: p.company || p.domain, domain: p.domain, score: s, industry: ind, emp: hc,
       contact: p.name, title: p.title, title_cat: p.cat || '-',
@@ -240,6 +262,8 @@ async function replaceAll(table, rows) {
       last_contacted_at: snd ? snd.last : null,
       reply_sentiment: rep ? rep.sentiment : null,
       is_leadgen: isLeadgen,
+      last_sender_name: ls?.name || null,
+      last_sender_email: ls?.email || null,
     });
   }
   // Sort: warmest first (replied), then by score within state.
@@ -288,6 +312,7 @@ async function replaceAll(table, rows) {
     engagement_state: r.engagement_state, touches: r.touches,
     last_contacted_at: r.last_contacted_at, reply_sentiment: r.reply_sentiment,
     is_leadgen: r.is_leadgen,
+    last_sender_name: r.last_sender_name, last_sender_email: r.last_sender_email,
     generated_at: genAt,
   })));
   await replaceAll('crm_reconciliation', Object.entries(recon).map(([bucket, m]) => ({

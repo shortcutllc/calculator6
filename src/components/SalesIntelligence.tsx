@@ -26,6 +26,7 @@ interface PlayBRow {
   engagement_state: 'replied' | 'no_reply' | 'net_new' | 're_engage' | null;
   touches: number | null; last_contacted_at: string | null;
   reply_sentiment: string | null; is_leadgen: boolean | null;
+  last_sender_name: string | null; last_sender_email: string | null;
 }
 const PB_STATE: Record<string, { label: string; tone: string; hint: string }> = {
   replied:   { label: 'Replied',   tone: 'bg-green-100 text-green-800', hint: 'Emailed & they responded — warmest, never closed' },
@@ -60,10 +61,44 @@ interface DraftResponse {
   grounding_note: string;
 }
 interface FollowupRow {
-  email: string; name: string | null; title: string | null; company: string | null;
-  last_sent: string; days_since: number; touches: number; thread_id: string | null;
-  sender_email?: string | null;
+  email: string;
+  name: string | null; title: string | null; company: string | null;
+  // Email state derived from outreach_sends
+  state: 'never_emailed' | 'unknown_no_inbox' | 'no_reply' | 'maxed' | 'replied';
+  last_sent: string | null; days_since: number | null; touches: number;
+  thread_id: string | null; sender_email?: string | null; replied?: boolean;
+  // Workhuman lead context (when the row maps to a personal-note lead)
+  is_personal_note: boolean; has_workhuman: boolean;
+  assigned_to: string | null;
+  tier: string | null;
+  outreach_status: string | null;
+  personal_note: string | null;
+  linkedin_url: string | null;
+  landing_page_url: string | null;
+  page_view_count?: number | null;
+  page_last_viewed_at?: string | null;
+  conference_attendee: boolean;
+  was_waitlisted: boolean;
+  vip_slot: { day: string; time: string | null } | null;
 }
+interface InboxBanner {
+  connected: boolean; email: string | null;
+  sent_crawl_enabled: boolean; assignee_name: string | null;
+}
+const FU_STATE: Record<string, { label: string; tone: string; hint: string }> = {
+  never_emailed:     { label: 'Never emailed', tone: 'bg-blue-100 text-blue-800',   hint: 'Personal-note lead we have not emailed yet — first outreach' },
+  unknown_no_inbox:  { label: 'Status unknown', tone: 'bg-gray-100 text-gray-600',  hint: 'Connect your Gmail to verify whether you have emailed this lead' },
+  no_reply:          { label: 'No reply',       tone: 'bg-amber-100 text-amber-800', hint: 'Emailed, no reply yet — follow-up time' },
+  maxed:             { label: 'Maxed out',      tone: 'bg-gray-100 text-gray-600',  hint: 'Already hit the 3-touch cap on this contact' },
+  replied:           { label: 'Replied',        tone: 'bg-green-100 text-green-800', hint: 'They responded — open the thread to continue' },
+};
+const TIER_BADGE: Record<string, { label: string; tone: string }> = {
+  tier_1a: { label: '1A', tone: 'bg-yellow-200 text-yellow-900' },
+  tier_1b: { label: '1B', tone: 'bg-yellow-100 text-yellow-800' },
+  tier_1:  { label: '1',  tone: 'bg-yellow-100 text-yellow-700' },
+  tier_2:  { label: '2',  tone: 'bg-gray-200 text-gray-700' },
+  tier_3:  { label: '3',  tone: 'bg-gray-100 text-gray-600' },
+};
 type DraftTarget = {
   company: string;
   play?: 'A' | 'B';
@@ -220,9 +255,11 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
         const draftBody = target.followup
           ? { followup: {
               to: target.followup.email, name: target.followup.name, title: target.followup.title,
-              company: target.followup.company, days_since: target.followup.days_since,
-              touch_number: (target.followup.touches || 1) + 1,
+              company: target.followup.company, days_since: target.followup.days_since ?? null,
+              touch_number: (target.followup.touches || 0) + 1,
               thread_id: target.followup.thread_id,  // lets the backend pull your prior email body from Gmail
+              personal_note: target.followup.personal_note || null,  // in-person Workhuman note to ground a fresh outreach
+              is_first_outreach: target.followup.state === 'never_emailed' || target.followup.state === 'unknown_no_inbox',
             } }
           : { play: target.play, rank: target.rank };
         const res = await fetch('/.netlify/functions/draft-outreach', {
@@ -869,12 +906,45 @@ function exportCSV(rows: Record<string, unknown>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
+const VALID_TABS: TabId[] = ['playA', 'playB', 'followups', 'drafts', 'recon'];
+const FU_CACHE_KEY = 'sales_intel.followups.v1';
+const FU_CACHE_TTL_MS = 30 * 60 * 1000;
+
 const SalesIntelligence: React.FC = () => {
-  const [tab, setTab] = useState<TabId>('playA');
+  // Sticky tab: URL hash survives refresh natively + is shareable.
+  const [tab, setTab] = useState<TabId>(() => {
+    try {
+      const h = window.location.hash.replace(/^#/, '') as TabId;
+      if (VALID_TABS.includes(h)) return h;
+    } catch { /* SSR/safety */ }
+    return 'playA';
+  });
+  useEffect(() => {
+    try { window.history.replaceState(null, '', `#${tab}`); } catch { /* */ }
+  }, [tab]);
   const [playA, setPlayA] = useState<PlayARow[]>([]);
   const [playB, setPlayB] = useState<PlayBRow[]>([]);
   const [recon, setRecon] = useState<ReconRow[]>([]);
-  const [followups, setFollowups] = useState<FollowupRow[] | null>(null);
+  // Follow-ups cache survives page refresh + tab switches; explicit refresh
+  // button is the only thing that re-fetches. TTL guards stale data.
+  const [followups, setFollowups] = useState<FollowupRow[] | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(FU_CACHE_KEY);
+      if (!raw) return null;
+      const c = JSON.parse(raw);
+      if (Date.now() - (c.ts || 0) > FU_CACHE_TTL_MS) return null;
+      return c.data || null;
+    } catch { return null; }
+  });
+  const [fuLoadedScope, setFuLoadedScope] = useState<'mine' | 'team' | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(FU_CACHE_KEY);
+      return raw ? (JSON.parse(raw).scope || null) : null;
+    } catch { return null; }
+  });
+  const _initialFuInbox = (() => {
+    try { const raw = sessionStorage.getItem(FU_CACHE_KEY); return raw ? (JSON.parse(raw).inbox || null) : null; } catch { return null; }
+  })();
   const [savedDrafts, setSavedDrafts] = useState<SavedDraftRow[] | null>(null);
   const [sdLoading, setSdLoading] = useState(false);
   const [fuLoading, setFuLoading] = useState(false);
@@ -977,6 +1047,8 @@ const SalesIntelligence: React.FC = () => {
   const [fuScope, setFuScope] = useState<'mine' | 'team'>('mine');
   const [fuExpanded, setFuExpanded] = useState<string | null>(null);
   const [fuNote, setFuNote] = useState<string | null>(null);
+  const [fuInbox, setFuInbox] = useState<InboxBanner | null>(_initialFuInbox);
+  const [fuStateFilter, setFuStateFilter] = useState<'all' | 'never_emailed' | 'no_reply' | 'replied'>('all');
   const loadFollowups = useCallback(async (scope: 'mine' | 'team') => {
     setFuLoading(true); setFuNote(null);
     try {
@@ -987,8 +1059,12 @@ const SalesIntelligence: React.FC = () => {
       });
       const j = await res.json();
       if (!res.ok || !j.success) throw new Error(j.error || `Failed (${res.status})`);
-      setFollowups(j.followups || []);
+      const data = j.followups || [];
+      setFollowups(data);
+      setFuLoadedScope(scope);
+      setFuInbox(j.inbox || null);
       if (j.note) setFuNote(j.note);
+      try { sessionStorage.setItem(FU_CACHE_KEY, JSON.stringify({ data, scope, ts: Date.now(), note: j.note || null, inbox: j.inbox || null })); } catch { /* quota etc */ }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load follow-ups');
       setFollowups([]);
@@ -997,9 +1073,12 @@ const SalesIntelligence: React.FC = () => {
     }
   }, []);
 
+  // Fetch only when needed: first visit to followups tab, scope changed, or
+  // someone reset followups to null (e.g., after a send invalidates the queue).
   useEffect(() => {
-    if (tab === 'followups') loadFollowups(fuScope);
-  }, [tab, fuScope, loadFollowups]);
+    if (tab !== 'followups') return;
+    if (followups === null || fuLoadedScope !== fuScope) loadFollowups(fuScope);
+  }, [tab, fuScope, followups, fuLoadedScope, loadFollowups]);
 
   const loadSavedDrafts = useCallback(async () => {
     setSdLoading(true);
@@ -1091,7 +1170,11 @@ const SalesIntelligence: React.FC = () => {
               <Mail size={15} /> Connect Gmail
             </button>
           )}
-          <button onClick={load} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
+          <button
+            onClick={() => { load(); setFollowups(null); setSavedDrafts(null); }}
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+            title="Refresh plays + queues + drafts"
+          >
             <RefreshCw size={16} /> Reload
           </button>
         </div>
@@ -1246,7 +1329,7 @@ const SalesIntelligence: React.FC = () => {
                   <th className={th}></th><th className={th}>#</th><th className={th}>Company</th>
                   <th className={th}>State</th><th className={th}>Score</th>
                   <th className={th}>Contact</th><th className={th}>Title</th>
-                  <th className={th}>Last touch</th><th className={th}></th>
+                  <th className={th}>Last touch</th><th className={th}>Last sender</th><th className={th}></th>
                 </tr>
               </thead>
               <tbody>
@@ -1290,6 +1373,11 @@ const SalesIntelligence: React.FC = () => {
                             : <span className="text-gray-300">never</span>}
                         </td>
                         <td className={td}>
+                          {r.last_sender_name
+                            ? <span className="text-xs font-medium text-gray-700" title={r.last_sender_email || ''}>{r.last_sender_name.split(' ')[0]}</span>
+                            : <span className="text-gray-300 text-xs">—</span>}
+                        </td>
+                        <td className={td}>
                           <button
                             onClick={(e) => { e.stopPropagation(); setDraftTarget({ play: 'B', rank: r.rank, company: r.company_name, prefillEmail: r.contact_email }); }}
                             className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
@@ -1300,7 +1388,7 @@ const SalesIntelligence: React.FC = () => {
                       </tr>
                       {open && (
                         <tr>
-                          <td colSpan={9} className="border-t border-gray-100 p-0">
+                          <td colSpan={10} className="border-t border-gray-100 p-0">
                             <CRMCardContent
                               inline
                               target={{ company: r.company_name, email: r.contact_email, domain: r.domain }}
@@ -1318,7 +1406,26 @@ const SalesIntelligence: React.FC = () => {
         </div>
       ) : tab === 'followups' ? (
         <div>
-          <div className="flex items-center gap-2 mb-3">
+          {/* Inbox status banner — preloaded leads + accuracy warning when not connected */}
+          {fuInbox && !fuInbox.connected && (
+            <div className="mb-3 p-3 rounded border border-amber-200 bg-amber-50 text-amber-900 text-sm flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <strong>Connect your Gmail to verify send/reply status.</strong> Personal-note leads are preloaded from Workhuman so you can work them now — but until you connect, we can't tell which ones you've already emailed. Hit <Mail size={12} className="inline-block -mt-0.5" /> Connect Gmail in the header.
+              </div>
+            </div>
+          )}
+          {fuInbox?.connected && !fuInbox.assignee_name && (
+            <div className="mb-3 p-3 rounded border border-amber-200 bg-amber-50 text-amber-900 text-sm flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <div>
+                Couldn't match <code className="text-xs">{fuInbox.email}</code> to a Workhuman assignee (Will / Jaimie / Marc / Caren). Personal-note leads won't preload for you until that mapping is added.
+              </div>
+            </div>
+          )}
+
+          {/* Controls: scope + state filter */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
             {(['mine', 'team'] as const).map((s) => (
               <button
                 key={s}
@@ -1328,49 +1435,132 @@ const SalesIntelligence: React.FC = () => {
                     ? 'border-shortcut-navy-blue bg-shortcut-navy-blue text-white'
                     : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
               >
-                {s === 'mine' ? 'My follow-ups' : 'Whole team'}
+                {s === 'mine' ? 'My leads' : 'Whole team'}
               </button>
             ))}
-            {fuNote && <span className="text-xs text-amber-700 ml-3">{fuNote}</span>}
+            <div className="w-px h-5 bg-gray-200 mx-1" />
+            {([
+              { id: 'all',           label: 'All' },
+              { id: 'never_emailed', label: 'Never emailed' },
+              { id: 'no_reply',      label: 'No reply' },
+              { id: 'replied',       label: 'Replied' },
+            ] as const).map((f) => {
+              const n = f.id === 'all'
+                ? (followups?.length || 0)
+                : (followups || []).filter((x) => f.id === 'never_emailed' ? (x.state === 'never_emailed' || x.state === 'unknown_no_inbox') : x.state === f.id).length;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setFuStateFilter(f.id)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                    fuStateFilter === f.id
+                      ? 'border-shortcut-navy-blue bg-shortcut-navy-blue text-white'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {f.label} <span className="opacity-70">({n})</span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => { setFollowups(null); }}
+              className="ml-auto flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800"
+              title="Refetch the queue"
+            >
+              <RefreshCw size={13} /> Refresh
+            </button>
           </div>
+          {fuNote && <div className="text-xs text-amber-700 mb-2">{fuNote}</div>}
+
           <div className="overflow-x-auto border border-gray-200 rounded">
-            {fuLoading ? (
-              <div className="py-16 text-center text-gray-400">Loading follow-up queue…</div>
+            {fuLoading && !followups ? (
+              <div className="py-16 text-center text-gray-400">Loading your queue…</div>
             ) : !followups || followups.length === 0 ? (
               <div className="py-16 text-center text-gray-400">
-                No one is due for a follow-up. Sends with no reply show here after 4 days.
+                No personal-note leads or follow-ups for you.
               </div>
-            ) : (
+            ) : (() => {
+              const visible = (followups || []).filter((r) => {
+                if (fuStateFilter === 'all') return true;
+                if (fuStateFilter === 'never_emailed') return r.state === 'never_emailed' || r.state === 'unknown_no_inbox';
+                return r.state === fuStateFilter;
+              });
+              if (visible.length === 0) {
+                return <div className="py-16 text-center text-gray-400">No rows match this filter.</div>;
+              }
+              return (
               <table className="min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className={th}></th>
-                    <th className={th}>Contact</th><th className={th}>Company</th>
-                    <th className={th}>Title</th><th className={th}>No reply</th>
-                    <th className={th}>Touches</th>
+                    <th className={th}>State</th>
+                    <th className={th}>Contact</th>
+                    <th className={th}>Company</th>
+                    <th className={th}>Personal note</th>
+                    <th className={th}>Last sent</th>
                     {fuScope === 'team' && <th className={th}>Sent by</th>}
                     <th className={th}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {followups.map((r) => {
+                  {visible.map((r) => {
                     const open = fuExpanded === r.email;
+                    const stMeta = FU_STATE[r.state] || FU_STATE.no_reply;
+                    const tierMeta = r.tier ? (TIER_BADGE[r.tier] || null) : null;
+                    const canDraft = r.state !== 'maxed';
+                    const isFirstOutreach = r.state === 'never_emailed' || r.state === 'unknown_no_inbox';
+                    const draftLabel = isFirstOutreach ? 'Draft outreach' : 'Draft follow-up';
+                    const cols = fuScope === 'team' ? 8 : 7;
                     return (
                       <React.Fragment key={r.email}>
                         <tr className="hover:bg-gray-50 cursor-pointer"
                           onClick={() => setFuExpanded(open ? null : r.email)}>
                           <td className={`${td} text-gray-400`}>{r.thread_id ? (open ? '▾' : '▸') : ''}</td>
                           <td className={td}>
-                            <div>{r.name || '—'}</div>
-                            <div className="text-xs text-gray-500">{r.email}</div>
+                            <div className="flex flex-col gap-1">
+                              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${stMeta.tone}`} title={stMeta.hint}>
+                                {stMeta.label}
+                                {r.state === 'no_reply' && r.days_since != null ? ` · ${r.days_since}d` : ''}
+                                {r.touches > 0 && r.state !== 'never_emailed' && r.state !== 'unknown_no_inbox' ? ` · ${r.touches}×` : ''}
+                              </span>
+                              {tierMeta && (
+                                <span className={`text-xs font-bold px-1.5 py-0.5 rounded inline-block w-fit ${tierMeta.tone}`} title="Workhuman tier">
+                                  T{tierMeta.label}
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className={td}>{r.company || '—'}</td>
-                          <td className={`${td} text-gray-500`}>{r.title || '—'}</td>
-                          <td className={td}>{r.days_since}d</td>
-                          <td className={td}>{r.touches}</td>
+                          <td className={td}>
+                            <div className="flex items-center gap-1.5">
+                              <span>{r.name || '—'}</span>
+                              {r.conference_attendee && <span title="Attended Workhuman booth" className="text-[10px] bg-purple-100 text-purple-700 px-1 rounded">WH</span>}
+                              {r.linkedin_url && (
+                                <a href={r.linkedin_url} target="_blank" rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-xs text-shortcut-navy-blue hover:underline">in</a>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">{r.email}</div>
+                            {r.title && <div className="text-xs text-gray-400">{r.title}</div>}
+                          </td>
+                          <td className={td}>
+                            <div>{r.company || '—'}</div>
+                            {r.outreach_status && (
+                              <div className="text-xs text-gray-400">{r.outreach_status.replace(/_/g, ' ')}</div>
+                            )}
+                          </td>
+                          <td className={`${td} max-w-xs`}>
+                            {r.personal_note ? (
+                              <div className="text-xs text-gray-700 italic line-clamp-2" title={r.personal_note}>
+                                "{r.personal_note.replace(/\[[^\]]*\]\s*/g, '').slice(0, 140)}{r.personal_note.length > 140 ? '…' : ''}"
+                              </div>
+                            ) : <span className="text-xs text-gray-300">—</span>}
+                          </td>
+                          <td className={`${td} text-xs text-gray-500`}>
+                            {r.last_sent ? new Date(r.last_sent).toLocaleDateString() : <span className="italic text-gray-400">—</span>}
+                          </td>
                           {fuScope === 'team' && (
                             <td className={`${td} text-xs text-gray-500`}>
-                              {r.sender_email ? r.sender_email.split('@')[0] : <span className="italic text-gray-400">—</span>}
+                              {r.sender_email ? r.sender_email.split('@')[0] : r.assigned_to ? <span className="text-gray-400">{r.assigned_to.split(' ')[0]}</span> : <span className="italic text-gray-400">—</span>}
                             </td>
                           )}
                           <td className={td}>
@@ -1381,18 +1571,20 @@ const SalesIntelligence: React.FC = () => {
                               >
                                 Open card
                               </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
-                                className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
-                              >
-                                <PenLine size={14} /> Draft follow-up
-                              </button>
+                              {canDraft && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
+                                  className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                                >
+                                  <PenLine size={14} /> {draftLabel}
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
                         {open && r.thread_id && (
                           <tr>
-                            <td colSpan={fuScope === 'team' ? 8 : 7} className="border-t border-gray-100 p-3 bg-gray-50">
+                            <td colSpan={cols} className="border-t border-gray-100 p-3 bg-gray-50">
                               <ThreadView threadId={r.thread_id} />
                             </td>
                           </tr>
@@ -1402,7 +1594,8 @@ const SalesIntelligence: React.FC = () => {
                   })}
                 </tbody>
               </table>
-            )}
+              );
+            })()}
           </div>
         </div>
       ) : tab === 'drafts' ? (

@@ -137,12 +137,18 @@ export const handler = async (event) => {
 
   if (followup) {
     const fto = String(followup.to).trim().toLowerCase();
+    // "Personal-note cold open" when this is a first outreach to someone the
+    // rep met in person (Workhuman booth, etc.). Different mode than a
+    // follow-up to a prior email — the hook is the in-person conversation,
+    // not "circling back."
+    const isFirstOutreach = !!followup.is_first_outreach || (followup.touch_number ?? 2) <= 1;
     Object.assign(target, {
-      kind: 'follow_up',
+      kind: isFirstOutreach ? 'personal_first_outreach' : 'follow_up',
       company: followup.company || null,
       known_contact: { name: followup.name || null, title: followup.title || null },
       days_since_last_email: followup.days_since ?? null,
-      this_is_touch_number: followup.touch_number ?? 2,
+      this_is_touch_number: followup.touch_number ?? (isFirstOutreach ? 1 : 2),
+      personal_note: followup.personal_note || null,
     });
     preflightEmail = fto;
     preflightDomain = fto.split('@')[1] || null;
@@ -219,10 +225,13 @@ export const handler = async (event) => {
     let q = sb.from('outreach_templates')
       .select('subject, body, reply_rate, sent, campaign_name, seq_number')
       .not('body', 'is', null);
-    if (followup) {
-      q = q.gte('seq_number', 2).gte('sent', 10);  // lower volume floor — follow-up bodies are scarcer
+    const isFirstFu = followup && target.kind === 'personal_first_outreach';
+    if (followup && !isFirstFu) {
+      q = q.gte('seq_number', 2).gte('sent', 10);  // real follow-ups ≥ seq 2
     } else {
+      // first outreach (cold open or personal-note-first-outreach) → seq 1 intros
       q = q.gte('sent', 25);
+      if (isFirstFu) q = q.eq('seq_number', 1);
     }
     const { data: tpls } = await q.order('reply_rate', { ascending: false }).limit(20);
     const wanted = followup ? (target.this_is_touch_number || 2) : null;
@@ -250,7 +259,7 @@ export const handler = async (event) => {
   // not the body (bodies live in Gmail). Best-effort: degrades silently if
   // the rep isn't connected or the thread isn't reachable.
   let priorEmail = null;
-  if (followup && followup.thread_id) {
+  if (followup && followup.thread_id && target.kind !== 'personal_first_outreach') {
     try {
       const { data: acct } = await sb.from('gmail_accounts')
         .select('email').eq('supabase_user_id', user.id).maybeSingle();
@@ -304,7 +313,17 @@ export const handler = async (event) => {
       ? `THE EMAIL YOU PREVIOUSLY SENT (this is what they didn't reply to — your follow-up will land directly underneath it on the same thread):\n\nSubject: ${priorEmail.subject || '(no subject)'}\n\n${priorEmail.body}\n\nYour follow-up MUST be aware of this email specifically. Do not restate what you already said. Do not re-introduce Shortcut or re-pitch the offer that's already in the thread.`
       : ``,
     repName ? `Sign emails from: ${repName}` : `No rep name provided — sign "Best," with no name.`,
-    followup
+    followup && target.kind === 'personal_first_outreach'
+      ? `This is a FIRST OUTREACH to someone the rep met in person at Workhuman (or similar). It is NOT a follow-up to a prior email — there is no prior email. The hook is the in-person conversation itself.\n`
+        + (target.personal_note ? `\nYOUR PERSONAL NOTE from that conversation (THIS is your hook — reference something specific from it; do not invent specifics that aren't in the note):\n"${target.personal_note}"\n` : `\n(No personal-note text was passed through — keep the in-person reference generic: "great chatting at Workhuman" works.)\n`)
+        + `\nShape:\n`
+        + `  • Length: short. Under 80 words.\n`
+        + `  • Open with a specific reference to the in-person moment grounded in the note.\n`
+        + `  • One concrete next step (a brief explainer, a 15-min call, an in-office demo — pick what's most relevant to the note).\n`
+        + `  • Brand voice: warm, low-pressure, no buzzwords, no "synergy", no "circling back" (you weren't in touch before).\n`
+        + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+        + `  • DO NOT treat this as a follow-up. DO NOT say "circling back" or "following up on my note below" — there is no prior thread.`
+      : followup
       ? `This is a FOLLOW-UP (touch #${target.this_is_touch_number}) to someone who hasn't replied in ~${target.days_since_last_email ?? 'a few'} days. Match Shortcut's established follow-up shape EXACTLY — this is not optional:\n`
         + `  • Length: UNDER 30 WORDS. Two short sentences. The proven follow-ups above are this length for a reason.\n`
         + `  • Structure: one line acknowledging the prior note ("Following up on my note below" or a small variation), one line that's a single easy question.\n`
@@ -313,6 +332,7 @@ export const handler = async (event) => {
         + `  • No guilt, no pressure, no "did you see my last email", no "just wanted to make sure this didn't get lost".\n`
         + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
         + `  • If you have a fresh angle (a new offering, a specific question about their setup, a tightly-relevant insight), use it as the one question. Otherwise use the proven default: "Wondering if we can connect?"`
+        + (target.personal_note ? `\n\nADDITIONAL CONTEXT — the rep also has this in-person note about this contact from a prior conference conversation (use it for ONE specific reference if it adds warmth, do not let it dilute the brevity):\n"${target.personal_note}"` : ``)
       : play === 'A' && target.kind === 're_engage_lapsed_client'
         ? `This is a RE-ENGAGEMENT. They are a past client but it has been about ${target.months_since_last_event ?? 'several'} months since their last event with us. Acknowledge the gap naturally and without apology or guilt. Reference the prior work warmly, then give a concrete, specific reason to come back now (a new offering, a seasonal moment, a fresh idea for their teams). Do NOT pitch as if they have never heard of us, and do NOT pretend it has been business-as-usual.`
         : play === 'A'
