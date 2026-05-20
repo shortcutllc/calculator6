@@ -34,7 +34,7 @@ export const handler = async (event) => {
   // and the rep's own consent is required before send-as-rep will use their
   // token. If not connected, the UI shows the Connect button.
   const { data: acct } = await sb.from('gmail_accounts')
-    .select('email, watch_expiration, connected_at')
+    .select('email, watch_expiration, connected_at, sent_crawl_enabled, last_sent_crawl_at')
     .eq('supabase_user_id', user.id).maybeSingle();
 
   return json(200, {
@@ -42,5 +42,7 @@ export const handler = async (event) => {
     email: acct?.email || null,
     watch_active: acct?.watch_expiration ? new Date(acct.watch_expiration).getTime() > Date.now() : false,
     connected_at: acct?.connected_at || null,
+    sent_crawl_enabled: !!acct?.sent_crawl_enabled,
+    last_sent_crawl_at: acct?.last_sent_crawl_at || null,
   });
 };

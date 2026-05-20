@@ -761,7 +761,11 @@ const SalesIntelligence: React.FC = () => {
   const [pbSort, setPbSort] = useState<PBSort>('state');
   const [pbExpanded, setPbExpanded] = useState<string | null>(null);
   const [gmailNotice, setGmailNotice] = useState<string | null>(null);
-  const [pageGmail, setPageGmail] = useState<{ connected: boolean; email: string | null } | null>(null);
+  const [pageGmail, setPageGmail] = useState<{
+    connected: boolean; email: string | null;
+    sent_crawl_enabled: boolean; last_sent_crawl_at: string | null;
+  } | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
 
   const refreshGmail = useCallback(async () => {
     try {
@@ -771,9 +775,28 @@ const SalesIntelligence: React.FC = () => {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const j = await res.json();
-      if (res.ok) setPageGmail({ connected: !!j.connected, email: j.email || null });
+      if (res.ok) setPageGmail({
+        connected: !!j.connected, email: j.email || null,
+        sent_crawl_enabled: !!j.sent_crawl_enabled, last_sent_crawl_at: j.last_sent_crawl_at || null,
+      });
     } catch { /* best-effort */ }
   }, []);
+
+  const toggleSentSync = useCallback(async () => {
+    if (!pageGmail?.connected || syncBusy) return;
+    setSyncBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/.netlify/functions/gmail-sync-toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ enabled: !pageGmail.sent_crawl_enabled }),
+      });
+      const j = await res.json();
+      if (res.ok && j.success) await refreshGmail();
+    } finally { setSyncBusy(false); }
+  }, [pageGmail, syncBusy, refreshGmail]);
 
   const connectGmailPage = useCallback(async () => {
     try {
@@ -912,9 +935,27 @@ const SalesIntelligence: React.FC = () => {
         </h1>
         <div className="flex items-center gap-4">
           {pageGmail?.connected ? (
-            <span className="flex items-center gap-1.5 text-sm text-green-700">
-              <Mail size={15} /> {pageGmail.email}
-            </span>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="flex items-center gap-1.5 text-green-700">
+                <Mail size={15} /> {pageGmail.email}
+              </span>
+              <button
+                onClick={toggleSentSync}
+                disabled={syncBusy}
+                title={pageGmail.sent_crawl_enabled
+                  ? 'Stop pulling your Gmail sends into the pipeline'
+                  : 'Pull your manual Gmail sends (and their replies) into the follow-up queue / CRM card history. Forward-only — no historical backfill.'}
+                className={`text-xs px-2 py-1 rounded border ${
+                  pageGmail.sent_crawl_enabled
+                    ? 'border-green-600 text-green-700 hover:bg-green-50'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'} disabled:opacity-50`}
+              >
+                Sent-mail sync: {pageGmail.sent_crawl_enabled ? 'ON' : 'OFF'}
+                {pageGmail.sent_crawl_enabled && pageGmail.last_sent_crawl_at
+                  ? ` · last ${formatDistanceToNow(new Date(pageGmail.last_sent_crawl_at), { addSuffix: true })}`
+                  : ''}
+              </button>
+            </div>
           ) : (
             <button
               onClick={connectGmailPage}

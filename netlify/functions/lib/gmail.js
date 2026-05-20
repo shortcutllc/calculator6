@@ -203,3 +203,101 @@ export async function listInboundSince(accessToken, startHistoryId) {
   }
   return { messages: out, newHistoryId: j.historyId || startHistoryId };
 }
+
+// ----- Inbox-crawl helpers -----
+// Gmail-search format: "in:sent after:YYYY/MM/DD". after: is inclusive day.
+function gmailDate(d) {
+  const y = d.getUTCFullYear(); const m = d.getUTCMonth() + 1; const day = d.getUTCDate();
+  return `${y}/${String(m).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+}
+
+/** List sent message IDs since `sinceDate` (Date). Paginates. Caps at `max`. */
+export async function listSentSince(accessToken, sinceDate, max = 500) {
+  const q = `in:sent after:${gmailDate(sinceDate)} -in:chats`;
+  const ids = []; let pageToken = '';
+  while (ids.length < max) {
+    const p = new URLSearchParams({ q, maxResults: String(Math.min(100, max - ids.length)) });
+    if (pageToken) p.set('pageToken', pageToken);
+    const r = await fetch(`${GMAIL}/messages?${p.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(`gmail list sent failed: ${j.error?.message || r.status}`);
+    for (const m of j.messages || []) ids.push(m.id);
+    pageToken = j.nextPageToken || '';
+    if (!pageToken) break;
+  }
+  return ids;
+}
+
+/** Metadata for one message — To/Cc/Subject/Date/Message-ID/Content-Type/Auto-Submitted headers + threadId + internalDate. */
+export async function getMessageHeaders(accessToken, msgId) {
+  const params = new URLSearchParams({ format: 'metadata' });
+  for (const h of ['To', 'Cc', 'Subject', 'Date', 'From', 'Message-ID', 'Content-Type', 'Auto-Submitted', 'List-Unsubscribe']) {
+    params.append('metadataHeaders', h);
+  }
+  const r = await fetch(`${GMAIL}/messages/${msgId}?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!r.ok) return null;
+  const j = await r.json();
+  const hdr = (n) => (j.payload?.headers || []).find((x) => x.name?.toLowerCase() === n.toLowerCase())?.value || null;
+  const parseAddresses = (raw) => {
+    if (!raw) return [];
+    return String(raw).split(',').map((s) => {
+      const m = s.match(/<([^>]+)>/);
+      return lc((m ? m[1] : s).trim());
+    }).filter(Boolean);
+  };
+  return {
+    id: j.id, threadId: j.threadId,
+    internalDate: j.internalDate ? new Date(Number(j.internalDate)).toISOString() : null,
+    labelIds: j.labelIds || [],
+    from: lc((hdr('From') || '').match(/<([^>]+)>/)?.[1] || hdr('From')),
+    to: parseAddresses(hdr('To')),
+    cc: parseAddresses(hdr('Cc')),
+    subject: hdr('Subject'),
+    messageIdHeader: hdr('Message-ID'),
+    contentType: hdr('Content-Type'),
+    autoSubmitted: hdr('Auto-Submitted'),
+    listUnsubscribe: hdr('List-Unsubscribe'),
+  };
+}
+
+/** Fetch a thread (messages array w/ snippet + headers); used to find inbound replies on a sent thread. */
+export async function getThread(accessToken, threadId) {
+  const r = await fetch(`${GMAIL}/threads/${threadId}?format=full`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!r.ok) return null;
+  return r.json();
+}
+
+/** Extract a readable body from a Gmail message payload (prefers text/plain, falls back to stripped html). */
+export function bodyFromPayload(payload) {
+  if (!payload) return '';
+  const decode = (b64) => {
+    if (!b64) return '';
+    try { return Buffer.from(b64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'); } catch { return ''; }
+  };
+  const walk = (part) => {
+    if (!part) return null;
+    if (part.mimeType === 'text/plain' && part.body?.data) return decode(part.body.data);
+    if (part.parts) {
+      for (const p of part.parts) { const r = walk(p); if (r) return r; }
+    }
+    return null;
+  };
+  let txt = walk(payload);
+  if (!txt) {
+    // fallback: walk for text/html and strip
+    const walkHtml = (part) => {
+      if (!part) return null;
+      if (part.mimeType === 'text/html' && part.body?.data) return decode(part.body.data);
+      if (part.parts) { for (const p of part.parts) { const r = walkHtml(p); if (r) return r; } }
+      return null;
+    };
+    txt = walkHtml(payload) || '';
+  }
+  return txt;
+}
