@@ -910,6 +910,373 @@ const VALID_TABS: TabId[] = ['playA', 'playB', 'followups', 'drafts', 'recon'];
 const FU_CACHE_KEY = 'sales_intel.followups.v1';
 const FU_CACHE_TTL_MS = 30 * 60 * 1000;
 
+// Rapid outreach: iterate the rep's filtered queue one lead at a time with
+// pre-loaded draft + Workhuman context + Gmail thread + keyboard shortcuts.
+// Used on Follow-ups today; same shape can wrap Play A / Play B later.
+const RapidQueue: React.FC<{
+  queue: FollowupRow[];
+  fromGmail: string | null;
+  onClose: () => void;
+}> = ({ queue, fromGmail, onClose }) => {
+  const [idx, setIdx] = useState(0);
+  const [stats, setStats] = useState({ sent: 0, saved: 0, skipped: 0, blocked: 0 });
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [drafts, setDrafts] = useState<DraftDirection[]>([]);
+  const [activeLabel, setActiveLabel] = useState<string | null>(null);
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  const [recommended, setRecommended] = useState<string | null>(null);
+  const [recommendedReason, setRecommendedReason] = useState<string | null>(null);
+  const [groundingNote, setGroundingNote] = useState<string | null>(null);
+  const [sending, setSending] = useState<null | 'send' | 'open' | 'save'>(null);
+  const [actionMsg, setActionMsg] = useState<{ kind: 'ok' | 'err' | 'blocked'; text: string; canForce?: boolean } | null>(null);
+
+  const cur = queue[idx];
+  const total = queue.length;
+  const isFirstOutreach = cur ? (cur.state === 'never_emailed' || cur.state === 'unknown_no_inbox') : false;
+
+  // Fetch a fresh draft each time the cursor moves to a new lead.
+  useEffect(() => {
+    let cancelled = false;
+    if (!cur) return;
+    setDraftLoading(true); setErr(null); setActionMsg(null);
+    setDrafts([]); setSubject(''); setBody(''); setActiveLabel(null);
+    setRecommended(null); setRecommendedReason(null); setGroundingNote(null);
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not signed in');
+        const draftBody = {
+          followup: {
+            to: cur.email, name: cur.name, title: cur.title,
+            company: cur.company, days_since: cur.days_since ?? null,
+            touch_number: (cur.touches || 0) + 1,
+            thread_id: cur.thread_id,
+            personal_note: cur.personal_note || null,
+            is_first_outreach: isFirstOutreach,
+          },
+        };
+        const res = await fetch('/.netlify/functions/draft-outreach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify(draftBody),
+        });
+        const j = await res.json();
+        if (!res.ok || !j.success) throw new Error(j.error || `Draft failed (${res.status})`);
+        if (cancelled) return;
+        setDrafts(j.drafts || []);
+        const ff = j.fight_for || (j.drafts?.[0]?.label || null);
+        setActiveLabel(ff);
+        const pick = (j.drafts || []).find((d: DraftDirection) => d.label === ff) || j.drafts?.[0];
+        if (pick) { setSubject(pick.subject || ''); setBody(pick.body || ''); }
+        setRecommended(j.fight_for || null);
+        setRecommendedReason(j.fight_for_reason || null);
+        setGroundingNote(j.grounding_note || null);
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to draft');
+      } finally {
+        if (!cancelled) setDraftLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [idx, cur, isFirstOutreach]);
+
+  const switchDirection = (label: string) => {
+    const d = drafts.find((x) => x.label === label);
+    if (!d) return;
+    setActiveLabel(label);
+    setSubject(d.subject || '');
+    setBody(d.body || '');
+  };
+
+  const advance = useCallback(() => {
+    if (idx < total - 1) setIdx((i) => i + 1);
+    else onClose();
+  }, [idx, total, onClose]);
+  const back = useCallback(() => { if (idx > 0) setIdx((i) => i - 1); }, [idx]);
+  const skip = useCallback(() => {
+    setStats((s) => ({ ...s, skipped: s.skipped + 1 }));
+    advance();
+  }, [advance]);
+
+  const send = useCallback(async (force = false) => {
+    if (!cur || sending || !subject.trim() || !body.trim() || !fromGmail) return;
+    setSending('send'); setActionMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const res = await fetch('/.netlify/functions/send-as-rep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          to: cur.email, fromEmail: fromGmail, subject, body,
+          threadId: cur.thread_id || undefined, acknowledgedCaution: force,
+        }),
+      });
+      const j = await res.json();
+      if (res.status === 409 && j.blocked) {
+        const recent = j.reason === 'recently_contacted';
+        setActionMsg({
+          kind: 'blocked', canForce: recent,
+          text: j.reason === 'suppressed' ? 'Blocked: suppressed / do-not-contact.'
+            : j.reason === 'already_client' ? 'Blocked: already an active client.'
+            : 'Caution: contacted in the last 90 days. Hit Send again to override.',
+        });
+        setStats((s) => ({ ...s, blocked: s.blocked + 1 }));
+        if (recent) { setSending(null); return; }
+        advance();
+        return;
+      }
+      if (!res.ok || !j.success) throw new Error(j.error || `Send failed (${res.status})`);
+      setStats((s) => ({ ...s, sent: s.sent + 1 }));
+      setActionMsg({ kind: 'ok', text: `Sent to ${cur.email}.` });
+      setTimeout(advance, 600);
+    } catch (e) {
+      setActionMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Send failed' });
+    } finally {
+      setSending((s) => (s === 'send' ? null : s));
+    }
+  }, [cur, sending, subject, body, fromGmail, advance]);
+
+  const openGmail = useCallback(async () => {
+    if (!cur || sending || !subject.trim() || !body.trim()) return;
+    setSending('open'); setActionMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const res = await fetch('/.netlify/functions/send-as-rep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ mode: 'open', to: cur.email, fromEmail: fromGmail, subject, body }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j.success || !j.open_url) throw new Error(j.error || `Open failed (${res.status})`);
+      window.open(j.open_url, '_blank', 'noopener');
+      setActionMsg({ kind: 'ok', text: 'Opened in Gmail. Send from there to finish.' });
+      setTimeout(advance, 600);
+    } catch (e) {
+      setActionMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Open failed' });
+    } finally {
+      setSending(null);
+    }
+  }, [cur, sending, subject, body, fromGmail, advance]);
+
+  const save = useCallback(async () => {
+    if (!cur || sending || !subject.trim() || !body.trim()) return;
+    setSending('save'); setActionMsg(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not signed in');
+      const targetRef = {
+        company: cur.company || cur.email,
+        followup: cur,
+      };
+      const { error } = await supabase.from('saved_drafts').insert({
+        user_id: user.id,
+        recipient_email: cur.email,
+        subject, body,
+        direction_label: activeLabel,
+        source_company: cur.company || cur.email,
+        source_contact: cur.name || null,
+        source_title: cur.title || null,
+        target_kind: 'followup',
+        target_ref: targetRef,
+        preflight_reco: null,
+      });
+      if (error) throw error;
+      setStats((s) => ({ ...s, saved: s.saved + 1 }));
+      setActionMsg({ kind: 'ok', text: 'Saved to Drafts.' });
+    } catch (e) {
+      setActionMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Save failed' });
+    } finally {
+      setSending(null);
+    }
+  }, [cur, sending, subject, body, activeLabel]);
+
+  // Keyboard shortcuts — Esc always works; others ignored while typing in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const inText = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+      if (inText) return;
+      if (e.key === 'ArrowRight' || e.key === 'j' || e.key === 'J') { e.preventDefault(); skip(); }
+      else if (e.key === 'ArrowLeft' || e.key === 'k' || e.key === 'K') { e.preventDefault(); back(); }
+      else if (e.key === 's' || e.key === 'S') { e.preventDefault(); send(); }
+      else if (e.key === 'o' || e.key === 'O') { e.preventDefault(); openGmail(); }
+      else if (e.key === 'd' || e.key === 'D') { e.preventDefault(); save(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, skip, back, send, openGmail, save]);
+
+  if (!cur) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white p-8 flex flex-col items-center justify-center">
+        <h2 className="text-2xl font-bold mb-2">Queue empty</h2>
+        <button onClick={onClose} className="text-sm text-shortcut-navy-blue hover:underline">Close</button>
+      </div>
+    );
+  }
+
+  const stMeta = FU_STATE[cur.state] || FU_STATE.no_reply;
+  const tierMeta = cur.tier ? (TIER_BADGE[cur.tier] || null) : null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="text-sm font-semibold text-shortcut-navy-blue">Rapid outreach</div>
+          <div className="text-sm text-gray-600">{idx + 1} of {total}</div>
+          <div className="text-xs text-gray-500">
+            sent {stats.sent} · saved {stats.saved} · skipped {stats.skipped}{stats.blocked ? ` · blocked ${stats.blocked}` : ''}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="hidden md:inline text-xs text-gray-400">
+            <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">S</kbd> send · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">O</kbd> open · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">D</kbd> save · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">→</kbd> skip · <kbd className="bg-gray-100 border border-gray-300 px-1 rounded">Esc</kbd> exit
+          </span>
+          <button onClick={onClose} className="ml-3 text-gray-400 hover:text-gray-700"><X size={20} /></button>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-5 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold text-shortcut-navy-blue flex items-center gap-2">
+              {cur.name || '—'}
+              {cur.conference_attendee && <span title="Attended Workhuman" className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">WH</span>}
+            </h2>
+            <div className="text-sm text-gray-600">{cur.title || '—'}{cur.company ? ` · ${cur.company}` : ''}</div>
+            <div className="text-sm text-gray-500 mt-1">
+              <a href={`mailto:${cur.email}`} className="text-shortcut-navy-blue hover:underline">{cur.email}</a>
+              {cur.linkedin_url && <a href={cur.linkedin_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-shortcut-navy-blue hover:underline">LinkedIn</a>}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${stMeta.tone}`}>{stMeta.label}</span>
+              {tierMeta && <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${tierMeta.tone}`}>T{tierMeta.label}</span>}
+              {cur.assigned_to && <span className="text-xs text-gray-500">assigned: {cur.assigned_to.split(' ')[0]}</span>}
+              {cur.outreach_status && <span className="text-xs text-gray-500">status: {cur.outreach_status.replace(/_/g, ' ')}</span>}
+              {cur.days_since != null && cur.last_sent && <span className="text-xs text-gray-500">last sent {cur.days_since}d ago</span>}
+              {cur.touches > 0 && <span className="text-xs text-gray-500">touches: {cur.touches}</span>}
+            </div>
+          </div>
+
+          {cur.personal_note && (
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded">
+              <div className="text-[10px] font-semibold text-amber-900 uppercase tracking-wide mb-1">Personal note from the conference</div>
+              <div className="text-sm text-gray-800 whitespace-pre-wrap leading-snug">{cur.personal_note}</div>
+            </div>
+          )}
+
+          {cur.thread_id && (
+            <div className="border-t border-gray-100 pt-3">
+              <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Gmail thread</div>
+              <ThreadView threadId={cur.thread_id} />
+            </div>
+          )}
+
+          {cur.landing_page_url && (
+            <div className="text-xs text-gray-500">
+              Landing page: <a href={cur.landing_page_url} target="_blank" rel="noopener noreferrer" className="text-shortcut-navy-blue hover:underline">{cur.landing_page_url.replace(/^https?:\/\//, '').slice(0, 40)}</a>
+              {cur.page_view_count != null && <> · {cur.page_view_count} views</>}
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-3 space-y-3">
+          {draftLoading && <div className="py-12 text-center text-gray-400 border border-gray-200 rounded">Drafting in brand voice…</div>}
+          {err && <div className="bg-red-50 text-red-700 p-3 rounded flex items-center gap-2 text-sm"><AlertCircle size={16} /> {err}</div>}
+          {!draftLoading && !err && drafts.length > 0 && (
+            <>
+              <div className="flex items-center gap-2">
+                {drafts.map((d) => (
+                  <button
+                    key={d.label}
+                    onClick={() => switchDirection(d.label)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                      activeLabel === d.label
+                        ? 'border-shortcut-navy-blue bg-shortcut-navy-blue text-white'
+                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    {d.label}{recommended === d.label ? ' ★' : ''}
+                  </button>
+                ))}
+              </div>
+              {recommendedReason && <div className="text-xs text-gray-500 italic">{recommendedReason}</div>}
+              <input
+                type="text" value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Subject"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm font-medium"
+              />
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                rows={Math.min(20, Math.max(8, body.split('\n').length + 1))}
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm leading-relaxed font-mono"
+              />
+              {groundingNote && <div className="text-xs text-gray-400">{groundingNote}</div>}
+              {actionMsg && (
+                <div className={`text-sm px-3 py-2 rounded ${
+                  actionMsg.kind === 'ok' ? 'bg-green-50 text-green-800'
+                    : actionMsg.kind === 'blocked' ? 'bg-amber-50 text-amber-800'
+                    : 'bg-red-50 text-red-700'}`}>
+                  {actionMsg.text}
+                  {actionMsg.canForce && (
+                    <button onClick={() => send(true)} className="ml-2 underline font-medium">Send anyway</button>
+                  )}
+                </div>
+              )}
+              <div className="flex items-center gap-3 pt-2 flex-wrap">
+                <button
+                  onClick={() => send()}
+                  disabled={!fromGmail || sending !== null}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-shortcut-navy-blue rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Send size={14} /> {sending === 'send' ? 'Sending…' : 'Send via Gmail'}
+                </button>
+                <button
+                  onClick={openGmail}
+                  disabled={sending !== null}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <Mail size={14} /> {sending === 'open' ? 'Opening…' : 'Open in Gmail'}
+                </button>
+                <button
+                  onClick={save}
+                  disabled={sending !== null}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <Bookmark size={14} /> {sending === 'save' ? 'Saving…' : 'Save'}
+                </button>
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    onClick={back}
+                    disabled={idx === 0}
+                    className="text-sm text-gray-500 hover:text-gray-800 disabled:opacity-30"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={skip}
+                    className="text-sm font-medium text-gray-700 px-3 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                  >
+                    Skip →
+                  </button>
+                </div>
+              </div>
+              {!fromGmail && (
+                <div className="text-xs text-amber-700">Connect Gmail in the page header to enable Send via Gmail.</div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SalesIntelligence: React.FC = () => {
   // Sticky tab: URL hash survives refresh natively + is shareable.
   const [tab, setTab] = useState<TabId>(() => {
@@ -1049,6 +1416,7 @@ const SalesIntelligence: React.FC = () => {
   const [fuNote, setFuNote] = useState<string | null>(null);
   const [fuInbox, setFuInbox] = useState<InboxBanner | null>(_initialFuInbox);
   const [fuStateFilter, setFuStateFilter] = useState<'all' | 'never_emailed' | 'no_reply' | 'replied'>('all');
+  const [rapidQueue, setRapidQueue] = useState<FollowupRow[] | null>(null);
   const loadFollowups = useCallback(async (scope: 'mine' | 'team') => {
     setFuLoading(true); setFuNote(null);
     try {
@@ -1461,13 +1829,30 @@ const SalesIntelligence: React.FC = () => {
                 </button>
               );
             })}
-            <button
-              onClick={() => { setFollowups(null); }}
-              className="ml-auto flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800"
-              title="Refetch the queue"
-            >
-              <RefreshCw size={13} /> Refresh
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const visible = (followups || []).filter((r) => {
+                    if (fuStateFilter === 'all') return r.state !== 'replied' && r.state !== 'maxed';
+                    if (fuStateFilter === 'never_emailed') return r.state === 'never_emailed' || r.state === 'unknown_no_inbox';
+                    return r.state === fuStateFilter;
+                  });
+                  if (visible.length > 0) setRapidQueue(visible);
+                }}
+                disabled={!followups || followups.length === 0}
+                className="flex items-center gap-1.5 text-xs font-medium text-white bg-shortcut-navy-blue px-3 py-1 rounded hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="One-lead-at-a-time queue with pre-loaded drafts + keyboard shortcuts"
+              >
+                <Send size={13} /> Rapid mode
+              </button>
+              <button
+                onClick={() => { setFollowups(null); }}
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800"
+                title="Refetch the queue"
+              >
+                <RefreshCw size={13} /> Refresh
+              </button>
+            </div>
           </div>
           {fuNote && <div className="text-xs text-amber-700 mb-2">{fuNote}</div>}
 
@@ -1701,6 +2086,14 @@ const SalesIntelligence: React.FC = () => {
             setDraftTarget(null);
             if (wasFollowup) setFollowups(null); // refetch queue (touch incremented / dropped)
           }}
+        />
+      )}
+
+      {rapidQueue && (
+        <RapidQueue
+          queue={rapidQueue}
+          fromGmail={pageGmail?.email || null}
+          onClose={() => { setRapidQueue(null); setFollowups(null); /* invalidate so the queue reflects new sends */ }}
         />
       )}
     </div>
