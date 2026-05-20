@@ -11,7 +11,7 @@ export async function contactHistory(sb, email) {
   if (!email) return base;
   try {
     const { data: sends } = await sb.from('outreach_sends')
-      .select('campaign_id, sent_time, reply_time, is_bounced, touch_count, sender_email')
+      .select('campaign_id, sent_time, reply_time, is_bounced, touch_count, sender_email, thread_id, message_id')
       .eq('email', email).order('sent_time', { ascending: true });
     const { data: reps } = await sb.from('outreach_replies')
       .select('campaign_id, reply_date, reply_content, reply_sentiment, is_ooo, manual_category, sentiment_source')
@@ -24,7 +24,7 @@ export async function contactHistory(sb, email) {
       first_sent: s[0]?.sent_time || null,
       last_sent: s.length ? s[s.length - 1].sent_time : null,
       replied: r.length > 0 || s.some((x) => x.reply_time),
-      sends: s.map((x) => ({ campaign_id: x.campaign_id, sent_time: x.sent_time, replied: !!x.reply_time, bounced: !!x.is_bounced, touches: x.touch_count || 1, sender_email: x.sender_email || null })),
+      sends: s.map((x) => ({ campaign_id: x.campaign_id, sent_time: x.sent_time, replied: !!x.reply_time, bounced: !!x.is_bounced, touches: x.touch_count || 1, sender_email: x.sender_email || null, thread_id: x.thread_id || null, message_id: x.message_id || null })),
       replies: r.map((x) => ({
         date: x.reply_date,
         sentiment: x.reply_sentiment || x.manual_category || null,

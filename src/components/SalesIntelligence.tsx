@@ -47,7 +47,7 @@ interface ContactHistory {
   first_sent: string | null;
   last_sent: string | null;
   replied: boolean;
-  sends: Array<{ campaign_id: string | null; sent_time: string | null; replied: boolean; bounced: boolean; touches: number; sender_email: string | null }>;
+  sends: Array<{ campaign_id: string | null; sent_time: string | null; replied: boolean; bounced: boolean; touches: number; sender_email: string | null; thread_id: string | null; message_id: string | null }>;
   replies: Array<{ date: string | null; sentiment: string | null; is_ooo: boolean; source: string | null; content: string | null }>;
 }
 interface DraftResponse {
@@ -557,6 +557,108 @@ interface CardData {
   };
 }
 
+interface ThreadMessage {
+  direction: 'sent' | 'received';
+  from: string | null;
+  to: string | null;
+  subject: string | null;
+  date: string | null;
+  snippet: string | null;
+  body: string;
+}
+
+// Live thread viewer — pulls bodies straight from the rep's Gmail via the
+// gmail-thread function. Bodies aren't stored in our DB; they live in Gmail.
+// Collapsed by default; clicking the toggle fetches + expands. Shows last
+// sent + last received as a preview, with "Show full thread" for the rest.
+const ThreadView: React.FC<{ threadId: string }> = ({ threadId }) => {
+  const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  const [showAll, setShowAll] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const res = await fetch('/.netlify/functions/gmail-thread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ thread_id: threadId }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || `Failed (${res.status})`);
+      setMessages(j.messages || []);
+      setLoaded(true);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to load thread');
+    } finally {
+      setLoading(false);
+    }
+  }, [threadId]);
+
+  const toggle = () => {
+    if (!loaded && !loading) load();
+    setOpen((v) => !v);
+  };
+
+  // When collapsed: show a small "View thread" button.
+  if (!open) {
+    return (
+      <button onClick={toggle} className="text-xs text-shortcut-navy-blue hover:underline">
+        View thread {loaded ? `(${messages.length})` : ''}
+      </button>
+    );
+  }
+
+  const visible = showAll ? messages : (() => {
+    // Default preview: last sent + last received (chronological).
+    const lastSent = [...messages].reverse().find((m) => m.direction === 'sent');
+    const lastRecv = [...messages].reverse().find((m) => m.direction === 'received');
+    const arr = [lastSent, lastRecv].filter((x): x is ThreadMessage => !!x);
+    arr.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
+    return arr;
+  })();
+  const hiddenCount = messages.length - visible.length;
+
+  return (
+    <div className="mt-2 border-l-2 border-shortcut-navy-blue pl-3 space-y-2">
+      <button onClick={toggle} className="text-xs text-gray-500 hover:text-gray-700">
+        Hide thread
+      </button>
+      {loading && <div className="text-xs text-gray-400">Loading…</div>}
+      {err && <div className="text-xs text-red-600">{err}</div>}
+      {!loading && !err && messages.length === 0 && (
+        <div className="text-xs text-gray-400 italic">No messages found in your Gmail for this thread.</div>
+      )}
+      {visible.map((m, i) => (
+        <div key={i} className="text-sm">
+          <div className="flex items-center gap-2 text-xs">
+            <span className={`font-semibold uppercase tracking-wide ${
+              m.direction === 'sent' ? 'text-shortcut-navy-blue' : 'text-green-700'}`}>
+              {m.direction === 'sent' ? 'Sent' : 'Reply'}
+            </span>
+            <span className="text-gray-500">{m.date ? new Date(m.date).toLocaleString() : '?'}</span>
+            <span className="text-gray-400 truncate" title={m.from || ''}>{m.from}</span>
+          </div>
+          {m.subject && <div className="text-xs text-gray-500 truncate">Subject: {m.subject}</div>}
+          <div className="text-gray-700 whitespace-pre-wrap text-sm mt-1 leading-snug">
+            {m.body || <span className="text-gray-400 italic">{m.snippet || '(empty)'}</span>}
+          </div>
+        </div>
+      ))}
+      {!showAll && hiddenCount > 0 && (
+        <button onClick={() => setShowAll(true)} className="text-xs text-shortcut-navy-blue hover:underline">
+          Show full thread ({hiddenCount} more {hiddenCount === 1 ? 'message' : 'messages'})
+        </button>
+      )}
+    </div>
+  );
+};
+
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="flex gap-2 text-sm py-0.5">
     <span className="w-28 shrink-0 text-gray-400">{label}</span>
@@ -700,6 +802,29 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
                         </span>
                       ))}
                     </div>
+                    {/* Threads with bodies (live from rep's Gmail). Per unique thread_id. */}
+                    {(() => {
+                      const seen = new Set<string>();
+                      const uniq = d.history.sends
+                        .filter((s) => s.thread_id && !seen.has(s.thread_id) && (seen.add(s.thread_id) || true))
+                        .sort((a, b) => new Date(b.sent_time || 0).getTime() - new Date(a.sent_time || 0).getTime());
+                      if (!uniq.length) return null;
+                      return (
+                        <div className="space-y-2 pt-2 border-t border-gray-100">
+                          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Threads (from your Gmail)</div>
+                          {uniq.map((s) => (
+                            <div key={s.thread_id!} className="text-xs">
+                              <div className="text-gray-500 mb-1">
+                                {s.sent_time ? new Date(s.sent_time).toLocaleDateString() : '?'} ·{' '}
+                                {s.sender_email ? s.sender_email.split('@')[0] : 'unknown'} ·{' '}
+                                {s.replied ? <span className="text-green-700">replied</span> : <span>no reply</span>}
+                              </div>
+                              <ThreadView threadId={s.thread_id!} />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </section>
@@ -849,6 +974,7 @@ const SalesIntelligence: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const [fuScope, setFuScope] = useState<'mine' | 'team'>('mine');
+  const [fuExpanded, setFuExpanded] = useState<string | null>(null);
   const [fuNote, setFuNote] = useState<string | null>(null);
   const loadFollowups = useCallback(async (scope: 'mine' | 'team') => {
     setFuLoading(true); setFuNote(null);
@@ -1217,6 +1343,7 @@ const SalesIntelligence: React.FC = () => {
               <table className="min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className={th}></th>
                     <th className={th}>Contact</th><th className={th}>Company</th>
                     <th className={th}>Title</th><th className={th}>No reply</th>
                     <th className={th}>Touches</th>
@@ -1225,32 +1352,53 @@ const SalesIntelligence: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {followups.map((r) => (
-                    <tr key={r.email} className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => setCardTarget({ company: r.company || r.email, email: r.email })}>
-                      <td className={td}>
-                        <div>{r.name || '—'}</div>
-                        <div className="text-xs text-gray-500">{r.email}</div>
-                      </td>
-                      <td className={td}>{r.company || '—'}</td>
-                      <td className={`${td} text-gray-500`}>{r.title || '—'}</td>
-                      <td className={td}>{r.days_since}d</td>
-                      <td className={td}>{r.touches}</td>
-                      {fuScope === 'team' && (
-                        <td className={`${td} text-xs text-gray-500`}>
-                          {r.sender_email ? r.sender_email.split('@')[0] : <span className="italic text-gray-400">—</span>}
-                        </td>
-                      )}
-                      <td className={td}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
-                          className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
-                        >
-                          <PenLine size={14} /> Draft follow-up
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {followups.map((r) => {
+                    const open = fuExpanded === r.email;
+                    return (
+                      <React.Fragment key={r.email}>
+                        <tr className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => setFuExpanded(open ? null : r.email)}>
+                          <td className={`${td} text-gray-400`}>{r.thread_id ? (open ? '▾' : '▸') : ''}</td>
+                          <td className={td}>
+                            <div>{r.name || '—'}</div>
+                            <div className="text-xs text-gray-500">{r.email}</div>
+                          </td>
+                          <td className={td}>{r.company || '—'}</td>
+                          <td className={`${td} text-gray-500`}>{r.title || '—'}</td>
+                          <td className={td}>{r.days_since}d</td>
+                          <td className={td}>{r.touches}</td>
+                          {fuScope === 'team' && (
+                            <td className={`${td} text-xs text-gray-500`}>
+                              {r.sender_email ? r.sender_email.split('@')[0] : <span className="italic text-gray-400">—</span>}
+                            </td>
+                          )}
+                          <td className={td}>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setCardTarget({ company: r.company || r.email, email: r.email }); }}
+                                className="text-xs text-gray-500 hover:text-gray-700 hover:underline"
+                              >
+                                Open card
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
+                                className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                              >
+                                <PenLine size={14} /> Draft follow-up
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {open && r.thread_id && (
+                          <tr>
+                            <td colSpan={fuScope === 'team' ? 8 : 7} className="border-t border-gray-100 p-3 bg-gray-50">
+                              <ThreadView threadId={r.thread_id} />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
