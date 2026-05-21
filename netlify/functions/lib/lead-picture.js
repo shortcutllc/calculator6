@@ -62,13 +62,25 @@ export async function leadPicture(sb, input) {
     headcount: oc?.headcount || ap?.company_headcount || null,
     industry: oc?.industry || ap?.industry || null,
     email_status: oc?.email_status || ap?.email_status || null,
+    company_url: ap?.company_url || null,
   };
 
   // ----- 2. Workhuman lead (the rich one) -----
   let workhuman = null;
   if (email) {
     const r = await sb.from('workhuman_leads')
-      .select('id, name, email, title, company, assigned_to, tier, tier_1a, tier_1b, outreach_status, notes, linkedin_url, landing_page_url, page_view_count, page_last_viewed_at, workhuman_attendee_id, was_waitlisted, vip_slot_day, vip_slot_time, email_sent_at, responded_at, meeting_scheduled_at, lead_score')
+      .select(`
+        id, name, email, title, company, assigned_to,
+        tier, tier_1a, tier_1b, outreach_status, notes, linkedin_url,
+        landing_page_url, page_view_count, page_last_viewed_at,
+        workhuman_attendee_id, was_waitlisted,
+        vip_slot_day, vip_slot_time,
+        email_sent_at, responded_at, meeting_scheduled_at, lead_score,
+        phone, mobile_phone, work_phone, phone_source, phone_enriched_at,
+        personal_email, signup_phone, linked_main_lead_id,
+        company_size, company_size_normalized, hq_location, industry, multi_office,
+        logo_url, logo_source, source
+      `)
       .eq('email', email).maybeSingle();
     if (r.data) {
       const w = r.data;
@@ -78,6 +90,28 @@ export async function leadPicture(sb, input) {
       for (const m of noteMatches) {
         notes_parsed.push({ when: m[1].trim(), author: m[2].trim(), text: m[3].trim() });
       }
+
+      // ----- 2a. Multi-channel outreach log for this lead -----
+      let outreach_log = [];
+      try {
+        const { data: log } = await sb.from('lead_outreach_log')
+          .select('channel, sender_name, sent_at, message_preview, template_id')
+          .eq('lead_id', w.id).order('sent_at', { ascending: false }).limit(20);
+        outreach_log = log || [];
+      } catch { /* table missing — skip */ }
+
+      // ----- 2b. Booth massage signups matched to this lead -----
+      let signups_booth = [];
+      try {
+        const { data: bs } = await sb.from('workhuman_signups')
+          .select('id, appointment_at, day_label, time_slot, service_type, team_status, team_notes, full_name')
+          .eq('matched_lead_id', w.id).order('appointment_at', { ascending: true });
+        signups_booth = bs || [];
+      } catch { /* table missing — skip */ }
+
+      // Best phone for outreach: explicit phone (curated) > mobile > work > signup_phone
+      const best_phone = w.phone || w.mobile_phone || w.work_phone || w.signup_phone || null;
+
       workhuman = {
         id: w.id, assigned_to: w.assigned_to,
         tier: w.tier_1a ? 'tier_1a' : w.tier_1b ? 'tier_1b' : w.tier,
@@ -88,14 +122,41 @@ export async function leadPicture(sb, input) {
         personal_note_at: notes_parsed[0]?.when || null,
         personal_note_by: notes_parsed[0]?.author || null,
         notes_all: notes_parsed,
+        // Contact channels
         linkedin_url: w.linkedin_url || identity.linkedin_url,
+        phone: best_phone,
+        mobile_phone: w.mobile_phone || null,
+        work_phone: w.work_phone || null,
+        signup_phone: w.signup_phone || null,
+        phone_source: w.phone_source || null,
+        phone_enriched_at: w.phone_enriched_at || null,
+        personal_email: w.personal_email || null,
+        // Firmographics (Workhuman-curated, often richer than Apollo)
+        hq_location: w.hq_location || null,
+        industry: w.industry || identity.industry,
+        company_size: w.company_size || null,
+        multi_office: !!w.multi_office,
+        logo_url: w.logo_url || null,
+        logo_source: w.logo_source || null,
+        // Linkage to a main CRM lead (for booth-walk-in duplicates)
+        linked_main_lead_id: w.linked_main_lead_id || null,
+        source: w.source || null,
+        // Landing page
         landing_page_url: w.landing_page_url || null,
         landing_page_views: w.page_view_count || 0,
         landing_page_last_viewed: w.page_last_viewed_at || null,
+        // Conference attendance + VIP slot
         conference_attendee: !!w.workhuman_attendee_id,
         was_waitlisted: !!w.was_waitlisted,
         vip_slot: w.vip_slot_day ? { day: w.vip_slot_day, time: w.vip_slot_time } : null,
+        // Engagement timing
         email_sent_at: w.email_sent_at, responded_at: w.responded_at, meeting_scheduled_at: w.meeting_scheduled_at,
+        // Channel-level history (workhuman_dm, linkedin_connect, linkedin_dm, email, sms)
+        outreach_log,
+        outreach_log_count: outreach_log.length,
+        // Booth massage signups
+        booth_signups: signups_booth,
+        booth_signups_count: signups_booth.length,
       };
     }
   }

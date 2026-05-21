@@ -90,13 +90,44 @@ async function handleLookupLead(params, supabase /* userId unused for read */) {
       tier: pic.workhuman.tier,
       assigned_to: pic.workhuman.assigned_to,
       outreach_status: pic.workhuman.outreach_status,
+      lead_score: pic.workhuman.lead_score,
       personal_note: pic.workhuman.personal_note,
       personal_note_at: pic.workhuman.personal_note_at,
       personal_note_by: pic.workhuman.personal_note_by,
+      // Contact channels — surface so Pro can mention them
+      linkedin_url: pic.workhuman.linkedin_url,
+      phone: pic.workhuman.phone,
+      phone_source: pic.workhuman.phone_source,
+      personal_email: pic.workhuman.personal_email,
+      // Firmographics
+      hq_location: pic.workhuman.hq_location,
+      industry: pic.workhuman.industry,
+      company_size: pic.workhuman.company_size,
+      multi_office: pic.workhuman.multi_office,
+      // Landing page
       landing_page_url: pic.workhuman.landing_page_url,
       landing_page_views: pic.workhuman.landing_page_views,
+      landing_page_last_viewed: pic.workhuman.landing_page_last_viewed,
+      // Booth attendance
       conference_attendee: pic.workhuman.conference_attendee,
+      was_waitlisted: pic.workhuman.was_waitlisted,
       vip_slot: pic.workhuman.vip_slot,
+      // Multi-channel outreach history (workhuman_dm / linkedin_connect / linkedin_dm / email / sms)
+      outreach_log_count: pic.workhuman.outreach_log_count || 0,
+      recent_outreach_log: (pic.workhuman.outreach_log || []).slice(0, 5).map((e) => ({
+        channel: e.channel, sender: e.sender_name, sent_at: e.sent_at,
+        preview: e.message_preview ? String(e.message_preview).slice(0, 200) : null,
+      })),
+      // Booth massage signups (Workhuman conference)
+      booth_signups_count: pic.workhuman.booth_signups_count || 0,
+      booth_signups: (pic.workhuman.booth_signups || []).map((s) => ({
+        appointment_at: s.appointment_at, day_label: s.day_label, time_slot: s.time_slot,
+        service_type: s.service_type, team_status: s.team_status,
+      })),
+      // Engagement timestamps
+      email_sent_at: pic.workhuman.email_sent_at,
+      responded_at: pic.workhuman.responded_at,
+      meeting_scheduled_at: pic.workhuman.meeting_scheduled_at,
     } : null,
     company: pic.company ? {
       name: pic.company.name, trajectory: pic.company.trajectory,
