@@ -85,6 +85,15 @@ async function processAccount(sb, acct) {
           { onConflict: 'email', ignoreDuplicates: true },
         );
       }
+      // DEDUPE: companion sends (gmail-direct / gmail-open) get written to
+      // outreach_sends synchronously by send-as-rep. The daily crawl then
+      // sees the SAME Gmail message in the Sent folder and would create a
+      // duplicate row under our own campaign_id — inflating touch counts.
+      // Skip if message_id already exists for this email under any campaign.
+      const { data: dupe } = await sb.from('outreach_sends')
+        .select('campaign_id').eq('email', prospectEmail).eq('message_id', h.id).maybeSingle();
+      if (dupe) continue;  // already recorded — don't double-count
+
       // increment touch_count on resend to same (email,campaign)
       const { data: prev } = await sb.from('outreach_sends')
         .select('touch_count').eq('email', prospectEmail).eq('campaign_id', CAMPAIGN).maybeSingle();

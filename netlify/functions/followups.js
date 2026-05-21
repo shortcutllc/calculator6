@@ -91,7 +91,7 @@ export const handler = async (event) => {
   if (myEmail) {
     for (let from = 0; ; from += 1000) {
       let q = sb.from('outreach_sends')
-        .select('email, campaign_id, sent_time, touch_count, thread_id, sender_email')
+        .select('email, campaign_id, sent_time, touch_count, thread_id, message_id, sender_email')
         .not('sender_email', 'is', null)
         .is('reply_time', null);
       if (scope === 'mine') q = q.eq('sender_email', myEmail);
@@ -108,8 +108,12 @@ export const handler = async (event) => {
   const path2Agg = new Map();
   for (const s of sendRows) {
     const k = lc(s.email);
-    const cur = path2Agg.get(k) || { latest: null, recent_touches: 0 };
-    if (s.sender_email && s.sent_time && s.sent_time >= cutoff) cur.recent_touches += (s.touch_count || 1);
+    const cur = path2Agg.get(k) || { latest: null, recent_touches: 0, seen_msg: new Set() };
+    const seenKey = s.message_id || `${s.campaign_id}|${s.sent_time}`;
+    if (s.sender_email && s.sent_time && s.sent_time >= cutoff && !cur.seen_msg.has(seenKey)) {
+      cur.recent_touches += (s.touch_count || 1);
+      cur.seen_msg.add(seenKey);
+    }
     if (s.sent_time && (!cur.latest || s.sent_time > cur.latest.sent_time)) cur.latest = s;
     path2Agg.set(k, cur);
   }
@@ -135,16 +139,23 @@ export const handler = async (event) => {
   for (let i = 0; i < whEmails.length; i += 200) {
     const slice = whEmails.slice(i, i + 200);
     const { data } = await sb.from('outreach_sends')
-      .select('email, sent_time, reply_time, touch_count, thread_id, sender_email, campaign_id')
+      .select('email, sent_time, reply_time, touch_count, thread_id, message_id, sender_email, campaign_id')
       .in('email', slice);
     for (const r of data || []) {
       const k = lc(r.email);
-      const cur = allSendByEmail.get(k) || { latest: null, recent_touches: 0, any_reply: false };
+      const cur = allSendByEmail.get(k) || { latest: null, recent_touches: 0, any_reply: false, seen_msg: new Set() };
       // Only rep-attributed touches in the cadence window count toward the cap.
       // Legacy Smartlead drips have sender_email=null → never count, which is
       // correct: an automated drip from 6 months ago shouldn't block fresh
       // personal outreach today.
-      if (r.sender_email && r.sent_time && r.sent_time >= cutoff) cur.recent_touches += (r.touch_count || 1);
+      // Dedupe by message_id: the same Gmail message can land in outreach_sends
+      // under multiple campaigns (gmail-direct synchronous + gmail-sent-crawl
+      // hourly), and we don't want the same physical email counted twice.
+      const seenKey = r.message_id || `${r.campaign_id}|${r.sent_time}`;
+      if (r.sender_email && r.sent_time && r.sent_time >= cutoff && !cur.seen_msg.has(seenKey)) {
+        cur.recent_touches += (r.touch_count || 1);
+        cur.seen_msg.add(seenKey);
+      }
       if (r.reply_time) cur.any_reply = true;
       if (r.sent_time && (!cur.latest || r.sent_time > cur.latest.sent_time)) cur.latest = r;
       allSendByEmail.set(k, cur);
