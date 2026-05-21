@@ -13,6 +13,7 @@ import { recalculateProposalSummary } from './pricing-engine.js';
 import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal } from './proposal-linker.js';
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
+import { leadPicture, suggestNextActions } from './lead-picture.js';
 
 const PROPOSAL_BASE_URL = 'https://proposals.getshortcut.co/proposal';
 const PROPOSAL_SHORT_URL = 'https://proposals.getshortcut.co/p';
@@ -61,8 +62,84 @@ const TOOL_HANDLERS = {
   edit_qr_code_sign: handleEditQRCodeSign,
   create_invoice: handleCreateInvoice,
   search_invoices: handleSearchInvoices,
-  get_invoice: handleGetInvoice
+  get_invoice: handleGetInvoice,
+  lookup_lead: handleLookupLead,
+  next_actions_for_lead: handleNextActionsForLead
 };
+
+// ============================================================
+// Sales Lead Intelligence — shared with the web companion (`/sales-intelligence`).
+// Backed by lib/lead-picture.js so Slack and the web surface render the same
+// picture and recommend the same actions. Don't add lead-related logic here
+// directly — extend lead-picture.js and let both surfaces benefit.
+// ============================================================
+
+async function handleLookupLead(params, supabase /* userId unused for read */) {
+  const email = (params.email || '').toString().trim().toLowerCase();
+  const company = (params.company || '').toString().trim() || null;
+  const domain = (params.domain || '').toString().trim().toLowerCase() || null;
+  if (!email && !domain && !company) {
+    return { error: 'lookup_lead requires email, domain, or company' };
+  }
+  const pic = await leadPicture(supabase, { email, domain, company });
+  // Trim history for Slack response — keep latest 3 sends + latest 3 replies
+  const history = pic.history || {};
+  const compact = {
+    identity: pic.identity,
+    workhuman: pic.workhuman ? {
+      tier: pic.workhuman.tier,
+      assigned_to: pic.workhuman.assigned_to,
+      outreach_status: pic.workhuman.outreach_status,
+      personal_note: pic.workhuman.personal_note,
+      personal_note_at: pic.workhuman.personal_note_at,
+      personal_note_by: pic.workhuman.personal_note_by,
+      landing_page_url: pic.workhuman.landing_page_url,
+      landing_page_views: pic.workhuman.landing_page_views,
+      conference_attendee: pic.workhuman.conference_attendee,
+      vip_slot: pic.workhuman.vip_slot,
+    } : null,
+    company: pic.company ? {
+      name: pic.company.name, trajectory: pic.company.trajectory,
+      activity_status: pic.company.activity_status,
+      completed_events: pic.company.completed_events,
+      last_event_at: pic.company.last_event_at, months_since_event: pic.company.months_since_event,
+      sites_we_serve: pic.company.sites_we_serve, cities: pic.company.cities,
+      industry: pic.company.industry, employees: pic.company.employees,
+    } : null,
+    preflight: pic.preflight ? {
+      recommendation: pic.preflight.recommendation,
+      suppressed: pic.preflight.suppressed,
+      is_client: pic.preflight.is_client,
+      contacted: pic.preflight.contacted,
+    } : null,
+    history: {
+      emailed_count: history.emailed_count || 0,
+      first_sent: history.first_sent, last_sent: history.last_sent, replied: !!history.replied,
+      recent_sends: (history.sends || []).slice(-3).map((s) => ({
+        sent_time: s.sent_time, replied: s.replied, touches: s.touches, sender: s.sender_email,
+      })),
+      recent_replies: (history.replies || []).slice(-3).map((r) => ({
+        date: r.date, sentiment: r.sentiment, source: r.source,
+        content_preview: r.content ? r.content.slice(0, 400) : null,
+      })),
+    },
+    proposals: (pic.proposals || []).map((p) => ({
+      id: p.id, client_name: p.client_name, status: p.status, proposal_type: p.proposal_type,
+      created_at: p.created_at, url: `${PROPOSAL_BASE_URL}/${p.id}?shared=true`,
+    })),
+    signups: pic.signups || [],
+  };
+  // Always include actionable suggestions so Pro doesn't need a second call
+  const actions = suggestNextActions(pic);
+  return { success: true, lead: compact, next_actions: actions };
+}
+
+async function handleNextActionsForLead(params, supabase) {
+  const email = (params.email || '').toString().trim().toLowerCase();
+  if (!email) return { error: 'next_actions_for_lead requires email' };
+  const pic = await leadPicture(supabase, { email });
+  return { success: true, next_actions: suggestNextActions(pic) };
+}
 
 // --- Create Proposal ---
 

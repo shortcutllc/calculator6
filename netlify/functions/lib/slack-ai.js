@@ -14,9 +14,19 @@ const MAX_TOOL_ROUNDS = 8; // Safety limit on tool call loops
 // Wrapped in an array of content blocks for prompt caching.
 // cache_control on the last block tells Anthropic to cache tools + system prompt.
 
-const SYSTEM_PROMPT_TEXT = `You are Pro, Shortcut's internal proposal assistant on Slack.
+const SYSTEM_PROMPT_TEXT = `You are Pro, Shortcut's internal proposal + sales-lead assistant on Slack.
 
 Shortcut is a corporate wellness company that delivers in-person wellness experiences — chair massage, facials, nails, hair styling, makeup, headshots, and mindfulness workshops — to offices. You help the team create, edit, search, and manage proposals. You can also create and manage Stripe invoices — create invoices linked to proposals or standalone, search invoice history, and check payment status.
+
+You ALSO handle sales-lead intelligence. Reps come to you with questions like "what is the deal with Beverly from Opensesame", "what's next on Lisa from Ghost Robotics", "did we ever talk to Anna Maria from Bank of Princeton". For those questions, call lookup_lead (NOT lookup_client — that's proposal-focused). lookup_lead returns the FULL picture: identity, Workhuman tier and personal note (the in-person note from the conference), CRM company graph, pre-flight verdict, full email history with reply content + sentiment, any existing proposals, any sign-up links, AND ranked next-best actions. Use those next-best actions as your default recommendation, then offer to do them.
+
+When a rep tells you "I just had a call with X", the natural next steps are usually:
+  - create_proposal (use the create_proposal tool with the services/cadence they discussed)
+  - create_landing_page (a personalized leave-behind for the prospect's wellness team)
+  - create_signup_link (for employees to book once the event is approved)
+You can chain these — confirm with the rep what was discussed, draft a proposal scaffold, ask which option fits, then create it. Always cite the personal-note text or the recent reply content as the basis for what you propose; don't invent details about the prospect (their team, their current vendors, their tools) — if it's not in the note or the reply, you don't know it.
+
+When a rep asks "what should I do with X", call lookup_lead and surface the top 1-2 next_actions with their `why`. Don't just dump everything — pick the most actionable based on the lead's stage.
 
 Be concise, calm, and practical. Format your responses for easy reading in Slack:
 - Use *bold* for labels, client names, totals, and key info.
@@ -634,8 +644,31 @@ const TOOLS = [
         invoiceId: { type: 'string', description: 'Database UUID or Stripe invoice ID' }
       },
       required: ['invoiceId']
+    }
+  },
+  {
+    name: 'lookup_lead',
+    description: 'Get the FULL picture for a sales lead/contact: identity, Workhuman lead context (tier, personal note text + author/timestamp, outreach status, landing page, conference attendance, VIP slot), CRM company graph (trajectory, activity status, completed events, sites we serve), pre-flight verdict (suppression / client / contacted), full email history (sends + replies w/ content + sentiment, deduped), any existing proposals for the company, any event sign-up links. Also returns ranked next-best actions (e.g. "they replied positively, no proposal yet → create one"). Use this FIRST whenever a user asks about a contact, lead, or person — not lookup_client (that one is proposal-focused). Lead lookups should be the default for contact questions.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Contact email (preferred — most precise)' },
+        domain: { type: 'string', description: 'Company domain (e.g. opensesame.com) — used when email is unknown' },
+        company: { type: 'string', description: 'Company name — fallback when neither email nor domain is known' }
+      }
+    }
+  },
+  {
+    name: 'next_actions_for_lead',
+    description: 'Return ranked next-best actions for a lead given the current picture (replied → create proposal, never emailed → draft cold open, has proposal but no sign-up link → create one, etc.). Use this when the user asks "what should I do with X" or "what is next for X." Note: lookup_lead ALREADY includes these, so prefer lookup_lead for richer context.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Contact email' }
+      },
+      required: ['email']
     },
-    cache_control: { type: 'ephemeral' }  // Cache breakpoint 1: all tool definitions
+    cache_control: { type: 'ephemeral' }  // Cache breakpoint 1: all tool definitions (must be on LAST tool)
   }
 ];
 

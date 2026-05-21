@@ -89,7 +89,16 @@ DIRECTIONS:
 - medium: more personality. A sharper hook, a little dry wit if it fits the prospect. The recommended default for most sends.
 - brave: takes a real swing. Strong point of view or unexpected angle. Higher risk, higher reply-rate ceiling.
 
-Use any provided context (prior contact history, whether they are an existing client expanding, firmographics, the contact's title) to ground the hook in something true and specific. Do not invent facts about the prospect. If context is thin, lean on the category insight (wellness theater fatigue, single-vendor logistics, fast in-office delivery) rather than fabricating detail.
+Use any provided context (prior contact history, whether they are an existing client expanding, firmographics, the contact's title) to ground the hook in something true and specific.
+
+HARD ANTI-HALLUCINATION RULES (violating any of these fails the task):
+- Do not invent ANY facts about the prospect, their company, their tools, their team, their current vendors, their priorities, their pain points, or anything else that isn't EXPLICITLY in the context I gave you.
+- If a personal note or context line is AMBIGUOUS, treat it as ambiguous. Do not pick a meaning and run with it. Example: a note saying "once a month they have a massage person" could mean "they already have a vendor doing monthly massage" OR "they want a monthly cadence." Do NOT pick one. Either reference the line vaguely ("you mentioned monthly cadence for massage") or leave it out entirely.
+- Never describe things the prospect "has", "uses", "is doing", or "currently does" unless the note literally says so in unambiguous language.
+- Never describe their company's structure, size, locations, or operations beyond what firmographics/notes explicitly state.
+- Never invent a teammate, vendor, tool, internal process, or department on their side.
+- If context is thin, lean on Shortcut category insights (wellness theater fatigue, single-vendor logistics, fast in-office delivery) — those are about US, not invented facts about THEM.
+- When in doubt: cut the fact, not the email. A shorter, slightly less specific email is always better than a confidently-wrong one.
 
 Return ONLY valid JSON, no prose around it, in exactly this shape:
 {
