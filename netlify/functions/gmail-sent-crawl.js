@@ -53,8 +53,19 @@ function externalRecipients(h) {
   return ext.slice(0, 5);
 }
 
+// Re-process this many minutes BEFORE the last successful run on every crawl.
+// Gmail's send-index can lag by a few seconds, and Netlify's cron drifts;
+// without overlap, a message sent within ~1min of the previous run can fall
+// into a permanent gap (sent < since on every subsequent run, so the line-77
+// time filter never lets it through). The message_id dedupe below makes
+// re-processing the overlap a no-op for messages we've already recorded.
+const OVERLAP_MIN = 30;
+
 async function processAccount(sb, acct) {
-  const sinceISO = acct.last_sent_crawl_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const rawSinceISO = acct.last_sent_crawl_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const sinceISO = acct.last_sent_crawl_at
+    ? new Date(new Date(rawSinceISO).getTime() - OVERLAP_MIN * 60 * 1000).toISOString()
+    : rawSinceISO;
   const since = new Date(sinceISO);
   let token;
   try { token = await getAccessToken(sb, acct.email); }
