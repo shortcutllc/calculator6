@@ -174,14 +174,35 @@ const StandaloneProposalViewerV2: React.FC = () => {
   // 1. If the client is actively editing → render the edit buffer
   // 2. If the client toggled "view original" → render the pre-change snapshot
   // 3. Otherwise → render the live persisted `proposal.data`
+  //
+  // Defensive recalc: we pipe whatever data we picked through
+  // `recalculateServiceTotals` on every render. The persisted JSON can be
+  // stale — proposals saved before discount-propagation was fixed have
+  // options with `serviceCost` that don't reflect the current service-level
+  // discount, and `autoRecurringSavings` that doesn't reflect the selected
+  // option. Recalc is deterministic and cheap, so we always re-derive in
+  // memory before showing the client. Stored data is only mutated on an
+  // explicit user action.
   const liveData = proposal?.data;
   const originalData = proposal?.original_data;
-  const displayData =
+  const rawDisplayData =
     isClientEditing && clientEditedData
       ? clientEditedData
       : showingOriginal && originalData
       ? originalData
       : liveData;
+  const displayData = useMemo(() => {
+    if (!rawDisplayData) return rawDisplayData;
+    try {
+      return recalculateServiceTotals(
+        JSON.parse(JSON.stringify(rawDisplayData))
+      );
+    } catch (err) {
+      // Don't crash the viewer if recalc throws on malformed data.
+      console.warn('[StandaloneProposalViewerV2] recalc failed, using raw:', err);
+      return rawDisplayData;
+    }
+  }, [rawDisplayData]);
   const status = proposal?.status as string | undefined;
   const isApproved = status === 'approved' || postApproval;
   const hasOriginalSnapshot = !!originalData && proposal?.has_changes;
@@ -580,20 +601,21 @@ const StandaloneProposalViewerV2: React.FC = () => {
       const svc = next.services?.[loc]?.[date]?.services?.[idx];
       if (!svc?.pricingOptions?.[optIdx]) return;
       svc.selectedOption = optIdx;
-      const sel = svc.pricingOptions[optIdx];
-      if (sel) {
-        if (sel.totalAppointments !== undefined) svc.totalAppointments = sel.totalAppointments;
-        if (sel.serviceCost !== undefined) svc.serviceCost = sel.serviceCost;
-        if (sel.proRevenue !== undefined) svc.proRevenue = sel.proRevenue;
-        if (sel.discountPercent !== undefined) svc.discountPercent = sel.discountPercent;
-      }
-      setProposal((p: any) => ({ ...p, data: next }));
+      // Run a full recalc on the proposal data — this re-derives every
+      // option's serviceCost against the current service.discountPercent,
+      // mirrors the new selected option's price onto the service, AND
+      // refreshes auto-recurring savings against the new total. Without
+      // this, the displayed dollar discount stays frozen at whatever was
+      // computed at proposal-creation time and doesn't change when the
+      // client clicks between options.
+      const recalculated = recalculateServiceTotals(next);
+      setProposal((p: any) => ({ ...p, data: recalculated }));
       const key = `${loc}-${date}-${idx}`;
       const so = { ...(proposal.selected_options || {}), [key]: optIdx };
       try {
         await supabase
           .from('proposals')
-          .update({ data: next, selected_options: so })
+          .update({ data: recalculated, selected_options: so })
           .eq('id', id);
       } catch (err) {
         console.error('Persist selectedOption failed:', err);
@@ -1558,6 +1580,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                         onChangeFrequency={(next) =>
                                           setFrequency(key, next)
                                         }
+                                        autoRecurringDiscount={displayData?.autoRecurringDiscount}
                                         internalView={false}
                                         editing={isClientEditing}
                                         onFieldChange={
@@ -1848,9 +1871,23 @@ const StandaloneProposalViewerV2: React.FC = () => {
               >
                 <span>Subtotal</span>
                 <span style={{ color: '#fff' }}>
-                  {formatCurrency(summary.subtotal + customItemsTotal)}
+                  {formatCurrency(summary.originalSubtotal + customItemsTotal)}
                 </span>
               </div>
+              {summary.serviceDiscountAmount > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontFamily: T.fontD,
+                    fontSize: 14,
+                    color: T.aqua,
+                  }}
+                >
+                  <span>Service discount</span>
+                  <span>−{formatCurrency(summary.serviceDiscountAmount)}</span>
+                </div>
+              )}
               {summary.discountPercent > 0 && (
                 <div
                   style={{
@@ -2360,17 +2397,49 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     >
                       Select services below to see your price.
                     </div>
-                  ) : summary.discountPercent > 0 ? (
+                  ) : summary.serviceDiscountAmount > 0 ||
+                    summary.discountPercent > 0 ||
+                    (typeof displayData?.autoRecurringSavings === 'number' &&
+                      displayData.autoRecurringSavings > 0) ? (
+                    // Compact discount breakdown beneath the headline total.
+                    // Subtotal is always the PRE-any-discount figure here so
+                    // the arithmetic is legible. Each discount type gets its
+                    // own line so flipping pricing options (which changes
+                    // service-discount dollars per option) visibly updates
+                    // the saving number, AND the recurring discount surfaces
+                    // here too — matching what the bottom summary already
+                    // shows so the two cards stay consistent.
                     <div
                       style={{
                         fontFamily: T.fontD,
                         fontSize: 13,
-                        color: 'rgba(255,255,255,0.7)',
-                        marginTop: 6,
+                        color: 'rgba(255,255,255,0.75)',
+                        marginTop: 8,
+                        lineHeight: 1.6,
                       }}
                     >
-                      Subtotal {formatCurrency(summary.subtotal)} · saving{' '}
-                      {formatCurrency(summary.discountAmount)} ({summary.discountPercent}%)
+                      <div>Subtotal {formatCurrency(summary.originalSubtotal)}</div>
+                      {summary.serviceDiscountAmount > 0 && (
+                        <div style={{ color: T.aqua }}>
+                          Service discount −{formatCurrency(summary.serviceDiscountAmount)}
+                        </div>
+                      )}
+                      {typeof displayData?.autoRecurringDiscount === 'number' &&
+                        displayData.autoRecurringDiscount > 0 &&
+                        typeof displayData?.autoRecurringSavings === 'number' &&
+                        displayData.autoRecurringSavings > 0 && (
+                          <div style={{ color: T.aqua }}>
+                            Recurring discount −
+                            {formatCurrency(displayData.autoRecurringSavings)} (
+                            {displayData.autoRecurringDiscount}%)
+                          </div>
+                        )}
+                      {summary.discountPercent > 0 && (
+                        <div style={{ color: T.aqua }}>
+                          Volume discount −{formatCurrency(summary.discountAmount)} (
+                          {summary.discountPercent}%)
+                        </div>
+                      )}
                     </div>
                   ) : summary.totalEvents > 0 && summary.totalEvents < 4 ? (
                     <div

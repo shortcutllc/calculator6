@@ -38,6 +38,13 @@ import {
   generatePricingOptionsForService,
   recalculateServiceTotals,
 } from '../utils/proposalGenerator';
+import {
+  MINDFULNESS_CATALOG_BY_ID,
+  MINDFULNESS_SELECT_OPTIONS,
+  DEFAULT_MINDFULNESS_ID,
+  applyMindfulnessEntry,
+  resolveMindfulnessEntry,
+} from '../utils/mindfulnessCatalog';
 import { trackProposalChanges } from '../utils/changeTracker';
 import { ProposalChangeSet } from '../types/proposal';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -156,17 +163,24 @@ const SERVICE_DEFAULTS: Record<string, any> = {
     retouchingCost: 40,
   },
   mindfulness: {
-    appTime: 45,
-    totalHours: 0.75,
+    // Mindfulness defaults derive from the shared catalog (default id is
+    // 'intro') so the "Add mindfulness service" flow lands on the same
+    // entry as the calculator. classLength / totalHours / fixedPrice /
+    // mindfulnessType / mindfulnessServiceId all come from the catalog.
+    appTime: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].classLength,
+    totalHours: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].classLength / 60,
     numPros: 1,
     proHourly: 0,
     hourlyRate: 0,
     earlyArrival: 0,
     retouchingCost: 0,
-    classLength: 45,
+    classLength: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].classLength,
     participants: 'unlimited',
-    fixedPrice: 1375,
-    mindfulnessType: 'intro',
+    fixedPrice: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].fixedPrice,
+    mindfulnessType: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].mindfulnessType,
+    mindfulnessServiceId: DEFAULT_MINDFULNESS_ID,
+    mindfulnessServiceName: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].name,
+    mindfulnessDescription: MINDFULNESS_CATALOG_BY_ID[DEFAULT_MINDFULNESS_ID].description,
   },
   'hair-makeup': {
     appTime: 20,
@@ -211,11 +225,12 @@ const NAILS_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'nails-hand-massage', label: '+ Hand massage' },
 ];
 
-const MINDFULNESS_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'intro', label: 'Intro (45 min, $1,375)' },
-  { value: 'drop-in', label: 'Drop-in (30 min, $1,250)' },
-  { value: 'mindful-movement', label: 'Mindful Movement (60 min, $1,500)' },
-];
+// Mindfulness offerings — sourced from the shared catalog so the viewer
+// stays in sync with the calculator (Home.tsx). The select binds to the
+// catalog `id` (stored on the service as `mindfulnessServiceId`), not to
+// the legacy 3-bucket `mindfulnessType`, so we can disambiguate offerings
+// that share a bucket but differ in length/price (e.g. the two Intros).
+const MINDFULNESS_TYPE_OPTIONS = MINDFULNESS_SELECT_OPTIONS;
 
 const MINDFULNESS_FORMAT_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'in-person', label: 'In-person' },
@@ -742,13 +757,30 @@ const ProposalViewerV2: React.FC = () => {
       discountPercent: current.discountPercent || 0,
       massageType: newType === 'massage' ? current.massageType || 'massage' : undefined,
       nailsType: newType === 'nails' ? current.nailsType || 'nails' : undefined,
-      mindfulnessType:
-        newType === 'mindfulness' ? current.mindfulnessType || 'intro' : undefined,
-      classLength: newType === 'mindfulness' ? current.classLength || 45 : undefined,
       participants:
         newType === 'mindfulness' ? current.participants || 'unlimited' : undefined,
-      fixedPrice: newType === 'mindfulness' ? current.fixedPrice || 1375 : undefined,
     };
+    if (newType === 'mindfulness') {
+      // Resolve a catalog entry from whatever the prior service had
+      // (id, type, classLength) and apply it — guarantees every
+      // catalog-derived field is consistent regardless of how the
+      // service was originally created.
+      const entry = resolveMindfulnessEntry({
+        mindfulnessServiceId: current.mindfulnessServiceId,
+        mindfulnessType: current.mindfulnessType,
+        classLength: current.classLength,
+      });
+      applyMindfulnessEntry(next, entry);
+    } else {
+      // Leaving mindfulness — clear all mindfulness-only fields so the
+      // service doesn't carry stale catalog metadata.
+      next.mindfulnessServiceId = undefined;
+      next.mindfulnessServiceName = undefined;
+      next.mindfulnessDescription = undefined;
+      next.mindfulnessType = undefined;
+      next.classLength = undefined;
+      next.fixedPrice = undefined;
+    }
     const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
     next.totalAppointments = totalAppointments;
     next.serviceCost = serviceCost;
@@ -756,24 +788,23 @@ const ProposalViewerV2: React.FC = () => {
     handleFieldChange(['services', loc, date, 'services', idx], next);
   };
 
-  const handleMindfulnessTypeChange = (loc: string, date: string, idx: number, mt: string) => {
+  // `serviceId` is a mindfulness catalog id (e.g. 'intro-mindfulness-60').
+  // Applies the full catalog entry — classLength, fixedPrice, name,
+  // description, and the legacy `mindfulnessType` bucket — so the menu
+  // pick matches the calculator and isn't rewritten by the legacy
+  // recalculation sync (proposalGenerator defers to mindfulnessServiceId).
+  const handleMindfulnessTypeChange = (
+    loc: string,
+    date: string,
+    idx: number,
+    serviceId: string
+  ) => {
     if (!editedData || !isEditing) return;
+    const entry = MINDFULNESS_CATALOG_BY_ID[serviceId];
+    if (!entry) return;
     const current = editedData.services[loc][date].services[idx];
-    let cl = 45;
-    let fp = 1375;
-    if (mt === 'drop-in') {
-      cl = 30;
-      fp = 1250;
-    } else if (mt === 'mindful-movement') {
-      cl = 60;
-      fp = 1500;
-    }
-    const next: any = {
-      ...current,
-      mindfulnessType: mt,
-      classLength: cl,
-      fixedPrice: fp,
-    };
+    const next: any = { ...current };
+    applyMindfulnessEntry(next, entry);
     const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
     next.totalAppointments = totalAppointments;
     next.serviceCost = serviceCost;
@@ -1012,15 +1043,16 @@ const ProposalViewerV2: React.FC = () => {
    *  / proRevenue) from its current + base service params. Used after any
    *  per-option edit so admin margin math stays accurate. */
   const recalcOption = (baseService: any, option: any) => {
+    // Service-level discount wins — options always mirror the service's
+    // discountPercent (no per-option override). See proposalGenerator
+    // comments on the same change.
+    const effectiveDiscount = baseService.discountPercent || 0;
     const merged = {
       ...baseService,
       totalHours: option.totalHours ?? baseService.totalHours,
       hourlyRate: option.hourlyRate ?? baseService.hourlyRate,
       numPros: option.numPros ?? baseService.numPros,
-      discountPercent:
-        option.discountPercent !== undefined
-          ? option.discountPercent
-          : baseService.discountPercent || 0,
+      discountPercent: effectiveDiscount,
     };
     const { totalAppointments, serviceCost, originalPrice, proRevenue } =
       calculateServiceResults(merged);
@@ -1030,7 +1062,7 @@ const ProposalViewerV2: React.FC = () => {
       serviceCost,
       proRevenue,
       originalPrice: originalPrice ?? option.originalPrice,
-      discountPercent: merged.discountPercent,
+      discountPercent: effectiveDiscount,
     };
   };
 
@@ -1052,11 +1084,11 @@ const ProposalViewerV2: React.FC = () => {
     };
     svc.pricingOptions[optIdx] = recalcOption(svc, svc.pricingOptions[optIdx]);
     // If editing the currently-selected option, mirror its totals onto base
+    // (but NOT discountPercent — service is the source of truth there).
     if ((svc.selectedOption || 0) === optIdx) {
       svc.totalAppointments = svc.pricingOptions[optIdx].totalAppointments;
       svc.serviceCost = svc.pricingOptions[optIdx].serviceCost;
       svc.proRevenue = svc.pricingOptions[optIdx].proRevenue;
-      svc.discountPercent = svc.pricingOptions[optIdx].discountPercent;
     }
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });
@@ -1103,7 +1135,7 @@ const ProposalViewerV2: React.FC = () => {
       svc.totalAppointments = sel.totalAppointments;
       svc.serviceCost = sel.serviceCost;
       svc.proRevenue = sel.proRevenue;
-      if (sel.discountPercent !== undefined) svc.discountPercent = sel.discountPercent;
+      // Don't copy discountPercent — service is source of truth.
     }
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });
@@ -1128,7 +1160,7 @@ const ProposalViewerV2: React.FC = () => {
     svc.totalAppointments = sel.totalAppointments;
     svc.serviceCost = sel.serviceCost;
     svc.proRevenue = sel.proRevenue ?? svc.proRevenue;
-    if (sel.discountPercent !== undefined) svc.discountPercent = sel.discountPercent;
+    // Don't copy discountPercent — service is source of truth.
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });
     setDisplayData({ ...recalc, customization: currentProposal?.customization });
@@ -2197,6 +2229,7 @@ const ProposalViewerV2: React.FC = () => {
       location: string;
       date: string;
       lineCost: number;
+      originalLineCost: number;
       proRevenue: number;
       margin: number;
       marginPct: number;
@@ -2208,12 +2241,20 @@ const ProposalViewerV2: React.FC = () => {
           // present, otherwise use the base service's stored fields.
           let revenue = Number(s.serviceCost) || 0;
           let proPay = Number(s.proRevenue) || 0;
+          let original = revenue;
           if (Array.isArray(s.pricingOptions) && s.pricingOptions.length > 0) {
             const sel = s.pricingOptions[s.selectedOption || 0];
             if (sel) {
               revenue = Number(sel.serviceCost) || revenue;
               proPay = Number(sel.proRevenue) || proPay;
+              // The option stores its own `originalPrice` (pre-discount).
+              original = Number(sel.originalPrice) || revenue;
             }
+          } else {
+            // No options — reverse the per-service discount from the
+            // displayed serviceCost to recover the pre-discount price.
+            const pct = Math.min(99, Math.max(0, Number(s.discountPercent) || 0));
+            original = pct > 0 ? revenue / (1 - pct / 100) : revenue;
           }
           const margin = revenue - proPay;
           const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
@@ -2223,6 +2264,7 @@ const ProposalViewerV2: React.FC = () => {
             location: loc,
             date: dt,
             lineCost: revenue,
+            originalLineCost: original,
             proRevenue: proPay,
             margin,
             marginPct,
@@ -2236,6 +2278,16 @@ const ProposalViewerV2: React.FC = () => {
   const servicesSubtotal = useMemo(
     () => pricingRows.reduce((sum, r) => sum + r.lineCost, 0),
     [pricingRows]
+  );
+  // Pre-per-service-discount aggregates — used to render the "Subtotal /
+  // Service discount" pair in the admin summary so it mirrors the client view.
+  const servicesOriginalSubtotal = useMemo(
+    () => pricingRows.reduce((sum, r) => sum + r.originalLineCost, 0),
+    [pricingRows]
+  );
+  const servicesDiscountAmount = useMemo(
+    () => Math.max(0, servicesOriginalSubtotal - servicesSubtotal),
+    [servicesOriginalSubtotal, servicesSubtotal]
   );
 
   const customLineItems = useMemo<any[]>(
@@ -3694,6 +3746,9 @@ const ProposalViewerV2: React.FC = () => {
                                       date={date}
                                       index={idx}
                                       isEditing={isEditing}
+                                      autoRecurringDiscount={
+                                        displayData?.autoRecurringDiscount
+                                      }
                                       onFieldChange={(field, value) =>
                                         handleFieldChange(
                                           ['services', loc, date, 'services', idx, field as string],
@@ -4074,8 +4129,26 @@ const ProposalViewerV2: React.FC = () => {
                 }}
               >
                 <span>Subtotal</span>
-                <span style={{ color: '#fff' }}>{formatCurrency(subtotal)}</span>
+                <span style={{ color: '#fff' }}>
+                  {formatCurrency(
+                    servicesOriginalSubtotal + customItemsTotal
+                  )}
+                </span>
               </div>
+              {servicesDiscountAmount > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontFamily: T.fontD,
+                    fontSize: 14,
+                    color: T.aqua,
+                  }}
+                >
+                  <span>Service discount</span>
+                  <span>−{formatCurrency(servicesDiscountAmount)}</span>
+                </div>
+              )}
               {typeof displayData?.autoRecurringDiscount === 'number' &&
                 displayData.autoRecurringDiscount > 0 &&
                 typeof displayData?.autoRecurringSavings === 'number' &&
@@ -5354,6 +5427,8 @@ interface ServiceBlockProps {
    *  because the admin handler also has to clear any persisted optionsState
    *  entry to make the new default actually take effect on the client view. */
   onSetSelectedDefault?: (next: boolean) => void;
+  /** Proposal-wide auto-recurring discount, forwarded to PricingOptionsSelector. */
+  autoRecurringDiscount?: number;
 }
 const ServiceBlock: React.FC<ServiceBlockProps> = ({
   service,
@@ -5375,6 +5450,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
   canMoveUp,
   canMoveDown,
   onSetSelectedDefault,
+  autoRecurringDiscount,
 }) => {
   return (
     <div style={{ position: 'relative' }}>
@@ -5391,6 +5467,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
         onAddPricingOption={onAddPricingOption}
         onRemovePricingOption={onRemovePricingOption}
         onGeneratePricingOptions={onGeneratePricingOptions}
+        autoRecurringDiscount={autoRecurringDiscount}
       />
 
       {isEditing && (
@@ -5434,8 +5511,17 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
           {service.serviceType === 'mindfulness' && (
             <>
               <SelectField
-                label="Mindfulness package"
-                value={service.mindfulnessType || 'intro'}
+                label="Mindfulness service"
+                // Resolve the catalog id so legacy proposals (which only
+                // stored `mindfulnessType` + `classLength`) still light up
+                // the closest matching entry in the dropdown.
+                value={
+                  resolveMindfulnessEntry({
+                    mindfulnessServiceId: (service as any).mindfulnessServiceId,
+                    mindfulnessType: service.mindfulnessType,
+                    classLength: service.classLength,
+                  }).id
+                }
                 onChange={onChangeMindfulnessType}
                 options={MINDFULNESS_TYPE_OPTIONS}
               />
