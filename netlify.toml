@@ -8,6 +8,16 @@
 [functions]
   node_bundler = "esbuild"
 
+# Scheduled functions: declare here AS WELL as inline `export const config`
+# so the build pipeline picks up the schedule regardless of how esbuild
+# bundles the function. Without this block the cron silently didn't fire
+# (functions:list showed scheduled=yes but Netlify never invoked it).
+[functions."gmail-sent-crawl"]
+  schedule = "15 * * * *"   # hourly at :15 — pulls each opted-in rep's recent Sent folder
+
+[functions."gmail-watch-renew"]
+  schedule = "0 12 * * *"   # daily noon UTC — re-arms Gmail push notifications before the 7d expiry
+
 [[redirects]]
   from = "/shared/*"
   to = "/index.html"
