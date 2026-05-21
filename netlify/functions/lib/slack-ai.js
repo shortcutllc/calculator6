@@ -650,13 +650,14 @@ const TOOLS = [
   },
   {
     name: 'lookup_lead',
-    description: 'Get the FULL picture for a sales lead/contact: identity, Workhuman lead context (tier, personal note text + author/timestamp, outreach status, landing page, conference attendance, VIP slot), CRM company graph (trajectory, activity status, completed events, sites we serve), pre-flight verdict (suppression / client / contacted), full email history (sends + replies w/ content + sentiment, deduped), any existing proposals for the company, any event sign-up links. Also returns ranked next-best actions (e.g. "they replied positively, no proposal yet → create one"). Use this FIRST whenever a user asks about a contact, lead, or person — not lookup_client (that one is proposal-focused). Lead lookups should be the default for contact questions.',
+    description: 'Get the FULL picture for a sales lead/contact: identity, Workhuman lead context (tier, personal note text + author/timestamp, outreach status, all contact channels including phone + LinkedIn + personal email, firmographics, landing page, conference attendance, VIP slot, booth massage signups, multi-channel outreach log), CRM company graph (trajectory, activity status, completed events, sites we serve), pre-flight verdict (suppression / client / contacted), full email history (sends + replies w/ content + sentiment, deduped), any existing proposals for the company, any event sign-up links. Also returns ranked next-best actions (e.g. "they replied positively, no proposal yet → create one"). Use this FIRST whenever a user asks about a contact, lead, or person — not lookup_client (that one is proposal-focused). When the user references someone by "FirstName from Company" (e.g. "Beverly from Opensesame"), pass BOTH name and company so we can resolve them in workhuman_leads even without an email. Lead lookups should be the default for contact questions.',
     input_schema: {
       type: 'object',
       properties: {
         email: { type: 'string', description: 'Contact email (preferred — most precise)' },
+        name: { type: 'string', description: 'Contact name (first, last, or full). Use when the user references them by name and you don\'t have the email yet. Combine with company for best precision.' },
         domain: { type: 'string', description: 'Company domain (e.g. opensesame.com) — used when email is unknown' },
-        company: { type: 'string', description: 'Company name — fallback when neither email nor domain is known' }
+        company: { type: 'string', description: 'Company name — fallback when neither email nor domain is known. Always pair with name when resolving "FirstName from Company".' }
       }
     }
   },

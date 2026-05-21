@@ -27,13 +27,71 @@ const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 const PERSONAL_NOTE_RE = /\[([^\[\]·]+?)·([^\[\]]*?)\]/;
 
 /**
+ * Resolve a name + company to a workhuman lead (best-effort, returns null if no
+ * confident match). Used so "Beverly from Opensesame" can be looked up without
+ * the rep knowing the email. Searches workhuman_leads first (the curated set
+ * with personal notes), then outreach_contacts as a fallback.
+ */
+async function resolveLeadByName(sb, name, company) {
+  const n = (name || '').trim();
+  const c = (company || '').trim();
+  if (!n) return null;
+  const tokens = n.split(/\s+/).filter(Boolean);
+  const first = tokens[0] || null;
+  const last = tokens.length > 1 ? tokens[tokens.length - 1] : null;
+  const fullEsc = n.replace(/[%,]/g, '');
+  const compEsc = c.replace(/[%,]/g, '');
+
+  // 1) workhuman_leads — exact full name + company first, then by first-token + company
+  if (c) {
+    let q = sb.from('workhuman_leads').select('email, name, company').ilike('company', `%${compEsc}%`).limit(10);
+    const { data } = await q;
+    if (data && data.length) {
+      const fullLc = n.toLowerCase();
+      const exact = data.find((r) => (r.name || '').toLowerCase() === fullLc);
+      if (exact) return { email: exact.email, source: 'workhuman_leads:exact_name_company' };
+      const firstLc = (first || '').toLowerCase();
+      const lastLc = (last || '').toLowerCase();
+      const byFirst = data.find((r) => {
+        const nm = (r.name || '').toLowerCase();
+        return firstLc && nm.startsWith(firstLc + ' ') && (!lastLc || nm.includes(lastLc));
+      });
+      if (byFirst) return { email: byFirst.email, source: 'workhuman_leads:first_company' };
+      // If only one match in that company, take it
+      if (data.length === 1) return { email: data[0].email, source: 'workhuman_leads:sole_company_match' };
+    }
+  }
+
+  // 2) workhuman_leads by name alone
+  {
+    const { data } = await sb.from('workhuman_leads').select('email, name, company').ilike('name', `%${fullEsc}%`).limit(5);
+    if (data && data.length === 1) return { email: data[0].email, source: 'workhuman_leads:unique_name' };
+  }
+
+  // 3) outreach_contacts fallback (name + company)
+  if (c) {
+    const { data } = await sb.from('outreach_contacts').select('email, name, company').ilike('company', `%${compEsc}%`).ilike('name', `%${fullEsc}%`).limit(5);
+    if (data && data.length === 1) return { email: data[0].email, source: 'outreach_contacts:name_company' };
+  }
+  return null;
+}
+
+/**
  * Build the lead picture for one email (and optionally domain/company).
+ * If only name+company is provided, attempts to resolve to a workhuman lead
+ * first so personal notes / phone / outreach history all populate.
  * @param sb     Supabase service-role client
- * @param input  { email?, domain?, company? }
+ * @param input  { email?, name?, domain?, company? }
  * @returns Promise<LeadPicture>
  */
 export async function leadPicture(sb, input) {
-  const email = lc(input?.email);
+  let email = lc(input?.email);
+  let resolution = null;
+  // Resolve email from name + company when caller didn't pass one
+  if (!email && (input?.name || input?.company)) {
+    const r = await resolveLeadByName(sb, input?.name, input?.company);
+    if (r) { email = lc(r.email); resolution = r.source; }
+  }
   const domain = input?.domain ? lc(input.domain).replace(/^www\./, '') : (email ? email.split('@')[1] : null);
 
   // ----- 1. Identity (outreach_contacts + apollo fallback) -----
@@ -224,7 +282,7 @@ export async function leadPicture(sb, input) {
     }
   } catch { /* table or perms missing — skip */ }
 
-  return { identity, workhuman, company, preflight: gate, history, proposals, signups };
+  return { identity, workhuman, company, preflight: gate, history, proposals, signups, resolution };
 }
 
 /**

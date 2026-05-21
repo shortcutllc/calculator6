@@ -76,12 +76,32 @@ const TOOL_HANDLERS = {
 
 async function handleLookupLead(params, supabase /* userId unused for read */) {
   const email = (params.email || '').toString().trim().toLowerCase();
+  const name = (params.name || '').toString().trim() || null;
   const company = (params.company || '').toString().trim() || null;
   const domain = (params.domain || '').toString().trim().toLowerCase() || null;
-  if (!email && !domain && !company) {
-    return { error: 'lookup_lead requires email, domain, or company' };
+  if (!email && !name && !domain && !company) {
+    return { error: 'lookup_lead requires email, name, domain, or company' };
   }
-  const pic = await leadPicture(supabase, { email, domain, company });
+  const pic = await leadPicture(supabase, { email, name, domain, company });
+  // If we tried to resolve by name+company and got nothing on the workhuman side,
+  // tell Pro explicitly so it doesn't claim "no info" — it just couldn't resolve.
+  if (!email && !pic.identity?.email && !pic.workhuman) {
+    return {
+      success: true,
+      resolved: false,
+      note: `Could not resolve "${name || ''}${name && company ? ' from ' : ''}${company || ''}" to a known lead. Try the email if you have it, or check Workhuman CRM for the exact spelling. The proposals/company info below is matched by company name only.`,
+      lead: {
+        identity: { email: null, name, company },
+        workhuman: null,
+        company: pic.company || null,
+        preflight: pic.preflight ? { recommendation: pic.preflight.recommendation } : null,
+        history: { emailed_count: 0 },
+        proposals: pic.proposals || [],
+        signups: pic.signups || [],
+      },
+      next_actions: suggestNextActions(pic),
+    };
+  }
   // Trim history for Slack response — keep latest 3 sends + latest 3 replies
   const history = pic.history || {};
   const compact = {
@@ -162,7 +182,7 @@ async function handleLookupLead(params, supabase /* userId unused for read */) {
   };
   // Always include actionable suggestions so Pro doesn't need a second call
   const actions = suggestNextActions(pic);
-  return { success: true, lead: compact, next_actions: actions };
+  return { success: true, resolved: true, resolution: pic.resolution || (email ? 'email_direct' : null), lead: compact, next_actions: actions };
 }
 
 async function handleNextActionsForLead(params, supabase) {
