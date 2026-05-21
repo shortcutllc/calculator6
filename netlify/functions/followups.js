@@ -103,15 +103,24 @@ export const handler = async (event) => {
     }
   }
 
-  // ----- B) Pull rep-attributed unanswered sends -----
+  // ----- B) Pull ALL rep-attributed sends in the last 60d, regardless of reply -----
   // (Only when inbox is connected — otherwise this set is empty.)
+  // Previously this filtered to `reply_time IS NULL` AND days_since >= 4 AND
+  // under cadence cap, which meant active conversations (Jen @ Philly Bar —
+  // replied yesterday) disappeared the moment they got hot. That's the wrong
+  // mental model for a "my personal outreach" view; a sales rep wants ALL their
+  // active threads visible with a state badge (replied / no_reply / maxed /
+  // recent), not silently filtered down to "needs action today".
+  const now = Date.now();
+  const cutoff30 = new Date(now - WINDOW_30_DAYS * 86400000).toISOString();
+  const cutoff60 = new Date(now - WINDOW_60_DAYS * 86400000).toISOString();
   const sendRows = [];
   if (myEmail) {
     for (let from = 0; ; from += 1000) {
       let q = sb.from('outreach_sends')
-        .select('email, campaign_id, sent_time, touch_count, thread_id, message_id, sender_email')
+        .select('email, campaign_id, sent_time, reply_time, touch_count, thread_id, message_id, sender_email')
         .not('sender_email', 'is', null)
-        .is('reply_time', null);
+        .gte('sent_time', cutoff60);
       if (scope === 'mine') q = q.eq('sender_email', myEmail);
       const { data, error: e } = await q.range(from, from + 999);
       if (e) return json(502, { error: `outreach_sends query failed: ${e.message}` });
@@ -119,15 +128,11 @@ export const handler = async (event) => {
       if (data.length < 1000) break;
     }
   }
-  const now = Date.now();
-  const cutoff30 = new Date(now - WINDOW_30_DAYS * 86400000).toISOString();
-  const cutoff60 = new Date(now - WINDOW_60_DAYS * 86400000).toISOString();
-  // Path 2 has no Workhuman lead → no personal note to gate by; the rule
-  // here is simply "rep-attributed sends in the window". Dual cap below.
+  // Path 2 aggregates per email: dual cap counts for cadence + any_reply flag.
   const path2Agg = new Map();
   for (const s of sendRows) {
     const k = lc(s.email);
-    const cur = path2Agg.get(k) || { latest: null, t30: 0, t60: 0, seen_msg: new Set() };
+    const cur = path2Agg.get(k) || { latest: null, t30: 0, t60: 0, any_reply: false, seen_msg: new Set() };
     const seenKey = s.message_id || `${s.campaign_id}|${s.sent_time}`;
     if (s.sender_email && s.sent_time && s.sent_time >= cutoff60 && !cur.seen_msg.has(seenKey)) {
       const inc = s.touch_count || 1;
@@ -135,16 +140,20 @@ export const handler = async (event) => {
       if (s.sent_time >= cutoff30) cur.t30 += inc;
       cur.seen_msg.add(seenKey);
     }
+    if (s.reply_time) cur.any_reply = true;
     if (s.sent_time && (!cur.latest || s.sent_time > cur.latest.sent_time)) cur.latest = s;
     path2Agg.set(k, cur);
   }
+  // Emit ALL aggregated emails with appropriate state. UI uses the state
+  // badge (replied / maxed / no_reply) so the rep sees what's hot vs stale.
   const sendByEmail = new Map();
   for (const [k, agg] of path2Agg.entries()) {
     if (!agg.latest?.sent_time) continue;
     const days_since = Math.floor((now - new Date(agg.latest.sent_time).getTime()) / 86400000);
-    if (days_since < MIN_DAYS) continue;
-    if (agg.t30 >= MAX_TOUCHES_30D || agg.t60 >= MAX_TOUCHES_60D) continue;  // dual cap
-    sendByEmail.set(k, { ...agg.latest, days_since, t30: agg.t30, t60: agg.t60 });
+    const cap30Hit = (agg.t30 || 0) >= MAX_TOUCHES_30D;
+    const cap60Hit = (agg.t60 || 0) >= MAX_TOUCHES_60D;
+    const state = agg.any_reply ? 'replied' : ((cap30Hit || cap60Hit) ? 'maxed' : 'no_reply');
+    sendByEmail.set(k, { ...agg.latest, days_since, t30: agg.t30, t60: agg.t60, state, any_reply: agg.any_reply });
   }
   // Aggregate ALL sends per email (a contact often has multiple send rows
   // across campaigns — historical sweep + gmail-sent-crawl + gmail-direct
@@ -244,20 +253,42 @@ export const handler = async (event) => {
     }
   }
 
-  // Now add unanswered sends that aren't in workhuman_leads (Will's existing
-  // non-personal-note follow-ups still belong in the queue).
+  // Now add the rep's personal sends to non-Workhuman contacts.
+  // (e.g. Jen @ Philly Bar — not a WH conference lead, but an active sales
+  // conversation Will is having through his own Gmail.) Enrich name/title/
+  // company from outreach_contacts (+ apollo_person_cache fallback) so rows
+  // aren't just an email string.
+  const sbKeys = [...sendByEmail.keys()].filter((k) => !emitted.has(k));
+  const ocByEmail = new Map();
+  const apByEmail = new Map();
+  for (let i = 0; i < sbKeys.length; i += 200) {
+    const slice = sbKeys.slice(i, i + 200);
+    const [{ data: oc }, { data: ap }] = await Promise.all([
+      sb.from('outreach_contacts').select('email, name, title, company, linkedin_url').in('email', slice),
+      sb.from('apollo_person_cache').select('email, name, title, company, linkedin_url').in('email', slice),
+    ]);
+    for (const r of (oc || [])) ocByEmail.set(lc(r.email), r);
+    for (const r of (ap || [])) apByEmail.set(lc(r.email), r);
+  }
   for (const [k, s] of sendByEmail.entries()) {
     if (emitted.has(k)) continue; // already covered via WH
+    const oc = ocByEmail.get(k);
+    const ap = apByEmail.get(k);
     emitted.set(k, {
-      email: k, name: null, title: null, company: null,
+      email: k,
+      name: oc?.name || ap?.name || null,
+      title: oc?.title || ap?.title || null,
+      company: oc?.company || ap?.company || null,
       assigned_to: null, tier: null, outreach_status: null,
-      personal_note: null, linkedin_url: null, landing_page_url: null,
+      personal_note: null,
+      linkedin_url: oc?.linkedin_url || ap?.linkedin_url || null,
+      landing_page_url: null,
       is_personal_note: false, has_workhuman: false,
       conference_attendee: false, was_waitlisted: false, vip_slot: null,
       last_sent: s.sent_time, days_since: s.days_since,
       touches: s.t30 || 0, touches_60d: s.t60 || 0, thread_id: s.thread_id || null,
-      sender_email: s.sender_email || null, replied: false,
-      state: 'no_reply',
+      sender_email: s.sender_email || null, replied: !!s.any_reply,
+      state: s.state,
     });
   }
 
@@ -307,9 +338,17 @@ export const handler = async (event) => {
     out.push(o);
   }
 
-  // Sort: never_emailed first (cold queue), then no_reply by days_since desc, then replied last.
-  const order = { never_emailed: 0, unknown_no_inbox: 0, no_reply: 1, maxed: 2, replied: 3 };
-  out.sort((a, b) => (order[a.state] - order[b.state]) || ((b.days_since || 0) - (a.days_since || 0)));
+  // Sort: never_emailed (no prior contact — needs first outreach) first, then
+  // everyone else by recency (most recently active conversation on top, so an
+  // active replied thread doesn't get buried under months-old no-replies).
+  // Within never_emailed: tier (1A first), then by name.
+  const order = { never_emailed: 0, unknown_no_inbox: 0, no_reply: 1, replied: 1, maxed: 1 };
+  out.sort((a, b) => {
+    const grp = (order[a.state] ?? 9) - (order[b.state] ?? 9);
+    if (grp !== 0) return grp;
+    // Within the "has-history" group, most recently active first
+    return (a.days_since ?? 9999) - (b.days_since ?? 9999);
+  });
 
   return json(200, {
     success: true,
