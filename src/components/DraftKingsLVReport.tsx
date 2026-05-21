@@ -685,9 +685,9 @@ export default function DraftKingsLVReport() {
           <Section id="trader">
             <div data-toc id="trader" />
             <SectionLabel>Section II · Trader Perks Detail</SectionLabel>
-            <SectionHeading subtitle="Within the Trader Monthly Perks sub-program, the two service types have radically different demand profiles.">
-              Hair fills the room.
-              <span className="block text-shortcut-teal-blue">Massage doesn't.</span>
+            <SectionHeading subtitle="Within the Trader Monthly Perks sub-program in Vegas, the two service types have radically different demand profiles. Main LV is not affected — every Main LV service fills 100%.">
+              Trader Hair fills the room.
+              <span className="block text-shortcut-teal-blue">Trader Massage doesn't.</span>
             </SectionHeading>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
