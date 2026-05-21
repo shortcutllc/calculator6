@@ -30,8 +30,26 @@ const CORS = {
 const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
 
 const MIN_DAYS = 4;
-const MAX_TOUCHES = 3;
-const TOUCH_WINDOW_DAYS = 60;  // only count touches in this window toward the cap; old Smartlead drips don't block fresh outreach
+// Dual cap: trip if EITHER rule is hit. Models real outreach cadence —
+// you can do a burst (3 in 30d) or a slow drip (5 in 60d) but not both.
+const MAX_TOUCHES_30D = 3;
+const MAX_TOUCHES_60D = 5;
+const WINDOW_30_DAYS = 30;
+const WINDOW_60_DAYS = 60;
+
+// Parse the timestamp from a personal note: "[May 4, 11:06 AM · Will] ..."
+// or "[Apr 28 at 8:20 AM · Will] ...". Used to gate which sends count toward
+// the cadence cap — sends BEFORE the personal note were operational/coincidental
+// contact (e.g., booth logistics), not a sales outreach attempt.
+function parseNoteTimestamp(notes) {
+  if (!notes) return null;
+  const m = String(notes).match(/\[([^\[\]·]+?)·[^\[\]]*\]/);
+  if (!m) return null;
+  let s = m[1].trim().replace(/\bat\s+/i, '').trim();
+  if (!/\d{4}/.test(s)) s = s.replace(/(\d{1,2})(,?)\s+(\d{1,2}:\d{2})/, `$1 ${new Date().getFullYear()} $3`);
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
 const MAX_RESULTS = 300;
 const PERSONAL_NOTE_RE = /\[[^\[\]]*·[^\[\]]*\]/;  // strict: [timestamp · Author]
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
@@ -102,16 +120,19 @@ export const handler = async (event) => {
     }
   }
   const now = Date.now();
-  const cutoff = new Date(now - TOUCH_WINDOW_DAYS * 86400000).toISOString();
-  // Aggregate at the email level: count touches only from rep-attributed
-  // sends within the cadence window. Old Smartlead drips don't count.
+  const cutoff30 = new Date(now - WINDOW_30_DAYS * 86400000).toISOString();
+  const cutoff60 = new Date(now - WINDOW_60_DAYS * 86400000).toISOString();
+  // Path 2 has no Workhuman lead → no personal note to gate by; the rule
+  // here is simply "rep-attributed sends in the window". Dual cap below.
   const path2Agg = new Map();
   for (const s of sendRows) {
     const k = lc(s.email);
-    const cur = path2Agg.get(k) || { latest: null, recent_touches: 0, seen_msg: new Set() };
+    const cur = path2Agg.get(k) || { latest: null, t30: 0, t60: 0, seen_msg: new Set() };
     const seenKey = s.message_id || `${s.campaign_id}|${s.sent_time}`;
-    if (s.sender_email && s.sent_time && s.sent_time >= cutoff && !cur.seen_msg.has(seenKey)) {
-      cur.recent_touches += (s.touch_count || 1);
+    if (s.sender_email && s.sent_time && s.sent_time >= cutoff60 && !cur.seen_msg.has(seenKey)) {
+      const inc = s.touch_count || 1;
+      cur.t60 += inc;
+      if (s.sent_time >= cutoff30) cur.t30 += inc;
       cur.seen_msg.add(seenKey);
     }
     if (s.sent_time && (!cur.latest || s.sent_time > cur.latest.sent_time)) cur.latest = s;
@@ -121,9 +142,9 @@ export const handler = async (event) => {
   for (const [k, agg] of path2Agg.entries()) {
     if (!agg.latest?.sent_time) continue;
     const days_since = Math.floor((now - new Date(agg.latest.sent_time).getTime()) / 86400000);
-    if (days_since < MIN_DAYS) continue;            // give them time to reply
-    if (agg.recent_touches >= MAX_TOUCHES) continue; // cadence capped
-    sendByEmail.set(k, { ...agg.latest, days_since, recent_touches: agg.recent_touches });
+    if (days_since < MIN_DAYS) continue;
+    if (agg.t30 >= MAX_TOUCHES_30D || agg.t60 >= MAX_TOUCHES_60D) continue;  // dual cap
+    sendByEmail.set(k, { ...agg.latest, days_since, t30: agg.t30, t60: agg.t60 });
   }
   // Aggregate ALL sends per email (a contact often has multiple send rows
   // across campaigns — historical sweep + gmail-sent-crawl + gmail-direct
@@ -134,6 +155,13 @@ export const handler = async (event) => {
   //  - has-replied-ever: ANY row with reply_time set OR ANY outreach_replies
   //    row exists. Once they've replied, the "replied" badge stays — sending
   //    them another email doesn't erase the warm signal.
+  // Per-lead note timestamp: only sends AFTER this timestamp count as outreach
+  // touches (pre-note emails were operational, not outreach).
+  const noteTsByEmail = new Map();
+  for (const w of whRows) {
+    const ts = parseNoteTimestamp(w.notes);
+    if (ts) noteTsByEmail.set(lc(w.email), ts);
+  }
   const allSendByEmail = new Map();
   const whEmails = whRows.map((w) => lc(w.email)).filter(Boolean);
   for (let i = 0; i < whEmails.length; i += 200) {
@@ -143,17 +171,20 @@ export const handler = async (event) => {
       .in('email', slice);
     for (const r of data || []) {
       const k = lc(r.email);
-      const cur = allSendByEmail.get(k) || { latest: null, recent_touches: 0, any_reply: false, seen_msg: new Set() };
-      // Only rep-attributed touches in the cadence window count toward the cap.
-      // Legacy Smartlead drips have sender_email=null → never count, which is
-      // correct: an automated drip from 6 months ago shouldn't block fresh
-      // personal outreach today.
-      // Dedupe by message_id: the same Gmail message can land in outreach_sends
-      // under multiple campaigns (gmail-direct synchronous + gmail-sent-crawl
-      // hourly), and we don't want the same physical email counted twice.
+      const cur = allSendByEmail.get(k) || { latest: null, t30: 0, t60: 0, any_reply: false, seen_msg: new Set() };
+      const noteTs = noteTsByEmail.get(k);
+      // Touches only count if: rep-attributed, deduped by message_id, within
+      // window, AND sent AFTER the personal note was written (so pre-note
+      // operational threads like booth-logistics don't count as outreach).
       const seenKey = r.message_id || `${r.campaign_id}|${r.sent_time}`;
-      if (r.sender_email && r.sent_time && r.sent_time >= cutoff && !cur.seen_msg.has(seenKey)) {
-        cur.recent_touches += (r.touch_count || 1);
+      const qualifies = r.sender_email && r.sent_time
+        && r.sent_time >= cutoff60
+        && (!noteTs || r.sent_time >= noteTs)
+        && !cur.seen_msg.has(seenKey);
+      if (qualifies) {
+        const inc = r.touch_count || 1;
+        cur.t60 += inc;
+        if (r.sent_time >= cutoff30) cur.t30 += inc;
         cur.seen_msg.add(seenKey);
       }
       if (r.reply_time) cur.any_reply = true;
@@ -199,11 +230,14 @@ export const handler = async (event) => {
       const latest = agg.latest;
       o.last_sent = latest.sent_time;
       o.days_since = latest.sent_time ? Math.floor((now - new Date(latest.sent_time).getTime()) / 86400000) : null;
-      o.touches = agg.recent_touches || 0;  // recent rep-attributed only; for cadence
+      o.touches = agg.t30 || 0;             // 30d count is the actionable display
+      o.touches_60d = agg.t60 || 0;
       o.thread_id = latest.thread_id || null;
       o.sender_email = latest.sender_email || null;
       o.replied = everReplied;
-      o.state = everReplied ? 'replied' : ((o.touches || 0) >= MAX_TOUCHES ? 'maxed' : 'no_reply');
+      const cap30Hit = (agg.t30 || 0) >= MAX_TOUCHES_30D;
+      const cap60Hit = (agg.t60 || 0) >= MAX_TOUCHES_60D;
+      o.state = everReplied ? 'replied' : ((cap30Hit || cap60Hit) ? 'maxed' : 'no_reply');
     } else {
       o.state = inbox.connected ? 'never_emailed' : 'unknown_no_inbox';
       o.touches = 0;
@@ -221,7 +255,7 @@ export const handler = async (event) => {
       is_personal_note: false, has_workhuman: false,
       conference_attendee: false, was_waitlisted: false, vip_slot: null,
       last_sent: s.sent_time, days_since: s.days_since,
-      touches: s.recent_touches || 0, thread_id: s.thread_id || null,
+      touches: s.t30 || 0, touches_60d: s.t60 || 0, thread_id: s.thread_id || null,
       sender_email: s.sender_email || null, replied: false,
       state: 'no_reply',
     });

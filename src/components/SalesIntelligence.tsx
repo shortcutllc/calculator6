@@ -90,7 +90,7 @@ const FU_STATE: Record<string, { label: string; tone: string; hint: string }> = 
   never_emailed:     { label: 'Never emailed', tone: 'bg-blue-100 text-blue-800',   hint: 'Personal-note lead we have not emailed yet — first outreach' },
   unknown_no_inbox:  { label: 'Status unknown', tone: 'bg-gray-100 text-gray-600',  hint: 'Connect your Gmail to verify whether you have emailed this lead' },
   no_reply:          { label: 'No reply',       tone: 'bg-amber-100 text-amber-800', hint: 'Emailed, no reply yet — follow-up time' },
-  maxed:             { label: 'Maxed out',      tone: 'bg-gray-100 text-gray-600',  hint: 'Already hit the 3-touch cap on this contact' },
+  maxed:             { label: '3+ no reply',    tone: 'bg-gray-100 text-gray-600',  hint: 'Cap hit: 3+ rep outreach sends in last 30d or 5+ in 60d, no reply. Pause to avoid hounding.' },
   replied:           { label: 'Replied',        tone: 'bg-green-100 text-green-800', hint: 'They responded — open the thread to continue' },
 };
 const TIER_BADGE: Record<string, { label: string; tone: string }> = {
