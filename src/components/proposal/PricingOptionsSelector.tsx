@@ -262,11 +262,9 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                       value={opt.hourlyRate ?? ''}
                       onChange={(v) => onEditOption?.(i, 'hourlyRate', v)}
                     />
-                    <OptionInput
-                      label="Discount %"
-                      value={opt.discountPercent ?? ''}
-                      onChange={(v) => onEditOption?.(i, 'discountPercent', v)}
-                    />
+                    {/* Per-option discount editor removed — the service-level
+                        "Discount %" field is now the single source of truth.
+                        All options inherit it automatically on recalc. */}
                   </div>
                   {/* Read-only appointments — derived from hours/pros and
                       recomputed on every input change so admin sees the
@@ -334,6 +332,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                   alignItems: 'baseline',
                   gap: 8,
                   marginTop: 'auto',
+                  flexWrap: 'wrap',
                 }}
               >
                 <span
@@ -347,6 +346,26 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                 >
                   {formatCurrency(opt.serviceCost)}
                 </span>
+                {/* Strike-through original price when a discount applies, so
+                    the dollar saving is visible per option (each option has a
+                    different base price → different absolute saving when the
+                    client clicks between tiles). Mirrors V1 viewer behavior. */}
+                {(opt.discountPercent ?? 0) > 0 &&
+                  typeof opt.originalPrice === 'number' &&
+                  opt.originalPrice > opt.serviceCost && (
+                    <span
+                      style={{
+                        fontFamily: T.fontD,
+                        fontWeight: 600,
+                        fontSize: 14,
+                        color: T.fgMuted,
+                        textDecoration: 'line-through',
+                        textDecorationThickness: '1.5px',
+                      }}
+                    >
+                      {formatCurrency(opt.originalPrice)}
+                    </span>
+                  )}
                 {(opt.discountPercent ?? 0) > 0 && (
                   <span
                     style={{

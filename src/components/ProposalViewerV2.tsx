@@ -1043,15 +1043,16 @@ const ProposalViewerV2: React.FC = () => {
    *  / proRevenue) from its current + base service params. Used after any
    *  per-option edit so admin margin math stays accurate. */
   const recalcOption = (baseService: any, option: any) => {
+    // Service-level discount wins — options always mirror the service's
+    // discountPercent (no per-option override). See proposalGenerator
+    // comments on the same change.
+    const effectiveDiscount = baseService.discountPercent || 0;
     const merged = {
       ...baseService,
       totalHours: option.totalHours ?? baseService.totalHours,
       hourlyRate: option.hourlyRate ?? baseService.hourlyRate,
       numPros: option.numPros ?? baseService.numPros,
-      discountPercent:
-        option.discountPercent !== undefined
-          ? option.discountPercent
-          : baseService.discountPercent || 0,
+      discountPercent: effectiveDiscount,
     };
     const { totalAppointments, serviceCost, originalPrice, proRevenue } =
       calculateServiceResults(merged);
@@ -1061,7 +1062,7 @@ const ProposalViewerV2: React.FC = () => {
       serviceCost,
       proRevenue,
       originalPrice: originalPrice ?? option.originalPrice,
-      discountPercent: merged.discountPercent,
+      discountPercent: effectiveDiscount,
     };
   };
 
@@ -1083,11 +1084,11 @@ const ProposalViewerV2: React.FC = () => {
     };
     svc.pricingOptions[optIdx] = recalcOption(svc, svc.pricingOptions[optIdx]);
     // If editing the currently-selected option, mirror its totals onto base
+    // (but NOT discountPercent — service is the source of truth there).
     if ((svc.selectedOption || 0) === optIdx) {
       svc.totalAppointments = svc.pricingOptions[optIdx].totalAppointments;
       svc.serviceCost = svc.pricingOptions[optIdx].serviceCost;
       svc.proRevenue = svc.pricingOptions[optIdx].proRevenue;
-      svc.discountPercent = svc.pricingOptions[optIdx].discountPercent;
     }
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });
@@ -1134,7 +1135,7 @@ const ProposalViewerV2: React.FC = () => {
       svc.totalAppointments = sel.totalAppointments;
       svc.serviceCost = sel.serviceCost;
       svc.proRevenue = sel.proRevenue;
-      if (sel.discountPercent !== undefined) svc.discountPercent = sel.discountPercent;
+      // Don't copy discountPercent — service is source of truth.
     }
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });
@@ -1159,7 +1160,7 @@ const ProposalViewerV2: React.FC = () => {
     svc.totalAppointments = sel.totalAppointments;
     svc.serviceCost = sel.serviceCost;
     svc.proRevenue = sel.proRevenue ?? svc.proRevenue;
-    if (sel.discountPercent !== undefined) svc.discountPercent = sel.discountPercent;
+    // Don't copy discountPercent — service is source of truth.
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });
     setDisplayData({ ...recalc, customization: currentProposal?.customization });
@@ -2228,6 +2229,7 @@ const ProposalViewerV2: React.FC = () => {
       location: string;
       date: string;
       lineCost: number;
+      originalLineCost: number;
       proRevenue: number;
       margin: number;
       marginPct: number;
@@ -2239,12 +2241,20 @@ const ProposalViewerV2: React.FC = () => {
           // present, otherwise use the base service's stored fields.
           let revenue = Number(s.serviceCost) || 0;
           let proPay = Number(s.proRevenue) || 0;
+          let original = revenue;
           if (Array.isArray(s.pricingOptions) && s.pricingOptions.length > 0) {
             const sel = s.pricingOptions[s.selectedOption || 0];
             if (sel) {
               revenue = Number(sel.serviceCost) || revenue;
               proPay = Number(sel.proRevenue) || proPay;
+              // The option stores its own `originalPrice` (pre-discount).
+              original = Number(sel.originalPrice) || revenue;
             }
+          } else {
+            // No options — reverse the per-service discount from the
+            // displayed serviceCost to recover the pre-discount price.
+            const pct = Math.min(99, Math.max(0, Number(s.discountPercent) || 0));
+            original = pct > 0 ? revenue / (1 - pct / 100) : revenue;
           }
           const margin = revenue - proPay;
           const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
@@ -2254,6 +2264,7 @@ const ProposalViewerV2: React.FC = () => {
             location: loc,
             date: dt,
             lineCost: revenue,
+            originalLineCost: original,
             proRevenue: proPay,
             margin,
             marginPct,
@@ -2267,6 +2278,16 @@ const ProposalViewerV2: React.FC = () => {
   const servicesSubtotal = useMemo(
     () => pricingRows.reduce((sum, r) => sum + r.lineCost, 0),
     [pricingRows]
+  );
+  // Pre-per-service-discount aggregates — used to render the "Subtotal /
+  // Service discount" pair in the admin summary so it mirrors the client view.
+  const servicesOriginalSubtotal = useMemo(
+    () => pricingRows.reduce((sum, r) => sum + r.originalLineCost, 0),
+    [pricingRows]
+  );
+  const servicesDiscountAmount = useMemo(
+    () => Math.max(0, servicesOriginalSubtotal - servicesSubtotal),
+    [servicesOriginalSubtotal, servicesSubtotal]
   );
 
   const customLineItems = useMemo<any[]>(
@@ -4105,8 +4126,26 @@ const ProposalViewerV2: React.FC = () => {
                 }}
               >
                 <span>Subtotal</span>
-                <span style={{ color: '#fff' }}>{formatCurrency(subtotal)}</span>
+                <span style={{ color: '#fff' }}>
+                  {formatCurrency(
+                    servicesOriginalSubtotal + customItemsTotal
+                  )}
+                </span>
               </div>
+              {servicesDiscountAmount > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontFamily: T.fontD,
+                    fontSize: 14,
+                    color: T.aqua,
+                  }}
+                >
+                  <span>Service discount</span>
+                  <span>−{formatCurrency(servicesDiscountAmount)}</span>
+                </div>
+              )}
               {typeof displayData?.autoRecurringDiscount === 'number' &&
                 displayData.autoRecurringDiscount > 0 &&
                 typeof displayData?.autoRecurringSavings === 'number' &&

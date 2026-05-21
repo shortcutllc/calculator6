@@ -23,13 +23,23 @@ export interface ServiceSelectionRow {
 
 export interface ServiceSelectionSummary {
   rows: ServiceSelectionRow[];
-  /** Sum of line costs across all *included* services. */
+  /** Sum of line costs across all *included* services AFTER per-service
+   *  discount is applied. This is what the volume-discount math operates
+   *  on and what gratuity is computed against. */
   subtotal: number;
+  /** Sum of line costs across all *included* services BEFORE any discount.
+   *  Used purely for display — lets us show "Subtotal $6,300 / Service
+   *  discount −$700 / ..." with consistent arithmetic. Equals `subtotal +
+   *  serviceDiscountAmount`. */
+  originalSubtotal: number;
+  /** Total dollars saved by per-service `discountPercent` across all
+   *  included services. Zero when no service has a discount set. */
+  serviceDiscountAmount: number;
   /** Sum of `frequency` across all *included* services — drives volume discount. */
   totalEvents: number;
-  /** % discount applied based on totalEvents (0, 15, or 20). */
+  /** % volume discount applied based on totalEvents (0, 15, or 20). */
   discountPercent: number;
-  /** Dollar amount of the discount. */
+  /** Dollar amount of the volume discount. */
   discountAmount: number;
   /** Subtotal minus discountAmount. (Gratuity is intentionally not added — */
   /** per project decision #3 it stays as a staff-editable add-on only.) */
@@ -165,7 +175,9 @@ export function useServiceSelections({
 
   const summary = useMemo<ServiceSelectionSummary>(() => {
     const rows: ServiceSelectionRow[] = [];
-    let subtotal = 0;
+    let subtotal = 0;            // sum of post-per-service-discount line costs
+    let originalSubtotal = 0;    // sum of pre-discount line costs (for display)
+    let serviceDiscountAmount = 0; // sum of per-service savings (originalSubtotal − subtotal)
     let totalEvents = 0;
 
     Object.entries(servicesByLocation || {}).forEach(([loc, byDate]) => {
@@ -173,8 +185,26 @@ export function useServiceSelections({
         (dateData?.services || []).forEach((service: any, idx: number) => {
           const key = selectionKey(loc, date, idx);
           const st = state[key] || DEFAULT;
+          // `service.serviceCost` is the post-EVERYTHING per-unit price
+          // (both per-service discount AND auto-recurring discount applied).
+          // To recover the truly-original pre-any-discount price for the
+          // display "Subtotal" line:
+          //   1. Start from `originalServiceCost` if proposalGenerator set
+          //      it (that's the post-per-service-discount, pre-recurring
+          //      value — only populated when auto-recurring fires).
+          //   2. Otherwise fall back to `serviceCost`.
+          //   3. Reverse the per-service `discountPercent` from that base.
+          // This keeps the math consistent whether one, both, or neither
+          // discount is active.
           const unit = service?.serviceCost || 0;
+          const preRecurringUnit =
+            typeof service?.originalServiceCost === 'number' && service.originalServiceCost > 0
+              ? service.originalServiceCost
+              : unit;
+          const pct = Math.min(99, Math.max(0, Number(service?.discountPercent) || 0));
+          const originalUnit = pct > 0 ? preRecurringUnit / (1 - pct / 100) : preRecurringUnit;
           const lineCost = unit * st.frequency;
+          const originalLineCost = originalUnit * st.frequency;
           rows.push({
             key,
             serviceType: service?.serviceType || '',
@@ -187,14 +217,21 @@ export function useServiceSelections({
           });
           if (st.included) {
             subtotal += lineCost;
+            originalSubtotal += originalLineCost;
+            // Per-service discount = original − pre-recurring (NOT
+            // original − unit, which would also include the recurring
+            // savings). Recurring savings are surfaced separately from
+            // displayData.autoRecurringSavings.
+            serviceDiscountAmount += (originalUnit - preRecurringUnit) * st.frequency;
             totalEvents += st.frequency;
           }
         });
       });
     });
 
-    // Volume discount: 15% at 4+ total events, 20% at 9+. Applies to combined
-    // event count across all selected services (project decision #2).
+    // Volume discount: 15% at 4+ total events, 20% at 9+. Applies on top of
+    // the post-per-service-discount subtotal (combined event count across
+    // all selected services — project decision #2).
     let discountPercent = 0;
     if (totalEvents >= 9) discountPercent = 20;
     else if (totalEvents >= 4) discountPercent = 15;
@@ -202,7 +239,16 @@ export function useServiceSelections({
     const discountAmount = (subtotal * discountPercent) / 100;
     const total = subtotal - discountAmount;
 
-    return { rows, subtotal, totalEvents, discountPercent, discountAmount, total };
+    return {
+      rows,
+      subtotal,
+      originalSubtotal,
+      serviceDiscountAmount,
+      totalEvents,
+      discountPercent,
+      discountAmount,
+      total,
+    };
   }, [state, servicesByLocation]);
 
   return { get, setIncluded, setFrequency, summary, state };

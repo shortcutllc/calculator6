@@ -669,39 +669,42 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
         
         // Handle pricing options if they exist
         if (service.pricingOptions && service.pricingOptions.length > 0) {
-          // Recalculate each pricing option to ensure they're up to date
+          // Recalculate each pricing option to ensure they're up to date.
+          // SERVICE-LEVEL DISCOUNT WINS: per-option discounts were a footgun
+          // — options stored discountPercent: 0 at generation time, which
+          // "won" against admin's later service-level edit and silently
+          // erased the discount. Now we always force the service value
+          // onto every option, so admin can change service.discountPercent
+          // at any time and every option re-prices on the next recalc.
+          const effectiveDiscount = service.discountPercent || 0;
           service.pricingOptions = service.pricingOptions.map((option: any) => {
             const optionService = { ...service };
             // Use option-specific values if they exist, otherwise use service values
             if (option.totalHours !== undefined) optionService.totalHours = option.totalHours;
             if (option.hourlyRate !== undefined) optionService.hourlyRate = option.hourlyRate;
             if (option.numPros !== undefined) optionService.numPros = option.numPros;
-            // Preserve discountPercent from option or service
-            if (option.discountPercent !== undefined) {
-              optionService.discountPercent = option.discountPercent;
-            } else {
-              optionService.discountPercent = service.discountPercent || 0;
-            }
-            
+            optionService.discountPercent = effectiveDiscount;
+
             const { totalAppointments, serviceCost, proRevenue: optionProRevenue, originalPrice } = calculateServiceResults(optionService);
             return {
               ...option,
               totalAppointments,
               serviceCost,
               originalPrice: originalPrice || option.originalPrice,
-              discountPercent: optionService.discountPercent,
+              discountPercent: effectiveDiscount,
               proRevenue: optionProRevenue
             };
           });
-          
-          // Use selected option's cost if available
+
+          // Use selected option's cost if available.
+          // CRITICAL: do NOT copy selectedOption.discountPercent back onto
+          // the service. Service is the source of truth; the loop above
+          // already forced options to mirror it. Copying back would just
+          // reintroduce the original silently-erase-the-discount bug.
           const selectedOption = service.pricingOptions[service.selectedOption || 0];
           if (selectedOption) {
             (service as any).serviceCost = selectedOption.serviceCost;
             (service as any).totalAppointments = selectedOption.totalAppointments;
-            if (selectedOption.discountPercent !== undefined) {
-              (service as any).discountPercent = selectedOption.discountPercent;
-            }
             // DO NOT copy totalHours/numPros/hourlyRate — they are option-specific
             // and copying them contaminates the base service for future recalculations
             // Use the selected option's proRevenue

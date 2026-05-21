@@ -585,7 +585,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
         if (sel.totalAppointments !== undefined) svc.totalAppointments = sel.totalAppointments;
         if (sel.serviceCost !== undefined) svc.serviceCost = sel.serviceCost;
         if (sel.proRevenue !== undefined) svc.proRevenue = sel.proRevenue;
-        if (sel.discountPercent !== undefined) svc.discountPercent = sel.discountPercent;
+        // Service-level discount wins — do NOT copy option.discountPercent
+        // back onto the service. The service is the source of truth; the
+        // recalc loop already forces every option to mirror it.
       }
       setProposal((p: any) => ({ ...p, data: next }));
       const key = `${loc}-${date}-${idx}`;
@@ -1848,9 +1850,23 @@ const StandaloneProposalViewerV2: React.FC = () => {
               >
                 <span>Subtotal</span>
                 <span style={{ color: '#fff' }}>
-                  {formatCurrency(summary.subtotal + customItemsTotal)}
+                  {formatCurrency(summary.originalSubtotal + customItemsTotal)}
                 </span>
               </div>
+              {summary.serviceDiscountAmount > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontFamily: T.fontD,
+                    fontSize: 14,
+                    color: T.aqua,
+                  }}
+                >
+                  <span>Service discount</span>
+                  <span>−{formatCurrency(summary.serviceDiscountAmount)}</span>
+                </div>
+              )}
               {summary.discountPercent > 0 && (
                 <div
                   style={{
@@ -2360,17 +2376,49 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     >
                       Select services below to see your price.
                     </div>
-                  ) : summary.discountPercent > 0 ? (
+                  ) : summary.serviceDiscountAmount > 0 ||
+                    summary.discountPercent > 0 ||
+                    (typeof displayData?.autoRecurringSavings === 'number' &&
+                      displayData.autoRecurringSavings > 0) ? (
+                    // Compact discount breakdown beneath the headline total.
+                    // Subtotal is always the PRE-any-discount figure here so
+                    // the arithmetic is legible. Each discount type gets its
+                    // own line so flipping pricing options (which changes
+                    // service-discount dollars per option) visibly updates
+                    // the saving number, AND the recurring discount surfaces
+                    // here too — matching what the bottom summary already
+                    // shows so the two cards stay consistent.
                     <div
                       style={{
                         fontFamily: T.fontD,
                         fontSize: 13,
-                        color: 'rgba(255,255,255,0.7)',
-                        marginTop: 6,
+                        color: 'rgba(255,255,255,0.75)',
+                        marginTop: 8,
+                        lineHeight: 1.6,
                       }}
                     >
-                      Subtotal {formatCurrency(summary.subtotal)} · saving{' '}
-                      {formatCurrency(summary.discountAmount)} ({summary.discountPercent}%)
+                      <div>Subtotal {formatCurrency(summary.originalSubtotal)}</div>
+                      {summary.serviceDiscountAmount > 0 && (
+                        <div style={{ color: T.aqua }}>
+                          Service discount −{formatCurrency(summary.serviceDiscountAmount)}
+                        </div>
+                      )}
+                      {typeof displayData?.autoRecurringDiscount === 'number' &&
+                        displayData.autoRecurringDiscount > 0 &&
+                        typeof displayData?.autoRecurringSavings === 'number' &&
+                        displayData.autoRecurringSavings > 0 && (
+                          <div style={{ color: T.aqua }}>
+                            Recurring discount −
+                            {formatCurrency(displayData.autoRecurringSavings)} (
+                            {displayData.autoRecurringDiscount}%)
+                          </div>
+                        )}
+                      {summary.discountPercent > 0 && (
+                        <div style={{ color: T.aqua }}>
+                          Volume discount −{formatCurrency(summary.discountAmount)} (
+                          {summary.discountPercent}%)
+                        </div>
+                      )}
                     </div>
                   ) : summary.totalEvents > 0 && summary.totalEvents < 4 ? (
                     <div
