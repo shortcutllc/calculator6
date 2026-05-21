@@ -110,8 +110,15 @@ export const handler = async (event) => {
     const cur = sendByEmail.get(k);
     if (!cur || (s.sent_time && (!cur.sent_time || s.sent_time > cur.sent_time))) sendByEmail.set(k, s);
   }
-  // Also: look up ALL sends (not just no-reply) for personal-note leads so we
-  // can show "replied / no_reply / never_emailed" state in their row.
+  // Aggregate ALL sends per email (a contact often has multiple send rows
+  // across campaigns — historical sweep + gmail-sent-crawl + gmail-direct
+  // all live as separate (email, campaign_id) rows). For each email we need:
+  //  - the most recent sent_time + its thread_id + sender_email (for "last sent")
+  //  - total touches across rows (for cadence cap; not just the latest row's
+  //    touch_count, which only counts within one campaign)
+  //  - has-replied-ever: ANY row with reply_time set OR ANY outreach_replies
+  //    row exists. Once they've replied, the "replied" badge stays — sending
+  //    them another email doesn't erase the warm signal.
   const allSendByEmail = new Map();
   const whEmails = whRows.map((w) => lc(w.email)).filter(Boolean);
   for (let i = 0; i < whEmails.length; i += 200) {
@@ -121,10 +128,21 @@ export const handler = async (event) => {
       .in('email', slice);
     for (const r of data || []) {
       const k = lc(r.email);
-      const cur = allSendByEmail.get(k);
-      // Keep most recent by sent_time
-      if (!cur || (r.sent_time && (!cur.sent_time || r.sent_time > cur.sent_time))) allSendByEmail.set(k, r);
+      const cur = allSendByEmail.get(k) || { latest: null, total_touches: 0, any_reply: false };
+      cur.total_touches += (r.touch_count || 1);
+      if (r.reply_time) cur.any_reply = true;
+      if (r.sent_time && (!cur.latest || r.sent_time > cur.latest.sent_time)) cur.latest = r;
+      allSendByEmail.set(k, cur);
     }
+  }
+  // Reply presence from outreach_replies (catches cases where the inbound
+  // tracker wrote a reply row but no send had reply_time set — e.g. when a
+  // reply lands against a different campaign_id than the original send).
+  const replyEverByEmail = new Set();
+  for (let i = 0; i < whEmails.length; i += 200) {
+    const slice = whEmails.slice(i, i + 200);
+    const { data } = await sb.from('outreach_replies').select('email').in('email', slice);
+    for (const r of data || []) if (r.email) replyEverByEmail.add(lc(r.email));
   }
 
   // ----- Unify by email -----
@@ -149,15 +167,17 @@ export const handler = async (event) => {
       was_waitlisted: !!w.was_waitlisted,
       vip_slot: w.vip_slot_day ? { day: w.vip_slot_day, time: w.vip_slot_time } : null,
     });
-    const send = allSendByEmail.get(k);
-    if (send) {
-      o.last_sent = send.sent_time;
-      o.days_since = send.sent_time ? Math.floor((now - new Date(send.sent_time).getTime()) / 86400000) : null;
-      o.touches = send.touch_count || 1;
-      o.thread_id = send.thread_id || null;
-      o.sender_email = send.sender_email || null;
-      o.replied = !!send.reply_time;
-      o.state = send.reply_time ? 'replied' : ((o.touches || 1) >= MAX_TOUCHES ? 'maxed' : 'no_reply');
+    const agg = allSendByEmail.get(k);
+    const everReplied = replyEverByEmail.has(k) || !!agg?.any_reply;
+    if (agg && agg.latest) {
+      const latest = agg.latest;
+      o.last_sent = latest.sent_time;
+      o.days_since = latest.sent_time ? Math.floor((now - new Date(latest.sent_time).getTime()) / 86400000) : null;
+      o.touches = agg.total_touches || 1;
+      o.thread_id = latest.thread_id || null;
+      o.sender_email = latest.sender_email || null;
+      o.replied = everReplied;
+      o.state = everReplied ? 'replied' : ((o.touches || 1) >= MAX_TOUCHES ? 'maxed' : 'no_reply');
     } else {
       o.state = inbox.connected ? 'never_emailed' : 'unknown_no_inbox';
       o.touches = 0;
@@ -179,6 +199,32 @@ export const handler = async (event) => {
       sender_email: s.sender_email || null, replied: false,
       state: 'no_reply',
     });
+  }
+
+  // ----- Upgrade state to 'replied' for ANY emitted email with a reply on
+  // record — single source of truth across both paths. The "latest send
+  // hasn't been replied to" reading was wrong: once a lead has ever replied,
+  // they're warm; sending them another email doesn't erase that signal.
+  // Catches the case where a reply lives under a different campaign_id than
+  // the latest send (e.g. gmail-direct reply attached to a gmail-sent-crawl
+  // send), or only exists in outreach_replies, or only in send.reply_time.
+  const allKeys = [...emitted.keys()];
+  for (let i = 0; i < allKeys.length; i += 200) {
+    const slice = allKeys.slice(i, i + 200);
+    const [reps, sends] = await Promise.all([
+      sb.from('outreach_replies').select('email').in('email', slice),
+      sb.from('outreach_sends').select('email').in('email', slice).not('reply_time', 'is', null),
+    ]);
+    for (const r of (reps.data || [])) {
+      const k = lc(r.email); if (!k) continue;
+      const o = emitted.get(k);
+      if (o) { o.state = 'replied'; o.replied = true; }
+    }
+    for (const r of (sends.data || [])) {
+      const k = lc(r.email); if (!k) continue;
+      const o = emitted.get(k);
+      if (o) { o.state = 'replied'; o.replied = true; }
+    }
   }
 
   // ----- Gate each row (drop suppressed / now-a-client / since-replied) -----
