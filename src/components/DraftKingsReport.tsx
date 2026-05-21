@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Users, DollarSign, MapPin, Calendar, Scissors, Heart, Hand, Flower2, AlertTriangle } from 'lucide-react';
+import { Users, DollarSign, MapPin, Calendar, Scissors, Heart, Hand, Flower2, AlertTriangle, Mail, Smartphone, Package } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    DraftKings — Perks Program Report
@@ -401,11 +401,18 @@ export default function DraftKingsReport() {
       <div className="min-h-screen bg-neutral-light-gray font-['Outfit',system-ui,sans-serif] flex items-center justify-center">
         <div className="w-full max-w-sm mx-auto px-6">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-shortcut-blue flex items-center justify-center">
-                <Sparkles size={16} className="text-shortcut-teal" />
-              </div>
-              <div className="text-[15px] font-extrabold text-shortcut-blue">DraftKings × Shortcut</div>
+            <div className="inline-flex items-center gap-4 mb-4">
+              <img
+                src="/Holiday Proposal/Parnter Logos/DraftKings.svg"
+                alt="DraftKings"
+                className="h-8 w-auto"
+              />
+              <div className="h-6 w-px bg-shortcut-blue/15" aria-hidden="true" />
+              <img
+                src="/shortcut-logo-blue.svg"
+                alt="Shortcut"
+                className="h-5 w-auto"
+              />
             </div>
             <div className="text-[12px] text-shortcut-blue/50 font-medium">Perks Program Report</div>
           </div>
@@ -444,6 +451,7 @@ export default function DraftKingsReport() {
     { id: 'waitlist', label: 'Waitlist Demand' },
     { id: 'services', label: 'Top Services' },
     { id: 'timeline', label: 'Monthly Timeline' },
+    { id: 'restructure', label: 'LV Restructure' },
     { id: 'methodology', label: 'Methodology' },
   ];
 
@@ -453,13 +461,20 @@ export default function DraftKingsReport() {
       {/* ── Sticky nav ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-shortcut-blue/[.06]">
         <div className="max-w-[1280px] mx-auto px-6 lg:px-10 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-shortcut-blue flex items-center justify-center">
-              <Sparkles size={14} className="text-shortcut-teal" />
-            </div>
-            <div>
-              <div className="text-[14px] font-extrabold text-shortcut-blue leading-none">DraftKings × Shortcut</div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-shortcut-blue/40 mt-0.5">Perks Program Report</div>
+          <div className="flex items-center gap-3 md:gap-4">
+            <img
+              src="/Holiday Proposal/Parnter Logos/DraftKings.svg"
+              alt="DraftKings"
+              className="h-6 w-auto"
+            />
+            <div className="h-4 w-px bg-shortcut-blue/15" aria-hidden="true" />
+            <img
+              src="/shortcut-logo-blue.svg"
+              alt="Shortcut"
+              className="h-4 w-auto"
+            />
+            <div className="hidden sm:block ml-1 md:ml-2 pl-3 md:pl-4 border-l border-shortcut-blue/[.12] text-[10px] font-semibold uppercase tracking-wider text-shortcut-blue/40">
+              Perks Program Report
             </div>
           </div>
           <div className="hidden md:block text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40">Nov 2025 – May 2026</div>
@@ -492,6 +507,20 @@ export default function DraftKingsReport() {
           <Section>
             <div className="relative overflow-hidden rounded-3xl" style={{ backgroundColor: '#F0F0FF' }}>
               <div className="relative z-10 px-6 py-10 md:px-12 md:py-14">
+                {/* Co-branded logo lockup */}
+                <div className="flex items-center gap-5 md:gap-7 mb-8 pb-6 border-b border-shortcut-blue/[.1]">
+                  <img
+                    src="/Holiday Proposal/Parnter Logos/DraftKings.svg"
+                    alt="DraftKings"
+                    className="h-9 md:h-12 w-auto"
+                  />
+                  <div className="h-7 md:h-10 w-px bg-shortcut-blue/15" aria-hidden="true" />
+                  <img
+                    src="/shortcut-logo-blue.svg"
+                    alt="Shortcut"
+                    className="h-6 md:h-8 w-auto"
+                  />
+                </div>
                 <div className="text-[11px] font-extrabold uppercase tracking-[.18em] text-shortcut-blue/50 mb-3">
                   Trailing 6 Months · Prepared for Jaime Cortina
                 </div>
@@ -527,6 +556,47 @@ export default function DraftKingsReport() {
           </Section>
 
           {/* ══════════════════════════════════════════
+              CAVEAT — what's in the number
+              ══════════════════════════════════════════ */}
+          <Section>
+            <div className="rounded-3xl bg-white border border-shortcut-blue/[.08] p-7 md:p-10 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+              <div className="mb-7 md:mb-8">
+                <div className="text-[11px] font-extrabold uppercase tracking-[.15em] text-shortcut-blue/40 mb-2">What's in the number</div>
+                <h2 className="text-[1.75rem] md:text-[2.25rem] font-extrabold text-shortcut-blue leading-tight">
+                  What every event
+                  <span className="block text-shortcut-teal-blue">includes.</span>
+                </h2>
+                <p className="mt-3 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[680px]">
+                  The per-employee figures in this report reflect the full service Shortcut delivers at every event.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                {[
+                  { Icon: Users, tint: 'bg-shortcut-teal/30', title: 'Consistent pros', body: 'Same trusted barbers, LMTs, and technicians at each location. No rotating cast.' },
+                  { Icon: Mail, tint: 'bg-accent-yellow/40', title: 'Light lift on your side', body: 'Your team doesn\'t run scheduling, communications, or day-of logistics. We do.' },
+                  { Icon: Smartphone, tint: 'bg-accent-pink/30', title: 'Technology built in', body: 'Employees book through our platform with automated reminders and confirmations.' },
+                  { Icon: Package, tint: 'bg-shortcut-coral/15', title: 'Supplies always stocked', body: 'Equipment, products, and setup arrive with every event. We keep things replenished between visits.' },
+                ].map((tile, i) => {
+                  const { Icon } = tile;
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-2xl p-5 md:p-6 border border-shortcut-blue/[.06] bg-white hover:-translate-y-1 hover:shadow-md transition-all duration-300"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm mb-4 ${tile.tint}`}>
+                        <Icon size={18} className="text-shortcut-blue" strokeWidth={2.25} />
+                      </div>
+                      <h4 className="text-[15px] md:text-[16px] font-extrabold text-shortcut-blue leading-tight mb-1.5">{tile.title}</h4>
+                      <p className="text-[13px] text-text-dark/70 font-medium leading-relaxed">{tile.body}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Section>
+
+          {/* ══════════════════════════════════════════
               HEADLINE STATS — 4 color-coded cards
               ══════════════════════════════════════════ */}
           <Section id="headline">
@@ -536,6 +606,99 @@ export default function DraftKingsReport() {
               <HeroStat value="746" label="Appointments Served" sublabel="6-month window" color="teal" />
               <HeroStat value="98%" label="of timeslots filled" sublabel="across main programs" color="yellow" />
               <HeroStat value="$58K+" label="Paid to Shortcut" sublabel="~$9.7K / month avg" color="pink" />
+            </div>
+          </Section>
+
+          {/* ══════════════════════════════════════════
+              MONTHLY SPEND AT A GLANCE — by location
+              ══════════════════════════════════════════ */}
+          <Section>
+            <div className="card-large">
+              <div className="mb-6 md:mb-7">
+                <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">At a glance</div>
+                <h2 className="text-[1.75rem] md:text-[2.25rem] font-extrabold text-shortcut-blue leading-tight">
+                  Monthly spend,
+                  <span className="text-shortcut-teal-blue"> by location.</span>
+                </h2>
+                <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[640px]">
+                  Average monthly cost and total spend over the trailing 6 months for each program. Two figures per row: what was paid to Shortcut, and the all-in cost including DraftKings' 20% gratuity per event.
+                </p>
+              </div>
+
+              {/* Gratuity callout pill */}
+              <div className="inline-flex items-center gap-2 mb-5 px-3 py-1.5 rounded-full bg-accent-yellow/25 border border-accent-yellow/50">
+                <DollarSign size={13} className="text-shortcut-blue" strokeWidth={2.5} />
+                <span className="text-[11px] md:text-[12px] font-extrabold text-shortcut-blue uppercase tracking-wider">
+                  DraftKings adds 20% gratuity to every event
+                </span>
+              </div>
+
+              {/* Column headers (desktop) */}
+              <div className="hidden md:grid grid-cols-[auto_1fr_1fr_1fr] gap-6 items-end pb-3 border-b border-shortcut-blue/[.1]">
+                <div className="w-2.5" />
+                <div className="text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Location</div>
+                <div className="text-right text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Paid to Shortcut</div>
+                <div className="text-right text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue">All-in <span className="text-shortcut-blue/50 font-bold">(+ 20% grat)</span></div>
+              </div>
+
+              {/* Spend rows */}
+              <div className="space-y-1">
+                {[
+                  { dot: 'bg-shortcut-blue', name: 'Las Vegas', detail: 'Main LV program', avgBase: 5521, total6Base: 33123 },
+                  { dot: 'bg-shortcut-coral', name: 'Las Vegas', detail: 'Trader Monthly Perks', avgBase: 1106, total6Base: 6636 },
+                  { dot: 'bg-shortcut-teal', name: 'New York', detail: 'DraftKings NY', avgBase: 2044, total6Base: 12261 },
+                  { dot: 'bg-accent-pink', name: 'New Jersey', detail: 'DraftKings NJ', avgBase: 979, total6Base: 5871 },
+                ].map((row, i) => {
+                  const avgAllIn = Math.round(row.avgBase * 1.20);
+                  const total6AllIn = Math.round(row.total6Base * 1.20);
+                  const fmt = (n: number) => '$' + n.toLocaleString();
+                  return (
+                    <div
+                      key={i}
+                      className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_1fr_1fr] gap-3 md:gap-6 items-center py-4 border-b border-shortcut-blue/[.06]"
+                    >
+                      <div className={`w-2.5 h-2.5 rounded-full ${row.dot}`} />
+                      <div>
+                        <div className="text-[15px] md:text-[16px] font-extrabold text-shortcut-blue leading-tight">{row.name}</div>
+                        <div className="text-[12px] md:text-[13px] text-shortcut-blue/50 font-medium mt-0.5">{row.detail}</div>
+                      </div>
+
+                      {/* Mobile: stacked single column. Desktop: paid column */}
+                      <div className="hidden md:block text-right">
+                        <div className="text-[16px] font-bold text-shortcut-blue/70 tabular-nums leading-tight">{fmt(row.avgBase)} <span className="text-[11px] font-semibold text-shortcut-blue/40">/ mo</span></div>
+                        <div className="text-[11px] text-shortcut-blue/40 font-medium tabular-nums mt-0.5">{fmt(row.total6Base)} over 6 mo</div>
+                      </div>
+
+                      {/* All-in column (primary) */}
+                      <div className="text-right">
+                        <div className="text-[18px] md:text-[20px] font-extrabold text-shortcut-blue tabular-nums leading-tight">{fmt(avgAllIn)} <span className="text-[11px] font-semibold text-shortcut-blue/50">/ mo</span></div>
+                        <div className="text-[11px] text-shortcut-blue/50 font-semibold tabular-nums mt-0.5 md:hidden">vs. {fmt(row.avgBase)} paid · base</div>
+                        <div className="hidden md:block text-[11px] text-shortcut-blue/50 font-medium tabular-nums mt-0.5">{fmt(total6AllIn)} over 6 mo</div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Total row — accented */}
+                <div className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_1fr_1fr] gap-3 md:gap-6 items-center py-5 mt-2 rounded-2xl bg-shortcut-blue px-4 md:px-5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-shortcut-teal" />
+                  <div>
+                    <div className="text-[15px] md:text-[16px] font-extrabold text-white leading-tight">All locations</div>
+                    <div className="text-[12px] md:text-[13px] text-white/50 font-medium mt-0.5">Program-wide total</div>
+                  </div>
+
+                  <div className="hidden md:block text-right">
+                    <div className="text-[16px] font-bold text-white/70 tabular-nums leading-tight">~$9,650 <span className="text-[11px] font-semibold text-white/40">/ mo</span></div>
+                    <div className="text-[11px] text-white/40 font-medium tabular-nums mt-0.5">$57,891 over 6 mo</div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-[18px] md:text-[22px] font-extrabold text-shortcut-teal tabular-nums leading-tight">~$11,580 <span className="text-[11px] font-semibold text-white/60">/ mo</span></div>
+                    <div className="text-[11px] text-white/60 font-semibold tabular-nums mt-0.5 md:hidden">vs. ~$9,650 paid · base</div>
+                    <div className="hidden md:block text-[11px] text-white/60 font-medium tabular-nums mt-0.5">~$69,469 over 6 mo</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </Section>
 
@@ -557,8 +720,8 @@ export default function DraftKingsReport() {
                   <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">Las Vegas · NV</div>
                   <h3 className="text-[22px] md:text-[26px] font-extrabold text-shortcut-blue leading-tight">Main LV program</h3>
                 </div>
-                <div className="text-[12px] font-semibold text-shortcut-blue/50 bg-shortcut-blue/5 px-3 py-1.5 rounded-full">
-                  Excludes Trader Monthly Perks
+                <div className="text-[12px] font-extrabold text-shortcut-blue bg-shortcut-teal/40 px-3 py-1.5 rounded-full">
+                  97.1% fill · highest volume
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -567,6 +730,9 @@ export default function DraftKingsReport() {
                 <ServiceTile service="Nails" employees="12.3" costPerEmp="$68.09" costPerMo="$838" />
                 <ServiceTile service="Beauty" employees="7.0" costPerEmp="$66.43" costPerMo="$465" />
               </div>
+              <p className="mt-5 pt-4 border-t border-shortcut-blue/[.06] text-[12px] text-shortcut-blue/50 font-medium italic">
+                Excludes the Trader Monthly Perks sub-program — reported separately below.
+              </p>
             </div>
 
             {/* New York */}
@@ -932,6 +1098,323 @@ export default function DraftKingsReport() {
           </Section>
 
           {/* ══════════════════════════════════════════
+              LV RESTRUCTURE PROPOSAL
+              ══════════════════════════════════════════ */}
+          <Section id="restructure">
+            <div data-toc id="restructure" />
+            <SectionLabel>Section VII · Looking Ahead</SectionLabel>
+            <SectionHeading subtitle="Below is how we'd structure LV to hit that target — built around our actual fill data and operational efficiency, not uniform cuts.">
+              A Las Vegas restructure
+              <span className="block text-shortcut-teal-blue">to hit $5,400 / month.</span>
+            </SectionHeading>
+
+            {/* ── Budget target card ── */}
+            <div className="rounded-3xl bg-[#F0F0FF] p-7 md:p-10 mb-6 md:mb-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-shortcut-teal/30 to-transparent rounded-full -translate-y-1/3 translate-x-1/3" />
+              <div className="relative">
+                <div className="text-[11px] font-extrabold uppercase tracking-[.15em] text-shortcut-blue/50 mb-2">DraftKings target</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6">
+                  <div>
+                    <div className="text-[2.25rem] md:text-[3rem] font-extrabold text-shortcut-blue leading-none tabular-nums">$5,400</div>
+                    <div className="text-[12px] font-bold uppercase tracking-wider text-shortcut-blue/50 mt-2">All-in / mo</div>
+                  </div>
+                  <div>
+                    <div className="text-[2.25rem] md:text-[3rem] font-extrabold text-shortcut-blue leading-none tabular-nums">$4,500</div>
+                    <div className="text-[12px] font-bold uppercase tracking-wider text-shortcut-blue/50 mt-2">Base / mo</div>
+                  </div>
+                  <div>
+                    <div className="text-[2.25rem] md:text-[3rem] font-extrabold text-shortcut-blue leading-none tabular-nums">35</div>
+                    <div className="text-[12px] font-bold uppercase tracking-wider text-shortcut-blue/50 mt-2">Pro-hours / mo</div>
+                  </div>
+                  <div>
+                    <div className="text-[2.25rem] md:text-[3rem] font-extrabold text-shortcut-blue leading-none tabular-nums">$154</div>
+                    <div className="text-[12px] font-bold uppercase tracking-wider text-shortcut-blue/50 mt-2">Rate / hr (all-in)</div>
+                  </div>
+                </div>
+                <p className="mt-6 text-[14px] md:text-[15px] text-shortcut-blue/70 font-medium leading-relaxed max-w-[680px]">
+                  Current LV burn is <strong className="text-shortcut-blue">~$7,952 all-in / month</strong>, combining Main LV ($6,625) and Trader Monthly Perks ($1,327). Hitting $5,400 requires a <strong className="text-shortcut-blue">32% reduction</strong>.
+                </p>
+              </div>
+            </div>
+
+            {/* ── The 2-hour problem card ── */}
+            <div className="card-large mb-6 md:mb-8">
+              <div className="mb-6">
+                <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">Why event length matters</div>
+                <h3 className="text-[20px] md:text-[24px] font-extrabold text-shortcut-blue leading-tight">
+                  Short events look cheap.
+                  <span className="text-shortcut-teal-blue"> They aren't.</span>
+                </h3>
+                <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[680px]">
+                  Every event has fixed setup and teardown — about 30-45 minutes of pro time before and after, regardless of duration. The shorter the event, the worse the throughput ratio gets.
+                </p>
+              </div>
+
+              {/* Visual comparison */}
+              <div className="space-y-4 md:space-y-5">
+                {/* 2-hour event */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[13px] font-extrabold text-shortcut-blue">2-hour Hair event</div>
+                    <div className="text-[12px] font-bold text-shortcut-coral">~3 cuts max</div>
+                  </div>
+                  <div className="relative h-9 rounded-lg overflow-hidden flex">
+                    <div className="bg-shortcut-blue/15 flex items-center px-2.5" style={{ width: '20%' }}>
+                      <span className="text-[10px] font-bold text-shortcut-blue/70 uppercase tracking-wider">Setup</span>
+                    </div>
+                    <div className="bg-shortcut-coral/20 flex items-center px-3" style={{ width: '60%' }}>
+                      <span className="text-[11px] font-extrabold text-shortcut-blue">~75 min cutting time</span>
+                    </div>
+                    <div className="bg-shortcut-blue/15 flex items-center px-2.5" style={{ width: '20%' }}>
+                      <span className="text-[10px] font-bold text-shortcut-blue/70 uppercase tracking-wider">Tear-down</span>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-shortcut-blue/50 font-medium mt-1.5">40% of pro time is setup/teardown · cost-per-appt rises sharply</div>
+                </div>
+
+                {/* 4-hour event */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[13px] font-extrabold text-shortcut-blue">4-hour Hair event</div>
+                    <div className="text-[12px] font-bold text-emerald-700">~7 cuts</div>
+                  </div>
+                  <div className="relative h-9 rounded-lg overflow-hidden flex">
+                    <div className="bg-shortcut-blue/15 flex items-center px-2.5" style={{ width: '10%' }}>
+                      <span className="text-[10px] font-bold text-shortcut-blue/70 uppercase tracking-wider">Set</span>
+                    </div>
+                    <div className="bg-accent-yellow flex items-center px-3" style={{ width: '80%' }}>
+                      <span className="text-[11px] font-extrabold text-shortcut-blue">~3 hr 15 min cutting time</span>
+                    </div>
+                    <div className="bg-shortcut-blue/15 flex items-center px-2.5" style={{ width: '10%' }}>
+                      <span className="text-[10px] font-bold text-shortcut-blue/70 uppercase tracking-wider">T-D</span>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-shortcut-blue/50 font-medium mt-1.5">~80% productive time · 2.3× the appts for 2× the cost</div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-shortcut-blue/[.06] grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-shortcut-teal/30 flex items-center justify-center mt-0.5">
+                    <DollarSign size={15} className="text-shortcut-blue" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-extrabold text-shortcut-blue mb-1">The cost angle</div>
+                    <p className="text-[13px] text-text-dark/75 font-medium leading-relaxed">
+                      A weekly 4-hour Hair event delivers <strong className="text-shortcut-blue">~28 appts/month</strong> — about the same as four scattered 2-hour events, with simpler ops and a predictable booking rhythm.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-accent-yellow/40 flex items-center justify-center mt-0.5">
+                    <Scissors size={15} className="text-shortcut-blue" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-extrabold text-shortcut-blue mb-1">The staffing angle</div>
+                    <p className="text-[13px] text-text-dark/75 font-medium leading-relaxed">
+                      Hair pros consistently <strong className="text-shortcut-blue">prefer fewer, longer days</strong> over multiple short events. Travel and setup are the same effort either way — they'd rather lock in one solid 4-hour booking than juggle two 2-hour ones, and our best barbers decline short bookings.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Two side-by-side scenarios intro ── */}
+            <div className="mb-5">
+              <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">Two options to consider</div>
+              <h3 className="text-[20px] md:text-[24px] font-extrabold text-shortcut-blue leading-tight">
+                Strict $5,400 hit
+                <span className="text-shortcut-teal-blue"> or light-touch preservation.</span>
+              </h3>
+              <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[760px]">
+                Both options share the same operational logic: weekly Hair, drop Trader Massage, move Facials to quarterly. The difference is one decision &mdash; what to do with Main LV Massage.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5 mb-6 md:mb-8">
+
+              {/* ===== SCENARIO A: STRICT ===== */}
+              <div className="rounded-3xl bg-white border border-shortcut-blue/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
+                <div className="bg-shortcut-blue px-6 py-5 md:px-7 md:py-6">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <div className="text-[10px] font-extrabold uppercase tracking-[.15em] text-shortcut-teal mb-1">Scenario A</div>
+                      <h4 className="text-[20px] md:text-[22px] font-extrabold text-white leading-tight">Strict hit</h4>
+                      <div className="text-[12px] text-white/60 font-medium mt-1">Lands under $5,400 target</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-0.5">All-in / mo</div>
+                      <div className="text-[24px] md:text-[28px] font-extrabold text-shortcut-teal tabular-nums leading-none">$5,212</div>
+                      <div className="text-[11px] text-emerald-300 font-semibold mt-1">$188 under target</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 md:p-7 flex-1 flex flex-col">
+                  <div className="space-y-2 mb-5">
+                    {[
+                      { svc: 'Hair' as ServiceKey, label: 'Main Hair', cadence: 'Weekly · 4hr', hrs: 16, appts: '~28' },
+                      { svc: 'Massage' as ServiceKey, label: 'Main Massage', cadence: 'Bi-weekly · 4hr', hrs: 8, appts: '~12', highlight: true },
+                      { svc: 'Nails' as ServiceKey, label: 'Main Nails', cadence: 'Monthly · 4hr', hrs: 4, appts: '~6' },
+                      { svc: 'Beauty' as ServiceKey, label: 'Facials', cadence: 'Quarterly · 5hr', hrs: 1.67, appts: '~2' },
+                      { svc: 'Hair' as ServiceKey, label: 'Trader Hair', cadence: 'Monthly · 4hr', hrs: 4, appts: '~8' },
+                    ].map((row, i) => {
+                      const s = SERVICES[row.svc];
+                      const Icon = s.icon;
+                      return (
+                        <div key={i} className={`flex items-center gap-3 py-2 ${row.highlight ? 'bg-shortcut-teal/15 rounded-lg px-2.5 -mx-2.5' : ''}`}>
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: s.bg }}>
+                            <Icon size={13} className="text-shortcut-blue" strokeWidth={2.25} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-extrabold text-shortcut-blue leading-tight">{row.label}</div>
+                            <div className="text-[11px] text-shortcut-blue/60 font-medium">{row.cadence}</div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-[13px] font-extrabold text-shortcut-blue tabular-nums">{row.hrs} hr</div>
+                            <div className="text-[10px] text-shortcut-blue/50 font-semibold uppercase tracking-wide">{row.appts} appts</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Trader Massage dropped */}
+                    <div className="flex items-center gap-3 py-2 bg-shortcut-coral/[.06] rounded-lg px-2.5 -mx-2.5">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-shortcut-coral/20">
+                        <AlertTriangle size={13} className="text-shortcut-coral" strokeWidth={2.5} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-extrabold text-shortcut-coral leading-tight">Trader Massage</div>
+                        <div className="text-[11px] text-shortcut-blue/60 font-medium italic">dropped · 54% fill</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-[13px] font-extrabold text-shortcut-coral tabular-nums">0 hr</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto pt-4 border-t border-shortcut-blue/[.08] grid grid-cols-3 gap-3">
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-shortcut-blue/40">Pro-hrs / mo</div>
+                      <div className="text-[18px] font-extrabold text-shortcut-blue tabular-nums leading-tight">33.67</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-shortcut-blue/40">Appts / mo</div>
+                      <div className="text-[18px] font-extrabold text-shortcut-blue tabular-nums leading-tight">~56</div>
+                      <div className="text-[10px] text-shortcut-coral font-semibold">~47% cut</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-shortcut-blue/40">Base $ / mo</div>
+                      <div className="text-[18px] font-extrabold text-shortcut-blue tabular-nums leading-tight">$4,343</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ===== SCENARIO B: LIGHT TOUCH ===== */}
+              <div className="rounded-3xl bg-white border-2 border-shortcut-teal/50 shadow-[0_4px_16px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col relative">
+                <div className="absolute top-3 right-3 z-10 text-[10px] font-extrabold uppercase tracking-[.1em] bg-accent-yellow text-shortcut-blue px-2.5 py-1 rounded-full shadow-sm">
+                  Our recommendation
+                </div>
+                <div className="bg-shortcut-teal/25 px-6 py-5 md:px-7 md:py-6 border-b border-shortcut-teal/30">
+                  <div className="flex items-end justify-between flex-wrap gap-2 mt-4">
+                    <div>
+                      <div className="text-[10px] font-extrabold uppercase tracking-[.15em] text-shortcut-blue/60 mb-1">Scenario B</div>
+                      <h4 className="text-[20px] md:text-[22px] font-extrabold text-shortcut-blue leading-tight">Light touch</h4>
+                      <div className="text-[12px] text-shortcut-blue/60 font-medium mt-1">Preserves Massage cadence</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-shortcut-blue/50 mb-0.5">All-in / mo</div>
+                      <div className="text-[24px] md:text-[28px] font-extrabold text-shortcut-blue tabular-nums leading-none">$6,450</div>
+                      <div className="text-[11px] text-shortcut-blue/60 font-semibold mt-1">$1,050 over target</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 md:p-7 flex-1 flex flex-col">
+                  <div className="space-y-2 mb-5">
+                    {[
+                      { svc: 'Hair' as ServiceKey, label: 'Main Hair', cadence: 'Weekly · 4hr', hrs: 16, appts: '~28' },
+                      { svc: 'Massage' as ServiceKey, label: 'Main Massage', cadence: 'Weekly · 4hr', hrs: 16, appts: '~24', highlight: true },
+                      { svc: 'Nails' as ServiceKey, label: 'Main Nails', cadence: 'Monthly · 4hr', hrs: 4, appts: '~6' },
+                      { svc: 'Beauty' as ServiceKey, label: 'Facials', cadence: 'Quarterly · 5hr', hrs: 1.67, appts: '~2' },
+                      { svc: 'Hair' as ServiceKey, label: 'Trader Hair', cadence: 'Monthly · 4hr', hrs: 4, appts: '~8' },
+                    ].map((row, i) => {
+                      const s = SERVICES[row.svc];
+                      const Icon = s.icon;
+                      return (
+                        <div key={i} className={`flex items-center gap-3 py-2 ${row.highlight ? 'bg-accent-yellow/25 rounded-lg px-2.5 -mx-2.5' : ''}`}>
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: s.bg }}>
+                            <Icon size={13} className="text-shortcut-blue" strokeWidth={2.25} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-extrabold text-shortcut-blue leading-tight">{row.label}</div>
+                            <div className="text-[11px] text-shortcut-blue/60 font-medium">{row.cadence}</div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-[13px] font-extrabold text-shortcut-blue tabular-nums">{row.hrs} hr</div>
+                            <div className="text-[10px] text-shortcut-blue/50 font-semibold uppercase tracking-wide">{row.appts} appts</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Trader Massage dropped */}
+                    <div className="flex items-center gap-3 py-2 bg-shortcut-coral/[.06] rounded-lg px-2.5 -mx-2.5">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-shortcut-coral/20">
+                        <AlertTriangle size={13} className="text-shortcut-coral" strokeWidth={2.5} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-extrabold text-shortcut-coral leading-tight">Trader Massage</div>
+                        <div className="text-[11px] text-shortcut-blue/60 font-medium italic">dropped · 54% fill</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-[13px] font-extrabold text-shortcut-coral tabular-nums">0 hr</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto pt-4 border-t border-shortcut-blue/[.08] grid grid-cols-3 gap-3">
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-shortcut-blue/40">Pro-hrs / mo</div>
+                      <div className="text-[18px] font-extrabold text-shortcut-blue tabular-nums leading-tight">41.67</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-shortcut-blue/40">Appts / mo</div>
+                      <div className="text-[18px] font-extrabold text-shortcut-blue tabular-nums leading-tight">~68</div>
+                      <div className="text-[10px] text-shortcut-blue/60 font-semibold">~36% cut</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-shortcut-blue/40">Base $ / mo</div>
+                      <div className="text-[18px] font-extrabold text-shortcut-blue tabular-nums leading-tight">$5,375</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── The decision in one number ── */}
+            <div className="card-medium" style={{ backgroundColor: '#F0F0FF' }}>
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-shortcut-teal/40 flex items-center justify-center mt-0.5">
+                  <DollarSign size={18} className="text-shortcut-blue" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h4 className="text-[16px] md:text-[17px] font-extrabold text-shortcut-blue mb-2">The decision in one number: <span className="text-shortcut-teal-blue">$1,238 / month.</span></h4>
+                  <p className="text-[14px] text-text-dark/75 font-medium leading-relaxed">
+                    That's the all-in cost difference between the two scenarios &mdash; the price of keeping Main LV Massage weekly instead of bi-weekly. It buys back <strong className="text-shortcut-blue">~12 additional appointments per month</strong> and lifts Massage coverage from ~12 employees back up to ~24. Massage runs at 100% fill today, so the demand is there.
+                  </p>
+                  <p className="mt-3 text-[14px] text-text-dark/75 font-medium leading-relaxed">
+                    Strict hits the target precisely. Light touch preserves more service for the cost of one over-budget line item. Both options drop the underfilled Trader Massage and keep the 100%-filling Trader Hair untouched.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-6 text-[13px] text-shortcut-blue/60 font-medium leading-relaxed">
+              Worth noting: NY and NJ are running at 100% fill with a 137-employee NY waitlist over the same six months. If LV does scale back, any unspent budget there could meaningfully expand cadence or capacity in NY without overshooting.
+            </p>
+          </Section>
+
+          {/* ══════════════════════════════════════════
               METHODOLOGY
               ══════════════════════════════════════════ */}
           <Section id="methodology">
@@ -954,6 +1437,10 @@ export default function DraftKingsReport() {
                 {
                   title: 'Cost / Appointment',
                   body: 'Event payment ÷ appointments served. DraftKings pays a flat per-event fee — cost per appointment is a derived metric, not a per-unit charge.',
+                },
+                {
+                  title: '20% Gratuity',
+                  body: 'DraftKings adds a 20% gratuity to every event across all cities. Most numbers in this report show "Paid to Shortcut" — the base. The "All-in" figures in the Monthly Spend card include the +20% gratuity, matching DraftKings\' internal ledger.',
                 },
                 {
                   title: 'Beauty vs. Facial',

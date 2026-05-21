@@ -60,6 +60,7 @@ const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
 const DraftKingsReport = lazy(() => import('./components/DraftKingsReport'));
+const DraftKingsLVReport = lazy(() => import('./components/DraftKingsLVReport'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
@@ -111,6 +112,8 @@ function App() {
     location.pathname === '/lower-pyne' ||
     location.pathname === '/draftkings' ||
     location.pathname === '/draftkings-report' ||
+    location.pathname === '/draftkings-lv' ||
+    location.pathname === '/draftkings/lv' ||
     location.pathname.startsWith('/p/') ||
     location.pathname.startsWith('/r/') ||
     location.pathname.startsWith('/sign/') ||
@@ -917,6 +920,30 @@ function App() {
                     </div>
                   }>
                     <DraftKingsReport />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/draftkings-lv"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <DraftKingsLVReport />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/draftkings/lv"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <DraftKingsLVReport />
                   </Suspense>
                 }
               />
