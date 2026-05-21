@@ -95,6 +95,10 @@ interface ServiceCardProps {
    *  pros render in the param grid. Mindfulness cards aren't affected
    *  (their cells are already client-safe). */
   internalView?: boolean;
+  /** Proposal-wide auto-recurring discount (10/15/20%) — forwarded to
+   *  PricingOptionsSelector so each option tile shows the post-recurring
+   *  price as primary with the pre-discount price struck through. */
+  autoRecurringDiscount?: number;
 }
 
 const formatLabel = (format?: string): string => {
@@ -126,6 +130,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   onChangeFrequency,
   showSelectionControls = true,
   internalView = false,
+  autoRecurringDiscount,
 }) => {
   // Mobile = stack image above content + drop the title/price row to wrap.
   // Compact = phones (< md) where the image + title row gets aggressive.
@@ -714,6 +719,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             onAddOption={internalView ? onAddPricingOption : undefined}
             onRemoveOption={internalView ? onRemovePricingOption : undefined}
             onGenerateOptions={internalView ? onGeneratePricingOptions : undefined}
+            autoRecurringDiscount={autoRecurringDiscount}
           />
         </div>
       ) : null}

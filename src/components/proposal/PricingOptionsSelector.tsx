@@ -36,6 +36,12 @@ interface PricingOptionsSelectorProps {
   onAddOption?: () => void;
   onRemoveOption?: (index: number) => void;
   onGenerateOptions?: () => void;
+  /** Proposal-wide auto-recurring discount % (e.g. 10, 15, 20). Each option's
+   *  stored `serviceCost` is the pre-recurring price; we apply this on the
+   *  fly so the tile shows what the client actually pays if they pick it,
+   *  with the pre-discount price struck through. Without this prop, tiles
+   *  render exactly opt.serviceCost (the legacy behaviour). */
+  autoRecurringDiscount?: number;
 }
 
 const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
@@ -48,7 +54,10 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
   onAddOption,
   onRemoveOption,
   onGenerateOptions,
+  autoRecurringDiscount,
 }) => {
+  // Clamp to a sane range; treat 0/undefined/negative as "no recurring".
+  const recurringPct = Math.max(0, Math.min(99, Number(autoRecurringDiscount) || 0));
   // Empty-options state in editing mode — show a Generate prompt
   if (editing && options.length === 0) {
     return (
@@ -167,6 +176,26 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
           const handleSelect = () => {
             if (!disabled && onSelect) onSelect(i);
           };
+          // Compute the price the client actually pays for this option:
+          // start from the stored serviceCost (post-per-service-discount,
+          // pre-recurring) and apply the recurring multiplier on top.
+          // The strike-through "original" is whatever the option's
+          // originalPrice was at generation time (pre-per-service-discount).
+          const perServicePct = opt.discountPercent || 0;
+          const baseCost = opt.serviceCost;
+          const finalPrice = baseCost * (1 - recurringPct / 100);
+          const originalPrice =
+            typeof opt.originalPrice === 'number' && opt.originalPrice > 0
+              ? opt.originalPrice
+              : baseCost;
+          // True total discount = (originalPrice − finalPrice) / originalPrice
+          // — covers both per-service AND recurring. Shown as "X% off" pill.
+          const totalSavings = originalPrice - finalPrice;
+          const totalPct =
+            originalPrice > 0 && totalSavings > 0.01
+              ? Math.round((totalSavings / originalPrice) * 100)
+              : 0;
+          const hasAnyDiscount = totalPct > 0 || perServicePct > 0 || recurringPct > 0;
           return (
             <div
               key={i}
@@ -344,29 +373,27 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                     letterSpacing: '-.02em',
                   }}
                 >
-                  {formatCurrency(opt.serviceCost)}
+                  {formatCurrency(finalPrice)}
                 </span>
-                {/* Strike-through original price when a discount applies, so
-                    the dollar saving is visible per option (each option has a
-                    different base price → different absolute saving when the
-                    client clicks between tiles). Mirrors V1 viewer behavior. */}
-                {(opt.discountPercent ?? 0) > 0 &&
-                  typeof opt.originalPrice === 'number' &&
-                  opt.originalPrice > opt.serviceCost && (
-                    <span
-                      style={{
-                        fontFamily: T.fontD,
-                        fontWeight: 600,
-                        fontSize: 14,
-                        color: T.fgMuted,
-                        textDecoration: 'line-through',
-                        textDecorationThickness: '1.5px',
-                      }}
-                    >
-                      {formatCurrency(opt.originalPrice)}
-                    </span>
-                  )}
-                {(opt.discountPercent ?? 0) > 0 && (
+                {/* Strike-through pre-discount price + total "% off" pill
+                    when ANY discount (per-service or auto-recurring) applies.
+                    Both numbers update per option, so flipping tiles makes
+                    the saving visibly different from option to option. */}
+                {hasAnyDiscount && originalPrice > finalPrice + 0.01 && (
+                  <span
+                    style={{
+                      fontFamily: T.fontD,
+                      fontWeight: 600,
+                      fontSize: 14,
+                      color: T.fgMuted,
+                      textDecoration: 'line-through',
+                      textDecorationThickness: '1.5px',
+                    }}
+                  >
+                    {formatCurrency(originalPrice)}
+                  </span>
+                )}
+                {hasAnyDiscount && totalPct > 0 && (
                   <span
                     style={{
                       fontFamily: T.fontUi,
@@ -379,7 +406,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {opt.discountPercent}% off
+                    {totalPct}% off
                   </span>
                 )}
               </div>

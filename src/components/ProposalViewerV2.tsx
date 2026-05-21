@@ -3746,6 +3746,9 @@ const ProposalViewerV2: React.FC = () => {
                                       date={date}
                                       index={idx}
                                       isEditing={isEditing}
+                                      autoRecurringDiscount={
+                                        displayData?.autoRecurringDiscount
+                                      }
                                       onFieldChange={(field, value) =>
                                         handleFieldChange(
                                           ['services', loc, date, 'services', idx, field as string],
@@ -5424,6 +5427,8 @@ interface ServiceBlockProps {
    *  because the admin handler also has to clear any persisted optionsState
    *  entry to make the new default actually take effect on the client view. */
   onSetSelectedDefault?: (next: boolean) => void;
+  /** Proposal-wide auto-recurring discount, forwarded to PricingOptionsSelector. */
+  autoRecurringDiscount?: number;
 }
 const ServiceBlock: React.FC<ServiceBlockProps> = ({
   service,
@@ -5445,6 +5450,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
   canMoveUp,
   canMoveDown,
   onSetSelectedDefault,
+  autoRecurringDiscount,
 }) => {
   return (
     <div style={{ position: 'relative' }}>
@@ -5461,6 +5467,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
         onAddPricingOption={onAddPricingOption}
         onRemovePricingOption={onRemovePricingOption}
         onGeneratePricingOptions={onGeneratePricingOptions}
+        autoRecurringDiscount={autoRecurringDiscount}
       />
 
       {isEditing && (
