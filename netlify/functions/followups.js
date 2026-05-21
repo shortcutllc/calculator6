@@ -31,6 +31,7 @@ const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'ap
 
 const MIN_DAYS = 4;
 const MAX_TOUCHES = 3;
+const TOUCH_WINDOW_DAYS = 60;  // only count touches in this window toward the cap; old Smartlead drips don't block fresh outreach
 const MAX_RESULTS = 300;
 const PERSONAL_NOTE_RE = /\[[^\[\]]*·[^\[\]]*\]/;  // strict: [timestamp · Author]
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
@@ -101,14 +102,24 @@ export const handler = async (event) => {
     }
   }
   const now = Date.now();
-  const qualifiedSends = sendRows
-    .map((s) => ({ ...s, days_since: s.sent_time ? Math.floor((now - new Date(s.sent_time).getTime()) / 86400000) : null }))
-    .filter((s) => s.days_since != null && s.days_since >= MIN_DAYS && (s.touch_count || 1) < MAX_TOUCHES);
-  const sendByEmail = new Map();
-  for (const s of qualifiedSends) {
+  const cutoff = new Date(now - TOUCH_WINDOW_DAYS * 86400000).toISOString();
+  // Aggregate at the email level: count touches only from rep-attributed
+  // sends within the cadence window. Old Smartlead drips don't count.
+  const path2Agg = new Map();
+  for (const s of sendRows) {
     const k = lc(s.email);
-    const cur = sendByEmail.get(k);
-    if (!cur || (s.sent_time && (!cur.sent_time || s.sent_time > cur.sent_time))) sendByEmail.set(k, s);
+    const cur = path2Agg.get(k) || { latest: null, recent_touches: 0 };
+    if (s.sender_email && s.sent_time && s.sent_time >= cutoff) cur.recent_touches += (s.touch_count || 1);
+    if (s.sent_time && (!cur.latest || s.sent_time > cur.latest.sent_time)) cur.latest = s;
+    path2Agg.set(k, cur);
+  }
+  const sendByEmail = new Map();
+  for (const [k, agg] of path2Agg.entries()) {
+    if (!agg.latest?.sent_time) continue;
+    const days_since = Math.floor((now - new Date(agg.latest.sent_time).getTime()) / 86400000);
+    if (days_since < MIN_DAYS) continue;            // give them time to reply
+    if (agg.recent_touches >= MAX_TOUCHES) continue; // cadence capped
+    sendByEmail.set(k, { ...agg.latest, days_since, recent_touches: agg.recent_touches });
   }
   // Aggregate ALL sends per email (a contact often has multiple send rows
   // across campaigns — historical sweep + gmail-sent-crawl + gmail-direct
@@ -128,8 +139,12 @@ export const handler = async (event) => {
       .in('email', slice);
     for (const r of data || []) {
       const k = lc(r.email);
-      const cur = allSendByEmail.get(k) || { latest: null, total_touches: 0, any_reply: false };
-      cur.total_touches += (r.touch_count || 1);
+      const cur = allSendByEmail.get(k) || { latest: null, recent_touches: 0, any_reply: false };
+      // Only rep-attributed touches in the cadence window count toward the cap.
+      // Legacy Smartlead drips have sender_email=null → never count, which is
+      // correct: an automated drip from 6 months ago shouldn't block fresh
+      // personal outreach today.
+      if (r.sender_email && r.sent_time && r.sent_time >= cutoff) cur.recent_touches += (r.touch_count || 1);
       if (r.reply_time) cur.any_reply = true;
       if (r.sent_time && (!cur.latest || r.sent_time > cur.latest.sent_time)) cur.latest = r;
       allSendByEmail.set(k, cur);
@@ -173,11 +188,11 @@ export const handler = async (event) => {
       const latest = agg.latest;
       o.last_sent = latest.sent_time;
       o.days_since = latest.sent_time ? Math.floor((now - new Date(latest.sent_time).getTime()) / 86400000) : null;
-      o.touches = agg.total_touches || 1;
+      o.touches = agg.recent_touches || 0;  // recent rep-attributed only; for cadence
       o.thread_id = latest.thread_id || null;
       o.sender_email = latest.sender_email || null;
       o.replied = everReplied;
-      o.state = everReplied ? 'replied' : ((o.touches || 1) >= MAX_TOUCHES ? 'maxed' : 'no_reply');
+      o.state = everReplied ? 'replied' : ((o.touches || 0) >= MAX_TOUCHES ? 'maxed' : 'no_reply');
     } else {
       o.state = inbox.connected ? 'never_emailed' : 'unknown_no_inbox';
       o.touches = 0;
@@ -195,7 +210,7 @@ export const handler = async (event) => {
       is_personal_note: false, has_workhuman: false,
       conference_attendee: false, was_waitlisted: false, vip_slot: null,
       last_sent: s.sent_time, days_since: s.days_since,
-      touches: s.touch_count || 1, thread_id: s.thread_id || null,
+      touches: s.recent_touches || 0, thread_id: s.thread_id || null,
       sender_email: s.sender_email || null, replied: false,
       state: 'no_reply',
     });

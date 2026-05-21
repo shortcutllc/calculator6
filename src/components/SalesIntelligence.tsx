@@ -117,7 +117,7 @@ const RECO_COPY: Record<string, { tone: string; text: string }> = {
   ok_to_proceed: { tone: 'bg-green-50 text-green-700', text: 'Clear to reach out. No prior contact or suppression found.' },
 };
 
-const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ target, onClose }) => {
+const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void; onMutated?: () => void }> = ({ target, onClose, onMutated }) => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [data, setData] = useState<DraftResponse | null>(null);
@@ -195,6 +195,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
       }
       if (!res.ok || !j.success) throw new Error(j.error || `Send failed (${res.status})`);
       setSendResult({ label, kind: 'ok', text: `Sent to ${toEmail.trim()}.` });
+      onMutated?.();  // invalidate caches immediately — queue should reflect the send right now
     } catch (e) {
       setSendResult({ label, kind: 'err', text: e instanceof Error ? e.message : 'Send failed' });
     } finally {
@@ -227,6 +228,7 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void }> = ({ ta
       if (!res.ok || !j.success || !j.open_url) throw new Error(j.error || `Failed (${res.status})`);
       window.open(j.open_url, '_blank', 'noopener');
       setSendResult({ label, kind: 'ok', text: 'Opened in Gmail. Send from there to finish.' });
+      onMutated?.();  // 'open' mode logs the lead as contacted — invalidate immediately
     } catch (e) {
       setSendResult({ label, kind: 'err', text: e instanceof Error ? e.message : 'Could not open in Gmail' });
     } finally {
@@ -922,7 +924,8 @@ const RapidQueue: React.FC<{
   queue: FollowupRow[];
   fromGmail: string | null;
   onClose: () => void;
-}> = ({ queue, fromGmail, onClose }) => {
+  onMutated?: () => void;
+}> = ({ queue, fromGmail, onClose, onMutated }) => {
   const [idx, setIdx] = useState(0);
   const [stats, setStats] = useState({ sent: 0, saved: 0, skipped: 0, blocked: 0 });
   const [draftLoading, setDraftLoading] = useState(false);
@@ -1058,13 +1061,14 @@ const RapidQueue: React.FC<{
       if (!res.ok || !j.success) throw new Error(j.error || `Send failed (${res.status})`);
       setStats((s) => ({ ...s, sent: s.sent + 1 }));
       setActionMsg({ kind: 'ok', text: `Sent to ${cur.email}.` });
+      onMutated?.();  // invalidate the underlying queue cache immediately
       setTimeout(advance, 600);
     } catch (e) {
       setActionMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Send failed' });
     } finally {
       setSending((s) => (s === 'send' ? null : s));
     }
-  }, [cur, sending, subject, body, fromGmail, advance]);
+  }, [cur, sending, subject, body, fromGmail, advance, onMutated]);
 
   const openGmail = useCallback(async () => {
     if (!cur || sending || !subject.trim() || !body.trim()) return;
@@ -1081,13 +1085,14 @@ const RapidQueue: React.FC<{
       if (!res.ok || !j.success || !j.open_url) throw new Error(j.error || `Open failed (${res.status})`);
       window.open(j.open_url, '_blank', 'noopener');
       setActionMsg({ kind: 'ok', text: 'Opened in Gmail. Send from there to finish.' });
+      onMutated?.();  // 'open' mode logs the lead as contacted server-side — invalidate
       setTimeout(advance, 600);
     } catch (e) {
       setActionMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Open failed' });
     } finally {
       setSending(null);
     }
-  }, [cur, sending, subject, body, fromGmail, advance]);
+  }, [cur, sending, subject, body, fromGmail, advance, onMutated]);
 
   const save = useCallback(async () => {
     if (!cur || sending || !subject.trim() || !body.trim()) return;
@@ -2153,10 +2158,14 @@ const SalesIntelligence: React.FC = () => {
       {draftTarget && (
         <DraftModal
           target={draftTarget}
+          onMutated={() => {
+            setFollowups(null);                    // refetch follow-ups
+            try { sessionStorage.removeItem(FU_CACHE_KEY); } catch { /* */ }
+          }}
           onClose={() => {
             const wasFollowup = !!draftTarget.followup;
             setDraftTarget(null);
-            if (wasFollowup) setFollowups(null); // refetch queue (touch incremented / dropped)
+            if (wasFollowup) setFollowups(null); // belt-and-suspenders
           }}
         />
       )}
@@ -2165,7 +2174,11 @@ const SalesIntelligence: React.FC = () => {
         <RapidQueue
           queue={rapidQueue}
           fromGmail={pageGmail?.email || null}
-          onClose={() => { setRapidQueue(null); setFollowups(null); /* invalidate so the queue reflects new sends */ }}
+          onMutated={() => {
+            setFollowups(null);
+            try { sessionStorage.removeItem(FU_CACHE_KEY); } catch { /* */ }
+          }}
+          onClose={() => { setRapidQueue(null); setFollowups(null); }}
         />
       )}
     </div>
