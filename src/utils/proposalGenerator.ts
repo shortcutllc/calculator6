@@ -499,17 +499,27 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
             };
 
             // Ensure classLength and mindfulnessType are synced for mindfulness services.
-            // When a catalog id is present we use it as the source of truth
-            // (so picks like "Intro 60 min — $1,350" survive recalculation
-            // instead of getting overwritten by the legacy 3-bucket map).
+            // ADMIN-EDIT-WINS: when a catalog id is present we only FILL IN
+            // missing fields from the catalog — we never overwrite values
+            // the admin (or the picker handler) has already set. This lets
+            // admins edit fixedPrice / classLength on a service-by-service
+            // basis without recalc resetting them to catalog defaults. Only
+            // the picker handler explicitly applies catalog values; the
+            // recalc engine treats stored values as authoritative.
             if (mappedService.serviceType === 'mindfulness') {
               const catalog = mappedService.mindfulnessServiceId
                 ? MINDFULNESS_CATALOG_BY_ID[mappedService.mindfulnessServiceId]
                 : undefined;
               if (catalog) {
-                mappedService.classLength = catalog.classLength;
-                mappedService.mindfulnessType = catalog.mindfulnessType;
-                mappedService.fixedPrice = catalog.fixedPrice;
+                if (mappedService.classLength == null) {
+                  mappedService.classLength = catalog.classLength;
+                }
+                if (mappedService.mindfulnessType == null) {
+                  mappedService.mindfulnessType = catalog.mindfulnessType;
+                }
+                if (mappedService.fixedPrice == null) {
+                  mappedService.fixedPrice = catalog.fixedPrice;
+                }
               } else {
                 // Legacy fallback for proposals created before the shared
                 // catalog existed. Same as the original sync logic.
@@ -609,17 +619,25 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
 
       (dayData as any).services.forEach((service: any) => {
         // Ensure classLength and mindfulnessType are synced for mindfulness services.
-        // When a catalog id is present we use it as the source of truth
-        // (so picks like "Intro 60 min — $1,350" survive recalculation
-        // instead of getting overwritten by the legacy 3-bucket map).
+        // ADMIN-EDIT-WINS: when a catalog id is present we only FILL IN
+        // missing fields — never overwrite values the admin or picker
+        // handler has already set. The picker handler is responsible for
+        // applying full catalog entries on intentional changes; recalc
+        // just preserves what's stored.
         if (service.serviceType === 'mindfulness') {
           const catalog = service.mindfulnessServiceId
             ? MINDFULNESS_CATALOG_BY_ID[service.mindfulnessServiceId]
             : undefined;
           if (catalog) {
-            (service as any).classLength = catalog.classLength;
-            (service as any).mindfulnessType = catalog.mindfulnessType;
-            (service as any).fixedPrice = catalog.fixedPrice;
+            if ((service as any).classLength == null) {
+              (service as any).classLength = catalog.classLength;
+            }
+            if ((service as any).mindfulnessType == null) {
+              (service as any).mindfulnessType = catalog.mindfulnessType;
+            }
+            if ((service as any).fixedPrice == null) {
+              (service as any).fixedPrice = catalog.fixedPrice;
+            }
           } else {
             // Legacy fallback for proposals created before the shared
             // catalog existed. Same as the original sync logic.

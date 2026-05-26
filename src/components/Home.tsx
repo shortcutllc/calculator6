@@ -134,7 +134,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 139,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -143,7 +143,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 139,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -152,7 +152,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 6,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 139,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -161,7 +161,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 6,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 139,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -170,7 +170,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 139,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -200,7 +200,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 139,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -209,7 +209,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 139,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -281,7 +281,7 @@ const DEFAULT_SERVICE: Service = {
   appTime: 20,
   numPros: 2,
   proHourly: 50,
-  hourlyRate: 139,
+  hourlyRate: 150,
   earlyArrival: 25,
   discountPercent: 0,
   date: '',

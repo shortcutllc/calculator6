@@ -73,7 +73,7 @@ export const MINDFULNESS_CATALOG: MindfulnessCatalogEntry[] = [
     id: 'intro-mindfulness-60',
     name: 'Intro to Mindfulness (60 min)',
     classLength: 60,
-    fixedPrice: 1350,
+    fixedPrice: 1500,
     description:
       'In just one initial course your team will learn the fundamentals, experience guided meditations and gain practical tools to reduce stress and enhance focus.',
     mindfulnessType: 'mindful-movement',

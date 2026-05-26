@@ -556,7 +556,20 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 />
                 <ParamCell
                   label="Per session"
-                  value={formatCurrency(service.serviceCost)}
+                  value={
+                    <Editable
+                      // Bind to fixedPrice (the catalog-set per-session price)
+                      // rather than serviceCost — the recalc engine reads
+                      // fixedPrice for mindfulness and writes serviceCost
+                      // from it. Falling back to serviceCost handles legacy
+                      // proposals that pre-date the fixedPrice field.
+                      value={service.fixedPrice ?? service.serviceCost}
+                      editing={editing}
+                      prefix="$"
+                      width={80}
+                      onChange={handleEdit('fixedPrice')}
+                    />
+                  }
                 />
               </>
             ) : (
