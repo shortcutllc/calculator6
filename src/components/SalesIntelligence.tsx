@@ -585,13 +585,40 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void; onMutated
 interface CardData {
   identity: { email: string | null; name: string | null; title: string | null; company: string | null;
     domain: string | null; linkedin_url: string | null; location: string | null; headcount: string | null;
-    industry: string | null; source: string | null; stage: string | null; years_in_role: string | null;
-    email_status: string | null };
-  company: { name: string; trajectory: string | null; activity_status: string | null; completed_events: number;
+    industry: string | null; source?: string | null; stage?: string | null; years_in_role?: string | null;
+    email_status: string | null; company_url?: string | null };
+  // Workhuman-curated lead (when this contact is on the Workhuman CRM).
+  // Same shape Pro Slack's lookup_lead returns — sourced from lib/lead-picture.js
+  // so the two surfaces don't drift.
+  workhuman: {
+    id: string; assigned_to: string | null;
+    tier: string | null; outreach_status: string | null; lead_score: number | null;
+    notes_raw: string | null;
+    personal_note: string | null; personal_note_at: string | null; personal_note_by: string | null;
+    notes_all: Array<{ when: string; author: string; text: string }>;
+    linkedin_url: string | null;
+    phone: string | null; mobile_phone: string | null; work_phone: string | null;
+    signup_phone: string | null; phone_source: string | null;
+    personal_email: string | null;
+    hq_location: string | null; industry: string | null; company_size: string | null;
+    multi_office: boolean; logo_url: string | null;
+    linked_main_lead_id: string | null; source: string | null;
+    landing_page_url: string | null; landing_page_views: number; landing_page_last_viewed: string | null;
+    conference_attendee: boolean; was_waitlisted: boolean;
+    vip_slot: { day: string | null; time: string | null } | null;
+    email_sent_at: string | null; responded_at: string | null; meeting_scheduled_at: string | null;
+    outreach_log: Array<{ channel: string; sender_name: string; sent_at: string; message_preview: string | null; template_id: string | null }>;
+    outreach_log_count: number;
+    booth_signups: Array<{ id: string; appointment_at: string | null; day_label: string | null; time_slot: string | null; service_type: string | null; team_status: string | null; team_notes: string | null; full_name: string | null }>;
+    booth_signups_count: number;
+  } | null;
+  company: { id?: string; name: string; trajectory: string | null; activity_status: string | null; completed_events: number;
     last_event_at: string | null; months_since_event: number | null; fit_score: number | null;
     industry: string | null; employees: string | null; sites_we_serve: number; cities: string[] } | null;
   preflight: { recommendation?: string; suppressed?: boolean; is_client?: boolean } | null;
   history: ContactHistory;
+  proposals: Array<{ id: string; client_name: string | null; client_email: string | null; status: string | null; proposal_type: string | null; created_at: string | null; updated_at: string | null }>;
+  signups: Array<{ id: string; proposal_id: string | null; signup_url: string | null; status: string | null; event_payload: unknown; created_at: string | null }>;
   plays: {
     play_a: { rank: number; play_score: number; play_status: string | null } | null;
     play_b: { rank: number; score: number; contact_title: string | null; title_category: string | null } | null;
@@ -784,6 +811,136 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
                 <Row label="Stage">{d.identity.stage}</Row>
                 <Row label="Yrs in role">{d.identity.years_in_role}</Row>
               </section>
+
+              {/* Workhuman block — surfaces tier, assignee, personal note, all
+                  contact channels (phone with source, LinkedIn, personal email),
+                  conference attendance, landing page, booth signups. Same data
+                  Pro Slack returns from lookup_lead, rendered for the web. */}
+              {d.workhuman && (
+                <section className="border border-yellow-200 bg-yellow-50/50 rounded p-3 -mx-1">
+                  <h3 className="text-xs font-semibold text-yellow-800 uppercase tracking-wide mb-2 flex items-center gap-2">
+                    Workhuman lead
+                    {d.workhuman.tier && TIER_BADGE[d.workhuman.tier] && (
+                      <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${TIER_BADGE[d.workhuman.tier].tone}`}>
+                        Tier {TIER_BADGE[d.workhuman.tier].label}
+                      </span>
+                    )}
+                    {d.workhuman.conference_attendee && <span className="px-1.5 py-0.5 text-[10px] rounded bg-purple-100 text-purple-700">Attended</span>}
+                    {d.workhuman.was_waitlisted && <span className="px-1.5 py-0.5 text-[10px] rounded bg-gray-200 text-gray-700">Waitlisted</span>}
+                  </h3>
+                  <Row label="Assigned to">{d.workhuman.assigned_to}</Row>
+                  <Row label="Status">{d.workhuman.outreach_status?.replace(/_/g, ' ')}</Row>
+                  {d.workhuman.personal_note && (
+                    <div className="my-2 px-3 py-2 bg-white border-l-2 border-yellow-400 rounded">
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
+                        Personal note{d.workhuman.personal_note_by ? ` · ${d.workhuman.personal_note_by}` : ''}{d.workhuman.personal_note_at ? ` · ${d.workhuman.personal_note_at}` : ''}
+                      </div>
+                      <div className="text-sm text-gray-800 whitespace-pre-wrap leading-snug">{d.workhuman.personal_note}</div>
+                    </div>
+                  )}
+                  <Row label="Phone">
+                    {d.workhuman.phone ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <a href={`tel:${d.workhuman.phone}`} className="text-shortcut-navy-blue hover:underline">{d.workhuman.phone}</a>
+                        {d.workhuman.phone_source && <span className="text-[10px] text-gray-400">({d.workhuman.phone_source.replace(/_/g, ' ')})</span>}
+                      </span>
+                    ) : null}
+                  </Row>
+                  <Row label="Personal email">{d.workhuman.personal_email}</Row>
+                  <Row label="LinkedIn">{d.workhuman.linkedin_url
+                    ? <a href={d.workhuman.linkedin_url} target="_blank" rel="noreferrer" className="text-shortcut-navy-blue hover:underline inline-flex items-center gap-1">profile <ExternalLink size={11} /></a> : null}</Row>
+                  <Row label="HQ">{d.workhuman.hq_location}</Row>
+                  <Row label="Size">{d.workhuman.company_size}{d.workhuman.multi_office ? ' · multi-office' : ''}</Row>
+                  {d.workhuman.vip_slot && (
+                    <Row label="VIP slot">{d.workhuman.vip_slot.day?.replace('_', ' ')} {d.workhuman.vip_slot.time}</Row>
+                  )}
+                  {d.workhuman.landing_page_url && (
+                    <Row label="Landing page">
+                      <a href={d.workhuman.landing_page_url} target="_blank" rel="noreferrer" className="text-shortcut-navy-blue hover:underline inline-flex items-center gap-1">
+                        open <ExternalLink size={11} />
+                      </a>
+                      {d.workhuman.landing_page_views > 0 && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          {d.workhuman.landing_page_views} view{d.workhuman.landing_page_views === 1 ? '' : 's'}
+                          {d.workhuman.landing_page_last_viewed ? ` · last ${new Date(d.workhuman.landing_page_last_viewed).toLocaleDateString()}` : ''}
+                        </span>
+                      )}
+                    </Row>
+                  )}
+                  {d.workhuman.booth_signups_count > 0 && (
+                    <div className="mt-2 pt-2 border-t border-yellow-200">
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
+                        Booked at our Workhuman booth ({d.workhuman.booth_signups_count})
+                      </div>
+                      <div className="space-y-1">
+                        {d.workhuman.booth_signups.map((s) => (
+                          <div key={s.id} className="text-xs text-gray-700">
+                            {s.day_label} {s.time_slot} · {s.service_type}
+                            {s.team_status && <span className="ml-1 text-gray-500">({s.team_status})</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {d.workhuman.outreach_log_count > 0 && (
+                    <div className="mt-2 pt-2 border-t border-yellow-200">
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
+                        Multi-channel outreach log ({d.workhuman.outreach_log_count})
+                      </div>
+                      <div className="space-y-1">
+                        {d.workhuman.outreach_log.slice(0, 6).map((e, i) => (
+                          <div key={i} className="text-xs">
+                            <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-[10px] mr-2">{e.channel.replace(/_/g, ' ')}</span>
+                            <span className="text-gray-700">{e.sender_name}</span>
+                            <span className="text-gray-400 ml-2">{e.sent_at ? new Date(e.sent_at).toLocaleDateString() : ''}</span>
+                            {e.message_preview && <div className="text-gray-500 mt-0.5 ml-1 truncate">{e.message_preview.slice(0, 140)}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Proposals on file for this contact's company */}
+              {(d.proposals?.length || 0) > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Proposals ({d.proposals.length})</h3>
+                  <div className="space-y-1">
+                    {d.proposals.slice(0, 5).map((p) => (
+                      <div key={p.id} className="text-xs flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <a href={`/proposal/${p.id}`} target="_blank" rel="noreferrer" className="text-shortcut-navy-blue hover:underline truncate">
+                            {p.client_name || 'Untitled'}
+                          </a>
+                          <span className="text-gray-400 ml-2">{p.proposal_type}</span>
+                        </div>
+                        <span className="text-gray-500 shrink-0">{p.status} · {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Sign-up links for events for this contact's company */}
+              {(d.signups?.length || 0) > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sign-up links ({d.signups.length})</h3>
+                  <div className="space-y-1">
+                    {d.signups.slice(0, 5).map((s) => (
+                      <div key={s.id} className="text-xs">
+                        {s.signup_url ? (
+                          <a href={s.signup_url} target="_blank" rel="noreferrer" className="text-shortcut-navy-blue hover:underline inline-flex items-center gap-1">
+                            open <ExternalLink size={11} />
+                          </a>
+                        ) : <span className="text-gray-400">(no url)</span>}
+                        <span className="text-gray-500 ml-2">{s.status}</span>
+                        {s.created_at && <span className="text-gray-400 ml-2">{new Date(s.created_at).toLocaleDateString()}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <section>
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1"><Building2 size={13} /> Company / CRM</h3>
