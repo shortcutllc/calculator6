@@ -246,17 +246,18 @@ async function handleCancelDraft(sb, draftId) {
 }
 
 // "Chat with Pro" — posts an opener in the rep's DM that names the lead +
-// pulls a quick context summary. The rep's next message in the DM is read
-// by slack-assistant.js in the context of this lead (the opener serves as
-// the most recent conversation turn so Pro carries the lead context forward).
+// pulls a quick context summary, and seeds the slack_conversations store
+// keyed on this thread so Pro's first reply (and every subsequent reply)
+// already has the lead context. Without the seed, slack-assistant.js sees
+// an empty conversation history when the rep replies and has to ask "who
+// are we drafting for?" — the bug Will hit.
 async function handleChatWithPro(sb, rep, valueJson) {
   let v;
   try { v = JSON.parse(valueJson || '{}'); }
   catch { return { ok: false, error: 'bad chat target' }; }
   if (!v.email) return { ok: false, error: 'no email' };
 
-  // Pull a quick lead picture so the opener message has real context to set
-  // — Pro will use this as the conversation seed.
+  // Pull a quick lead picture so the opener message has real context to set.
   let pic = null;
   try {
     const mod = await import('./lib/lead-picture.js');
@@ -266,21 +267,23 @@ async function handleChatWithPro(sb, rep, valueJson) {
   const name = pic?.identity?.name || v.label || v.email;
   const company = pic?.identity?.company || '';
   const personalNote = pic?.workhuman?.personal_note || '';
-  const lastSent = pic?.history?.last_sent ? `last emailed ${new Date(pic.history.last_sent).toLocaleDateString()}` : 'never emailed';
+  const lastSentDate = pic?.history?.last_sent ? new Date(pic.history.last_sent).toLocaleDateString() : null;
+  const lastSent = lastSentDate ? `last emailed ${lastSentDate}` : 'never emailed';
   const status = pic?.workhuman?.outreach_status ? ` · status: ${pic.workhuman.outreach_status.replace(/_/g, ' ')}` : '';
+  const tier = pic?.workhuman?.tier ? ` · ${pic.workhuman.tier.replace('tier_', 'Tier ')}` : '';
 
-  const lines = [
+  const visibleLines = [
     `:speech_balloon: *Chatting about ${name}${company ? ` · ${company}` : ''}* (${v.email})`,
-    `_${lastSent}${status}_`,
+    `_${lastSent}${status}${tier}_`,
   ];
-  if (personalNote) lines.push(`_Note: ${personalNote.slice(0, 200)}_`);
-  lines.push('');
-  lines.push("What would you like to do? Examples:");
-  lines.push(`  • draft a follow-up`);
-  lines.push(`  • create a proposal`);
-  lines.push(`  • look up history / next actions`);
-  lines.push(`  • create a landing page`);
-  lines.push(`Just type — I'll keep the lead context loaded.`);
+  if (personalNote) visibleLines.push(`_Note: ${personalNote.slice(0, 200)}_`);
+  visibleLines.push('');
+  visibleLines.push("What would you like to do? Examples:");
+  visibleLines.push(`  • draft a follow-up`);
+  visibleLines.push(`  • create a proposal`);
+  visibleLines.push(`  • look up history / next actions`);
+  visibleLines.push(`  • create a landing page`);
+  visibleLines.push(`Just type in this thread — I'll keep the lead context loaded.`);
 
   const open = await slackPost('conversations.open', { users: rep.slack_user_id });
   if (!open.ok) return { ok: false, error: open.error };
@@ -288,9 +291,45 @@ async function handleChatWithPro(sb, rep, valueJson) {
   const post = await slackPost('chat.postMessage', {
     channel,
     text: `Chatting about ${name}`,
-    blocks: [{ type: 'section', text: { type: 'mrkdwn', text: lines.join('\n') } }],
+    blocks: [{ type: 'section', text: { type: 'mrkdwn', text: visibleLines.join('\n') } }],
   });
-  return post.ok ? { ok: true } : { ok: false, error: post.error };
+  if (!post.ok) return { ok: false, error: post.error };
+
+  // Seed slack_conversations so Pro reads context on the first thread reply.
+  // The conversation key is (channel_id, thread_ts). The thread_ts is the ts
+  // of this opener message — when the rep replies in the thread, Slack tags
+  // the reply with thread_ts pointing here, and slack-assistant.js loads our
+  // seeded history.
+  //
+  // We seed with an explicit "Lead context" assistant turn so Claude knows
+  // EXACTLY who to target for any draft/proposal/lookup action without us
+  // having to also patch the system prompt to parse the opener's prose.
+  const contextSummary = [
+    `[Lead context for this thread]`,
+    `email: ${v.email}`,
+    name ? `name: ${name}` : null,
+    company ? `company: ${company}` : null,
+    pic?.identity?.title ? `title: ${pic.identity.title}` : null,
+    pic?.workhuman?.tier ? `tier: ${pic.workhuman.tier}` : null,
+    pic?.workhuman?.outreach_status ? `outreach_status: ${pic.workhuman.outreach_status}` : null,
+    lastSentDate ? `last_emailed: ${lastSentDate}` : null,
+    pic?.history?.replied ? `replied: yes` : null,
+    personalNote ? `personal_note: ${personalNote.slice(0, 400)}` : null,
+    v.threadId ? `gmail_thread_id: ${v.threadId}` : null,
+    ``,
+    `Any draft/proposal/landing-page/lookup action in this thread should target the lead above unless the rep names a different one. When the rep says "draft a follow-up", call draft_email with email=${v.email} immediately — do not re-ask who to draft for. The default mode is follow_up if last_emailed is set, otherwise first_outreach.`,
+  ].filter(Boolean).join('\n');
+
+  try {
+    const { saveConversation } = await import('./lib/slack-conversation-store.js');
+    await saveConversation(sb, channel, post.ts, [
+      { role: 'assistant', content: contextSummary },
+    ], null);
+  } catch (e) {
+    console.warn('conversation seed failed (non-fatal):', e.message);
+  }
+
+  return { ok: true };
 }
 
 // "Show other angles" — pull the saved_drafts row, render safe + brave from
