@@ -30,6 +30,51 @@ const LP_VIEW_WINDOW_H = 24;       // landing-page view in last 24h
 
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 
+// Teammate domains we send to/from in operational threads. These addresses
+// must NEVER appear as a lead in the digest — sending yourself a forwarded
+// thread is not a sales reply.
+const INTERNAL_DOMAINS = new Set([
+  'getshortcut.co', 'shortcutwellness.com', 'shortcutcorporate.com',
+  'shortcutpros.com', 'shortcutpartnership.com', 'shortcutexperience.com',
+  'shortcutcorpwellness.com',
+]);
+const isInternalEmail = (email) => {
+  const d = lc(email)?.split('@')[1]?.replace(/^www\./, '');
+  return d ? INTERNAL_DOMAINS.has(d) : true;
+};
+
+// Pull a clean handwritten personal-note display:
+//   1. strip the [date · author] stamp
+//   2. cut at the "Auto-created from..." sentinel (those are import-bot lines)
+//   3. take only the first line/paragraph (avoid newlines breaking Slack italics)
+//   4. trim + cap length so the bullet stays one line in Slack
+function extractPersonalNote(notes) {
+  if (!notes) return null;
+  let s = String(notes);
+  s = s.replace(/^\[[^\[\]]*·[^\[\]]*\]\s*/, '');     // strip leading stamp
+  s = s.split(/Auto-created from /i)[0];              // drop importer sentinel
+  s = s.split(/[\r\n]+/)[0].trim();                   // first line only
+  if (!s) return null;
+  // Pure-stub notes ("Booth conversation:" with nothing else) are noise
+  if (/^Booth conversation:?\s*$/i.test(s)) return null;
+  return s.slice(0, 130) + (s.length > 130 ? '…' : '');
+}
+
+// Parse "[May 4, 11:06 AM · Will] ..." → ISO timestamp of when the note was
+// created. Used to gate which sends count as "real" outreach touches —
+// anything BEFORE the note was operational (e.g. booth logistics), not
+// a sales touch, and shouldn't show as "due for follow-up". Matches
+// followups.js semantics.
+function parseNoteTimestamp(notes) {
+  if (!notes) return null;
+  const m = String(notes).match(/\[([^\[\]·]+?)·[^\[\]]*\]/);
+  if (!m) return null;
+  let s = m[1].trim().replace(/\bat\s+/i, '').trim();
+  if (!/\d{4}/.test(s)) s = s.replace(/(\d{1,2})(,?)\s+(\d{1,2}:\d{2})/, `$1 ${new Date().getFullYear()} $3`);
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 async function slackPost(method, body, token) {
   const r = await fetch(`${SLACK_API}/${method}`, {
     method: 'POST',
@@ -65,10 +110,19 @@ async function buildSectionsForRep(sb, acct) {
   const { data: whAll } = await sb.from('workhuman_leads')
     .select('id, email, name, company, tier, tier_1a, tier_1b, notes, outreach_status, assigned_to, landing_page_url, page_view_count, page_last_viewed_at')
     .eq('assigned_to', assignee).not('notes', 'is', null);
-  // Must have a real [date · author] stamp to count as a personal note.
+  // Must have a real [date · author] stamp AND not be muted AND not be ourselves.
   const PERSONAL_NOTE_RE = /\[[^\[\]]*·[^\[\]]*\]/;
-  const wh = (whAll || []).filter((w) => PERSONAL_NOTE_RE.test(w.notes || '') && !muted.has(lc(w.email)));
+  const wh = (whAll || []).filter((w) =>
+    PERSONAL_NOTE_RE.test(w.notes || '')
+    && !muted.has(lc(w.email))
+    && !isInternalEmail(w.email)
+  );
   const whByEmail = new Map(wh.map((w) => [lc(w.email), w]));
+  const noteTsByEmail = new Map();
+  for (const w of wh) {
+    const ts = parseNoteTimestamp(w.notes);
+    if (ts) noteTsByEmail.set(lc(w.email), ts);
+  }
 
   // All sends by this rep in the last 60 days — for state + days_since.
   const cutoff60 = new Date(now - 60 * 86400000).toISOString();
@@ -76,11 +130,13 @@ async function buildSectionsForRep(sb, acct) {
     .select('email, sent_time, reply_time, sender_email, thread_id, message_id, campaign_id')
     .eq('sender_email', myEmail).gte('sent_time', cutoff60);
 
-  // Aggregate per email: latest send + any_reply
+  // Aggregate per email: latest send + any_reply. Drop the rep themselves +
+  // any other internal/teammate addresses — emailing yourself or a teammate
+  // is not a sales touch and must never appear in the digest.
   const aggByEmail = new Map();
   for (const s of (mySends || [])) {
     const k = lc(s.email);
-    if (!k || muted.has(k)) continue;
+    if (!k || muted.has(k) || isInternalEmail(k)) continue;
     const cur = aggByEmail.get(k) || { latest: null, any_reply: false };
     if (s.reply_time) cur.any_reply = true;
     if (s.sent_time && (!cur.latest || s.sent_time > cur.latest.sent_time)) cur.latest = s;
@@ -122,27 +178,64 @@ async function buildSectionsForRep(sb, acct) {
   }
   hotReplies.sort((a, b) => new Date(b.reply_at).getTime() - new Date(a.reply_at).getTime());
 
-  // ----- Never emailed personal notes -----
-  const neverEmailed = [];
-  for (const w of wh) {
-    const emailed = aggByEmail.has(lc(w.email));
-    if (emailed) continue;
-    const tier = w.tier_1a ? '1A' : w.tier_1b ? '1B' : (w.tier || '').replace('tier_', '');
-    const noteText = (w.notes || '').replace(/\[[^\[\]]*·[^\[\]]*\]\s*/, '').slice(0, 110);
-    neverEmailed.push({ email: w.email, name: w.name, company: w.company, tier, note: noteText });
-  }
-
-  // ----- Due for follow-up: no reply, >=4d since last send -----
+  // ----- Due for follow-up: no reply, >=4d since last send, AND if this is
+  //       a personal-note lead, only count sends AFTER the note was created.
+  //       Pre-note threads (e.g. Anna Maria's booth-logistics emails) were
+  //       operational, not sales outreach, and shouldn't push the rep to
+  //       "follow up". Matches followups.js semantics.
   const due = [];
   for (const [email, agg] of aggByEmail) {
     if (agg.any_reply) continue;
     if (!agg.latest?.sent_time) continue;
+    const noteTs = noteTsByEmail.get(email);
+    if (noteTs && agg.latest.sent_time < noteTs) continue;   // pre-note touch
     const days = Math.floor((now - new Date(agg.latest.sent_time).getTime()) / 86400000);
     if (days < FOLLOWUP_MIN_DAYS) continue;
     const wh = whByEmail.get(email);
     due.push({ email, name: wh?.name || null, company: wh?.company || null, days });
   }
   due.sort((a, b) => b.days - a.days);
+
+  // ----- Enrich missing name/company from outreach_contacts for any
+  //       hot-reply or due-for-followup item that didn't match a Workhuman
+  //       lead. (Personal Gmail contacts like pmkmsw@gmail.com otherwise
+  //       render as raw email strings, which is useless.)
+  const needsEnrich = new Set([
+    ...hotReplies.filter((r) => !r.name).map((r) => r.email),
+    ...due.filter((r) => !r.name).map((r) => r.email),
+  ]);
+  if (needsEnrich.size > 0) {
+    const emails = [...needsEnrich];
+    for (let i = 0; i < emails.length; i += 200) {
+      const slice = emails.slice(i, i + 200);
+      const [{ data: oc }, { data: ap }] = await Promise.all([
+        sb.from('outreach_contacts').select('email, name, company').in('email', slice),
+        sb.from('apollo_person_cache').select('email, name, company').in('email', slice),
+      ]);
+      const ocMap = new Map((oc || []).map((r) => [lc(r.email), r]));
+      const apMap = new Map((ap || []).map((r) => [lc(r.email), r]));
+      const apply = (row) => {
+        if (row.name) return;
+        const e = lc(row.email);
+        const o = ocMap.get(e); const a = apMap.get(e);
+        row.name = o?.name || a?.name || null;
+        row.company = row.company || o?.company || a?.company || null;
+      };
+      hotReplies.forEach(apply);
+      due.forEach(apply);
+    }
+  }
+
+  // ----- Never emailed personal notes -----
+  const neverEmailed = [];
+  for (const w of wh) {
+    const emailed = aggByEmail.has(lc(w.email));
+    if (emailed) continue;
+    const tier = w.tier_1a ? '1A' : w.tier_1b ? '1B' : (w.tier || '').replace('tier_', '');
+    const noteText = extractPersonalNote(w.notes);
+    if (!noteText) continue;   // skip pure-stub rows (no real handwritten note)
+    neverEmailed.push({ email: w.email, name: w.name, company: w.company, tier, note: noteText });
+  }
 
   // ----- Landing page views: page_view_count > 0 AND viewed in last 24h -----
   const lpViews = [];
