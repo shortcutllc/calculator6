@@ -546,6 +546,14 @@ export async function createLandingPageForLead(
 
 /**
  * Log that an outreach message was sent to a lead on a given channel.
+ *
+ * Side effect for channel='email': also writes a row to outreach_sends via
+ * the record-outreach-send Netlify function so the daily Pro digest, the
+ * follow-up queue, and the "never emailed" badge on the CRM card all see
+ * the send. Without that dual-write, leads who only got booth-tool or
+ * personal-note follow-up emails look "never emailed" to the digest.
+ * The secondary write is best-effort — if it fails, the lead_outreach_log
+ * entry still succeeds so the multi-channel history is intact.
  */
 export async function logOutreach(args: {
   leadId: string;
@@ -564,6 +572,30 @@ export async function logOutreach(args: {
   if (error) {
     console.error('Failed to log outreach:', error);
     return false;
+  }
+
+  // Dual-write the email send to outreach_sends so digest/follow-up surfaces
+  // see it. Non-fatal — if it fails, the primary log entry still happened.
+  if (args.channel === 'email') {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || (import.meta as { env?: { VITE_SUPABASE_ANON_KEY?: string } }).env?.VITE_SUPABASE_ANON_KEY;
+      if (!token) {
+        console.warn('record-outreach-send skipped — no auth token in session');
+      } else {
+        const r = await fetch('/.netlify/functions/record-outreach-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ leadId: args.leadId, senderName: args.senderName }),
+        });
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          console.warn('record-outreach-send non-ok:', r.status, j);
+        }
+      }
+    } catch (e) {
+      console.warn('record-outreach-send threw (non-fatal):', e);
+    }
   }
   return true;
 }

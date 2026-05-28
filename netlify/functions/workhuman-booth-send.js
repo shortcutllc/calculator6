@@ -213,6 +213,42 @@ async function processSend(supabase, signupId, action) {
     });
     if (!result.sent) return { ok: false, signupId, name: signup.full_name, error: result.reason || 'sendgrid failed' };
     await appendNote(supabase, signupId, `📧 No-show recovery email sent from ${sender.name} → ${to}`);
+
+    // Dual-write to (a) lead_outreach_log so the multi-channel log shows it
+    // and (b) outreach_sends so the daily Pro digest + "never emailed" badge
+    // reflect it. Best-effort — if either fails, the email was still sent
+    // successfully via SendGrid so we don't fail the user-facing action.
+    try {
+      const now = new Date().toISOString();
+      const toLc = to.toLowerCase();
+      if (lead?.id) {
+        await supabase.from('lead_outreach_log').insert({
+          lead_id: lead.id,
+          channel: 'email',
+          template_id: 'workhuman_booth_no_show_email',
+          sender_name: sender.name,
+          message_preview: text.slice(0, 500),
+        });
+      }
+      const { data: prev } = await supabase.from('outreach_sends')
+        .select('touch_count').eq('email', toLc).eq('campaign_id', 'workhuman-booth-email').maybeSingle();
+      await supabase.from('outreach_contacts').upsert(
+        { email: toLc, email_domain: toLc.split('@')[1] || null, source: 'workhuman-booth-email', ingested_at: now },
+        { onConflict: 'email', ignoreDuplicates: true },
+      );
+      await supabase.from('outreach_sends').upsert(
+        {
+          email: toLc, campaign_id: 'workhuman-booth-email',
+          sent_time: now, ingested_at: now,
+          sender_email: sender.email,
+          touch_count: (prev?.touch_count || 0) + 1,
+        },
+        { onConflict: 'email,campaign_id' },
+      );
+    } catch (e) {
+      console.warn('booth-send dual-write failed (non-fatal):', e.message);
+    }
+
     return { ok: true, signupId, from: sender.name, to };
   }
 
