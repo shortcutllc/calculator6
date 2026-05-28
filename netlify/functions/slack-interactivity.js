@@ -20,7 +20,9 @@
 
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { buildSettingsModal } from './lib/slack-blocks.js';
+import { buildSettingsModal, buildDraftSentBlocks, buildDraftCancelledBlocks, buildDraftErrorBlocks, buildOtherAnglesBlocks } from './lib/slack-blocks.js';
+import { getAccessToken, sendEmail, getSignature } from './lib/gmail.js';
+import { preflight } from './lib/preflight.js';
 
 const SLACK_API = 'https://slack.com/api';
 
@@ -94,6 +96,162 @@ async function handleUnsnoozeButton(sb, rep, email) {
 async function openSettingsModal(rep, triggerId) {
   const view = buildSettingsModal(rep);
   return slackPost('views.open', { trigger_id: triggerId, view });
+}
+
+// --- Draft / Send / Cancel handlers --------------------------------------
+
+const DRAFTING_HOST = process.env.URL || 'https://proposals.getshortcut.co';
+
+// Resolve the DM channel for this Slack user, then post a "Drafting..."
+// placeholder card. Returns the channel_id + message_ts so the background
+// function can chat.update() the placeholder with the real preview.
+async function postDraftingPlaceholder(rep, label) {
+  const open = await slackPost('conversations.open', { users: rep.slack_user_id });
+  if (!open.ok) return { error: open.error };
+  const channel = open.channel?.id;
+  const blocks = [
+    { type: 'section', text: { type: 'mrkdwn', text: `:hourglass_flowing_sand: *Drafting to ${label}…*` } },
+    { type: 'context', elements: [{ type: 'mrkdwn', text: `_Pro is generating a draft using brand voice + anti-hallucination rules. ~10s._` }] },
+  ];
+  const post = await slackPost('chat.postMessage', {
+    channel, blocks, text: `Drafting to ${label}…`, unfurl_links: false, unfurl_media: false,
+  });
+  if (!post.ok) return { error: post.error };
+  return { channel, ts: post.ts };
+}
+
+// Fire the background function (drops the LLM work off our 3s ack timer).
+// We don't await this — the function returns 200/202 quickly from Netlify's
+// background-function dispatcher.
+function fireDraftBackground(payload) {
+  return fetch(`${DRAFTING_HOST}/.netlify/functions/slack-draft-async-background`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch((e) => console.error('background dispatch error:', e.message));
+}
+
+async function handleDraftButton(sb, rep, action) {
+  // Value is JSON {email, threadId, firstOutreach, label}
+  let v;
+  try { v = JSON.parse(action.value || '{}'); }
+  catch { return 'Could not parse draft target.'; }
+  const placeholder = await postDraftingPlaceholder(rep, v.label || v.email);
+  if (placeholder.error) return `Could not open DM: ${placeholder.error}`;
+  // Fire and forget — the background function chat.updates the placeholder
+  // when the LLM finishes.
+  fireDraftBackground({
+    repEmail: rep.email,
+    leadEmail: v.email,
+    threadId: v.threadId || null,
+    firstOutreach: !!v.firstOutreach,
+    label: v.label || v.email,
+    slackChannel: placeholder.channel,
+    placeholderTs: placeholder.ts,
+  });
+  // No ephemeral confirmation needed — the placeholder message is the receipt.
+  return null;
+}
+
+// Pull the chosen direction (subject + body) from saved_drafts. If a label
+// is given, swap into all_directions[label]; otherwise use the stored
+// medium subject + body.
+async function loadDraftForSend(sb, draftId, optionalLabel) {
+  const { data: draft, error } = await sb.from('saved_drafts').select('*').eq('id', draftId).maybeSingle();
+  if (error || !draft) return { error: `draft ${draftId} not found` };
+  let subject = draft.subject;
+  let body = draft.body;
+  let label = draft.direction_label;
+  if (optionalLabel && optionalLabel !== draft.direction_label) {
+    const all = (draft.target_ref && Array.isArray(draft.target_ref.all_directions)) ? draft.target_ref.all_directions : [];
+    const picked = all.find((d) => d.label === optionalLabel);
+    if (picked) {
+      subject = picked.subject; body = picked.body; label = picked.label;
+    }
+  }
+  return { draft, subject, body, label };
+}
+
+async function handleSendDraft(sb, rep, draftId, optionalLabel) {
+  const loaded = await loadDraftForSend(sb, draftId, optionalLabel);
+  if (loaded.error) return { ok: false, error: loaded.error };
+  const { draft, subject, body } = loaded;
+  const recipient = draft.recipient_email;
+  if (!recipient) return { ok: false, error: 'draft has no recipient_email' };
+
+  // Pre-flight gate — never bypass, even on user click. Suppression, current
+  // client, DNC reply all block here just like send-as-rep.
+  let gate;
+  try { gate = await preflight(sb, { email: recipient, domain: recipient.split('@')[1] }); }
+  catch (e) { return { ok: false, error: `preflight failed: ${e.message}` }; }
+  if (gate.suppressed) return { ok: false, error: `blocked: ${gate.suppression_reason || 'suppressed'}` };
+  if (gate.is_client) return { ok: false, error: 'blocked: already a current client (expansion touch, not cold pitch)' };
+
+  // Send via the rep's Gmail. Reuses send-as-rep's helpers.
+  const threadId = draft.target_ref?.thread_id || null;
+  let sent;
+  try {
+    const token = await getAccessToken(sb, rep.email);
+    const signatureHtml = await getSignature(token, rep.email);
+    sent = await sendEmail(token, { from: rep.email, to: recipient, subject, body, signatureHtml, threadId });
+  } catch (e) {
+    return { ok: false, error: `Send failed: ${e.message}` };
+  }
+
+  // Record so the next digest reflects the send. Same path as send-as-rep:
+  // upsert outreach_contacts, upsert outreach_sends with sender_email +
+  // touch_count + thread_id + message_id.
+  const now = new Date().toISOString();
+  try {
+    await sb.from('outreach_contacts').upsert(
+      { email: recipient, email_domain: recipient.split('@')[1] || null, source: 'slack-pro-send', first_seen: now, ingested_at: now },
+      { onConflict: 'email', ignoreDuplicates: true },
+    );
+    const { data: prev } = await sb.from('outreach_sends')
+      .select('touch_count').eq('email', recipient).eq('campaign_id', 'gmail-direct').maybeSingle();
+    await sb.from('outreach_sends').upsert(
+      {
+        email: recipient, campaign_id: 'gmail-direct', sent_time: now, ingested_at: now,
+        touch_count: (prev?.touch_count || 0) + 1,
+        thread_id: sent.threadId || threadId || null,
+        message_id: sent.id || null,
+        sender_email: rep.email,
+      },
+      { onConflict: 'email,campaign_id' },
+    );
+  } catch (e) {
+    console.error('Send recorded but logging errored (non-fatal):', e.message);
+  }
+
+  // Clean up the draft row (no longer needed once sent).
+  await sb.from('saved_drafts').delete().eq('id', draftId);
+
+  return { ok: true, sent: { subject, thread_id: sent.threadId || threadId } };
+}
+
+async function handleCancelDraft(sb, draftId) {
+  await sb.from('saved_drafts').delete().eq('id', draftId);
+  return { ok: true };
+}
+
+// "Show other angles" — pull the saved_drafts row, render safe + brave from
+// target_ref.all_directions, post them as a NEW message below the preview.
+async function handleShowAngles(sb, rep, draftId, payload) {
+  const { data: draft } = await sb.from('saved_drafts').select('*').eq('id', draftId).maybeSingle();
+  if (!draft) return { ok: false, error: 'draft not found' };
+  const allDirections = draft.target_ref?.all_directions || [];
+  const fightFor = { label: draft.target_ref?.fight_for, reason: draft.target_ref?.fight_for_reason };
+  const blocks = buildOtherAnglesBlocks(
+    { who: draft.target_ref?.label || draft.recipient_email, email: draft.recipient_email, draftId },
+    allDirections, fightFor,
+  );
+  // Post as new message in same channel so the original preview stays.
+  const open = await slackPost('conversations.open', { users: rep.slack_user_id });
+  if (!open.ok) return { ok: false, error: open.error };
+  await slackPost('chat.postMessage', {
+    channel: open.channel?.id, blocks, text: `Other angles for ${draft.recipient_email}`,
+  });
+  return { ok: true };
 }
 
 // --- Slash command handler ---
@@ -214,7 +372,7 @@ export const handler = async (event) => {
     const responseUrl = payload.response_url;
     if (!action) return { statusCode: 200, body: '' };
 
-    const [op, arg] = (action.action_id || '').split(':');
+    const [op, arg, arg2] = (action.action_id || '').split(':');
     let confirmation = null;
     try {
       if (op === 'snooze_1d') confirmation = await handleSnoozeButton(sb, rep, arg, 1);
@@ -225,6 +383,46 @@ export const handler = async (event) => {
       else if (op === 'open_settings') {
         await openSettingsModal(rep, payload.trigger_id);
         return { statusCode: 200, body: '' };
+      }
+      else if (op === 'draft_pro') {
+        // Returns null on success (placeholder posted, background fires);
+        // returns a string on failure for the ephemeral confirmation.
+        const fail = await handleDraftButton(sb, rep, action);
+        if (fail) confirmation = fail;
+      }
+      else if (op === 'send_pro' || op === 'send_pro_dir') {
+        // arg = draftId; arg2 (for send_pro_dir) = direction label override
+        const result = await handleSendDraft(sb, rep, arg, arg2);
+        if (result.ok) {
+          // Update the ORIGINAL preview message in place: pull the message ts
+          // from saved_drafts.target_ref before delete, or use the message
+          // from the action payload.
+          const draftCtx = payload.message;
+          const blocks = buildDraftSentBlocks(
+            { who: draftCtx?.text || arg, email: '', tz: rep.tz },
+            result.sent, rep.email,
+          );
+          await slackPost('chat.update', {
+            channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Sent ✓',
+          });
+        } else {
+          confirmation = result.error;
+          const blocks = buildDraftErrorBlocks({ who: 'lead', email: '' }, result.error);
+          await slackPost('chat.update', {
+            channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Send failed',
+          });
+        }
+      }
+      else if (op === 'cancel_draft') {
+        await handleCancelDraft(sb, arg);
+        const blocks = buildDraftCancelledBlocks({ who: 'this lead' });
+        await slackPost('chat.update', {
+          channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Draft cancelled',
+        });
+      }
+      else if (op === 'show_angles') {
+        const result = await handleShowAngles(sb, rep, arg, payload);
+        if (!result.ok) confirmation = result.error;
       }
     } catch (e) {
       confirmation = `Failed: ${e.message}`;

@@ -51,7 +51,7 @@ const actionBtn = (text, actionId, value, style, confirm) => ({
 });
 
 function itemBlocks(label, sublabel, email, opts = {}) {
-  const { threadId, repEmail, includeDraft = true, includeOpenThread = true, draftLabel = 'Draft' } = opts;
+  const { threadId, repEmail, includeDraft = true, includeOpenThread = true, draftLabel = 'Draft', isFirstOutreach = false } = opts;
   const blocks = [];
   // Headline row — bold name + faded sublabel
   blocks.push({
@@ -59,7 +59,16 @@ function itemBlocks(label, sublabel, email, opts = {}) {
     text: { type: 'mrkdwn', text: `• *${label}*${sublabel ? ` — ${sublabel}` : ''}` },
   });
   const buttons = [];
-  if (includeDraft) buttons.push(urlBtn(draftLabel, draftUrl(email), 'primary'));
+  if (includeDraft) {
+    // Primary action: Pro drafts + lets you send from Slack.
+    // action_id encodes the operation + email + a flag for first-outreach
+    // (cold open) vs follow-up so the background generator picks the right
+    // prompt mode. We also pass thread_id via value (URL-encoded) so the
+    // generated draft can reply in-thread.
+    const actionId = `draft_pro:${email}`;
+    const value = JSON.stringify({ email, threadId: threadId || null, firstOutreach: !!isFirstOutreach, label });
+    buttons.push(actionBtn(draftLabel, actionId, value, 'primary'));
+  }
   const gmailUrl = gmailThreadUrl(threadId, repEmail);
   if (includeOpenThread && gmailUrl) buttons.push(urlBtn('Open thread', gmailUrl));
   buttons.push(actionBtn('Snooze 1d', `snooze_1d:${email}`, email));
@@ -108,6 +117,7 @@ export function buildDigestBlocks(rep, sec) {
       const sub = [tierStr, n.note ? `"${n.note}"` : ''].filter(Boolean).join(' — ');
       blocks.push(...itemBlocks(who, sub, n.email, {
         repEmail: rep.repEmail, includeOpenThread: false, draftLabel: 'Draft cold open',
+        isFirstOutreach: true,
       }));
     }
     if (sec.neverEmailed.length > 5) blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: `_+${sec.neverEmailed.length - 5} more_` }] });
@@ -246,4 +256,131 @@ export function buildSettingsModal(acct) {
     close: { type: 'plain_text', text: 'Close' },
     blocks,
   };
+}
+
+// ============================================================
+// Draft preview message (posted by slack-draft-async-background after the
+// LLM finishes). Shows subject + body of the medium direction with action
+// buttons to send, switch direction, edit in browser, or cancel.
+// ============================================================
+
+const BODY_TRUNCATE_AT = 1400; // Slack section text max is 3000; leave room for formatting
+
+/**
+ * Build the draft preview message blocks.
+ * @param ctx  { who: 'Beverly · Opensesame', email, draftId, threadId? }
+ * @param draft { subject, body, label }
+ * @param fightFor { label, reason }
+ */
+export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
+  const blocks = [];
+  blocks.push({
+    type: 'section',
+    text: { type: 'mrkdwn', text: `:pencil2: *Draft to ${ctx.who}* (${draft.label || 'medium'})` },
+  });
+  if (fightFor && fightFor.reason) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: `_Pro recommends *${fightFor.label}*: ${fightFor.reason.slice(0, 200)}_` }],
+    });
+  }
+  blocks.push({ type: 'divider' });
+  blocks.push({
+    type: 'section',
+    text: { type: 'mrkdwn', text: `*Subject:* ${draft.subject || '_(no subject — continues thread)_'}` },
+  });
+  const body = String(draft.body || '');
+  const truncated = body.length > BODY_TRUNCATE_AT;
+  const shown = truncated ? body.slice(0, BODY_TRUNCATE_AT) + '…' : body;
+  // Render body in a quoted block so newlines preserve (Slack mrkdwn `>` quote)
+  const quoted = shown.split('\n').map((l) => `> ${l}`).join('\n');
+  blocks.push({ type: 'section', text: { type: 'mrkdwn', text: quoted } });
+  if (truncated) {
+    blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: `_+${body.length - BODY_TRUNCATE_AT} more chars — click Edit in browser to see full body_` }] });
+  }
+  blocks.push({ type: 'divider' });
+  const actions = [
+    actionBtn('Send', `send_pro:${ctx.draftId}`, ctx.draftId, 'primary', {
+      title: { type: 'plain_text', text: 'Send now?' },
+      text: { type: 'mrkdwn', text: `This will send the draft from your Gmail to *${ctx.email}*.` },
+      confirm: { type: 'plain_text', text: 'Send' },
+      deny: { type: 'plain_text', text: 'Cancel' },
+    }),
+    actionBtn('Show other angles', `show_angles:${ctx.draftId}`, ctx.draftId),
+    urlBtn('Edit in browser', `${SI_URL_BASE}?lead=${encodeURIComponent(ctx.email)}&draft=${encodeURIComponent(ctx.draftId)}#followups`),
+    actionBtn('Cancel', `cancel_draft:${ctx.draftId}`, ctx.draftId, 'danger'),
+  ];
+  blocks.push({ type: 'actions', elements: actions });
+  return blocks;
+}
+
+/**
+ * Build the safe + brave angles preview (revealed when user clicks
+ * "Show other angles"). Each direction gets its own Send button.
+ */
+export function buildOtherAnglesBlocks(ctx, allDirections, fightFor) {
+  const blocks = [];
+  blocks.push({
+    type: 'section',
+    text: { type: 'mrkdwn', text: `:scales: *Other angles for ${ctx.who}*` },
+  });
+  for (const d of allDirections) {
+    if (d.label === 'medium') continue;  // already shown above
+    blocks.push({ type: 'divider' });
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `*${d.label.toUpperCase()}*${fightFor?.label === d.label ? ' :star:' : ''}` },
+    });
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `*Subject:* ${d.subject || '_(no subject)_'}` },
+    });
+    const body = String(d.body || '').slice(0, 700);
+    const quoted = body.split('\n').map((l) => `> ${l}`).join('\n');
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: quoted } });
+    blocks.push({
+      type: 'actions',
+      elements: [
+        actionBtn(`Send ${d.label}`, `send_pro_dir:${ctx.draftId}:${d.label}`, JSON.stringify({ draftId: ctx.draftId, label: d.label }), 'primary', {
+          title: { type: 'plain_text', text: `Send ${d.label} draft?` },
+          text: { type: 'mrkdwn', text: `Send the *${d.label}* version to *${ctx.email}* from your Gmail.` },
+          confirm: { type: 'plain_text', text: 'Send' },
+          deny: { type: 'plain_text', text: 'Cancel' },
+        }),
+      ],
+    });
+  }
+  return blocks;
+}
+
+/**
+ * Replace the preview after a successful send. Body is short so we render
+ * the subject + the time + a link to the thread.
+ */
+export function buildDraftSentBlocks(ctx, sent, repEmail) {
+  const when = new Date().toLocaleString('en-US', { timeZone: ctx.tz || 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const blocks = [
+    { type: 'section', text: { type: 'mrkdwn', text: `:white_check_mark: *Sent to ${ctx.who}* at ${when}` } },
+    { type: 'section', text: { type: 'mrkdwn', text: `*Subject:* ${sent.subject}` } },
+  ];
+  const gmailUrl = gmailThreadUrl(sent.thread_id, repEmail);
+  if (gmailUrl) {
+    blocks.push({ type: 'actions', elements: [urlBtn('Open in Gmail', gmailUrl)] });
+  }
+  return blocks;
+}
+
+export function buildDraftCancelledBlocks(ctx) {
+  return [{ type: 'section', text: { type: 'mrkdwn', text: `:x: *Draft to ${ctx.who} cancelled.*` } }];
+}
+
+export function buildDraftErrorBlocks(ctx, errorMessage) {
+  return [
+    { type: 'section', text: { type: 'mrkdwn', text: `:warning: *Could not send to ${ctx.who}*` } },
+    { type: 'section', text: { type: 'mrkdwn', text: `\`${errorMessage}\`` } },
+    {
+      type: 'actions',
+      elements: [urlBtn('Try in browser', `${SI_URL_BASE}?lead=${encodeURIComponent(ctx.email)}#followups`)],
+    },
+  ];
 }
