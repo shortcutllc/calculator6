@@ -19,6 +19,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { assigneeForGmail } from './lib/assignee.js';
+import { buildDigestBlocks } from './lib/slack-blocks.js';
 
 export const config = { schedule: '0 * * * *' }; // hourly, top of hour
 
@@ -113,9 +114,16 @@ async function buildSectionsForRep(sb, acct) {
   // hide the same things.
   const { data: suppRows } = await sb.from('crm_suppression').select('email');
   const suppressed = new Set((suppRows || []).map((r) => lc(r.email)));
+  // Temporal per-lead snoozes ("snooze 1d / 7d" button). Expired entries
+  // are ignored (the time check handles them). Phase 2 column.
+  const snoozeMap = acct.muted_until_by_lead || {};
+  const isSnoozed = (email) => {
+    const until = snoozeMap[lc(email)];
+    return until && new Date(until).getTime() > now;
+  };
   const isFiltered = (email) => {
     const e = lc(email);
-    return !e || muted.has(e) || suppressed.has(e) || isInternalEmail(e);
+    return !e || muted.has(e) || suppressed.has(e) || isSnoozed(e) || isInternalEmail(e);
   };
 
   // Pull workhuman personal-note leads assigned to this rep (any with notes set).
@@ -184,6 +192,7 @@ async function buildSectionsForRep(sb, acct) {
     hotReplies.push({
       email, name: wh?.name || null, company: wh?.company || null,
       reply_at: replyT, hours_ago: Math.floor((now - new Date(replyT).getTime()) / 3600000),
+      thread_id: agg.latest?.thread_id || null,
     });
   }
   hotReplies.sort((a, b) => new Date(b.reply_at).getTime() - new Date(a.reply_at).getTime());
@@ -202,7 +211,7 @@ async function buildSectionsForRep(sb, acct) {
     const days = Math.floor((now - new Date(agg.latest.sent_time).getTime()) / 86400000);
     if (days < FOLLOWUP_MIN_DAYS) continue;
     const wh = whByEmail.get(email);
-    due.push({ email, name: wh?.name || null, company: wh?.company || null, days });
+    due.push({ email, name: wh?.name || null, company: wh?.company || null, days, thread_id: agg.latest?.thread_id || null });
   }
   due.sort((a, b) => b.days - a.days);
 
@@ -261,67 +270,34 @@ async function buildSectionsForRep(sb, acct) {
   return { hotReplies, neverEmailed, due, lpViews };
 }
 
-function formatDigest(rep, sec) {
-  const today = new Intl.DateTimeFormat('en-US', { timeZone: rep.tz, weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
-  const lines = [`:wave: Morning${rep.assignee_first ? ' ' + rep.assignee_first : ''}. Here's ${today}.`];
-
-  if (sec.hotReplies.length) {
-    lines.push('', `:fire: *Replied in last ${HOT_REPLY_WINDOW_H}h (${sec.hotReplies.length})*`);
-    for (const h of sec.hotReplies.slice(0, SECTION_MAX)) {
-      const who = [h.name, h.company].filter(Boolean).join(' · ') || h.email;
-      lines.push(`  • *${who}* — replied ${h.hours_ago}h ago`);
-    }
-    if (sec.hotReplies.length > SECTION_MAX) lines.push(`  _+${sec.hotReplies.length - SECTION_MAX} more_`);
-  }
-
-  if (sec.neverEmailed.length) {
-    lines.push('', `:sparkles: *Personal notes — never emailed (${sec.neverEmailed.length})*`);
-    for (const n of sec.neverEmailed.slice(0, SECTION_MAX)) {
-      const who = [n.name, n.company].filter(Boolean).join(' · ') || n.email;
-      const tier = n.tier ? ` _Tier ${n.tier}_` : '';
-      const note = n.note ? `\n     _"${n.note}${n.note.length >= 110 ? '…' : ''}"_` : '';
-      lines.push(`  • *${who}*${tier}${note}`);
-    }
-    if (sec.neverEmailed.length > SECTION_MAX) lines.push(`  _+${sec.neverEmailed.length - SECTION_MAX} more_`);
-  }
-
-  if (sec.due.length) {
-    lines.push('', `:hourglass: *Due for follow-up (${sec.due.length})*`);
-    for (const d of sec.due.slice(0, SECTION_MAX)) {
-      const who = [d.name, d.company].filter(Boolean).join(' · ') || d.email;
-      lines.push(`  • *${who}* — ${d.days}d since last send`);
-    }
-    if (sec.due.length > SECTION_MAX) lines.push(`  _+${sec.due.length - SECTION_MAX} more_`);
-  }
-
-  if (sec.lpViews.length) {
-    lines.push('', `:eyes: *Landing page views — last ${LP_VIEW_WINDOW_H}h (${sec.lpViews.length})*`);
-    for (const v of sec.lpViews.slice(0, SECTION_MAX)) {
-      const who = [v.name, v.company].filter(Boolean).join(' · ') || v.email;
-      lines.push(`  • *${who}* — ${v.views} total view${v.views === 1 ? '' : 's'}`);
-    }
-  }
-
-  // If literally nothing matched, return null so we don't DM an empty digest.
-  const totalItems = sec.hotReplies.length + sec.neverEmailed.length + sec.due.length + sec.lpViews.length;
-  if (totalItems === 0) return null;
-
-  lines.push('', '_Tip: open /sales-intelligence in browser for the full picture, or @Pro me here._');
-  return lines.join('\n');
-}
+// Phase 1 text-only formatter is gone; Phase 2 uses lib/slack-blocks.js
+// buildDigestBlocks for everything. See sendDigest below.
 
 async function sendDigest(sb, token, acct, repLocalHour, force = false) {
   const sec = await buildSectionsForRep(sb, acct);
-  const text = formatDigest({
-    tz: acct.tz, assignee_first: assigneeForGmail(acct.email)?.split(' ')[0] || '',
-  }, sec);
-  if (!text) return { skipped: 'empty', email: acct.email };
+  // Bail out if every section is empty — no point spamming an empty DM.
+  const totalItems = sec.hotReplies.length + sec.neverEmailed.length + sec.due.length + sec.lpViews.length;
+  if (totalItems === 0) return { skipped: 'empty', email: acct.email };
 
-  // Open DM → post message.
+  const blocks = buildDigestBlocks({
+    tz: acct.tz, assignee_first: assigneeForGmail(acct.email)?.split(' ')[0] || '',
+    repEmail: acct.email,
+  }, sec);
+  // Fallback text for accessibility + notifications preview. Block kit
+  // requires `text` to be set even when blocks render the actual content.
+  const fallback = `Pro digest · ${totalItems} item${totalItems === 1 ? '' : 's'} (${
+    [sec.hotReplies.length && `${sec.hotReplies.length} hot replies`,
+     sec.neverEmailed.length && `${sec.neverEmailed.length} never-emailed notes`,
+     sec.due.length && `${sec.due.length} due`,
+     sec.lpViews.length && `${sec.lpViews.length} page views`].filter(Boolean).join(', ')
+  })`;
+
   const open = await slackPost('conversations.open', { users: acct.slack_user_id }, token);
   if (!open.ok) return { error: 'conversations.open failed', detail: open.error, email: acct.email };
   const channel = open.channel?.id;
-  const post = await slackPost('chat.postMessage', { channel, text, unfurl_links: false, unfurl_media: false }, token);
+  const post = await slackPost('chat.postMessage', {
+    channel, text: fallback, blocks, unfurl_links: false, unfurl_media: false,
+  }, token);
   if (!post.ok) return { error: 'chat.postMessage failed', detail: post.error, email: acct.email };
 
   if (!force) {
@@ -329,7 +305,7 @@ async function sendDigest(sb, token, acct, repLocalHour, force = false) {
       .update({ digest_last_sent_at: new Date().toISOString() })
       .eq('email', acct.email);
   }
-  return { sent: true, email: acct.email, items: text.split('\n').filter((l) => l.startsWith('  • ')).length };
+  return { sent: true, email: acct.email, items: totalItems };
 }
 
 export const handler = async (event) => {
