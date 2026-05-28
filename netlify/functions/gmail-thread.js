@@ -48,21 +48,37 @@ export const handler = async (event) => {
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'Invalid JSON body' }); }
   const threadId = body.thread_id || body.threadId;
+  const senderEmailReq = (body.sender_email || body.senderEmail || '').toString().trim().toLowerCase() || null;
   if (!threadId) return json(400, { error: 'thread_id required' });
 
-  // Only the rep who owns the mailbox can see the thread.
-  const { data: acct } = await sb.from('gmail_accounts')
+  // Team-transparency authz: any rep with a connected gmail_accounts row can
+  // view any other rep's thread (internal sales tool). Require the requesting
+  // user to be a connected rep — random authenticated users with no Gmail
+  // connection are not on the sales team and can't pull threads.
+  const { data: myAcct } = await sb.from('gmail_accounts')
     .select('email').eq('supabase_user_id', user.id).maybeSingle();
-  if (!acct) return json(403, { error: 'No Gmail account connected for this user' });
+  if (!myAcct) return json(403, { error: 'No Gmail account connected for this user' });
+
+  // Resolve which account's mailbox to query:
+  //   sender_email provided → look up that rep's account (must exist)
+  //   otherwise → fall back to the requesting user's own mailbox
+  let mailboxEmail = myAcct.email;
+  if (senderEmailReq && senderEmailReq !== myAcct.email.toLowerCase()) {
+    const { data: otherAcct } = await sb.from('gmail_accounts')
+      .select('email').eq('email', senderEmailReq).maybeSingle();
+    if (!otherAcct) return json(404, { error: `Sender ${senderEmailReq} has no connected Gmail account` });
+    mailboxEmail = otherAcct.email;
+  }
 
   let token;
-  try { token = await getAccessToken(sb, acct.email); }
-  catch (e) { return json(502, { error: `Token error: ${e.message}` }); }
+  try { token = await getAccessToken(sb, mailboxEmail); }
+  catch (e) { return json(502, { error: `Token error for ${mailboxEmail}: ${e.message}` }); }
 
   const t = await getThread(token, threadId);
   if (!t || !t.messages) return json(404, { error: 'Thread not found in your mailbox' });
 
-  const myEmail = lc(acct.email);
+  // "Sent" direction = sent from the mailbox we queried (whoever's thread this is).
+  const myEmail = lc(mailboxEmail);
   const messages = t.messages.map((m) => {
     const headers = m.payload?.headers || [];
     const fromRaw = headerVal(headers, 'From') || '';

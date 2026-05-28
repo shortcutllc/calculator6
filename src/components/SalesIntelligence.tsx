@@ -639,7 +639,7 @@ interface ThreadMessage {
 // gmail-thread function. Bodies aren't stored in our DB; they live in Gmail.
 // Collapsed by default; clicking the toggle fetches + expands. Shows last
 // sent + last received as a preview, with "Show full thread" for the rest.
-const ThreadView: React.FC<{ threadId: string; defaultOpen?: boolean }> = ({ threadId, defaultOpen = false }) => {
+const ThreadView: React.FC<{ threadId: string; senderEmail?: string | null; defaultOpen?: boolean }> = ({ threadId, senderEmail, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -655,7 +655,10 @@ const ThreadView: React.FC<{ threadId: string; defaultOpen?: boolean }> = ({ thr
       const res = await fetch('/.netlify/functions/gmail-thread', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ thread_id: threadId }),
+        // sender_email tells gmail-thread to query that rep's mailbox (not the
+        // logged-in user's). Required for team-scope views where you're
+        // looking at another rep's row.
+        body: JSON.stringify({ thread_id: threadId, sender_email: senderEmail || undefined }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || `Failed (${res.status})`);
@@ -666,7 +669,7 @@ const ThreadView: React.FC<{ threadId: string; defaultOpen?: boolean }> = ({ thr
     } finally {
       setLoading(false);
     }
-  }, [threadId]);
+  }, [threadId, senderEmail]);
 
   const toggle = () => {
     if (!loaded && !loading) load();
@@ -1021,7 +1024,7 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
                                 {s.sender_email ? s.sender_email.split('@')[0] : 'unknown'} ·{' '}
                                 {s.replied ? <span className="text-green-700">replied</span> : <span>no reply</span>}
                               </div>
-                              <ThreadView threadId={s.thread_id!} />
+                              <ThreadView threadId={s.thread_id!} senderEmail={s.sender_email} />
                             </div>
                           ))}
                         </div>
@@ -1386,7 +1389,7 @@ const RapidQueue: React.FC<{
           {cur.thread_id && (
             <div className="border-t border-gray-100 pt-3">
               <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Gmail thread (latest sent + latest reply)</div>
-              <ThreadView threadId={cur.thread_id} defaultOpen />
+              <ThreadView threadId={cur.thread_id} senderEmail={cur.sender_email} defaultOpen />
             </div>
           )}
 
@@ -2239,7 +2242,7 @@ const SalesIntelligence: React.FC = () => {
                         {open && r.thread_id && (
                           <tr>
                             <td colSpan={cols} className="border-t border-gray-100 p-3 bg-gray-50">
-                              <ThreadView threadId={r.thread_id} />
+                              <ThreadView threadId={r.thread_id} senderEmail={r.sender_email} />
                             </td>
                           </tr>
                         )}
