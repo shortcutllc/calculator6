@@ -18,6 +18,9 @@
 [functions."gmail-watch-renew"]
   schedule = "0 12 * * *"   # daily noon UTC — re-arms Gmail push notifications before the 7d expiry
 
+[functions."slack-rep-digest"]
+  schedule = "0 * * * *"    # hourly — function checks each rep's local tz and only fires at 8am LOCAL
+
 [[redirects]]
   from = "/shared/*"
   to = "/index.html"
