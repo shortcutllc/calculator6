@@ -670,6 +670,30 @@ const TOOLS = [
         email: { type: 'string', description: 'Contact email' }
       },
       required: ['email']
+    }
+  },
+  {
+    name: 'suppress_lead',
+    description: 'Hide a contact from the CRM — they will be filtered from the daily digest, follow-up queue, contact-card searches, and Pro lookups. Use when the rep tells you a contact is NOT a sales lead: a personal contact ("that\'s my therapist", "that\'s my doctor", "my family member"), an internal teammate the system mis-categorized, a vendor we buy from, an automated/bot address, or just an address showing up by mistake. Phrasings to recognize: "hide X", "remove X from CRM", "X is my therapist", "mark X as personal", "X isn\'t a sales lead", "exclude X from the digest". Reversible — call unsuppress_lead if the rep changes their mind. Always confirm with the rep before calling this tool so you don\'t accidentally hide a real lead.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'The email address to hide (e.g. pmkmsw@gmail.com)' },
+        reason: { type: 'string', enum: ['personal', 'internal', 'vendor', 'automated', 'mistake', 'do_not_contact'], description: 'Why to hide. "personal" = personal contact like a therapist/doctor/family. "internal" = teammate mis-categorized. "vendor" = a vendor we buy from. "automated" = bot/mailer. "mistake" = wrong address showing up. "do_not_contact" = unsubscribe / DNC.' },
+        detail: { type: 'string', description: 'Optional free-text note explaining why (e.g. "Will\'s therapist") so future reps see context.' }
+      },
+      required: ['email', 'reason']
+    }
+  },
+  {
+    name: 'unsuppress_lead',
+    description: 'Restore a contact that was previously hidden from the CRM. Use when the rep wants a previously-suppressed contact back in the digest / follow-up queue — they changed roles, moved to a sales-relevant company, or were hidden by mistake. Phrasings to recognize: "restore X", "unhide X", "bring X back", "X is a real lead now".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'The email address to restore' }
+      },
+      required: ['email']
     },
     cache_control: { type: 'ephemeral' }  // Cache breakpoint 1: all tool definitions (must be on LAST tool)
   }

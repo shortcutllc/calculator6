@@ -64,8 +64,67 @@ const TOOL_HANDLERS = {
   search_invoices: handleSearchInvoices,
   get_invoice: handleGetInvoice,
   lookup_lead: handleLookupLead,
-  next_actions_for_lead: handleNextActionsForLead
+  next_actions_for_lead: handleNextActionsForLead,
+  suppress_lead: handleSuppressLead,
+  unsuppress_lead: handleUnsuppressLead
 };
+
+// ============================================================
+// Suppress / unsuppress — writes to the shared crm_suppression table that
+// preflight.js already reads. Once an email is in there, it's filtered from
+// EVERYWHERE: daily digest, follow-up queue, contact-card searches, lookup_lead.
+// One row per email; reason + detail let future reps see why it was hidden.
+// ============================================================
+
+async function handleSuppressLead(params, supabase, userId) {
+  const email = (params.email || '').toString().trim().toLowerCase();
+  const reason = (params.reason || 'personal').toString();
+  if (!email) return { error: 'suppress_lead requires email' };
+  if (!email.includes('@')) return { error: `"${email}" doesn't look like an email address` };
+
+  // Look up who's doing this so the detail row carries provenance.
+  // Resolves the supabase auth user_id to the rep's gmail (the same identity
+  // mapping Pro already uses everywhere else).
+  let actor = null;
+  if (userId) {
+    const { data } = await supabase.from('gmail_accounts').select('email').eq('supabase_user_id', userId).maybeSingle();
+    actor = data?.email || null;
+  }
+
+  const { error } = await supabase.from('crm_suppression').upsert({
+    email,
+    reason,
+    source: 'slack_pro',
+    detail: { note: params.detail || null, suppressed_by: actor, suppressed_at: new Date().toISOString() },
+  }, { onConflict: 'email' });
+  if (error) return { error: `Failed to hide ${email}: ${error.message}` };
+  return {
+    success: true,
+    email,
+    reason,
+    message: `Hidden ${email} from the CRM (reason: ${reason}). Filtered from your digest, the follow-up tab, and Pro lookups. Call unsuppress_lead to restore.`,
+  };
+}
+
+async function handleUnsuppressLead(params, supabase) {
+  const email = (params.email || '').toString().trim().toLowerCase();
+  if (!email) return { error: 'unsuppress_lead requires email' };
+
+  // Check it actually exists first so we can confirm the reason cleanly.
+  const { data: existing } = await supabase.from('crm_suppression')
+    .select('reason, source, detail').eq('email', email).maybeSingle();
+  if (!existing) {
+    return { success: true, email, message: `${email} wasn't suppressed — nothing to restore.` };
+  }
+  const { error } = await supabase.from('crm_suppression').delete().eq('email', email);
+  if (error) return { error: `Failed to restore ${email}: ${error.message}` };
+  return {
+    success: true,
+    email,
+    previous_reason: existing.reason,
+    message: `Restored ${email} (was hidden as: ${existing.reason}). They'll appear in the next digest if they have active outreach.`,
+  };
+}
 
 // ============================================================
 // Sales Lead Intelligence — shared with the web companion (`/sales-intelligence`).

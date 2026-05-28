@@ -106,6 +106,18 @@ async function buildSectionsForRep(sb, acct) {
   const now = Date.now();
   const muted = new Set((acct.muted_lead_emails || []).map(lc));
 
+  // Pull the suppressed-email list once and treat as a hard filter for every
+  // section. crm_suppression is the system-wide "do not show" — populated by
+  // the suppress_lead Pro tool, by negative-reply detection, by bad-email
+  // bounces, by manual marks. Same set used by preflight.js so all surfaces
+  // hide the same things.
+  const { data: suppRows } = await sb.from('crm_suppression').select('email');
+  const suppressed = new Set((suppRows || []).map((r) => lc(r.email)));
+  const isFiltered = (email) => {
+    const e = lc(email);
+    return !e || muted.has(e) || suppressed.has(e) || isInternalEmail(e);
+  };
+
   // Pull workhuman personal-note leads assigned to this rep (any with notes set).
   const { data: whAll } = await sb.from('workhuman_leads')
     .select('id, email, name, company, tier, tier_1a, tier_1b, notes, outreach_status, assigned_to, landing_page_url, page_view_count, page_last_viewed_at')
@@ -113,9 +125,7 @@ async function buildSectionsForRep(sb, acct) {
   // Must have a real [date · author] stamp AND not be muted AND not be ourselves.
   const PERSONAL_NOTE_RE = /\[[^\[\]]*·[^\[\]]*\]/;
   const wh = (whAll || []).filter((w) =>
-    PERSONAL_NOTE_RE.test(w.notes || '')
-    && !muted.has(lc(w.email))
-    && !isInternalEmail(w.email)
+    PERSONAL_NOTE_RE.test(w.notes || '') && !isFiltered(w.email)
   );
   const whByEmail = new Map(wh.map((w) => [lc(w.email), w]));
   const noteTsByEmail = new Map();
@@ -136,7 +146,7 @@ async function buildSectionsForRep(sb, acct) {
   const aggByEmail = new Map();
   for (const s of (mySends || [])) {
     const k = lc(s.email);
-    if (!k || muted.has(k) || isInternalEmail(k)) continue;
+    if (!k || isFiltered(k)) continue;
     const cur = aggByEmail.get(k) || { latest: null, any_reply: false };
     if (s.reply_time) cur.any_reply = true;
     if (s.sent_time && (!cur.latest || s.sent_time > cur.latest.sent_time)) cur.latest = s;
