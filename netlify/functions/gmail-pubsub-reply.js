@@ -16,6 +16,8 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { getAccessToken, listInboundSince, lc } from './lib/gmail.js';
+import { resolveLeadOwner, shouldPing, sendPingDM } from './lib/slack-event-ping.js';
+import { buildReplyPingBlocks } from './lib/slack-blocks.js';
 
 const ok = (b = 'ok') => ({ statusCode: 200, body: b });   // 200 so Pub/Sub doesn't redeliver
 const GMAIL_CAMPAIGN = 'gmail-direct';
@@ -91,6 +93,36 @@ export const handler = async (event) => {
     await sb.from('outreach_sends')
       .update({ reply_time: when })
       .eq('email', m.fromEmail).eq('campaign_id', GMAIL_CAMPAIGN).is('reply_time', null);
+
+    // Phase 3 — real-time ping to the lead owner. SAFETY: the snippet from
+    // the inbound reply is treated as untrusted quoted data in the DM (block
+    // kit text, no LLM run on this path). Pro only invokes the LLM when the
+    // rep explicitly clicks Draft reply on the ping. Same data-only contract
+    // as the rest of this function.
+    try {
+      const owner = await resolveLeadOwner(sb, m.fromEmail);
+      if (owner && shouldPing(owner.acct, m.fromEmail)) {
+        // Pull the latest thread_id we have for this contact so the Draft
+        // button can reply in-thread and the Open thread URL is correct.
+        const { data: latest } = await sb.from('outreach_sends')
+          .select('thread_id, sender_email')
+          .eq('email', m.fromEmail).not('thread_id', 'is', null)
+          .order('sent_time', { ascending: false }).limit(1).maybeSingle();
+        const label = [owner.name, owner.company].filter(Boolean).join(' · ') || m.fromEmail;
+        const blocks = buildReplyPingBlocks({
+          who: label,
+          email: m.fromEmail,
+          threadId: latest?.thread_id || null,
+          repEmail: owner.acct.email,
+          snippet: m.subject ? `Subject: ${m.subject}` : null,
+          sentiment: null,    // gmail-pubsub-reply is presence-only; sentiment not classified here
+        });
+        await sendPingDM(owner.acct.slack_user_id, `New reply from ${label}`, blocks);
+      }
+    } catch (e) {
+      // Never fail the inbound-recording path because of a Slack hiccup.
+      console.warn('Phase 3 reply ping failed (non-fatal):', e.message);
+    }
   }
 
   if (result.newHistoryId && result.newHistoryId !== acct.history_id) {

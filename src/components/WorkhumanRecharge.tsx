@@ -86,12 +86,21 @@ const WorkhumanRecharge: React.FC = () => {
       setContactFirstName(cfn);
       if (partnerName) setFormCompany(partnerName);
 
-      // Track the view (fire and forget; skip bots via prerender UA check)
+      // Track the view (fire and forget; skip bots via prerender UA check).
+      // Phase 3: after the count increments, also fire a Slack ping to the
+      // lead owner — debounced + threshold-gated server-side, so it's safe
+      // to fire on every view.
       const token = data.unique_token;
       if (token && typeof navigator !== 'undefined' && !/bot|crawler|spider|prerender|headless/i.test(navigator.userAgent || '')) {
         supabase.rpc('track_landing_page_view', { page_unique_token: token })
           .then(({ error: rpcErr }) => {
-            if (rpcErr) console.warn('View tracking failed:', rpcErr.message);
+            if (rpcErr) { console.warn('View tracking failed:', rpcErr.message); return; }
+            // Fire-and-forget the ping. Server enforces threshold + debounce.
+            fetch('/.netlify/functions/lp-view-ping', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ unique_token: token }),
+            }).catch((e) => console.warn('lp-view-ping failed (non-fatal):', e));
           });
       }
     };

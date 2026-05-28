@@ -389,3 +389,65 @@ export function buildDraftErrorBlocks(ctx, errorMessage) {
     },
   ];
 }
+
+// ============================================================
+// Phase 3 event-driven ping blocks. Same button row as digest items so
+// Snooze / Mute / Open thread / Draft all work identically — the rep
+// doesn't have to learn a second UI.
+// ============================================================
+
+/**
+ * Ping when a prospect replies to a thread the rep owns.
+ * ctx: { who, email, threadId, repEmail, snippet, sentiment }
+ */
+export function buildReplyPingBlocks(ctx) {
+  const sentEmoji = ctx.sentiment === 'positive' ? ':fire:'
+    : ctx.sentiment === 'negative' ? ':warning:'
+    : ctx.sentiment === 'ooo' ? ':palm_tree:'
+    : ':bell:';
+  const sentLabel = ctx.sentiment ? ` (${ctx.sentiment})` : '';
+
+  const blocks = [
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: `${sentEmoji} *New reply from ${ctx.who}*${sentLabel}` },
+    },
+  ];
+  if (ctx.snippet) {
+    const quoted = ctx.snippet.slice(0, 600).split('\n').map((l) => `> ${l}`).join('\n');
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: quoted } });
+  }
+  const buttons = [];
+  // Draft a reply via the same background pipeline as the digest button
+  buttons.push(actionBtn('Draft reply', `draft_pro:${ctx.email}`,
+    JSON.stringify({ email: ctx.email, threadId: ctx.threadId || null, firstOutreach: false, label: ctx.who }),
+    'primary'));
+  const gmailUrl = gmailThreadUrl(ctx.threadId, ctx.repEmail);
+  if (gmailUrl) buttons.push(urlBtn('Open thread', gmailUrl));
+  buttons.push(actionBtn('Snooze 1d', `snooze_1d:${ctx.email}`, ctx.email));
+  buttons.push(actionBtn('Mute lead', `mute:${ctx.email}`, ctx.email));
+  blocks.push({ type: 'actions', elements: buttons });
+  return blocks;
+}
+
+/**
+ * Ping when a prospect views their landing page (2nd+ view in 24h).
+ * ctx: { who, email, viewCount, landingPageUrl, repEmail }
+ */
+export function buildLandingViewPingBlocks(ctx) {
+  const blocks = [
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: `:eyes: *${ctx.who} viewed their landing page* (${ctx.viewCount} total view${ctx.viewCount === 1 ? '' : 's'})` },
+    },
+  ];
+  const buttons = [];
+  buttons.push(actionBtn('Draft follow-up', `draft_pro:${ctx.email}`,
+    JSON.stringify({ email: ctx.email, threadId: null, firstOutreach: false, label: ctx.who }),
+    'primary'));
+  if (ctx.landingPageUrl) buttons.push(urlBtn('Open page', ctx.landingPageUrl));
+  buttons.push(actionBtn('Snooze 1d', `snooze_1d:${ctx.email}`, ctx.email));
+  buttons.push(actionBtn('Mute lead', `mute:${ctx.email}`, ctx.email));
+  blocks.push({ type: 'actions', elements: buttons });
+  return blocks;
+}
