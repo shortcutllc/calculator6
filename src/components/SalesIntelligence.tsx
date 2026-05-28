@@ -102,6 +102,7 @@ const FU_STATE: Record<string, { label: string; tone: string; hint: string }> = 
   no_reply:          { label: 'No reply',       tone: 'bg-amber-100 text-amber-800', hint: 'Emailed, no reply yet — follow-up time' },
   maxed:             { label: '3+ no reply',    tone: 'bg-gray-100 text-gray-600',  hint: 'Cap hit: 3+ rep outreach sends in last 30d or 5+ in 60d, no reply. Pause to avoid hounding.' },
   replied:           { label: 'Replied',        tone: 'bg-green-100 text-green-800', hint: 'They responded — open the thread to continue' },
+  muted:             { label: 'Muted',          tone: 'bg-red-100 text-red-700',     hint: 'Suppressed from your queue. Click the row → Unmute to bring them back.' },
 };
 const TIER_BADGE: Record<string, { label: string; tone: string }> = {
   tier_1a: { label: '1A', tone: 'bg-yellow-200 text-yellow-900' },
@@ -751,6 +752,132 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
   </div>
 );
 
+// Per-row action bar shown at the TOP of every expanded lead. Covers the
+// stuff Will asked for: mute (hide from queue), snooze 1d / 7d (per-rep
+// temporal mute), delete permanently (full purge incl. outreach_sends so
+// the reply hook stops matching), and Workhuman-only actions (reassign,
+// tier). Calls a single Netlify endpoint lead-actions.js that authz'es
+// via Supabase JWT and routes on `action`.
+type AssigneeName = 'Will Newton' | 'Jaimie Pritchard' | 'Marc Levitan' | 'Caren Skutch';
+const ASSIGNEE_NAMES: AssigneeName[] = ['Will Newton', 'Jaimie Pritchard', 'Marc Levitan', 'Caren Skutch'];
+
+const LeadActionBar: React.FC<{
+  email: string;
+  hasWorkhuman: boolean;
+  currentAssignedTo: string | null;
+  currentTier: string | null;
+  onMutated: () => void;
+  isMuted?: boolean;   // when the card is opened from the "Muted" section
+}> = ({ email, hasWorkhuman, currentAssignedTo, currentTier, onMutated, isMuted }) => {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const call = useCallback(async (payload: Record<string, unknown>): Promise<unknown> => {
+    setBusy(payload.action as string); setError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const r = await fetch('/.netlify/functions/lead-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ email, ...payload }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || `Failed (${r.status})`);
+      onMutated();
+      return j;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed');
+      throw e;
+    } finally {
+      setBusy(null);
+    }
+  }, [email, onMutated]);
+
+  const tierVal = currentTier || '';
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 bg-gray-100 border-b border-gray-200 text-xs">
+      {isMuted ? (
+        <button onClick={() => call({ action: 'unmute' })}
+          disabled={!!busy}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-green-600 hover:bg-green-700 text-white font-medium disabled:opacity-50">
+          {busy === 'unmute' ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+          Unmute
+        </button>
+      ) : (
+        <>
+          <button onClick={() => call({ action: 'mute', reason: 'personal' })}
+            disabled={!!busy}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium disabled:opacity-50"
+            title="Hide from your follow-up queue (reversible)">
+            {busy === 'mute' ? <Loader2 size={11} className="animate-spin" /> : null}
+            Hide
+          </button>
+          <button onClick={() => call({ action: 'snooze', days: 1 })}
+            disabled={!!busy}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 disabled:opacity-50">
+            Snooze 1d
+          </button>
+          <button onClick={() => call({ action: 'snooze', days: 7 })}
+            disabled={!!busy}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 disabled:opacity-50">
+            Snooze 7d
+          </button>
+        </>
+      )}
+
+      {hasWorkhuman && (
+        <>
+          <div className="border-l border-gray-300 h-5 mx-1" />
+          <label className="text-gray-500 mr-1">Assign:</label>
+          <select value={currentAssignedTo || ''} onChange={(e) => call({ action: 'reassign', assigned_to: e.target.value || null })}
+            disabled={!!busy}
+            className="px-1.5 py-0.5 border border-gray-300 rounded bg-white text-xs">
+            <option value="">Unassigned</option>
+            {ASSIGNEE_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <label className="text-gray-500 mr-1 ml-2">Tier:</label>
+          <select value={tierVal} onChange={(e) => call({ action: 'set_tier', tier: e.target.value })}
+            disabled={!!busy}
+            className="px-1.5 py-0.5 border border-gray-300 rounded bg-white text-xs">
+            <option value="">—</option>
+            <option value="tier_1a">1A</option>
+            <option value="tier_1b">1B</option>
+            <option value="tier_1">1</option>
+            <option value="tier_2">2</option>
+            <option value="tier_3">3</option>
+          </select>
+        </>
+      )}
+
+      <div className="ml-auto">
+        {confirmDelete ? (
+          <div className="inline-flex items-center gap-1">
+            <span className="text-red-600 mr-1">Delete forever?</span>
+            <button onClick={async () => { try { await call({ action: 'delete' }); } finally { setConfirmDelete(false); } }}
+              disabled={!!busy}
+              className="px-2 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50">
+              {busy === 'delete' ? <Loader2 size={11} className="animate-spin" /> : 'Yes, delete'}
+            </button>
+            <button onClick={() => setConfirmDelete(false)} disabled={!!busy}
+              className="px-2 py-0.5 rounded bg-gray-200 hover:bg-gray-300 text-gray-700">
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmDelete(true)} disabled={!!busy}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-red-50 hover:bg-red-100 text-red-700 font-medium border border-red-200"
+            title="Hard delete from CRM. Replies will no longer be tracked.">
+            <Trash2 size={11} /> Delete forever
+          </button>
+        )}
+      </div>
+      {error && <div className="w-full text-red-700 text-[10px] pt-1">{error}</div>}
+    </div>
+  );
+};
+
 // Workhuman-parity actions on an expanded card: timestamped notes editor +
 // personalized landing-page creator (with logo override). Only renders when
 // the card backs to a workhuman_leads row (d.workhuman.id present). Mirrors
@@ -975,7 +1102,20 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
   };
 
   return (
-    <div className={inline ? 'p-4 space-y-4 bg-gray-50' : 'p-5 space-y-5'}>
+    <div className={inline ? 'p-0 bg-gray-50' : 'p-5 space-y-5'}>
+      {/* Action bar (mute/snooze/delete/reassign/tier) — only when we have
+          an email to operate on (Play A is company-level, no email). */}
+      {d?.identity?.email && (
+        <LeadActionBar
+          email={d.identity.email}
+          hasWorkhuman={!!d.workhuman}
+          currentAssignedTo={d.workhuman?.assigned_to || null}
+          currentTier={d.workhuman?.tier || null}
+          onMutated={reload}
+          isMuted={d.preflight?.suppressed}
+        />
+      )}
+      <div className={inline ? 'p-4 space-y-4' : 'space-y-5'}>
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
           {[d?.identity.title, d?.identity.company || d?.company?.name].filter(Boolean).join(' · ')}
@@ -1245,6 +1385,7 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
               </section>
             </>
       )}
+      </div>
     </div>
   );
 };
@@ -1870,8 +2011,12 @@ const SalesIntelligence: React.FC = () => {
   const [fuExpanded, setFuExpanded] = useState<string | null>(null);
   const [fuNote, setFuNote] = useState<string | null>(null);
   const [fuInbox, setFuInbox] = useState<InboxBanner | null>(_initialFuInbox);
-  const [fuStateFilter, setFuStateFilter] = useState<'all' | 'never_emailed' | 'no_reply' | 'replied'>('all');
+  const [fuStateFilter, setFuStateFilter] = useState<'all' | 'never_emailed' | 'no_reply' | 'replied' | 'muted'>('all');
   const [rapidQueue, setRapidQueue] = useState<FollowupRow[] | null>(null);
+  // Separate state for muted leads — fetched on-demand when the chip is clicked
+  // so the main queue doesn't carry the muted overhead on every load.
+  const [mutedLeads, setMutedLeads] = useState<FollowupRow[] | null>(null);
+  const [mutedLoading, setMutedLoading] = useState(false);
   const loadFollowups = useCallback(async (scope: 'mine' | 'team') => {
     setFuLoading(true); setFuNote(null);
     try {
@@ -1896,12 +2041,37 @@ const SalesIntelligence: React.FC = () => {
     }
   }, []);
 
+  const loadMutedLeads = useCallback(async () => {
+    setMutedLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const res = await fetch('/.netlify/functions/followups?include_muted=1', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const j = await res.json();
+      if (!res.ok || !j.success) throw new Error(j.error || `Failed (${res.status})`);
+      setMutedLeads(j.followups || []);
+    } catch (e) {
+      console.warn('loadMutedLeads failed:', e);
+      setMutedLeads([]);
+    } finally {
+      setMutedLoading(false);
+    }
+  }, []);
+
   // Fetch only when needed: first visit to followups tab, scope changed, or
   // someone reset followups to null (e.g., after a send invalidates the queue).
   useEffect(() => {
     if (tab !== 'followups') return;
     if (followups === null || fuLoadedScope !== fuScope) loadFollowups(fuScope);
   }, [tab, fuScope, followups, fuLoadedScope, loadFollowups]);
+
+  // Lazy-load muted leads when the chip is first clicked.
+  useEffect(() => {
+    if (tab !== 'followups') return;
+    if (fuStateFilter === 'muted' && mutedLeads === null && !mutedLoading) loadMutedLeads();
+  }, [tab, fuStateFilter, mutedLeads, mutedLoading, loadMutedLeads]);
 
   // Slack-digest "Draft" deep link follow-through: once we've forced the
   // followups tab AND followups have loaded, find the matching FollowupRow
@@ -2307,10 +2477,13 @@ const SalesIntelligence: React.FC = () => {
               { id: 'never_emailed', label: 'Never emailed' },
               { id: 'no_reply',      label: 'No reply' },
               { id: 'replied',       label: 'Replied' },
+              { id: 'muted',         label: 'Muted' },
             ] as const).map((f) => {
               const n = f.id === 'all'
                 ? (followups?.length || 0)
-                : (followups || []).filter((x) => f.id === 'never_emailed' ? (x.state === 'never_emailed' || x.state === 'unknown_no_inbox') : x.state === f.id).length;
+                : f.id === 'muted'
+                  ? (mutedLeads?.length ?? '…')
+                  : (followups || []).filter((x) => f.id === 'never_emailed' ? (x.state === 'never_emailed' || x.state === 'unknown_no_inbox') : x.state === f.id).length;
               return (
                 <button
                   key={f.id}
@@ -2359,11 +2532,17 @@ const SalesIntelligence: React.FC = () => {
                 No personal-note leads or follow-ups for you.
               </div>
             ) : (() => {
-              const visible = (followups || []).filter((r) => {
+              // Muted view: pull from the separately-fetched mutedLeads state.
+              const source = fuStateFilter === 'muted' ? (mutedLeads || []) : (followups || []);
+              const visible = source.filter((r) => {
+                if (fuStateFilter === 'muted') return true;          // already pre-filtered server-side
                 if (fuStateFilter === 'all') return true;
                 if (fuStateFilter === 'never_emailed') return r.state === 'never_emailed' || r.state === 'unknown_no_inbox';
                 return r.state === fuStateFilter;
               });
+              if (fuStateFilter === 'muted' && mutedLeads === null) {
+                return <div className="py-16 text-center text-gray-400">Loading muted leads…</div>;
+              }
               if (visible.length === 0) {
                 return <div className="py-16 text-center text-gray-400">No rows match this filter.</div>;
               }
@@ -2461,7 +2640,7 @@ const SalesIntelligence: React.FC = () => {
                                 inline
                                 target={{ company: r.company || r.email, email: r.email, domain: r.email?.split('@')[1] || null }}
                                 onDraft={(t) => setDraftTarget(t)}
-                                onMutated={() => { setFollowups(null); /* refetch on next visit */ }}
+                                onMutated={() => { setFollowups(null); setMutedLeads(null); /* refetch both on next visit */ }}
                               />
                             </td>
                           </tr>

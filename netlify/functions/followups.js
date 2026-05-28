@@ -84,6 +84,61 @@ export const handler = async (event) => {
     assignee_name: myAssignee,
   };
 
+  // Special "muted" view — list crm_suppression rows the rep can unmute from
+  // the UI (lead-actions.js). Keeps hidden leads discoverable instead of
+  // black-holing them. Source filter excludes auto-bounces/cold-list-DNCs
+  // so the section only shows things a human explicitly hid.
+  const includeMuted = (event.queryStringParameters?.include_muted || '') === '1';
+  if (includeMuted) {
+    const { data: supp } = await sb.from('crm_suppression')
+      .select('email, reason, source, detail, ingested_at')
+      .in('source', ['slack_pro', 'sales-intelligence', 'manual'])
+      .order('ingested_at', { ascending: false });
+    if (!supp || supp.length === 0) {
+      return json(200, { success: true, count: 0, inbox, note: null, followups: [] });
+    }
+    // Enrich names/companies from workhuman_leads + outreach_contacts so the
+    // muted list isn't just emails.
+    const emails = supp.map((s) => lc(s.email));
+    const enrichMap = new Map();
+    for (let i = 0; i < emails.length; i += 200) {
+      const slice = emails.slice(i, i + 200);
+      const [{ data: wh }, { data: oc }] = await Promise.all([
+        sb.from('workhuman_leads').select('email, name, company, tier, tier_1a, tier_1b, assigned_to').in('email', slice),
+        sb.from('outreach_contacts').select('email, name, company').in('email', slice),
+      ]);
+      for (const r of (wh || [])) enrichMap.set(lc(r.email), { wh: r });
+      for (const r of (oc || [])) {
+        const cur = enrichMap.get(lc(r.email)) || {};
+        enrichMap.set(lc(r.email), { ...cur, oc: r });
+      }
+    }
+    const rows = supp.map((s) => {
+      const e = enrichMap.get(lc(s.email)) || {};
+      const tier = e.wh ? (e.wh.tier_1a ? 'tier_1a' : e.wh.tier_1b ? 'tier_1b' : e.wh.tier) : null;
+      return {
+        email: s.email, state: 'muted',
+        name: e.wh?.name || e.oc?.name || null,
+        company: e.wh?.company || e.oc?.company || null,
+        assigned_to: e.wh?.assigned_to || null,
+        tier,
+        outreach_status: null,
+        personal_note: null,
+        is_personal_note: false,
+        has_workhuman: !!e.wh,
+        conference_attendee: false, was_waitlisted: false, vip_slot: null,
+        linkedin_url: null, landing_page_url: null,
+        last_sent: null, days_since: null,
+        touches: 0, touches_60d: 0, thread_id: null,
+        sender_email: null, replied: false,
+        muted_reason: s.reason, muted_source: s.source, muted_at: s.ingested_at,
+        muted_by: s.detail?.suppressed_by || s.detail?.deleted_by || null,
+        muted_note: s.detail?.note || null,
+      };
+    });
+    return json(200, { success: true, count: rows.length, inbox, note: null, followups: rows });
+  }
+
   // ----- A) Pull Workhuman personal-note leads -----
   // For "mine" scope: filter to assigned_to = myAssignee. For "team": all
   // personal-note leads. If myAssignee resolution failed, fall back to
@@ -258,33 +313,61 @@ export const handler = async (event) => {
   // conversation Will is having through his own Gmail.) Enrich name/title/
   // company from outreach_contacts (+ apollo_person_cache fallback) so rows
   // aren't just an email string.
+  //
+  // ALSO: many Path B emails are actually workhuman_leads that just don't
+  // have a hand-typed personal-note stamp (booth signups, Apollo imports,
+  // bulk loads). Path A's strict personal-note filter excludes them, so
+  // they used to show in follow-ups with no WH context. We do a separate
+  // workhuman_leads lookup here for any email NOT already in Path A, so
+  // tier + attendance + assignee surface correctly on every WH lead the
+  // rep has emailed — even the ones without notes.
   const sbKeys = [...sendByEmail.keys()].filter((k) => !emitted.has(k));
   const ocByEmail = new Map();
   const apByEmail = new Map();
+  const whByEmailPathB = new Map();
   for (let i = 0; i < sbKeys.length; i += 200) {
     const slice = sbKeys.slice(i, i + 200);
-    const [{ data: oc }, { data: ap }] = await Promise.all([
+    const [{ data: oc }, { data: ap }, { data: wh }] = await Promise.all([
       sb.from('outreach_contacts').select('email, name, title, company, linkedin_url').in('email', slice),
       sb.from('apollo_person_cache').select('email, name, title, company, linkedin_url').in('email', slice),
+      sb.from('workhuman_leads')
+        .select('id, email, name, company, title, assigned_to, tier, tier_1a, tier_1b, outreach_status, notes, linkedin_url, landing_page_url, page_view_count, page_last_viewed_at, workhuman_attendee_id, was_waitlisted, vip_slot_day, vip_slot_time')
+        .in('email', slice),
     ]);
     for (const r of (oc || [])) ocByEmail.set(lc(r.email), r);
     for (const r of (ap || [])) apByEmail.set(lc(r.email), r);
+    for (const r of (wh || [])) whByEmailPathB.set(lc(r.email), r);
   }
   for (const [k, s] of sendByEmail.entries()) {
-    if (emitted.has(k)) continue; // already covered via WH
+    if (emitted.has(k)) continue; // already covered via Path A workhuman pull
     const oc = ocByEmail.get(k);
     const ap = apByEmail.get(k);
+    const wh = whByEmailPathB.get(k);
+    const tier = wh ? (wh.tier_1a ? 'tier_1a' : wh.tier_1b ? 'tier_1b' : wh.tier) : null;
+    const noteText = wh?.notes ? (wh.notes || '').slice(0, 500) : null;
     emitted.set(k, {
       email: k,
-      name: oc?.name || ap?.name || null,
-      title: oc?.title || ap?.title || null,
-      company: oc?.company || ap?.company || null,
-      assigned_to: null, tier: null, outreach_status: null,
-      personal_note: null,
-      linkedin_url: oc?.linkedin_url || ap?.linkedin_url || null,
-      landing_page_url: null,
-      is_personal_note: false, has_workhuman: false,
-      conference_attendee: false, was_waitlisted: false, vip_slot: null,
+      name: wh?.name || oc?.name || ap?.name || null,
+      title: wh?.title || oc?.title || ap?.title || null,
+      company: wh?.company || oc?.company || ap?.company || null,
+      // When the Path B contact is also in workhuman_leads, surface the WH
+      // assignment + tier + note so the badge + drop-down work correctly.
+      assigned_to: wh?.assigned_to || null,
+      tier,
+      outreach_status: wh?.outreach_status || null,
+      personal_note: noteText,
+      linkedin_url: wh?.linkedin_url || oc?.linkedin_url || ap?.linkedin_url || null,
+      landing_page_url: wh?.landing_page_url || null,
+      page_view_count: wh?.page_view_count || null,
+      page_last_viewed_at: wh?.page_last_viewed_at || null,
+      // is_personal_note stays false if no real stamp; has_workhuman true
+      // whenever a WH row was found regardless of note presence — that's
+      // what drives the WH label rendering on the frontend.
+      is_personal_note: !!(wh && /\[[^\[\]]*·[^\[\]]*\]/.test(wh?.notes || '')),
+      has_workhuman: !!wh,
+      conference_attendee: !!wh?.workhuman_attendee_id,
+      was_waitlisted: !!wh?.was_waitlisted,
+      vip_slot: wh?.vip_slot_day ? { day: wh.vip_slot_day, time: wh.vip_slot_time } : null,
       last_sent: s.sent_time, days_since: s.days_since,
       touches: s.t30 || 0, touches_60d: s.t60 || 0, thread_id: s.thread_id || null,
       sender_email: s.sender_email || null, replied: !!s.any_reply,
