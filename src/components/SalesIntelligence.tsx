@@ -1,8 +1,18 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2 } from 'lucide-react';
+import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
+import { createLandingPageForLead } from '../services/WorkhumanLeadService';
+import { useAuth } from '../contexts/AuthContext';
+
+// Rep email → first name (for timestamped notes). Mirrors WorkhumanLeads.
+const REP_EMAIL_TO_FIRST_NAME: Record<string, string> = {
+  'will@getshortcut.co': 'Will',
+  'jaimie@getshortcut.co': 'Jaimie',
+  'marc@getshortcut.co': 'Marc',
+  'caren@getshortcut.co': 'Caren',
+};
 
 type TabId = 'playA' | 'playB' | 'followups' | 'drafts' | 'recon';
 interface SavedDraftRow {
@@ -741,12 +751,195 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
   </div>
 );
 
-// Fetches + renders the CRM picture. Used both in the side drawer and inline
-// (Workhuman-style row dropdown) so the two surfaces never drift.
-const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) => void; inline?: boolean }> = ({ target, onDraft, inline }) => {
+// Workhuman-parity actions on an expanded card: timestamped notes editor +
+// personalized landing-page creator (with logo override). Only renders when
+// the card backs to a workhuman_leads row (d.workhuman.id present). Mirrors
+// the ExpandedLeadRow surfaces in WorkhumanLeads.tsx so a sales rep gets
+// the same affordances on either page.
+const WorkhumanAffordances: React.FC<{
+  leadId: string;
+  company: string | null;
+  companyUrl: string | null;
+  logoUrl: string | null;
+  logoSource: string | null;
+  landingPageUrl: string | null;
+  pageViewCount: number | null;
+  pageLastViewedAt: string | null;
+  initialNotes: string | null;
+  onMutated: () => void;
+}> = ({ leadId, company, companyUrl, logoUrl, logoSource, landingPageUrl, pageViewCount, pageLastViewedAt, initialNotes, onMutated }) => {
+  const { user } = useAuth();
+  const myFirstName = useMemo(() => {
+    const email = user?.email?.toLowerCase() || '';
+    return REP_EMAIL_TO_FIRST_NAME[email] || 'Team';
+  }, [user]);
+
+  const [notes, setNotes] = useState(initialNotes || '');
+  const [noteDraft, setNoteDraft] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+  const [creatingPage, setCreatingPage] = useState(false);
+  const [logoOverride, setLogoOverride] = useState('');
+  const [showLogoOverride, setShowLogoOverride] = useState(false);
+  const notesTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const persistNotes = useCallback(async (val: string) => {
+    await supabase.from('workhuman_leads').update({ notes: val }).eq('id', leadId);
+  }, [leadId]);
+
+  const handleNotesChange = (val: string) => {
+    setNotes(val);
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    notesTimer.current = setTimeout(() => { persistNotes(val); }, 800);
+  };
+
+  const handleAddNote = async () => {
+    const trimmed = noteDraft.trim();
+    if (!trimmed) return;
+    setAddingNote(true);
+    const stamp = new Date().toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    });
+    const newLine = `[${stamp} · ${myFirstName}] ${trimmed}`;
+    const merged = notes ? `${newLine}\n${notes}` : newLine;
+    setNotes(merged);
+    setNoteDraft('');
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    await persistNotes(merged);
+    setAddingNote(false);
+    onMutated();
+  };
+
+  const handleCreatePage = async (overrideUrl?: string) => {
+    if (!company) return;
+    setCreatingPage(true);
+    const result = await createLandingPageForLead(
+      { id: leadId, company, company_url: companyUrl || undefined, logo_url: logoUrl || undefined } as Parameters<typeof createLandingPageForLead>[0],
+      overrideUrl,
+    );
+    setCreatingPage(false);
+    if (result.success) {
+      setLogoOverride('');
+      setShowLogoOverride(false);
+      onMutated();   // refetch the parent card so it picks up the new URL + logo
+    } else {
+      alert(`Failed to create landing page: ${result.error || 'unknown'}`);
+    }
+  };
+
+  const copyToClipboard = (s: string) => navigator.clipboard?.writeText(s).catch(() => { /* noop */ });
+
+  return (
+    <div className="space-y-4">
+      {/* Landing page card */}
+      <div className="border-t border-yellow-200 pt-3">
+        <h4 className="text-[10px] uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1.5">
+          <Sparkles size={12} className="text-amber-600" /> Personalized landing page
+        </h4>
+        <div className="flex flex-col md:flex-row md:items-start gap-3">
+          {/* Logo preview */}
+          <div className="flex items-center gap-2 shrink-0">
+            {logoUrl ? (
+              <div className="w-16 h-16 bg-white border border-gray-200 rounded-md flex items-center justify-center p-1.5 overflow-hidden">
+                <img src={logoUrl} alt={company || ''} className="max-w-full max-h-full object-contain"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+              </div>
+            ) : (
+              <div className="w-16 h-16 bg-gray-100 border border-dashed border-gray-300 rounded-md flex items-center justify-center text-[10px] text-gray-400">
+                No logo
+              </div>
+            )}
+            {logoSource && <div className="text-[10px] text-gray-500">{logoSource}</div>}
+          </div>
+          {/* URL + actions */}
+          <div className="flex-1 min-w-0 space-y-1.5">
+            {landingPageUrl ? (
+              <>
+                <div className="flex items-center gap-1.5 text-xs min-w-0">
+                  <a href={landingPageUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-shortcut-navy-blue hover:underline truncate inline-flex items-center gap-1 min-w-0">
+                    <ExternalLink size={11} /> <span className="truncate">{landingPageUrl}</span>
+                  </a>
+                  <button onClick={() => copyToClipboard(landingPageUrl)}
+                    className="text-gray-400 hover:text-gray-700 shrink-0" title="Copy URL">
+                    <Copy size={12} />
+                  </button>
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-medium ${(pageViewCount ?? 0) > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                    👁 {pageViewCount ?? 0} view{pageViewCount === 1 ? '' : 's'}
+                  </span>
+                  {pageLastViewedAt && (
+                    <span className="text-gray-500">last {new Date(pageLastViewedAt).toLocaleDateString()}</span>
+                  )}
+                  <button onClick={() => setShowLogoOverride(!showLogoOverride)}
+                    className="text-gray-600 hover:text-gray-800 inline-flex items-center gap-1 ml-auto">
+                    <RefreshCw size={10} /> Replace logo
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button onClick={() => handleCreatePage()}
+                disabled={creatingPage || !company}
+                className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 text-white text-xs font-semibold px-3 py-1.5 rounded inline-flex items-center gap-1.5">
+                {creatingPage ? (<><Loader2 size={12} className="animate-spin" /> Creating…</>)
+                  : (<><Sparkles size={12} /> Create landing page</>)}
+              </button>
+            )}
+            {showLogoOverride && (
+              <div className="flex gap-1.5 items-center pt-1">
+                <input type="text" value={logoOverride} onChange={(e) => setLogoOverride(e.target.value)}
+                  placeholder="Paste image URL"
+                  className="flex-1 min-w-0 px-2 py-1 border border-gray-200 rounded text-xs" />
+                <button onClick={() => logoOverride.trim() && handleCreatePage(logoOverride.trim())}
+                  disabled={!logoOverride.trim() || creatingPage}
+                  className="bg-gray-800 hover:bg-gray-900 disabled:bg-gray-300 text-white text-xs px-2.5 py-1 rounded shrink-0">
+                  {creatingPage ? <Loader2 size={10} className="animate-spin" /> : 'Regenerate'}
+                </button>
+                <button onClick={() => { setShowLogoOverride(false); setLogoOverride(''); }}
+                  className="text-gray-400 hover:text-gray-600 shrink-0"><X size={12} /></button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Timestamped notes editor */}
+      <div className="border-t border-yellow-200 pt-3">
+        <h4 className="text-[10px] uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1.5">
+          <MessageSquare size={12} /> Notes
+        </h4>
+        <div className="flex items-start gap-1.5 mb-2">
+          <textarea value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleAddNote(); } }}
+            placeholder="Quick note (Cmd/Ctrl + Enter to save)…"
+            rows={2}
+            className="flex-1 px-2 py-1.5 border border-gray-200 rounded text-xs resize-none focus:outline-none focus:ring-2 focus:ring-shortcut-navy-blue/20"
+          />
+          <button onClick={handleAddNote} disabled={!noteDraft.trim() || addingNote}
+            className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 text-white text-xs font-semibold px-2.5 py-1.5 rounded inline-flex items-center gap-1 self-stretch">
+            {addingNote ? <Loader2 size={10} className="animate-spin" /> : <MessageSquare size={10} />}
+            Add
+          </button>
+        </div>
+        <textarea value={notes} onChange={(e) => handleNotesChange(e.target.value)}
+          placeholder="No notes yet…"
+          className="w-full h-20 px-2 py-1.5 border border-gray-200 rounded text-xs resize-none focus:outline-none focus:ring-2 focus:ring-shortcut-navy-blue/20 font-mono"
+        />
+      </div>
+    </div>
+  );
+};
+
+// Fetches + renders the CRM picture. Used inline as a row-expansion card
+// (Workhuman-style) so SalesIntelligence rows feel the same as WorkhumanLeads.
+// onMutated lets child Workhuman actions (notes / create landing page) ask
+// the card to re-fetch so the new state shows up immediately.
+const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) => void; inline?: boolean; onMutated?: () => void }> = ({ target, onDraft, inline, onMutated }) => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [d, setD] = useState<CardData | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = useCallback(() => { setReloadTick((t) => t + 1); onMutated?.(); }, [onMutated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -770,7 +963,7 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
       }
     })();
     return () => { cancelled = true; };
-  }, [target]);
+  }, [target, reloadTick]);
 
   const draftFromCard = () => {
     if (!d) return;
@@ -902,6 +1095,23 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
                       </div>
                     </div>
                   )}
+
+                  {/* Workhuman-parity affordances: timestamped notes editor +
+                      personalized landing-page creator (with logo override).
+                      Mirrors the bottom of WorkhumanLeads.ExpandedLeadRow so the
+                      sales rep gets the same actions on either page. */}
+                  <WorkhumanAffordances
+                    leadId={d.workhuman.id}
+                    company={d.identity.company}
+                    companyUrl={d.identity.company_url || null}
+                    logoUrl={d.workhuman.logo_url}
+                    logoSource={d.workhuman.logo_source}
+                    landingPageUrl={d.workhuman.landing_page_url}
+                    pageViewCount={d.workhuman.landing_page_views}
+                    pageLastViewedAt={d.workhuman.landing_page_last_viewed}
+                    initialNotes={d.workhuman.notes_raw}
+                    onMutated={reload}
+                  />
                 </section>
               )}
 
@@ -1039,17 +1249,10 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
   );
 };
 
-const CRMCard: React.FC<{ target: CardTarget; onClose: () => void; onDraft: (t: DraftTarget) => void }> = ({ target, onClose, onDraft }) => (
-  <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={onClose}>
-    <div className="bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
-      <div className="flex items-start justify-between p-5 border-b border-gray-200 sticky top-0 bg-white z-10">
-        <h2 className="text-lg font-bold text-shortcut-navy-blue">{target.company}</h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
-      </div>
-      <CRMCardContent target={target} onDraft={onDraft} />
-    </div>
-  </div>
-);
+// CRMCard side-drawer removed — every tab now uses inline row expansion
+// (CRMCardContent inline) so the user sees the full picture + thread in
+// one smooth dropdown, matching the WorkhumanLeads UX. Saved here as a
+// comment for context; the inline pattern is rendered per-tab below.
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
@@ -1556,10 +1759,12 @@ const SalesIntelligence: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null);
-  const [cardTarget, setCardTarget] = useState<CardTarget | null>(null);
+  // cardTarget removed — replaced with inline expansion (paExpanded / pbExpanded / fuExpanded).
   const [pbFilter, setPbFilter] = useState<PBFilter>('all');
   const [pbSort, setPbSort] = useState<PBSort>('state');
   const [pbExpanded, setPbExpanded] = useState<string | null>(null);
+  // Play A inline expansion (matches Play B + Workhuman pattern — no side drawer).
+  const [paExpanded, setPaExpanded] = useState<number | null>(null);
   const [gmailNotice, setGmailNotice] = useState<string | null>(null);
   const [pageGmail, setPageGmail] = useState<{
     connected: boolean; email: string | null;
@@ -1885,6 +2090,7 @@ const SalesIntelligence: React.FC = () => {
           <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
+                <th className={th}></th>
                 <th className={th}>#</th><th className={th}>Company</th><th className={th}>Fit</th>
                 <th className={th}>Employees</th><th className={th}>Industry</th>
                 <th className={th}>We serve</th><th className={th}>Offices</th>
@@ -1893,42 +2099,59 @@ const SalesIntelligence: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {fa.map((r) => (
-                <tr key={r.rank} className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => setCardTarget({ company: r.company_name, companyId: r.company_id })}>
-                  <td className={td}>{r.rank}</td>
-                  <td className={`${td} font-medium`}>
-                    {r.company_name}
-                    {r.play_status === 're_engage' && (
-                      <span className="ml-2 text-xs font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-                        Re-engage
-                      </span>
+              {fa.map((r) => {
+                const open = paExpanded === r.rank;
+                return (
+                  <React.Fragment key={r.rank}>
+                    <tr className={`hover:bg-gray-50 cursor-pointer transition-colors ${open ? 'bg-blue-50/50' : ''}`}
+                      onClick={() => setPaExpanded(open ? null : r.rank)}>
+                      <td className={`${td} text-gray-400`}>{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</td>
+                      <td className={td}>{r.rank}</td>
+                      <td className={`${td} font-medium`}>
+                        {r.company_name}
+                        {r.play_status === 're_engage' && (
+                          <span className="ml-2 text-xs font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                            Re-engage
+                          </span>
+                        )}
+                      </td>
+                      <td className={td}>{r.fit_score}</td>
+                      <td className={td}>{r.employees}</td>
+                      <td className={td}>{r.industry}</td>
+                      <td className={td}>{r.sites_served}</td>
+                      <td className={`${td} text-gray-500`}>{r.sites_list}</td>
+                      <td className={td}>
+                        {r.last_event_at
+                          ? <span className={r.play_status === 're_engage' ? 'text-amber-700' : 'text-gray-600'}>
+                              {r.months_since_event != null && r.months_since_event > 0
+                                ? `${r.months_since_event}mo ago`
+                                : new Date(r.last_event_at).toLocaleDateString()}
+                            </span>
+                          : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className={td}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDraftTarget({ play: 'A', rank: r.rank, company: r.company_name }); }}
+                          className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                        >
+                          <PenLine size={14} /> Draft
+                        </button>
+                      </td>
+                    </tr>
+                    {open && (
+                      <tr>
+                        <td colSpan={10} className="border-t border-gray-100 p-0 bg-gray-50/50">
+                          <CRMCardContent
+                            inline
+                            target={{ company: r.company_name, companyId: r.company_id }}
+                            onDraft={(t) => setDraftTarget(t)}
+                          />
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                  <td className={td}>{r.fit_score}</td>
-                  <td className={td}>{r.employees}</td>
-                  <td className={td}>{r.industry}</td>
-                  <td className={td}>{r.sites_served}</td>
-                  <td className={`${td} text-gray-500`}>{r.sites_list}</td>
-                  <td className={td}>
-                    {r.last_event_at
-                      ? <span className={r.play_status === 're_engage' ? 'text-amber-700' : 'text-gray-600'}>
-                          {r.months_since_event != null && r.months_since_event > 0
-                            ? `${r.months_since_event}mo ago`
-                            : new Date(r.last_event_at).toLocaleDateString()}
-                        </span>
-                      : <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className={td}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDraftTarget({ play: 'A', rank: r.rank, company: r.company_name }); }}
-                      className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
-                    >
-                      <PenLine size={14} /> Draft
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -2171,7 +2394,7 @@ const SalesIntelligence: React.FC = () => {
                       <React.Fragment key={r.email}>
                         <tr className="hover:bg-gray-50 cursor-pointer"
                           onClick={() => setFuExpanded(open ? null : r.email)}>
-                          <td className={`${td} text-gray-400`}>{r.thread_id ? (open ? '▾' : '▸') : ''}</td>
+                          <td className={`${td} text-gray-400`}>{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</td>
                           <td className={td}>
                             <div className="flex flex-col gap-1">
                               <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${stMeta.tone}`} title={stMeta.hint}>
@@ -2221,28 +2444,25 @@ const SalesIntelligence: React.FC = () => {
                             </td>
                           )}
                           <td className={td}>
-                            <div className="flex items-center gap-3">
+                            {canDraft && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); setCardTarget({ company: r.company || r.email, email: r.email }); }}
-                                className="text-xs text-gray-500 hover:text-gray-700 hover:underline"
+                                onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
+                                className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
                               >
-                                Open card
+                                <PenLine size={14} /> {draftLabel}
                               </button>
-                              {canDraft && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setDraftTarget({ company: r.company || r.email, followup: r }); }}
-                                  className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
-                                >
-                                  <PenLine size={14} /> {draftLabel}
-                                </button>
-                              )}
-                            </div>
+                            )}
                           </td>
                         </tr>
-                        {open && r.thread_id && (
+                        {open && (
                           <tr>
-                            <td colSpan={cols} className="border-t border-gray-100 p-3 bg-gray-50">
-                              <ThreadView threadId={r.thread_id} senderEmail={r.sender_email} />
+                            <td colSpan={cols} className="border-t border-gray-100 p-0 bg-gray-50/50">
+                              <CRMCardContent
+                                inline
+                                target={{ company: r.company || r.email, email: r.email, domain: r.email?.split('@')[1] || null }}
+                                onDraft={(t) => setDraftTarget(t)}
+                                onMutated={() => { setFollowups(null); /* refetch on next visit */ }}
+                              />
                             </td>
                           </tr>
                         )}
@@ -2342,13 +2562,9 @@ const SalesIntelligence: React.FC = () => {
         </div>
       )}
 
-      {cardTarget && (
-        <CRMCard
-          target={cardTarget}
-          onClose={() => setCardTarget(null)}
-          onDraft={(t) => { setCardTarget(null); setDraftTarget(t); }}
-        />
-      )}
+      {/* CRMCard side-drawer removed — replaced with inline row expansion
+          across all tabs (Workhuman parity). See paExpanded / pbExpanded /
+          fuExpanded. */}
 
       {draftTarget && (
         <DraftModal
