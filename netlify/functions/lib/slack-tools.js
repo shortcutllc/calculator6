@@ -66,7 +66,8 @@ const TOOL_HANDLERS = {
   lookup_lead: handleLookupLead,
   next_actions_for_lead: handleNextActionsForLead,
   suppress_lead: handleSuppressLead,
-  unsuppress_lead: handleUnsuppressLead
+  unsuppress_lead: handleUnsuppressLead,
+  draft_email: handleDraftEmail
 };
 
 // ============================================================
@@ -123,6 +124,102 @@ async function handleUnsuppressLead(params, supabase) {
     email,
     previous_reason: existing.reason,
     message: `Restored ${email} (was hidden as: ${existing.reason}). They'll appear in the next digest if they have active outreach.`,
+  };
+}
+
+// ============================================================
+// draft_email — same pipeline as the digest "Draft" button.
+// Resolves the lead (by email or name+company), opens a DM with the rep,
+// posts a "Drafting..." placeholder, fires the background LLM, returns
+// to Pro. The background function chat.updates the placeholder with the
+// preview (subject + body + Send/Cancel/etc buttons).
+//
+// userId here is the supabase auth user id of the slack user who DMed Pro,
+// resolved by slack-assistant.js via the gmail_accounts.supabase_user_id
+// mapping.
+// ============================================================
+
+async function handleDraftEmail(params, supabase, userId) {
+  // Resolve recipient via lead-picture (which supports email OR name+company).
+  let leadEmail = (params.email || '').toString().trim().toLowerCase();
+  const name = (params.name || '').toString().trim() || null;
+  const company = (params.company || '').toString().trim() || null;
+  if (!leadEmail && !name && !company) {
+    return { error: 'draft_email needs email, or name+company' };
+  }
+  // Use lead-picture for name resolution (same path lookup_lead uses).
+  const pic = await leadPicture(supabase, { email: leadEmail, name, company });
+  leadEmail = leadEmail || pic.identity?.email || null;
+  if (!leadEmail) {
+    return { error: `Could not resolve "${[name, company].filter(Boolean).join(' from ') || '(unknown)'}" to a contact. Try the email directly.` };
+  }
+
+  // Look up the rep's gmail + slack_user_id for the DM.
+  const { data: acct } = await supabase.from('gmail_accounts')
+    .select('email, slack_user_id, tz').eq('supabase_user_id', userId).maybeSingle();
+  if (!acct?.slack_user_id) {
+    return { error: 'I don\'t have your Slack profile mapped — set up Pro digest first, or reach Will to backfill slack_user_id.' };
+  }
+
+  // Open the DM channel + post the placeholder card (same shape as the
+  // digest button's placeholder).
+  const SLACK_API = 'https://slack.com/api';
+  const slackPost = async (method, body) => {
+    const r = await fetch(`${SLACK_API}/${method}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PRO_SLACK_BOT_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return r.json();
+  };
+  const label = [pic.identity?.name, pic.identity?.company].filter(Boolean).join(' · ') || leadEmail;
+  const open = await slackPost('conversations.open', { users: acct.slack_user_id });
+  if (!open.ok) return { error: `Could not open DM: ${open.error}` };
+  const channel = open.channel?.id;
+  const placeholder = await slackPost('chat.postMessage', {
+    channel,
+    blocks: [
+      { type: 'section', text: { type: 'mrkdwn', text: `:hourglass_flowing_sand: *Drafting to ${label}…*` } },
+      { type: 'context', elements: [{ type: 'mrkdwn', text: '_~10s. Brand voice + anti-hallucination rules applied._' }] },
+    ],
+    text: `Drafting to ${label}…`,
+  });
+  if (!placeholder.ok) return { error: `Could not post placeholder: ${placeholder.error}` };
+
+  // Resolve thread + mode.
+  const latestSendThreadId = (pic.history?.sends || []).slice(-1)[0]?.thread_id || null;
+  let firstOutreach;
+  if (params.mode === 'first_outreach') firstOutreach = true;
+  else if (params.mode === 'follow_up') firstOutreach = false;
+  else firstOutreach = !latestSendThreadId;   // auto
+
+  // Fire the background function — AWAIT so the dispatch reaches it before
+  // we return to Pro (same fix as the digest button's interactivity path).
+  const host = process.env.URL || 'https://proposals.getshortcut.co';
+  try {
+    await fetch(`${host}/.netlify/functions/slack-draft-async-background`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        repEmail: acct.email,
+        leadEmail,
+        threadId: firstOutreach ? null : latestSendThreadId,
+        firstOutreach,
+        label,
+        slackChannel: channel,
+        placeholderTs: placeholder.ts,
+      }),
+    });
+  } catch (e) {
+    return { error: `Background dispatch failed: ${e.message}` };
+  }
+
+  return {
+    success: true,
+    recipient_email: leadEmail,
+    recipient_label: label,
+    mode: firstOutreach ? 'first_outreach' : 'follow_up',
+    message: `Drafting a ${firstOutreach ? 'cold open' : 'follow-up'} to ${label}. The preview will land in your DM in ~10s with Send / Show angles / Edit in browser / Cancel buttons.`,
   };
 }
 

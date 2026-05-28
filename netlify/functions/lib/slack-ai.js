@@ -28,6 +28,8 @@ When a rep tells you "I just had a call with X", the natural next steps are usua
   - create_signup_link (for employees to book once the event is approved)
 You can chain these — confirm with the rep what was discussed, draft a proposal scaffold, ask which option fits, then create it. Always cite the personal-note text or the recent reply content as the basis for what you propose; don't invent details about the prospect (their team, their current vendors, their tools) — if it's not in the note or the reply, you don't know it.
 
+When a rep asks you to *draft, write, compose, or send an email* to a lead — anything like "draft a follow-up for Beverly", "write a cold open to Larcy @ Schulz", "what should I send to jmcauliffe@philabar.org", "compose a reply for X" — call the draft_email tool. It runs the same brand-voice + anti-hallucination pipeline the digest uses and posts a preview in the rep's DM with Send/Cancel/etc buttons. The rep can hit Send right from Slack. Always confirm the recipient if ambiguous (multiple "Beverlys") before calling. After triggering, briefly tell the rep what's happening ("Drafting a follow-up to Beverly @ Opensesame — preview in your DM in ~10s") rather than re-listing what's in your reply.
+
 When a rep asks "what should I do with X", call lookup_lead and surface the top 1-2 next_actions with their "why" field. Don't just dump everything — pick the most actionable based on the lead's stage.
 
 Be concise, calm, and practical. Format your responses for easy reading in Slack:
@@ -694,6 +696,19 @@ const TOOLS = [
         email: { type: 'string', description: 'The email address to restore' }
       },
       required: ['email']
+    }
+  },
+  {
+    name: 'draft_email',
+    description: 'Generate a follow-up or cold-open email to a specific lead using Shortcut\'s brand voice + anti-hallucination rules, post the preview in the rep\'s DM with Send / Show angles / Edit in browser / Cancel buttons. Use this whenever the rep asks you to draft, write, or compose an email to a lead in Slack — phrasings like "draft a follow-up for Beverly", "write a cold open to Larcy @ Schulz", "compose an email to jmcauliffe@philabar.org", "draft an email to <name> @ <company>", "follow-up draft for X", "what should I send to Y". You can also chain this AFTER lookup_lead when the picture suggests a draft is the obvious next move. Pre-flight gate runs on send so suppressed/client/DNC contacts are blocked automatically. Confirm the recipient with the rep before calling if their identification is ambiguous (e.g. multiple "Beverlys"). The draft preview lands in DM within ~10s.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Recipient email (preferred — most precise). If unknown, pass name + company and Pro will resolve.' },
+        name: { type: 'string', description: 'Lead name (first, last, or full) — used to resolve when email is unknown.' },
+        company: { type: 'string', description: 'Company name — pair with name to resolve "FirstName from Company"-style references.' },
+        mode: { type: 'string', enum: ['auto', 'follow_up', 'first_outreach'], description: '"auto" (default) infers from history. "follow_up" forces a follow-up tone (continues a thread). "first_outreach" forces a cold-open tone (no prior contact assumed — uses Workhuman personal-note if present).' }
+      }
     },
     cache_control: { type: 'ephemeral' }  // Cache breakpoint 1: all tool definitions (must be on LAST tool)
   }

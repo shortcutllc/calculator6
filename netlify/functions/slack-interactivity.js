@@ -120,15 +120,26 @@ async function postDraftingPlaceholder(rep, label) {
   return { channel, ts: post.ts };
 }
 
-// Fire the background function (drops the LLM work off our 3s ack timer).
-// We don't await this — the function returns 200/202 quickly from Netlify's
-// background-function dispatcher.
-function fireDraftBackground(payload) {
-  return fetch(`${DRAFTING_HOST}/.netlify/functions/slack-draft-async-background`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch((e) => console.error('background dispatch error:', e.message));
+// Kick off the background function. Netlify Background Functions accept
+// the POST and return 202 immediately, then continue running async for up
+// to 15min. We MUST await this fetch — without awaiting, the Lambda runtime
+// can terminate before the request actually leaves the process, dropping
+// the background dispatch entirely (this is what caused the "stuck on
+// Drafting..." bug). The await typically adds <1s since we only wait for
+// 202 Accepted, not for the LLM call to finish.
+async function fireDraftBackground(payload) {
+  try {
+    const r = await fetch(`${DRAFTING_HOST}/.netlify/functions/slack-draft-async-background`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok && r.status !== 202) {
+      console.error('background dispatch non-2xx:', r.status, await r.text().catch(() => ''));
+    }
+  } catch (e) {
+    console.error('background dispatch error:', e.message);
+  }
 }
 
 async function handleDraftButton(sb, rep, action) {
@@ -138,9 +149,9 @@ async function handleDraftButton(sb, rep, action) {
   catch { return 'Could not parse draft target.'; }
   const placeholder = await postDraftingPlaceholder(rep, v.label || v.email);
   if (placeholder.error) return `Could not open DM: ${placeholder.error}`;
-  // Fire and forget — the background function chat.updates the placeholder
-  // when the LLM finishes.
-  fireDraftBackground({
+  // AWAIT the background dispatch so Netlify doesn't terminate the inflight
+  // request when the handler returns (this was the "stuck Drafting" bug).
+  await fireDraftBackground({
     repEmail: rep.email,
     leadEmail: v.email,
     threadId: v.threadId || null,
