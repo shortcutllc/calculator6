@@ -1624,6 +1624,19 @@ const SalesIntelligence: React.FC = () => {
     window.history.replaceState({}, '', window.location.pathname);
   }, [refreshGmail]);
 
+  // Slack-digest "Draft" deep link — Pro DMs land at `?lead=<email>#followups`.
+  // On mount we capture the param. Once followups load + match by email, we
+  // open the draft modal automatically and clear the param so a refresh
+  // doesn't keep re-opening it.
+  const [pendingDeepLinkEmail, setPendingDeepLinkEmail] = useState<string | null>(null);
+  useEffect(() => {
+    const lead = new URLSearchParams(window.location.search).get('lead');
+    if (!lead) return;
+    setPendingDeepLinkEmail(lead.toLowerCase());
+    // Force the followups tab so the user lands on the right view immediately.
+    try { window.history.replaceState(null, '', '#followups' + (window.location.search ? '' : '')); } catch { /* */ }
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
@@ -1681,6 +1694,28 @@ const SalesIntelligence: React.FC = () => {
     if (tab !== 'followups') return;
     if (followups === null || fuLoadedScope !== fuScope) loadFollowups(fuScope);
   }, [tab, fuScope, followups, fuLoadedScope, loadFollowups]);
+
+  // Slack-digest "Draft" deep link follow-through: once we've forced the
+  // followups tab AND followups have loaded, find the matching FollowupRow
+  // by email and open the draft modal. Clears the pending state once handled
+  // so a tab switch doesn't re-open it.
+  useEffect(() => {
+    if (!pendingDeepLinkEmail) return;
+    if (tab !== 'followups') { setTab('followups'); return; }   // first force the tab
+    if (!followups) return;                                       // wait for data
+    const match = followups.find((f) => f.email?.toLowerCase() === pendingDeepLinkEmail);
+    if (match) {
+      setDraftTarget({ company: match.company || match.email, followup: match });
+    } else {
+      // No matching follow-up row — could be a never-emailed personal-note lead
+      // or a contact that aged out of the queue. Either way, don't trap the
+      // user; clear pending state and let them browse manually.
+      console.warn('Slack deep link: no follow-up found for', pendingDeepLinkEmail);
+    }
+    setPendingDeepLinkEmail(null);
+    // Clean the URL so a refresh doesn't re-open the modal.
+    try { window.history.replaceState(null, '', window.location.pathname + '#followups'); } catch { /* */ }
+  }, [pendingDeepLinkEmail, tab, followups]);
 
   const loadSavedDrafts = useCallback(async () => {
     setSdLoading(true);
