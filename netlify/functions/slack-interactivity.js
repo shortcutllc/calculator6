@@ -245,6 +245,54 @@ async function handleCancelDraft(sb, draftId) {
   return { ok: true };
 }
 
+// "Chat with Pro" — posts an opener in the rep's DM that names the lead +
+// pulls a quick context summary. The rep's next message in the DM is read
+// by slack-assistant.js in the context of this lead (the opener serves as
+// the most recent conversation turn so Pro carries the lead context forward).
+async function handleChatWithPro(sb, rep, valueJson) {
+  let v;
+  try { v = JSON.parse(valueJson || '{}'); }
+  catch { return { ok: false, error: 'bad chat target' }; }
+  if (!v.email) return { ok: false, error: 'no email' };
+
+  // Pull a quick lead picture so the opener message has real context to set
+  // — Pro will use this as the conversation seed.
+  let pic = null;
+  try {
+    const mod = await import('./lib/lead-picture.js');
+    pic = await mod.leadPicture(sb, { email: v.email });
+  } catch (e) { console.warn('lead-picture failed (non-fatal):', e.message); }
+
+  const name = pic?.identity?.name || v.label || v.email;
+  const company = pic?.identity?.company || '';
+  const personalNote = pic?.workhuman?.personal_note || '';
+  const lastSent = pic?.history?.last_sent ? `last emailed ${new Date(pic.history.last_sent).toLocaleDateString()}` : 'never emailed';
+  const status = pic?.workhuman?.outreach_status ? ` · status: ${pic.workhuman.outreach_status.replace(/_/g, ' ')}` : '';
+
+  const lines = [
+    `:speech_balloon: *Chatting about ${name}${company ? ` · ${company}` : ''}* (${v.email})`,
+    `_${lastSent}${status}_`,
+  ];
+  if (personalNote) lines.push(`_Note: ${personalNote.slice(0, 200)}_`);
+  lines.push('');
+  lines.push("What would you like to do? Examples:");
+  lines.push(`  • draft a follow-up`);
+  lines.push(`  • create a proposal`);
+  lines.push(`  • look up history / next actions`);
+  lines.push(`  • create a landing page`);
+  lines.push(`Just type — I'll keep the lead context loaded.`);
+
+  const open = await slackPost('conversations.open', { users: rep.slack_user_id });
+  if (!open.ok) return { ok: false, error: open.error };
+  const channel = open.channel?.id;
+  const post = await slackPost('chat.postMessage', {
+    channel,
+    text: `Chatting about ${name}`,
+    blocks: [{ type: 'section', text: { type: 'mrkdwn', text: lines.join('\n') } }],
+  });
+  return post.ok ? { ok: true } : { ok: false, error: post.error };
+}
+
 // "Show other angles" — pull the saved_drafts row, render safe + brave from
 // target_ref.all_directions, post them as a NEW message below the preview.
 async function handleShowAngles(sb, rep, draftId, payload) {
@@ -433,6 +481,10 @@ export const handler = async (event) => {
       }
       else if (op === 'show_angles') {
         const result = await handleShowAngles(sb, rep, arg, payload);
+        if (!result.ok) confirmation = result.error;
+      }
+      else if (op === 'chat_pro') {
+        const result = await handleChatWithPro(sb, rep, action.value);
         if (!result.ok) confirmation = result.error;
       }
     } catch (e) {

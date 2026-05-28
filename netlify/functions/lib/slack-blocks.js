@@ -71,6 +71,11 @@ function itemBlocks(label, sublabel, email, opts = {}) {
   }
   const gmailUrl = gmailThreadUrl(threadId, repEmail);
   if (includeOpenThread && gmailUrl) buttons.push(urlBtn('Open thread', gmailUrl));
+  // "Chat with Pro" — opens a conversation in DM about this specific lead.
+  // Pro gets the lead context (name, company, last send, personal note)
+  // pre-loaded so subsequent replies in the DM understand who you're
+  // discussing without you re-typing it.
+  buttons.push(actionBtn('Chat with Pro', `chat_pro:${email}`, JSON.stringify({ email, label, threadId: threadId || null })));
   buttons.push(actionBtn('Snooze 1d', `snooze_1d:${email}`, email));
   buttons.push(actionBtn('Snooze 7d', `snooze_7d:${email}`, email));
   buttons.push(actionBtn('Mute lead', `mute:${email}`, email, undefined, {
