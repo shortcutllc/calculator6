@@ -57,12 +57,14 @@ Be concise, calm, and practical. Format your responses for easy reading in Slack
 ## Conversational Flow
 
 When a user asks you to create a proposal:
-1. Call lookup_client to check for existing data.
-2. If any of these are missing, ask: service type, date, hours, number of pros, location/address.
+0. **If the rep names a specific contact** (e.g. "for Anna Maria at Bank of Princeton", "create a proposal for Beverly @ Opensesame") — call lookup_lead FIRST with name + company. Pull the resolved email, title, company URL, personal-note text. You will pass these through to create_proposal as contactName / contactEmail / clientLogoUrl (via search_logo on the company domain) / customNote (grounded in the personal note or recent reply — NEVER invented). Skipping this step is the most common way the proposal ends up missing the contact, missing the right logo, and missing a personalized intro line. Always do it.
+1. Call lookup_client to check for any prior proposal data for the company.
+2. If any service details are missing, ask: service type, date, hours, number of pros, location/address.
 3. If the user said "X appointments" without hours/pros, call calculate_pricing and present the options.
-4. Once you have all the details, summarize them back: "Here's what I'll create: [details]. Want me to go ahead?"
-5. After user confirms (or if they gave you every detail up front), create the proposal.
-6. Report ONLY what the tool returned — the exact URL, exact costs, exact appointment counts.
+4. Call search_logo with the COMPANY DOMAIN (from lookup_lead.identity.company_url or workhuman.company_url, or guess the domain). Brandfetch is the default — only fall back to Brave if Brandfetch missed.
+5. Summarize what you'll create back to the rep: "Here's what I'll create: [services + contactName + customNote]. Want me to go ahead?"
+6. After user confirms, call create_proposal passing clientName, contactName, contactFirstName (override if the parser would split a compound name wrong like "Anna Maria"), contactEmail, clientLogoUrl, customNote, and events.
+7. Report ONLY what the tool returned — exact URL, exact costs, exact appointment counts. Cite the source field on any logo ("Brandfetch", "Brave Search", "Clearbit") so the rep knows where the logo came from.
 
 When a user asks you to edit a proposal:
 1. Call get_proposal first to see the current structure (locations, dates, services, indices).
@@ -300,13 +302,17 @@ const SYSTEM_PROMPT = [
 const TOOLS = [
   {
     name: 'create_proposal',
-    description: 'Create a new wellness service proposal for a client. Returns the proposal ID, URL, and cost summary.',
+    description: 'Create a new wellness service proposal for a client. Returns the proposal ID, URL, and cost summary. When the rep names a specific contact ("for Anna Maria at Bank of Princeton"), CALL lookup_lead FIRST to resolve their email, title, company URL, and any personal-note context, then pass that info through contactName + contactEmail (and clientLogoUrl via search_logo on the resolved company domain). Otherwise the proposal won\'t address them by name and you\'ll miss the lead\'s context.',
     input_schema: {
       type: 'object',
       properties: {
         clientName: { type: 'string', description: 'Client company name' },
-        clientEmail: { type: 'string', description: 'Client contact email (optional)' },
-        clientLogoUrl: { type: 'string', description: 'URL to client company logo (optional, will be stored permanently)' },
+        clientEmail: { type: 'string', description: 'Client contact email (optional) — pull from lookup_lead.identity.email when the rep named a person.' },
+        clientLogoUrl: { type: 'string', description: 'URL to client company logo (optional, will be stored permanently). Use search_logo first to get a Brandfetch-quality URL.' },
+        contactName: { type: 'string', description: 'Full name of the named contact this proposal is for (e.g. "Anna Maria Miller"). Pulled from lookup_lead.identity.name when the rep named a person. The proposal viewer renders "Hi {firstName}" using the parsed first name.' },
+        contactFirstName: { type: 'string', description: 'Override first name (used when the parser would get it wrong, e.g. compound names like "Anna Maria")' },
+        contactLastName: { type: 'string', description: 'Override last name' },
+        customNote: { type: 'string', description: 'A short personalized intro note from Shortcut that appears at the top of the proposal (e.g. "Anna Maria — great catching up at Workhuman. Here\'s the cadence we discussed for the Bank of Princeton team."). Ground this in personal_note / history.replies content from lookup_lead — do NOT invent details.' },
         events: {
           type: 'array',
           description: 'Array of service events to include in the proposal',
@@ -434,12 +440,12 @@ const TOOLS = [
   },
   {
     name: 'search_logo',
-    description: 'Search for a company logo by name. First checks existing proposals, then uses Brave Search API and Clearbit. Returns a stored logo URL that can be used with update_client_info or create_proposal.',
+    description: 'Find a company logo. Lookup order: (1) Brandfetch API by domain — the highest-quality source, returns SVG/PNG with brand-mark / wordmark / symbol metadata. (2) Brandfetch with guessed domains (companyname.com / .co / .io) when no domain was passed. (3) Brave Image Search as fallback (noisy — only used when Brandfetch had no match). (4) Clearbit as last resort. Returns a stored Supabase URL that can be used with update_client_info or create_proposal. When telling the rep where a logo came from, say "Brandfetch" / "Brave" / "Clearbit" based on the `source` field in the result.',
     input_schema: {
       type: 'object',
       properties: {
         companyName: { type: 'string', description: 'Company name to search for — use the FULL resolved name, not abbreviations (e.g., "Boston Consulting Group" not "BCG")' },
-        domain: { type: 'string', description: 'Optional company website domain (e.g. "bcg.com", "burberry.com"). If provided, uses Clearbit directly for the most reliable results.' }
+        domain: { type: 'string', description: 'Optional company website domain (e.g. "bcg.com", "burberry.com"). PASS WHENEVER YOU KNOW IT — Brandfetch has a much higher hit rate with an explicit domain than with name-guessed domains.' }
       },
       required: ['companyName']
     }

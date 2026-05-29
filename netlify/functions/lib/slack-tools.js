@@ -356,7 +356,24 @@ async function handleCreateProposal(params, supabase, userId) {
     return { error: 'At least one event is required in the events array' };
   }
 
-  const { proposalData, customization, proposalType } = assembleProposal(params);
+  // Build customization defaults from the named-contact + custom-note args
+  // so the proposal renders "Hi {first name}" and shows Pro's intro line.
+  // Splits contactName into first/last on first whitespace; explicit
+  // contactFirstName / contactLastName win if both are passed.
+  const contactCustomization = {};
+  if (params.contactFirstName || params.contactLastName || params.contactName) {
+    const parts = (params.contactName || '').trim().split(/\s+/);
+    contactCustomization.contactFirstName = (params.contactFirstName || parts[0] || '').trim();
+    contactCustomization.contactLastName = (params.contactLastName || parts.slice(1).join(' ') || '').trim();
+  }
+  if (params.customNote) contactCustomization.customNote = String(params.customNote).trim();
+  // Merge into whatever customization the user passed.
+  const paramsWithCustomization = {
+    ...params,
+    customization: { ...(params.customization || {}), ...contactCustomization },
+  };
+
+  const { proposalData, customization, proposalType } = assembleProposal(paramsWithCustomization);
 
   // Handle logo
   if (params.clientLogoUrl) {
