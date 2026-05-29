@@ -194,15 +194,27 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const displayData = useMemo(() => {
     if (!rawDisplayData) return rawDisplayData;
     try {
-      return recalculateServiceTotals(
-        JSON.parse(JSON.stringify(rawDisplayData))
-      );
+      // Splice the top-level proposal.customization column INTO the rendered
+      // data so customNote (and contactFirstName / etc) appear in the viewer.
+      // Customization lives in two places historically:
+      //   - proposal.customization (top-level jsonb column, where Pro + the
+      //     proposal calculator both write it)
+      //   - proposal.data.customization (legacy in-jsonb fallback)
+      // Prefer the top-level when present so admin edits + Pro writes are
+      // both honored. Falls back to in-data when older proposals don't have
+      // the top-level column populated.
+      const cloned = JSON.parse(JSON.stringify(rawDisplayData));
+      const topLevelCust = (proposal as { customization?: unknown } | null)?.customization;
+      if (topLevelCust && typeof topLevelCust === 'object') {
+        cloned.customization = { ...(cloned.customization || {}), ...topLevelCust };
+      }
+      return recalculateServiceTotals(cloned);
     } catch (err) {
       // Don't crash the viewer if recalc throws on malformed data.
       console.warn('[StandaloneProposalViewerV2] recalc failed, using raw:', err);
       return rawDisplayData;
     }
-  }, [rawDisplayData]);
+  }, [rawDisplayData, proposal]);
   const status = proposal?.status as string | undefined;
   const isApproved = status === 'approved' || postApproval;
   const hasOriginalSnapshot = !!originalData && proposal?.has_changes;
