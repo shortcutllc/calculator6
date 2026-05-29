@@ -1,15 +1,62 @@
 /**
  * Logo Fetcher — finds company logos and stores them in Supabase storage.
  *
- * Strategy:
- * 1. Try Clearbit Logo API (most reliable, free, no API key needed)
- * 2. If Clearbit fails, return null (OpenClaw can use Brave Search as fallback)
- * 3. Always store a copy in Supabase — external URLs break over time
+ * Strategy (in order):
+ *   1. Brandfetch (rich logos, SVG-preferred, multi-format, requires API key)
+ *      — same pipeline create-workhuman-landing-page uses, so Pro tools get
+ *      the same logo quality the Workhuman landing-page flow gets.
+ *   2. Clearbit Logo API (fallback — no API key, fast, but lower-quality PNGs)
+ *   3. Return null (caller can fall back to Brave Search etc.)
+ *
+ * Always stores a copy in Supabase — external URLs break over time.
  */
 
+const BRANDFETCH_API_KEY = process.env.BRANDFETCH_API_KEY;
+
 /**
- * Attempt to fetch a company logo URL via Clearbit.
- * Clearbit serves logos at https://logo.clearbit.com/{domain}
+ * Brandfetch is the higher-quality source — returns SVG/PNG with explicit type
+ * metadata (logo vs symbol vs icon, light vs dark theme). Mirrors the ranking
+ * in create-workhuman-landing-page so Pro tools and the Workhuman landing-page
+ * flow produce the same logo for the same company.
+ */
+async function fetchLogoFromBrandfetch(domain) {
+  if (!domain || !BRANDFETCH_API_KEY) return null;
+  try {
+    const resp = await fetch(`https://api.brandfetch.io/v2/brands/${encodeURIComponent(domain)}`, {
+      headers: { Authorization: `Bearer ${BRANDFETCH_API_KEY}` },
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const logos = data.logos || [];
+    if (logos.length === 0) return null;
+    // Prefer wordmark logos, light theme, SVG > PNG > WebP > anything.
+    const rank = (l) => {
+      let s = 0;
+      if (l.type === 'logo') s += 100;
+      else if (l.type === 'symbol') s += 60;
+      else if (l.type === 'icon') s += 40;
+      if (l.theme === 'light') s += 10;
+      if (l.theme === 'dark') s -= 10;
+      return s;
+    };
+    const sorted = [...logos].sort((a, b) => rank(b) - rank(a));
+    for (const logo of sorted) {
+      const formats = logo.formats || [];
+      const svg = formats.find((f) => f.format === 'svg');
+      const png = formats.find((f) => f.format === 'png');
+      const webp = formats.find((f) => f.format === 'webp');
+      const pick = svg || png || webp || formats[0];
+      if (pick?.src) return pick.src;
+    }
+  } catch (e) {
+    console.warn('Brandfetch error:', e.message);
+  }
+  return null;
+}
+
+/**
+ * Attempt to fetch a company logo URL.
+ * Tries Brandfetch first (rich, SVG-preferred), falls back to Clearbit.
  *
  * @param {string} companyName - Company name (e.g., "Burberry")
  * @param {string} [domain] - Optional explicit domain (e.g., "burberry.com")
@@ -18,30 +65,28 @@
 async function fetchLogoUrl(companyName, domain) {
   // Try to construct the domain from the company name if not provided
   const domains = [];
-  if (domain) {
-    domains.push(domain);
-  }
-  // Common domain patterns
+  if (domain) domains.push(domain);
   const sanitized = companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
   domains.push(`${sanitized}.com`);
   domains.push(`${sanitized}.co`);
   domains.push(`${sanitized}.io`);
 
+  // 1) Brandfetch first — try each candidate domain. First hit wins.
+  for (const d of domains) {
+    const bf = await fetchLogoFromBrandfetch(d);
+    if (bf) return bf;
+  }
+
+  // 2) Clearbit fallback — fast HEAD probes.
   for (const d of domains) {
     const url = `https://logo.clearbit.com/${d}`;
     try {
       const response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
       if (response.ok) {
-        // Verify it's actually an image
         const contentType = response.headers.get('content-type') || '';
-        if (contentType.startsWith('image/')) {
-          return url;
-        }
+        if (contentType.startsWith('image/')) return url;
       }
-    } catch (err) {
-      // Clearbit didn't have this domain, try next
-      continue;
-    }
+    } catch (err) { /* try next domain */ }
   }
 
   return null;

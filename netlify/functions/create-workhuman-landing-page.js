@@ -11,6 +11,14 @@
  *     companyDomain:   string (optional; falls back to guessed domain)
  *     overrideLogoUrl: string (optional; skip auto-discovery)
  *     contactFirstName: string (optional; defaults to "Will")
+ *
+ *     // For non-Workhuman contacts (e.g. Jen @ Philly Bar from rep's Gmail):
+ *     // pass these instead of leadId. We'll find-or-create a workhuman_leads
+ *     // row for them so the URL + page_view_count + page_last_viewed_at
+ *     // persist on the contact card across visits.
+ *     contactEmail:    string (optional)
+ *     contactName:     string (optional)
+ *     assignedTo:      string (optional, falls back to "Will Newton")
  *   }
  *
  * Response:
@@ -239,8 +247,42 @@ export const handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { leadId, companyName, companyDomain, overrideLogoUrl, contactFirstName } = body;
+    const {
+      leadId: providedLeadId, companyName, companyDomain, overrideLogoUrl, contactFirstName,
+      contactEmail, contactName, assignedTo,
+    } = body;
     if (!companyName) return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'companyName required' }) };
+    let leadId = providedLeadId;
+
+    // For non-Workhuman contacts: find-or-create a workhuman_leads row keyed
+    // by email so the URL + view stats persist on the contact card across
+    // visits. Idempotent: same email maps to the same row.
+    if (!leadId && contactEmail) {
+      const cleanedEmail = String(contactEmail).trim().toLowerCase();
+      const { data: existing } = await supabase
+        .from('workhuman_leads')
+        .select('id').eq('email', cleanedEmail).maybeSingle();
+      if (existing?.id) {
+        leadId = existing.id;
+      } else {
+        const { data: created, error: createErr } = await supabase
+          .from('workhuman_leads')
+          .insert({
+            email: cleanedEmail,
+            name: contactName || cleanedEmail.split('@')[0],
+            company: companyName,
+            company_url: companyDomain || null,
+            assigned_to: assignedTo || 'Will Newton',
+            tier: 'tier_3',
+            source: 'sales_intelligence_landing_page',
+            outreach_status: 'not_contacted',
+            notes: `[${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · system] Auto-created from Sales Intelligence landing-page action.`,
+          })
+          .select('id').single();
+        if (!createErr && created?.id) leadId = created.id;
+        else console.warn('auto-create workhuman_leads failed (non-fatal):', createErr?.message);
+      }
+    }
 
     const domain = extractDomain(companyDomain) || guessDomain(companyName);
 

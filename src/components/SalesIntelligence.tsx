@@ -884,7 +884,9 @@ const LeadActionBar: React.FC<{
 // the ExpandedLeadRow surfaces in WorkhumanLeads.tsx so a sales rep gets
 // the same affordances on either page.
 const WorkhumanAffordances: React.FC<{
-  leadId: string;
+  leadId: string | null;            // null for non-Workhuman contacts — backend auto-creates a row
+  contactEmail: string | null;      // used when leadId is null (auto-create key)
+  contactName: string | null;       // used when leadId is null
   company: string | null;
   companyUrl: string | null;
   logoUrl: string | null;
@@ -894,7 +896,7 @@ const WorkhumanAffordances: React.FC<{
   pageLastViewedAt: string | null;
   initialNotes: string | null;
   onMutated: () => void;
-}> = ({ leadId, company, companyUrl, logoUrl, logoSource, landingPageUrl, pageViewCount, pageLastViewedAt, initialNotes, onMutated }) => {
+}> = ({ leadId, contactEmail, contactName, company, companyUrl, logoUrl, logoSource, landingPageUrl, pageViewCount, pageLastViewedAt, initialNotes, onMutated }) => {
   const { user } = useAuth();
   const myFirstName = useMemo(() => {
     const email = user?.email?.toLowerCase() || '';
@@ -910,6 +912,7 @@ const WorkhumanAffordances: React.FC<{
   const notesTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const persistNotes = useCallback(async (val: string) => {
+    if (!leadId) return;   // notes only persist for workhuman_leads rows
     await supabase.from('workhuman_leads').update({ notes: val }).eq('id', leadId);
   }, [leadId]);
 
@@ -939,10 +942,38 @@ const WorkhumanAffordances: React.FC<{
   const handleCreatePage = async (overrideUrl?: string) => {
     if (!company) return;
     setCreatingPage(true);
-    const result = await createLandingPageForLead(
-      { id: leadId, company, company_url: companyUrl || undefined, logo_url: logoUrl || undefined } as Parameters<typeof createLandingPageForLead>[0],
-      overrideUrl,
-    );
+    // When the contact is a workhuman lead, use the typed service. Otherwise
+    // call the endpoint directly with contactEmail — the backend will
+    // find-or-create a workhuman_leads row so the URL + view stats persist.
+    let result;
+    try {
+      if (leadId) {
+        result = await createLandingPageForLead(
+          { id: leadId, company, company_url: companyUrl || undefined, logo_url: logoUrl || undefined } as Parameters<typeof createLandingPageForLead>[0],
+          overrideUrl,
+        );
+      } else {
+        const resp = await fetch('/.netlify/functions/create-workhuman-landing-page', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            companyName: company,
+            companyDomain: companyUrl || undefined,
+            overrideLogoUrl: overrideUrl || undefined,
+            contactEmail: contactEmail || undefined,
+            contactName: contactName || undefined,
+            // The actor email becomes the assignee when we auto-create the row.
+            assignedTo: REP_EMAIL_TO_FIRST_NAME[(user?.email || '').toLowerCase()]
+              ? Object.entries(REP_EMAIL_TO_FIRST_NAME).find(([e]) => e === user?.email?.toLowerCase())?.[0]
+              : undefined,
+          }),
+        });
+        const j = await resp.json();
+        result = { success: resp.ok && j.success, url: j.url, logoUrl: j.logoUrl, logoSource: j.logoSource, error: j.error };
+      }
+    } catch (e) {
+      result = { success: false, error: e instanceof Error ? e.message : 'unknown' };
+    }
     setCreatingPage(false);
     if (result.success) {
       setLogoOverride('');
@@ -1030,7 +1061,9 @@ const WorkhumanAffordances: React.FC<{
         </div>
       </div>
 
-      {/* Timestamped notes editor */}
+      {/* Timestamped notes editor (only when the lead is in workhuman_leads —
+          notes are stored on that row) */}
+      {leadId && (
       <div className="border-t border-yellow-200 pt-3">
         <h4 className="text-[10px] uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1.5">
           <MessageSquare size={12} /> Notes
@@ -1053,6 +1086,7 @@ const WorkhumanAffordances: React.FC<{
           className="w-full h-20 px-2 py-1.5 border border-gray-200 rounded text-xs resize-none focus:outline-none focus:ring-2 focus:ring-shortcut-navy-blue/20 font-mono"
         />
       </div>
+      )}
     </div>
   );
 };
@@ -1236,20 +1270,28 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
                     </div>
                   )}
 
-                  {/* Workhuman-parity affordances: timestamped notes editor +
-                      personalized landing-page creator (with logo override).
-                      Mirrors the bottom of WorkhumanLeads.ExpandedLeadRow so the
-                      sales rep gets the same actions on either page. */}
+                </section>
+              )}
+
+              {/* Lead affordances: timestamped notes editor (workhuman_leads only)
+                  + personalized landing-page creator (any contact with company).
+                  When the lead is NOT in workhuman_leads, the backend auto-creates
+                  a row so the URL + view stats persist on the contact card.
+                  Mirrors the bottom of WorkhumanLeads.ExpandedLeadRow. */}
+              {d.identity?.company && (
+                <section className="border border-yellow-200 bg-yellow-50/50 rounded p-3 -mx-1">
                   <WorkhumanAffordances
-                    leadId={d.workhuman.id}
+                    leadId={d.workhuman?.id || null}
+                    contactEmail={d.identity?.email || null}
+                    contactName={d.identity?.name || null}
                     company={d.identity.company}
                     companyUrl={d.identity.company_url || null}
-                    logoUrl={d.workhuman.logo_url}
-                    logoSource={d.workhuman.logo_source}
-                    landingPageUrl={d.workhuman.landing_page_url}
-                    pageViewCount={d.workhuman.landing_page_views}
-                    pageLastViewedAt={d.workhuman.landing_page_last_viewed}
-                    initialNotes={d.workhuman.notes_raw}
+                    logoUrl={d.workhuman?.logo_url || null}
+                    logoSource={d.workhuman?.logo_source || null}
+                    landingPageUrl={d.workhuman?.landing_page_url || null}
+                    pageViewCount={d.workhuman?.landing_page_views || null}
+                    pageLastViewedAt={d.workhuman?.landing_page_last_viewed || null}
+                    initialNotes={d.workhuman?.notes_raw || null}
                     onMutated={reload}
                   />
                 </section>
