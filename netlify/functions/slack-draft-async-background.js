@@ -104,7 +104,11 @@ export const handler = async (event) => {
   try { req = JSON.parse(event.body || '{}'); }
   catch { return { statusCode: 400, body: 'Bad JSON' }; }
 
-  const { repEmail, leadEmail, threadId, firstOutreach, label, slackChannel, placeholderTs } = req;
+  const {
+    repEmail, leadEmail, threadId, firstOutreach, label, slackChannel, placeholderTs,
+    // Optional rep-supplied guidance (Pro passes these when the rep tells it what to write)
+    instructions, proposalIds, signupUrls,
+  } = req;
   if (!repEmail || !leadEmail || !slackChannel || !placeholderTs) {
     return { statusCode: 400, body: 'Missing required fields' };
   }
@@ -173,6 +177,72 @@ export const handler = async (event) => {
       last_reply_sentiment: (pic.history?.replies || []).slice(-1)[0]?.sentiment || null,
     },
   };
+
+  // ---- 3a. Resolve proposals + signup links the rep wants to reference -----
+  // Three sources, merged + deduped:
+  //   1. Explicit proposalIds / signupUrls Pro passed
+  //   2. Whatever lead-picture found tied to this contact
+  //   3. (auto-include only when instructions is set — otherwise a draft for
+  //      a lead with proposals on file shouldn't auto-pitch them every time)
+  const propUrlByPid = new Map();
+  const seenSignupUrls = new Set();
+  const referenced = { proposals: [], signups: [] };
+  try {
+    const picProposals = pic.proposals || [];
+    const picSignups = pic.signups || [];
+    // Explicit ids from Pro: hydrate by selecting from proposals table
+    if (Array.isArray(proposalIds) && proposalIds.length) {
+      const { data } = await sb.from('proposals')
+        .select('id, client_name, slug, status, proposal_type')
+        .in('id', proposalIds);
+      for (const p of (data || [])) {
+        const url = p.slug
+          ? `https://proposals.getshortcut.co/p/${p.slug}`
+          : `https://proposals.getshortcut.co/proposal/${p.id}?shared=true`;
+        propUrlByPid.set(p.id, url);
+        referenced.proposals.push({ id: p.id, client_name: p.client_name, status: p.status, url });
+      }
+    }
+    // Picture proposals: include only if instructions reference them OR explicit pass
+    if (instructions || Array.isArray(proposalIds)) {
+      for (const p of picProposals) {
+        if (propUrlByPid.has(p.id)) continue;
+        const url = p.url || `https://proposals.getshortcut.co/proposal/${p.id}?shared=true`;
+        propUrlByPid.set(p.id, url);
+        referenced.proposals.push({ id: p.id, client_name: p.client_name, status: p.status, url });
+      }
+    }
+    // Explicit signup URLs from Pro
+    for (const u of (Array.isArray(signupUrls) ? signupUrls : [])) {
+      const url = String(u).trim();
+      if (!url || seenSignupUrls.has(url)) continue;
+      seenSignupUrls.add(url);
+      referenced.signups.push({ signup_url: url, source: 'pro' });
+    }
+    // Picture signups: include when instructions are set or explicit pass
+    if (instructions || Array.isArray(signupUrls) || Array.isArray(proposalIds)) {
+      for (const s of picSignups) {
+        const url = s.signup_url;
+        if (!url || seenSignupUrls.has(url)) continue;
+        seenSignupUrls.add(url);
+        referenced.signups.push({ signup_url: url, source: 'lead_picture' });
+      }
+    }
+    // If proposals were resolved, also pull signups joined via proposal_id
+    // (catches the case where lead-picture's text-search missed them because
+    // event_payload is empty).
+    if (referenced.proposals.length > 0) {
+      const pids = referenced.proposals.map((p) => p.id);
+      const { data: ps } = await sb.from('sign_up_links')
+        .select('signup_url, proposal_id, status')
+        .in('proposal_id', pids).eq('status', 'active');
+      for (const s of (ps || [])) {
+        if (!s.signup_url || seenSignupUrls.has(s.signup_url)) continue;
+        seenSignupUrls.add(s.signup_url);
+        referenced.signups.push({ signup_url: s.signup_url, source: 'proposal_join' });
+      }
+    }
+  } catch (e) { console.warn('referenced-assets resolution non-fatal err:', e.message); }
 
   // ---- 3b. Pull the rep's PRIOR EMAIL BODY from Gmail (follow-up mode) -
   // The LLM is blind without it — it doesn't know what to NOT repeat. Same
@@ -243,7 +313,26 @@ export const handler = async (event) => {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   let result;
   try {
+    const hasInstructions = !!(instructions && instructions.trim());
+    const hasReferenced = referenced.proposals.length > 0 || referenced.signups.length > 0;
     const userPromptParts = [
+      // --- HIGHEST PRIORITY: rep's own brief, if they gave one --------------
+      hasInstructions
+        ? `═══ REP'S BRIEF (HIGHEST PRIORITY) ═══\nThis is what the rep ASKED YOU to write. Do not produce a generic follow-up that ignores this. Build the email around these instructions. Use the prospect context + brand voice + length guidance for HOW to write, but the WHAT is here:\n\n"""${instructions.trim().slice(0, 2000)}"""\n\nWhen the brief references "the proposal" / "the signup link" / similar — use the specific URLs in the "Assets to reference" section below.\n═══════════════════════════════════════\n`
+        : ``,
+      // --- Linked proposals + signup URLs (when present) -------------------
+      hasReferenced
+        ? `═══ ASSETS TO REFERENCE ═══\n`
+          + (referenced.proposals.length
+            ? `Proposals tied to this contact (include the URL in the email if the brief calls for sharing a proposal):\n`
+              + referenced.proposals.map((p) => `  • ${p.client_name} (${p.status}) — ${p.url}`).join('\n') + '\n'
+            : '')
+          + (referenced.signups.length
+            ? `Signup links tied to this contact (include the URL if the brief mentions a signup link, sign-up, or employee booking):\n`
+              + referenced.signups.map((s) => `  • ${s.signup_url}`).join('\n') + '\n'
+            : '')
+          + `═══════════════════════\n`
+        : ``,
       `Mode: ${ctx.mode}`,
       ``,
       `Prospect context (JSON, only use what's here — do not invent the rest):`,
@@ -266,7 +355,21 @@ export const handler = async (event) => {
         : ``,
       `Sign emails from: ${ctx.rep_first_name}`,
       ``,
-      ctx.mode === 'personal_first_outreach'
+      // When the rep gave explicit instructions, the default tight follow-up
+      // shape (< 30 words, two sentences) clobbers the brief. Use a different
+      // length guidance that lets the email actually do what the rep asked.
+      hasInstructions
+        ? `This email follows the REP'S BRIEF above. Shape:\n`
+          + `  • Length: as long as the brief requires, but ruthlessly tight — every sentence earns its place. Aim for 80-150 words for a content-rich follow-up (presenting a proposal, sharing a signup link, asking for a tour). Shorter if the brief is simple.\n`
+          + `  • Structure: open with a one-line reference to the prior thread (acknowledge you're following up), then the substance from the brief, then ONE clear next step.\n`
+          + `  • If the brief mentions a proposal or signup link, include the actual URL on its own line so it's tappable. Use the URL from "Assets to reference" above verbatim.\n`
+          + `  • Brand voice: warm, plain, no buzzwords, no "synergy", no "leverage", no "circle back". Read like one human emailing another.\n`
+          + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+          + `  • Do NOT re-introduce Shortcut from scratch if there's prior thread context. Do NOT re-pitch services that are already in the proposal.`
+          + (ctx.workhuman_context?.personal_note
+            ? `\n  • The rep has this in-person note on file — use it if it adds warmth, but don't let it dominate: "${ctx.workhuman_context.personal_note}"`
+            : ``)
+      : ctx.mode === 'personal_first_outreach'
         ? `This is a FIRST OUTREACH to someone the rep met in person at Workhuman (or similar). It is NOT a follow-up — there is no prior email. The hook is the in-person conversation itself.\n`
           + (ctx.workhuman_context?.personal_note
             ? `\nYOUR PERSONAL NOTE from that conversation (THIS is your hook — reference something specific from it; do not invent specifics that aren't in the note):\n"${ctx.workhuman_context.personal_note}"\n`

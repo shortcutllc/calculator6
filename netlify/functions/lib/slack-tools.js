@@ -208,6 +208,13 @@ async function handleDraftEmail(params, supabase, userId) {
         label,
         slackChannel: channel,
         placeholderTs: placeholder.ts,
+        // Pass-through: the rep's own instructions about what the email should
+        // do, plus any specific proposals / signup links Pro found and wants
+        // the draft to reference. The background function weaves these into
+        // the LLM prompt as primary guidance.
+        instructions: (params.instructions || '').toString().trim() || null,
+        proposalIds: Array.isArray(params.proposalIds) ? params.proposalIds.slice(0, 5) : null,
+        signupUrls: Array.isArray(params.signupUrls) ? params.signupUrls.slice(0, 5) : null,
       }),
     });
   } catch (e) {

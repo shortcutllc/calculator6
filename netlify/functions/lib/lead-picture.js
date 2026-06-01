@@ -251,35 +251,82 @@ export async function leadPicture(sb, input) {
   try { gate = await preflight(sb, { email, domain }); } catch (e) { gate = { recommendation: 'unknown', error: e.message }; }
   const history = await contactHistory(sb, email);
 
-  // ----- 5. Proposals for this contact's company -----
+  // ----- 5. Proposals for this contact -----
+  // Three match paths, deduped by proposal id:
+  //   1. client_email exact match (set when Pro create_proposal had the email)
+  //   2. client_name ILIKE %company% (when we know the company)
+  //   3. slug ILIKE %domain-token% (catches "philadelphia-bar..." for jen@philabar.org
+  //      when nothing else knew the company name)
   let proposals = [];
   try {
     const cname = identity.company || workhuman?.company || company?.name;
-    if (cname || email) {
-      let q = sb.from('proposals')
-        .select('id, client_name, client_email, status, proposal_type, created_at, updated_at')
-        .order('updated_at', { ascending: false }).limit(10);
-      if (email) q = q.or(`client_email.eq.${email}${cname ? `,client_name.ilike.%${cname.replace(/[%,]/g, '')}%` : ''}`);
-      else if (cname) q = q.ilike('client_name', `%${cname.replace(/[%,]/g, '')}%`);
-      const { data } = await q;
-      proposals = data || [];
+    const escCname = cname ? cname.replace(/[%,]/g, '') : null;
+    // Derive a coarse "domain token" — the SLD without TLD/www, e.g. "philabar" from "philabar.org"
+    const domainToken = domain ? domain.replace(/^www\./, '').split('.')[0] : null;
+    const escDomainToken = domainToken && domainToken.length >= 4 ? domainToken : null;
+
+    const byId = new Map();
+    const merge = (rows) => {
+      for (const r of (rows || [])) if (!byId.has(r.id)) byId.set(r.id, r);
+    };
+
+    if (email) {
+      const { data } = await sb.from('proposals')
+        .select('id, slug, client_name, client_email, status, proposal_type, created_at, updated_at')
+        .eq('client_email', email).order('updated_at', { ascending: false }).limit(10);
+      merge(data);
     }
+    if (escCname) {
+      const { data } = await sb.from('proposals')
+        .select('id, slug, client_name, client_email, status, proposal_type, created_at, updated_at')
+        .ilike('client_name', `%${escCname}%`).order('updated_at', { ascending: false }).limit(10);
+      merge(data);
+    }
+    if (escDomainToken && byId.size === 0) {
+      // Only fall back to domain matching when nothing else found — guard against
+      // generic tokens (e.g. domain "company" → would match every proposal).
+      const [a, b] = await Promise.all([
+        sb.from('proposals')
+          .select('id, slug, client_name, client_email, status, proposal_type, created_at, updated_at')
+          .ilike('slug', `%${escDomainToken}%`).order('updated_at', { ascending: false }).limit(10),
+        sb.from('proposals')
+          .select('id, slug, client_name, client_email, status, proposal_type, created_at, updated_at')
+          .ilike('client_name', `%${escDomainToken}%`).order('updated_at', { ascending: false }).limit(10),
+      ]);
+      merge(a.data); merge(b.data);
+    }
+    proposals = [...byId.values()].sort((x, y) => new Date(y.updated_at) - new Date(x.updated_at)).slice(0, 10);
   } catch { /* table or perms missing — skip */ }
 
-  // ----- 6. Sign-up links for the company -----
+  // ----- 6. Sign-up links for this contact -----
+  // Two match paths, deduped by signup id:
+  //   1. proposal_id IN (proposals we just found) — most reliable
+  //   2. event_payload text match on company name — legacy fallback
   let signups = [];
   try {
+    const byId = new Map();
+    const merge = (rows) => { for (const r of (rows || [])) if (!byId.has(r.id)) byId.set(r.id, r); };
+
+    // Path 1: join via proposal_id
+    if (proposals.length > 0) {
+      const { data } = await sb.from('sign_up_links')
+        .select('id, proposal_id, signup_url, status, event_payload, created_at, coordinator_event_id')
+        .in('proposal_id', proposals.map((p) => p.id)).eq('status', 'active');
+      merge(data);
+    }
+    // Path 2: legacy text match (only when company is known)
     const cname = identity.company || workhuman?.company || company?.name;
     if (cname) {
       const { data } = await sb.from('sign_up_links')
-        .select('id, proposal_id, signup_url, status, event_payload, created_at')
-        .order('created_at', { ascending: false }).limit(5);
-      signups = (data || []).filter((s) => {
+        .select('id, proposal_id, signup_url, status, event_payload, created_at, coordinator_event_id')
+        .order('created_at', { ascending: false }).limit(10);
+      const matches = (data || []).filter((s) => {
         const payload = s.event_payload || {};
-        const inPayload = JSON.stringify(payload).toLowerCase().includes((cname || '').toLowerCase());
-        return inPayload;
+        return JSON.stringify(payload).toLowerCase().includes(cname.toLowerCase());
       });
+      merge(matches);
     }
+    signups = [...byId.values()].sort((x, y) => new Date(y.created_at) - new Date(x.created_at)).slice(0, 10);
   } catch { /* table or perms missing — skip */ }
 
   return { identity, workhuman, company, preflight: gate, history, proposals, signups, resolution };
