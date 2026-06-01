@@ -1297,6 +1297,40 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
                 </section>
               )}
 
+              {/* Recent email thread — promoted to the TOP of the data sections.
+                  "What was the last conversation" is the most relevant question
+                  when working an active lead. Most recent thread auto-expands;
+                  older threads in the same contact stay collapsed but visible
+                  for quick toggle. */}
+              {(() => {
+                const seen = new Set<string>();
+                const uniqThreads = (d.history?.sends || [])
+                  .filter((s) => s.thread_id && !seen.has(s.thread_id) && (seen.add(s.thread_id) || true))
+                  .sort((a, b) => new Date(b.sent_time || 0).getTime() - new Date(a.sent_time || 0).getTime());
+                if (!uniqThreads.length) return null;
+                return (
+                  <section className="border border-blue-100 bg-blue-50/30 rounded p-3 -mx-1">
+                    <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <Mail size={13} /> Recent email thread{uniqThreads.length > 1 ? `s (${uniqThreads.length})` : ''}
+                    </h3>
+                    <div className="space-y-3">
+                      {uniqThreads.slice(0, 3).map((s, i) => (
+                        <div key={s.thread_id!} className="text-xs">
+                          <div className="text-gray-500 mb-1">
+                            {s.sent_time ? new Date(s.sent_time).toLocaleDateString() : '?'} · {s.sender_email ? s.sender_email.split('@')[0] : 'unknown'} · {s.replied ? <span className="text-green-700 font-medium">replied</span> : <span>no reply</span>}
+                          </div>
+                          {/* Most recent thread is open by default — that's the one the rep cares about */}
+                          <ThreadView threadId={s.thread_id!} senderEmail={s.sender_email} defaultOpen={i === 0} />
+                        </div>
+                      ))}
+                      {uniqThreads.length > 3 && (
+                        <div className="text-xs text-gray-400 italic">+{uniqThreads.length - 3} older thread{uniqThreads.length - 3 === 1 ? '' : 's'} (see History below)</div>
+                      )}
+                    </div>
+                  </section>
+                );
+              })()}
+
               {/* Proposals on file for this contact's company */}
               {(d.proposals?.length || 0) > 0 && (
                 <section>
@@ -1399,29 +1433,9 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
                         </span>
                       ))}
                     </div>
-                    {/* Threads with bodies (live from rep's Gmail). Per unique thread_id. */}
-                    {(() => {
-                      const seen = new Set<string>();
-                      const uniq = d.history.sends
-                        .filter((s) => s.thread_id && !seen.has(s.thread_id) && (seen.add(s.thread_id) || true))
-                        .sort((a, b) => new Date(b.sent_time || 0).getTime() - new Date(a.sent_time || 0).getTime());
-                      if (!uniq.length) return null;
-                      return (
-                        <div className="space-y-2 pt-2 border-t border-gray-100">
-                          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Threads (from your Gmail)</div>
-                          {uniq.map((s) => (
-                            <div key={s.thread_id!} className="text-xs">
-                              <div className="text-gray-500 mb-1">
-                                {s.sent_time ? new Date(s.sent_time).toLocaleDateString() : '?'} ·{' '}
-                                {s.sender_email ? s.sender_email.split('@')[0] : 'unknown'} ·{' '}
-                                {s.replied ? <span className="text-green-700">replied</span> : <span>no reply</span>}
-                              </div>
-                              <ThreadView threadId={s.thread_id!} senderEmail={s.sender_email} />
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
+                    {/* Threads block moved up — see "Recent email thread" section
+                        above the proposals/signups. This bottom History section
+                        now just shows the sends list + replies summary. */}
                   </div>
                 )}
               </section>
