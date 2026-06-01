@@ -99,22 +99,27 @@ async function processAccount(sb, acct) {
       // DEDUPE: companion sends (gmail-direct / gmail-open) get written to
       // outreach_sends synchronously by send-as-rep. The daily crawl then
       // sees the SAME Gmail message in the Sent folder and would create a
-      // duplicate row under our own campaign_id — inflating touch counts.
-      // Skip if message_id already exists for this email under any campaign.
+      // duplicate row. Skip if message_id already exists for this email.
       const { data: dupe } = await sb.from('outreach_sends')
         .select('campaign_id').eq('email', prospectEmail).eq('message_id', h.id).maybeSingle();
       if (dupe) continue;  // already recorded — don't double-count
 
-      // increment touch_count on resend to same (email,campaign)
-      const { data: prev } = await sb.from('outreach_sends')
-        .select('touch_count').eq('email', prospectEmail).eq('campaign_id', CAMPAIGN).maybeSingle();
+      // ONE ROW PER MESSAGE. The prior pattern used a single
+      // (email, CAMPAIGN) row and upserted with onConflict, which clobbered
+      // sent_time / message_id / thread_id with whatever was processed last
+      // (often the OLDEST of a batch of newest-first Gmail results). This
+      // is why Beverly's row showed sent_time=5/19 even after the 5/21 send.
+      // Use per-message campaign_id so every send gets its own preserved row.
+      // followups + lead-picture aggregation already dedupe by message_id
+      // across rows, so cadence math is unaffected.
       await sb.from('outreach_sends').upsert(
         {
-          email: prospectEmail, campaign_id: CAMPAIGN,
+          email: prospectEmail,
+          campaign_id: `${CAMPAIGN}:${h.id}`,
           sent_time: sentTimeIso, ingested_at: new Date().toISOString(),
           thread_id: h.threadId, message_id: h.id,
           sender_email: acct.email,
-          touch_count: (prev?.touch_count || 0) + 1,
+          touch_count: 1,
         },
         { onConflict: 'email,campaign_id' },
       );
