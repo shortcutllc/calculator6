@@ -304,6 +304,21 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
     blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: `_+${body.length - BODY_TRUNCATE_AT} more chars — click Edit in browser to see full body_` }] });
   }
   blocks.push({ type: 'divider' });
+  // "Open in Gmail" deep-link: opens Gmail compose pre-filled with to /
+  // subject / body so the rep can tweak and send from Gmail directly.
+  // Uses the rep's own gmail account via authuser= so the right inbox opens.
+  let openInGmailUrl = null;
+  if (ctx.repEmail && ctx.email) {
+    const p = new URLSearchParams({
+      view: 'cm',
+      fs: '1',
+      to: ctx.email,
+      su: String(draft.subject || ''),
+      body: String(draft.body || ''),
+      authuser: ctx.repEmail,
+    });
+    openInGmailUrl = `https://mail.google.com/mail/?${p.toString()}`;
+  }
   const actions = [
     actionBtn('Send', `send_pro:${ctx.draftId}`, ctx.draftId, 'primary', {
       title: { type: 'plain_text', text: 'Send now?' },
@@ -311,6 +326,7 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
       confirm: { type: 'plain_text', text: 'Send' },
       deny: { type: 'plain_text', text: 'Cancel' },
     }),
+    ...(openInGmailUrl ? [urlBtn('Open in Gmail', openInGmailUrl)] : []),
     actionBtn('Show other angles', `show_angles:${ctx.draftId}`, ctx.draftId),
     urlBtn('Edit in browser', `${SI_URL_BASE}?lead=${encodeURIComponent(ctx.email)}&draft=${encodeURIComponent(ctx.draftId)}#followups`),
     actionBtn('Cancel', `cancel_draft:${ctx.draftId}`, ctx.draftId, 'danger'),

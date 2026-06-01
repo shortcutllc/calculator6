@@ -315,11 +315,43 @@ export const handler = async (event) => {
   try {
     const hasInstructions = !!(instructions && instructions.trim());
     const hasReferenced = referenced.proposals.length > 0 || referenced.signups.length > 0;
+    // When the brief is about presenting a proposal / signup, ground the
+    // shape on Shortcut's actual post-call template (the one Will uses in
+    // the Client Emails section of the app). The LLM gets a reference body
+    // and is told to MATCH the structure / warmth / explicit-but-low-pressure
+    // posture, not the prior thread's voice.
+    const isPostCallShape = hasInstructions && (
+      referenced.proposals.length > 0 || referenced.signups.length > 0
+      || /\bproposal\b|\bsign.?up\b|\bdemo\b|\bdetails\b|\bevent\b|\bsponsor/i.test(instructions)
+    );
+    const POST_CALL_REFERENCE = `
+REFERENCE PATTERN — this is Shortcut's standard post-call email shape (used by Will + the team for years). Match its STRUCTURE, WARMTH, and CADENCE. Do not copy the wording verbatim — adapt it to this specific brief.
+
+  Hi {firstName},
+
+  It was such a pleasure speaking with you! Thank you again for taking the time to share more about {Company} and what you're envisioning for the team. We're truly excited about the opportunity to host a {event description} for the {Company} team!
+
+  *Event Details*
+  • The proposal includes multiple size options and is fully customizable, so you can easily adjust the event length and number of Pros to best fit your needs. You can review and edit everything here: {proposal URL}
+  • I've also included a link to the employee sign-up so you can experience our seamless booking technology from their perspective: {signup URL}
+
+  Our goal is to be the easiest vendor to work with, so please don't hesitate to reach out if you have any questions.
+
+  Best,
+  {rep first name}
+
+Notes on the reference:
+  - Opens with warmth + acknowledgment of the call. Specific to what they shared, not generic.
+  - The proposal + signup links each appear on their OWN line below a short framing sentence — never crammed mid-paragraph.
+  - The closer ("easiest vendor to work with") is Shortcut's signature posture: low-pressure, service-first.
+  - No buzzwords. No "circling back". No "as discussed".`;
     const userPromptParts = [
       // --- HIGHEST PRIORITY: rep's own brief, if they gave one --------------
       hasInstructions
-        ? `═══ REP'S BRIEF (HIGHEST PRIORITY) ═══\nThis is what the rep ASKED YOU to write. Do not produce a generic follow-up that ignores this. Build the email around these instructions. Use the prospect context + brand voice + length guidance for HOW to write, but the WHAT is here:\n\n"""${instructions.trim().slice(0, 2000)}"""\n\nWhen the brief references "the proposal" / "the signup link" / similar — use the specific URLs in the "Assets to reference" section below.\n═══════════════════════════════════════\n`
+        ? `═══ REP'S BRIEF (HIGHEST PRIORITY) ═══\nThis is what the rep ASKED YOU to write. Do not produce a generic follow-up that ignores this. Build the email around these instructions. Use the prospect context + brand voice + length guidance for HOW to write, but the WHAT is here:\n\n"""${instructions.trim().slice(0, 2000)}"""\n\nWhen the brief references "the proposal" / "the signup link" / similar — use the specific URLs in the "Assets to reference" section below.\n\nIMPORTANT — prior-thread bleed guard: if the most-recent thread message was about a DIFFERENT topic than this brief (e.g. scheduling chitchat like "let's move to 2:00" when the brief is about presenting a proposal), DO NOT open with an acknowledgment of that unrelated thread. The brief is a fresh purpose. Open with what the brief is actually about (warmth from the call, then the proposal). The prior-thread quote below is OPTIONAL context — useful for tone calibration, not a script to follow.\n═══════════════════════════════════════\n`
         : ``,
+      // --- Reference pattern (when the brief is post-call shape) -----------
+      hasInstructions && isPostCallShape ? POST_CALL_REFERENCE + '\n' : ``,
       // --- Linked proposals + signup URLs (when present) -------------------
       hasReferenced
         ? `═══ ASSETS TO REFERENCE ═══\n`
@@ -351,7 +383,9 @@ export const handler = async (event) => {
         ? `PROVEN PATTERNS — real Shortcut emails with the highest measured reply rates. These earned replies from buyers like this one. Do NOT copy them. Study what works (the hook, the length, how direct the ask is, the register) and apply that to THIS prospect in Shortcut's voice:\n\n${provenPatterns.join('\n\n---\n\n')}\n`
         : ``,
       priorEmail
-        ? `THE EMAIL YOU PREVIOUSLY SENT (this is what they didn't reply to — your follow-up will land directly underneath it on the same thread):\n\nSubject: ${priorEmail.subject || '(no subject)'}\n\n${priorEmail.body}\n\nYour follow-up MUST be aware of this email specifically. Do not restate what you already said. Do not re-introduce Shortcut or re-pitch the offer that's already in the thread.\n`
+        ? (hasInstructions
+            ? `Prior thread context (low-priority — the brief above is the actual purpose of this email):\n\nSubject: ${priorEmail.subject || '(no subject)'}\n\n${priorEmail.body.slice(0, 800)}\n\nUse this only to AVOID restating things already said in this thread. If the prior message is unrelated chitchat (scheduling, "see you then", etc.), ignore it entirely — do not acknowledge it in your opening.\n`
+            : `THE EMAIL YOU PREVIOUSLY SENT (this is what they didn't reply to — your follow-up will land directly underneath it on the same thread):\n\nSubject: ${priorEmail.subject || '(no subject)'}\n\n${priorEmail.body}\n\nYour follow-up MUST be aware of this email specifically. Do not restate what you already said. Do not re-introduce Shortcut or re-pitch the offer that's already in the thread.\n`)
         : ``,
       `Sign emails from: ${ctx.rep_first_name}`,
       ``,
@@ -460,7 +494,13 @@ export const handler = async (event) => {
 
   // ---- 6. Update the Slack placeholder with the preview ---------------
   const blocks = buildDraftPreviewBlocks(
-    { who: label, email: leadEmail, draftId: saved.id, threadId: threadId || latestSend?.thread_id || null },
+    {
+      who: label,
+      email: leadEmail,
+      draftId: saved.id,
+      threadId: threadId || latestSend?.thread_id || null,
+      repEmail,   // <— enables the "Open in Gmail" button (authuser=<rep>)
+    },
     medium,
     fightFor,
   );
