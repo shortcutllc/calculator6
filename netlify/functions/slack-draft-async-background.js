@@ -119,8 +119,21 @@ export const handler = async (event) => {
     repEmail, leadEmail, threadId, firstOutreach, label, slackChannel, placeholderTs,
     // Optional rep-supplied guidance (Pro passes these when the rep tells it what to write)
     instructions, proposalIds, signupUrls,
+    // Edit-mode inputs (when revising an existing draft instead of generating fresh)
+    mode, draftId, editInstructions,
   } = req;
-  if (!repEmail || !leadEmail || !slackChannel || !placeholderTs) {
+  if (!slackChannel || !placeholderTs) {
+    return { statusCode: 400, body: 'Missing slackChannel or placeholderTs' };
+  }
+  // Branch into the edit path early — it has a different shape than the
+  // full draft-generation pipeline (no lead-picture, no prior-email pull,
+  // no proven-patterns; just current draft + change request → revised draft).
+  if (mode === 'edit') {
+    return handleEditMode({
+      draftId, editInstructions, slackChannel, placeholderTs, label, leadEmail, repEmail,
+    });
+  }
+  if (!repEmail || !leadEmail) {
     return { statusCode: 400, body: 'Missing required fields' };
   }
 
@@ -518,3 +531,114 @@ Notes on the reference:
   await slackUpdate(slackChannel, placeholderTs, blocks, `Draft to ${label}`);
   return { statusCode: 200, body: 'ok' };
 };
+
+// ============================================================
+// EDIT MODE — revise an existing draft based on the rep's change request.
+// Loads the saved_drafts row, runs a small LLM call with current subject/body
+// + editInstructions, writes the revision back, swaps the preview in place.
+// ============================================================
+const EDIT_SYSTEM_PROMPT = `You are revising an outbound email draft for Shortcut, an all-in-one corporate wellness platform. The rep has asked you to change the draft in a specific way. Apply ONLY the requested change. Preserve everything else — voice, structure, signature, the parts the rep didn't ask to change.
+
+Same brand voice rules apply:
+- NEVER use dashes as punctuation. End sentences. Start new ones.
+- NEVER use: elevate, leverage, synergy, unlock, empower, transform, reimagine, seamless, holistic, curated.
+- No "In today's…" / "At Shortcut, we believe…".
+- No exclamation points. No manufactured energy.
+- No buzzwords.
+- Specifics over superlatives.
+
+URL formatting (preserve when present):
+- ANY URL must appear as Markdown: [Label](https://url)
+- Never paste a raw URL.
+
+Anti-hallucination:
+- Do not invent facts about the prospect, their company, their tools, or their priorities.
+- If the rep's change requires info we don't have, write around it or ask the rep to clarify (the LLM still returns JSON — say "I need more info on X" in the body if you genuinely can't apply the change).
+
+Return ONLY valid JSON in exactly this shape:
+{ "subject": "...", "body": "..." }`;
+
+async function handleEditMode({ draftId, editInstructions, slackChannel, placeholderTs, label, leadEmail, repEmail }) {
+  const sb = createClient(
+    process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } },
+  );
+
+  if (!draftId || !editInstructions) {
+    await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, 'edit mode missing draftId or editInstructions'));
+    return { statusCode: 200, body: 'ok' };
+  }
+
+  // 1. Load current draft
+  const { data: draft, error: loadErr } = await sb.from('saved_drafts')
+    .select('id, subject, body, target_ref').eq('id', draftId).maybeSingle();
+  if (loadErr || !draft) {
+    await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `could not load draft: ${loadErr?.message || 'not found'}`));
+    return { statusCode: 200, body: 'ok' };
+  }
+
+  // 2. LLM revision
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  let revised;
+  try {
+    const userPrompt = `Current draft:
+
+Subject: ${draft.subject}
+
+Body:
+${draft.body}
+
+Rep's requested change:
+"""${editInstructions.slice(0, 1500)}"""
+
+Apply ONLY this change. Keep everything else the same. Return JSON only.`;
+    const msg = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1500,
+      system: EDIT_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+    const text = (msg.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in model output');
+    revised = JSON.parse(jsonMatch[0]);
+    if (!revised.subject || !revised.body) throw new Error('Model returned incomplete revision');
+  } catch (e) {
+    console.error('edit_draft LLM failure:', e);
+    await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `edit failed: ${e.message}`));
+    return { statusCode: 200, body: 'ok' };
+  }
+
+  // 3. Update saved_drafts in place (keep all other fields incl. target_ref)
+  const { error: updErr } = await sb.from('saved_drafts')
+    .update({
+      subject: revised.subject,
+      body: revised.body,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', draftId);
+  if (updErr) {
+    await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `save failed: ${updErr.message}`));
+    return { statusCode: 200, body: 'ok' };
+  }
+
+  // 4. Refresh the preview message in place
+  const fightFor = {
+    label: draft.target_ref?.fight_for || 'medium',
+    reason: draft.target_ref?.fight_for_reason || null,
+  };
+  const blocks = buildDraftPreviewBlocks(
+    {
+      who: label || draft.target_ref?.label || leadEmail,
+      email: leadEmail || draft.target_ref?.leadEmail,
+      draftId,
+      threadId: draft.target_ref?.thread_id || null,
+      repEmail: repEmail || draft.target_ref?.rep_email,
+    },
+    { subject: revised.subject, body: revised.body, label: 'medium (revised)' },
+    fightFor,
+  );
+  await slackUpdate(slackChannel, placeholderTs, blocks, `Draft revised`);
+  return { statusCode: 200, body: 'ok' };
+}

@@ -705,6 +705,20 @@ const TOOLS = [
     }
   },
   {
+    name: 'edit_draft',
+    description: 'Revise the most recent draft email in the current conversation. Use this when the rep is iterating on a draft Pro already posted — phrasings like "make it shorter", "drop the line about touring the space", "mention that we serve Fortune 500 wellness teams", "tighten the closing", "change the call ask to Thursday specifically". The edit happens IN PLACE on the existing draft preview message (chat.update) so the conversation stays clean. Subject + body are revised together. Same brand voice, anti-hallucination, and URL formatting rules apply. If the rep asks for a change but it\'s ambiguous which draft (multiple recent), ask them to clarify which lead. Edits land in DM within ~5s.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        editInstructions: { type: 'string', description: 'The rep\'s requested change verbatim (e.g. "drop the line about touring the space" or "make it half as long and mention we serve Fortune 500 wellness teams"). This is what the LLM uses to revise the draft.' },
+        email: { type: 'string', description: 'Optional recipient email — narrows to the draft for that specific lead when multiple recent drafts exist. If omitted, edits the rep\'s most recent draft.' },
+        name: { type: 'string', description: 'Optional lead name — used to resolve recipient email when the rep says "edit the draft to Jen".' },
+        company: { type: 'string', description: 'Optional company name — pair with name to disambiguate.' }
+      },
+      required: ['editInstructions']
+    }
+  },
+  {
     name: 'draft_email',
     description: 'Generate a follow-up or cold-open email to a specific lead using Shortcut\'s brand voice + anti-hallucination rules, post the preview in the rep\'s DM with Send / Show angles / Edit in browser / Cancel buttons. Use this whenever the rep asks you to draft, write, or compose an email to a lead in Slack — phrasings like "draft a follow-up for Beverly", "write a cold open to Larcy @ Schulz", "compose an email to jmcauliffe@philabar.org", "draft an email to <name> @ <company>", "follow-up draft for X", "what should I send to Y". You can also chain this AFTER lookup_lead when the picture suggests a draft is the obvious next move. **CRITICAL: when the rep gives you ANY specific instructions about what the email should contain or accomplish — present a proposal, share a signup link, ask for a tour, schedule a call, mention a specific service, reference a specific event, etc. — pass that full instruction text verbatim in the `instructions` parameter.** The LLM uses `instructions` as the HIGHEST-PRIORITY guidance for what the email is for. Without it, the draft falls back to a generic follow-up shape that ignores what the rep actually wanted. Pre-flight gate runs on send so suppressed/client/DNC contacts are blocked automatically. Confirm the recipient with the rep before calling if their identification is ambiguous. The draft preview lands in DM within ~10s.',
     input_schema: {

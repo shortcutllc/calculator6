@@ -67,7 +67,8 @@ const TOOL_HANDLERS = {
   next_actions_for_lead: handleNextActionsForLead,
   suppress_lead: handleSuppressLead,
   unsuppress_lead: handleUnsuppressLead,
-  draft_email: handleDraftEmail
+  draft_email: handleDraftEmail,
+  edit_draft: handleEditDraft
 };
 
 // ============================================================
@@ -242,6 +243,113 @@ async function handleDraftEmail(params, supabase, userId, slackContext) {
     recipient_label: label,
     mode: firstOutreach ? 'first_outreach' : 'follow_up',
     message: `Drafting a ${firstOutreach ? 'cold open' : 'follow-up'} to ${label}. The preview will land in your DM in ~10s with Send / Show angles / Edit in browser / Cancel buttons.`,
+  };
+}
+
+// ============================================================
+// edit_draft — revise the most recent draft in place.
+// Same async pattern as draft_email but with a different background mode.
+// The rep iterates ("make it shorter", "drop the X line"); the LLM rewrites
+// the subject + body; the saved_drafts row updates; chat.update swaps the
+// preview message in place so the conversation stays clean.
+// ============================================================
+
+async function handleEditDraft(params, supabase, userId, slackContext) {
+  const editInstructions = (params.editInstructions || '').toString().trim();
+  if (!editInstructions) return { error: 'edit_draft needs editInstructions (the rep\'s change request).' };
+
+  // Resolve which draft to edit:
+  //   1. If params.email is set, narrow to that recipient
+  //   2. Else if name+company is set, resolve via lead-picture, then narrow
+  //   3. Else: most recent draft for this user, period
+  let recipientFilter = (params.email || '').toString().trim().toLowerCase() || null;
+  const name = (params.name || '').toString().trim() || null;
+  const company = (params.company || '').toString().trim() || null;
+  if (!recipientFilter && (name || company)) {
+    const pic = await leadPicture(supabase, { name, company });
+    recipientFilter = pic.identity?.email || null;
+  }
+
+  let q = supabase.from('saved_drafts')
+    .select('id, recipient_email, subject, body, target_ref, source_company, source_contact')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false }).limit(5);
+  if (recipientFilter) q = q.eq('recipient_email', recipientFilter);
+  const { data: recents, error: lookupErr } = await q;
+  if (lookupErr) return { error: `Could not find your recent drafts: ${lookupErr.message}` };
+  if (!recents || recents.length === 0) {
+    return { error: recipientFilter
+      ? `No recent draft to ${recipientFilter} to edit. Generate one first with draft_email.`
+      : 'No recent draft to edit. Generate one first with draft_email.' };
+  }
+
+  // If more than one recent draft and the rep didn't disambiguate, ask Pro
+  // to clarify (returning an error message Pro can relay).
+  if (!recipientFilter && recents.length > 1) {
+    const distinct = [...new Set(recents.map((d) => d.recipient_email))].slice(0, 3);
+    if (distinct.length > 1) {
+      return {
+        error: `You have ${distinct.length} recent drafts. Which one? (${distinct.join(', ')}) Pass an explicit recipient email or name to edit_draft.`,
+      };
+    }
+  }
+  const draft = recents[0];
+  const slackChannel = draft.target_ref?.slack_channel || null;
+  const placeholderTs = draft.target_ref?.slack_message_ts || null;
+  const repEmail = draft.target_ref?.rep_email || null;
+  if (!slackChannel || !placeholderTs) {
+    return { error: 'I have the draft but lost track of which Slack message to update. Open in browser or generate a fresh draft.' };
+  }
+  if (!repEmail) {
+    return { error: 'Draft is missing rep_email — generate a fresh draft so I can edit it.' };
+  }
+
+  // Post a quick "Editing…" overlay so the rep knows it's in flight.
+  const SLACK_API = 'https://slack.com/api';
+  const slackPost = async (method, body) => {
+    const r = await fetch(`${SLACK_API}/${method}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PRO_SLACK_BOT_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return r.json();
+  };
+  await slackPost('chat.update', {
+    channel: slackChannel,
+    ts: placeholderTs,
+    blocks: [
+      { type: 'section', text: { type: 'mrkdwn', text: `:hourglass_flowing_sand: *Revising the draft…*` } },
+      { type: 'context', elements: [{ type: 'mrkdwn', text: `_${editInstructions.slice(0, 120)}_` }] },
+    ],
+    text: 'Revising the draft…',
+  });
+
+  // Fire the background function with mode=edit.
+  const host = process.env.URL || 'https://proposals.getshortcut.co';
+  try {
+    await fetch(`${host}/.netlify/functions/slack-draft-async-background`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'edit',
+        draftId: draft.id,
+        editInstructions,
+        repEmail,
+        leadEmail: draft.recipient_email,
+        label: draft.target_ref?.label || draft.recipient_email,
+        slackChannel,
+        placeholderTs,
+      }),
+    });
+  } catch (e) {
+    return { error: `Background dispatch failed: ${e.message}` };
+  }
+
+  return {
+    success: true,
+    draftId: draft.id,
+    recipient_email: draft.recipient_email,
+    message: `Revising the draft to ${draft.target_ref?.label || draft.recipient_email}. The updated preview will land in ~5s — same Send / Open in Gmail buttons.`,
   };
 }
 
