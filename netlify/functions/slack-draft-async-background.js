@@ -348,6 +348,19 @@ export const handler = async (event) => {
       referenced.proposals.length > 0 || referenced.signups.length > 0
       || /\bproposal\b|\bsign.?up\b|\bdemo\b|\bdetails\b|\bevent\b|\bsponsor/i.test(instructions)
     );
+    // CRITICAL distinction: is the proposal/signup being introduced FRESH or
+    // re-surfaced as a check-in? If the rep already emailed this prospect
+    // (history.emailed_count > 0) AND the prior email body mentions the
+    // proposal/signup, then the new draft is a CHECK-IN, not a first-send.
+    // Without this, the LLM follows the post-call REFERENCE PATTERN and
+    // produces "I've put together a proposal for you" — which reads as
+    // brand-new when the prospect has actually seen it 3 times already.
+    const priorBodyText = priorEmail?.body?.toLowerCase() || '';
+    const priorMentionsProposalOrSignup = /\bproposal\b|\bsignup\b|\bsign.?up\b|\bproposals\.getshortcut\.co\b|\bshortcutpros\.com\b/.test(priorBodyText);
+    const isFollowUpCheckIn = isPostCallShape && (
+      (ctx.history.emailed_count || 0) > 0
+      && (priorMentionsProposalOrSignup || (ctx.history.emailed_count || 0) >= 2)
+    );
     const POST_CALL_REFERENCE = `
 REFERENCE PATTERN — this is Shortcut's standard post-call email shape (used by Will + the team for years). Match its STRUCTURE, WARMTH, and CADENCE. Do not copy the wording verbatim — adapt it to this specific brief.
 
@@ -374,8 +387,12 @@ Notes on the reference:
       hasInstructions
         ? `═══ REP'S BRIEF (HIGHEST PRIORITY) ═══\nThis is what the rep ASKED YOU to write. Do not produce a generic follow-up that ignores this. Build the email around these instructions. Use the prospect context + brand voice + length guidance for HOW to write, but the WHAT is here:\n\n"""${instructions.trim().slice(0, 2000)}"""\n\nWhen the brief references "the proposal" / "the signup link" / similar — use the specific URLs in the "Assets to reference" section below.\n\nIMPORTANT — prior-thread bleed guard: if the most-recent thread message was about a DIFFERENT topic than this brief (e.g. scheduling chitchat like "let's move to 2:00" when the brief is about presenting a proposal), DO NOT open with an acknowledgment of that unrelated thread. The brief is a fresh purpose. Open with what the brief is actually about (warmth from the call, then the proposal). The prior-thread quote below is OPTIONAL context — useful for tone calibration, not a script to follow.\n═══════════════════════════════════════\n`
         : ``,
-      // --- Reference pattern (when the brief is post-call shape) -----------
-      hasInstructions && isPostCallShape ? POST_CALL_REFERENCE + '\n' : ``,
+      // --- Critical distinction: fresh send vs check-in --------------------
+      isFollowUpCheckIn
+        ? `═══ THIS IS A CHECK-IN, NOT A FIRST SEND ═══\nThe prospect has already received the proposal / signup link in prior emails (history.emailed_count = ${ctx.history.emailed_count}). Do NOT open with "I've put together a proposal" or "Here's the proposal I mentioned" — that reads as brand-new when they've already seen it.\n\nInstead, open with an acknowledgment that you've sent it before and are checking back. Use natural phrasings like:\n  • "Following up on the proposal I sent over a few weeks ago…"\n  • "Wanted to circle back on the Bench Bar proposal — happy to walk through it whenever works."\n  • "Quick check-in on the materials I sent — any questions come up after you reviewed?"\n\nThe URL still goes in the email (one line, [Label](URL) markdown) because the prospect may need a fresh link, but the FRAMING is "here's the link again" not "here's the new proposal".\nLength stays tight — 60-120 words. One clear ask.\n═══════════════════════════════════════════\n`
+        : ``,
+      // --- Reference pattern (when the brief is post-call FIRST-SEND shape) -
+      hasInstructions && isPostCallShape && !isFollowUpCheckIn ? POST_CALL_REFERENCE + '\n' : ``,
       // --- Linked proposals + signup URLs (when present) -------------------
       hasReferenced
         ? `═══ ASSETS TO REFERENCE ═══\n`
