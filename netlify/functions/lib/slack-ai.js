@@ -795,7 +795,7 @@ async function processSlackMessage({ supabase, userId, channelId, threadTs, user
     for (const toolCall of toolUseBlocks) {
       console.log(`Pro: executing tool ${toolCall.name}`, JSON.stringify(toolCall.input).substring(0, 200));
 
-      const result = await executeTool(toolCall.name, toolCall.input, supabase, userId);
+      const result = await executeTool(toolCall.name, toolCall.input, supabase, userId, { channelId, threadTs });
 
       // Track proposal actions for cross-posting
       if (toolCall.name === 'create_proposal' && result.success) {

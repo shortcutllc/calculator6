@@ -26,14 +26,14 @@ function getProposalShareUrl(id, slug) {
 /**
  * Execute a tool call from Claude and return the result.
  */
-async function executeTool(toolName, params, supabase, userId) {
+async function executeTool(toolName, params, supabase, userId, slackContext) {
   const handler = TOOL_HANDLERS[toolName];
   if (!handler) {
     return { error: `Unknown tool: ${toolName}` };
   }
 
   try {
-    return await handler(params, supabase, userId);
+    return await handler(params, supabase, userId, slackContext || {});
   } catch (err) {
     console.error(`Tool ${toolName} error:`, err);
     return { error: err.message || 'Tool execution failed' };
@@ -139,7 +139,7 @@ async function handleUnsuppressLead(params, supabase) {
 // mapping.
 // ============================================================
 
-async function handleDraftEmail(params, supabase, userId) {
+async function handleDraftEmail(params, supabase, userId, slackContext) {
   // Resolve recipient via lead-picture (which supports email OR name+company).
   let leadEmail = (params.email || '').toString().trim().toLowerCase();
   const name = (params.name || '').toString().trim() || null;
@@ -161,8 +161,14 @@ async function handleDraftEmail(params, supabase, userId) {
     return { error: 'I don\'t have your Slack profile mapped — set up Pro digest first, or reach Will to backfill slack_user_id.' };
   }
 
-  // Open the DM channel + post the placeholder card (same shape as the
-  // digest button's placeholder).
+  // Post the placeholder in the conversation Pro is already having with the
+  // rep. If the rep @Pro'd inside a thread, post the placeholder INTO that
+  // thread (Will's complaint: drafts were landing in the main DM feed,
+  // splitting the conversation in two). Otherwise open a fresh DM channel.
+  // DM channel IDs start with 'D' (or 'U' on some workspaces) — those are
+  // the safe cases to reuse the channel directly. For channel mentions
+  // (channelId starts with 'C'), fall back to opening the IM so the draft
+  // stays private to the rep.
   const SLACK_API = 'https://slack.com/api';
   const slackPost = async (method, body) => {
     const r = await fetch(`${SLACK_API}/${method}`, {
@@ -173,11 +179,20 @@ async function handleDraftEmail(params, supabase, userId) {
     return r.json();
   };
   const label = [pic.identity?.name, pic.identity?.company].filter(Boolean).join(' · ') || leadEmail;
-  const open = await slackPost('conversations.open', { users: acct.slack_user_id });
-  if (!open.ok) return { error: `Could not open DM: ${open.error}` };
-  const channel = open.channel?.id;
+  const ctxChannel = slackContext?.channelId || null;
+  const ctxThreadTs = slackContext?.threadTs || null;
+  let channel = ctxChannel;
+  let threadTs = ctxThreadTs;
+  // If the conversation context is missing OR not a DM/IM, open a fresh DM.
+  if (!channel || /^[CG]/.test(channel)) {
+    const open = await slackPost('conversations.open', { users: acct.slack_user_id });
+    if (!open.ok) return { error: `Could not open DM: ${open.error}` };
+    channel = open.channel?.id;
+    threadTs = null;  // no thread context when we open a fresh DM
+  }
   const placeholder = await slackPost('chat.postMessage', {
     channel,
+    ...(threadTs ? { thread_ts: threadTs } : {}),
     blocks: [
       { type: 'section', text: { type: 'mrkdwn', text: `:hourglass_flowing_sand: *Drafting to ${label}…*` } },
       { type: 'context', elements: [{ type: 'mrkdwn', text: '_~10s. Brand voice + anti-hallucination rules applied._' }] },
