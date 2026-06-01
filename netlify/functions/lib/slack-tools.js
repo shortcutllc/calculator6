@@ -14,6 +14,7 @@ import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal } from './proposal-linker.js';
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
 import { leadPicture, suggestNextActions } from './lead-picture.js';
+import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
 
 const PROPOSAL_BASE_URL = 'https://proposals.getshortcut.co/proposal';
 const PROPOSAL_SHORT_URL = 'https://proposals.getshortcut.co/p';
@@ -68,7 +69,8 @@ const TOOL_HANDLERS = {
   suppress_lead: handleSuppressLead,
   unsuppress_lead: handleUnsuppressLead,
   draft_email: handleDraftEmail,
-  edit_draft: handleEditDraft
+  edit_draft: handleEditDraft,
+  read_thread: handleReadThread
 };
 
 // ============================================================
@@ -350,6 +352,90 @@ async function handleEditDraft(params, supabase, userId, slackContext) {
     draftId: draft.id,
     recipient_email: draft.recipient_email,
     message: `Revising the draft to ${draft.target_ref?.label || draft.recipient_email}. The updated preview will land in ~5s — same Send / Open in Gmail buttons.`,
+  };
+}
+
+// ============================================================
+// read_thread — fetch actual email body content from the rep's Gmail.
+// lookup_lead returns dates / counts / reply snippets from the DB; this
+// returns the prose so Pro can answer "what did I last say?" or draft an
+// intelligent follow-up that doesn't restate what's already in the thread.
+// ============================================================
+
+async function handleReadThread(params, supabase, userId) {
+  const contactEmail = (params.email || '').toString().trim().toLowerCase();
+  if (!contactEmail) return { error: 'read_thread needs an email (the contact, not the rep).' };
+  const maxMessages = Math.min(10, Math.max(1, Number(params.maxMessages) || 4));
+
+  // Find this rep's Gmail account
+  const { data: acct } = await supabase.from('gmail_accounts')
+    .select('email').eq('supabase_user_id', userId).maybeSingle();
+  if (!acct?.email) {
+    return { error: 'Your Gmail is not connected — connect it in the sales-intelligence settings to let me read thread bodies.' };
+  }
+  const repEmail = acct.email.toLowerCase();
+
+  // Find the most recent send by this rep to this contact (gives us the thread_id)
+  const { data: latest } = await supabase.from('outreach_sends')
+    .select('thread_id, sent_time, message_id')
+    .eq('email', contactEmail).eq('sender_email', repEmail)
+    .not('thread_id', 'is', null)
+    .order('sent_time', { ascending: false }).limit(1).maybeSingle();
+  if (!latest?.thread_id) {
+    return {
+      success: true, has_thread: false,
+      message: `No prior thread on record for ${contactEmail} sent by you. Nothing to read.`,
+    };
+  }
+
+  // Pull the thread
+  let token;
+  try { token = await getAccessToken(supabase, repEmail); }
+  catch (e) { return { error: `Could not authenticate to Gmail: ${e.message}` }; }
+
+  let thread;
+  try { thread = await getThread(token, latest.thread_id); }
+  catch (e) { return { error: `Could not fetch Gmail thread: ${e.message}` }; }
+
+  const allMsgs = (thread?.messages || []);
+  // Most recent N messages
+  const slice = allMsgs.slice(-maxMessages);
+  const messages = slice.map((m) => {
+    const hs = m.payload?.headers || [];
+    const hdr = (n) => hs.find((h) => h.name?.toLowerCase() === n.toLowerCase())?.value || null;
+    const fromRaw = hdr('From') || '';
+    const fromEmail = lcGmail((fromRaw.match(/<([^>]+)>/) || [, fromRaw])[1]);
+    const direction = fromEmail === repEmail ? 'sent' : 'received';
+    let body = bodyFromPayload(m.payload) || '';
+    if (/<\s*(div|p|br|html|body)/i.test(body)) {
+      body = body.replace(/<\s*br\s*\/?>/gi, '\n').replace(/<\/(div|p)>/gi, '\n').replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+        .replace(/&#39;|&rsquo;|&apos;/gi, "'").replace(/&quot;/gi, '"');
+    }
+    // Strip quoted reply tail
+    const cut = body.search(/\n?\s*(From:\s|On .+? wrote:|-{2,} ?Original Message|Sent from my )/i);
+    if (cut > 0) body = body.slice(0, cut);
+    body = body.replace(/\n{3,}/g, '\n\n').trim();
+    return {
+      direction,
+      from: hdr('From'),
+      to: hdr('To'),
+      subject: hdr('Subject'),
+      date: m.internalDate ? new Date(Number(m.internalDate)).toISOString() : null,
+      snippet: m.snippet || null,
+      body: body ? body.slice(0, 4000) : null,
+    };
+  });
+
+  return {
+    success: true,
+    has_thread: true,
+    thread_id: latest.thread_id,
+    contact_email: contactEmail,
+    rep_email: repEmail,
+    total_messages_in_thread: allMsgs.length,
+    messages_returned: messages.length,
+    messages,
   };
 }
 

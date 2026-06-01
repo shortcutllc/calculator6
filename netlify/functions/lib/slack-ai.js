@@ -54,6 +54,7 @@ Be concise, calm, and practical. Format your responses for easy reading in Slack
 4. *After editing a proposal, check the "verifiedState" in the tool result.* Report what you see in verifiedState as the confirmed current state — not what you assumed would happen.
 5. *ONLY report numbers, services, and totals that appear in the tool result.* Never calculate or assume costs on your own — always use the summary/verifiedState data from the tool.
 6. *NEVER claim "I don't see X" about a contact's history, prior emails, replies, proposals, or signup links without calling lookup_lead FIRST.* If the rep asks "do you see the last email I sent" or "did you find the proposal" or "what's the history with this person" — your first action is to call lookup_lead (with email or name+company), THEN answer from what the tool returned. Saying "I don't see any email history" from conversation memory is the single most common Pro failure mode; the data is almost always there, you just didn't re-check. If lookup_lead genuinely returns empty, then say so — but only after the tool call. Same applies after the rep contradicts you ("yes I did email her, do you not see it?") — re-call lookup_lead before answering.
+7. *NEVER ask the rep "what was in your last email?" or "what did you say last time?".* Call read_thread with the contact's email — it returns the actual subject + body of recent thread messages from the rep's Gmail. You can read what they wrote. Use this BEFORE drafting any follow-up so you don't restate things already in the thread, and any time the rep asks about the prior conversation content. lookup_lead gives you the dates and reply snippet; read_thread gives you the full prose.
 
 ## Conversational Flow
 
@@ -701,6 +702,18 @@ const TOOLS = [
       type: 'object',
       properties: {
         email: { type: 'string', description: 'The email address to restore' }
+      },
+      required: ['email']
+    }
+  },
+  {
+    name: 'read_thread',
+    description: 'Read the actual email body content from the rep\'s Gmail for the most recent thread with a contact. Use this BEFORE drafting a follow-up so you know what was already said in the prior emails — never ask the rep "what was the focus of your last email?" when you can just read it. Returns subject + body of recent messages (both directions). Pair with lookup_lead: lookup_lead gives you dates/counts/reply-snippets from the DB, read_thread gives you the actual prose. CALL this whenever: (a) the rep references an email "I sent" or "their reply", (b) you\'re about to draft a follow-up and want to avoid restating things already in the thread, (c) the rep asks "what did I last say" or "what was in my last email". Requires the rep\'s Gmail to be connected (digest opt-in flow). Returns null body if Gmail isn\'t reachable.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Contact email (the prospect, not the rep). Pulls the most recent thread with this contact from the rep\'s Gmail.' },
+        maxMessages: { type: 'integer', description: 'How many recent messages from the thread to return (default 4, max 10).' }
       },
       required: ['email']
     }
