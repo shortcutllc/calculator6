@@ -106,6 +106,22 @@ export async function getSignature(accessToken, fromEmail) {
   }
 }
 
+/**
+ * Convert markdown-style links `[Label](URL)` inside an already-HTML-escaped
+ * body to anchor tags. Runs AFTER escapeHtml — the URL inside the brackets
+ * has already had `&` escaped to `&amp;`, which is what HTML attributes want.
+ * Only matches http(s) URLs to avoid swallowing unintended bracket pairs.
+ * Renders with the same brand-colored bold style the Client Emails
+ * post-call template uses, so a draft-from-Pro looks consistent with hand-
+ * written templates from the Client Emails section of the app.
+ */
+function renderMarkdownLinks(escapedBody) {
+  return escapedBody.replace(
+    /\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)\)/g,
+    (_m, label, url) => `<a href="${url}" style="color:#09364f;font-weight:600;">${label}</a>`,
+  );
+}
+
 /** RFC 2822 text/html message, base64url-encoded for messages.send. */
 function buildRaw({ from, to, subject, bodyHtml }) {
   const headers = [
@@ -126,7 +142,10 @@ function buildRaw({ from, to, subject, bodyHtml }) {
  * getSignature) is appended verbatim after a separator. Returns { id, threadId }.
  */
 export async function sendEmail(accessToken, { from, to, subject, body, signatureHtml, threadId }) {
-  const bodyHtml = escapeHtml(body).replace(/\r?\n/g, '<br>');
+  // Escape first (handles &, <, >, etc.), THEN reify any [Label](https://…)
+  // markdown into anchor tags. Order matters: escapeHtml turns `&` in URLs
+  // into `&amp;`, which is the correct in-anchor form.
+  let bodyHtml = renderMarkdownLinks(escapeHtml(body)).replace(/\r?\n/g, '<br>');
   const sigBlock = signatureHtml ? `<br><br>${signatureHtml}` : '';
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${bodyHtml}${sigBlock}</div>`;
   const raw = buildRaw({ from, to, subject, bodyHtml: html });

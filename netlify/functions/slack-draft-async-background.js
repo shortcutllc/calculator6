@@ -66,6 +66,17 @@ DIRECTIONS:
 
 Use any provided context (prior contact history, whether they are an existing client expanding, firmographics, the contact's title) to ground the hook in something true and specific.
 
+URL FORMATTING (so links render as clickable anchors, not raw text):
+- ALWAYS format URLs as Markdown links with a meaningful label: [Label](https://url-here)
+- Use natural labels grounded in what the link is for:
+    [View your proposal](https://proposals.getshortcut.co/p/...)
+    [Sign-up link for your team](https://admin.shortcutpros.com/#/signup/...)
+    [See the landing page](https://...)
+- Put each link on its own line below a short framing sentence (matches the post-call template shape). Do NOT cram a URL mid-paragraph.
+- NEVER paste a raw URL like "https://..." into the body. Wrap it.
+- Example correct: "You can review and edit everything here: [View your proposal](https://proposals.getshortcut.co/p/foo)"
+- Example incorrect: "Here's the proposal: https://proposals.getshortcut.co/p/foo"
+
 HARD ANTI-HALLUCINATION RULES (violating any of these fails the task):
 - Do not invent ANY facts about the prospect, their company, their tools, their team, their current vendors, their priorities, their pain points, or anything else that isn't EXPLICITLY in the context I gave you.
 - If a personal note or context line is AMBIGUOUS, treat it as ambiguous. Do not pick a meaning and run with it. Example: a note saying "once a month they have a massage person" could mean "they already have a vendor doing monthly massage" OR "they want a monthly cadence." Do NOT pick one. Either reference the line vaguely ("you mentioned monthly cadence for massage") or leave it out entirely.
@@ -332,8 +343,8 @@ REFERENCE PATTERN — this is Shortcut's standard post-call email shape (used by
   It was such a pleasure speaking with you! Thank you again for taking the time to share more about {Company} and what you're envisioning for the team. We're truly excited about the opportunity to host a {event description} for the {Company} team!
 
   *Event Details*
-  • The proposal includes multiple size options and is fully customizable, so you can easily adjust the event length and number of Pros to best fit your needs. You can review and edit everything here: {proposal URL}
-  • I've also included a link to the employee sign-up so you can experience our seamless booking technology from their perspective: {signup URL}
+  • The proposal includes multiple size options and is fully customizable, so you can easily adjust the event length and number of Pros to best fit your needs. You can review and edit everything here: [View your proposal]({proposal URL})
+  • I've also included a link to the employee sign-up so you can experience our seamless booking technology from their perspective: [Sign-up link]({signup URL})
 
   Our goal is to be the easiest vendor to work with, so please don't hesitate to reach out if you have any questions.
 

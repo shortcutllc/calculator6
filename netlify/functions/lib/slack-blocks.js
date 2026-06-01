@@ -297,8 +297,12 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
   const body = String(draft.body || '');
   const truncated = body.length > BODY_TRUNCATE_AT;
   const shown = truncated ? body.slice(0, BODY_TRUNCATE_AT) + '…' : body;
+  // Convert Markdown links [Label](URL) → Slack mrkdwn <URL|Label> so they
+  // render as clickable links in the preview (matches how the Gmail send
+  // converts them to HTML anchors — both surfaces stay visually consistent).
+  const mdToSlack = (s) => s.replace(/\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)\)/g, '<$2|$1>');
   // Render body in a quoted block so newlines preserve (Slack mrkdwn `>` quote)
-  const quoted = shown.split('\n').map((l) => `> ${l}`).join('\n');
+  const quoted = mdToSlack(shown).split('\n').map((l) => `> ${l}`).join('\n');
   blocks.push({ type: 'section', text: { type: 'mrkdwn', text: quoted } });
   if (truncated) {
     blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: `_+${body.length - BODY_TRUNCATE_AT} more chars — click Edit in browser to see full body_` }] });
@@ -309,12 +313,20 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
   // Uses the rep's own gmail account via authuser= so the right inbox opens.
   let openInGmailUrl = null;
   if (ctx.repEmail && ctx.email) {
+    // Gmail's compose `body=` param is plain text — it doesn't render HTML
+    // or Markdown. Strip [Label](URL) markdown back to plain URLs so the
+    // recipient sees a usable compose draft (Gmail will then auto-detect
+    // the URLs and make them clickable on send).
+    const gmailBody = String(draft.body || '').replace(
+      /\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)\)/g,
+      '$1: $2',
+    );
     const p = new URLSearchParams({
       view: 'cm',
       fs: '1',
       to: ctx.email,
       su: String(draft.subject || ''),
-      body: String(draft.body || ''),
+      body: gmailBody,
       authuser: ctx.repEmail,
     });
     openInGmailUrl = `https://mail.google.com/mail/?${p.toString()}`;
