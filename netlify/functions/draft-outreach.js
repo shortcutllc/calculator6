@@ -99,6 +99,14 @@ OPENER RULES (apply to every direction):
 - If the rep_first_name passed in is NOT "Will", use the rep's actual name in the same first-person shape (e.g. "Hi Kelly, Caren here. I lead partnerships at Shortcut."). Never sign emails from "Will" if the rep is someone else.
 - The opener can also skip self-intro entirely when the body's first sentence makes the sender obvious from context (e.g. follow-up emails replying to a thread they already know).
 - ZERO DASHES IN OPENERS. Use commas, periods, new sentences. The "no dashes" hard rule above applies inside the opener too. Some rule text in this prompt may contain em dashes for instructional reading. Never emulate them in output.
+- PARAGRAPH STRUCTURE: the greeting line stands ALONE. Use two newlines (a blank line) after the greeting so the self-intro starts on its own paragraph. This is what the output should look like (NOT one run-together line):
+    Hi Kelly,
+    \\n
+    Will Newton here. I run Shortcut.
+    \\n
+    [first content paragraph]
+  Where \\n above means a blank line. Same shape applies whether the greeting is "Hi <name>,", "Hey <name>.", or "<Name>," — always its own line, followed by a blank line, followed by the self-intro paragraph.
+- NO NAME REPETITION inside a single paragraph. Use pronouns or rewrite. If you write a sentence referencing "Aetna" or "Burberry" or any company name twice in the same paragraph, rewrite using pronouns ("they", "the carrier", "them") for the second reference. Three repetitions of the same proper noun in one paragraph is always bad writing.
 
 Use any provided context (prior contact history, whether they are an existing client expanding, firmographics, the contact's title) to ground the hook in something true and specific.
 
@@ -372,9 +380,9 @@ export const handler = async (event) => {
     followup && (target.kind === 'broker_first_outreach' || target.kind === 'broker_followup')
       ? `This is a HEALTHCARE BROKER OUTREACH (Track A of our broker GTM). The contact (${target.known_contact?.name || 'the recipient'}, ${target.known_contact?.title || 'role unknown'}) works at ${target.company || 'a benefits brokerage'}${target.firm_tier ? ` (${target.firm_tier.replace('tier_', 'Tier ')})` : ''}. The rep has NOT met them in person — DO NOT say "great chatting at Workhuman", DO NOT reference a prior in-person conversation, DO NOT use Workhuman as a hook.\n\n`
         + `THE PITCH (this is the wellness-fund angle that wins):\n`
-        + `  • Shortcut delivers single-vendor in-person wellness for employer clients: chair massage, mindfulness, nutrition courses, assisted stretch, sound bath, office grooming, headshots, and more.\n`
-        + `  • The HOOK brokers care about: we help clients deploy their carrier wellness funds (Cigna HIF, Aetna Wellness Allowance / Health Plan Allowance, Anthem Wellness Fund) on the eligible categories — massage, mindfulness, nutrition, assisted stretch, sound bath — with zero admin lift on HR.\n`
-        + `  • PROOF POINT: Burberry funds our chair massage through their Aetna Wellness Allowance. We invoice Burberry, Burberry forwards it to Aetna, Aetna mails us the check directly. Burberry never pays cash out of pocket. Reference Burberry by name when it adds credibility.\n`
+        + `  • Shortcut delivers single-vendor in-office and virtual wellness for employer clients: chair massage and assisted stretch and sound bath (in-office only), mindfulness and nutrition courses (in-office OR virtual), plus office grooming, headshots, and more.\n`
+        + `  • The HOOK brokers care about: we help clients deploy their carrier wellness funds (Cigna HIF, Aetna Wellness Allowance / Health Plan Allowance, Anthem Wellness Fund) on the eligible in-office AND virtual services (massage, mindfulness, nutrition, assisted stretch, sound bath) with zero admin lift on HR.\n`
+        + `  • PROOF POINT: Burberry funds our chair massage through their Aetna Wellness Allowance. We invoice Burberry, Burberry forwards it through their carrier, and the check comes back to us directly. Burberry never pays cash out of pocket. WRITE THIS PROOF POINT WITHOUT REPEATING "Aetna" more than once and without repeating "Burberry" more than twice. Use pronouns ("they", "the carrier") for any second reference. Reference Burberry by name when it adds credibility.\n`
         + `  • The differentiator: ONE vendor for the whole wellness category, instead of stitching together a massage company + nutrition coach + stretch studio + mindfulness platform.\n`
         + `  • We're CAA-202 disclosure-clean. Three rev models: client pass-through (default — broker takes 0%, client gets 7% off list), co-marketing retainer, or 7% disclosed referral on Y1. Don't lead with this; mention only if rev share is the natural ask.\n`
         + `\nSERVICE-ELIGIBILITY CHEAT SHEET (so you don't overpromise):\n`
