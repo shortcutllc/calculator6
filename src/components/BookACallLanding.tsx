@@ -1416,8 +1416,8 @@ const BookACallLanding: React.FC = () => {
 
         <div className="flex overflow-x-auto scrollbar-hide services-scroll">
           {/* RESET ZONE SERVICE */}
-          <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-6 py-12 md:py-16">
+          <div className="w-full flex-shrink-0 service-slide flex items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
               <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                 {/* Left Side - Text and Service Options */}
                 <div>
@@ -1468,8 +1468,8 @@ const BookACallLanding: React.FC = () => {
           </div>
 
           {/* HAIR & MAKEUP SERVICE */}
-          <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-6 py-12 md:py-16">
+          <div className="w-full flex-shrink-0 service-slide flex items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
               <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1534,8 +1534,8 @@ const BookACallLanding: React.FC = () => {
           </div>
 
           {/* YEAR END HEADSHOTS SERVICE */}
-          <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
+          <div className="w-full flex-shrink-0 service-slide flex items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1611,8 +1611,8 @@ const BookACallLanding: React.FC = () => {
           </div>
 
           {/* NAILS SERVICE */}
-          <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
+          <div className="w-full flex-shrink-0 service-slide flex items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1665,8 +1665,8 @@ const BookACallLanding: React.FC = () => {
           </div>
 
           {/* SEASONAL MINDFULNESS SERVICE */}
-          <div className="w-full flex-shrink-0 service-slide">
-            <div className="mx-auto container-narrow px-4 py-8 md:py-12">
+          <div className="w-full flex-shrink-0 service-slide flex items-center">
+            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
