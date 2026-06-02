@@ -58,8 +58,24 @@ export const handler = async (event) => {
       console.error('gmail watch failed (non-fatal):', e.message);
     }
 
+    // Auto-resolve the rep's Slack user id by email. If the workspace token
+    // can find them, the daily digest + event pings work immediately — no
+    // manual backfill step. Non-fatal on failure (digest can still be set
+    // up later); we don't block the connect on a missing scope.
+    let slackUserId = null;
+    if (process.env.PRO_SLACK_BOT_TOKEN) {
+      try {
+        const r = await fetch(`https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`, {
+          headers: { Authorization: `Bearer ${process.env.PRO_SLACK_BOT_TOKEN}` },
+        });
+        const j = await r.json();
+        if (j.ok && j.user?.id) slackUserId = j.user.id;
+        else console.warn(`Slack lookup for ${email} returned:`, j.error || '(no user)');
+      } catch (e) { console.warn('Slack lookup non-fatal:', e.message); }
+    }
+
     const now = new Date().toISOString();
-    await sb.from('gmail_accounts').upsert({
+    const upsertPayload = {
       email,
       supabase_user_id: st.uid,
       refresh_token: tok.refresh_token,
@@ -69,7 +85,12 @@ export const handler = async (event) => {
       watch_expiration: watchExpiration,
       connected_at: now,
       updated_at: now,
-    }, { onConflict: 'email' });
+    };
+    // Only set slack_user_id when the lookup actually returned one. If lookup
+    // failed AND a row already exists with a manual slack_user_id (e.g. stub
+    // pre-populated by an admin), don't clobber it with null.
+    if (slackUserId) upsertPayload.slack_user_id = slackUserId;
+    await sb.from('gmail_accounts').upsert(upsertPayload, { onConflict: 'email' });
 
     return redirect('connected');
   } catch (e) {

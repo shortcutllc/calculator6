@@ -44,14 +44,18 @@ A "deploy" means **shipping production AND committing the source AND pushing to 
 
 ```
 1. KILL dev server          ps aux | grep -E 'vite|esbuild' | grep -v grep   → kill any hits
-2. BUILD                    source ~/.nvm/nvm.sh && npm run build
-3. DEPLOY                   netlify deploy --prod
-4. COMMIT (scoped)          git add <only the files for this change> && git commit -m "..."
-5. PUSH                     PATH="/opt/homebrew/bin:$PATH" git push origin HEAD:main   (timeout ≥120s)
-6. SYNC LOCAL MAIN          fast-forward local main to origin/main — see below
+2. BUILD                    source ~/.nvm/nvm.sh && npm run build          (local sanity check — not required for prod)
+3. COMMIT (scoped)          git add <only the files for this change> && git commit -m "..."
+4. PUSH                     PATH="/opt/homebrew/bin:$PATH" git push origin HEAD:main   (timeout ≥120s)
+   ↳ Netlify auto-deploys on push to main (~60-90s build, ~30s upload).
+5. SYNC LOCAL MAIN          fast-forward local main to origin/main — see below
 ```
 
-**Step 3 — always use `netlify deploy --prod` with NO flags.** Do not use `--no-build` even though it might seem like a small optimization. On this version of netlify-cli, `--no-build` short-circuits function bundling AND can silently skip uploading changed frontend files too. The "saved" 10 seconds aren't worth the silent-stale-deploy class of bug it introduces. Verify after deploy: the log should show `Uploading N files` where N matches your changed-files count (or 0 only if you genuinely changed nothing).
+**GitHub auto-deploy is wired up.** Every push to `main` triggers a Netlify build + deploy automatically. The Netlify CLI step (`netlify deploy --prod`) is **redundant** and was the canonical way before the GitHub integration existed. Verified via deploy history: every push results in TWO deploys ~30s apart — the second (GitHub-triggered, includes `commit_ref`) overrides the first (CLI-triggered, no `commit_ref`). Same code, just doing the work twice. Drop the CLI step unless you specifically want a CLI deploy WITHOUT a commit on main (rare — e.g. testing an unstaged dist build).
+
+If you DO want to CLI-deploy: `netlify deploy --prod` with NO flags. `--no-build` silently breaks function bundling AND can skip uploading changed frontend files. The "saved" 10 seconds aren't worth that class of bug.
+
+**To confirm a deploy went live:** `gh api repos/shortcutllc/calculator6/commits/main --jq .sha` matches what's on prod, OR check `https://app.netlify.com/projects/resplendent-narwhal-3de33b/deploys` for `state: ready` on the commit you just pushed.
 
 **Step 6 — fast-forward local main to origin/main:**
 - If working in a **worktree** (path contains `.claude/worktrees/`), local main is checked out in the parent repo. Run:
