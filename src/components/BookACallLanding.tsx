@@ -30,7 +30,9 @@ function resolveBooking(rep: string | null): { embedUrl: string | null; openUrl:
 // upload the compressed files to Supabase storage and switch SERVICE_VIDEOS to it).
 const SANITY_BASE = 'https://cdn.sanity.io/files/7qf1r87p/production';
 const SERVICE_VIDEOS = {
-  massage: `${SANITY_BASE}/b0212fdc11e41be06a01978b164ade8434f218df.mp4`,
+  // massage: self-hosted compressed clip (1.3 MB) — the Sanity master is a 128 MB
+  // 4K file, far too heavy to autoplay. Served from our own origin (CSP 'self').
+  massage: '/landing-videos/massage.mp4',
   hair: `${SANITY_BASE}/18b9a40847e1998ee315895f37e252a99713d430.mp4`,
   headshots: `${SANITY_BASE}/63356d4ab062a52e8810ad1c167873de43ac2e92.mp4`,
   nails: `${SANITY_BASE}/bedacf02fb1012735998d0d3bced32b95e18304f.mp4`,
@@ -1448,15 +1450,17 @@ const BookACallLanding: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right Side - Massage (image until the optimized clip is on Supabase;
-                    the Sanity master is 128 MB, too heavy to autoplay on load) */}
+                {/* Right Side - Massage Video (self-hosted compressed clip) */}
                 <div className="relative flex justify-center">
-                  <img
-                    src="/Holiday Proposal/Our Services/Massage/masssage 2x.webp"
-                    alt="Professional Massage Service"
+                  <video
+                    src={SERVICE_VIDEOS.massage}
                     className={SERVICE_VIDEO_CLASS}
                     style={SERVICE_VIDEO_STYLE}
-                    loading="lazy"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="auto"
                   />
                 </div>
               </div>
