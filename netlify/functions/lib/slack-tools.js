@@ -700,8 +700,16 @@ async function handleCreateProposal(params, supabase, userId) {
 
   if (error) return { error: `Failed to create proposal: ${error.message}` };
 
-  // Build a verified snapshot so Claude can report exact facts
-  const verifiedState = buildVerifiedState(proposalData);
+  // Build a verified snapshot so Claude can report exact facts.
+  // Pass customization separately so customNote / contactFirstName etc.
+  // are reflected in verifiedState — otherwise Pro can't tell whether the
+  // note actually applied vs got lost in the merge.
+  const verifiedState = buildVerifiedState(proposalData, customization);
+  // Check logo reachability — Pro must say "logo failed" if the URL 404s,
+  // not "logo applied" just because we stored a string.
+  if (verifiedState.clientLogoUrl) {
+    verifiedState.clientLogoReachable = await checkUrlReachable(verifiedState.clientLogoUrl);
+  }
 
   return {
     success: true,
@@ -776,7 +784,10 @@ async function handleEditProposal(params, supabase, userId) {
   if (updateError) return { error: `Failed to save proposal to database: ${updateError.message}` };
 
   // --- Auto-verification: re-fetch the proposal to confirm the edits were persisted ---
-  const verifiedState = buildVerifiedState(updatedData);
+  const verifiedState = buildVerifiedState(updatedData, updatedCustomization);
+  if (verifiedState.clientLogoUrl) {
+    verifiedState.clientLogoReachable = await checkUrlReachable(verifiedState.clientLogoUrl);
+  }
 
   return {
     success: true,
@@ -812,8 +823,13 @@ async function handleGetProposal(params, supabase) {
 
   if (error || !proposal) return { error: `Proposal ${params.proposalId} not found` };
 
-  // Include both raw data and a clean verified summary
-  const verifiedState = buildVerifiedState(proposal.data);
+  // Include both raw data and a clean verified summary. proposal.customization
+  // is the top-level jsonb column (where customNote lives) — pass it through
+  // so Pro can see what the proposal-viewer will actually render.
+  const verifiedState = buildVerifiedState(proposal.data, proposal.customization);
+  if (verifiedState.clientLogoUrl) {
+    verifiedState.clientLogoReachable = await checkUrlReachable(verifiedState.clientLogoUrl);
+  }
 
   return {
     success: true,
@@ -1589,7 +1605,32 @@ async function handleGetInvoice(params, supabase) {
 
 // --- Verified State ---
 
-function buildVerifiedState(proposalData) {
+// HEAD-fetch a URL with a short timeout, return true if 2xx/3xx, false on
+// any error / timeout / 4xx-5xx. Used to confirm logo URLs actually serve
+// an image before Pro claims "logo applied". Best-effort: if the host
+// blocks HEAD or times out, we return false rather than guessing — Pro
+// should tell the rep "couldn't verify" instead of claiming success.
+async function checkUrlReachable(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const r = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timeout);
+    if (r.ok) return true;
+    // Some hosts (S3 pre-signed, certain CDNs) reject HEAD. Try GET as fallback.
+    if (r.status === 405 || r.status === 403) {
+      const controller2 = new AbortController();
+      const t2 = setTimeout(() => controller2.abort(), 4000);
+      const g = await fetch(url, { method: 'GET', signal: controller2.signal });
+      clearTimeout(t2);
+      return g.ok;
+    }
+    return false;
+  } catch { return false; }
+}
+
+function buildVerifiedState(proposalData, customization) {
   const services = [];
   const locations = proposalData.locations || [];
 
@@ -1631,7 +1672,23 @@ function buildVerifiedState(proposalData) {
     services,
     grandTotal: proposalData.summary?.grandTotal ?? null,
     totalAppointments: proposalData.summary?.totalAppointments ?? null,
-    eventDates: proposalData.eventDates || []
+    eventDates: proposalData.eventDates || [],
+    // Customization fields that Pro MUST verify before claiming success.
+    // Without these in verifiedState, Pro had no way to know whether a
+    // customNote it passed actually made it through, and would happily
+    // report "Note added" when it was lost in the merge.
+    // Customization fields Pro MUST verify before claiming success.
+    customization: {
+      customNote: customization?.customNote
+        || proposalData.customization?.customNote
+        || null,
+      contactFirstName: customization?.contactFirstName
+        || proposalData.customization?.contactFirstName
+        || null,
+      contactLastName: customization?.contactLastName
+        || proposalData.customization?.contactLastName
+        || null,
+    },
   };
 
   // Include CLE state if set

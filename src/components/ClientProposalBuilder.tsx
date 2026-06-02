@@ -74,14 +74,14 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
   massage: {
     appTime: 20,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
   'hair-makeup': {
     appTime: 20,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -95,7 +95,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
   nails: {
     appTime: 30,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },

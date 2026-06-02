@@ -26,7 +26,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0,
     massageType: 'massage'
@@ -36,7 +36,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -45,7 +45,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     totalHours: 6,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -54,7 +54,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     totalHours: 6,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -63,7 +63,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -94,7 +94,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -103,7 +103,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },

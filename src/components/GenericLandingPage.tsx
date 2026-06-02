@@ -32,7 +32,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
     totalAppointments: 24,
     appTime: 20,
     numPros: 2,
-    hourlyRate: 135,
+    hourlyRate: 150,
     proHourly: 50,
     earlyArrival: 25,
     retouchingCost: 0

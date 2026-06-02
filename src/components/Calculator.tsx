@@ -29,7 +29,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -38,7 +38,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -47,7 +47,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 6,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -56,7 +56,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 6,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -65,7 +65,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -95,7 +95,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -104,7 +104,7 @@ const SERVICE_DEFAULTS = {
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     retouchingCost: 0
   },
@@ -211,7 +211,7 @@ const Calculator: React.FC = () => {
     appTime: 20,
     numPros: 2,
     proHourly: 50,
-    hourlyRate: 135,
+    hourlyRate: 150,
     earlyArrival: 25,
     discountPercent: 0
   });
