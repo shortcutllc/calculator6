@@ -50,7 +50,12 @@ function parseNoteTimestamp(notes) {
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
-const MAX_RESULTS = 300;
+// Soft cap on the followups list — was 300 (silently truncated Jaimie's
+// 169-row queue when it grew); now 2000 to give 10x+ headroom. The UI
+// surfaces a "showing X of Y" footer below so a rep can SEE if they're
+// ever capped. Per-row preflight is the slow path (~150ms each at 2000
+// rows = ~5min cold), so if we ever hit it we batch preflight in one shot.
+const MAX_RESULTS = 2000;
 const PERSONAL_NOTE_RE = /\[[^\[\]]*·[^\[\]]*\]/;  // strict: [timestamp · Author]
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 
@@ -402,6 +407,7 @@ export const handler = async (event) => {
   }
 
   // ----- Gate each row (drop suppressed / now-a-client / since-replied) -----
+  const totalBeforeCap = emitted.size;
   const out = [];
   for (const o of emitted.values()) {
     if (out.length >= MAX_RESULTS) break;
@@ -436,6 +442,11 @@ export const handler = async (event) => {
   return json(200, {
     success: true,
     count: out.length,
+    // total_before_cap lets the UI render "showing N of Y total" so the
+    // rep can see when they hit the MAX_RESULTS soft cap. Equal to count
+    // when no truncation happened.
+    total_before_cap: totalBeforeCap,
+    truncated: out.length < totalBeforeCap,
     inbox,
     note: null,  // banner in the UI handles the "inbox not connected" messaging
     followups: out,

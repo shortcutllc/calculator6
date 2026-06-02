@@ -2074,6 +2074,7 @@ const SalesIntelligence: React.FC = () => {
   const [fuExpanded, setFuExpanded] = useState<string | null>(null);
   const [fuNote, setFuNote] = useState<string | null>(null);
   const [fuInbox, setFuInbox] = useState<InboxBanner | null>(_initialFuInbox);
+  const [fuTotalBeforeCap, setFuTotalBeforeCap] = useState<number | null>(null);
   const [fuStateFilter, setFuStateFilter] = useState<'all' | 'never_emailed' | 'no_reply' | 'replied' | 'muted'>('all');
   const [rapidQueue, setRapidQueue] = useState<FollowupRow[] | null>(null);
   // Separate state for muted leads — fetched on-demand when the chip is clicked
@@ -2094,6 +2095,7 @@ const SalesIntelligence: React.FC = () => {
       setFollowups(data);
       setFuLoadedScope(scope);
       setFuInbox(j.inbox || null);
+      setFuTotalBeforeCap(typeof j.total_before_cap === 'number' ? j.total_before_cap : null);
       if (j.note) setFuNote(j.note);
       try { sessionStorage.setItem(FU_CACHE_KEY, JSON.stringify({ data, scope, ts: Date.now(), note: j.note || null, inbox: j.inbox || null })); } catch { /* quota etc */ }
     } catch (e) {
@@ -2716,6 +2718,31 @@ const SalesIntelligence: React.FC = () => {
               );
             })()}
           </div>
+
+          {/* Total count + cap indicator — tells the rep "you're seeing
+              everything" or surfaces if we ever hit MAX_RESULTS=2000. */}
+          {followups && followups.length > 0 && fuStateFilter !== 'muted' && (() => {
+            const filteredCount = (followups || []).filter((r) => {
+              if (fuStateFilter === 'all') return true;
+              if (fuStateFilter === 'never_emailed') return r.state === 'never_emailed' || r.state === 'unknown_no_inbox';
+              return r.state === fuStateFilter;
+            }).length;
+            const truncated = fuTotalBeforeCap !== null && fuTotalBeforeCap > followups.length;
+            return (
+              <div className="text-xs text-gray-500 mt-2 px-1 flex items-center justify-between">
+                <span>
+                  Showing <strong>{filteredCount}</strong>
+                  {fuStateFilter !== 'all' && ` ${fuStateFilter.replace('_', ' ')} of ${followups.length} total`}
+                  {fuStateFilter === 'all' && ` of ${followups.length}`}
+                </span>
+                {truncated && (
+                  <span className="text-amber-700">
+                    Server cap hit ({followups.length} of {fuTotalBeforeCap}+ total) — message Will to raise the cap.
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </div>
       ) : tab === 'drafts' ? (
         <div className="overflow-x-auto border border-gray-200 rounded">
