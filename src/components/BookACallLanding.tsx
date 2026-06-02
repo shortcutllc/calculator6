@@ -1448,17 +1448,15 @@ const BookACallLanding: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right Side - Massage Video */}
+                {/* Right Side - Massage (image until the optimized clip is on Supabase;
+                    the Sanity master is 128 MB, too heavy to autoplay on load) */}
                 <div className="relative flex justify-center">
-                  <video
-                    src={SERVICE_VIDEOS.massage}
+                  <img
+                    src="/Holiday Proposal/Our Services/Massage/masssage 2x.webp"
+                    alt="Professional Massage Service"
                     className={SERVICE_VIDEO_CLASS}
                     style={SERVICE_VIDEO_STYLE}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="metadata"
+                    loading="lazy"
                   />
                 </div>
               </div>

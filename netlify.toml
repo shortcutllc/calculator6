@@ -55,9 +55,10 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https://* http://*;
+      media-src 'self' https://*.supabase.co https://cdn.sanity.io;
       connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://maps.googleapis.com https://connect.facebook.net https://www.facebook.com https://www.google-analytics.com https://analytics.google.com;
       worker-src 'self' blob:;
-      frame-src 'self' https://www.facebook.com https://connect.facebook.net;
+      frame-src 'self' https://www.facebook.com https://connect.facebook.net https://calendar.google.com;
       frame-ancestors 'none';
       form-action 'self' https://www.facebook.com;
       base-uri 'self'
