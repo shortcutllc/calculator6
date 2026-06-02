@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, Briefcase } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 import { createLandingPageForLead } from '../services/WorkhumanLeadService';
@@ -14,7 +14,7 @@ const REP_EMAIL_TO_FIRST_NAME: Record<string, string> = {
   'caren@getshortcut.co': 'Caren',
 };
 
-type TabId = 'playA' | 'playB' | 'followups' | 'drafts' | 'recon';
+type TabId = 'playA' | 'playB' | 'followups' | 'brokers' | 'drafts' | 'recon';
 interface SavedDraftRow {
   id: string; recipient_email: string | null; subject: string; body: string;
   direction_label: string | null; source_company: string | null; source_contact: string | null;
@@ -92,6 +92,28 @@ interface FollowupRow {
   was_waitlisted: boolean;
   vip_slot: { day: string; time: string | null } | null;
 }
+interface BrokerRow {
+  email: string;
+  name: string | null;
+  title: string | null;
+  company: string | null;
+  linkedin_url: string | null;
+  assigned_to: string | null;
+  firm_name: string;
+  firm_tier: 'tier_1' | 'tier_2' | 'tier_3' | null;
+  firm_track: 'broker' | 'carrier_hec' | null;
+  firm_priority: number | null;
+  firm_nyc: string | null;
+  firm_why: string | null;
+  emailed_count: number;
+  last_sent: string | null;
+  last_reply: string | null;
+  days_since: number | null;
+  replied: boolean;
+  sender_email: string | null;
+  state: 'never_emailed' | 'in_cadence' | 'replied';
+}
+
 interface InboxBanner {
   connected: boolean; email: string | null;
   sent_crawl_enabled: boolean; assignee_name: string | null;
@@ -1459,6 +1481,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
   { id: 'playB', label: 'Play B — Net-New', icon: <Crosshair size={18} /> },
   { id: 'followups', label: 'Follow-ups', icon: <Send size={18} /> },
+  { id: 'brokers', label: 'Brokers', icon: <Briefcase size={18} /> },
   { id: 'drafts', label: 'Drafts', icon: <Bookmark size={18} /> },
   { id: 'recon', label: 'Reconciliation', icon: <BarChart3 size={18} /> },
 ];
@@ -1477,7 +1500,7 @@ function exportCSV(rows: Record<string, unknown>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-const VALID_TABS: TabId[] = ['playA', 'playB', 'followups', 'drafts', 'recon'];
+const VALID_TABS: TabId[] = ['playA', 'playB', 'followups', 'brokers', 'drafts', 'recon'];
 const FU_CACHE_KEY = 'sales_intel.followups.v1';
 const FU_CACHE_TTL_MS = 30 * 60 * 1000;
 
@@ -2181,6 +2204,37 @@ const SalesIntelligence: React.FC = () => {
     if (tab === 'drafts' && !draftTarget) loadSavedDrafts();
   }, [tab, draftTarget, loadSavedDrafts]);
 
+  // ----- Brokers tab — healthcare broker + carrier-HEC GTM queue -----
+  const [brokers, setBrokers] = useState<BrokerRow[] | null>(null);
+  const [brokersLoading, setBrokersLoading] = useState(false);
+  const [brokersScope, setBrokersScope] = useState<'mine' | 'team'>('mine');
+  const [brokerTrackFilter, setBrokerTrackFilter] = useState<'all' | 'broker' | 'carrier_hec'>('all');
+  const [brokerStateFilter, setBrokerStateFilter] = useState<'all' | 'never_emailed' | 'in_cadence' | 'replied'>('all');
+  const [brokerTierFilter, setBrokerTierFilter] = useState<'all' | 'tier_1' | 'tier_2' | 'tier_3'>('all');
+
+  const loadBrokers = useCallback(async (scope: 'mine' | 'team') => {
+    setBrokersLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const res = await fetch(`/.netlify/functions/brokers?scope=${scope}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const j = await res.json();
+      if (!res.ok || !j.success) throw new Error(j.error || `Failed (${res.status})`);
+      setBrokers(j.brokers || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load brokers');
+      setBrokers([]);
+    } finally {
+      setBrokersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'brokers' && brokers === null) loadBrokers(brokersScope);
+  }, [tab, brokers, brokersScope, loadBrokers]);
+
   const generatedAt = playA[0]?.generated_at || playB[0]?.generated_at || recon[0]?.generated_at || null;
 
   const fa = useMemo(
@@ -2743,6 +2797,139 @@ const SalesIntelligence: React.FC = () => {
               </div>
             );
           })()}
+        </div>
+      ) : tab === 'brokers' ? (
+        <div className="space-y-3">
+          {/* Filter chips */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-gray-500 font-medium">Track:</span>
+            {(['all', 'broker', 'carrier_hec'] as const).map((t) => (
+              <button key={t} onClick={() => setBrokerTrackFilter(t)}
+                className={`px-2 py-1 rounded ${brokerTrackFilter === t ? 'bg-shortcut-navy-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                {t === 'all' ? 'All' : t === 'broker' ? 'Brokers' : 'Carrier HECs'}
+              </button>
+            ))}
+            <span className="text-gray-500 font-medium ml-3">Tier:</span>
+            {(['all', 'tier_1', 'tier_2', 'tier_3'] as const).map((t) => (
+              <button key={t} onClick={() => setBrokerTierFilter(t)}
+                className={`px-2 py-1 rounded ${brokerTierFilter === t ? 'bg-shortcut-navy-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                {t === 'all' ? 'All' : t.replace('tier_', 'T')}
+              </button>
+            ))}
+            <span className="text-gray-500 font-medium ml-3">State:</span>
+            {(['all', 'never_emailed', 'in_cadence', 'replied'] as const).map((t) => (
+              <button key={t} onClick={() => setBrokerStateFilter(t)}
+                className={`px-2 py-1 rounded ${brokerStateFilter === t ? 'bg-shortcut-navy-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                {t === 'all' ? 'All' : t.replace('_', ' ')}
+              </button>
+            ))}
+            <span className="ml-auto flex items-center gap-2">
+              <span className="text-gray-500 font-medium">Scope:</span>
+              {(['mine', 'team'] as const).map((s) => (
+                <button key={s} onClick={() => { setBrokersScope(s); setBrokers(null); loadBrokers(s); }}
+                  className={`px-2 py-1 rounded ${brokersScope === s ? 'bg-shortcut-navy-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                  {s === 'mine' ? 'Mine' : 'Team'}
+                </button>
+              ))}
+              <button onClick={() => { setBrokers(null); loadBrokers(brokersScope); }} className="text-gray-500 hover:text-gray-900" title="Refresh">
+                <RefreshCw size={14} />
+              </button>
+            </span>
+          </div>
+
+          <div className="overflow-x-auto border border-gray-200 rounded">
+            {brokersLoading && !brokers ? (
+              <div className="py-16 text-center text-gray-400">Loading broker queue…</div>
+            ) : !brokers || brokers.length === 0 ? (
+              <div className="py-16 text-center text-gray-400">
+                No broker contacts assigned to you yet. Talk to Will to seed your stack.
+              </div>
+            ) : (() => {
+              const visible = (brokers || []).filter((r) => {
+                if (brokerTrackFilter !== 'all' && r.firm_track !== brokerTrackFilter) return false;
+                if (brokerTierFilter !== 'all' && r.firm_tier !== brokerTierFilter) return false;
+                if (brokerStateFilter !== 'all' && r.state !== brokerStateFilter) return false;
+                return true;
+              });
+              if (visible.length === 0) return <div className="py-16 text-center text-gray-400">No rows match these filters.</div>;
+              return (
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={th}>State</th>
+                      <th className={th}>Contact</th>
+                      <th className={th}>Firm</th>
+                      <th className={th}>Tier / Track</th>
+                      <th className={th}>Last sent</th>
+                      <th className={th}>Touches</th>
+                      <th className={th}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visible.map((r) => {
+                      const stateBadge = r.state === 'never_emailed'
+                        ? <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">Never emailed</span>
+                        : r.state === 'replied'
+                        ? <span className="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-800">Replied</span>
+                        : <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800">In cadence</span>;
+                      const tierBadge = r.firm_tier === 'tier_1' ? 'T1' : r.firm_tier === 'tier_2' ? 'T2' : r.firm_tier === 'tier_3' ? 'T3' : '—';
+                      return (
+                        <tr key={r.email} className="border-t border-gray-100">
+                          <td className={td}>{stateBadge}</td>
+                          <td className={td}>
+                            <div className="font-medium text-gray-900">{r.name || r.email}</div>
+                            <div className="text-xs text-gray-500">{r.title || '—'}</div>
+                            {r.linkedin_url && <a href={r.linkedin_url} target="_blank" rel="noreferrer" className="text-xs text-shortcut-navy-blue hover:underline inline-flex items-center gap-1">linkedin <ExternalLink size={10} /></a>}
+                          </td>
+                          <td className={td}>
+                            <div className="font-medium text-gray-900">{r.firm_name}</div>
+                            {r.firm_nyc && <div className="text-xs text-gray-500">{r.firm_nyc}</div>}
+                          </td>
+                          <td className={td}>
+                            <span className="text-xs font-semibold text-gray-700">{tierBadge}</span>
+                            <span className="text-xs text-gray-500 ml-2">{r.firm_track === 'carrier_hec' ? 'HEC' : 'Broker'}</span>
+                            {r.firm_priority !== null && <span className="text-xs text-gray-400 ml-2">#{r.firm_priority}</span>}
+                          </td>
+                          <td className={td}>
+                            {r.last_sent ? `${r.days_since}d ago` : <span className="text-gray-400">—</span>}
+                          </td>
+                          <td className={td}>{r.emailed_count || 0}</td>
+                          <td className={td}>
+                            <button
+                              onClick={() => setDraftTarget({
+                                company: r.firm_name,
+                                followup: {
+                                  email: r.email, name: r.name, title: r.title, company: r.firm_name,
+                                  last_sent: r.last_sent || '', days_since: r.days_since || 0,
+                                  touches: r.emailed_count || 0, thread_id: null,
+                                  personal_note: r.firm_why || null,
+                                  is_first_outreach: r.state === 'never_emailed',
+                                } as FollowupRow,
+                              })}
+                              className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
+                            >
+                              <PenLine size={14} /> Draft
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              );
+            })()}
+          </div>
+
+          {brokers && brokers.length > 0 && (
+            <div className="text-xs text-gray-500 px-1">
+              Showing <strong>{(brokers || []).filter((r) => {
+                if (brokerTrackFilter !== 'all' && r.firm_track !== brokerTrackFilter) return false;
+                if (brokerTierFilter !== 'all' && r.firm_tier !== brokerTierFilter) return false;
+                if (brokerStateFilter !== 'all' && r.state !== brokerStateFilter) return false;
+                return true;
+              }).length}</strong> of {brokers.length} total in your queue
+            </div>
+          )}
         </div>
       ) : tab === 'drafts' ? (
         <div className="overflow-x-auto border border-gray-200 rounded">

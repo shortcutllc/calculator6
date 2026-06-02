@@ -761,6 +761,20 @@ const TOOLS = [
     }
   },
   {
+    name: 'list_broker_queue',
+    description: 'Return the rep\'s healthcare-broker + carrier-HEC contact queue (Track A = brokers like OneDigital / NFP / Sequoia, Track B = HECs at Cigna / Aetna / Anthem). Use when the rep asks "show my broker queue", "who do I have at OneDigital", "list my tier 1 brokers", "show carrier HECs", "what brokers haven\'t I emailed yet". Returns a summary (total, by state, by tier) + up to N contacts ordered by priority_rank (lower = higher priority). Pair filters as needed.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        scope: { type: 'string', enum: ['mine', 'team'], description: 'mine (default) = only contacts assigned to the rep asking. team = everyone\'s broker queue.' },
+        track: { type: 'string', enum: ['broker', 'carrier_hec'], description: 'Optional — filter to Track A brokers OR Track B carrier HECs.' },
+        tier: { type: 'string', enum: ['tier_1', 'tier_2', 'tier_3'], description: 'Optional — filter by firm tier. Tier 2 = mid-market sweet spot.' },
+        state: { type: 'string', enum: ['never_emailed', 'in_cadence', 'replied'], description: 'Optional — filter by outreach state.' },
+        limit: { type: 'integer', description: 'Max contacts to return (default 25, max 100).' }
+      }
+    }
+  },
+  {
     name: 'read_thread',
     description: 'Read the actual email body content from the rep\'s Gmail for the most recent thread with a contact. Use this BEFORE drafting a follow-up so you know what was already said in the prior emails — never ask the rep "what was the focus of your last email?" when you can just read it. Returns subject + body of recent messages (both directions). Pair with lookup_lead: lookup_lead gives you dates/counts/reply-snippets from the DB, read_thread gives you the actual prose. CALL this whenever: (a) the rep references an email "I sent" or "their reply", (b) you\'re about to draft a follow-up and want to avoid restating things already in the thread, (c) the rep asks "what did I last say" or "what was in my last email". Requires the rep\'s Gmail to be connected (digest opt-in flow). Returns null body if Gmail isn\'t reachable.',
     input_schema: {

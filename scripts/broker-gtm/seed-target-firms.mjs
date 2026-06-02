@@ -1,8 +1,8 @@
-// Seed crm_target_firms from broker_outreach_playbook.md.
-// Tier 1/2/3 brokers + 3 carriers. Priority rank by NYC presence + ICP fit.
+// Seed crm_target_firms with the Top 30 brokers + 3 carriers from
+// memory/broker_outreach_playbook.md. Idempotent — upserts by display_name.
 import { readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-
 const env = Object.fromEntries(
   readFileSync(new URL('../../.env.local', import.meta.url), 'utf8')
     .split(/\r?\n/).filter((l) => l && !l.startsWith('#') && l.includes('='))
@@ -10,72 +10,64 @@ const env = Object.fromEntries(
 );
 const sb = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
+// Per playbook: track=broker|carrier_hec. priority_rank lower = higher priority.
+// First 10 are the "start here" set. Tier 1 mega-brokers ranked lower per
+// "Tier 2 = sweet spot" in playbook.
 const FIRMS = [
-  // ---- Tier 1 brokers (slow but big — F500/F1000) ----
-  { id: 'mercer', name: 'Mercer (Marsh McLennan)',     tier: 'tier_1', track: 'broker', domain: 'mercer.com',         nyc: '1166 6th Ave', why: 'Industry $190M EB revenue, F500/mid-market' },
-  { id: 'mma',    name: 'Marsh McLennan Agency (MMA)', tier: 'tier_1', track: 'broker', domain: 'mma-corp.com',       nyc: '1166 6th Ave', why: '100-5K EE mid-market arm of Marsh McLennan' },
-  { id: 'aon',    name: 'Aon',                          tier: 'tier_1', track: 'broker', domain: 'aon.com',            nyc: '199 Water St', why: 'F1000+mid-market, Aon Wellbeing platform' },
-  { id: 'gallagher', name: 'Arthur J. Gallagher',       tier: 'tier_1', track: 'broker', domain: 'ajg.com',            nyc: '2 WTC',        why: 'Gallagher Better Works, $159M EB revenue, 50-10K EE' },
-  { id: 'wtw',    name: 'WTW (Willis Towers Watson)',   tier: 'tier_1', track: 'broker', domain: 'wtwco.com',          nyc: '200 Liberty St', why: 'F500 health & benefits consulting' },
-  { id: 'lockton', name: 'Lockton',                     tier: 'tier_1', track: 'broker', domain: 'lockton.com',        nyc: '48th & Lex',   why: 'Private, premium EB, producer-led culture, 250-10K EE' },
-  { id: 'usi',    name: 'USI Insurance Services',       tier: 'tier_1', track: 'broker', domain: 'usi.com',            nyc: 'Valhalla NY HQ', why: 'NY-headquartered, strong mid-market EB, 100-2.5K EE' },
-  { id: 'hub',    name: 'HUB International',            tier: 'tier_1', track: 'broker', domain: 'hubinternational.com', nyc: '55 Water St (NE HQ)', why: 'Decentralized regional, 50-2.5K EE' },
-  { id: 'alliant', name: 'Alliant',                     tier: 'tier_1', track: 'broker', domain: 'alliant.com',        nyc: '1301 6th Ave', why: 'Growing EB practice, strong in tech/media' },
+  // ====================== Track A: Brokers ======================
+  // Tier 2 — Mid-Market (sweet spot — start here)
+  { display_name: 'OneDigital', tier: 'tier_2', track: 'broker', priority_rank: 1, nyc_presence: 'Atlanta HQ', why: '3K advisors · 85K employer clients · OneDigital Wellbeing bundle · mid-market 100-2.5K EE' },
+  { display_name: 'NFP', tier: 'tier_2', track: 'broker', priority_rank: 2, nyc_presence: '340 Madison', why: 'Aon-owned · NFP PeopleFirst · mid-market 100-2.5K EE · M&A wellness practice gaps' },
+  { display_name: 'EPIC Insurance Brokers', tier: 'tier_2', track: 'broker', priority_rank: 3, nyc_presence: 'Madison Ave (formerly Frenkel)', why: 'Explicit Wellbeing & Health Management practice' },
+  { display_name: 'Corporate Synergies', tier: 'tier_2', track: 'broker', priority_rank: 4, nyc_presence: 'Mt. Laurel NJ', why: 'NJ-tristate native · strong wellness focus · sweet spot for Shortcut' },
+  { display_name: 'Holmes Murphy', tier: 'tier_2', track: 'broker', priority_rank: 5, nyc_presence: 'Des Moines IA', why: 'Wellness-strong culture' },
+  { display_name: 'IMA Financial', tier: 'tier_2', track: 'broker', priority_rank: 6, nyc_presence: 'Denver', why: 'Employee-owned · wellness-forward' },
+  { display_name: 'Risk Strategies', tier: 'tier_2', track: 'broker', priority_rank: 7, nyc_presence: 'Boston', why: 'Specialty practices incl. healthcare' },
+  { display_name: 'World Insurance Associates', tier: 'tier_2', track: 'broker', priority_rank: 8, nyc_presence: 'Iselin NJ', why: 'Heavy NJ/PA presence' },
+  { display_name: 'Hilb Group', tier: 'tier_2', track: 'broker', priority_rank: 9, nyc_presence: 'Richmond VA', why: 'PE-backed mid-Atlantic' },
+  { display_name: 'Higginbotham', tier: 'tier_2', track: 'broker', priority_rank: 10, nyc_presence: 'Fort Worth TX', why: 'Fast-growing TX/SE' },
+  { display_name: 'Cottingham & Butler', tier: 'tier_2', track: 'broker', priority_rank: 11, nyc_presence: 'Dubuque IA', why: 'Large private · Midwest mid-market' },
+  { display_name: 'Alera Group', tier: 'tier_2', track: 'broker', priority_rank: 12, nyc_presence: 'Federation', why: 'Federation of regional firms' },
 
-  // ---- Tier 2 brokers (sweet spot — mid-market, faster cycles) ----
-  { id: 'onedigital',         name: 'OneDigital',                   tier: 'tier_2', track: 'broker', domain: 'onedigital.com',         nyc: 'NYC + regional', why: '3K advisors, 85K employer clients, OneDigital Wellbeing bundle' },
-  { id: 'nfp',                name: 'NFP (Aon-owned)',              tier: 'tier_2', track: 'broker', domain: 'nfp.com',                nyc: '340 Madison',    why: 'NFP PeopleFirst, mid-market 100-2.5K EE, NYC HQ' },
-  { id: 'epic',               name: 'EPIC Insurance Brokers',       tier: 'tier_2', track: 'broker', domain: 'epicbrokers.com',        nyc: 'Madison Ave',    why: 'Explicit Wellbeing & Health Management practice' },
-  { id: 'risk-strategies',    name: 'Risk Strategies',              tier: 'tier_2', track: 'broker', domain: 'risk-strategies.com',    nyc: 'NYC office',     why: 'Specialty practices incl. healthcare' },
-  { id: 'corporate-synergies', name: 'Corporate Synergies',         tier: 'tier_2', track: 'broker', domain: 'corpsyn.com',            nyc: 'Mt. Laurel NJ',  why: 'NJ-tristate native, strong wellness focus — SWEET SPOT' },
-  { id: 'holmes-murphy',      name: 'Holmes Murphy',                tier: 'tier_2', track: 'broker', domain: 'holmesmurphy.com',       nyc: 'Multi-office',   why: 'Wellness-strong culture' },
-  { id: 'ima',                name: 'IMA Financial',                tier: 'tier_2', track: 'broker', domain: 'imacorp.com',            nyc: 'Multi-office',   why: 'Employee-owned, wellness-forward' },
-  { id: 'hilb',               name: 'Hilb Group',                   tier: 'tier_2', track: 'broker', domain: 'hilbgroup.com',          nyc: 'Mid-Atlantic',   why: 'PE-backed mid-Atlantic' },
-  { id: 'alera',              name: 'Alera Group',                  tier: 'tier_2', track: 'broker', domain: 'aleragroup.com',         nyc: 'Federation',     why: 'Federation of regional firms' },
+  // Tier 3 — Modern/Tech (warmest reception, VC-backed startup overlap)
+  { display_name: 'Sequoia Consulting', tier: 'tier_3', track: 'broker', priority_rank: 13, nyc_presence: 'SF · NYC office', why: 'Tech-startup-benefits broker · Stripe Airbnb Brex · Series B+ tech ICP overlaps Shortcut book' },
+  { display_name: 'Newfront', tier: 'tier_3', track: 'broker', priority_rank: 14, nyc_presence: 'SF · NYC', why: 'AI-enabled modern broker · tech/life sciences ICP' },
+  { display_name: 'Nava Benefits', tier: 'tier_3', track: 'broker', priority_rank: 15, nyc_presence: 'NYC', why: 'Fintech/SaaS-adjacent' },
+  { display_name: 'Woodruff Sawyer', tier: 'tier_3', track: 'broker', priority_rank: 16, nyc_presence: 'SF · NYC', why: 'Tech/PE-heavy' },
+  { display_name: 'Patriot Growth Insurance', tier: 'tier_3', track: 'broker', priority_rank: 17, nyc_presence: 'PE roll-up', why: 'Roll-up of regionals · wellness gaps to fill' },
+  { display_name: 'Savoy Associates', tier: 'tier_3', track: 'broker', priority_rank: 18, nyc_presence: 'Florham Park NJ', why: 'NJ regional mid-market' },
+  { display_name: 'Cross Insurance', tier: 'tier_3', track: 'broker', priority_rank: 19, nyc_presence: 'CT', why: 'CT/NY corridor' },
 
-  // ---- Tier 3 brokers (modern/tech — warmest reception) ----
-  { id: 'sequoia',           name: 'Sequoia Consulting',         tier: 'tier_3', track: 'broker', domain: 'sequoia.com',          nyc: 'SF + NYC',  why: 'Tech-startup broker. Clients: Stripe/Airbnb/Brex. Direct ICP overlap' },
-  { id: 'newfront',          name: 'Newfront',                   tier: 'tier_3', track: 'broker', domain: 'newfront.com',         nyc: 'SF + NYC',  why: 'AI-enabled modern broker, tech/life sciences ICP' },
-  { id: 'nava-benefits',     name: 'Nava Benefits',              tier: 'tier_3', track: 'broker', domain: 'navabenefits.com',     nyc: 'NYC',       why: 'Fintech/SaaS-adjacent' },
-  { id: 'woodruff-sawyer',   name: 'Woodruff Sawyer',            tier: 'tier_3', track: 'broker', domain: 'woodruffsawyer.com',   nyc: 'SF + NYC',  why: 'Tech/PE-heavy' },
-  { id: 'patriot-growth',    name: 'Patriot Growth Insurance',   tier: 'tier_3', track: 'broker', domain: 'patriotgi.com',        nyc: 'Roll-up',   why: 'Roll-up of regionals' },
-  { id: 'savoy',             name: 'Savoy Associates',           tier: 'tier_3', track: 'broker', domain: 'savoyassociates.com',  nyc: 'Florham Park NJ', why: 'NJ regional mid-market' },
-  { id: 'cross-insurance',   name: 'Cross Insurance',            tier: 'tier_3', track: 'broker', domain: 'crossagency.com',      nyc: 'CT corridor', why: 'CT/NY corridor' },
+  // Tier 1 — National Mega (slow but big)
+  { display_name: 'Marsh McLennan (Mercer + MMA)', tier: 'tier_1', track: 'broker', priority_rank: 20, nyc_presence: '1166 6th Ave', why: 'Mercer $190M EB revenue · MMA 100-5K EE' },
+  { display_name: 'Aon', tier: 'tier_1', track: 'broker', priority_rank: 21, nyc_presence: '199 Water St', why: 'F1000 + mid-market · Aon Wellbeing · acquired NFP Apr 2024' },
+  { display_name: 'Arthur J. Gallagher', tier: 'tier_1', track: 'broker', priority_rank: 22, nyc_presence: '2 WTC', why: '50-10K EE · Gallagher Better Works · $159M EB revenue · acquired AssuredPartners Aug 2025' },
+  { display_name: 'WTW (Willis Towers Watson)', tier: 'tier_1', track: 'broker', priority_rank: 23, nyc_presence: '200 Liberty St', why: '1K+ EE · F500 health & benefits consulting' },
+  { display_name: 'Lockton', tier: 'tier_1', track: 'broker', priority_rank: 24, nyc_presence: '48th & Lex', why: '250-10K EE · Private · premium EB · producer-led culture' },
+  { display_name: 'USI Insurance Services', tier: 'tier_1', track: 'broker', priority_rank: 25, nyc_presence: 'Valhalla NY HQ', why: '100-2.5K EE · NY-headquartered · strong mid-market EB' },
+  { display_name: 'HUB International', tier: 'tier_1', track: 'broker', priority_rank: 26, nyc_presence: '55 Water St (Northeast HQ)', why: '50-2.5K EE · Decentralized regional model' },
+  { display_name: 'Alliant', tier: 'tier_1', track: 'broker', priority_rank: 27, nyc_presence: '1301 6th Ave', why: '100-5K EE · Growing EB practice · strong in tech/media' },
+  { display_name: 'Brown & Brown', tier: 'tier_1', track: 'broker', priority_rank: 28, nyc_presence: 'NYC', why: '50-1K EE · EB secondary to P&C — deprioritize' },
+  { display_name: 'Acrisure', tier: 'tier_1', track: 'broker', priority_rank: 29, nyc_presence: 'Multiple', why: '50-5K EE · Roll-up of 800+ agencies · uneven EB depth' },
 
-  // ---- Carriers (HEC stealth track) ----
-  { id: 'cigna',  name: 'Cigna',  tier: 'carrier', track: 'carrier_hec', domain: 'cigna.com',  nyc: 'Tri-state HECs',  why: 'Cigna HIF — Health Engagement Consultants manage wellness fund' },
-  { id: 'aetna',  name: 'Aetna',  tier: 'carrier', track: 'carrier_hec', domain: 'aetna.com',  nyc: 'Tri-state DCs',   why: 'Aetna Wellness Allowance — Designated Consultants manage it' },
-  { id: 'anthem', name: 'Anthem (Elevance)', tier: 'carrier', track: 'carrier_hec', domain: 'anthem.com', nyc: 'Tri-state', why: 'Anthem Wellness Fund — Wellness Consultants' },
+  // ====================== Track B: Carrier HECs (stealth play) ======================
+  { display_name: 'Cigna', tier: 'tier_1', track: 'carrier_hec', priority_rank: 30, nyc_presence: 'National', why: 'Health Engagement Consultants (HECs) manage HIF wellness fund · sit alongside broker in client meetings · virtually unprospected' },
+  { display_name: 'Aetna', tier: 'tier_1', track: 'carrier_hec', priority_rank: 31, nyc_presence: 'National', why: 'Designated Consultants / Health & Wellness Consultants manage Wellness Allowance' },
+  { display_name: 'Anthem', tier: 'tier_1', track: 'carrier_hec', priority_rank: 32, nyc_presence: 'National', why: 'Wellness Consultants manage Wellness Fund · third leg of carrier HEC track' },
 ];
 
-// Priority rank: Tier 2 sweet spot (rank 1-9), Tier 3 modern (rank 10-16),
-// carriers (17-19), Tier 1 mega (20-28). Pulls "ratio of warm × responsive ×
-// mid-market" per the broker-plan, not just firm size.
-const RANK_ORDER = ['tier_2', 'tier_3', 'carrier', 'tier_1'];
-const rows = [];
-let rank = 0;
-for (const t of RANK_ORDER) {
-  for (const f of FIRMS.filter((x) => x.tier === t)) {
-    rank += 1;
-    rows.push({
-      id: f.id,
-      display_name: f.name,
-      tier: f.tier,
-      track: f.track,
-      domain: f.domain,
-      nyc_presence: f.nyc,
-      why: f.why,
-      priority_rank: rank,
-    });
+console.log(`Seeding ${FIRMS.length} target firms...`);
+let inserted = 0, updated = 0, errors = 0;
+for (const firm of FIRMS) {
+  const { data: existing } = await sb.from('crm_target_firms').select('id').eq('display_name', firm.display_name).maybeSingle();
+  if (existing) {
+    const { error } = await sb.from('crm_target_firms').update(firm).eq('id', existing.id);
+    if (error) { console.log(`  ❌ update ${firm.display_name}: ${error.message}`); errors++; }
+    else { updated++; }
+  } else {
+    const { error } = await sb.from('crm_target_firms').insert({ id: randomUUID(), ...firm });
+    if (error) { console.log(`  ❌ insert ${firm.display_name}: ${error.message}`); errors++; }
+    else { inserted++; }
   }
 }
-
-console.log(`Seeding ${rows.length} firms…`);
-const { error } = await sb.from('crm_target_firms')
-  .upsert(rows, { onConflict: 'id' });
-if (error) { console.error('upsert failed:', error.message); process.exit(1); }
-
-const { data } = await sb.from('crm_target_firms')
-  .select('priority_rank, tier, track, display_name')
-  .order('priority_rank');
-console.table(data);
+console.log(`Done — inserted ${inserted}, updated ${updated}, errors ${errors}`);
