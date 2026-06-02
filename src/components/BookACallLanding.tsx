@@ -1522,7 +1522,7 @@ const BookACallLanding: React.FC = () => {
                     loop
                     muted
                     playsInline
-                    preload="metadata"
+                    preload="auto"
                   />
                 </div>
               </div>
@@ -1599,7 +1599,7 @@ const BookACallLanding: React.FC = () => {
                     loop
                     muted
                     playsInline
-                    preload="metadata"
+                    preload="auto"
                   />
                 </div>
               </div>
@@ -1653,7 +1653,7 @@ const BookACallLanding: React.FC = () => {
                     loop
                     muted
                     playsInline
-                    preload="metadata"
+                    preload="auto"
                   />
                 </div>
               </div>
@@ -1707,7 +1707,7 @@ const BookACallLanding: React.FC = () => {
                     loop
                     muted
                     playsInline
-                    preload="metadata"
+                    preload="auto"
                   />
                 </div>
               </div>
