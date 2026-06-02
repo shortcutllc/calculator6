@@ -70,7 +70,8 @@ const TOOL_HANDLERS = {
   unsuppress_lead: handleUnsuppressLead,
   draft_email: handleDraftEmail,
   edit_draft: handleEditDraft,
-  read_thread: handleReadThread
+  read_thread: handleReadThread,
+  list_broker_queue: handleListBrokerQueue
 };
 
 // ============================================================
@@ -436,6 +437,80 @@ async function handleReadThread(params, supabase, userId) {
     total_messages_in_thread: allMsgs.length,
     messages_returned: messages.length,
     messages,
+  };
+}
+
+// ============================================================
+// list_broker_queue — surfaces a rep's broker GTM stack from Sprint 1.
+// ============================================================
+
+async function handleListBrokerQueue(params, supabase, userId) {
+  // Resolve "the calling rep" → gmail email
+  let repEmail = (params.rep || '').toString().trim().toLowerCase() || null;
+  if (!repEmail) {
+    const { data: acct } = await supabase.from('gmail_accounts').select('email').eq('supabase_user_id', userId).maybeSingle();
+    repEmail = acct?.email || null;
+  }
+  if (!repEmail) return { error: 'Could not resolve your rep email. Pass rep="will@getshortcut.co" or "caren@getshortcut.co".' };
+  if (!['will@getshortcut.co', 'caren@getshortcut.co'].includes(repEmail)) {
+    return { error: `Broker GTM Sprint 1 is scoped to Will + Caren only. ${repEmail} isn't in the cohort.` };
+  }
+
+  const limit = Math.min(50, Math.max(1, Number(params.limit) || 15));
+  let q = supabase.from('outreach_contacts')
+    .select('email, name, title, company, broker_track, broker_priority_rank, broker_firm_id, broker_added_at')
+    .eq('broker_assigned_to', repEmail)
+    .order('broker_priority_rank', { ascending: true });
+  if (params.track) q = q.eq('broker_track', params.track);
+  const { data: contacts, error } = await q.limit(200);
+  if (error) return { error: `Could not load queue: ${error.message}` };
+  if (!contacts || contacts.length === 0) {
+    return { success: true, message: `No broker contacts assigned to ${repEmail}.`, contacts: [] };
+  }
+
+  // For status filtering, check outreach_sends for each
+  const emails = contacts.map((c) => c.email);
+  const stateByEmail = new Map();
+  for (let i = 0; i < emails.length; i += 200) {
+    const slice = emails.slice(i, i + 200);
+    const [{ data: sends }, { data: reps }] = await Promise.all([
+      supabase.from('outreach_sends').select('email, reply_time').in('email', slice),
+      supabase.from('outreach_replies').select('email').in('email', slice),
+    ]);
+    for (const s of (sends || [])) {
+      const cur = stateByEmail.get(s.email) || { emailed: 0, replied: false };
+      cur.emailed += 1;
+      if (s.reply_time) cur.replied = true;
+      stateByEmail.set(s.email, cur);
+    }
+    for (const r of (reps || [])) {
+      const cur = stateByEmail.get(r.email) || { emailed: 0, replied: false };
+      cur.replied = true;
+      stateByEmail.set(r.email, cur);
+    }
+  }
+
+  const status = (params.status || '').toString().toLowerCase() || null;
+  const enriched = contacts.map((c) => {
+    const st = stateByEmail.get(c.email) || { emailed: 0, replied: false };
+    let s = 'untouched';
+    if (st.replied) s = 'replied';
+    else if (st.emailed > 0) s = 'in_flight';
+    return { ...c, status: s, emailed_count: st.emailed };
+  });
+  const filtered = status ? enriched.filter((c) => c.status === status) : enriched;
+  const shown = filtered.slice(0, limit);
+  const counts = enriched.reduce((acc, c) => { acc[c.status] = (acc[c.status] || 0) + 1; return acc; }, {});
+  return {
+    success: true,
+    rep: repEmail,
+    total_assigned: contacts.length,
+    counts_by_status: counts,
+    contacts: shown.map((c) => ({
+      email: c.email, name: c.name, title: c.title, company: c.company,
+      track: c.broker_track, priority_rank: c.broker_priority_rank,
+      firm_id: c.broker_firm_id, status: c.status, emailed_count: c.emailed_count,
+    })),
   };
 }
 
