@@ -380,7 +380,7 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              op: { type: 'string', description: 'Operation type: add_service, remove_service, remove_date, update_service, move_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state, add_pricing_options, remove_pricing_options, select_pricing_option, set_proposal_field' },
+              op: { type: 'string', description: 'Operation type: add_service, remove_service, remove_date, update_service, move_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state, add_pricing_options, remove_pricing_options, select_pricing_option, set_proposal_field, set_admin_notes (internal team-only notes — clients never see; pass {op: "set_admin_notes", notes: "..."} — empty string clears)' },
               location: { type: 'string' },
               date: { type: 'string' },
               serviceIndex: { type: 'integer' },
@@ -518,6 +518,30 @@ const TOOLS = [
         proposalId: { type: 'string', description: 'UUID of the proposal to unlink' }
       },
       required: ['proposalId']
+    }
+  },
+  {
+    name: 'rename_proposal_option',
+    description: 'Rename a linked proposal\'s option label (e.g. change "Option A" → "Premium"). Use when a rep says "rename the basic option to standard" or similar — mirrors the admin viewer\'s rename action on linked-option proposals. Operates on a single proposal\'s option_name column. Both the admin viewer and the client viewer show this name on the option-switcher chip.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        proposalId: { type: 'string', description: 'UUID of the proposal (option) to rename' },
+        newName: { type: 'string', description: 'New display label for this option (e.g. "Premium", "Half-day", "Add Hair & Makeup")' }
+      },
+      required: ['proposalId', 'newName']
+    }
+  },
+  {
+    name: 'reorder_proposal_option',
+    description: 'Move a linked proposal up or down in its option group display order (e.g. swap "Premium" to be shown before "Basic"). Use when the rep wants a different option to be the default-visible or first-tab. 1-based position — newOrder=1 = first option in the group.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        proposalId: { type: 'string', description: 'UUID of the proposal (option) to reorder' },
+        newOrder: { type: 'integer', description: '1-based new position in the group (1 = first option shown)' }
+      },
+      required: ['proposalId', 'newOrder']
     }
   },
   {

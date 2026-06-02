@@ -84,7 +84,8 @@ const OPERATION_HANDLERS = {
   change_date: handleChangeDate,
   set_cle_state: handleSetCLEState,
   move_service: handleMoveService,
-  set_proposal_field: handleSetProposalField
+  set_proposal_field: handleSetProposalField,
+  set_admin_notes: handleSetAdminNotes
 };
 
 /**
@@ -594,6 +595,23 @@ function handleSetStatus(proposalData, customization, proposalRecord, op) {
   return {
     op: 'set_status',
     description: `Status changed to ${op.status}`
+  };
+}
+
+/**
+ * Set the proposal's internal admin notes (proposals.notes column).
+ * These are team-only notes — clients never see them. Mirrors the admin
+ * viewer's handleSaveNotes path.
+ */
+function handleSetAdminNotes(proposalData, customization, proposalRecord, op) {
+  if (typeof op.notes !== 'string') {
+    throw new Error('set_admin_notes requires a "notes" string (use "" to clear).');
+  }
+  const trimmed = op.notes.trim();
+  proposalRecord.notes = trimmed.length > 0 ? trimmed : null;
+  return {
+    op: 'set_admin_notes',
+    description: trimmed ? `Internal notes updated (${trimmed.length} chars)` : 'Internal notes cleared',
   };
 }
 

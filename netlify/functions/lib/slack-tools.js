@@ -11,7 +11,7 @@ import { searchClients, getClientByName, searchProposals } from './client-lookup
 import { fetchAndStoreLogo, storeProvidedLogo, fetchLogoUrl, searchLogoViaBrave } from './logo-fetcher.js';
 import { recalculateProposalSummary } from './pricing-engine.js';
 import { duplicateProposal } from './proposal-duplicator.js';
-import { createOption, linkProposals, unlinkProposal } from './proposal-linker.js';
+import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption } from './proposal-linker.js';
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
 import { leadPicture, suggestNextActions } from './lead-picture.js';
 import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
@@ -55,6 +55,8 @@ const TOOL_HANDLERS = {
   create_proposal_option: handleCreateOption,
   link_proposals: handleLinkProposals,
   unlink_proposal: handleUnlinkProposal,
+  rename_proposal_option: handleRenameOption,
+  reorder_proposal_option: handleReorderOption,
   create_landing_page: handleCreateLandingPage,
   get_landing_page: handleGetLandingPage,
   create_qr_code_sign: handleCreateQRCodeSign,
@@ -745,7 +747,8 @@ async function handleEditProposal(params, supabase, userId) {
     status: existing.status,
     client_name: existing.client_name,
     client_email: existing.client_email,
-    client_logo_url: existing.client_logo_url
+    client_logo_url: existing.client_logo_url,
+    notes: existing.notes
   };
 
   let updatedData, updatedCustomization, updatedRecord, changesSummary;
@@ -775,6 +778,10 @@ async function handleEditProposal(params, supabase, userId) {
   if (updatedRecord.client_name !== existing.client_name) updatePayload.client_name = updatedRecord.client_name;
   if (updatedRecord.client_email !== existing.client_email) updatePayload.client_email = updatedRecord.client_email;
   if (updatedRecord.client_logo_url !== existing.client_logo_url) updatePayload.client_logo_url = updatedRecord.client_logo_url;
+  // notes column — driven by set_admin_notes op
+  if (Object.prototype.hasOwnProperty.call(updatedRecord, 'notes') && updatedRecord.notes !== existing.notes) {
+    updatePayload.notes = updatedRecord.notes;
+  }
 
   const { error: updateError } = await supabase
     .from('proposals')
@@ -1092,6 +1099,44 @@ async function handleUnlinkProposal(params, supabase) {
 
   const result = await unlinkProposal(supabase, params.proposalId);
   return { success: true, unlinked: result.unlinked, remainingOptions: result.remainingOptions };
+}
+
+// --- Rename a linked proposal option (mirrors admin viewer's handleUpdateOptionName) ---
+
+async function handleRenameOption(params, supabase) {
+  if (!params.proposalId) return { error: 'proposalId is required' };
+  if (!params.newName || typeof params.newName !== 'string') return { error: 'newName is required (the new option label, e.g. "Premium")' };
+  try {
+    const { updated } = await renameOption(supabase, params.proposalId, params.newName);
+    return {
+      success: true,
+      proposalId: updated.id,
+      option_name: updated.option_name,
+      option_order: updated.option_order,
+    };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+// --- Reorder a linked proposal option (mirrors admin viewer's handleReorderOption) ---
+
+async function handleReorderOption(params, supabase) {
+  if (!params.proposalId) return { error: 'proposalId is required' };
+  if (typeof params.newOrder !== 'number' || params.newOrder < 1) {
+    return { error: 'newOrder must be a positive integer (1-based position in the option group)' };
+  }
+  try {
+    const { updated } = await reorderOption(supabase, params.proposalId, params.newOrder);
+    return {
+      success: true,
+      proposalId: updated.id,
+      option_name: updated.option_name,
+      option_order: updated.option_order,
+    };
+  } catch (e) {
+    return { error: e.message };
+  }
 }
 
 // --- Create Landing Page ---
