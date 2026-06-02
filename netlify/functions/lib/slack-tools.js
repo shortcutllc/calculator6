@@ -214,6 +214,33 @@ async function handleDraftEmail(params, supabase, userId, slackContext) {
   else if (params.mode === 'follow_up') firstOutreach = false;
   else firstOutreach = !latestSendThreadId;   // auto
 
+  // BROKER GTM detection — if this contact is in our broker queue, pull the
+  // track + firm metadata so the background prompt switches to the
+  // wellness-fund pitch (no Workhuman hook).
+  let brokerCtx = null;
+  try {
+    const { data: oc } = await supabase.from('outreach_contacts')
+      .select('broker_track, company').eq('email', leadEmail).maybeSingle();
+    if (oc?.broker_track) {
+      const co = (oc.company || pic.identity?.company || '').toLowerCase();
+      let firm = null;
+      if (co) {
+        const { data: firms } = await supabase.from('crm_target_firms')
+          .select('display_name, tier, track, priority_rank, nyc_presence, why');
+        for (const f of (firms || [])) {
+          const fc = f.display_name.toLowerCase();
+          if (co === fc || co.includes(fc) || fc.includes(co)) { firm = f; break; }
+        }
+      }
+      brokerCtx = {
+        track: oc.broker_track,                    // 'broker' | 'carrier_hec'
+        firm_tier: firm?.tier || null,
+        firm_why: firm?.why || null,
+        firm_nyc: firm?.nyc_presence || null,
+      };
+    }
+  } catch { /* non-fatal — falls back to non-broker mode */ }
+
   // Fire the background function — AWAIT so the dispatch reaches it before
   // we return to Pro (same fix as the digest button's interactivity path).
   const host = process.env.URL || 'https://proposals.getshortcut.co';
@@ -236,6 +263,10 @@ async function handleDraftEmail(params, supabase, userId, slackContext) {
         instructions: (params.instructions || '').toString().trim() || null,
         proposalIds: Array.isArray(params.proposalIds) ? params.proposalIds.slice(0, 5) : null,
         signupUrls: Array.isArray(params.signupUrls) ? params.signupUrls.slice(0, 5) : null,
+        // BROKER GTM context (auto-detected from outreach_contacts above) —
+        // flips the prompt out of Workhuman-personal-note mode into the
+        // wellness-fund / broker pitch. brokerCtx is null for non-broker leads.
+        brokerCtx,
       }),
     });
   } catch (e) {

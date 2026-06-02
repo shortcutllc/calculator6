@@ -166,6 +166,19 @@ export const handler = async (event) => {
     else if (track === 'carrier_hec') kind = isFirstOutreach ? 'carrier_hec_first_outreach' : 'carrier_hec_followup';
     else kind = isFirstOutreach ? 'personal_first_outreach' : 'follow_up';
 
+    // Apollo enrichment — pull firm size + location for richer broker grounding.
+    // Best-effort: skip silently if no apollo row exists.
+    let apolloHeadcount = null;
+    let apolloLocation = null;
+    let apolloIndustry = null;
+    try {
+      const { data: ap } = await sb.from('apollo_person_cache')
+        .select('company_headcount, location, industry').eq('email', fto).maybeSingle();
+      apolloHeadcount = ap?.company_headcount || null;
+      apolloLocation = ap?.location || null;
+      apolloIndustry = ap?.industry || null;
+    } catch { /* ignore */ }
+
     Object.assign(target, {
       kind,
       track,
@@ -177,6 +190,9 @@ export const handler = async (event) => {
       firm_tier: followup.firm_tier || null,
       firm_why: followup.firm_why || null,
       firm_nyc: followup.firm_nyc || null,
+      apollo_headcount: apolloHeadcount,
+      apollo_location: apolloLocation,
+      apollo_industry: apolloIndustry,
     });
     preflightEmail = fto;
     preflightDomain = fto.split('@')[1] || null;
@@ -349,6 +365,9 @@ export const handler = async (event) => {
         + `  • We're CAA-202 disclosure-clean. Three rev models: client pass-through (default — broker takes 0%, client gets 7% off list), co-marketing retainer, or 7% disclosed referral on Y1. Don't lead with this; mention only if rev share is the natural ask.\n`
         + `  • The differentiator brokers care about: ONE vendor for the whole wellness category, instead of stitching together a massage company + a grooming company + a mindfulness platform.\n`
         + `${target.firm_why ? `\nFIRM CONTEXT (use to make it specific, don't quote verbatim): ${target.firm_why}\n` : ''}`
+        + `${target.apollo_headcount ? `FIRM SIZE: ~${target.apollo_headcount} employees (use to size framing).\n` : ''}`
+        + `${target.apollo_location ? `CONTACT LOCATION: ${target.apollo_location}.\n` : ''}`
+        + `${target.apollo_industry && target.apollo_industry !== 'insurance' ? `INDUSTRY: ${target.apollo_industry}.\n` : ''}`
         + `\nROLE-ANGLE based on title:\n`
         + `  • Wellness Consultant / H&W Practice Lead → "vendor partner that makes you look like a hero to clients"\n`
         + `  • Producer / Senior Producer / Partner → "differentiator that wins and keeps clients on renewal"\n`

@@ -121,6 +121,10 @@ export const handler = async (event) => {
     instructions, proposalIds, signupUrls,
     // Edit-mode inputs (when revising an existing draft instead of generating fresh)
     mode, draftId, editInstructions,
+    // BROKER GTM context — when set, switches the prompt out of the default
+    // Workhuman-personal-note hook into the wellness-fund / broker pitch.
+    // Auto-detected upstream in handleDraftEmail by looking at outreach_contacts.broker_track.
+    brokerCtx,
   } = req;
   if (!slackChannel || !placeholderTs) {
     return { statusCode: 400, body: 'Missing slackChannel or placeholderTs' };
@@ -165,15 +169,30 @@ export const handler = async (event) => {
     : null;
 
   // ---- 3. Build the user-side context for the LLM ---------------------
+  // Mode resolution:
+  //   - If brokerCtx is set, switch to broker_* / carrier_hec_* modes that
+  //     trigger the wellness-fund pitch branches below (no Workhuman hook).
+  //   - Else fall back to the legacy personal-note / follow-up shape.
+  let computedMode;
+  if (brokerCtx?.track === 'broker') {
+    computedMode = firstOutreach ? 'broker_first_outreach' : 'broker_followup';
+  } else if (brokerCtx?.track === 'carrier_hec') {
+    computedMode = firstOutreach ? 'carrier_hec_first_outreach' : 'carrier_hec_followup';
+  } else {
+    computedMode = firstOutreach ? 'personal_first_outreach' : (threadId || latestSend ? 'follow_up' : 'cold_open');
+  }
   const ctx = {
-    mode: firstOutreach ? 'personal_first_outreach' : (threadId || latestSend ? 'follow_up' : 'cold_open'),
+    mode: computedMode,
+    broker: brokerCtx || null,
     rep_first_name: repEmail.split('@')[0],
     prospect: {
       name: pic.identity?.name || null,
       title: pic.identity?.title || null,
       company: pic.identity?.company || null,
       industry: pic.identity?.industry || pic.workhuman?.industry || null,
-      hq_location: pic.workhuman?.hq_location || null,
+      hq_location: pic.workhuman?.hq_location || pic.identity?.location || null,
+      // Apollo gives us company_headcount; fold it in so the prompt can
+      // reference firm size when grounding the broker pitch.
       employees: pic.identity?.headcount || pic.workhuman?.company_size || null,
     },
     workhuman_context: pic.workhuman ? {
@@ -444,6 +463,44 @@ Notes on the reference:
           + (ctx.workhuman_context?.personal_note
             ? `\n  • The rep has this in-person note on file — use it if it adds warmth, but don't let it dominate: "${ctx.workhuman_context.personal_note}"`
             : ``)
+      : (ctx.mode === 'broker_first_outreach' || ctx.mode === 'broker_followup')
+        ? `This is a HEALTHCARE BROKER OUTREACH (Track A of our broker GTM). The contact (${ctx.prospect.name || 'the recipient'}, ${ctx.prospect.title || 'role unknown'}) works at ${ctx.prospect.company || 'a benefits brokerage'}${ctx.broker?.firm_tier ? ` (${String(ctx.broker.firm_tier).replace('tier_', 'Tier ')})` : ''}. The rep has NOT met them in person — DO NOT say "great chatting at Workhuman", DO NOT reference any in-person conversation, DO NOT use Workhuman as a hook.\n\n`
+          + `THE PITCH (wellness-fund deployment is the winning angle):\n`
+          + `  • Shortcut is the single in-person wellness vendor your clients can deploy fast: chair massage, office grooming, mindfulness, headshots.\n`
+          + `  • The hook brokers care about: we help your clients deploy their carrier wellness funds (Cigna HIF, Aetna Wellness Allowance, Anthem Wellness Fund) on services employees actually use, with zero admin lift on the HR side.\n`
+          + `  • We're CAA-202 disclosure-clean. Three rev models: client pass-through (default — broker takes 0%, client gets 7% off list), co-marketing retainer, or 7% disclosed referral on Y1. Don't lead with this; mention only if rev share is the natural ask.\n`
+          + `  • The differentiator: ONE vendor for the whole wellness category, instead of stitching together a massage company + grooming + mindfulness platform.\n`
+          + (ctx.broker?.firm_why ? `\nFIRM CONTEXT (use to make it specific — don't quote verbatim): ${ctx.broker.firm_why}\n` : '')
+          + (ctx.prospect.employees ? `\nFIRM SIZE: ~${ctx.prospect.employees} employees (use to size the framing).\n` : '')
+          + (ctx.prospect.hq_location ? `\nCONTACT LOCATION: ${ctx.prospect.hq_location}.\n` : '')
+          + `\nROLE-ANGLE based on title:\n`
+          + `  • Wellness Consultant / H&W Practice Lead → "vendor partner that makes you look like a hero to clients"\n`
+          + `  • Producer / Senior Producer / Partner → "differentiator that wins and keeps clients on renewal"\n`
+          + `  • AE / Account Manager → "low-effort value-add for renewal conversations"\n`
+          + `  • If unclear, default to the wellness-consultant angle.\n`
+          + `\nSHAPE:\n`
+          + `  • Length: under 110 words. Punchy.\n`
+          + `  • Subject: about THEM, not generic. e.g. "Wellness deployment for ${ctx.prospect.company || '[firm]'} clients" or "Quick question on your client wellness benefit". NEVER "Workhuman follow-through".\n`
+          + `  • Open with a SPECIFIC reference to their firm + relevant observation (wellness-fund pitch, M&A wellness gap, ICP overlap). NOT "hope you're well".\n`
+          + `  • One concrete next step: 15-min call OR a one-page broker brief.\n`
+          + `  • Brand voice: peer-to-peer, low-pressure. NO "synergy", "leverage", "best-in-class", "circling back".\n`
+          + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+          + `  • ABSOLUTELY DO NOT mention "Workhuman" anywhere. DO NOT invent specific clients of theirs.`
+      : (ctx.mode === 'carrier_hec_first_outreach' || ctx.mode === 'carrier_hec_followup')
+        ? `This is a CARRIER HEC OUTREACH (Track B — stealth play). The contact (${ctx.prospect.name || 'the recipient'}, ${ctx.prospect.title || 'role unknown'}) is a Health Engagement Consultant / Designated Consultant / Wellness Consultant at ${ctx.prospect.company || 'a carrier'}. HECs manage the wellness fund directly for accounts they support. They are virtually unprospected by vendors and not used to being sold to.\n\n`
+          + `THE PITCH (carrier-HEC angle, distinct from brokers):\n`
+          + `  • Shortcut delivers in-person wellness (massage, grooming, mindfulness, headshots) for the accounts you support.\n`
+          + `  • The hook for HECs: we document deployment in a co-branded report you can cite in your next QBR. Makes your wellness-fund spend visible and measurable.\n`
+          + `  • NO revenue-share angle — you're salaried at the carrier. Frame as "vendor that makes your client conversations sharper".\n`
+          + (ctx.broker?.firm_why ? `\nFIRM CONTEXT: ${ctx.broker.firm_why}\n` : '')
+          + `\nSHAPE:\n`
+          + `  • Length: under 90 words. Shorter than the broker pitch — HECs have less patience.\n`
+          + `  • Subject: NOT salesy. "Quick question on wellness-fund deployment" or "Shortcut for your client accounts" — neutral, professional.\n`
+          + `  • Open with the deployment-data hook ("co-branded reporting you can cite in QBRs").\n`
+          + `  • One concrete next step: 15-min intro OR a one-page reporting sample.\n`
+          + `  • Tone: peer-to-peer professional. NO sales-speak. NO "synergy" / "leverage" / "best-in-class".\n`
+          + `  • Casual close: "Best, [name]" or "Thanks, [name]".\n`
+          + `  • DO NOT mention "Workhuman". DO NOT mention rev share or commission.`
       : ctx.mode === 'personal_first_outreach'
         ? `This is a FIRST OUTREACH to someone the rep met in person at Workhuman (or similar). It is NOT a follow-up — there is no prior email. The hook is the in-person conversation itself.\n`
           + (ctx.workhuman_context?.personal_note
