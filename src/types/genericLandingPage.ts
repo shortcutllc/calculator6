@@ -18,6 +18,10 @@ export interface GenericLandingPageCustomization {
   includeTestimonials: boolean;
   includeFAQ: boolean;
   theme?: 'default' | 'corporate';
+  // For Book-a-Call pages: which team member owns this page. Drives which
+  // Google Calendar booking link is embedded. Value is a SenderName from
+  // workhumanOutreachTemplates (e.g. 'Will Newton'). Defaults to Will if unset.
+  bookingRep?: string;
 }
 
 export type LandingPageType = 'generic' | 'workhuman';

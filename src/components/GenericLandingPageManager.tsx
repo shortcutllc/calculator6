@@ -127,7 +127,7 @@ const GenericLandingPageManager: React.FC = () => {
 
   const getPageUrl = (page: GenericLandingPage): string => {
     if (page.pageType === 'workhuman') {
-      return `${window.location.origin}/workhuman/recharge/${page.uniqueToken}`;
+      return `${window.location.origin}/book-a-call/${page.uniqueToken}`;
     }
     return `${window.location.origin}/generic-landing-page/${page.uniqueToken}`;
   };
@@ -152,7 +152,7 @@ const GenericLandingPageManager: React.FC = () => {
 
   const handleView = (page: GenericLandingPage) => {
     if (page.pageType === 'workhuman') {
-      window.open(`/workhuman/recharge/${page.uniqueToken}`, '_blank');
+      window.open(`/book-a-call/${page.uniqueToken}`, '_blank');
     } else {
       window.open(`/generic-landing-page/${page.uniqueToken}`, '_blank');
     }
@@ -363,7 +363,7 @@ const GenericLandingPageManager: React.FC = () => {
                 <div className="flex items-center gap-2">
                   {page.pageType === 'workhuman' && (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
-                      Workhuman
+                      Book a Call
                     </span>
                   )}
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${

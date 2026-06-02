@@ -1,30 +1,72 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { SENDER_TO_CALENDAR } from '../utils/workhumanOutreachTemplates';
 
-const WorkhumanRecharge: React.FC = () => {
+const DEFAULT_REP = 'Will Newton';
+
+/**
+ * Resolve a rep name to a Google Calendar booking URL.
+ * Full appointment-schedule links (/appointments/schedules/<id>) embed in an
+ * iframe via ?gv=true. Short calendar.app.google links can't be framed, so
+ * those return embedUrl=null and we render an "open in new tab" button instead.
+ */
+function resolveBooking(rep: string | null): { embedUrl: string | null; openUrl: string; repFirst: string } {
+  const name = rep && SENDER_TO_CALENDAR[rep as keyof typeof SENDER_TO_CALENDAR] ? rep : DEFAULT_REP;
+  const openUrl =
+    SENDER_TO_CALENDAR[name as keyof typeof SENDER_TO_CALENDAR] ||
+    SENDER_TO_CALENDAR[DEFAULT_REP as keyof typeof SENDER_TO_CALENDAR] ||
+    '';
+  const m = openUrl.match(/\/appointments\/schedules\/([^?]+)/);
+  const embedUrl = m ? `https://calendar.google.com/calendar/appointments/schedules/${m[1]}?gv=true` : null;
+  return { embedUrl, openUrl, repFirst: name.split(' ')[0] };
+}
+
+// Per-service demo videos (sourced from the getshortcut.co "Redefining employee
+// wellness." section). Hosted in this app's Supabase storage — public bucket
+// 'landing-videos'. Update VIDEO_BASE/bucket if the files are uploaded elsewhere.
+// Currently served from Shortcut's Sanity CDN (the getshortcut.co assets).
+// ⚠️ massage is a 128 MB master — optimize before production (see _SUPABASE below;
+// upload the compressed files to Supabase storage and switch SERVICE_VIDEOS to it).
+const SANITY_BASE = 'https://cdn.sanity.io/files/7qf1r87p/production';
+const SERVICE_VIDEOS = {
+  massage: `${SANITY_BASE}/b0212fdc11e41be06a01978b164ade8434f218df.mp4`,
+  hair: `${SANITY_BASE}/18b9a40847e1998ee315895f37e252a99713d430.mp4`,
+  headshots: `${SANITY_BASE}/63356d4ab062a52e8810ad1c167873de43ac2e92.mp4`,
+  nails: `${SANITY_BASE}/bedacf02fb1012735998d0d3bced32b95e18304f.mp4`,
+  mindfulness: `${SANITY_BASE}/e94281566161c5674ab843b72e54b5ea39364609.mp4`,
+};
+// Optimized + self-hosted target (pending upload of ~/Downloads/shortcut-service-videos
+// to a public 'landing-videos' bucket). Switch SERVICE_VIDEOS to this once uploaded.
+const _VIDEO_BASE_SUPABASE = 'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v1/object/public/landing-videos';
+const SERVICE_VIDEO_CLASS = 'w-full max-w-md aspect-[4/5] object-cover rounded-3xl';
+const SERVICE_VIDEO_STYLE = { boxShadow: '0 10px 40px rgba(0, 55, 86, 0.12)' };
+
+const BookACallLanding: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
-  const [searchParams] = useSearchParams();
-  const leadIdParam = searchParams.get('lead');
 
   // Page config loaded from DB (generic_landing_pages where page_type='workhuman')
   const [pageLoading, setPageLoading] = useState(!!id);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [contactFirstName, setContactFirstName] = useState<string | null>(null);
+  // Which team member owns this page → whose booking link gets embedded.
+  const [bookingRep, setBookingRep] = useState<string>(DEFAULT_REP);
+  const booking = resolveBooking(bookingRep);
+  // Booking scheduler modal (opened from the branded card's CTA).
+  const [showBooking, setShowBooking] = useState(false);
 
-  // Form state
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [formCompany, setFormCompany] = useState('');
-  const [title, setTitle] = useState('');
-  const [employeeCount, setEmployeeCount] = useState('');
-  const [currentWellness, setCurrentWellness] = useState('');
-  const [preferredDay, setPreferredDay] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // Lock body scroll + close on Escape while the booking modal is open.
+  useEffect(() => {
+    if (!showBooking) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowBooking(false); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showBooking]);
 
   // Hero typewriter animation
   const [heroVisible, setHeroVisible] = useState(false);
@@ -79,12 +121,11 @@ const WorkhumanRecharge: React.FC = () => {
     const applyPageConfig = (data: any) => {
       const partnerName = data.data?.partnerName || null;
       const partnerLogo = data.data?.partnerLogoUrl || null;
-      const cfn = data.customization?.contactFirstName || null;
+      const rep = data.customization?.bookingRep || null;
 
       setCompanyName(partnerName);
       setLogoUrl(partnerLogo);
-      setContactFirstName(cfn);
-      if (partnerName) setFormCompany(partnerName);
+      if (rep) setBookingRep(rep);
 
       // Track the view (fire and forget; skip bots via prerender UA check).
       // Phase 3: after the count increments, also fire a Slack ping to the
@@ -107,34 +148,6 @@ const WorkhumanRecharge: React.FC = () => {
 
     loadPageConfig();
   }, [id]);
-
-  // Prefill form from ?lead={uuid} query param if present
-  useEffect(() => {
-    if (!leadIdParam) return;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadIdParam);
-    if (!isUuid) return;
-
-    (async () => {
-      try {
-        const { data, error } = await supabase.rpc('get_lead_prefill', { lead_uuid: leadIdParam });
-        if (error || !data || !data[0]) return;
-        const row = data[0];
-        if (row.first_name) setFirstName(row.first_name);
-        if (row.last_name) setLastName(row.last_name);
-        if (row.email) setEmail(row.email);
-        if (row.company) setFormCompany(row.company);
-      } catch (err) {
-        console.warn('Lead prefill failed:', err);
-      }
-    })();
-  }, [leadIdParam]);
-
-  // Legacy: pre-fill company when loaded
-  useEffect(() => {
-    if (companyName && !formCompany) {
-      setFormCompany(companyName);
-    }
-  }, [companyName]);
 
   // Hero typewriter reveal
   useEffect(() => {
@@ -314,53 +327,6 @@ const WorkhumanRecharge: React.FC = () => {
       left: serviceIndex * slideWidth,
       behavior: 'smooth'
     });
-  };
-
-  // Form submission handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (submitting) return;
-    setSubmitting(true);
-
-    try {
-      // Read checkbox state before submission
-      const checkbox = document.querySelector<HTMLInputElement>('input[type="checkbox"][data-chat-optin]');
-      const openToChat = checkbox?.checked ?? true;
-
-      const resp = await fetch('/.netlify/functions/workhuman-booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          phone: phone.trim() || null,
-          company: formCompany,
-          title,
-          employeeCount,
-          currentWellness,
-          preferredDay,
-          openToChat,
-          // Pass the landing page's lead UUID so the backend can attribute
-          // the confirmation email to the right assignee even if the form
-          // email differs from the lead's stored email.
-          leadId: leadIdParam || null,
-        }),
-      });
-
-      if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
-        console.error('Booking submission failed:', resp.status, data);
-      }
-
-      setSubmitted(true);
-    } catch (err) {
-      console.error('Error submitting booking:', err);
-      // Still show confirmation so the user isn't stuck — we'll see the error in logs
-      setSubmitted(true);
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   if (pageLoading) {
@@ -880,7 +846,7 @@ const WorkhumanRecharge: React.FC = () => {
               onClick={(e) => { e.preventDefault(); smoothScrollTo('book'); }}
               className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
             >
-              Book a Session
+              Book a Call
             </a>
             <a
               href="#services"
@@ -946,10 +912,10 @@ const WorkhumanRecharge: React.FC = () => {
         <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-10 md:pt-14 lg:pt-20">
 
           {/* Two-column grid: text left, form right */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 lg:gap-14 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-8 lg:gap-14 items-start">
 
             {/* ─── Left Column: Hero Text ─── */}
-            <div>
+            <div className="min-w-0">
               <h1
                 className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold mb-6 md:mb-8"
                 style={{
@@ -980,8 +946,8 @@ const WorkhumanRecharge: React.FC = () => {
                 {/* Rest of headline types in word by word */}
                 {(() => {
                   const words = companyName
-                    ? `${companyName} Team, we look forward to helping you recharge at Workhuman Live and beyond.`.split(' ')
-                    : `We look forward to helping you recharge at Workhuman Live and beyond.`.split(' ');
+                    ? `${companyName}, this meeting could've been a massage.`.split(' ')
+                    : `This meeting could've been a massage.`.split(' ');
                   return words.map((word, i) => (
                     <span
                       key={i}
@@ -1010,7 +976,7 @@ const WorkhumanRecharge: React.FC = () => {
                   maxWidth: '480px',
                 }}
               >
-                We're Shortcut. We bring wellness into the workplace. Massage, headshots, beauty, mindfulness and more. One vendor. No logistics. We saved a few spots for the {companyName || 'your'} team at our Workhuman booth. Book a complimentary 15-minute massage. We'll be there if you want to connect after your session.
+                We're Shortcut. We bring wellness into the workplace. Massage, headshots, beauty, mindfulness and more. One vendor, no logistics. Grab a time below and we'll walk {companyName ? `the ${companyName}` : 'your'} team through what a Shortcut event could look like.
               </p>
 
               {/* Social proof stats */}
@@ -1031,236 +997,133 @@ const WorkhumanRecharge: React.FC = () => {
                   <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Coverage</div>
                 </div>
                 <div>
-                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>15 min</div>
-                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Sessions</div>
+                  <div className="text-xl md:text-2xl font-bold" style={{ color: '#003756' }}>5+</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mt-1" style={{ color: '#003756', opacity: 0.5 }}>Services</div>
                 </div>
               </div>
 
-              {/* Partner logos moved to full-width strip below grid */}
+              {/* Partner logos live in the full-width strip below the grid. */}
             </div>
 
-            {/* ─── Right Column: Booking Form ─── */}
+            {/* ─── Right Column: Booking Embed ─── */}
             <div id="book" className="lg:sticky lg:top-[88px]">
-              <div className="bg-white rounded-2xl p-5 md:p-7" style={{ boxShadow: '0 4px 40px rgba(0, 55, 86, 0.08), 0 1px 3px rgba(0, 55, 86, 0.04)', border: '1px solid rgba(0, 55, 86, 0.06)' }}>
-                {!submitted ? (
-                  <>
-                    <h2 className="text-lg md:text-xl font-bold mb-1" style={{ color: '#003756', letterSpacing: '-0.01em' }}>
-                      Book Your 15-Minute Massage
-                    </h2>
-                    <p className="text-xs mb-5" style={{ color: '#003756', opacity: 0.45 }}>
-                      Pick a time. We'll handle the rest.
-                    </p>
+              <div className="bg-white rounded-2xl p-7 md:p-8" style={{ boxShadow: '0 4px 40px rgba(0, 55, 86, 0.08), 0 1px 3px rgba(0, 55, 86, 0.04)', border: '1px solid rgba(0, 55, 86, 0.06)' }}>
+                {/* Eyebrow */}
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] mb-5" style={{ color: '#FF5050' }}>
+                  15-min intro call
+                </p>
 
-                    <form onSubmit={handleSubmit} className="space-y-3">
-                      {/* First + Last Name */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>First Name</label>
-                          <input
-                            type="text"
-                            placeholder="Enter first name"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            required
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Last Name</label>
-                          <input
-                            type="text"
-                            placeholder="Enter last name"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            required
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Email + Company */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Email</label>
-                          <input
-                            type="email"
-                            placeholder="Enter your email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Company</label>
-                          <input
-                            type="text"
-                            placeholder="Enter company"
-                            value={formCompany}
-                            onChange={(e) => setFormCompany(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Phone (optional) */}
-                      <div>
-                        <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>
-                          Phone <span className="text-gray-400 font-normal">— for appointment reminders</span>
-                        </label>
-                        <input
-                          type="tel"
-                          placeholder="Enter phone number"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          autoComplete="tel"
-                          className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                        />
-                      </div>
-
-                      {/* Wellness + Preferred Day */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Wellness Program?</label>
-                          <select
-                            value={currentWellness}
-                            onChange={(e) => setCurrentWellness(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                            style={{ color: currentWellness ? '#003756' : '#9ca3af' }}
-                          >
-                            <option value="">Select</option>
-                            <option value="Yes">Yes</option>
-                            <option value="No">No</option>
-                            <option value="Not sure">Not sure</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold mb-1 tracking-wide" style={{ color: '#003756' }}>Preferred Time for a massage</label>
-                          <select
-                            value={preferredDay}
-                            onChange={(e) => setPreferredDay(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#09364f]/15 focus:border-[#09364f]/40 bg-[#f9fafb] transition-colors"
-                            style={{ color: preferredDay ? '#003756' : '#9ca3af' }}
-                          >
-                            <option value="">Select</option>
-                            <optgroup label="Monday, Apr 27">
-                              <option value="Mon Apr 27 · 1:00-3:00 PM">1:00 – 3:00 PM</option>
-                              <option value="Mon Apr 27 · 3:00-5:30 PM">3:00 – 5:30 PM</option>
-                            </optgroup>
-                            <optgroup label="Tuesday, Apr 28">
-                              <option value="Tue Apr 28 · 8:00-10:00 AM">8:00 – 10:00 AM</option>
-                              <option value="Tue Apr 28 · 10:00 AM-12:00 PM">10:00 AM – 12:00 PM</option>
-                              <option value="Tue Apr 28 · 12:00-2:00 PM">12:00 – 2:00 PM</option>
-                              <option value="Tue Apr 28 · 2:00-4:00 PM">2:00 – 4:00 PM</option>
-                              <option value="Tue Apr 28 · 4:00-5:00 PM">4:00 – 5:00 PM</option>
-                            </optgroup>
-                            <optgroup label="Wednesday, Apr 29">
-                              <option value="Wed Apr 29 · 8:00-10:00 AM">8:00 – 10:00 AM</option>
-                              <option value="Wed Apr 29 · 10:00 AM-12:00 PM">10:00 AM – 12:00 PM</option>
-                              <option value="Wed Apr 29 · 12:00-2:00 PM">12:00 – 2:00 PM</option>
-                              <option value="Wed Apr 29 · 2:00-4:00 PM">2:00 – 4:00 PM</option>
-                            </optgroup>
-                            <option value="Flexible">Flexible / any time</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Meeting opt-in */}
-                      <label className="flex items-start gap-2.5 cursor-pointer pt-1">
-                        <input
-                          type="checkbox"
-                          defaultChecked
-                          data-chat-optin
-                          className="mt-0.5 rounded border-gray-300 text-[#09364f] focus:ring-[#09364f]/20"
-                          style={{ width: '16px', height: '16px' }}
-                        />
-                        <span className="text-[12px] leading-relaxed" style={{ color: '#003756', opacity: 0.6 }}>
-                          I'll stick around for a quick 10-minute chat after my session.
-                        </span>
-                      </label>
-
-                      {/* Submit Button */}
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="w-full px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed mt-1"
-                        style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 4px 16px rgba(255, 80, 80, 0.3)' }}
-                      >
-                        {submitting ? 'Reserving...' : 'Reserve Your Spot'}
-                      </button>
-                    </form>
-                  </>
-                ) : (
-                  /* Confirmation state */
-                  <div className="text-center py-6">
-                    <div className="mb-5">
-                      <svg className="w-14 h-14 mx-auto" fill="none" viewBox="0 0 24 24" stroke="#40C4BE" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-2xl font-semibold mb-3" style={{ color: '#003756' }}>
-                      You're in. 🙌
-                    </h3>
-                    <p className="text-sm mb-6" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.6' }}>
-                      Workhuman opens up official booking Sunday. We'll lock in your exact time then and send you a confirmation by email. Keep an eye on your inbox — looking forward to meeting you in the Gratitude Garden.
-                    </p>
-                    <a
-                      href="https://getshortcut.co"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium hover:underline"
-                      style={{ color: '#FF5050' }}
-                    >
-                      Curious what we do for companies like yours? &rarr;
-                    </a>
+                {/* Rep */}
+                <div className="flex items-center gap-3.5 mb-5">
+                  <div
+                    className="flex items-center justify-center rounded-full font-bold flex-shrink-0"
+                    style={{ width: '52px', height: '52px', backgroundColor: '#003756', color: 'white', fontSize: '20px' }}
+                  >
+                    {booking.repFirst.charAt(0)}
                   </div>
+                  <div>
+                    <h2 className="text-xl font-bold leading-tight" style={{ color: '#003756', letterSpacing: '-0.01em' }}>
+                      Book a call with {booking.repFirst}
+                    </h2>
+                    <p className="text-xs font-medium uppercase tracking-wider mt-0.5" style={{ color: '#003756', opacity: 0.45 }}>
+                      Shortcut
+                    </p>
+                  </div>
+                </div>
+
+                {/* Blurb */}
+                <p className="text-sm mb-6" style={{ color: '#003756', opacity: 0.65, lineHeight: '1.65' }}>
+                  Grab a time that works. We'll talk through your team, your space, and what a Shortcut event could look like.
+                </p>
+
+                {/* Bullets */}
+                <ul className="space-y-3 mb-7">
+                  {[
+                    '15 minutes, no pressure',
+                    'We handle all the planning and setup',
+                    "We'll scope services and pricing for your team",
+                  ].map((line, i) => (
+                    <li key={i} className="flex items-center gap-3">
+                      <span
+                        className="flex items-center justify-center rounded-full flex-shrink-0"
+                        style={{ width: '22px', height: '22px', backgroundColor: 'rgba(255, 80, 80, 0.12)' }}
+                      >
+                        <svg width="11" height="9" viewBox="0 0 14.3715 9.7279" fill="none">
+                          <path d="M 1.215 4.8045 L 5.06625 8.5125 L 13.15675 1.215" stroke="#FF5050" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" />
+                        </svg>
+                      </span>
+                      <span className="text-sm" style={{ color: '#003756', opacity: 0.8 }}>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                {booking.embedUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowBooking(true)}
+                    className="w-full px-6 py-3.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:brightness-110"
+                    style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 4px 16px rgba(255, 80, 80, 0.3)' }}
+                  >
+                    Pick a time &rarr;
+                  </button>
+                ) : (
+                  <a
+                    href={booking.openUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full text-center px-6 py-3.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:brightness-110"
+                    style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 4px 16px rgba(255, 80, 80, 0.3)' }}
+                  >
+                    Pick a time &rarr;
+                  </a>
                 )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ─── Full-Width Logo Strip ─── */}
-        <div
-          className="pt-4 pb-2 md:pt-6 md:pb-3 text-center"
-          style={{
-            opacity: heroVisible ? 1 : 0,
-            transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-            transitionDelay: '2.4s',
-          }}
-        >
-          <p className="text-xs font-bold uppercase tracking-[0.15em] mb-6 md:mb-8" style={{ color: '#003756', opacity: 0.5 }}>
-            Trusted by Top Employers
-          </p>
-          <div className="overflow-hidden">
-            <div className="logo-track">
-              <div className="logo-set">
-                <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
-              </div>
-              <div className="logo-set" aria-hidden="true">
-                <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
-                <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+          {/* ─── Trust strip (full-width below the grid) ─── */}
+          <div
+            className="mt-14 md:mt-16 text-center"
+            style={{
+              opacity: heroVisible ? 1 : 0,
+              transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+              transitionDelay: '2.4s',
+            }}
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.15em] mb-6 md:mb-8" style={{ color: '#003756', opacity: 0.5 }}>
+              Trusted by Top Employers
+            </p>
+            <div className="overflow-hidden">
+              <div className="logo-track">
+                <div className="logo-set">
+                  <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+                </div>
+                <div className="logo-set" aria-hidden="true">
+                  <img src="/Holiday Proposal/Parnter Logos/DraftKings.svg" alt="DraftKings" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Wix.svg" alt="Wix" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Tripadvisor.svg" alt="Tripadvisor" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/BCG.svg" alt="BCG" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/PwC.svg" alt="PwC" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Viacom.svg" alt="Viacom" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Cencora.svg" alt="Cencora" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/MTV.svg" alt="MTV" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Paramount.svg" alt="Paramount" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/Warner Bros.svg" alt="Warner Bros" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/White & Case.svg" alt="White & Case" loading="lazy" />
+                  <img src="/Holiday Proposal/Parnter Logos/betterment-logo-vector-2023.svg" alt="Betterment" loading="lazy" />
+                </div>
               </div>
             </div>
           </div>
@@ -1433,7 +1296,7 @@ const WorkhumanRecharge: React.FC = () => {
           </div>
 
           {/* Testimonial — inside Employee Happiness section */}
-          <div className="mt-12 md:mt-16 pt-10 md:pt-12" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <div id="testimonials" className="mt-12 md:mt-16 pt-10 md:pt-12" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', scrollMarginTop: '88px' }}>
             <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
               <div className="flex-1">
                 <div className="flex items-start gap-4">
@@ -1585,17 +1448,18 @@ const WorkhumanRecharge: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right Side - Massage Image */}
+                {/* Right Side - Massage Video */}
                 <div className="relative flex justify-center">
-                  <picture>
-                    <source srcSet="/Holiday Proposal/Our Services/Massage/masssage 2x.webp" type="image/webp" />
-                    <img
-                      src="/Holiday Proposal/Our Services/Massage/masssage 2x.png"
-                      alt="Professional Massage Service"
-                      className="w-full h-auto rounded-3xl max-w-md"
-                      loading="lazy"
-                    />
-                  </picture>
+                  <video
+                    src={SERVICE_VIDEOS.massage}
+                    className={SERVICE_VIDEO_CLASS}
+                    style={SERVICE_VIDEO_STYLE}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
                 </div>
               </div>
             </div>
@@ -1650,13 +1514,17 @@ const WorkhumanRecharge: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right Side - Hair & Makeup Image */}
+                {/* Right Side - Hair & Makeup Video */}
                 <div className="relative flex justify-center">
-                  <img
-                    src="/Holiday Proposal/Our Services/Holiday Party Glam/Glam 2x.webp"
-                    alt="Hair & Makeup Styling"
-                    className="w-full h-auto rounded-2xl max-w-md"
-                    loading="lazy"
+                  <video
+                    src={SERVICE_VIDEOS.hair}
+                    className={SERVICE_VIDEO_CLASS}
+                    style={SERVICE_VIDEO_STYLE}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
                   />
                 </div>
               </div>
@@ -1718,18 +1586,22 @@ const WorkhumanRecharge: React.FC = () => {
                       className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300 hover:scale-105 min-h-[48px]"
                       style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
                     >
-                      Book a Session
+                      Book a Call
                     </button>
                   </div>
                 </div>
 
-                {/* Right Side - Headshots Image */}
+                {/* Right Side - Headshots Video */}
                 <div className="relative flex justify-center">
-                  <img
-                    src="/Holiday Proposal/Our Services/Headshots/Headshots 2x.webp"
-                    alt="Professional Headshot Session"
-                    className="w-full h-auto rounded-2xl max-w-md"
-                    loading="lazy"
+                  <video
+                    src={SERVICE_VIDEOS.headshots}
+                    className={SERVICE_VIDEO_CLASS}
+                    style={SERVICE_VIDEO_STYLE}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
                   />
                 </div>
               </div>
@@ -1773,13 +1645,17 @@ const WorkhumanRecharge: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right Side - Nails Image */}
+                {/* Right Side - Nails Video */}
                 <div className="relative flex justify-center">
-                  <img
-                    src="/Holiday Proposal/Our Services/Nails/Nails 2x.webp"
-                    alt="Professional Nail Services"
-                    className="w-full h-auto rounded-2xl max-w-md"
-                    loading="lazy"
+                  <video
+                    src={SERVICE_VIDEOS.nails}
+                    className={SERVICE_VIDEO_CLASS}
+                    style={SERVICE_VIDEO_STYLE}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
                   />
                 </div>
               </div>
@@ -1823,13 +1699,17 @@ const WorkhumanRecharge: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right Side - Courtney Frame */}
+                {/* Right Side - Mindfulness Video */}
                 <div className="relative flex justify-center">
-                  <img
-                    src="/Holiday Proposal/Our Services/Mindfulness/Courtney Frame 2x.webp"
-                    alt="Courtney Schulnick - Mindfulness Leader"
-                    className="w-full h-auto rounded-2xl max-w-md"
-                    loading="lazy"
+                  <video
+                    src={SERVICE_VIDEOS.mindfulness}
+                    className={SERVICE_VIDEO_CLASS}
+                    style={SERVICE_VIDEO_STYLE}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
                   />
                 </div>
               </div>
@@ -1964,7 +1844,7 @@ const WorkhumanRecharge: React.FC = () => {
                 <div className="px-8 pb-8">
                   <p
                     className="m-0 text-[19px] leading-[26px] font-normal opacity-64"
-                    style={{ color: '#b8337a' }}
+                    style={{ color: '#b8337a', minHeight: '52px' }}
                   >
                     Physical, on-site wellness that helps your team reset between meetings.
                   </p>
@@ -2088,7 +1968,7 @@ const WorkhumanRecharge: React.FC = () => {
                 <div className="px-8 pb-8">
                   <p
                     className="m-0 text-[19px] leading-[26px] font-normal opacity-64"
-                    style={{ color: '#018EA2' }}
+                    style={{ color: '#018EA2', minHeight: '52px' }}
                   >
                     We handle the logistics so you don't have to.
                   </p>
@@ -2109,7 +1989,7 @@ const WorkhumanRecharge: React.FC = () => {
                   className="m-0 text-[18px] leading-[26px] font-medium text-center"
                   style={{ color: '#003756' }}
                 >
-                  Book a Session &rarr;
+                  Book a Call &rarr;
                 </p>
               </button>
             </div>
@@ -2126,28 +2006,28 @@ const WorkhumanRecharge: React.FC = () => {
           <div className="space-y-6">
             {[
               {
-                q: 'What is the Recharge Lounge?',
-                a: 'A space at Workhuman Live where you can step away and reset. We\'re offering 15-minute chair massages throughout the event.'
+                q: 'What happens on the call?',
+                a: 'A quick, no-pressure conversation about your team, your space, and what you\'re looking for. We\'ll walk you through how a Shortcut event works and roughly what it costs.'
               },
               {
-                q: 'How long is the massage?',
-                a: '15 minutes.'
+                q: 'What services do you offer?',
+                a: 'Massage, hair & makeup, professional headshots, nail care, and mindfulness, all delivered on-site by our own pros. One vendor, no logistics.'
               },
               {
-                q: 'Where is the Gratitude Garden?',
-                a: 'Inside the Workhuman Live event space. Exact location details will be shared after you book.'
+                q: 'How does it work?',
+                a: 'You pick the services and a date. We handle everything else: pros, equipment, scheduling, and setup. Your team just shows up.'
               },
               {
-                q: 'What happens after I book?',
-                a: 'You\'ll get a confirmation with your time slot and location details. Show up a few minutes early and we\'ll take care of the rest.'
+                q: 'Where do you operate?',
+                a: 'Nationwide. We bring the same experience to offices across the country.'
               },
               {
-                q: 'Is this really free?',
-                a: 'Yes, it\'s really free. No catch.'
+                q: 'How much does it cost?',
+                a: 'It depends on the services and headcount. Book a call and we\'ll put together a clear quote. No surprises.'
               },
               {
-                q: 'What does Shortcut do?',
-                a: 'We bring wellness into the workplace. Massage, headshots, beauty, and more. We handle everything on site. One vendor. No extra work for you. If it\'s useful, we can talk for 10 minutes before or after your session.'
+                q: 'How soon can we run an event?',
+                a: 'Often within the same week, depending on your location and date. Let\'s talk and we\'ll find a time that works.'
               }
             ].map((faq, idx) => {
               const isOpen = openFaqIdxs.has(idx);
@@ -2176,22 +2056,141 @@ const WorkhumanRecharge: React.FC = () => {
       </section>
 
       {/* ==================== FOOTER ==================== */}
-      <footer className="py-12 text-center" style={{ backgroundColor: 'white' }}>
-        <p className="text-sm font-medium" style={{ color: '#003756', opacity: 0.6 }}>
-          Shortcut | Employee Happiness Delivered.
-        </p>
-        <a
-          href="https://getshortcut.co"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium mt-2 inline-block hover:underline"
-          style={{ color: '#FF5050' }}
-        >
-          getshortcut.co
-        </a>
+      {/* ==================== FOOTER (ported from getshortcut.co) ==================== */}
+      <footer className="bg-white px-4 md:px-6 pt-4 pb-10">
+        <div className="max-w-[1380px] mx-auto grid gap-4 lg:gap-9">
+
+          {/* Red CTA banner */}
+          <div className="bg-[#FF5050] text-white rounded-[30px] lg:rounded-[50px] grid lg:grid-cols-2 gap-x-12 gap-y-10 pt-10 pb-8 px-6 lg:pt-14 lg:pb-14 lg:px-20 items-center">
+            <div className="flex flex-col gap-6 md:gap-8">
+              <h2 className="text-[40px] lg:text-[64px] font-extrabold leading-[0.95] text-center lg:text-left">
+                Bring smiles<br />back to work.
+              </h2>
+              <p className="text-lg md:text-2xl leading-[1.2] lg:w-[85%] text-center lg:text-left opacity-90">
+                Real wellness, right between meetings. Let's find a time to talk.
+              </p>
+              <div className="flex justify-center lg:justify-start">
+                <button
+                  onClick={() => smoothScrollTo('book')}
+                  className="bg-[#9efaff] text-[#09364f] font-bold text-sm rounded-full px-8 py-4 hover:brightness-105 transition-all"
+                >
+                  Book a call
+                </button>
+              </div>
+            </div>
+            <div className="bg-[#FEDC64] rounded-[18px] lg:rounded-[30px] justify-self-center lg:justify-self-end w-full md:w-[400px] h-[300px] md:h-[400px] overflow-hidden flex items-end">
+              <img
+                src="https://cdn.sanity.io/images/7qf1r87p/production/4a69606bc500439a099d08b53a05d18e4491067f-944x876.png"
+                alt="Shortcut wellness at work"
+                className="object-contain object-bottom w-full h-full"
+                loading="lazy"
+              />
+            </div>
+          </div>
+
+          {/* Navy link block */}
+          <div className="bg-[#003C5E] text-white rounded-[30px] lg:rounded-[50px] p-8 md:p-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-12">
+              {[
+                { head: 'Services', links: [['Massage', '/services/massage'], ['Nails', '/services/nails'], ['Hair', '/services/haircut'], ['Mindfulness', '/services/mindfulness'], ['Headshots', '/services/headshots'], ['Nutrition', '/services/nutrition']] },
+                { head: 'Company', links: [['Book at Home', '/book-at-home'], ['Become a Pro', '/pros'], ['Press', '/press'], ['FAQ', '/faq']] },
+                { head: 'Cities', links: [['All Cities', '/cities'], ['New York', '/cities/new-york'], ['Los Angeles', '/cities/los-angeles'], ['Miami', '/cities/miami'], ['San Francisco', '/cities/san-francisco']] },
+              ].map((col) => (
+                <div key={col.head}>
+                  <p className="pb-3 text-[#92F1F6] font-bold text-sm lg:text-base">{col.head}</p>
+                  <ul className="space-y-2.5 text-sm lg:text-base font-bold">
+                    {col.links.map(([label, href]) => (
+                      <li key={href}>
+                        <a href={`https://getshortcut.co${href}`} target="_blank" rel="noopener noreferrer" className="hover:text-[#92F1F6] transition-colors">{label}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              {/* Social */}
+              <div>
+                <p className="pb-3 text-[#92F1F6] font-bold text-sm lg:text-base">Connect</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { href: 'https://twitter.com/shortcutmobile', label: 'X', path: <path d="M8.78831 6.78462L14.0254 0.828125H12.7848L8.23554 5.99901L4.60474 0.828125H0.416016L5.90768 8.64816L0.416016 14.8937H1.6566L6.45765 9.4319L10.2929 14.8937H14.4816M2.10435 1.7435H4.01024L12.7839 14.0233H10.8775" fill="#003C5E" />, vb: '0 0 15 15', w: 14, h: 14 },
+                    { href: 'https://www.instagram.com/shortcut', label: 'Instagram', path: <><path d="M5.37643 0.233003C4.55966 0.268648 4.00153 0.392757 3.51412 0.57451C3.00933 0.762204 2.58201 1.01401 2.15499 1.42257C1.72797 1.83113 1.46588 2.24128 1.27002 2.72502C1.08036 3.1924 0.950848 3.72695 0.913652 4.50966C0.875842 5.29361 0.867188 5.54424 0.867188 7.54094C0.867188 9.53763 0.875842 9.78826 0.913652 10.5722C0.950848 11.355 1.08036 11.8895 1.27002 12.3569C1.46588 12.8403 1.72804 13.2509 2.15499 13.6593C2.58195 14.0677 3.00933 14.3191 3.51412 14.5074C4.00245 14.6891 4.55966 14.8132 5.37643 14.8489C6.19493 14.8845 6.45604 14.8934 8.53963 14.8934C10.6232 14.8934 10.8848 14.8851 11.7028 14.8489C12.5197 14.8132 13.0774 14.6891 13.5651 14.5074C14.0696 14.3191 14.4972 14.0679 14.9243 13.6593C15.3513 13.2507 15.6128 12.8403 15.8092 12.3569C15.9989 11.8895 16.129 11.3549 16.1656 10.5722C16.2028 9.78767 16.2114 9.53763 16.2114 7.54094C16.2114 5.54424 16.2028 5.29361 16.1656 4.50966C16.1284 3.72689 15.9989 3.1921 15.8092 2.72502C15.6128 2.24158 15.3506 1.83178 14.9243 1.42257C14.4979 1.01336 14.0696 0.762204 13.5657 0.57451C13.0774 0.392757 12.5196 0.26806 11.7034 0.233003C10.8854 0.197358 10.6238 0.188477 8.54024 0.188477C6.45665 0.188477 6.19493 0.19677 5.37643 0.233003Z" fill="#003C5E" /><circle cx="8.53919" cy="7.22132" r="3.83607" fill="#92F1F6" /><circle cx="8.5398" cy="7.22144" r="2.55738" fill="#003C5E" /><circle cx="0.959016" cy="0.959016" r="0.959016" transform="matrix(-1 0 0 1 13.6543 2.74609)" fill="#92F1F6" /></>, vb: '0 0 17 15', w: 16, h: 14 },
+                    { href: 'https://www.facebook.com/getshortcut', label: 'Facebook', path: <path d="M5.81186 14.6148V8.19884H8.07384L8.41249 5.69842H5.81186V4.10198C5.81186 3.37807 6.02302 2.88468 7.11346 2.88468L8.50416 2.88407V0.647735C8.26353 0.617374 7.43806 0.549316 6.47768 0.549316C4.47259 0.549316 3.09986 1.71452 3.09986 3.85447V5.69849H0.832031V8.1989H3.09979V14.6149L5.81186 14.6148Z" fill="#003C5E" />, vb: '0 0 9 15', w: 9, h: 14 },
+                    { href: 'https://www.linkedin.com/company/shortcut-app/', label: 'LinkedIn', path: <path fillRule="evenodd" clipRule="evenodd" d="M14.1901 12.4532H11.2264V8.16777C11.2264 7.04605 10.7628 6.28029 9.74332 6.28029C8.96357 6.28029 8.52993 6.79704 8.32809 7.29506C8.25241 7.47382 8.26423 7.72283 8.26423 7.97184V12.4532H5.32812C5.32812 12.4532 5.36597 4.86195 5.32812 4.17191H8.26423V5.47159C8.43769 4.90332 9.37591 4.09229 10.8731 4.09229C12.7307 4.09229 14.1901 5.28347 14.1901 7.8485V12.4532ZM2.35968 3.13606H2.34076C1.39465 3.13606 0.78125 2.503 0.78125 1.70055C0.78125 0.882487 1.41278 0.262695 2.37782 0.262695C3.34206 0.262695 3.93496 0.880926 3.95388 1.69821C3.95388 2.50066 3.34206 3.13606 2.35968 3.13606ZM1.11914 4.17139H3.73278V12.4527H1.11914V4.17139Z" fill="#003C5E" />, vb: '0 0 15 13', w: 14, h: 12 },
+                  ].map((s) => (
+                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="grid place-items-center w-[35px] h-[35px] rounded-full bg-[#92F1F6] hover:brightness-105 transition-all">
+                      <svg width={s.w} height={s.h} viewBox={s.vb} fill="none" xmlns="http://www.w3.org/2000/svg">{s.path}</svg>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Logo + legal */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-2 pt-4 text-sm font-medium" style={{ color: '#003756' }}>
+            <a href="https://getshortcut.co" target="_blank" rel="noopener noreferrer" aria-label="Shortcut" className="flex items-center">
+              <svg viewBox="0 0 192 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-6 w-auto">
+                <path fillRule="evenodd" clipRule="evenodd" d="M29.6284 21.5003C29.3713 23.7505 28.6818 25.9572 27.3774 27.8371C24.2946 32.28 18.9846 33.7633 13.7386 32.1453C8.56113 30.5486 3.54006 26.0287 0 18.7044L4.84254 16.3639C7.92552 22.7425 11.9483 25.9647 15.3237 27.0057C18.6305 28.0256 21.3824 27.0423 22.9585 24.7709C23.2395 24.366 23.481 23.9084 23.6808 23.4043C23.3774 23.4209 23.0738 23.4262 22.7704 23.4206C19.2805 23.3553 16.0856 21.8408 13.6813 19.7541C11.2932 17.6815 9.45986 14.8481 8.92523 11.8407C8.36688 8.69984 9.26489 5.39496 12.2773 3.08642C13.6869 2.00611 15.2332 1.36494 16.8596 1.24094C18.4816 1.11728 19.9964 1.52212 21.3267 2.23502C23.9138 3.62146 25.9253 6.22268 27.2987 9.01314C28.1685 10.7806 28.8433 12.7443 29.2624 14.7619C31.6786 12.1765 34.3066 10.6389 36.5311 9.77503C37.6804 9.3287 38.7381 9.05577 39.6253 8.91256C40.403 8.78701 41.3422 8.71138 42.1247 8.89196L40.9153 14.1327C41.0086 14.1543 41.0586 14.1618 41.0586 14.1618C41.0583 14.1658 40.8815 14.1579 40.4824 14.2223C39.98 14.3034 39.2871 14.4746 38.4782 14.7887C36.8668 15.4145 34.8583 16.5824 32.995 18.6489C31.9331 19.8266 30.8025 20.7717 29.6284 21.5003ZM24.3046 17.9209C24.1028 15.671 23.4436 13.3605 22.4729 11.3882C21.3666 9.14038 20.0076 7.63027 18.7861 6.97569C18.2121 6.66808 17.7132 6.56999 17.2685 6.60389C16.8283 6.63745 16.255 6.81433 15.5489 7.35549C14.3296 8.28987 13.9682 9.47863 14.2207 10.8994C14.497 12.4535 15.5449 14.2498 17.2067 15.692C18.8522 17.1202 20.8758 18.0057 22.871 18.043C23.3362 18.0517 23.8156 18.0149 24.3046 17.9209Z" fill="#FF5050" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M37.5033 11.1947C34.926 10.3834 32.9956 8.72285 31.3895 6.90729L35.4947 3.27552C36.7809 4.72933 37.9135 5.57753 39.149 5.96641C40.3556 6.34619 42.0247 6.40038 44.5918 5.54394L46.8242 10.5201C44.9245 11.6113 43.8736 13.3885 43.3764 15.227C43.1283 16.1444 43.035 17.0253 43.0393 17.7413C43.0437 18.4635 43.1448 18.831 43.1572 18.8761C43.1582 18.8799 43.1583 18.8806 43.1583 18.8806L38.1127 21.0218C37.7142 20.0827 37.565 18.8953 37.5583 17.7744C37.5511 16.586 37.7026 15.2115 38.0853 13.7961C38.2848 13.0585 38.5517 12.2956 38.8993 11.5353C38.4247 11.4518 37.9596 11.3383 37.5033 11.1947Z" fill="#FF5050" />
+                <path d="M182.038 29.4766V5.46692H187.385V29.4766H182.038ZM178.194 17.0349V12.4916H191.23V17.0349H178.194Z" fill="#175071" />
+                <path d="M167.362 29.861C165.801 29.861 164.415 29.5465 163.203 28.9174C162.015 28.265 161.083 27.3797 160.408 26.2613C159.732 25.1197 159.394 23.8149 159.394 22.3471V12.4916H164.741V22.2772C164.741 22.8597 164.834 23.3606 165.021 23.78C165.23 24.1994 165.533 24.5255 165.929 24.7585C166.326 24.9915 166.803 25.108 167.362 25.108C168.154 25.108 168.784 24.8634 169.25 24.3741C169.716 23.8615 169.949 23.1625 169.949 22.2772V12.4916H175.296V22.3121C175.296 23.8033 174.958 25.1197 174.282 26.2613C173.606 27.3797 172.675 28.265 171.486 28.9174C170.298 29.5465 168.923 29.861 167.362 29.861Z" fill="#175071" />
+                <path d="M150.08 29.8609C148.332 29.8609 146.748 29.4765 145.327 28.7076C143.906 27.9388 142.787 26.8787 141.972 25.5273C141.156 24.176 140.749 22.6615 140.749 20.984C140.749 19.2832 141.156 17.7687 141.972 16.4407C142.81 15.0893 143.941 14.0292 145.362 13.2604C146.783 12.4915 148.379 12.1071 150.15 12.1071C151.478 12.1071 152.689 12.34 153.784 12.806C154.903 13.2487 155.893 13.9244 156.755 14.833L153.33 18.258C152.934 17.8153 152.468 17.4891 151.932 17.2794C151.419 17.0698 150.825 16.9649 150.15 16.9649C149.381 16.9649 148.694 17.1396 148.088 17.4891C147.505 17.8153 147.039 18.2813 146.69 18.8871C146.364 19.4696 146.201 20.1569 146.201 20.949C146.201 21.7412 146.364 22.4402 146.69 23.046C147.039 23.6517 147.517 24.1294 148.123 24.4789C148.728 24.8283 149.404 25.0031 150.15 25.0031C150.849 25.0031 151.466 24.8866 152.002 24.6536C152.561 24.3973 153.039 24.0478 153.435 23.6051L156.825 27.0301C155.94 27.9621 154.938 28.6727 153.819 29.162C152.701 29.6279 151.454 29.8609 150.08 29.8609Z" fill="#175071" />
+                <path d="M129.93 29.4766V5.46692H135.277V29.4766H129.93ZM126.086 17.0349V12.4916H139.122V17.0349H126.086Z" fill="#175071" />
+                <path d="M110.973 29.4766V12.4916H116.32V29.4766H110.973ZM116.32 20.1453L114.084 18.3979C114.526 16.4175 115.272 14.8797 116.32 13.7847C117.369 12.6896 118.825 12.1421 120.689 12.1421C121.504 12.1421 122.215 12.2702 122.821 12.5265C123.45 12.7595 123.997 13.1323 124.463 13.6449L121.283 17.664C121.05 17.4077 120.759 17.2096 120.409 17.0698C120.06 16.93 119.664 16.8601 119.221 16.8601C118.336 16.8601 117.625 17.1397 117.089 17.6989C116.577 18.2348 116.32 19.0503 116.32 20.1453Z" fill="#175071" />
+                <path d="M99.0146 29.8609C97.2672 29.8609 95.6828 29.4765 94.2616 28.7076C92.8636 27.9155 91.7569 26.8437 90.9415 25.4924C90.126 24.141 89.7183 22.6266 89.7183 20.949C89.7183 19.2715 90.126 17.7687 90.9415 16.4407C91.7569 15.1126 92.8636 14.0642 94.2616 13.2953C95.6595 12.5031 97.2439 12.1071 99.0146 12.1071C100.785 12.1071 102.37 12.4915 103.768 13.2604C105.166 14.0292 106.272 15.0893 107.088 16.4407C107.903 17.7687 108.311 19.2715 108.311 20.949C108.311 22.6266 107.903 24.141 107.088 25.4924C106.272 26.8437 105.166 27.9155 103.768 28.7076C102.37 29.4765 100.785 29.8609 99.0146 29.8609ZM99.0146 25.0031C99.7835 25.0031 100.459 24.84 101.042 24.5138C101.624 24.1643 102.067 23.6867 102.37 23.0809C102.696 22.4518 102.859 21.7412 102.859 20.949C102.859 20.1569 102.696 19.4696 102.37 18.8871C102.043 18.2813 101.589 17.8153 101.007 17.4891C100.447 17.1396 99.7835 16.9649 99.0146 16.9649C98.269 16.9649 97.605 17.1396 97.0225 17.4891C96.44 17.8153 95.9857 18.2813 95.6595 18.8871C95.3333 19.4929 95.1702 20.1918 95.1702 20.984C95.1702 21.7529 95.3333 22.4518 95.6595 23.0809C95.9857 23.6867 96.44 24.1643 97.0225 24.5138C97.605 24.84 98.269 25.0031 99.0146 25.0031Z" fill="#175071" />
+                <path d="M81.6902 29.4766V19.7958C81.6902 18.9104 81.4106 18.1998 80.8514 17.6639C80.3155 17.1048 79.6282 16.8252 78.7894 16.8252C78.207 16.8252 77.6944 16.9533 77.2517 17.2096C76.809 17.4426 76.4595 17.7921 76.2032 18.2581C75.947 18.7007 75.8188 19.2133 75.8188 19.7958L73.7568 18.7823C73.7568 17.4542 74.0364 16.2893 74.5956 15.2874C75.1548 14.2856 75.9353 13.5167 76.9372 12.9808C77.939 12.4216 79.0923 12.1421 80.3971 12.1421C81.7251 12.1421 82.8901 12.4216 83.8919 12.9808C84.8938 13.5167 85.6627 14.2739 86.1985 15.2525C86.7577 16.2077 87.0373 17.3261 87.0373 18.6075V29.4766H81.6902ZM70.4717 29.4766V4.10388H75.8188V29.4766H70.4717Z" fill="#175071" />
+                <path d="M60.4075 29.896C59.4057 29.896 58.4154 29.7678 57.4369 29.5116C56.4816 29.2553 55.5846 28.8941 54.7458 28.4282C53.9304 27.9389 53.2314 27.3797 52.6489 26.7506L55.6895 23.6751C56.2486 24.2809 56.9127 24.7585 57.6815 25.108C58.4504 25.4342 59.2892 25.5973 60.1978 25.5973C60.8269 25.5973 61.3045 25.5041 61.6307 25.3177C61.9802 25.1313 62.1549 24.875 62.1549 24.5489C62.1549 24.1295 61.9452 23.8149 61.5259 23.6052C61.1298 23.3723 60.6172 23.1742 59.9881 23.0111C59.3591 22.8247 58.695 22.6267 57.9961 22.417C57.2971 22.2073 56.6331 21.9161 56.004 21.5433C55.3749 21.1705 54.8623 20.6579 54.4663 20.0055C54.0702 19.3299 53.8721 18.4795 53.8721 17.4543C53.8721 16.3592 54.1517 15.4156 54.7109 14.6235C55.2701 13.808 56.0622 13.1673 57.0874 12.7013C58.1126 12.2353 59.3125 12.0023 60.6871 12.0023C62.1316 12.0023 63.4597 12.2586 64.6712 12.7712C65.9061 13.2605 66.9079 13.9944 67.6768 14.9729L64.6363 18.0484C64.1004 17.4193 63.4946 16.9767 62.819 16.7204C62.1666 16.4641 61.5259 16.3359 60.8968 16.3359C60.291 16.3359 59.8367 16.4291 59.5338 16.6155C59.2309 16.7786 59.0795 17.0233 59.0795 17.3495C59.0795 17.6989 59.2775 17.9785 59.6736 18.1882C60.0697 18.3979 60.5823 18.5843 61.2113 18.7474C61.8404 18.9105 62.5044 19.1085 63.2034 19.3415C63.9024 19.5745 64.5664 19.889 65.1955 20.2851C65.8245 20.6812 66.3371 21.2171 66.7332 21.8928C67.1293 22.5451 67.3273 23.4072 67.3273 24.479C67.3273 26.1332 66.6983 27.4496 65.4401 28.4282C64.2053 29.4067 62.5277 29.896 60.4075 29.896Z" fill="#175071" />
+              </svg>
+            </a>
+            <p className="opacity-60">© 2026 Shortcut</p>
+            <div className="flex gap-6 opacity-60">
+              <a href="https://getshortcut.co/terms" target="_blank" rel="noopener noreferrer" className="hover:underline">Terms &amp; Conditions</a>
+              <a href="https://getshortcut.co/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline">Privacy Policy</a>
+            </div>
+          </div>
+
+        </div>
       </footer>
+
+      {/* ==================== BOOKING MODAL ==================== */}
+      {showBooking && booking.embedUrl && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 55, 86, 0.55)' }}
+          onClick={() => setShowBooking(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Book a call with ${booking.repFirst}`}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-[480px] overflow-hidden relative"
+            style={{ boxShadow: '0 24px 80px rgba(0, 31, 31, 0.35)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="text-base font-bold" style={{ color: '#003756' }}>
+                Book a call with {booking.repFirst}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowBooking(false)}
+                aria-label="Close"
+                className="text-2xl leading-none text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            <iframe
+              src={booking.embedUrl}
+              title={`Book a call with ${booking.repFirst}`}
+              className="w-full"
+              style={{ height: '620px', border: 0 }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default WorkhumanRecharge;
+export default BookACallLanding;

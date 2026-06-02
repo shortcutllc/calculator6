@@ -76,7 +76,7 @@ const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
 // kept on disk in case the pre-event flow gets revived for a future event.
 const WorkhumanPersonalNoteQueue = lazy(() => import('./components/WorkhumanPersonalNoteQueue'));
 const WorkhumanBooth = lazy(() => import('./components/WorkhumanBooth'));
-const WorkhumanRecharge = lazy(() => import('./components/WorkhumanRecharge'));
+const BookACallLanding = lazy(() => import('./components/BookACallLanding'));
 const SurveyManager = lazy(() => import('./components/SurveyManager'));
 const SurveyDisplay = lazy(() => import('./components/SurveyDisplay'));
 const SurveyResultsPublic = lazy(() => import('./components/SurveyResultsPublic'));
@@ -118,6 +118,7 @@ function App() {
     location.pathname.startsWith('/r/') ||
     location.pathname.startsWith('/sign/') ||
     location.pathname === '/workhuman-tv' ||
+    location.pathname.startsWith('/book-a-call') ||
     location.pathname.startsWith('/workhuman/recharge') ||
     location.pathname.startsWith('/survey/') ||
     location.pathname.startsWith('/survey-results/');
@@ -563,7 +564,34 @@ function App() {
                   </PrivateRoute>
                 }
               />
-              {/* Workhuman Recharge Landing Page — public */}
+              {/* Book a Call Landing Page — public (generic event inquiry) */}
+              <Route
+                path="/book-a-call"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BookACallLanding />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/book-a-call/:id"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BookACallLanding />
+                  </Suspense>
+                }
+              />
+              {/* Legacy Workhuman Recharge paths — alias to the same page so
+                  any links already in the wild (e.g. /r/ short links, old
+                  outreach emails) keep resolving. */}
               <Route
                 path="/workhuman/recharge"
                 element={
@@ -572,7 +600,7 @@ function App() {
                       <LoadingSpinner size="large" />
                     </div>
                   }>
-                    <WorkhumanRecharge />
+                    <BookACallLanding />
                   </Suspense>
                 }
               />
@@ -584,7 +612,7 @@ function App() {
                       <LoadingSpinner size="large" />
                     </div>
                   }>
-                    <WorkhumanRecharge />
+                    <BookACallLanding />
                   </Suspense>
                 }
               />

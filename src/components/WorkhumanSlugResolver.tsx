@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 
 /**
- * Resolves /r/:slug to the full Workhuman Recharge landing page route.
- * Looks up the page by slug and redirects to /workhuman/recharge/{unique_token}
+ * Resolves /r/:slug to the full Book-a-Call landing page route.
+ * Looks up the page by slug and redirects to /book-a-call/{unique_token}
  */
 export const WorkhumanSlugResolver = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -37,7 +37,7 @@ export const WorkhumanSlugResolver = () => {
       // the landing page can prefill the form AND attribute the confirmation
       // email to the right assignee.
       navigate(
-        `/workhuman/recharge/${data.unique_token}${location.search}${location.hash}`,
+        `/book-a-call/${data.unique_token}${location.search}${location.hash}`,
         { replace: true }
       );
     };

@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGenericLandingPage } from '../contexts/GenericLandingPageContext';
 import { GenericLandingPageCustomization } from '../types/genericLandingPage';
+import { SENDER_TO_CALENDAR } from '../utils/workhumanOutreachTemplates';
 import { Button } from './Button';
+
+// Team members who have a Google Calendar booking link. The selected rep's
+// link is embedded on the Book-a-Call landing page.
+const BOOKING_REPS = Object.keys(SENDER_TO_CALENDAR);
 
 interface GenericLandingPageCreatorProps {
   onClose?: () => void;
@@ -33,6 +38,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       contactFirstName: editingPage?.customization?.contactFirstName || '',
       contactLastName: editingPage?.customization?.contactLastName || '',
       customNote: editingPage?.customization?.customNote || '',
+      bookingRep: editingPage?.customization?.bookingRep || 'Will Newton',
       includePricingCalculator: editingPage?.customization?.includePricingCalculator ?? true,
       includeTestimonials: editingPage?.customization?.includeTestimonials ?? true,
       includeFAQ: editingPage?.customization?.includeFAQ ?? true,
@@ -62,6 +68,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
           contactFirstName: editingPage.customization?.contactFirstName || '',
           contactLastName: editingPage.customization?.contactLastName || '',
           customNote: editingPage.customization?.customNote || '',
+          bookingRep: editingPage.customization?.bookingRep || 'Will Newton',
           includePricingCalculator: editingPage.customization?.includePricingCalculator ?? true,
           includeTestimonials: editingPage.customization?.includeTestimonials ?? true,
           includeFAQ: editingPage.customization?.includeFAQ ?? true,
@@ -302,7 +309,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       
       // Navigate to the correct page based on type
       if (options.pageType === 'workhuman') {
-        navigate(`/workhuman/recharge/${pageId}?refresh=${Date.now()}`);
+        navigate(`/book-a-call/${pageId}?refresh=${Date.now()}`);
       } else {
         navigate(`/generic-landing-page/${pageId}?refresh=${Date.now()}`);
       }
@@ -319,7 +326,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            {editingPage ? `Edit ${options.pageType === 'workhuman' ? 'Workhuman Recharge' : 'Generic'} Landing Page` : `Create ${options.pageType === 'workhuman' ? 'Workhuman Recharge' : 'Generic'} Landing Page`}
+            {editingPage ? `Edit ${options.pageType === 'workhuman' ? 'Book a Call' : 'Generic'} Landing Page` : `Create ${options.pageType === 'workhuman' ? 'Book a Call' : 'Generic'} Landing Page`}
           </h2>
           {onClose && (
             <button
@@ -338,7 +345,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             <div className="flex gap-2">
               {([
                 { value: 'generic' as const, label: 'Generic Landing Page' },
-                { value: 'workhuman' as const, label: 'Workhuman Recharge' },
+                { value: 'workhuman' as const, label: 'Book a Call' },
               ]).map(({ value, label }) => (
                 <button
                   key={value}
@@ -355,6 +362,28 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               ))}
             </div>
           </div>
+
+          {/* Booking Rep (Book-a-Call pages only) — drives which Google
+              Calendar link is embedded on the page. */}
+          {options.pageType === 'workhuman' && (
+          <div>
+            <label className="block text-sm font-bold text-shortcut-blue mb-2">
+              Booking Rep *
+            </label>
+            <select
+              value={options.customization.bookingRep}
+              onChange={(e) => handleFieldChange('customization.bookingRep', e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal bg-white"
+            >
+              {BOOKING_REPS.map((rep) => (
+                <option key={rep} value={rep}>{rep}</option>
+              ))}
+            </select>
+            <p className="text-gray-500 text-sm mt-1">
+              Whoever owns this page — their Google Calendar booking link is embedded so prospects book directly with them.
+            </p>
+          </div>
+          )}
 
           {/* Partner Information */}
           <div className="space-y-4">
