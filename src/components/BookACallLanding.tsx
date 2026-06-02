@@ -1417,7 +1417,7 @@ const BookACallLanding: React.FC = () => {
         <div className="flex overflow-x-auto scrollbar-hide services-scroll">
           {/* RESET ZONE SERVICE */}
           <div className="w-full flex-shrink-0 service-slide flex items-center">
-            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
+            <div className="mx-auto container-narrow px-6 w-full">
               <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                 {/* Left Side - Text and Service Options */}
                 <div>
@@ -1469,7 +1469,7 @@ const BookACallLanding: React.FC = () => {
 
           {/* HAIR & MAKEUP SERVICE */}
           <div className="w-full flex-shrink-0 service-slide flex items-center">
-            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
+            <div className="mx-auto container-narrow px-6 w-full">
               <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1535,7 +1535,7 @@ const BookACallLanding: React.FC = () => {
 
           {/* YEAR END HEADSHOTS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide flex items-center">
-            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
+            <div className="mx-auto container-narrow px-6 w-full">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1612,7 +1612,7 @@ const BookACallLanding: React.FC = () => {
 
           {/* NAILS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide flex items-center">
-            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
+            <div className="mx-auto container-narrow px-6 w-full">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
@@ -1666,7 +1666,7 @@ const BookACallLanding: React.FC = () => {
 
           {/* SEASONAL MINDFULNESS SERVICE */}
           <div className="w-full flex-shrink-0 service-slide flex items-center">
-            <div className="mx-auto container-narrow px-6 py-12 md:py-16 w-full">
+            <div className="mx-auto container-narrow px-6 w-full">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Left Side - Text and Feature Options */}
                 <div>
