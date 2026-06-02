@@ -43,9 +43,24 @@ async function slackPost(method, body) {
  * Resolve the lead owner for a contact. Returns the gmail_accounts row of
  * the owner (with slack_user_id + mute settings) or null if no owner.
  */
+// Teammate / Shortcut-owned domains. resolveLeadOwner must refuse to operate
+// on these — a rep email is not a prospect, ever. Without this, a corrupt
+// workhuman_leads row that has a rep email in its `email` column gets
+// matched and pings fire with the row's `name` field (someone else's name).
+const INTERNAL_DOMAINS = new Set([
+  'getshortcut.co', 'shortcutwellness.com', 'shortcutcorporate.com',
+  'shortcutpros.com', 'shortcutpartnership.com', 'shortcutexperience.com',
+  'shortcutcorpwellness.com',
+]);
+const isInternalEmail = (email) => {
+  const d = String(email || '').toLowerCase().split('@')[1]?.replace(/^www\./, '');
+  return d ? INTERNAL_DOMAINS.has(d) : true;
+};
+
 export async function resolveLeadOwner(sb, leadEmail) {
   const email = lc(leadEmail);
   if (!email) return null;
+  if (isInternalEmail(email)) return null;   // never route a rep address as a prospect
 
   // Path A — workhuman_leads.assigned_to (personal-note leads)
   let repEmail = null;

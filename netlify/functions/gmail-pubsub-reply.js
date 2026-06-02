@@ -70,8 +70,28 @@ export const handler = async (event) => {
     return ok('history-error'); // 200: transient, next notification re-syncs
   }
 
+  // Teammate / Shortcut-owned domains — emails from these addresses are NOT
+  // prospect replies and must NEVER trigger a reply ping or be recorded in
+  // outreach_replies. Without this filter, a rep emailing themselves (or an
+  // auto-reply / forward landing in the rep's inbox) gets processed as a
+  // prospect reply, and resolveLeadOwner happily matches whatever stale
+  // workhuman_leads row has a rep email in its `email` column — surfaced as
+  // a wrong "New reply from <stale-row-name>" DM. (See Jaimie Smith @ Danaher
+  // bug 2026-06-02: Will's pubsub fired with fromEmail=will@getshortcut.co,
+  // matched the corrupt Danaher row that had Will's email, pinged Will.)
+  const INTERNAL_DOMAINS = new Set([
+    'getshortcut.co', 'shortcutwellness.com', 'shortcutcorporate.com',
+    'shortcutpros.com', 'shortcutpartnership.com', 'shortcutexperience.com',
+    'shortcutcorpwellness.com',
+  ]);
+  const isInternalEmail = (email) => {
+    const d = String(email || '').toLowerCase().split('@')[1]?.replace(/^www\./, '');
+    return d ? INTERNAL_DOMAINS.has(d) : true;
+  };
+
   for (const m of result.messages) {
     if (!m.fromEmail) continue;
+    if (isInternalEmail(m.fromEmail)) continue;   // internal — not a prospect reply
     // Only record replies from people we actually contacted (keeps the gate clean).
     const { data: snd } = await sb.from('outreach_sends')
       .select('email').eq('email', m.fromEmail).limit(1).maybeSingle();
