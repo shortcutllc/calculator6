@@ -466,13 +466,19 @@ Notes on the reference:
       : (ctx.mode === 'broker_first_outreach' || ctx.mode === 'broker_followup')
         ? `This is a HEALTHCARE BROKER OUTREACH (Track A of our broker GTM). The contact (${ctx.prospect.name || 'the recipient'}, ${ctx.prospect.title || 'role unknown'}) works at ${ctx.prospect.company || 'a benefits brokerage'}${ctx.broker?.firm_tier ? ` (${String(ctx.broker.firm_tier).replace('tier_', 'Tier ')})` : ''}. The rep has NOT met them in person — DO NOT say "great chatting at Workhuman", DO NOT reference any in-person conversation, DO NOT use Workhuman as a hook.\n\n`
           + `THE PITCH (wellness-fund deployment is the winning angle):\n`
-          + `  • Shortcut is the single in-person wellness vendor your clients can deploy fast: chair massage, office grooming, mindfulness, headshots.\n`
-          + `  • The hook brokers care about: we help your clients deploy their carrier wellness funds (Cigna HIF, Aetna Wellness Allowance, Anthem Wellness Fund) on services employees actually use, with zero admin lift on the HR side.\n`
+          + `  • Shortcut delivers single-vendor in-person wellness for employer clients: chair massage, mindfulness, facials, office grooming, headshots.\n`
+          + `  • The HOOK brokers care about: we help clients deploy their carrier wellness funds (Cigna HIF, Aetna Wellness Allowance / Health Plan Allowance, Anthem Wellness Fund) on the eligible categories — massage, mindfulness, facials — with zero admin lift on HR.\n`
+          + `  • PROOF POINT: Burberry funds our chair massage through their Aetna Wellness Allowance. We invoice Burberry, Burberry forwards it to Aetna, Aetna mails us the check directly. Burberry never pays cash out of pocket. Use the Burberry name when it adds credibility.\n`
+          + `  • The differentiator: ONE vendor for the whole wellness category, instead of stitching together a massage company + grooming + a mindfulness platform.\n`
           + `  • We're CAA-202 disclosure-clean. Three rev models: client pass-through (default — broker takes 0%, client gets 7% off list), co-marketing retainer, or 7% disclosed referral on Y1. Don't lead with this; mention only if rev share is the natural ask.\n`
-          + `  • The differentiator: ONE vendor for the whole wellness category, instead of stitching together a massage company + grooming + mindfulness platform.\n`
+          + `\nSERVICE-ELIGIBILITY CHEAT SHEET (so you don't overpromise):\n`
+          + `  • CARRIER-FUND ELIGIBLE (cleanly): chair massage (stress reduction / musculoskeletal wellness), mindfulness (mental wellbeing / health education), facials (dermatological wellness — pair with skin-health education).\n`
+          + `  • RIDE-ALONG ONLY: hair, makeup, nails (vanity/beauty). Typically need to ride alongside an eligible service in the same event, OR be tied to a wellbeing challenge as a participation reward. Do NOT pitch as standalone wellness-fund spend.\n`
+          + `  • NOT FUND-ELIGIBLE: headshots. No wellbeing nexus per Aetna + Anthem; most Cigna HECs deny. Position separately as the client's regular events budget.\n`
+          + `  • Framing rule: if the broker asks "what can we put the fund toward," answer "massage + mindfulness + facials." Hair/makeup/nails/headshots sit alongside in the same event but outside the carrier-fund line.\n`
           + (ctx.broker?.firm_why ? `\nFIRM CONTEXT (use to make it specific — don't quote verbatim): ${ctx.broker.firm_why}\n` : '')
-          + (ctx.prospect.employees ? `\nFIRM SIZE: ~${ctx.prospect.employees} employees (use to size the framing).\n` : '')
-          + (ctx.prospect.hq_location ? `\nCONTACT LOCATION: ${ctx.prospect.hq_location}.\n` : '')
+          + (ctx.prospect.employees ? `FIRM SIZE: ~${ctx.prospect.employees} employees (use to size the framing).\n` : '')
+          + (ctx.prospect.hq_location ? `CONTACT LOCATION: ${ctx.prospect.hq_location}.\n` : '')
           + `\nROLE-ANGLE based on title:\n`
           + `  • Wellness Consultant / H&W Practice Lead → "vendor partner that makes you look like a hero to clients"\n`
           + `  • Producer / Senior Producer / Partner → "differentiator that wins and keeps clients on renewal"\n`
@@ -480,12 +486,12 @@ Notes on the reference:
           + `  • If unclear, default to the wellness-consultant angle.\n`
           + `\nSHAPE:\n`
           + `  • Length: under 110 words. Punchy.\n`
-          + `  • Subject: about THEM, not generic. e.g. "Wellness deployment for ${ctx.prospect.company || '[firm]'} clients" or "Quick question on your client wellness benefit". NEVER "Workhuman follow-through".\n`
+          + `  • Subject: about THEM, not generic. e.g. "Wellness-fund deployment for ${ctx.prospect.company || '[firm]'} clients" or "Quick question on your client wellness benefit". NEVER "Workhuman follow-through".\n`
           + `  • Open with a SPECIFIC reference to their firm + relevant observation (wellness-fund pitch, M&A wellness gap, ICP overlap). NOT "hope you're well".\n`
           + `  • One concrete next step: 15-min call OR a one-page broker brief.\n`
           + `  • Brand voice: peer-to-peer, low-pressure. NO "synergy", "leverage", "best-in-class", "circling back".\n`
           + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
-          + `  • ABSOLUTELY DO NOT mention "Workhuman" anywhere. DO NOT invent specific clients of theirs.`
+          + `  • ABSOLUTELY DO NOT mention "Workhuman" anywhere. DO NOT invent specific clients of theirs. DO NOT claim hair / nails / headshots are wellness-fund eligible — fastest way to blow broker trust.`
       : (ctx.mode === 'carrier_hec_first_outreach' || ctx.mode === 'carrier_hec_followup')
         ? `This is a CARRIER HEC OUTREACH (Track B — stealth play). The contact (${ctx.prospect.name || 'the recipient'}, ${ctx.prospect.title || 'role unknown'}) is a Health Engagement Consultant / Designated Consultant / Wellness Consultant at ${ctx.prospect.company || 'a carrier'}. HECs manage the wellness fund directly for accounts they support. They are virtually unprospected by vendors and not used to being sold to.\n\n`
           + `THE PITCH (carrier-HEC angle, distinct from brokers):\n`

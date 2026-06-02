@@ -360,10 +360,16 @@ export const handler = async (event) => {
     followup && (target.kind === 'broker_first_outreach' || target.kind === 'broker_followup')
       ? `This is a HEALTHCARE BROKER OUTREACH (Track A of our broker GTM). The contact (${target.known_contact?.name || 'the recipient'}, ${target.known_contact?.title || 'role unknown'}) works at ${target.company || 'a benefits brokerage'}${target.firm_tier ? ` (${target.firm_tier.replace('tier_', 'Tier ')})` : ''}. The rep has NOT met them in person — DO NOT say "great chatting at Workhuman", DO NOT reference a prior in-person conversation, DO NOT use Workhuman as a hook.\n\n`
         + `THE PITCH (this is the wellness-fund angle that wins):\n`
-        + `  • Shortcut is the single in-person wellness vendor your clients can deploy fast: chair massage, office grooming, mindfulness, headshots.\n`
-        + `  • The hook brokers care about: we help your clients deploy their carrier wellness funds (Cigna HIF, Aetna Wellness Allowance, Anthem Wellness Fund) on services employees actually use, with zero admin burden.\n`
+        + `  • Shortcut delivers single-vendor in-person wellness for employer clients: chair massage, mindfulness, facials, office grooming, headshots.\n`
+        + `  • The HOOK brokers care about: we help clients deploy their carrier wellness funds (Cigna HIF, Aetna Wellness Allowance / Health Plan Allowance, Anthem Wellness Fund) on the eligible categories — massage, mindfulness, facials — with zero admin lift on HR.\n`
+        + `  • PROOF POINT: Burberry funds our chair massage through their Aetna Wellness Allowance. We invoice Burberry, Burberry forwards it to Aetna, Aetna mails us the check directly. Burberry never pays cash out of pocket. Reference Burberry by name when it adds credibility.\n`
+        + `  • The differentiator: ONE vendor for the whole wellness category, instead of stitching together a massage company + grooming + a mindfulness platform.\n`
         + `  • We're CAA-202 disclosure-clean. Three rev models: client pass-through (default — broker takes 0%, client gets 7% off list), co-marketing retainer, or 7% disclosed referral on Y1. Don't lead with this; mention only if rev share is the natural ask.\n`
-        + `  • The differentiator brokers care about: ONE vendor for the whole wellness category, instead of stitching together a massage company + a grooming company + a mindfulness platform.\n`
+        + `\nSERVICE-ELIGIBILITY CHEAT SHEET (so you don't overpromise):\n`
+        + `  • CARRIER-FUND ELIGIBLE (cleanly): chair massage (stress reduction / musculoskeletal wellness), mindfulness (mental wellbeing / health education), facials (dermatological wellness — pair with skin-health education for clean approval).\n`
+        + `  • RIDE-ALONG ONLY: hair, makeup, nails (vanity/beauty). These typically need to ride alongside an eligible service in the same event, OR be tied to a wellbeing challenge as a participation reward. Do NOT pitch them as standalone wellness-fund spend.\n`
+        + `  • NOT FUND-ELIGIBLE: headshots. No wellbeing nexus per Aetna + Anthem; most Cigna HECs deny. Position separately as the client's regular events budget.\n`
+        + `  • Framing rule: if the broker asks "what can we put the fund toward," answer "massage + mindfulness + facials." Hair/makeup/nails/headshots sit alongside in the same event but outside the carrier-fund line.\n`
         + `${target.firm_why ? `\nFIRM CONTEXT (use to make it specific, don't quote verbatim): ${target.firm_why}\n` : ''}`
         + `${target.apollo_headcount ? `FIRM SIZE: ~${target.apollo_headcount} employees (use to size framing).\n` : ''}`
         + `${target.apollo_location ? `CONTACT LOCATION: ${target.apollo_location}.\n` : ''}`
@@ -375,12 +381,12 @@ export const handler = async (event) => {
         + `  • Pick the right angle from the title; if unclear, default to the wellness-consultant angle.\n`
         + `\nSHAPE:\n`
         + `  • Length: short. Under 110 words. Punchy.\n`
-        + `  • Subject: specific, not "Workhuman follow-through" or anything Workhuman-related. Use something like "Wellness deployment for ${target.company || '[firm]'} clients" or "Quick question on your client wellness benefit" — make it about THEM.\n`
-        + `  • Open with a SPECIFIC reference to their firm + a relevant observation (M&A wellness gap, ICP overlap with our book, the wellness-fund pitch). NOT a generic "hope you're well".\n`
-        + `  • One concrete next step: 15-min call OR a one-page broker brief. Pick one.\n`
+        + `  • Subject: specific, not "Workhuman follow-through" or anything Workhuman-related. Use something like "Wellness-fund deployment for ${target.company || '[firm]'} clients" or "Quick question on your client wellness benefit" — make it about THEM.\n`
+        + `  • Open with a SPECIFIC reference to their firm + relevant observation (wellness-fund pitch, M&A wellness gap, ICP overlap). NOT generic "hope you're well".\n`
+        + `  • One concrete next step: 15-min call OR a one-page broker brief.\n`
         + `  • Brand voice: peer-to-peer, low-pressure, no buzzwords ("synergy", "leverage", "best-in-class" are forbidden), no "circling back" (you weren't in touch before).\n`
         + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
-        + `  • DO NOT mention "Workhuman" anywhere. DO NOT pretend to know specific clients of theirs unless explicitly given. DO NOT invent ICP overlap details.`
+        + `  • DO NOT mention "Workhuman" anywhere. DO NOT pretend to know specific clients of theirs unless explicitly given. DO NOT invent ICP overlap details. DO NOT claim hair / nails / headshots are wellness-fund eligible — that's the fastest way to blow broker trust.`
       : followup && (target.kind === 'carrier_hec_first_outreach' || target.kind === 'carrier_hec_followup')
       ? `This is a CARRIER HEC OUTREACH (Track B — stealth play). The contact (${target.known_contact?.name || 'the recipient'}, ${target.known_contact?.title || 'role unknown'}) is a Health Engagement Consultant / Designated Consultant / Wellness Consultant at ${target.company || 'a carrier'}. HECs manage the wellness fund directly for accounts they support. They are virtually unprospected by vendors — they're not used to being sold to.\n\n`
         + `THE PITCH (carrier-HEC angle, distinct from brokers):\n`
