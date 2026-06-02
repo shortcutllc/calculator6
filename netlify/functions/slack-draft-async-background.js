@@ -42,7 +42,7 @@ const SLACK_API = 'https://slack.com/api';
 // constant. Kept inline for v1 to avoid blocking on a refactor.
 const SYSTEM_PROMPT = `You are the outbound copywriter for Shortcut, an all-in-one corporate wellness platform. Shortcut delivers in-person and virtual wellness experiences (chair massage, office grooming, corporate headshots, mindfulness workshops) to mid-market and enterprise companies. The pitch is single-vendor simplicity, operational excellence, and immediate employee impact.
 
-You are writing a cold outreach email from a Shortcut salesperson to one prospect. Output 3 distinct directions labeled exactly "safe", "medium", "brave".
+You are writing a cold outreach email from a Shortcut salesperson to one prospect. Output 4 distinct directions labeled exactly "safe", "medium", "brave", "networking".
 
 WHO YOU ARE WRITING TO: People Ops / HR / CHRO leaders at mid-market and enterprise companies. They are exhausted by "wellness theater" (pizza parties, stress balls, unused meditation app licenses). They want something employees actually want that does not create more admin work. They are smart, busy, and allergic to being sold to.
 
@@ -63,6 +63,15 @@ DIRECTIONS:
 - safe: the version a conservative B2B seller would happily send. Low risk, clearly competent, still in Shortcut voice.
 - medium: more personality. A sharper hook, a little dry wit if it fits the prospect. The recommended default for most sends.
 - brave: takes a real swing. Strong point of view or unexpected angle. Higher risk, higher reply-rate ceiling.
+- networking: NOT a pitch. A curiosity-led, peer-to-peer note that opens a conversation. Hook is genuine interest in HOW they are solving a problem you both think about (for brokers: how their wellness team is helping clients exhaust unspent fund balances before plan-year end; for HR/People-Ops: how they roll out a specific in-person wellness benefit). Tone is "trading notes" / "comparing approaches" — never "I have something to sell." No services list, no rev share, no proposal mention. ONE soft ask at the end: "Worth a 20-min call to trade notes?" Lands meetings via mutual benefit and curiosity, not pitch.
+
+OPENER RULES (apply to every direction):
+- A bare "Will from Shortcut." as a standalone sentence is BANNED. It reads incomplete and lazy. Use complete, natural variations:
+    "Will Newton here, I run Shortcut."
+    "Hi Kelly — Will Newton, founder of Shortcut."
+    "Will from Shortcut here — quick one for you."
+    "Will at Shortcut — wanted to drop a quick note."
+- If rep_first_name is NOT "Will", use the rep's actual name in the same shape ("Caren here, I lead partnerships at Shortcut."). Never sign emails from "Will" if the rep is someone else.
 
 Use any provided context (prior contact history, whether they are an existing client expanding, firmographics, the contact's title) to ground the hook in something true and specific.
 
@@ -91,9 +100,10 @@ Return ONLY valid JSON, no prose around it, in exactly this shape:
   "directions": [
     { "label": "safe", "subject": "...", "body": "..." },
     { "label": "medium", "subject": "...", "body": "..." },
-    { "label": "brave", "subject": "...", "body": "..." }
+    { "label": "brave", "subject": "...", "body": "..." },
+    { "label": "networking", "subject": "...", "body": "..." }
   ],
-  "fight_for": "safe|medium|brave",
+  "fight_for": "safe|medium|brave|networking",
   "fight_for_reason": "one or two sentences on why this is the one to send to this specific prospect"
 }`;
 
@@ -484,14 +494,23 @@ Notes on the reference:
           + `  • Producer / Senior Producer / Partner → "differentiator that wins and keeps clients on renewal"\n`
           + `  • AE / Account Manager → "low-effort value-add for renewal conversations"\n`
           + `  • If unclear, default to the wellness-consultant angle.\n`
-          + `\nSHAPE:\n`
+          + `\nSHAPE for safe / medium / brave directions:\n`
           + `  • Length: under 110 words. Punchy.\n`
           + `  • Subject: about THEM, not generic. e.g. "Wellness-fund deployment for ${ctx.prospect.company || '[firm]'} clients" or "Quick question on your client wellness benefit". NEVER "Workhuman follow-through".\n`
-          + `  • Open with a SPECIFIC reference to their firm + relevant observation (wellness-fund pitch, M&A wellness gap, ICP overlap). NOT "hope you're well".\n`
+          + `  • Open with a SPECIFIC reference to their firm + relevant observation. NOT "hope you're well".\n`
           + `  • One concrete next step: 15-min call OR a one-page broker brief.\n`
           + `  • Brand voice: peer-to-peer, low-pressure. NO "synergy", "leverage", "best-in-class", "circling back".\n`
-          + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
-          + `  • ABSOLUTELY DO NOT mention "Workhuman" anywhere. DO NOT invent specific clients of theirs. DO NOT claim hair / makeup / nails / facials / headshots are wellness-fund eligible — fastest way to blow broker trust.`
+          + `  • Casual close: "Best, [name]" or "Thanks, [name]".\n`
+          + `\nSHAPE for the NETWORKING direction (broker-specific):\n`
+          + `  • Length: even shorter. Under 90 words. Peer-to-peer note, not a vendor pitch.\n`
+          + `  • Subject: curiosity, not pitch. "How are you handling EOY wellness-fund spend?" or "Comparing notes on client wellness benefit utilization" or "Quick thought on ${ctx.prospect.company || '[firm]'} clients' wellness fund balances".\n`
+          + `  • Hook: genuine curiosity about how their wellness practice helps clients exhaust unspent carrier wellness fund balances (Cigna HIF / Aetna Wellness Allowance / Anthem WF) before plan-year end — use-it-or-lose-it dynamic creates real urgency.\n`
+          + `  • Frame mutual benefit ACCURATELY: clients who use their fund (vs lose it) are more satisfied, more likely to renew, and the wellness-practice metrics look better — retention = recurring commission. DO NOT claim "you'll make more commission directly" — broker comp is % of premium, paid regardless of fund utilization. The real win is RETENTION + wellness-practice P&L bonuses where they exist.\n`
+          + `  • Tone: trading notes / comparing approaches / no agenda. NOT "let me show you what we do."\n`
+          + `  • One soft ask: "Worth a 20-min call to compare notes?" or "Curious what you're seeing — happy to share what's worked on our side."\n`
+          + `  • NO services list. NO rev share. NO proposal mention.\n`
+          + `\nUNIVERSAL PROHIBITIONS (apply to all 4 directions):\n`
+          + `  • ABSOLUTELY DO NOT mention "Workhuman" anywhere. DO NOT invent specific clients of theirs. DO NOT claim hair / makeup / nails / facials / headshots are wellness-fund eligible — fastest way to blow broker trust. DO NOT write "Will from Shortcut." as a bare standalone sentence — use a complete opener variant per OPENER RULES.`
       : (ctx.mode === 'carrier_hec_first_outreach' || ctx.mode === 'carrier_hec_followup')
         ? `This is a CARRIER HEC OUTREACH (Track B — stealth play). The contact (${ctx.prospect.name || 'the recipient'}, ${ctx.prospect.title || 'role unknown'}) is a Health Engagement Consultant / Designated Consultant / Wellness Consultant at ${ctx.prospect.company || 'a carrier'}. HECs manage the wellness fund directly for accounts they support. They are virtually unprospected by vendors and not used to being sold to.\n\n`
           + `THE PITCH (carrier-HEC angle, distinct from brokers):\n`
