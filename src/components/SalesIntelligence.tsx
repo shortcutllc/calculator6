@@ -174,7 +174,11 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void; onMutated
       const res = await authedFetch('/.netlify/functions/gmail-oauth-start', { method: 'POST', body: '{}' });
       const j = await res.json();
       if (!res.ok || !j.url) throw new Error(j.error || 'Could not start Gmail connect');
-      window.open(j.url, '_blank', 'noopener');
+      // Same-tab redirect (not window.open) — iOS Safari blocks window.open
+      // after an awaited promise because the user-gesture context is gone.
+      // The OAuth callback returns to /sales-intelligence anyway, so a
+      // top-level navigation is the right pattern on every device.
+      window.location.href = j.url;
     } catch (e) {
       setSendResult({ label: '', kind: 'err', text: e instanceof Error ? e.message : 'Connect failed' });
     }
@@ -2010,7 +2014,10 @@ const SalesIntelligence: React.FC = () => {
         body: '{}',
       });
       const j = await res.json();
-      if (res.ok && j.url) window.open(j.url, '_blank', 'noopener');
+      // Same-tab redirect — iOS Safari's popup blocker silently swallows
+      // window.open() after an awaited fetch. OAuth callback returns to
+      // /sales-intelligence so top-level navigation is the right pattern.
+      if (res.ok && j.url) window.location.href = j.url;
     } catch { /* surfaced via banner on return */ }
   }, []);
 
