@@ -146,18 +146,37 @@ export const handler = async (event) => {
 
   if (followup) {
     const fto = String(followup.to).trim().toLowerCase();
-    // "Personal-note cold open" when this is a first outreach to someone the
-    // rep met in person (Workhuman booth, etc.). Different mode than a
-    // follow-up to a prior email — the hook is the in-person conversation,
-    // not "circling back."
     const isFirstOutreach = !!followup.is_first_outreach || (followup.touch_number ?? 2) <= 1;
+    // BROKER GTM MODE — Track A (broker firms like OneDigital/NFP/Sequoia)
+    // or Track B (carrier HECs at Cigna/Aetna/Anthem). Pitch shape is
+    // fundamentally different from a Workhuman personal-note lead. The
+    // hook is wellness-fund DEPLOYMENT (HIF / Wellness Allowance / Fund),
+    // NOT "great chatting at Workhuman" — these people were never at our
+    // booth. Per broker_outreach_playbook.md: brokers care about a
+    // single-vendor in-person offering they can deploy for clients,
+    // CAA-202 disclosure-clean. Role determines the pitch angle:
+    //   Wellness Consultant: "vendor partner that makes you look like a hero"
+    //   Producer: "differentiator that wins/keeps clients"
+    //   AE / Account Manager: "low-effort renewal value-add"
+    const track = followup.track === 'carrier_hec' ? 'carrier_hec'
+                : followup.track === 'broker' ? 'broker'
+                : null;
+    let kind;
+    if (track === 'broker') kind = isFirstOutreach ? 'broker_first_outreach' : 'broker_followup';
+    else if (track === 'carrier_hec') kind = isFirstOutreach ? 'carrier_hec_first_outreach' : 'carrier_hec_followup';
+    else kind = isFirstOutreach ? 'personal_first_outreach' : 'follow_up';
+
     Object.assign(target, {
-      kind: isFirstOutreach ? 'personal_first_outreach' : 'follow_up',
+      kind,
+      track,
       company: followup.company || null,
       known_contact: { name: followup.name || null, title: followup.title || null },
       days_since_last_email: followup.days_since ?? null,
       this_is_touch_number: followup.touch_number ?? (isFirstOutreach ? 1 : 2),
       personal_note: followup.personal_note || null,
+      firm_tier: followup.firm_tier || null,
+      firm_why: followup.firm_why || null,
+      firm_nyc: followup.firm_nyc || null,
     });
     preflightEmail = fto;
     preflightDomain = fto.split('@')[1] || null;
@@ -322,7 +341,43 @@ export const handler = async (event) => {
       ? `THE EMAIL YOU PREVIOUSLY SENT (this is what they didn't reply to — your follow-up will land directly underneath it on the same thread):\n\nSubject: ${priorEmail.subject || '(no subject)'}\n\n${priorEmail.body}\n\nYour follow-up MUST be aware of this email specifically. Do not restate what you already said. Do not re-introduce Shortcut or re-pitch the offer that's already in the thread.`
       : ``,
     repName ? `Sign emails from: ${repName}` : `No rep name provided — sign "Best," with no name.`,
-    followup && target.kind === 'personal_first_outreach'
+    followup && (target.kind === 'broker_first_outreach' || target.kind === 'broker_followup')
+      ? `This is a HEALTHCARE BROKER OUTREACH (Track A of our broker GTM). The contact (${target.known_contact?.name || 'the recipient'}, ${target.known_contact?.title || 'role unknown'}) works at ${target.company || 'a benefits brokerage'}${target.firm_tier ? ` (${target.firm_tier.replace('tier_', 'Tier ')})` : ''}. The rep has NOT met them in person — DO NOT say "great chatting at Workhuman", DO NOT reference a prior in-person conversation, DO NOT use Workhuman as a hook.\n\n`
+        + `THE PITCH (this is the wellness-fund angle that wins):\n`
+        + `  • Shortcut is the single in-person wellness vendor your clients can deploy fast: chair massage, office grooming, mindfulness, headshots.\n`
+        + `  • The hook brokers care about: we help your clients deploy their carrier wellness funds (Cigna HIF, Aetna Wellness Allowance, Anthem Wellness Fund) on services employees actually use, with zero admin burden.\n`
+        + `  • We're CAA-202 disclosure-clean. Three rev models: client pass-through (default — broker takes 0%, client gets 7% off list), co-marketing retainer, or 7% disclosed referral on Y1. Don't lead with this; mention only if rev share is the natural ask.\n`
+        + `  • The differentiator brokers care about: ONE vendor for the whole wellness category, instead of stitching together a massage company + a grooming company + a mindfulness platform.\n`
+        + `${target.firm_why ? `\nFIRM CONTEXT (use to make it specific, don't quote verbatim): ${target.firm_why}\n` : ''}`
+        + `\nROLE-ANGLE based on title:\n`
+        + `  • Wellness Consultant / H&W Practice Lead → "vendor partner that makes you look like a hero to clients"\n`
+        + `  • Producer / Senior Producer / Partner → "differentiator that wins and keeps clients on renewal"\n`
+        + `  • AE / Account Manager → "low-effort value-add for renewal conversations"\n`
+        + `  • Pick the right angle from the title; if unclear, default to the wellness-consultant angle.\n`
+        + `\nSHAPE:\n`
+        + `  • Length: short. Under 110 words. Punchy.\n`
+        + `  • Subject: specific, not "Workhuman follow-through" or anything Workhuman-related. Use something like "Wellness deployment for ${target.company || '[firm]'} clients" or "Quick question on your client wellness benefit" — make it about THEM.\n`
+        + `  • Open with a SPECIFIC reference to their firm + a relevant observation (M&A wellness gap, ICP overlap with our book, the wellness-fund pitch). NOT a generic "hope you're well".\n`
+        + `  • One concrete next step: 15-min call OR a one-page broker brief. Pick one.\n`
+        + `  • Brand voice: peer-to-peer, low-pressure, no buzzwords ("synergy", "leverage", "best-in-class" are forbidden), no "circling back" (you weren't in touch before).\n`
+        + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+        + `  • DO NOT mention "Workhuman" anywhere. DO NOT pretend to know specific clients of theirs unless explicitly given. DO NOT invent ICP overlap details.`
+      : followup && (target.kind === 'carrier_hec_first_outreach' || target.kind === 'carrier_hec_followup')
+      ? `This is a CARRIER HEC OUTREACH (Track B — stealth play). The contact (${target.known_contact?.name || 'the recipient'}, ${target.known_contact?.title || 'role unknown'}) is a Health Engagement Consultant / Designated Consultant / Wellness Consultant at ${target.company || 'a carrier'}. HECs manage the wellness fund directly for accounts they support. They are virtually unprospected by vendors — they're not used to being sold to.\n\n`
+        + `THE PITCH (carrier-HEC angle, distinct from brokers):\n`
+        + `  • Shortcut delivers in-person wellness (massage, grooming, mindfulness, headshots) for the accounts you support.\n`
+        + `  • The hook for HECs: we document deployment in a co-branded report you can cite in your next quarterly client business review. Makes your wellness-fund spend visible and measurable.\n`
+        + `  • No revenue-share dynamic with HECs (you're salaried at the carrier) — frame as "vendor that makes your client conversations sharper".\n`
+        + `${target.firm_why ? `\nFIRM CONTEXT: ${target.firm_why}\n` : ''}`
+        + `\nSHAPE:\n`
+        + `  • Length: under 90 words. Even shorter than the broker pitch — HECs have less patience.\n`
+        + `  • Subject: NOT salesy. "Quick question on wellness-fund deployment" or "Shortcut for your client accounts" — neutral, professional.\n`
+        + `  • Open with the deployment-data hook ("documentation you can cite in QBRs") — that's what differentiates us from any other wellness vendor that pitches them.\n`
+        + `  • One concrete next step: a 15-min intro OR a one-page co-branded reporting sample. Pick one.\n`
+        + `  • Tone: peer-to-peer professional. NO sales-speak. NO "synergy". NO "best-in-class". NO "leverage".\n`
+        + `  • Casual close: "Best, [name]" or "Thanks, [name]".\n`
+        + `  • DO NOT mention "Workhuman". DO NOT mention rev share / commission — irrelevant for HECs.`
+      : followup && target.kind === 'personal_first_outreach'
       ? `This is a FIRST OUTREACH to someone the rep met in person at Workhuman (or similar). It is NOT a follow-up to a prior email — there is no prior email. The hook is the in-person conversation itself.\n`
         + (target.personal_note ? `\nYOUR PERSONAL NOTE from that conversation (THIS is your hook — reference something specific from it; do not invent specifics that aren't in the note):\n"${target.personal_note}"\n` : `\n(No personal-note text was passed through — keep the in-person reference generic: "great chatting at Workhuman" works.)\n`)
         + `\nShape:\n`

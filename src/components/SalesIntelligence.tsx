@@ -91,6 +91,14 @@ interface FollowupRow {
   conference_attendee: boolean;
   was_waitlisted: boolean;
   vip_slot: { day: string; time: string | null } | null;
+  // Broker GTM context — set when the row originates from the Brokers tab.
+  // The draft pipeline keys off `track` to flip from the Workhuman-style
+  // "great chatting at the booth" hook into the wellness-fund / broker pitch.
+  track?: 'broker' | 'carrier_hec' | null;
+  firm_tier?: 'tier_1' | 'tier_2' | 'tier_3' | null;
+  firm_why?: string | null;
+  firm_nyc?: string | null;
+  is_first_outreach?: boolean;
 }
 interface BrokerRow {
   email: string;
@@ -298,8 +306,13 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void; onMutated
               company: target.followup.company, days_since: target.followup.days_since ?? null,
               touch_number: (target.followup.touches || 0) + 1,
               thread_id: target.followup.thread_id,  // lets the backend pull your prior email body from Gmail
-              personal_note: target.followup.personal_note || null,  // in-person Workhuman note to ground a fresh outreach
-              is_first_outreach: target.followup.state === 'never_emailed' || target.followup.state === 'unknown_no_inbox',
+              personal_note: target.followup.personal_note || null,
+              is_first_outreach: target.followup.is_first_outreach ?? (target.followup.state === 'never_emailed' || target.followup.state === 'unknown_no_inbox'),
+              // BROKER GTM passthrough — keys the broker / carrier-HEC pitch branch
+              track: target.followup.track || null,
+              firm_tier: target.followup.firm_tier || null,
+              firm_why: target.followup.firm_why || null,
+              firm_nyc: target.followup.firm_nyc || null,
             } }
           : { play: target.play, rank: target.rank };
         const res = await fetch('/.netlify/functions/draft-outreach', {
@@ -2900,10 +2913,26 @@ const SalesIntelligence: React.FC = () => {
                                 company: r.firm_name,
                                 followup: {
                                   email: r.email, name: r.name, title: r.title, company: r.firm_name,
+                                  state: r.state === 'never_emailed' ? 'never_emailed' : (r.state === 'replied' ? 'replied' : 'no_reply'),
                                   last_sent: r.last_sent || '', days_since: r.days_since || 0,
                                   touches: r.emailed_count || 0, thread_id: null,
-                                  personal_note: r.firm_why || null,
+                                  sender_email: r.sender_email || null,
+                                  // BROKER GTM context — keys off `track` to flip
+                                  // the prompt out of Workhuman-personal-note mode
+                                  // into the wellness-fund pitch.
+                                  track: (r.firm_track === 'carrier_hec' ? 'carrier_hec' : 'broker'),
+                                  firm_tier: r.firm_tier,
+                                  firm_why: r.firm_why,
+                                  firm_nyc: r.firm_nyc,
                                   is_first_outreach: r.state === 'never_emailed',
+                                  // Personal-note + Workhuman flags must be false so
+                                  // the draft pipeline doesn't accidentally treat
+                                  // this as a booth lead.
+                                  is_personal_note: false, has_workhuman: false,
+                                  personal_note: null, linkedin_url: r.linkedin_url,
+                                  landing_page_url: null,
+                                  assigned_to: r.assigned_to, tier: null, outreach_status: null,
+                                  conference_attendee: false, was_waitlisted: false, vip_slot: null,
                                 } as FollowupRow,
                               })}
                               className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
