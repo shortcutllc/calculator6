@@ -136,33 +136,45 @@ async function processAccount(sb, acct) {
         return fromAddr === prospectEmail && internalDate > new Date(sentTimeIso).getTime();
       });
       if (!inbound.length) continue;
-      const reply = inbound[inbound.length - 1];
-      const body = cleanReply(bodyFromPayload(reply.payload));
-      const c = classify(body);
-      const replyIso = reply.internalDate ? new Date(Number(reply.internalDate)).toISOString() : sentTimeIso;
-
-      await sb.from('outreach_replies').upsert(
-        {
-          email: prospectEmail, campaign_id: CAMPAIGN, reply_date: replyIso,
-          reply_content: body ? body.slice(0, 4000) : null,
-          reply_sentiment: c.sentiment, is_ooo: c.sentiment === 'ooo',
-          sentiment_source: 'automated', ingested_at: new Date().toISOString(),
-        },
-        { onConflict: 'email,campaign_id,sentiment_source' },
-      );
-      await sb.from('outreach_sends')
-        .update({ reply_time: replyIso })
-        .eq('email', prospectEmail).eq('campaign_id', CAMPAIGN).is('reply_time', null);
-      trackedReplies += 1;
-
-      if (c.suppress) {
-        await sb.from('crm_suppression').upsert(
-          { email: prospectEmail, reason: 'do_not_contact', source: 'reply',
-            detail: { kind: c.reason, snippet: body.slice(0, 140), via: 'gmail-sent-crawl' } },
-          { onConflict: 'email', ignoreDuplicates: false },
+      // ONE outreach_replies row per inbound message. The prior pattern took
+      // only inbound[last] and used onConflict='email,campaign_id,sentiment_source'
+      // which collapsed every reply on the thread into one row — losing
+      // qualifying replies, scheduling, etc. Now we preserve every inbound
+      // with a per-message-id campaign_id suffix.
+      let earliestReplyIso = null;
+      for (const reply of inbound) {
+        const replyMsgId = reply.id || `${h.threadId}:${reply.internalDate}`;
+        const body = cleanReply(bodyFromPayload(reply.payload));
+        const c = classify(body);
+        const replyIso = reply.internalDate ? new Date(Number(reply.internalDate)).toISOString() : sentTimeIso;
+        if (!earliestReplyIso || replyIso < earliestReplyIso) earliestReplyIso = replyIso;
+        await sb.from('outreach_replies').upsert(
+          {
+            email: prospectEmail, campaign_id: `${CAMPAIGN}-reply:${replyMsgId}`, reply_date: replyIso,
+            reply_content: body ? body.slice(0, 4000) : null,
+            reply_sentiment: c.sentiment, is_ooo: c.sentiment === 'ooo',
+            sentiment_source: 'automated', ingested_at: new Date().toISOString(),
+          },
+          { onConflict: 'email,campaign_id,sentiment_source' },
         );
-        suppressed += 1;
+        trackedReplies += 1;
+        // Suppression on negative/unsubscribe applies to every classified inbound, not just the last
+        if (c.suppress) {
+          await sb.from('crm_suppression').upsert(
+            { email: prospectEmail, reason: 'do_not_contact', source: 'reply',
+              detail: { kind: c.reason, snippet: body.slice(0, 140), via: 'gmail-sent-crawl' } },
+            { onConflict: 'email', ignoreDuplicates: false },
+          );
+          suppressed += 1;
+        }
       }
+      // Mark any unanswered rep sends on this thread/email as replied (using earliest inbound timestamp)
+      if (earliestReplyIso) {
+        await sb.from('outreach_sends')
+          .update({ reply_time: earliestReplyIso })
+          .eq('email', prospectEmail).is('reply_time', null);
+      }
+      // Suppression handled per-inbound inside the loop above.
     }
   }
 
