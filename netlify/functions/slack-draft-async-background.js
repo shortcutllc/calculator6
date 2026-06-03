@@ -32,7 +32,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { leadPicture } from './lib/lead-picture.js';
 import { buildDraftPreviewBlocks, buildDraftErrorBlocks } from './lib/slack-blocks.js';
-import { getAccessToken, getThread, bodyFromPayload, lc } from './lib/gmail.js';
+import { getAccessToken, getThread, bodyFromPayload, lc, getSignature } from './lib/gmail.js';
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
 const SLACK_API = 'https://slack.com/api';
@@ -597,6 +597,26 @@ Notes on the reference:
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, 'rep account missing supabase_user_id'));
     return { statusCode: 200, body: 'ok' };
   }
+  // Fetch the rep's Gmail signature (HTML) and strip to plain text — used by
+  // the "Open in Gmail" button so the compose draft includes the signature.
+  // The real Send path (send-as-rep) appends the HTML signature server-side,
+  // so it's already correct there. Open in Gmail can't render HTML in the
+  // body= URL param, so we attach the plain-text version.
+  let signatureText = null;
+  try {
+    const tok = await getAccessToken(sb, repEmail);
+    const sigHtml = await getSignature(tok, repEmail);
+    if (sigHtml) {
+      signatureText = sigHtml
+        .replace(/<\s*br\s*\/?>/gi, '\n')
+        .replace(/<\/(div|p|li|tr|h\d)>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+        .replace(/&#39;|&rsquo;|&apos;/gi, "'").replace(/&quot;/gi, '"')
+        .replace(/\n{3,}/g, '\n\n').trim();
+    }
+  } catch { /* signature is optional — never block the save */ }
+
   const { data: saved, error: saveErr } = await sb.from('saved_drafts').insert({
     user_id: acct.supabase_user_id,
     recipient_email: leadEmail,
@@ -616,6 +636,7 @@ Notes on the reference:
       slack_message_ts: placeholderTs,
       label,
       rep_email: repEmail,
+      signature_text: signatureText,
     },
     preflight_reco: pic.preflight?.recommendation || null,
   }).select().single();
@@ -632,6 +653,7 @@ Notes on the reference:
       draftId: saved.id,
       threadId: threadId || latestSend?.thread_id || null,
       repEmail,   // <— enables the "Open in Gmail" button (authuser=<rep>)
+      signatureText,  // <— appended to body in Open-in-Gmail URL so the compose draft includes the rep's signature
     },
     medium,
     fightFor,
@@ -743,6 +765,7 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
       draftId,
       threadId: draft.target_ref?.thread_id || null,
       repEmail: repEmail || draft.target_ref?.rep_email,
+      signatureText: draft.target_ref?.signature_text || null,  // reuse the signature fetched at first-draft time
     },
     { subject: revised.subject, body: revised.body, label: 'medium (revised)' },
     fightFor,

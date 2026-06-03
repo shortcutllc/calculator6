@@ -317,10 +317,16 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
     // or Markdown. Strip [Label](URL) markdown back to plain URLs so the
     // recipient sees a usable compose draft (Gmail will then auto-detect
     // the URLs and make them clickable on send).
-    const gmailBody = String(draft.body || '').replace(
+    let gmailBody = String(draft.body || '').replace(
       /\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)\)/g,
       '$1: $2',
     );
+    // Append the rep's Gmail signature (plain-text) so the compose draft
+    // doesn't open without a signature. Real Send path appends the HTML
+    // signature server-side; this matches that behavior for Open-in-Gmail.
+    if (ctx.signatureText) {
+      gmailBody = `${gmailBody}\n\n${ctx.signatureText}`;
+    }
     const p = new URLSearchParams({
       view: 'cm',
       fs: '1',
