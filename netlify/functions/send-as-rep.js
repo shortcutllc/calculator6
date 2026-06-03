@@ -14,7 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { preflight } from './lib/preflight.js';
-import { getAccessToken, sendEmail, getSignature, getThread, lc } from './lib/gmail.js';
+import { getAccessToken, sendEmail, getSignature, getThread, lc, createDraft } from './lib/gmail.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -94,12 +94,35 @@ export const handler = async (event) => {
     return json(409, { blocked: true, reason: 'recently_contacted', detail: gate.last_contact, preflight: gate });
   }
 
-  // "Open in Gmail": build a web-compose deep link, record intent so the
-  // gate dedupes, and let the rep send from Gmail (signature added natively).
+  // "Open in Gmail": create a REAL Gmail draft via drafts.create with the
+  // rep's HTML signature embedded, then return the URL that opens it in
+  // compose. Was previously a compose-URL workaround with body= plain text
+  // — Gmail's body= param is text-only so the rep's brand-styled HTML
+  // signature couldn't render. drafts.create + the #drafts/<msgId> URL
+  // pattern (verified working live in Chrome) is the correct path.
   if (mode === 'open') {
-    const p = new URLSearchParams({ view: 'cm', fs: '1', to, su: subject, body: text });
-    if (fromEmail) p.set('authuser', fromEmail);
-    const openUrl = `https://mail.google.com/mail/?${p.toString()}`;
+    let openUrl = null;
+    try {
+      const accessToken = await getAccessToken(sb, fromEmail);
+      const signatureHtml = await getSignature(accessToken, fromEmail);
+      const draftResp = await createDraft(accessToken, {
+        from: fromEmail, to, subject, body: text, signatureHtml, threadId,
+      });
+      if (draftResp.messageId) {
+        openUrl = `https://mail.google.com/mail/u/0/?authuser=${encodeURIComponent(fromEmail)}#drafts/${draftResp.messageId}`;
+      }
+    } catch (e) {
+      console.warn('drafts.create failed for Open-in-Gmail — falling back to compose URL:', e.message);
+    }
+    if (!openUrl) {
+      // Fallback: legacy compose URL. Signature won't render but at least
+      // the rep gets a pre-filled compose. Triggers only if Gmail's API is
+      // unreachable / drafts scope missing — happens during scope-upgrade
+      // transition before the rep reconnects.
+      const p = new URLSearchParams({ view: 'cm', fs: '1', to, su: subject, body: text });
+      if (fromEmail) p.set('authuser', fromEmail);
+      openUrl = `https://mail.google.com/mail/?${p.toString()}`;
+    }
 
     const now = new Date().toISOString();
     try {
