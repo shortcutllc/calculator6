@@ -121,6 +121,13 @@ export async function leadPicture(sb, input) {
     industry: oc?.industry || ap?.industry || null,
     email_status: oc?.email_status || ap?.email_status || null,
     company_url: ap?.company_url || null,
+    // The next three are rendered in the web CRM card's Identity section and
+    // were missing — caused empty "Source", "Stage", "Yrs in role" rows.
+    // Populated from outreach_contacts (Apollo / Smartlead enrichment) when
+    // present; backfilled from workhuman below for Workhuman-only contacts.
+    source: oc?.source || null,
+    stage: oc?.stage || null,
+    years_in_role: oc?.years_in_role || null,
   };
 
   // ----- 2. Workhuman lead (the rich one) -----
@@ -216,6 +223,24 @@ export async function leadPicture(sb, input) {
         booth_signups: signups_booth,
         booth_signups_count: signups_booth.length,
       };
+    }
+  }
+
+  // ----- 2c. Backfill identity from workhuman when other sources were empty.
+  // Workhuman-only contacts (e.g. booth signups never enriched via Apollo)
+  // otherwise leave Location / Source blank on the CRM card.
+  if (workhuman) {
+    if (!identity.location && workhuman.hq_location) identity.location = workhuman.hq_location;
+    if (!identity.industry && workhuman.industry) identity.industry = workhuman.industry;
+    if (!identity.headcount && workhuman.company_size) identity.headcount = workhuman.company_size;
+    if (!identity.linkedin_url && workhuman.linkedin_url) identity.linkedin_url = workhuman.linkedin_url;
+    // source: show what we actually know about provenance
+    if (!identity.source) {
+      const parts = [];
+      if (workhuman.source) parts.push(`workhuman:${workhuman.source}`);
+      else if (workhuman.id) parts.push('workhuman_leads');
+      if (ap) parts.push('apollo');
+      identity.source = parts.length ? parts.join(' + ') : null;
     }
   }
 

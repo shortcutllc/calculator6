@@ -2245,6 +2245,10 @@ const SalesIntelligence: React.FC = () => {
   const [brokerTrackFilter, setBrokerTrackFilter] = useState<'all' | 'broker' | 'carrier_hec'>('all');
   const [brokerStateFilter, setBrokerStateFilter] = useState<'all' | 'never_emailed' | 'in_cadence' | 'replied'>('all');
   const [brokerTierFilter, setBrokerTierFilter] = useState<'all' | 'tier_1' | 'tier_2' | 'tier_3'>('all');
+  // Inline expansion: clicking a broker row drops down a panel showing the
+  // firm "why" insight, NYC presence, full CRM card via the shared
+  // CRMCardContent (so all the contact data we have shows up).
+  const [brokerExpanded, setBrokerExpanded] = useState<string | null>(null);
 
   const loadBrokers = useCallback(async (scope: 'mine' | 'team') => {
     setBrokersLoading(true);
@@ -2904,6 +2908,7 @@ const SalesIntelligence: React.FC = () => {
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className={th}></th>
                       <th className={th}>State</th>
                       <th className={th}>Contact</th>
                       <th className={th}>Firm</th>
@@ -2915,6 +2920,7 @@ const SalesIntelligence: React.FC = () => {
                   </thead>
                   <tbody>
                     {visible.map((r) => {
+                      const isOpen = brokerExpanded === r.email;
                       const stateBadge = r.state === 'never_emailed'
                         ? <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">Never emailed</span>
                         : r.state === 'replied'
@@ -2922,12 +2928,19 @@ const SalesIntelligence: React.FC = () => {
                         : <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800">In cadence</span>;
                       const tierBadge = r.firm_tier === 'tier_1' ? 'T1' : r.firm_tier === 'tier_2' ? 'T2' : r.firm_tier === 'tier_3' ? 'T3' : '—';
                       return (
-                        <tr key={r.email} className="border-t border-gray-100">
+                        <React.Fragment key={r.email}>
+                        <tr
+                          className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer"
+                          onClick={() => setBrokerExpanded(isOpen ? null : r.email)}
+                        >
+                          <td className={td}>
+                            <span className="text-gray-400 inline-block w-4">{isOpen ? '▾' : '▸'}</span>
+                          </td>
                           <td className={td}>{stateBadge}</td>
                           <td className={td}>
                             <div className="font-medium text-gray-900">{r.name || r.email}</div>
                             <div className="text-xs text-gray-500">{r.title || '—'}</div>
-                            {r.linkedin_url && <a href={r.linkedin_url} target="_blank" rel="noreferrer" className="text-xs text-shortcut-navy-blue hover:underline inline-flex items-center gap-1">linkedin <ExternalLink size={10} /></a>}
+                            {r.linkedin_url && <a href={r.linkedin_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-xs text-shortcut-navy-blue hover:underline inline-flex items-center gap-1">linkedin <ExternalLink size={10} /></a>}
                           </td>
                           <td className={td}>
                             <div className="font-medium text-gray-900">{r.firm_name}</div>
@@ -2944,7 +2957,7 @@ const SalesIntelligence: React.FC = () => {
                           <td className={td}>{r.emailed_count || 0}</td>
                           <td className={td}>
                             <button
-                              onClick={() => setDraftTarget({
+                              onClick={(e) => { e.stopPropagation(); setDraftTarget({
                                 company: r.firm_name,
                                 followup: {
                                   email: r.email, name: r.name, title: r.title, company: r.firm_name,
@@ -2969,13 +2982,45 @@ const SalesIntelligence: React.FC = () => {
                                   assigned_to: r.assigned_to, tier: null, outreach_status: null,
                                   conference_attendee: false, was_waitlisted: false, vip_slot: null,
                                 } as FollowupRow,
-                              })}
+                              }); }}
                               className="flex items-center gap-1.5 text-xs font-medium text-shortcut-navy-blue hover:underline"
                             >
                               <PenLine size={14} /> Draft
                             </button>
                           </td>
                         </tr>
+                        {isOpen && (
+                          <tr className="bg-blue-50/30">
+                            <td className={td}></td>
+                            <td className={td} colSpan={7}>
+                              {/* Firm insight blurb — the same "why" Pro uses
+                                  to compose emails. Helps the rep speak to
+                                  WHY this firm is on the list. */}
+                              {r.firm_why && (
+                                <div className="mb-3 p-3 bg-white border border-blue-200 rounded">
+                                  <div className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide mb-1">Firm insight (used in drafts)</div>
+                                  <div className="text-sm text-gray-700 leading-snug">{r.firm_why}</div>
+                                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                                    {r.firm_nyc && <span><strong>NYC presence:</strong> {r.firm_nyc}</span>}
+                                    {r.firm_tier && <span><strong>Tier:</strong> {r.firm_tier.replace('tier_', 'T')}</span>}
+                                    {r.firm_track && <span><strong>Track:</strong> {r.firm_track === 'carrier_hec' ? 'Carrier HEC' : 'Broker'}</span>}
+                                    {r.firm_priority !== null && r.firm_priority !== undefined && <span><strong>Priority rank:</strong> #{r.firm_priority}</span>}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Full CRM card — same shared inline view we use
+                                  in the Follow-ups tab, so Identity (Location,
+                                  Source, Yrs in role) + recent threads +
+                                  proposals + landing-page links all render. */}
+                              <CRMCardContent
+                                inline
+                                target={{ company: r.firm_name, email: r.email }}
+                                onDraft={(t) => setDraftTarget(t)}
+                              />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                       );
                     })}
                   </tbody>
