@@ -598,18 +598,17 @@ Notes on the reference:
     return { statusCode: 200, body: 'ok' };
   }
   // Build a REAL Gmail draft via drafts.create so the rep's full HTML
-  // signature renders when they open it in compose. The plain-text-in-URL
-  // workaround stripped formatting + stacked under Gmail's auto-applied
-  // signature — this is the proper path.
-  // gmailDraftId becomes the compose=<id> param in the Open-in-Gmail URL.
+  // signature renders when they open it in compose. The Open-in-Gmail URL
+  // uses the HEX message ID (not the draft id) in the fragment: this is the
+  // ONLY pattern that actually pops the compose window — verified live by
+  // navigating in a real browser. ?compose=<id> just lands on inbox.
   let gmailDraftId = null;
+  let gmailMessageId = null;
   let signatureText = null;
   try {
     const tok = await getAccessToken(sb, repEmail);
     const sigHtml = await getSignature(tok, repEmail);
     if (sigHtml) {
-      // Keep the plain-text fallback on the row for telemetry/debug — not
-      // currently used in the URL.
       signatureText = sigHtml
         .replace(/<\s*br\s*\/?>/gi, '\n')
         .replace(/<\/(div|p|li|tr|h\d)>/gi, '\n')
@@ -627,6 +626,7 @@ Notes on the reference:
       threadId: threadId || latestSend?.thread_id || null,
     });
     gmailDraftId = draftResp.id;
+    gmailMessageId = draftResp.messageId;  // hex; this is what the URL needs
   } catch (e) {
     console.warn('gmail draft create failed (non-fatal — falls back to compose URL):', e.message);
   }
@@ -652,6 +652,7 @@ Notes on the reference:
       rep_email: repEmail,
       signature_text: signatureText,
       gmail_draft_id: gmailDraftId,
+      gmail_message_id: gmailMessageId,
     },
     preflight_reco: pic.preflight?.recommendation || null,
   }).select().single();
@@ -668,8 +669,9 @@ Notes on the reference:
       draftId: saved.id,
       threadId: threadId || latestSend?.thread_id || null,
       repEmail,   // <— enables the "Open in Gmail" button (authuser=<rep>)
-      signatureText,  // <— optional, only used if gmailDraftId unavailable (legacy fallback)
-      gmailDraftId,   // <— opens the REAL Gmail draft via compose=<id> so signature renders as HTML
+      signatureText,    // legacy fallback only
+      gmailDraftId,     // for delete-on-send / delete-on-cancel cleanup
+      gmailMessageId,   // <— hex message id, used in the Open-in-Gmail URL fragment
     },
     medium,
     fightFor,
@@ -759,6 +761,7 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
   // 3a. Regenerate the Gmail draft so the compose preview shows the revised
   // body. Old draft must be deleted to avoid drafts-folder pollution.
   let newGmailDraftId = null;
+  let newGmailMessageId = null;
   try {
     const tok = await getAccessToken(sb, repEmail);
     if (draft.target_ref?.gmail_draft_id) {
@@ -774,12 +777,17 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
       threadId: draft.target_ref?.thread_id || null,
     });
     newGmailDraftId = draftResp.id;
+    newGmailMessageId = draftResp.messageId;
   } catch (e) {
     console.warn('gmail draft regenerate failed (edit mode):', e.message);
   }
 
-  // 3. Update saved_drafts in place (keep all other fields, swap gmail_draft_id)
-  const newTargetRef = { ...(draft.target_ref || {}), gmail_draft_id: newGmailDraftId };
+  // 3. Update saved_drafts in place (keep all other fields, swap draft + msg ids)
+  const newTargetRef = {
+    ...(draft.target_ref || {}),
+    gmail_draft_id: newGmailDraftId,
+    gmail_message_id: newGmailMessageId,
+  };
   const { error: updErr } = await sb.from('saved_drafts')
     .update({
       subject: revised.subject,
@@ -807,6 +815,7 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
       repEmail: repEmail || draft.target_ref?.rep_email,
       signatureText: draft.target_ref?.signature_text || null,  // legacy fallback only
       gmailDraftId: newGmailDraftId,
+      gmailMessageId: newGmailMessageId,
     },
     { subject: revised.subject, body: revised.body, label: 'medium (revised)' },
     fightFor,

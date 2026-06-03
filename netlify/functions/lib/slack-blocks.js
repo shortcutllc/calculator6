@@ -312,16 +312,14 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
   // subject / body so the rep can tweak and send from Gmail directly.
   // Uses the rep's own gmail account via authuser= so the right inbox opens.
   let openInGmailUrl = null;
-  if (ctx.repEmail && ctx.gmailDraftId) {
+  if (ctx.repEmail && ctx.gmailMessageId) {
     // Preferred path: open the REAL Gmail draft created via drafts.create.
-    // Body is full HTML (with markdown links rendered as anchors and the
-    // rep's HTML signature embedded). This is what makes "Open in Gmail"
-    // look like a normal Gmail draft instead of a stripped-down workaround.
-    const p = new URLSearchParams({
-      authuser: ctx.repEmail,
-      compose: ctx.gmailDraftId,
-    });
-    openInGmailUrl = `https://mail.google.com/mail/u/0/?${p.toString()}`;
+    // VERIFIED working URL format: ?authuser=...#drafts/<HEX_MESSAGE_ID>
+    // (NOT ?compose=<draft_id> — that pattern just lands the user in their
+    // inbox.) The fragment-based URL pops the actual compose window with
+    // full HTML body + the rep's brand-styled HTML signature rendered.
+    // Tested live: https://mail.google.com/mail/u/0/?authuser=<rep>#drafts/<msgId>
+    openInGmailUrl = `https://mail.google.com/mail/u/0/?authuser=${encodeURIComponent(ctx.repEmail)}#drafts/${ctx.gmailMessageId}`;
   } else if (ctx.repEmail && ctx.email) {
     // Fallback: legacy compose URL when no real Gmail draft id was created
     // (e.g. token fetch failed). body= is text-only; Gmail's own
