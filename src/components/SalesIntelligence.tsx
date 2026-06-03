@@ -800,12 +800,17 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
 type AssigneeName = 'Will Newton' | 'Jaimie Pritchard' | 'Marc Levitan' | 'Caren Skutch';
 const ASSIGNEE_NAMES: AssigneeName[] = ['Will Newton', 'Jaimie Pritchard', 'Marc Levitan', 'Caren Skutch'];
 
+// Lead-action verbs that mutate state. Parent uses these to update local
+// arrays surgically (remove muted row from queue, etc.) instead of forcing
+// a full refetch on every action.
+type LeadAction = 'mute' | 'unmute' | 'snooze' | 'reassign' | 'set_tier' | 'delete';
+
 const LeadActionBar: React.FC<{
   email: string;
   hasWorkhuman: boolean;
   currentAssignedTo: string | null;
   currentTier: string | null;
-  onMutated: () => void;
+  onMutated: (action?: LeadAction) => void;   // action lets parent update state in place instead of refetching everything
   isMuted?: boolean;   // when the card is opened from the "Muted" section
 }> = ({ email, hasWorkhuman, currentAssignedTo, currentTier, onMutated, isMuted }) => {
   const [busy, setBusy] = useState<string | null>(null);
@@ -824,7 +829,7 @@ const LeadActionBar: React.FC<{
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || `Failed (${r.status})`);
-      onMutated();
+      onMutated(payload.action as LeadAction);
       return j;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed');
@@ -1134,12 +1139,12 @@ const WorkhumanAffordances: React.FC<{
 // (Workhuman-style) so SalesIntelligence rows feel the same as WorkhumanLeads.
 // onMutated lets child Workhuman actions (notes / create landing page) ask
 // the card to re-fetch so the new state shows up immediately.
-const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) => void; inline?: boolean; onMutated?: () => void }> = ({ target, onDraft, inline, onMutated }) => {
+const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) => void; inline?: boolean; onMutated?: (action?: LeadAction) => void }> = ({ target, onDraft, inline, onMutated }) => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [d, setD] = useState<CardData | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
-  const reload = useCallback(() => { setReloadTick((t) => t + 1); onMutated?.(); }, [onMutated]);
+  const reload = useCallback((action?: LeadAction) => { setReloadTick((t) => t + 1); onMutated?.(action); }, [onMutated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2811,7 +2816,26 @@ const SalesIntelligence: React.FC = () => {
                                 inline
                                 target={{ company: r.company || r.email, email: r.email, domain: r.email?.split('@')[1] || null }}
                                 onDraft={(t) => setDraftTarget(t)}
-                                onMutated={() => { setFollowups(null); setMutedLeads(null); /* refetch both on next visit */ }}
+                                onMutated={(action) => {
+                                  // Surgical state update instead of a full
+                                  // refetch (whole tab was reloading on every
+                                  // mute/snooze). Mute / snooze / delete remove
+                                  // the row from the active queue; unmute moves
+                                  // it back from the muted bucket; reassign
+                                  // and set_tier mutate in place. Card itself
+                                  // already refetches via its own reload tick.
+                                  if (!action) return;  // workhuman-affordance mutation (note edit, landing-page create) — card refetches itself
+                                  if (['mute', 'snooze', 'delete'].includes(action)) {
+                                    setFollowups((prev) => (prev || []).filter((x) => x.email !== r.email));
+                                    setMutedLeads(null);   // muted bucket will refetch when filter clicked
+                                    setFuExpanded(null);   // close the expansion since the row is gone
+                                  } else if (action === 'unmute') {
+                                    setMutedLeads((prev) => (prev || []).filter((x) => x.email !== r.email));
+                                    setFollowups(null);    // active queue will refetch when user re-enters
+                                  } else if (action === 'reassign' || action === 'set_tier') {
+                                    // Card refetches its own view via reload; main row only shows email/state which didn't change
+                                  }
+                                }}
                               />
                             </td>
                           </tr>
@@ -2990,14 +3014,32 @@ const SalesIntelligence: React.FC = () => {
                           </td>
                         </tr>
                         {isOpen && (
-                          <tr className="bg-blue-50/30">
-                            <td className={td}></td>
-                            <td className={td} colSpan={7}>
-                              {/* Firm insight blurb — the same "why" Pro uses
-                                  to compose emails. Helps the rep speak to
-                                  WHY this firm is on the list. */}
+                          <tr>
+                            <td colSpan={8} className="border-t border-gray-100 p-0 bg-gray-50/50">
+                              {/* Action bar matches the Follow-ups tab expanded
+                                  row — Hide / Snooze / Delete + (for Workhuman
+                                  contacts) Reassign / Tier dropdowns. Brokers
+                                  generally aren't workhuman_leads so the WH
+                                  affordances render disabled, but Hide / Snooze
+                                  / Delete still work. */}
+                              <LeadActionBar
+                                email={r.email}
+                                hasWorkhuman={false}
+                                currentAssignedTo={r.assigned_to || null}
+                                currentTier={null}
+                                onMutated={(action) => {
+                                  if (!action) return;
+                                  if (['mute', 'snooze', 'delete'].includes(action)) {
+                                    setBrokers((prev) => (prev || []).filter((x) => x.email !== r.email));
+                                    setBrokerExpanded(null);
+                                  }
+                                }}
+                              />
+                              {/* Firm insight blurb — the "why" Pro uses to
+                                  compose emails. So the rep sees what context
+                                  Pro is reasoning over. */}
                               {r.firm_why && (
-                                <div className="mb-3 p-3 bg-white border border-blue-200 rounded">
+                                <div className="mx-3 mt-3 mb-3 p-3 bg-white border border-blue-200 rounded">
                                   <div className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide mb-1">Firm insight (used in drafts)</div>
                                   <div className="text-sm text-gray-700 leading-snug">{r.firm_why}</div>
                                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
@@ -3008,10 +3050,10 @@ const SalesIntelligence: React.FC = () => {
                                   </div>
                                 </div>
                               )}
-                              {/* Full CRM card — same shared inline view we use
-                                  in the Follow-ups tab, so Identity (Location,
-                                  Source, Yrs in role) + recent threads +
-                                  proposals + landing-page links all render. */}
+                              {/* Full CRM card — same shared inline view the
+                                  Follow-ups tab uses. Identity (Location, Source,
+                                  Yrs in role) + recent threads + proposals +
+                                  landing-page links all render. */}
                               <CRMCardContent
                                 inline
                                 target={{ company: r.firm_name, email: r.email }}
