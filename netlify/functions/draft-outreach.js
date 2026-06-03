@@ -152,7 +152,7 @@ OPENER RULES (apply to every direction):
 - *NEVER invent time references.* No "last week", "a few days ago", "recently", "earlier this month" UNLESS the personal_note explicitly contains a date you can ground on. For Workhuman conference references, just say "at Workhuman" or "at the booth" with NO time qualifier. The conference was in late April; saying "last week" later than that is a hallucinated lie that wrecks credibility.
 - Write in FIRST PERSON. The rep IS the sender, never refer to them in third person ("our CEO", "our founder" — both forbidden).
 - If the rep_first_name passed in is NOT "Will", use the rep's actual name in the same first-person shape (e.g. "Hi Kelly, Caren here. I lead partnerships at Shortcut."). Never sign emails from "Will" if the rep is someone else.
-- The opener can also skip self-intro entirely when the body's first sentence makes the sender obvious from context (e.g. follow-up emails replying to a thread they already know).
+- SELF-INTRO IS COLD-OPEN ONLY. For follow-ups (where the prospect already knows the rep), DO NOT re-introduce: skip the "Will Newton here. I run Shortcut." entirely. Open with warmth instead, exactly the way Jaimie's reference patterns do: "Hi Sarah, Thank you again for taking the time to speak with me this week..." / "Hi Sarah, I hope you're having a great week!" / "Hi Sarah, It was wonderful speaking with you today!" Self-intro on a thread where you already met = stiff and weird. The salutation + warm opener is enough.
 - ZERO DASHES IN OPENERS. Use commas, periods, new sentences. The "no dashes" hard rule above applies inside the opener too. Some rule text in this prompt may contain em dashes for instructional reading. Never emulate them in output.
 - PARAGRAPH STRUCTURE: the greeting line stands ALONE. Use two newlines (a blank line) after the greeting so the self-intro starts on its own paragraph. This is what the output should look like (NOT one run-together line):
     Hi Kelly,
@@ -460,7 +460,7 @@ export const handler = async (event) => {
         + `  • Open with a SPECIFIC reference to their firm + relevant observation (wellness-fund pitch, M&A wellness gap, ICP overlap). NOT generic "hope you're well".\n`
         + `  • One concrete next step: 15-min call OR a one-page broker brief.\n`
         + `  • Brand voice: peer-to-peer, low-pressure. NO "synergy", "leverage", "best-in-class", "circling back".\n`
-        + `  • Casual close: "Best, [name]" or "Thanks, [name]".\n`
+        + `  • Close: pick from WARM CLOSES in the system prompt ("Thank you again," / "Warmly," / "Warm regards," / "Looking forward to..."). NOT bare "Best, [name]" by default.\n`
         + `\nSHAPE for the NETWORKING direction (broker-specific, distinct from the pitch directions):\n`
         + `  • Length: even shorter. Under 90 words. Reads like a peer reaching out, not a vendor pitching.\n`
         + `  • Subject: curiosity, not pitch. "How are you handling EOY wellness-fund spend?" or "Comparing notes on client wellness benefit utilization" or "Quick thought on ${target.company || '[firm]'} clients' wellness fund balances".\n`
@@ -483,8 +483,8 @@ export const handler = async (event) => {
         + `  • Subject: NOT salesy. "Quick question on wellness-fund deployment" or "Shortcut for your client accounts" — neutral, professional.\n`
         + `  • Open with the deployment-data hook ("documentation you can cite in QBRs") — that's what differentiates us from any other wellness vendor that pitches them.\n`
         + `  • One concrete next step: a 15-min intro OR a one-page co-branded reporting sample. Pick one.\n`
-        + `  • Tone: peer-to-peer professional. NO sales-speak. NO "synergy". NO "best-in-class". NO "leverage".\n`
-        + `  • Casual close: "Best, [name]" or "Thanks, [name]".\n`
+        + `  • Tone: WARM + peer-to-peer professional. Use SIGNATURE WARMTH PHRASES from the system prompt (e.g. "I hope you've been doing well!" / "Please don't hesitate to reach out"). NO sales-speak. NO "synergy". NO "best-in-class". NO "leverage". Professional does NOT mean dry/transactional.\n`
+        + `  • Close: pick from WARM CLOSES in the system prompt ("Thank you again," / "Warmly," / "Warm regards," / "Looking forward to..."). NOT bare "Best, [name]" by default.\n`
         + `  • DO NOT mention "Workhuman". DO NOT mention rev share / commission — irrelevant for HECs.`
       : followup && target.kind === 'personal_first_outreach'
       ? `This is a FIRST OUTREACH to someone the rep met in person at Workhuman (or similar). It is NOT a follow-up to a prior email — there is no prior email. The hook is the in-person conversation itself.\n`
@@ -494,7 +494,7 @@ export const handler = async (event) => {
         + `  • Open with a specific reference to the in-person moment grounded in the note.\n`
         + `  • One concrete next step (a brief explainer, a 15-min call, an in-office demo — pick what's most relevant to the note).\n`
         + `  • Brand voice: warm, low-pressure, no buzzwords, no "synergy", no "circling back" (you weren't in touch before).\n`
-        + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+        + `  • Close: pick from the WARM CLOSES menu in the system prompt (e.g. "Thank you again," / "Warmly," / "Warm regards," / "Looking forward to...") matched to the warmth of the message. NOT a bare "Best, [name]" by default. No formal signature block.\n`
         + `  • DO NOT treat this as a follow-up. DO NOT say "circling back" or "following up on my note below" — there is no prior thread.`
       : followup
       ? `This is a FOLLOW-UP (touch #${target.this_is_touch_number}) to someone who hasn't replied in ~${target.days_since_last_email ?? 'a few'} days. Match Shortcut's established follow-up shape EXACTLY — this is not optional:\n`
@@ -503,7 +503,7 @@ export const handler = async (event) => {
         + `  • Do NOT re-pitch, re-introduce Shortcut, restate the offer, list services, or repeat anything from the prior email above. The prior email is sitting right under your follow-up — they can see it.\n`
         + `  • No "circling back" or "bumping this" alone — pair the bump with one concrete question or angle.\n`
         + `  • No guilt, no pressure, no "did you see my last email", no "just wanted to make sure this didn't get lost".\n`
-        + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+        + `  • Close: pick from the WARM CLOSES menu in the system prompt (e.g. "Thank you again," / "Warmly," / "Warm regards," / "Looking forward to...") matched to the warmth of the message. NOT a bare "Best, [name]" by default. No formal signature block.\n`
         + `  • If you have a fresh angle (a new offering, a specific question about their setup, a tightly-relevant insight), use it as the one question. Otherwise use the proven default: "Wondering if we can connect?"`
         + (target.personal_note ? `\n\nADDITIONAL CONTEXT — the rep also has this in-person note about this contact from a prior conference conversation (use it for ONE specific reference if it adds warmth, do not let it dilute the brevity):\n"${target.personal_note}"` : ``)
       : play === 'A' && target.kind === 're_engage_lapsed_client'

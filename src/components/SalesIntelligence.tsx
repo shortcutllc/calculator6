@@ -393,16 +393,40 @@ const DraftModal: React.FC<{ target: DraftTarget; onClose: () => void; onMutated
     <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl my-8">
         <div className="flex items-start justify-between p-5 border-b border-gray-200">
-          <div>
-            <h2 className="text-lg font-bold text-shortcut-navy-blue flex items-center gap-2">
-              <PenLine size={18} /> {target.followup ? 'Follow-up' : 'Draft outreach'} — {target.company}
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">
-              {target.followup
-                ? `Follow-up #${(target.followup.touches || 1) + 1} · no reply in ${target.followup.days_since}d · sends on the same Gmail thread.`
-                : `Play ${target.play} · rank ${target.rank}`} · human-in-the-loop. Review and edit before sending. The pre-flight gate re-checks the recipient on send.
-            </p>
-          </div>
+          {(() => {
+            // Title + subtitle vary by whether this is a never-emailed lead
+            // (cold open / first outreach) or a true follow-up. Old check
+            // was `target.followup ?` which is ALWAYS true for any followup
+            // payload — even brand-new contacts who've never been emailed.
+            // Bug surfaced when Will opened a draft for a never-emailed lead
+            // and saw "Follow-up #2 · no reply in 0d" — nonsensical.
+            const fu = target.followup;
+            const isFirst = !fu ? false : !!(
+              fu.is_first_outreach
+              || fu.state === 'never_emailed'
+              || fu.state === 'unknown_no_inbox'
+              || !fu.touches
+              || !fu.last_sent
+            );
+            const title = fu
+              ? (isFirst ? 'Draft outreach' : 'Follow-up')
+              : 'Draft outreach';
+            const subtitle = fu
+              ? (isFirst
+                ? `First outreach · ${fu.company || fu.email || ''}`
+                : `Follow-up #${(fu.touches || 1) + 1} · no reply in ${fu.days_since}d · sends on the same Gmail thread.`)
+              : `Play ${target.play} · rank ${target.rank}`;
+            return (
+              <div>
+                <h2 className="text-lg font-bold text-shortcut-navy-blue flex items-center gap-2">
+                  <PenLine size={18} /> {title} — {target.company}
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  {subtitle} · human-in-the-loop. Review and edit before sending. The pre-flight gate re-checks the recipient on send.
+                </p>
+              </div>
+            );
+          })()}
           <div className="flex items-center gap-3">
             {target.savedDraft && (
               <button

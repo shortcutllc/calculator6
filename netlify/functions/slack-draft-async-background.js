@@ -134,7 +134,8 @@ OPENER RULES (apply to every direction):
     Will Newton here. I run Shortcut.
     \\n
     [first content paragraph]
-  Where \\n above means a blank line. Same shape whether the greeting is "Hi <name>,", "Hey <name>.", or "<Name>," — always its own line, then a blank line, then the self-intro paragraph.
+  Where \\n above means a blank line. Same shape whether the greeting is "Hi <name>,", "Hey <name>.", or "<Name>," — always its own line, then a blank line, then the next paragraph.
+- SELF-INTRO IS COLD-OPEN ONLY. For follow-ups (the prospect already knows the rep), DO NOT re-introduce: skip "Will Newton here. I run Shortcut." entirely. Open with warmth like Jaimie's reference patterns: "Hi Sarah, Thank you again for taking the time to speak with me this week..." / "Hi Sarah, I hope you're having a great week!" / "Hi Sarah, It was wonderful speaking with you today!" Re-introducing on a thread where you already met reads stiff and weird.
 - NO NAME REPETITION inside a single paragraph. Use pronouns or rewrite. If you write a sentence referencing "Aetna" or "Burberry" or any company name twice in the same paragraph, rewrite using pronouns ("they", "the carrier", "them") for the second reference. Three repetitions of the same proper noun in one paragraph is always bad writing.
 
 Use any provided context (prior contact history, whether they are an existing client expanding, firmographics, the contact's title) to ground the hook in something true and specific.
@@ -532,7 +533,7 @@ Notes on the reference:
           + `  • Structure: open with a one-line reference to the prior thread (acknowledge you're following up), then the substance from the brief, then ONE clear next step.\n`
           + `  • If the brief mentions a proposal or signup link, include the actual URL on its own line so it's tappable. Use the URL from "Assets to reference" above verbatim.\n`
           + `  • Brand voice: warm, plain, no buzzwords, no "synergy", no "leverage", no "circle back". Read like one human emailing another.\n`
-          + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+          + `  • Close: pick from the WARM CLOSES menu in the system prompt (e.g. "Thank you again," / "Warmly," / "Warm regards," / "Looking forward to...") matched to the warmth of the message. NOT a bare "Best, [name]" by default. No formal signature block.\n`
           + `  • Do NOT re-introduce Shortcut from scratch if there's prior thread context. Do NOT re-pitch services that are already in the proposal.`
           + (ctx.workhuman_context?.personal_note
             ? `\n  • The rep has this in-person note on file — use it if it adds warmth, but don't let it dominate: "${ctx.workhuman_context.personal_note}"`
@@ -564,7 +565,7 @@ Notes on the reference:
           + `  • Open with a SPECIFIC reference to their firm + relevant observation. NOT "hope you're well".\n`
           + `  • One concrete next step: 15-min call OR a one-page broker brief.\n`
           + `  • Brand voice: peer-to-peer, low-pressure. NO "synergy", "leverage", "best-in-class", "circling back".\n`
-          + `  • Casual close: "Best, [name]" or "Thanks, [name]".\n`
+          + `  • Close: pick from WARM CLOSES in the system prompt ("Thank you again," / "Warmly," / "Warm regards," / "Looking forward to..."). NOT bare "Best, [name]" by default.\n`
           + `\nSHAPE for the NETWORKING direction (broker-specific):\n`
           + `  • Length: even shorter. Under 90 words. Peer-to-peer note, not a vendor pitch.\n`
           + `  • Subject: curiosity, not pitch. "How are you handling EOY wellness-fund spend?" or "Comparing notes on client wellness benefit utilization" or "Quick thought on ${ctx.prospect.company || '[firm]'} clients' wellness fund balances".\n`
@@ -587,8 +588,8 @@ Notes on the reference:
           + `  • Subject: NOT salesy. "Quick question on wellness-fund deployment" or "Shortcut for your client accounts" — neutral, professional.\n`
           + `  • Open with the deployment-data hook ("co-branded reporting you can cite in QBRs").\n`
           + `  • One concrete next step: 15-min intro OR a one-page reporting sample.\n`
-          + `  • Tone: peer-to-peer professional. NO sales-speak. NO "synergy" / "leverage" / "best-in-class".\n`
-          + `  • Casual close: "Best, [name]" or "Thanks, [name]".\n`
+          + `  • Tone: WARM + peer-to-peer professional. Use SIGNATURE WARMTH PHRASES from the system prompt (e.g. "I hope you've been doing well!" / "Please don't hesitate to reach out"). NO sales-speak. NO "synergy" / "leverage" / "best-in-class". Professional does NOT mean dry/transactional.\n`
+          + `  • Close: pick from WARM CLOSES in the system prompt ("Thank you again," / "Warmly," / "Warm regards," / "Looking forward to..."). NOT bare "Best, [name]" by default.\n`
           + `  • DO NOT mention "Workhuman". DO NOT mention rev share or commission.`
       : ctx.mode === 'personal_first_outreach'
         ? `This is a FIRST OUTREACH to someone the rep ACTUALLY MET IN PERSON at the Workhuman conference. It is NOT a follow-up — there is no prior email. The hook is the in-person conversation itself.\n`
@@ -603,7 +604,7 @@ Notes on the reference:
           + `  • Tone: warm, conversational, real human. This is not a cold pitch. You shared an actual conversation. Reference it specifically (a detail from the note, not a generic "great to meet you").\n`
           + `  • One concrete next step (a brief explainer, a 15-min call, an in-office demo). Pick what's most relevant to the note.\n`
           + `  • Brand voice: warm, low-pressure, no buzzwords, no "synergy", no "circling back" (you weren't in touch before).\n`
-          + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+          + `  • Close: pick from the WARM CLOSES menu in the system prompt (e.g. "Thank you again," / "Warmly," / "Warm regards," / "Looking forward to...") matched to the warmth of the message. NOT a bare "Best, [name]" by default. No formal signature block.\n`
           + `  • DO NOT treat this as a follow-up. DO NOT say "circling back" or "following up on my note below" — there is no prior thread.`
         : ctx.mode === 'follow_up'
         ? `This is a FOLLOW-UP (touch #${ctx.history.this_is_touch_number}) to someone who hasn't replied in ~${ctx.history.days_since_last_email ?? 'a few'} days. Match Shortcut's established follow-up shape EXACTLY — this is not optional:\n`
@@ -612,7 +613,7 @@ Notes on the reference:
           + `  • Do NOT re-pitch, re-introduce Shortcut, restate the offer, list services, or repeat anything from the prior email above. The prior email is sitting right under your follow-up — they can see it.\n`
           + `  • No "circling back" or "bumping this" alone — pair the bump with one concrete question or angle.\n`
           + `  • No guilt, no pressure, no "did you see my last email", no "just wanted to make sure this didn't get lost".\n`
-          + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
+          + `  • Close: pick from the WARM CLOSES menu in the system prompt (e.g. "Thank you again," / "Warmly," / "Warm regards," / "Looking forward to...") matched to the warmth of the message. NOT a bare "Best, [name]" by default. No formal signature block.\n`
           + `  • If you have a fresh angle (a new offering, a specific question about their setup, a tightly-relevant insight), use it as the one question. Otherwise use the proven default: "Wondering if we can connect?"`
           + (ctx.workhuman_context?.personal_note
             ? `\n\nADDITIONAL CONTEXT — the rep also has this in-person note about this contact from a prior conference conversation (use it for ONE specific reference if it adds warmth, do not let it dilute the brevity):\n"${ctx.workhuman_context.personal_note}"`
