@@ -749,19 +749,6 @@ const TOOLS = [
   },
   {
     name: 'list_broker_queue',
-    description: 'List the broker GTM contacts assigned to a rep (Will or Caren). Shows the rep their stack of healthcare-broker and carrier-HEC prospects from the Sprint 1 Apollo discovery (~150 contacts at firms like OneDigital, NFP, EPIC, Sequoia, Cigna, Aetna, Anthem). Use when the rep asks "what brokers should I work today", "show me my broker queue", "what\'s in my carrier HEC stack", or similar. Returns email + name + title + firm + priority rank + whether they\'ve been emailed yet. Filter by track (\'broker\' or \'carrier_hec\') or status (\'untouched\' = never emailed, \'in_flight\' = emailed but no reply, \'replied\' = warm) to narrow. After they pick a contact, chain to lookup_lead + draft_email for the actual outreach.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        rep: { type: 'string', description: 'Rep email — defaults to the rep who DMed Pro. Pass "will@getshortcut.co" or "caren@getshortcut.co" to override (e.g. Will inspecting Caren\'s queue).' },
-        track: { type: 'string', enum: ['broker', 'carrier_hec'], description: 'Filter to one track. Omit to see both.' },
-        status: { type: 'string', enum: ['untouched', 'in_flight', 'replied'], description: 'Filter by outreach state. Default returns all.' },
-        limit: { type: 'integer', description: 'Max contacts to return (default 15, max 50).' }
-      }
-    }
-  },
-  {
-    name: 'list_broker_queue',
     description: 'Return the rep\'s healthcare-broker + carrier-HEC contact queue (Track A = brokers like OneDigital / NFP / Sequoia, Track B = HECs at Cigna / Aetna / Anthem). Use when the rep asks "show my broker queue", "who do I have at OneDigital", "list my tier 1 brokers", "show carrier HECs", "what brokers haven\'t I emailed yet". Returns a summary (total, by state, by tier) + up to N contacts ordered by priority_rank (lower = higher priority). Pair filters as needed.',
     input_schema: {
       type: 'object',
