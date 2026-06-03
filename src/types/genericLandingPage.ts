@@ -22,6 +22,9 @@ export interface GenericLandingPageCustomization {
   // Google Calendar booking link is embedded. Value is a SenderName from
   // workhumanOutreachTemplates (e.g. 'Will Newton'). Defaults to Will if unset.
   bookingRep?: string;
+  // Info-only variant: hides the booking card/modal/CTAs, shows a service-video
+  // montage + soft "learn more" link instead. Served at /info/:token.
+  infoOnly?: boolean;
 }
 
 export type LandingPageType = 'generic' | 'workhuman';

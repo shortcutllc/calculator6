@@ -127,7 +127,8 @@ const GenericLandingPageManager: React.FC = () => {
 
   const getPageUrl = (page: GenericLandingPage): string => {
     if (page.pageType === 'workhuman') {
-      return `${window.location.origin}/book-a-call/${page.uniqueToken}`;
+      const base = page.customization?.infoOnly ? 'info' : 'book-a-call';
+      return `${window.location.origin}/${base}/${page.uniqueToken}`;
     }
     return `${window.location.origin}/generic-landing-page/${page.uniqueToken}`;
   };
@@ -152,7 +153,8 @@ const GenericLandingPageManager: React.FC = () => {
 
   const handleView = (page: GenericLandingPage) => {
     if (page.pageType === 'workhuman') {
-      window.open(`/book-a-call/${page.uniqueToken}`, '_blank');
+      const base = page.customization?.infoOnly ? 'info' : 'book-a-call';
+      window.open(`/${base}/${page.uniqueToken}`, '_blank');
     } else {
       window.open(`/generic-landing-page/${page.uniqueToken}`, '_blank');
     }
@@ -362,9 +364,15 @@ const GenericLandingPageManager: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   {page.pageType === 'workhuman' && (
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
-                      Book a Call
-                    </span>
+                    page.customization?.infoOnly ? (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800">
+                        Info
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                        Book a Call
+                      </span>
+                    )
                   )}
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     page.status === 'published'

@@ -39,6 +39,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       contactLastName: editingPage?.customization?.contactLastName || '',
       customNote: editingPage?.customization?.customNote || '',
       bookingRep: editingPage?.customization?.bookingRep || 'Will Newton',
+      infoOnly: editingPage?.customization?.infoOnly || false,
       includePricingCalculator: editingPage?.customization?.includePricingCalculator ?? true,
       includeTestimonials: editingPage?.customization?.includeTestimonials ?? true,
       includeFAQ: editingPage?.customization?.includeFAQ ?? true,
@@ -69,6 +70,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
           contactLastName: editingPage.customization?.contactLastName || '',
           customNote: editingPage.customization?.customNote || '',
           bookingRep: editingPage.customization?.bookingRep || 'Will Newton',
+          infoOnly: editingPage.customization?.infoOnly || false,
           includePricingCalculator: editingPage.customization?.includePricingCalculator ?? true,
           includeTestimonials: editingPage.customization?.includeTestimonials ?? true,
           includeFAQ: editingPage.customization?.includeFAQ ?? true,
@@ -309,7 +311,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       
       // Navigate to the correct page based on type
       if (options.pageType === 'workhuman') {
-        navigate(`/book-a-call/${pageId}?refresh=${Date.now()}`);
+        const base = options.customization.infoOnly ? '/info' : '/book-a-call';
+        navigate(`${base}/${pageId}?refresh=${Date.now()}`);
       } else {
         navigate(`/generic-landing-page/${pageId}?refresh=${Date.now()}`);
       }
@@ -382,6 +385,28 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             <p className="text-gray-500 text-sm mt-1">
               Whoever owns this page — their Google Calendar booking link is embedded so prospects book directly with them.
             </p>
+          </div>
+          )}
+
+          {/* Info-only toggle (Book a Call pages) */}
+          {options.pageType === 'workhuman' && (
+          <div style={{ backgroundColor: '#F1F6F5', padding: '16px', borderRadius: '8px', border: '2px solid #E5E7EB' }}>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={options.customization.infoOnly}
+                onChange={(e) => handleFieldChange('customization.infoOnly', e.target.checked)}
+                style={{ marginRight: '12px', width: '20px', height: '20px' }}
+              />
+              <div>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#003756' }}>
+                  Info only (no booking)
+                </span>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#003756', marginTop: '4px' }}>
+                  Hides the booking card and call CTAs. Shows a rotating service-video montage and a soft "learn more" link instead. Served at /info/...
+                </p>
+              </div>
+            </label>
           </div>
           )}
 

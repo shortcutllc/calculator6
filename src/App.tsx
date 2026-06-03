@@ -119,6 +119,7 @@ function App() {
     location.pathname.startsWith('/sign/') ||
     location.pathname === '/workhuman-tv' ||
     location.pathname.startsWith('/book-a-call') ||
+    location.pathname.startsWith('/info') ||
     location.pathname.startsWith('/workhuman/recharge') ||
     location.pathname.startsWith('/survey/') ||
     location.pathname.startsWith('/survey-results/');
@@ -586,6 +587,31 @@ function App() {
                     </div>
                   }>
                     <BookACallLanding />
+                  </Suspense>
+                }
+              />
+              {/* Info-only variant of the same page — no booking, montage hero */}
+              <Route
+                path="/info"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BookACallLanding infoMode={true} />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/info/:id"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BookACallLanding infoMode={true} />
                   </Suspense>
                 }
               />

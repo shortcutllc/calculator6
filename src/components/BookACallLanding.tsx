@@ -44,18 +44,46 @@ const _VIDEO_BASE_SUPABASE = 'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v
 const SERVICE_VIDEO_CLASS = 'w-full max-w-md aspect-[4/5] object-cover rounded-3xl';
 const SERVICE_VIDEO_STYLE = { boxShadow: '0 10px 40px rgba(0, 55, 86, 0.12)' };
 
-const BookACallLanding: React.FC = () => {
+// Hero montage (info-only variant): rotates through the service videos in place
+// of the booking card. Same source URLs as the carousel, so they're cached, not
+// re-downloaded.
+const MONTAGE = [
+  { label: 'Massage', src: SERVICE_VIDEOS.massage },
+  { label: 'Hair & Makeup', src: SERVICE_VIDEOS.hair },
+  { label: 'Professional Headshots', src: SERVICE_VIDEOS.headshots },
+  { label: 'Luxe Nail Care', src: SERVICE_VIDEOS.nails },
+  { label: 'Mindfulness', src: SERVICE_VIDEOS.mindfulness },
+];
+
+interface BookACallLandingProps {
+  // When true (or when the page record has customization.infoOnly), render the
+  // information-only variant: no booking card/modal/CTAs, a rotating service-video
+  // montage in the hero, and a soft "learn more" link instead.
+  infoMode?: boolean;
+}
+
+const BookACallLanding: React.FC<BookACallLandingProps> = ({ infoMode = false }) => {
   const { id } = useParams<{ id?: string }>();
 
   // Page config loaded from DB (generic_landing_pages where page_type='workhuman')
   const [pageLoading, setPageLoading] = useState(!!id);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  // Info-only variant — driven by the route (infoMode prop) OR the record flag.
+  const [infoOnly, setInfoOnly] = useState(false);
+  const isInfo = infoMode || infoOnly;
   // Which team member owns this page → whose booking link gets embedded.
   const [bookingRep, setBookingRep] = useState<string>(DEFAULT_REP);
   const booking = resolveBooking(bookingRep);
   // Booking scheduler modal (opened from the branded card's CTA).
   const [showBooking, setShowBooking] = useState(false);
+  // Hero montage rotation (info variant only).
+  const [montageIdx, setMontageIdx] = useState(0);
+  useEffect(() => {
+    if (!isInfo) return;
+    const t = setInterval(() => setMontageIdx((i) => (i + 1) % MONTAGE.length), 4200);
+    return () => clearInterval(t);
+  }, [isInfo]);
 
   // Lock body scroll + close on Escape while the booking modal is open.
   useEffect(() => {
@@ -128,6 +156,7 @@ const BookACallLanding: React.FC = () => {
       setCompanyName(partnerName);
       setLogoUrl(partnerLogo);
       if (rep) setBookingRep(rep);
+      if (data.customization?.infoOnly) setInfoOnly(true);
 
       // Track the view (fire and forget; skip bots via prerender UA check).
       // Phase 3: after the count increments, also fire a Slack ping to the
@@ -283,6 +312,13 @@ const BookACallLanding: React.FC = () => {
   };
 
   // Custom smooth scroll with easing
+  // Primary CTA action: scroll to the booking card, or (info variant) open the
+  // main site since there's no booking on the page.
+  const goPrimary = () => {
+    if (isInfo) window.open('https://getshortcut.co', '_blank', 'noopener');
+    else smoothScrollTo('book');
+  };
+
   const smoothScrollTo = (targetId: string) => {
     const target = document.getElementById(targetId);
     if (!target) return;
@@ -843,13 +879,15 @@ const BookACallLanding: React.FC = () => {
 
           {/* Navigation Menu - Centered (hidden on mobile) */}
           <nav className="hidden lg:flex flex-1 items-center justify-center text-sm font-bold">
-            <a
-              href="#book"
-              onClick={(e) => { e.preventDefault(); smoothScrollTo('book'); }}
-              className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
-            >
-              Book a Call
-            </a>
+            {!isInfo && (
+              <a
+                href="#book"
+                onClick={(e) => { e.preventDefault(); smoothScrollTo('book'); }}
+                className="duration-300 text-opacity-60 px-5 py-3 flex items-center gap-2 cursor-pointer relative rounded-full hover:text-[#003C5E] hover:bg-gray-50"
+              >
+                Book a Call
+              </a>
+            )}
             <a
               href="#services"
               onClick={(e) => { e.preventDefault(); smoothScrollTo('services'); }}
@@ -947,9 +985,12 @@ const BookACallLanding: React.FC = () => {
                 <br />
                 {/* Rest of headline types in word by word */}
                 {(() => {
-                  const words = companyName
-                    ? `${companyName}, this meeting could've been a massage.`.split(' ')
-                    : `This meeting could've been a massage.`.split(' ');
+                  const bookingHeadline = companyName
+                    ? `${companyName}, this meeting could've been a massage.`
+                    : `This meeting could've been a massage.`;
+                  const words = (isInfo
+                    ? `We're Shortcut. Real Wellness. Right where your team works.`
+                    : bookingHeadline).split(' ');
                   return words.map((word, i) => (
                     <span
                       key={i}
@@ -978,7 +1019,9 @@ const BookACallLanding: React.FC = () => {
                   maxWidth: '480px',
                 }}
               >
-                We're Shortcut. We bring wellness into the workplace. Massage, headshots, beauty, mindfulness and more. One vendor, no logistics. Grab a time below and we'll walk {companyName ? `the ${companyName}` : 'your'} team through what a Shortcut event could look like.
+                {isInfo
+                  ? `We bring wellness into the workplace. Massage, headshots, beauty, mindfulness and more. One vendor, no logistics. The kind of wellness people actually use.`
+                  : <>We're Shortcut. We bring wellness into the workplace. Massage, headshots, beauty, mindfulness and more. One vendor, no logistics. Grab a time below and we'll walk {companyName ? `the ${companyName}` : 'your'} team through what a Shortcut event could look like.</>}
               </p>
 
               {/* Social proof stats */}
@@ -1004,10 +1047,52 @@ const BookACallLanding: React.FC = () => {
                 </div>
               </div>
 
+              {/* Soft CTA (info variant only) — no booking, just a way to learn more. */}
+              {isInfo && (
+                <a
+                  href="https://getshortcut.co"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm md:text-base font-semibold transition-all duration-200 hover:gap-3"
+                  style={{
+                    color: '#FF5050',
+                    opacity: heroVisible ? 1 : 0,
+                    transition: 'opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1) 2.4s, gap 0.2s',
+                  }}
+                >
+                  Learn more at getshortcut.co &rarr;
+                </a>
+              )}
+
               {/* Partner logos live in the full-width strip below the grid. */}
             </div>
 
-            {/* ─── Right Column: Booking Embed ─── */}
+            {/* ─── Right Column: montage (info variant) or booking card ─── */}
+            {isInfo ? (
+              <div className="flex justify-center lg:justify-end">
+                <div className="relative w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden" style={SERVICE_VIDEO_STYLE}>
+                  {MONTAGE.map((m, i) => (
+                    <video
+                      key={i}
+                      src={m.src}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="auto"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ opacity: i === montageIdx ? 1 : 0, transition: 'opacity 0.8s ease-in-out' }}
+                    />
+                  ))}
+                  <div className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0, 31, 31, 0.5), transparent)' }} />
+                  <div className="absolute bottom-5 left-5">
+                    <span className="inline-block px-4 py-2 rounded-full text-sm font-semibold" style={{ backgroundColor: 'rgba(255, 255, 255, 0.92)', color: '#003756' }}>
+                      {MONTAGE[montageIdx].label}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <div id="book" className="lg:sticky lg:top-[88px]">
               <div className="bg-white rounded-2xl p-7 md:p-8" style={{ boxShadow: '0 4px 40px rgba(0, 55, 86, 0.08), 0 1px 3px rgba(0, 55, 86, 0.04)', border: '1px solid rgba(0, 55, 86, 0.06)' }}>
                 {/* Eyebrow */}
@@ -1082,6 +1167,7 @@ const BookACallLanding: React.FC = () => {
                 )}
               </div>
             </div>
+            )}
           </div>
 
           {/* ─── Trust strip (full-width below the grid) ─── */}
@@ -1584,11 +1670,11 @@ const BookACallLanding: React.FC = () => {
                   {/* CTA Button */}
                   <div className="mt-10">
                     <button
-                      onClick={() => smoothScrollTo('book')}
+                      onClick={goPrimary}
                       className="px-8 py-4 rounded-full text-base font-medium transition-all duration-300 hover:scale-105 min-h-[48px]"
                       style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.2)' }}
                     >
-                      Book a Call
+                      {isInfo ? 'Learn More' : 'Book a Call'}
                     </button>
                   </div>
                 </div>
@@ -1979,7 +2065,7 @@ const BookACallLanding: React.FC = () => {
 
               {/* CTA strip */}
               <button
-                onClick={() => smoothScrollTo('book')}
+                onClick={goPrimary}
                 className="w-full rounded-b-[24px] border-t-0 border-r border-b border-l border-solid flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   height: '82px',
@@ -1991,7 +2077,7 @@ const BookACallLanding: React.FC = () => {
                   className="m-0 text-[18px] leading-[26px] font-medium text-center"
                   style={{ color: '#003756' }}
                 >
-                  Book a Call &rarr;
+                  {isInfo ? 'Learn More' : 'Book a Call'} &rarr;
                 </p>
               </button>
             </div>
@@ -2069,14 +2155,14 @@ const BookACallLanding: React.FC = () => {
                 Bring smiles<br />back to work.
               </h2>
               <p className="text-lg md:text-2xl leading-[1.2] lg:w-[85%] text-center lg:text-left opacity-90">
-                Real wellness, right between meetings. Let's find a time to talk.
+                Real wellness, right between meetings.{isInfo ? '' : " Let's find a time to talk."}
               </p>
               <div className="flex justify-center lg:justify-start">
                 <button
-                  onClick={() => smoothScrollTo('book')}
+                  onClick={goPrimary}
                   className="bg-[#9efaff] text-[#09364f] font-bold text-sm rounded-full px-8 py-4 hover:brightness-105 transition-all"
                 >
-                  Book a call
+                  {isInfo ? 'Learn more' : 'Book a call'}
                 </button>
               </div>
             </div>
