@@ -2040,6 +2040,27 @@ const SalesIntelligence: React.FC = () => {
     } finally { setSyncBusy(false); }
   }, [pageGmail, syncBusy, refreshGmail]);
 
+  const disconnectGmailPage = useCallback(async () => {
+    if (!confirm('Disconnect Gmail? Your access + refresh tokens will be revoked at Google. Your digest preferences (Slack mapping, timezone, opt-ins) are preserved so reconnecting restores everything.')) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/.netlify/functions/gmail-oauth-disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: '{}',
+      });
+      const j = await res.json();
+      if (res.ok && j.ok) {
+        await refreshGmail();
+      } else {
+        alert(`Disconnect failed: ${j.error || res.status}`);
+      }
+    } catch (e) {
+      alert(`Disconnect failed: ${e instanceof Error ? e.message : 'unknown'}`);
+    }
+  }, [refreshGmail]);
+
   const connectGmailPage = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -2314,6 +2335,13 @@ const SalesIntelligence: React.FC = () => {
                 className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
               >
                 Reconnect
+              </button>
+              <button
+                onClick={disconnectGmailPage}
+                title="Revoke Gmail access. Your digest preferences are preserved so reconnecting restores them."
+                className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50"
+              >
+                Disconnect
               </button>
             </div>
           ) : (
