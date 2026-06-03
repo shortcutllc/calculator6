@@ -10,6 +10,16 @@ import {
   MINDFULNESS_SELECT_OPTIONS,
   resolveMindfulnessEntry,
 } from '../utils/mindfulnessCatalog';
+import {
+  SOUND_BATH_CATALOG_BY_ID,
+  SOUND_BATH_SELECT_OPTIONS,
+  resolveSoundBathEntry,
+} from '../utils/soundBathCatalog';
+import {
+  YOGA_CATALOG_BY_ID,
+  YOGA_SELECT_OPTIONS,
+  resolveYogaEntry,
+} from '../utils/yogaCatalog';
 
 interface Service {
   serviceType: string;
@@ -272,6 +282,44 @@ const SERVICE_DEFAULTS = {
     classLength: 45,
     participants: 'unlimited',
     fixedPrice: 1375
+  },
+  'sound-bath': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1500,
+    soundBathServiceId: 'sound-bath-60',
+    mindfulnessFormat: 'in-person'
+  },
+  yoga: {
+    appTime: 30,
+    totalHours: 0.5,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 30,
+    participants: 'unlimited',
+    fixedPrice: 650,
+    yogaServiceId: 'chair-yoga-30',
+    mindfulnessFormat: 'in-person'
+  },
+  stretch: {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 150,
+    earlyArrival: 25,
+    retouchingCost: 0,
+    stretchType: 'chair'
   }
 };
 
@@ -428,7 +476,9 @@ const Home: React.FC = () => {
                           service.serviceType === 'mindfulness-movement' ||
                           service.serviceType === 'mindfulness-pro' ||
                           service.serviceType === 'mindfulness-cle' ||
-                          service.serviceType === 'mindfulness-pro-reactivity';
+                          service.serviceType === 'mindfulness-pro-reactivity' ||
+                          service.serviceType === 'sound-bath' ||
+                          service.serviceType === 'yoga';
 
     const apptsPerHourPerPro = 60 / service.appTime;
     const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
@@ -820,7 +870,9 @@ const Home: React.FC = () => {
           // Preserve massageType if switching to massage, otherwise clear it
           massageType: updates.serviceType === 'massage' ? (updatedServices[index].massageType || 'massage') : undefined,
           // Preserve nailsType if switching to nails, otherwise clear it
-          nailsType: updates.serviceType === 'nails' ? (updatedServices[index].nailsType || 'nails') : undefined
+          nailsType: updates.serviceType === 'nails' ? (updatedServices[index].nailsType || 'nails') : undefined,
+          // Preserve stretchType if switching to stretch, otherwise clear it
+          stretchType: updates.serviceType === 'stretch' ? (updatedServices[index].stretchType || 'chair') : undefined
         };
       }
     } else {
@@ -1545,6 +1597,9 @@ const Home: React.FC = () => {
                         <option value="mindfulness-pro">Mindfulness: PRO Practice</option>
                         <option value="mindfulness-cle">Mindfulness: CLE Ethics Program</option>
                         <option value="mindfulness-pro-reactivity">Pause, Relax, Open: Mindfulness Tools to Step Out of Reactivity and Respond Wisely</option>
+                        <option value="sound-bath">Sound Bath</option>
+                        <option value="yoga">Yoga</option>
+                        <option value="stretch">Assisted Stretch</option>
                         <option value="hair-makeup">Hair + Makeup</option>
                         <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                       </select>
@@ -1617,6 +1672,24 @@ const Home: React.FC = () => {
                         >
                           <option value="nails">Classic Nails</option>
                           <option value="nails-hand-massage">Nails + Hand Massages</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {service.serviceType === 'stretch' && (
+                      <div>
+                        <label className="block text-shortcut-blue text-sm font-bold mb-2">
+                          Stretch Type
+                        </label>
+                        <select
+                          value={service.stretchType || 'chair'}
+                          onChange={(e) =>
+                            updateService(index, { stretchType: e.target.value as 'chair' | 'table' })
+                          }
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                        >
+                          <option value="chair">Express Chair Stretch (20 min)</option>
+                          <option value="table">Premium Table Stretch (20 min)</option>
                         </select>
                       </div>
                     )}
@@ -1875,6 +1948,105 @@ const Home: React.FC = () => {
                                 fixedPrice: parseInt(e.target.value) || 1375
                               })
                             }
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Sound Bath — flat class service (in-person/virtual/hybrid) */}
+                    {service.serviceType === 'sound-bath' && (
+                      <>
+                        <div>
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">Sound Bath</label>
+                          <select
+                            value={resolveSoundBathEntry({ soundBathServiceId: service.soundBathServiceId, classLength: service.classLength }).id}
+                            onChange={(e) => {
+                              const entry = SOUND_BATH_CATALOG_BY_ID[e.target.value];
+                              if (!entry) return;
+                              updateService(index, {
+                                classLength: entry.classLength,
+                                appTime: entry.classLength,
+                                totalHours: entry.classLength / 60,
+                                fixedPrice: entry.fixedPrice,
+                                serviceCost: entry.fixedPrice,
+                                soundBathServiceId: entry.id,
+                              });
+                            }}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          >
+                            {SOUND_BATH_SELECT_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">Format</label>
+                          <select
+                            value={service.mindfulnessFormat || 'in-person'}
+                            onChange={(e) => updateService(index, { mindfulnessFormat: e.target.value })}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          >
+                            <option value="in-person">In-person</option>
+                            <option value="virtual">Virtual</option>
+                            <option value="blend">Hybrid (in-person + virtual)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">Fixed Price ($)</label>
+                          <input
+                            type="number"
+                            value={service.fixedPrice || 1500}
+                            onChange={(e) => updateService(index, { fixedPrice: parseInt(e.target.value) || 1500 })}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Yoga — flat class service (in-person/virtual) */}
+                    {service.serviceType === 'yoga' && (
+                      <>
+                        <div>
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">Yoga Class</label>
+                          <select
+                            value={resolveYogaEntry({ yogaServiceId: service.yogaServiceId, classLength: service.classLength }).id}
+                            onChange={(e) => {
+                              const entry = YOGA_CATALOG_BY_ID[e.target.value];
+                              if (!entry) return;
+                              updateService(index, {
+                                classLength: entry.classLength,
+                                appTime: entry.classLength,
+                                totalHours: entry.classLength / 60,
+                                fixedPrice: entry.fixedPrice,
+                                serviceCost: entry.fixedPrice,
+                                yogaServiceId: entry.id,
+                              });
+                            }}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          >
+                            {YOGA_SELECT_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">Format</label>
+                          <select
+                            value={service.mindfulnessFormat || 'in-person'}
+                            onChange={(e) => updateService(index, { mindfulnessFormat: e.target.value })}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          >
+                            <option value="in-person">In-person</option>
+                            <option value="virtual">Virtual</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-shortcut-blue text-sm font-bold mb-2">Fixed Price ($)</label>
+                          <input
+                            type="number"
+                            value={service.fixedPrice || 650}
+                            onChange={(e) => updateService(index, { fixedPrice: parseInt(e.target.value) || 650 })}
                             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
                           />
                         </div>

@@ -15,6 +15,7 @@ import PricingOptionsSelector, { PricingOptionVariant } from './PricingOptionsSe
 import {
   MASSAGE_TYPE_DESC,
   NAILS_TYPE_DESC,
+  STRETCH_TYPE_DESC,
   SERVICE_DESC,
   SERVICE_DISPLAY,
   formatCurrency,
@@ -139,6 +140,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const [expanded, setExpanded] = useState(false);
 
   const isMindful = service.serviceType === 'mindfulness';
+  // Flat-price class services share mindfulness's display: per-session price,
+  // class length, format, unlimited participants. Sound bath + yoga join it.
+  const isFlatClass =
+    isMindful || service.serviceType === 'sound-bath' || service.serviceType === 'yoga';
   const isHeadshot = service.serviceType === 'headshot' || service.serviceType === 'headshots';
 
   // Description resolution:
@@ -152,6 +157,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       ? MASSAGE_TYPE_DESC[service.massageType]
       : service.serviceType === 'nails' && service.nailsType
       ? NAILS_TYPE_DESC[service.nailsType]
+      : service.serviceType === 'stretch' && service.stretchType
+      ? STRETCH_TYPE_DESC[service.stretchType]
       : null;
   const desc = isMindful
     ? service.mindfulnessDescription || SERVICE_DESC.mindfulness
@@ -321,7 +328,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                     'Mindfulness'
                   : SERVICE_DISPLAY[service.serviceType] || service.serviceType}
               </CardHeading>
-              {isMindful && service.mindfulnessFormat && (
+              {isFlatClass && service.mindfulnessFormat && (
                 <div
                   style={{
                     fontFamily: T.fontD,
@@ -454,7 +461,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                       {formatCurrency(service.serviceCost)}
                     </div>
                     <Eyebrow style={{ marginTop: 6 }}>
-                      {isMindful ? 'per session' : 'per event day'}
+                      {isFlatClass ? 'per session' : 'per event day'}
                     </Eyebrow>
                   </>
                 )}
@@ -530,7 +537,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               borderTop: '1px dashed rgba(0,0,0,0.07)',
             }}
           >
-            {isMindful ? (
+            {isFlatClass ? (
               <>
                 <ParamCell
                   label="Class length"

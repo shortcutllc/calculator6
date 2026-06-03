@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions, RecurringFrequency } from '../types/proposal';
 import { getProposalUrl } from './url';
 import { MINDFULNESS_CATALOG_BY_ID } from './mindfulnessCatalog';
+import { SOUND_BATH_CATALOG_BY_ID } from './soundBathCatalog';
+import { YOGA_CATALOG_BY_ID } from './yogaCatalog';
 
 // Helper function to calculate recurring discount based on occurrences
 export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
@@ -48,12 +50,16 @@ export const calculateOriginalPrice = (service: any): number => {
 };
 
 export const calculateServiceResults = (service: any) => {
+  // Flat-price (group-session) services: mindfulness + the new sound-bath and
+  // yoga. They all price off `fixedPrice` with unlimited appointments.
   const isMindfulness = service.serviceType === 'mindfulness' ||
                         service.serviceType === 'mindfulness-soles' ||
                         service.serviceType === 'mindfulness-movement' ||
                         service.serviceType === 'mindfulness-pro' ||
                         service.serviceType === 'mindfulness-cle' ||
-                        service.serviceType === 'mindfulness-pro-reactivity';
+                        service.serviceType === 'mindfulness-pro-reactivity' ||
+                        service.serviceType === 'sound-bath' ||
+                        service.serviceType === 'yoga';
 
   if (!isMindfulness && (!service.appTime || !service.numPros || !service.totalHours)) {
     return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0, recurringDiscount: 0, recurringSavings: 0 };
@@ -558,6 +564,25 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
                 mappedService.classLength = targetClassLength;
                 mappedService.mindfulnessType = targetMindfulnessType;
                 mappedService.fixedPrice = targetFixedPrice;
+              }
+            }
+
+            // Sound bath / yoga: same ADMIN-EDIT-WINS fill from their catalogs.
+            if (mappedService.serviceType === 'sound-bath') {
+              const entry = mappedService.soundBathServiceId
+                ? SOUND_BATH_CATALOG_BY_ID[mappedService.soundBathServiceId]
+                : undefined;
+              if (entry) {
+                if (mappedService.classLength == null) mappedService.classLength = entry.classLength;
+                if (mappedService.fixedPrice == null) mappedService.fixedPrice = entry.fixedPrice;
+              }
+            } else if (mappedService.serviceType === 'yoga') {
+              const entry = mappedService.yogaServiceId
+                ? YOGA_CATALOG_BY_ID[mappedService.yogaServiceId]
+                : undefined;
+              if (entry) {
+                if (mappedService.classLength == null) mappedService.classLength = entry.classLength;
+                if (mappedService.fixedPrice == null) mappedService.fixedPrice = entry.fixedPrice;
               }
             }
 

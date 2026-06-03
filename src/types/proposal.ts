@@ -84,6 +84,12 @@ export interface Service {
   massageType?: 'chair' | 'table' | 'massage';
   // Nails-specific fields
   nailsType?: 'nails' | 'nails-hand-massage';
+  // Assisted-stretch sub-type (hourly service, modeled on massage).
+  stretchType?: 'chair' | 'table';
+  // Catalog ids for the flat class-style services (priced like mindfulness).
+  // `mindfulnessFormat` is reused as the shared in-person/virtual/hybrid field.
+  soundBathServiceId?: string;
+  yogaServiceId?: string;
   // Recurring event fields
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;

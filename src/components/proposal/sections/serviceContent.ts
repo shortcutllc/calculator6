@@ -685,6 +685,189 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
       'Single dedicated facilitator',
     ],
   },
+
+  'sound-bath': {
+    label: 'Sound Bath',
+    whyShortcut: [
+      {
+        title: 'Vetted Facilitators',
+        description:
+          'Every facilitator has 200+ hours of sound-healing training. Vetted professionals, not freelancers off a marketplace.',
+      },
+      {
+        title: 'Full Kit Included',
+        description:
+          'Crystal singing bowls, gong, chimes, and supporting instruments. We bring everything. No client setup.',
+      },
+      {
+        title: 'One Point of Contact',
+        description:
+          'Booking, prep, and day-of coordination handled for you, with a pre-event planning call to set the intention.',
+      },
+    ],
+    benefitsHeading: 'What your team takes home',
+    benefits: [
+      {
+        iconName: 'Brain',
+        title: 'Nervous-System Reset',
+        description: 'Lower stress and reactivity that lasts well past the session.',
+      },
+      {
+        iconName: 'Heart',
+        title: 'Shared Stillness',
+        description: 'A shared experience that asks nothing and gives a lot. No small talk required.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'An Easy Entry to Mindfulness',
+        description: 'A way in for people who would never sign up for meditation.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'CheckCircle',
+        title: 'Trained Facilitator',
+        description: 'A facilitator with 200+ hours of sound-healing training.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'Full Instrument Kit',
+        description: 'Crystal singing bowls, gong, chimes, and supporting instruments, plus setup and breakdown.',
+      },
+      {
+        iconName: 'FileText',
+        title: 'RSVP Blurb',
+        description: 'A Slack or email blurb you can drop in to drive sign-ups.',
+      },
+    ],
+    featuresHeading: 'Format options',
+    features: [
+      'In-person at your office',
+      'Virtual via Zoom, Teams, or Meet',
+      'Hybrid: on-site streamed to remote teammates',
+    ],
+  },
+
+  yoga: {
+    label: 'Yoga',
+    whyShortcut: [
+      {
+        title: 'Certified Instructors',
+        description: 'RYT-200+ teachers, vetted and consistent across every session.',
+      },
+      {
+        title: 'Chair Option Needs Nothing',
+        description: 'No equipment, no floor clearance, no change of clothes. It runs in any conference room.',
+      },
+      {
+        title: 'Same Instructor Each Time',
+        description: 'The same teacher across recurring sessions builds a rhythm and real participation.',
+      },
+    ],
+    benefitsHeading: 'What it does for the team',
+    benefits: [
+      {
+        iconName: 'Heart',
+        title: 'Posture Relief',
+        description: 'Eases desk strain in the neck, shoulders, and back.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'Afternoon Energy',
+        description: 'A reset for the 2 to 3pm slump. No coffee required.',
+      },
+      {
+        iconName: 'Brain',
+        title: 'Stress Reduction',
+        description: 'Parasympathetic activation and a calmer afternoon.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'CheckCircle',
+        title: 'Certified Instructor',
+        description: 'Corporate teaching experience, with modifications for every level and flagged injuries.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'Music and Playlist',
+        description: 'A tailored playlist for the room.',
+      },
+      {
+        iconName: 'Clock',
+        title: 'Setup and Arrival',
+        description: 'The instructor arrives 15 minutes before start.',
+      },
+    ],
+    featuresHeading: 'Format options',
+    features: [
+      'Chair yoga: conference room, no equipment',
+      'Mat yoga: open floor, employees bring mats',
+      'Virtual livestream: Zoom, Teams, or Meet',
+    ],
+  },
+
+  stretch: {
+    label: 'Assisted Stretch',
+    whyShortcut: [
+      {
+        title: 'Certified Specialists',
+        description:
+          'Backgrounds in physical therapy, sports massage, or PNF/FST. Specialists, not generalists.',
+      },
+      {
+        title: 'The Pro Brings Everything',
+        description: 'Chair, table, straps, mats, and sanitizer. Nothing for you to set up.',
+      },
+      {
+        title: 'Same Model as Chair Massage',
+        description: 'A sign-up sheet, short slots, rotating through the team. Fully clothed, no oils.',
+      },
+    ],
+    benefitsHeading: 'What it fixes',
+    benefits: [
+      {
+        iconName: 'Heart',
+        title: 'Range of Motion',
+        description: 'Improved mobility in the shoulders, hips, and lower back.',
+      },
+      {
+        iconName: 'Shield',
+        title: 'Injury Prevention',
+        description: 'For desk workers and gym-goers alike.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'Focus Reset',
+        description: 'Most powerful as a midday or post-lunch slot.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'CheckCircle',
+        title: 'Certified Stretch Specialist',
+        description: 'A specialist with PNF/FST training.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'Portable Chair or Table',
+        description: 'Your choice, plus straps, mats, blocks, sanitizer, and signage.',
+      },
+      {
+        iconName: 'FileText',
+        title: 'Sign-Up Template',
+        description: 'A sign-up sheet and a pre-event Slack blurb.',
+      },
+    ],
+    featuresHeading: 'Formats',
+    features: [
+      'Express chair stretch: any open corner, fully clothed',
+      'Premium table stretch: private or curtained space, deeper work',
+    ],
+  },
 };
 
 // CLE Why Shortcut variant. Reuses the mindfulness base but adds the CLE

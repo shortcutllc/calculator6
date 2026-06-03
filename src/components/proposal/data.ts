@@ -24,6 +24,9 @@ export const SERVICE_DISPLAY: Record<string, string> = {
   'hair-makeup': 'Hair + Makeup',
   'headshot-hair-makeup': 'Hair + Makeup for Headshots',
   makeup: 'Makeup',
+  'sound-bath': 'Sound Bath',
+  yoga: 'Yoga',
+  stretch: 'Assisted Stretch',
 };
 
 export const SERVICE_DESC: Record<string, string> = {
@@ -45,6 +48,12 @@ export const SERVICE_DESC: Record<string, string> = {
     'Capture your best self with our professional headshots, complemented by flawless hair styling and makeup application, ensuring you leave with a photo that speaks volumes.',
   makeup:
     'Experience personalized makeup artistry that enhances natural beauty and creates stunning looks tailored to each individual.',
+  'sound-bath':
+    'A live sound experience using crystal singing bowls, gong, and chimes. Your team lies down or sits, eyes closed, and lets the sound carry them out of their heads and back into their bodies. A nervous-system reset, not theater. In-person at your office or live over video.',
+  yoga:
+    'Live yoga classes for your team at the office or over video. Chair classes need no mats or floor clearance; mat classes run from gentle flow to restorative. Same certified instructors every time, so the team builds a rhythm.',
+  stretch:
+    'One-on-one assisted stretching with a certified specialist. Ten to twenty-minute appointments, rotating through your team like a massage day. Targeted release for desk-related tightness in the neck, shoulders, hips, and lower back. Fully clothed, no oils.',
 };
 
 // Variant-specific copy for service sub-types. Lookups are keyed by the
@@ -61,6 +70,14 @@ export const MASSAGE_TYPE_DESC: Record<string, string> = {
 export const NAILS_TYPE_DESC: Record<string, string> = {
   'nails-hand-massage':
     'Classic in-office manicures paired with a relaxing hand massage. Employees get a full reset — shape, buff, polish, plus a quick tension-release in the wrists and forearms.',
+};
+
+// Assisted-stretch sub-type copy, keyed by `stretchType`.
+export const STRETCH_TYPE_DESC: Record<string, string> = {
+  chair:
+    'Express chair stretch in any open corner, fully clothed. A certified specialist works through neck, shoulder, and back tightness in a quick 20-minute slot. The fastest, highest-throughput format.',
+  table:
+    'Premium table stretch in a private or curtained space. Deeper, hands-on assisted stretching for hips, hamstrings, and lower back over a 20-minute appointment. The functional fix for desk-bound bodies.',
 };
 
 // Color palette for service-type chips — preserves existing brand colors per
@@ -83,6 +100,9 @@ export const SERVICE_CHIP_COLORS: Record<string, { bg: string; color: string }> 
   'hair-makeup': { bg: 'rgba(251,194,235,.40)', color: '#7A2E6B' },
   'headshot-hair-makeup': { bg: 'rgba(251,194,235,.40)', color: '#7A2E6B' },
   makeup: { bg: 'rgba(251,194,235,.40)', color: '#7A2E6B' },
+  'sound-bath': { bg: 'rgba(124,131,253,.20)', color: '#3B3E9E' },
+  yoga: { bg: 'rgba(146,241,246,.35)', color: '#0B6B73' },
+  stretch: { bg: 'rgba(120,180,255,.22)', color: '#1A4F8A' },
 };
 
 // Service image gradient placeholders + which lucide glyph to overlay.
@@ -112,6 +132,9 @@ export const SERVICE_GRAPHIC: Record<
     accent: '#fff',
   },
   makeup: { bg: 'linear-gradient(135deg,#FBC2EB,#A18CD1)', glyph: 'Sparkles', accent: '#fff' },
+  'sound-bath': { bg: 'linear-gradient(135deg,#A5A8FF,#5B5FCB)', glyph: 'Sparkles', accent: '#fff' },
+  yoga: { bg: 'linear-gradient(135deg,#9EF5DF,#3DAE8E)', glyph: 'Heart', accent: '#0B3B30' },
+  stretch: { bg: 'linear-gradient(135deg,#BCD8FF,#5A91C2)', glyph: 'Heart', accent: '#fff' },
 };
 
 // Production photo asset paths (when present). Falls back to gradient if
@@ -132,6 +155,11 @@ export const SERVICE_IMAGE_PATH: Record<string, string> = {
   'mindfulness-pro-reactivity': '/Mindfulness Slider.png',
   'hair-makeup': '/Hair Slider.png',
   'headshot-hair-makeup': '/Headshot Slider.png',
+  // New services — Will is providing these slider images; until they're in
+  // public/, the gradient+glyph fallback in SERVICE_GRAPHIC renders instead.
+  'sound-bath': '/Sound Bath Slider.png',
+  yoga: '/Yoga Slider.png',
+  stretch: '/Stretch Slider.png',
 };
 
 // Frequency presets used by the FrequencyPicker. README question 2: user

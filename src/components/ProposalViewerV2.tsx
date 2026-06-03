@@ -45,6 +45,20 @@ import {
   applyMindfulnessEntry,
   resolveMindfulnessEntry,
 } from '../utils/mindfulnessCatalog';
+import {
+  SOUND_BATH_CATALOG_BY_ID,
+  SOUND_BATH_SELECT_OPTIONS,
+  DEFAULT_SOUND_BATH_ID,
+  applySoundBathEntry,
+  resolveSoundBathEntry,
+} from '../utils/soundBathCatalog';
+import {
+  YOGA_CATALOG_BY_ID,
+  YOGA_SELECT_OPTIONS,
+  DEFAULT_YOGA_ID,
+  applyYogaEntry,
+  resolveYogaEntry,
+} from '../utils/yogaCatalog';
 import { trackProposalChanges } from '../utils/changeTracker';
 import { ProposalChangeSet } from '../types/proposal';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -200,6 +214,44 @@ const SERVICE_DEFAULTS: Record<string, any> = {
     earlyArrival: 25,
     retouchingCost: 0,
   },
+  'sound-bath': {
+    appTime: SOUND_BATH_CATALOG_BY_ID[DEFAULT_SOUND_BATH_ID].classLength,
+    totalHours: SOUND_BATH_CATALOG_BY_ID[DEFAULT_SOUND_BATH_ID].classLength / 60,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: SOUND_BATH_CATALOG_BY_ID[DEFAULT_SOUND_BATH_ID].classLength,
+    participants: 'unlimited',
+    fixedPrice: SOUND_BATH_CATALOG_BY_ID[DEFAULT_SOUND_BATH_ID].fixedPrice,
+    soundBathServiceId: DEFAULT_SOUND_BATH_ID,
+    mindfulnessFormat: 'in-person',
+  },
+  yoga: {
+    appTime: YOGA_CATALOG_BY_ID[DEFAULT_YOGA_ID].classLength,
+    totalHours: YOGA_CATALOG_BY_ID[DEFAULT_YOGA_ID].classLength / 60,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: YOGA_CATALOG_BY_ID[DEFAULT_YOGA_ID].classLength,
+    participants: 'unlimited',
+    fixedPrice: YOGA_CATALOG_BY_ID[DEFAULT_YOGA_ID].fixedPrice,
+    yogaServiceId: DEFAULT_YOGA_ID,
+    mindfulnessFormat: 'in-person',
+  },
+  stretch: {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 150,
+    earlyArrival: 25,
+    retouchingCost: 0,
+    stretchType: 'chair',
+  },
 };
 
 const SERVICE_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -210,6 +262,9 @@ const SERVICE_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'makeup', label: 'Makeup' },
   { value: 'headshot', label: 'Headshot' },
   { value: 'mindfulness', label: 'Mindfulness' },
+  { value: 'sound-bath', label: 'Sound Bath' },
+  { value: 'yoga', label: 'Yoga' },
+  { value: 'stretch', label: 'Assisted Stretch' },
   { value: 'hair-makeup', label: 'Hair + Makeup' },
   { value: 'headshot-hair-makeup', label: 'Hair + Makeup for Headshots' },
 ];
@@ -224,6 +279,14 @@ const NAILS_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'nails', label: 'Classic' },
   { value: 'nails-hand-massage', label: '+ Hand massage' },
 ];
+
+const STRETCH_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'chair', label: 'Express Chair Stretch (20 min)' },
+  { value: 'table', label: 'Premium Table Stretch (20 min)' },
+];
+
+const SOUND_BATH_TYPE_OPTIONS = SOUND_BATH_SELECT_OPTIONS;
+const YOGA_TYPE_OPTIONS = YOGA_SELECT_OPTIONS;
 
 // Mindfulness offerings — sourced from the shared catalog so the viewer
 // stays in sync with the calculator (Home.tsx). The select binds to the
@@ -805,6 +868,32 @@ const ProposalViewerV2: React.FC = () => {
     const current = editedData.services[loc][date].services[idx];
     const next: any = { ...current };
     applyMindfulnessEntry(next, entry);
+    const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
+    next.totalAppointments = totalAppointments;
+    next.serviceCost = serviceCost;
+    next.proRevenue = proRevenue;
+    handleFieldChange(['services', loc, date, 'services', idx], next);
+  };
+
+  const handleSoundBathTypeChange = (loc: string, date: string, idx: number, serviceId: string) => {
+    if (!editedData || !isEditing) return;
+    const entry = SOUND_BATH_CATALOG_BY_ID[serviceId];
+    if (!entry) return;
+    const next: any = { ...editedData.services[loc][date].services[idx] };
+    applySoundBathEntry(next, entry);
+    const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
+    next.totalAppointments = totalAppointments;
+    next.serviceCost = serviceCost;
+    next.proRevenue = proRevenue;
+    handleFieldChange(['services', loc, date, 'services', idx], next);
+  };
+
+  const handleYogaTypeChange = (loc: string, date: string, idx: number, serviceId: string) => {
+    if (!editedData || !isEditing) return;
+    const entry = YOGA_CATALOG_BY_ID[serviceId];
+    if (!entry) return;
+    const next: any = { ...editedData.services[loc][date].services[idx] };
+    applyYogaEntry(next, entry);
     const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
     next.totalAppointments = totalAppointments;
     next.serviceCost = serviceCost;
@@ -3801,6 +3890,18 @@ const ProposalViewerV2: React.FC = () => {
                                           f
                                         )
                                       }
+                                      onChangeStretchType={(t) =>
+                                        handleFieldChange(
+                                          ['services', loc, date, 'services', idx, 'stretchType'],
+                                          t
+                                        )
+                                      }
+                                      onChangeSoundBathType={(t) =>
+                                        handleSoundBathTypeChange(loc, date, idx, t)
+                                      }
+                                      onChangeYogaType={(t) =>
+                                        handleYogaTypeChange(loc, date, idx, t)
+                                      }
                                       onRemoveService={() =>
                                         handleRemoveService(loc, date, idx)
                                       }
@@ -5417,6 +5518,9 @@ interface ServiceBlockProps {
   onChangeNailsType: (t: string) => void;
   onChangeMindfulnessType: (t: string) => void;
   onChangeMindfulnessFormat: (f: string) => void;
+  onChangeStretchType: (t: string) => void;
+  onChangeSoundBathType: (t: string) => void;
+  onChangeYogaType: (t: string) => void;
   onRemoveService: () => void;
   /** Reorder controls — disabled when at the first/last position. */
   onMoveUp?: () => void;
@@ -5444,6 +5548,9 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
   onChangeNailsType,
   onChangeMindfulnessType,
   onChangeMindfulnessFormat,
+  onChangeStretchType,
+  onChangeSoundBathType,
+  onChangeYogaType,
   onRemoveService,
   onMoveUp,
   onMoveDown,
@@ -5530,6 +5637,58 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
                 value={service.mindfulnessFormat || 'in-person'}
                 onChange={onChangeMindfulnessFormat}
                 options={MINDFULNESS_FORMAT_OPTIONS}
+              />
+            </>
+          )}
+
+          {service.serviceType === 'stretch' && (
+            <SelectField
+              label="Stretch type"
+              value={(service as any).stretchType || 'chair'}
+              onChange={onChangeStretchType}
+              options={STRETCH_TYPE_OPTIONS}
+            />
+          )}
+
+          {service.serviceType === 'sound-bath' && (
+            <>
+              <SelectField
+                label="Sound bath"
+                value={resolveSoundBathEntry({
+                  soundBathServiceId: (service as any).soundBathServiceId,
+                  classLength: service.classLength,
+                }).id}
+                onChange={onChangeSoundBathType}
+                options={SOUND_BATH_TYPE_OPTIONS}
+              />
+              <SelectField
+                label="Format"
+                value={service.mindfulnessFormat || 'in-person'}
+                onChange={onChangeMindfulnessFormat}
+                options={MINDFULNESS_FORMAT_OPTIONS}
+              />
+            </>
+          )}
+
+          {service.serviceType === 'yoga' && (
+            <>
+              <SelectField
+                label="Yoga class"
+                value={resolveYogaEntry({
+                  yogaServiceId: (service as any).yogaServiceId,
+                  classLength: service.classLength,
+                }).id}
+                onChange={onChangeYogaType}
+                options={YOGA_TYPE_OPTIONS}
+              />
+              <SelectField
+                label="Format"
+                value={service.mindfulnessFormat || 'in-person'}
+                onChange={onChangeMindfulnessFormat}
+                options={[
+                  { value: 'in-person', label: 'In-person' },
+                  { value: 'virtual', label: 'Virtual' },
+                ]}
               />
             </>
           )}

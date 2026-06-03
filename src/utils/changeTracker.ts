@@ -17,6 +17,12 @@ const getServiceDisplayName = (serviceType: string): string => {
       return 'Mindfulness';
     case 'makeup':
       return 'Makeup';
+    case 'sound-bath':
+      return 'Sound Bath';
+    case 'yoga':
+      return 'Yoga';
+    case 'stretch':
+      return 'Assisted Stretch';
     default:
       return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).toLowerCase();
   }
