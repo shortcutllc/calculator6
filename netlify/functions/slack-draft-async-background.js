@@ -66,11 +66,14 @@ DIRECTIONS:
 - networking: NOT a pitch. A curiosity-led, peer-to-peer note that opens a conversation. Hook is genuine interest in HOW they are solving a problem you both think about (for brokers: how their wellness team is helping clients exhaust unspent fund balances before plan-year end; for HR/People-Ops: how they roll out a specific in-person wellness benefit). Tone is "trading notes" / "comparing approaches" — never "I have something to sell." No services list, no rev share, no proposal mention. ONE soft ask at the end: "Worth a 20-min call to trade notes?" Lands meetings via mutual benefit and curiosity, not pitch.
 
 OPENER RULES (apply to every direction):
-- A bare "Will from Shortcut." as a standalone sentence is BANNED. It reads incomplete and lazy. Use complete, natural variations. Write in FIRST PERSON — the rep IS the sender, never refer to them in third person ("our CEO", "our founder" — forbidden). Examples (commas and periods, no dashes):
-    "Hi Kelly, Will Newton here. I run Shortcut."
+- *SALUTATION MUST USE THE PROSPECT'S FIRST NAME.* If prospect.name in the context JSON has a value, use the FIRST WORD of that name as the greeting ("Hi Marissa,", "Hi Kelly,"). NEVER write "Hi there," / "Hello," / "Hey there," when the name field is populated — that's a lazy AI fallback that signals "this is a generic mass email." If prospect.name is genuinely null or empty, then "Hi there," is acceptable; otherwise FORBIDDEN. Validate before output: if your draft begins with "Hi there" and prospect.name has a value, rewrite the salutation.
+- *NEVER write "Will from Shortcut." as a standalone sentence.* This is a banned phrase, full stop. It reads as a lazy AI sign-off, not a human writing. Even if Will's email isn't the right name (rep_first_name might be Caren or Marc), the same rule applies: never "<first> from Shortcut." as a bare sentence. Use complete first-person variants instead. Examples (commas and periods, no dashes):
+    "Hi Marissa, Will Newton here. I run Shortcut."
     "Hey Kelly. Will Newton from Shortcut. Wanted to drop a quick note."
-    "Kelly, this is Will Newton at Shortcut. Quick one for you."
-    "Hi Kelly. I'm Will, the founder at Shortcut."
+    "Marissa, this is Will Newton at Shortcut. Quick one for you."
+    "Hi Marissa. I'm Will, the founder at Shortcut."
+- *NEVER invent time references.* No "last week", "a few days ago", "recently", "earlier this month" UNLESS the personal_note explicitly contains a date you can ground on. For Workhuman conference references, just say "at Workhuman" or "at the booth" with NO time qualifier. The conference was in late April; saying "last week" in early June is a hallucinated lie that wrecks credibility.
+- Write in FIRST PERSON. The rep IS the sender, never refer to them in third person ("our CEO", "our founder" — forbidden).
 - If rep_first_name is NOT "Will", use the rep's actual name in the same first-person shape (e.g. "Hi Kelly, Caren here. I lead partnerships at Shortcut."). Never sign emails from "Will" if the rep is someone else.
 - ZERO DASHES IN OPENERS. Use commas, periods, new sentences. The "no dashes" hard rule above applies inside the opener too. Some rule text in this prompt may contain em dashes for instructional reading. Never emulate them in output.
 - PARAGRAPH STRUCTURE: the greeting line stands ALONE. Use two newlines (a blank line) after the greeting so the self-intro starts on its own paragraph. Output shape (NOT one run-together line):
@@ -536,14 +539,17 @@ Notes on the reference:
           + `  • Casual close: "Best, [name]" or "Thanks, [name]".\n`
           + `  • DO NOT mention "Workhuman". DO NOT mention rev share or commission.`
       : ctx.mode === 'personal_first_outreach'
-        ? `This is a FIRST OUTREACH to someone the rep met in person at Workhuman (or similar). It is NOT a follow-up — there is no prior email. The hook is the in-person conversation itself.\n`
+        ? `This is a FIRST OUTREACH to someone the rep ACTUALLY MET IN PERSON at the Workhuman conference. It is NOT a follow-up — there is no prior email. The hook is the in-person conversation itself.\n`
           + (ctx.workhuman_context?.personal_note
             ? `\nYOUR PERSONAL NOTE from that conversation (THIS is your hook — reference something specific from it; do not invent specifics that aren't in the note):\n"${ctx.workhuman_context.personal_note}"\n`
-            : `\n(No personal-note text was passed through — keep the in-person reference generic: "great chatting at Workhuman" works.)\n`)
+            : `\n(No personal-note text was passed through — keep the in-person reference generic: "great chatting at the Workhuman booth" works.)\n`)
           + `\nShape:\n`
-          + `  • Length: short. Under 80 words.\n`
-          + `  • Open with a specific reference to the in-person moment grounded in the note.\n`
-          + `  • One concrete next step (a brief explainer, a 15-min call, an in-office demo — pick what's most relevant to the note).\n`
+          + `  • SALUTATION: "Hi <first-name>," using prospect.name — NEVER "Hi there,". This person is real and you met them.\n`
+          + `  • Length: short. Under 100 words.\n`
+          + `  • Open with a specific reference to the in-person moment grounded in the note. Sound like a human writing to someone they actually talked to, not a templated cold email.\n`
+          + `  • Time reference: just say "at Workhuman" or "at the booth" with NO time qualifier ("last week", "a few weeks ago", "recently"). Saying "last week" when the conference was in late April is a CREDIBILITY KILLER.\n`
+          + `  • Tone: warm, conversational, real human. This is not a cold pitch. You shared an actual conversation. Reference it specifically (a detail from the note, not a generic "great to meet you").\n`
+          + `  • One concrete next step (a brief explainer, a 15-min call, an in-office demo). Pick what's most relevant to the note.\n`
           + `  • Brand voice: warm, low-pressure, no buzzwords, no "synergy", no "circling back" (you weren't in touch before).\n`
           + `  • Casual close: "Best, [name]" or "Thanks, [name]". No formal signature block.\n`
           + `  • DO NOT treat this as a follow-up. DO NOT say "circling back" or "following up on my note below" — there is no prior thread.`
