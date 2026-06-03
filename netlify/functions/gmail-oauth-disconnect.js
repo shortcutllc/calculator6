@@ -53,14 +53,18 @@ export const handler = async (event) => {
 
   // Clear the credential fields; keep preferences. Email is kept too so the
   // mapping to slack_user_id survives a reconnect.
+  // refresh_token has a NOT NULL constraint, so use the established sentinel
+  // pattern (matches the pre-OAuth seed pattern in gmail-oauth-callback) —
+  // the callback overwrites this on reconnect.
   const { error: updErr } = await sb.from('gmail_accounts')
     .update({
-      refresh_token: null,
+      refresh_token: '_PLACEHOLDER_PENDING_OAUTH_CONNECT',
       access_token: null,
       token_expiry: null,
       history_id: null,
       watch_expiration: null,
-      // sent_crawl_enabled stays — if the rep re-connects, they keep their prior preference
+      sent_crawl_enabled: false,  // disable crawl so cron skips this account until reconnect
+      // digest_enabled / slack_user_id / tz / muted_lead_emails stay — preferences survive a disconnect
     })
     .eq('email', acct.email);
   if (updErr) return json(500, { error: `clear failed: ${updErr.message}` });
