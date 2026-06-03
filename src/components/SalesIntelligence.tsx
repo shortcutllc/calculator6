@@ -2137,6 +2137,21 @@ const SalesIntelligence: React.FC = () => {
   const [fuNote, setFuNote] = useState<string | null>(null);
   const [fuInbox, setFuInbox] = useState<InboxBanner | null>(_initialFuInbox);
   const [fuTotalBeforeCap, setFuTotalBeforeCap] = useState<number | null>(null);
+  // Bulk selection — checkboxes per row, bulk action bar appears when >0.
+  const [selectedFollowupEmails, setSelectedFollowupEmails] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState<string | null>(null);
+  const [bulkConfirmDelete, setBulkConfirmDelete] = useState(false);
+  // Sort: null = default (state-then-recency); otherwise click-driven header
+  // sort. Sort happens client-side over the already-fetched + filtered list.
+  type FuSortBy = 'recency' | 'name' | 'company' | 'state' | 'touches';
+  const [followupSort, setFollowupSort] = useState<{ by: FuSortBy; dir: 'asc' | 'desc' } | null>(null);
+  const toggleFollowupSort = useCallback((by: FuSortBy) => {
+    setFollowupSort((prev) => {
+      if (prev?.by !== by) return { by, dir: 'desc' };
+      if (prev.dir === 'desc') return { by, dir: 'asc' };
+      return null;   // third click → back to default
+    });
+  }, []);
   const [fuStateFilter, setFuStateFilter] = useState<'all' | 'never_emailed' | 'no_reply' | 'replied' | 'muted'>('all');
   const [rapidQueue, setRapidQueue] = useState<FollowupRow[] | null>(null);
   // Separate state for muted leads — fetched on-demand when the chip is clicked
@@ -2710,28 +2725,141 @@ const SalesIntelligence: React.FC = () => {
             ) : (() => {
               // Muted view: pull from the separately-fetched mutedLeads state.
               const source = fuStateFilter === 'muted' ? (mutedLeads || []) : (followups || []);
-              const visible = source.filter((r) => {
+              const filtered = source.filter((r) => {
                 if (fuStateFilter === 'muted') return true;          // already pre-filtered server-side
                 if (fuStateFilter === 'all') return true;
                 if (fuStateFilter === 'never_emailed') return r.state === 'never_emailed' || r.state === 'unknown_no_inbox';
                 return r.state === fuStateFilter;
               });
+              // Apply user-selected sort (click on column header). Default
+              // ordering happens server-side: never_emailed first, then most-
+              // recent-by-days_since. User sort overrides.
+              const visible = [...filtered];
+              if (followupSort) {
+                const dirMul = followupSort.dir === 'asc' ? 1 : -1;
+                const stateOrder: Record<string, number> = { never_emailed: 0, unknown_no_inbox: 0, no_reply: 1, replied: 2, maxed: 3 };
+                visible.sort((a, b) => {
+                  switch (followupSort.by) {
+                    case 'recency': {
+                      const av = a.days_since ?? 9999;
+                      const bv = b.days_since ?? 9999;
+                      return (av - bv) * dirMul;
+                    }
+                    case 'name': return ((a.name || a.email || '').localeCompare(b.name || b.email || '')) * dirMul;
+                    case 'company': return ((a.company || '').localeCompare(b.company || '')) * dirMul;
+                    case 'state': return ((stateOrder[a.state] ?? 9) - (stateOrder[b.state] ?? 9)) * dirMul;
+                    case 'touches': return ((a.touches || 0) - (b.touches || 0)) * dirMul;
+                    default: return 0;
+                  }
+                });
+              }
               if (fuStateFilter === 'muted' && mutedLeads === null) {
                 return <div className="py-16 text-center text-gray-400">Loading muted leads…</div>;
               }
               if (visible.length === 0) {
                 return <div className="py-16 text-center text-gray-400">No rows match this filter.</div>;
               }
+              // Helper for sortable column header look + click
+              const SortHdr = ({ by, label }: { by: FuSortBy; label: string }) => {
+                const active = followupSort?.by === by;
+                const arrow = !active ? '' : followupSort?.dir === 'asc' ? ' ↑' : ' ↓';
+                return (
+                  <button onClick={() => toggleFollowupSort(by)} className={`${active ? 'text-shortcut-navy-blue font-semibold' : 'text-gray-600 hover:text-gray-900'} text-xs font-medium uppercase tracking-wider`}>
+                    {label}{arrow}
+                  </button>
+                );
+              };
+              // Bulk action handler — fires lead-actions for each selected
+              // email in parallel, then filters them out of local state.
+              const bulkApply = async (action: 'mute' | 'snooze' | 'delete', days?: number) => {
+                setBulkBusy(action);
+                try {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session) throw new Error('Not signed in');
+                  const emails = [...selectedFollowupEmails];
+                  await Promise.all(emails.map((email) => fetch('/.netlify/functions/lead-actions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                    body: JSON.stringify({ email, action, ...(days ? { days } : {}), ...(action === 'mute' ? { reason: 'personal' } : {}) }),
+                  }).then((r) => r.json())));
+                  setFollowups((prev) => (prev || []).filter((x) => !selectedFollowupEmails.has(x.email)));
+                  setMutedLeads(null);
+                  setSelectedFollowupEmails(new Set());
+                  setBulkConfirmDelete(false);
+                } catch (e) {
+                  console.error('bulk action failed:', e);
+                } finally { setBulkBusy(null); }
+              };
+              const allVisibleSelected = visible.length > 0 && visible.every((r) => selectedFollowupEmails.has(r.email));
+              const toggleSelectAll = () => {
+                setSelectedFollowupEmails((prev) => {
+                  if (allVisibleSelected) {
+                    const next = new Set(prev);
+                    for (const r of visible) next.delete(r.email);
+                    return next;
+                  }
+                  const next = new Set(prev);
+                  for (const r of visible) next.add(r.email);
+                  return next;
+                });
+              };
+              const toggleSelect = (email: string) => {
+                setSelectedFollowupEmails((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(email)) next.delete(email);
+                  else next.add(email);
+                  return next;
+                });
+              };
               return (
+              <>
+              {selectedFollowupEmails.size > 0 && (
+                <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-amber-50 border-y border-amber-200 text-xs">
+                  <span className="font-semibold text-amber-900">{selectedFollowupEmails.size} selected</span>
+                  <span className="text-amber-700">·</span>
+                  <button disabled={!!bulkBusy} onClick={() => bulkApply('mute')} className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium disabled:opacity-50">
+                    {bulkBusy === 'mute' ? <Loader2 size={11} className="animate-spin" /> : null} Hide all
+                  </button>
+                  <button disabled={!!bulkBusy} onClick={() => bulkApply('snooze', 1)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 disabled:opacity-50">
+                    Snooze 1d
+                  </button>
+                  <button disabled={!!bulkBusy} onClick={() => bulkApply('snooze', 7)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 disabled:opacity-50">
+                    Snooze 7d
+                  </button>
+                  {bulkConfirmDelete ? (
+                    <span className="inline-flex items-center gap-1 ml-auto">
+                      <span className="text-red-700 mr-1">Delete {selectedFollowupEmails.size} forever?</span>
+                      <button disabled={!!bulkBusy} onClick={() => bulkApply('delete')} className="px-2 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50">
+                        {bulkBusy === 'delete' ? <Loader2 size={11} className="animate-spin" /> : 'Yes, delete'}
+                      </button>
+                      <button onClick={() => setBulkConfirmDelete(false)} className="px-2 py-0.5 rounded bg-gray-200 hover:bg-gray-300 text-gray-700">Cancel</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setBulkConfirmDelete(true)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-red-50 hover:bg-red-100 text-red-700 font-medium border border-red-200 ml-auto" title="Hard delete from CRM — replies will no longer be tracked.">
+                      <Trash2 size={11} /> Delete forever
+                    </button>
+                  )}
+                  <button onClick={() => setSelectedFollowupEmails(new Set())} className="text-gray-500 hover:text-gray-900 ml-1">Clear</button>
+                </div>
+              )}
               <table className="min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className={th}>
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleSelectAll}
+                        className="cursor-pointer"
+                        title={allVisibleSelected ? 'Deselect all visible' : 'Select all visible'}
+                      />
+                    </th>
                     <th className={th}></th>
-                    <th className={th}>State</th>
-                    <th className={th}>Contact</th>
-                    <th className={th}>Company</th>
+                    <th className={th}><SortHdr by="state" label="State" /></th>
+                    <th className={th}><SortHdr by="name" label="Contact" /></th>
+                    <th className={th}><SortHdr by="company" label="Company" /></th>
                     <th className={th}>Personal note</th>
-                    <th className={th}>Last sent</th>
+                    <th className={th}><SortHdr by="recency" label="Last sent" /></th>
                     {fuScope === 'team' && <th className={th}>Sent by</th>}
                     <th className={th}></th>
                   </tr>
@@ -2744,11 +2872,22 @@ const SalesIntelligence: React.FC = () => {
                     const canDraft = r.state !== 'maxed';
                     const isFirstOutreach = r.state === 'never_emailed' || r.state === 'unknown_no_inbox';
                     const draftLabel = isFirstOutreach ? 'Draft outreach' : 'Draft follow-up';
-                    const cols = fuScope === 'team' ? 8 : 7;
+                    // +1 for the new leading checkbox column
+                    const cols = fuScope === 'team' ? 9 : 8;
+                    const isSelected = selectedFollowupEmails.has(r.email);
                     return (
                       <React.Fragment key={r.email}>
                         <tr className="hover:bg-gray-50 cursor-pointer"
                           onClick={() => setFuExpanded(open ? null : r.email)}>
+                          <td className={td}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={() => toggleSelect(r.email)}
+                              className="cursor-pointer"
+                            />
+                          </td>
                           <td className={`${td} text-gray-400`}>{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</td>
                           <td className={td}>
                             <div className="flex flex-col gap-1">
@@ -2845,6 +2984,7 @@ const SalesIntelligence: React.FC = () => {
                   })}
                 </tbody>
               </table>
+              </>
               );
             })()}
           </div>
