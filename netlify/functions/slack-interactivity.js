@@ -21,7 +21,7 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { buildSettingsModal, buildDraftSentBlocks, buildDraftCancelledBlocks, buildDraftErrorBlocks, buildOtherAnglesBlocks } from './lib/slack-blocks.js';
-import { getAccessToken, sendEmail, getSignature } from './lib/gmail.js';
+import { getAccessToken, sendEmail, getSignature, deleteDraft } from './lib/gmail.js';
 import { preflight } from './lib/preflight.js';
 
 const SLACK_API = 'https://slack.com/api';
@@ -234,13 +234,29 @@ async function handleSendDraft(sb, rep, draftId, optionalLabel) {
     console.error('Send recorded but logging errored (non-fatal):', e.message);
   }
 
-  // Clean up the draft row (no longer needed once sent).
+  // Clean up: delete the matching Gmail draft if one was created (otherwise
+  // the rep sees a stale duplicate in their Drafts folder + the sent email).
+  // Best-effort — never fail the send because the draft cleanup errored.
+  if (draft.target_ref?.gmail_draft_id) {
+    try {
+      const tok = await getAccessToken(sb, rep.email);
+      await deleteDraft(tok, draft.target_ref.gmail_draft_id);
+    } catch (e) { console.warn('gmail draft cleanup after send failed (non-fatal):', e.message); }
+  }
   await sb.from('saved_drafts').delete().eq('id', draftId);
 
   return { ok: true, sent: { subject, thread_id: sent.threadId || threadId } };
 }
 
 async function handleCancelDraft(sb, draftId) {
+  // Load the draft first so we know the gmail_draft_id + rep_email to clean up.
+  const { data: draft } = await sb.from('saved_drafts').select('target_ref').eq('id', draftId).maybeSingle();
+  if (draft?.target_ref?.gmail_draft_id && draft.target_ref?.rep_email) {
+    try {
+      const tok = await getAccessToken(sb, draft.target_ref.rep_email);
+      await deleteDraft(tok, draft.target_ref.gmail_draft_id);
+    } catch (e) { console.warn('gmail draft cleanup on cancel failed (non-fatal):', e.message); }
+  }
   await sb.from('saved_drafts').delete().eq('id', draftId);
   return { ok: true };
 }

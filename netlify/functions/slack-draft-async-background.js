@@ -32,7 +32,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { leadPicture } from './lib/lead-picture.js';
 import { buildDraftPreviewBlocks, buildDraftErrorBlocks } from './lib/slack-blocks.js';
-import { getAccessToken, getThread, bodyFromPayload, lc, getSignature } from './lib/gmail.js';
+import { getAccessToken, getThread, bodyFromPayload, lc, getSignature, createDraft, deleteDraft } from './lib/gmail.js';
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
 const SLACK_API = 'https://slack.com/api';
@@ -597,16 +597,19 @@ Notes on the reference:
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, 'rep account missing supabase_user_id'));
     return { statusCode: 200, body: 'ok' };
   }
-  // Fetch the rep's Gmail signature (HTML) and strip to plain text — used by
-  // the "Open in Gmail" button so the compose draft includes the signature.
-  // The real Send path (send-as-rep) appends the HTML signature server-side,
-  // so it's already correct there. Open in Gmail can't render HTML in the
-  // body= URL param, so we attach the plain-text version.
+  // Build a REAL Gmail draft via drafts.create so the rep's full HTML
+  // signature renders when they open it in compose. The plain-text-in-URL
+  // workaround stripped formatting + stacked under Gmail's auto-applied
+  // signature — this is the proper path.
+  // gmailDraftId becomes the compose=<id> param in the Open-in-Gmail URL.
+  let gmailDraftId = null;
   let signatureText = null;
   try {
     const tok = await getAccessToken(sb, repEmail);
     const sigHtml = await getSignature(tok, repEmail);
     if (sigHtml) {
+      // Keep the plain-text fallback on the row for telemetry/debug — not
+      // currently used in the URL.
       signatureText = sigHtml
         .replace(/<\s*br\s*\/?>/gi, '\n')
         .replace(/<\/(div|p|li|tr|h\d)>/gi, '\n')
@@ -615,7 +618,18 @@ Notes on the reference:
         .replace(/&#39;|&rsquo;|&apos;/gi, "'").replace(/&quot;/gi, '"')
         .replace(/\n{3,}/g, '\n\n').trim();
     }
-  } catch { /* signature is optional — never block the save */ }
+    const draftResp = await createDraft(tok, {
+      from: repEmail,
+      to: leadEmail,
+      subject: medium.subject || '(continues thread)',
+      body: medium.body || '',
+      signatureHtml: sigHtml,
+      threadId: threadId || latestSend?.thread_id || null,
+    });
+    gmailDraftId = draftResp.id;
+  } catch (e) {
+    console.warn('gmail draft create failed (non-fatal — falls back to compose URL):', e.message);
+  }
 
   const { data: saved, error: saveErr } = await sb.from('saved_drafts').insert({
     user_id: acct.supabase_user_id,
@@ -637,6 +651,7 @@ Notes on the reference:
       label,
       rep_email: repEmail,
       signature_text: signatureText,
+      gmail_draft_id: gmailDraftId,
     },
     preflight_reco: pic.preflight?.recommendation || null,
   }).select().single();
@@ -653,7 +668,8 @@ Notes on the reference:
       draftId: saved.id,
       threadId: threadId || latestSend?.thread_id || null,
       repEmail,   // <— enables the "Open in Gmail" button (authuser=<rep>)
-      signatureText,  // <— appended to body in Open-in-Gmail URL so the compose draft includes the rep's signature
+      signatureText,  // <— optional, only used if gmailDraftId unavailable (legacy fallback)
+      gmailDraftId,   // <— opens the REAL Gmail draft via compose=<id> so signature renders as HTML
     },
     medium,
     fightFor,
@@ -740,11 +756,35 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
     return { statusCode: 200, body: 'ok' };
   }
 
-  // 3. Update saved_drafts in place (keep all other fields incl. target_ref)
+  // 3a. Regenerate the Gmail draft so the compose preview shows the revised
+  // body. Old draft must be deleted to avoid drafts-folder pollution.
+  let newGmailDraftId = null;
+  try {
+    const tok = await getAccessToken(sb, repEmail);
+    if (draft.target_ref?.gmail_draft_id) {
+      await deleteDraft(tok, draft.target_ref.gmail_draft_id);
+    }
+    const sigHtml = await getSignature(tok, repEmail);
+    const draftResp = await createDraft(tok, {
+      from: repEmail,
+      to: leadEmail,
+      subject: revised.subject,
+      body: revised.body,
+      signatureHtml: sigHtml,
+      threadId: draft.target_ref?.thread_id || null,
+    });
+    newGmailDraftId = draftResp.id;
+  } catch (e) {
+    console.warn('gmail draft regenerate failed (edit mode):', e.message);
+  }
+
+  // 3. Update saved_drafts in place (keep all other fields, swap gmail_draft_id)
+  const newTargetRef = { ...(draft.target_ref || {}), gmail_draft_id: newGmailDraftId };
   const { error: updErr } = await sb.from('saved_drafts')
     .update({
       subject: revised.subject,
       body: revised.body,
+      target_ref: newTargetRef,
       updated_at: new Date().toISOString(),
     })
     .eq('id', draftId);
@@ -765,7 +805,8 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
       draftId,
       threadId: draft.target_ref?.thread_id || null,
       repEmail: repEmail || draft.target_ref?.rep_email,
-      signatureText: draft.target_ref?.signature_text || null,  // reuse the signature fetched at first-draft time
+      signatureText: draft.target_ref?.signature_text || null,  // legacy fallback only
+      gmailDraftId: newGmailDraftId,
     },
     { subject: revised.subject, body: revised.body, label: 'medium (revised)' },
     fightFor,

@@ -312,25 +312,26 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
   // subject / body so the rep can tweak and send from Gmail directly.
   // Uses the rep's own gmail account via authuser= so the right inbox opens.
   let openInGmailUrl = null;
-  if (ctx.repEmail && ctx.email) {
-    // Gmail's compose `body=` param is plain text — it doesn't render HTML
-    // or Markdown. Strip [Label](URL) markdown back to plain URLs so the
-    // recipient sees a usable compose draft (Gmail will then auto-detect
-    // the URLs and make them clickable on send).
+  if (ctx.repEmail && ctx.gmailDraftId) {
+    // Preferred path: open the REAL Gmail draft created via drafts.create.
+    // Body is full HTML (with markdown links rendered as anchors and the
+    // rep's HTML signature embedded). This is what makes "Open in Gmail"
+    // look like a normal Gmail draft instead of a stripped-down workaround.
+    const p = new URLSearchParams({
+      authuser: ctx.repEmail,
+      compose: ctx.gmailDraftId,
+    });
+    openInGmailUrl = `https://mail.google.com/mail/u/0/?${p.toString()}`;
+  } else if (ctx.repEmail && ctx.email) {
+    // Fallback: legacy compose URL when no real Gmail draft id was created
+    // (e.g. token fetch failed). body= is text-only; Gmail's own
+    // auto-signature setting takes over from there.
     const gmailBody = String(draft.body || '').replace(
       /\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)\)/g,
       '$1: $2',
     );
-    // Intentionally NOT appending the rep's signature here. Gmail's compose
-    // URL body= param is plain-text only — passing the stripped signature
-    // produces ugly inline text AND can stack on top of Gmail's auto-applied
-    // HTML signature (if the rep's settings → "default signature for new
-    // messages" is set). Leaving body= as just the draft lets Gmail's normal
-    // signature logic kick in. For full HTML signature rendering, the
-    // Send-from-Slack path appends the signature server-side via send-as-rep.
     const p = new URLSearchParams({
-      view: 'cm',
-      fs: '1',
+      view: 'cm', fs: '1',
       to: ctx.email,
       su: String(draft.subject || ''),
       body: gmailBody,

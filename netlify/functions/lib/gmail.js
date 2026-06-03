@@ -162,6 +162,47 @@ export async function sendEmail(accessToken, { from, to, subject, body, signatur
   return j;
 }
 
+/**
+ * Create a real Gmail draft (lives in the rep's Drafts folder, openable in
+ * compose). Same MIME shape as sendEmail so the formatted HTML body + the
+ * rep's configured signature render properly. Returns { id, messageId,
+ * threadId } where `id` is the gmail draft id used to open it in compose.
+ *
+ * Open URL: https://mail.google.com/mail/u/0/?authuser=<rep>&compose=<id>
+ *
+ * The draft persists in Gmail until explicitly deleted via deleteDraft, or
+ * until the rep sends it from Gmail (which auto-deletes it). For Slack-side
+ * sends + cancels we delete it explicitly.
+ */
+export async function createDraft(accessToken, { from, to, subject, body, signatureHtml, threadId }) {
+  const bodyHtml = renderMarkdownLinks(escapeHtml(body)).replace(/\r?\n/g, '<br>');
+  const sigBlock = signatureHtml ? `<br><br>${signatureHtml}` : '';
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${bodyHtml}${sigBlock}</div>`;
+  const raw = buildRaw({ from, to, subject, bodyHtml: html });
+  const message = threadId ? { raw, threadId } : { raw };
+  const r = await fetch(`${GMAIL}/drafts`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(`gmail draft create failed: ${j.error?.message || r.status}`);
+  return { id: j.id, messageId: j.message?.id || null, threadId: j.message?.threadId || null };
+}
+
+/** Delete a Gmail draft by id. Silently no-ops on failure — never block the
+ *  Slack-side action because a draft delete didn't succeed. */
+export async function deleteDraft(accessToken, draftId) {
+  if (!draftId) return false;
+  try {
+    const r = await fetch(`${GMAIL}/drafts/${draftId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return r.ok;
+  } catch { return false; }
+}
+
 /** Arm Gmail push notifications to the configured Pub/Sub topic. */
 export async function startWatch(accessToken) {
   const r = await fetch(`${GMAIL}/watch`, {
