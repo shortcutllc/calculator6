@@ -2308,6 +2308,13 @@ const SalesIntelligence: React.FC = () => {
                   ? ` · last ${formatDistanceToNow(new Date(pageGmail.last_sent_crawl_at), { addSuffix: true })}`
                   : ''}
               </button>
+              <button
+                onClick={connectGmailPage}
+                title="Re-run Gmail consent (needed after we add new scopes — e.g. drafts.create permission for Open in Gmail)"
+                className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
+              >
+                Reconnect
+              </button>
             </div>
           ) : (
             <button
