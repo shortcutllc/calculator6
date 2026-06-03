@@ -317,16 +317,17 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
     // or Markdown. Strip [Label](URL) markdown back to plain URLs so the
     // recipient sees a usable compose draft (Gmail will then auto-detect
     // the URLs and make them clickable on send).
-    let gmailBody = String(draft.body || '').replace(
+    const gmailBody = String(draft.body || '').replace(
       /\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)\)/g,
       '$1: $2',
     );
-    // Append the rep's Gmail signature (plain-text) so the compose draft
-    // doesn't open without a signature. Real Send path appends the HTML
-    // signature server-side; this matches that behavior for Open-in-Gmail.
-    if (ctx.signatureText) {
-      gmailBody = `${gmailBody}\n\n${ctx.signatureText}`;
-    }
+    // Intentionally NOT appending the rep's signature here. Gmail's compose
+    // URL body= param is plain-text only — passing the stripped signature
+    // produces ugly inline text AND can stack on top of Gmail's auto-applied
+    // HTML signature (if the rep's settings → "default signature for new
+    // messages" is set). Leaving body= as just the draft lets Gmail's normal
+    // signature logic kick in. For full HTML signature rendering, the
+    // Send-from-Slack path appends the signature server-side via send-as-rep.
     const p = new URLSearchParams({
       view: 'cm',
       fs: '1',
