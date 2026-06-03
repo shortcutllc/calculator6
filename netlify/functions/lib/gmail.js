@@ -14,6 +14,11 @@ const GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me';
 export const SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/gmail.readonly',
+  // gmail.compose required for drafts.create / drafts.update / drafts.delete —
+  // we use drafts.create to give Pro previews a real Gmail draft id so
+  // "Open in Gmail" lands on the actual draft (with full HTML body +
+  // signature rendered) instead of a fresh compose with stripped body.
+  'https://www.googleapis.com/auth/gmail.compose',
 ];
 
 export const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
