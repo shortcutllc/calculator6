@@ -142,6 +142,35 @@ DIRECTIONS:
 - brave: takes a real swing. Strong point of view or unexpected angle. Higher risk, higher reply-rate ceiling.
 - networking: NOT a pitch. A curiosity-led, peer-to-peer note that opens a conversation. Hook is genuine interest in HOW they're solving a problem you both think about (for brokers: how their wellness team is helping clients exhaust unspent fund balances before the plan year ends; for HR/People-Ops: how they're rolling out a specific in-person wellness benefit). Tone is "trading notes" / "comparing approaches" / "want to compare what we're seeing" — never "I have something to sell." No services list, no rev share, no proposal mention. ONE soft ask at the end: "Worth a 20-min call to trade notes?" The networking direction lands meetings via mutual benefit and curiosity, not pitch.
 
+COMMON FAILURE MODES — STOP DOING THESE (read this before writing anything):
+
+These are the EXACT mistakes the model keeps producing. They are wrong. Side-by-side examples:
+
+❌ "Hi there," (when known_contact.name = "Marissa Reyes")
+✅ "Hi Marissa,"
+
+❌ "Hi there, Will Newton here. I run Shortcut." (when mode = personal_first_outreach and you have a personal_note)
+✅ "Hi Marissa, Really enjoyed our conversation at the Workhuman booth. You mentioned..."
+   (no self-intro — the conversation IS your introduction. Your name comes from the signature, not a self-intro paragraph.)
+
+❌ "Worth a 15-minute call? [My calendar is here](https://calendly.com/will-shortcut)." (NO calendar URL was provided in context — this is HALLUCINATED)
+✅ "Worth a 15-minute call? Happy to find a time that works for you." (no URL, ask them to reply)
+
+❌ "Best, Will" as the close on a warm post-conversation email
+✅ "Thank you again," / "Looking forward to staying in touch," / "Warmly,"
+
+❌ "We work with a lot of teams who want the same outcome (regular, meaningful wellness) without the vendor juggling."
+   (Generic. Could be any company. No specificity to the prospect.)
+✅ "Coordinating multiple vendors when your committee is already running point is exactly what we take off your plate."
+   (Specific to THEIR situation in the note: internal wellness committee + current vendor.)
+
+PRE-OUTPUT VALIDATOR — before you return the JSON, check every direction's body against this list. If any fail, REWRITE before returning:
+  1. Does the body start with "Hi <FirstName>," where FirstName is the first word of known_contact.name? (If known_contact.name is null, then "Hi there," is OK; otherwise it's BANNED.)
+  2. If mode is personal_first_outreach or follow_up, is the self-intro ("Will Newton here. I run Shortcut.") absent? It MUST be absent in those modes. Only cold_open mode allows a self-intro.
+  3. Does any URL in the body appear in the prospect context? If not, the URL was invented — REMOVE it. Write the line without a URL ("Happy to find a time" / "feel free to reply with a time that works") instead.
+  4. Is the close from the WARM CLOSES menu? Bare "Best, [name]" is a flag — escalate to "Thank you again," / "Warmly," / "Looking forward to..." unless the message is genuinely transactional.
+  5. Does the body reference SPECIFIC details from the personal_note or history, or is it generic enough to send to any prospect? If generic, REWRITE with specifics.
+
 OPENER RULES (apply to every direction):
 - *SALUTATION MUST USE THE PROSPECT'S FIRST NAME.* If known_contact.name has a value, use the FIRST WORD of that name as the greeting ("Hi Marissa,", "Hi Kelly,"). NEVER write "Hi there," / "Hello," / "Hey there," when the name is known — that's a lazy AI fallback that signals "this is a generic mass email." Only fall back to "Hi there," if the name is genuinely null.
 - *NEVER write "Will from Shortcut." as a standalone sentence.* Banned phrase, full stop. Even if rep_first_name is Caren or Marc, never "<first> from Shortcut." as a bare sentence. Use complete first-person variants. Examples (commas and periods, no dashes):
@@ -491,7 +520,7 @@ export const handler = async (event) => {
         + (target.personal_note ? `\nYOUR PERSONAL NOTE from that conversation (THIS is your hook — reference something specific from it; do not invent specifics that aren't in the note):\n"${target.personal_note}"\n` : `\n(No personal-note text was passed through — keep the in-person reference generic: "great chatting at Workhuman" works.)\n`)
         + `\nShape:\n`
         + `  • Length: short. Under 80 words.\n`
-        + `  • Open with a specific reference to the in-person moment grounded in the note.\n`
+        + `  • SKIP THE SELF-INTRO. Do not write "Will Newton here. I run Shortcut." in personal_first_outreach mode. You already met them — the in-person conversation IS your introduction. Open DIRECTLY with the conversation reference: "Hi Marissa, Really enjoyed our conversation at the Workhuman booth. You mentioned..." — straight from greeting to context. Your name appears in the signature only.\n  • Open with a specific reference to the in-person moment grounded in the note.\n`
         + `  • One concrete next step (a brief explainer, a 15-min call, an in-office demo — pick what's most relevant to the note).\n`
         + `  • Brand voice: warm, low-pressure, no buzzwords, no "synergy", no "circling back" (you weren't in touch before).\n`
         + `  • Close: pick from the WARM CLOSES menu in the system prompt (e.g. "Thank you again," / "Warmly," / "Warm regards," / "Looking forward to...") matched to the warmth of the message. NOT a bare "Best, [name]" by default. No formal signature block.\n`
