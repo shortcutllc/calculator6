@@ -179,6 +179,15 @@ export async function leadPicture(sb, input) {
 
       workhuman = {
         id: w.id, assigned_to: w.assigned_to,
+        // Surface name / title / company on the workhuman block so callers
+        // (Pro lookup_lead, draft prompts, CRM card) can read them. The
+        // select pulls these but the previous shape only kept the IDs +
+        // sales-context fields; this was the root cause of the LLM seeing
+        // null prospect.name and defaulting to "Hi there," on Workhuman
+        // leads who do have a name on the booth-signup row.
+        name: w.name || null,
+        title: w.title || null,
+        company: w.company || null,
         tier: w.tier_1a ? 'tier_1a' : w.tier_1b ? 'tier_1b' : w.tier,
         outreach_status: w.outreach_status,
         lead_score: w.lead_score,
@@ -228,8 +237,12 @@ export async function leadPicture(sb, input) {
 
   // ----- 2c. Backfill identity from workhuman when other sources were empty.
   // Workhuman-only contacts (e.g. booth signups never enriched via Apollo)
-  // otherwise leave Location / Source blank on the CRM card.
+  // otherwise leave Location / Source blank on the CRM card AND give the
+  // LLM null prospect.name (which makes it default to "Hi there,").
   if (workhuman) {
+    if (!identity.name && workhuman.name) identity.name = workhuman.name;
+    if (!identity.title && workhuman.title) identity.title = workhuman.title;
+    if (!identity.company && workhuman.company) identity.company = workhuman.company;
     if (!identity.location && workhuman.hq_location) identity.location = workhuman.hq_location;
     if (!identity.industry && workhuman.industry) identity.industry = workhuman.industry;
     if (!identity.headcount && workhuman.company_size) identity.headcount = workhuman.company_size;
