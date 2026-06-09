@@ -47,22 +47,14 @@ const ServiceDetailsSection: React.FC<ServiceDetailsSectionProps> = ({
   );
 };
 
-const ServiceBlock: React.FC<{ content: ServiceSectionContent }> = ({
+// Per-service detail content — Benefits grid + What's Included + Features
+// checklist — WITHOUT any outer card chrome or service-name heading. Exported
+// so the per-service card can drop the full design straight into its
+// "What a … day looks like" expander.
+export const ServiceDayDetails: React.FC<{ content: ServiceSectionContent }> = ({
   content,
 }) => (
-  <div
-    style={{
-      background: '#fff',
-      border: '1px solid rgba(0,0,0,0.06)',
-      borderRadius: 20,
-      padding: '28px 30px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
-    }}
-  >
-    <CardHeading size="card" style={{ marginBottom: 18 }}>
-      {content.label}
-    </CardHeading>
-
+  <>
     {/* Benefits — 3-column card grid */}
     <Eyebrow style={{ marginBottom: 10 }}>{content.benefitsHeading}</Eyebrow>
     <div
@@ -227,6 +219,28 @@ const ServiceBlock: React.FC<{ content: ServiceSectionContent }> = ({
         ))}
       </div>
     </div>
+  </>
+);
+
+// Standalone-section variant — wraps the details in a white card with the
+// service-name heading. Still used by ServiceDetailsSection when something
+// renders it as a page section.
+const ServiceBlock: React.FC<{ content: ServiceSectionContent }> = ({
+  content,
+}) => (
+  <div
+    style={{
+      background: '#fff',
+      border: '1px solid rgba(0,0,0,0.06)',
+      borderRadius: 20,
+      padding: '28px 30px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
+    }}
+  >
+    <CardHeading size="card" style={{ marginBottom: 18 }}>
+      {content.label}
+    </CardHeading>
+    <ServiceDayDetails content={content} />
   </div>
 );
 

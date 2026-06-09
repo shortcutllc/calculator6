@@ -42,6 +42,10 @@ interface PricingOptionsSelectorProps {
    *  with the pre-discount price struck through. Without this prop, tiles
    *  render exactly opt.serviceCost (the legacy behaviour). */
   autoRecurringDiscount?: number;
+  /** Appointment length (minutes) from the parent service. Options don't carry
+   *  their own appTime — length is constant across variants — so it's passed
+   *  down to render "N min each" next to each tile's appointment count. */
+  appTime?: number;
 }
 
 const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
@@ -55,6 +59,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
   onRemoveOption,
   onGenerateOptions,
   autoRecurringDiscount,
+  appTime,
 }) => {
   // Clamp to a sane range; treat 0/undefined/negative as "no recurring".
   const recurringPct = Math.max(0, Math.min(99, Number(autoRecurringDiscount) || 0));
@@ -236,7 +241,21 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                   gap: 8,
                 }}
               >
-                <Eyebrow>Option {i + 1}</Eyebrow>
+                {/* Single bold name — the old light "OPTION N" eyebrow above
+                    it just duplicated this, so it's gone. */}
+                <div
+                  style={{
+                    fontFamily: T.fontD,
+                    fontWeight: 700,
+                    fontSize: 16,
+                    color: T.navy,
+                    letterSpacing: '-.01em',
+                    lineHeight: 1.2,
+                    minWidth: 0,
+                  }}
+                >
+                  {opt.name}
+                </div>
                 <div
                   style={{
                     width: 18,
@@ -253,18 +272,6 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                 >
                   {on && <Check size={11} strokeWidth={3} />}
                 </div>
-              </div>
-              <div
-                style={{
-                  fontFamily: T.fontD,
-                  fontWeight: 700,
-                  fontSize: 17,
-                  color: T.navy,
-                  letterSpacing: '-.01em',
-                  lineHeight: 1.2,
-                }}
-              >
-                {opt.name}
               </div>
               {editing ? (
                 <div onClick={(e) => e.stopPropagation()}>
@@ -338,20 +345,87 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                   )}
                 </div>
               ) : (
-                Boolean(opt.numPros || opt.totalHours || opt.totalAppointments) && (
-                  <div
-                    style={{
-                      fontFamily: T.fontD,
-                      fontSize: 13,
-                      color: T.fgMuted,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {opt.numPros !== undefined &&
-                      `${opt.numPros} pro${opt.numPros > 1 ? 's' : ''}`}
-                    {opt.totalHours !== undefined && opt.numPros !== undefined && ' · '}
-                    {opt.totalHours !== undefined && `${opt.totalHours}h`}
-                    {opt.totalAppointments !== undefined && ` · ${opt.totalAppointments} appts`}
+                Boolean(
+                  opt.numPros ||
+                    opt.totalHours ||
+                    opt.totalAppointments ||
+                    opt.classLength
+                ) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {/* Appointments leads the tile — same hero treatment as the
+                        ServiceCard face. Flat-rate classes lead with class
+                        length instead (no appointment count). */}
+                    {opt.totalAppointments !== undefined ? (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                        <span
+                          style={{
+                            fontFamily: T.fontD,
+                            fontWeight: 800,
+                            fontSize: 22,
+                            lineHeight: 1,
+                            color: T.navy,
+                          }}
+                        >
+                          {opt.totalAppointments}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: T.fontUi,
+                            fontWeight: 700,
+                            fontSize: 10,
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase',
+                            color: T.fgMuted,
+                          }}
+                        >
+                          appointments
+                        </span>
+                      </div>
+                    ) : opt.classLength !== undefined ? (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                        <span
+                          style={{
+                            fontFamily: T.fontD,
+                            fontWeight: 800,
+                            fontSize: 22,
+                            lineHeight: 1,
+                            color: T.navy,
+                          }}
+                        >
+                          {opt.classLength}
+                          <span style={{ fontSize: 12, fontWeight: 700, marginLeft: 2 }}>
+                            min
+                          </span>
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: T.fontUi,
+                            fontWeight: 700,
+                            fontSize: 10,
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase',
+                            color: T.fgMuted,
+                          }}
+                        >
+                          per session
+                        </span>
+                      </div>
+                    ) : null}
+                    {/* Appointment length — the only supporting detail now.
+                        Pros + total hours were removed: appointments + length
+                        are what clients compare across options. */}
+                    {appTime != null && opt.totalAppointments !== undefined && (
+                      <div
+                        style={{
+                          fontFamily: T.fontD,
+                          fontSize: 12,
+                          color: T.fgMuted,
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {appTime} min each
+                      </div>
+                    )}
                   </div>
                 )
               )}

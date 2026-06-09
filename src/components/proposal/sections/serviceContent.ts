@@ -154,7 +154,7 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
         description: 'Easy online booking for employees',
       },
     ],
-    featuresHeading: 'Every massage event includes:',
+    featuresHeading: 'Every massage event comes with:',
     features: [
       'Chair or table massage options',
       'Relaxing music & aromatherapy',
@@ -231,7 +231,7 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
         description: 'Flawless editing included with every photo',
       },
     ],
-    featuresHeading: 'Every headshot event includes:',
+    featuresHeading: 'Every headshot event comes with:',
     features: [
       'Top-notch lighting setup',
       'Expert posing guidance',
@@ -308,7 +308,7 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
         description: 'Hydrating & detoxifying options',
       },
     ],
-    featuresHeading: 'Every facial event includes:',
+    featuresHeading: 'Every facial event comes with:',
     features: [
       'All skin types welcome',
       'Premium skincare products',
@@ -384,7 +384,7 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
         description: 'Full haircut and styling',
       },
     ],
-    featuresHeading: 'Every hair & makeup event includes:',
+    featuresHeading: 'Every hair & makeup event comes with:',
     features: [
       'Services for all hair types',
       'Premium brand products',
@@ -460,7 +460,7 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
         description: 'Full haircut and styling',
       },
     ],
-    featuresHeading: 'Every hair & makeup event includes:',
+    featuresHeading: 'Every hair & makeup event comes with:',
     features: [
       'Services for all hair types',
       'Premium brand products',
@@ -535,7 +535,7 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
         description: 'Moisturizing treatments available',
       },
     ],
-    featuresHeading: 'Every nails event includes:',
+    featuresHeading: 'Every nails event comes with:',
     features: [
       '20+ polish colors',
       'Single-use nail kits',
@@ -613,7 +613,7 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
         description: 'Flawless editing included with every photo',
       },
     ],
-    featuresHeading: 'Every headshot + styling event includes:',
+    featuresHeading: 'Every headshot + styling event comes with:',
     features: [
       'Top-notch lighting setup',
       'Hair + makeup touchups',
@@ -677,7 +677,7 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
           'Handouts that compliment the session and offer ways to increasingly weave mindfulness into your daily life.',
       },
     ],
-    featuresHeading: 'Every mindfulness session includes:',
+    featuresHeading: 'Every mindfulness session comes with:',
     features: [
       'Live, expert-led practice',
       'Customized to your audience',

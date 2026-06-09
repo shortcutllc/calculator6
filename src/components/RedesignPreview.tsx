@@ -210,7 +210,7 @@ const RedesignPreview: React.FC = () => {
           />
         </Section>
 
-        <Section title="Service Card — excluded state (greyed + strikethrough title)">
+        <Section title="Service Card — excluded state (full-color + Add-to-proposal CTA, cream tint only)">
           <ServiceCard
             service={sampleNails}
             included={nailsIncluded}
