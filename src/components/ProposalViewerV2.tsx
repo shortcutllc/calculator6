@@ -2952,7 +2952,7 @@ const ProposalViewerV2: React.FC = () => {
                 type="text"
                 value={editedData.heroTitle || ''}
                 onChange={(e) => setTopLevelField('heroTitle', e.target.value)}
-                placeholder={`${editedData.clientName || 'Client'} wellness proposal`}
+                placeholder="Employee Happiness Delivered."
                 style={{
                   width: '100%',
                   maxWidth: 720,
@@ -2977,7 +2977,7 @@ const ProposalViewerV2: React.FC = () => {
                   marginTop: 4,
                 }}
               >
-                Leave blank to use the default "{editedData.clientName || 'Client'} wellness proposal".
+                Leave blank to use the default "Employee Happiness Delivered.".
               </div>
             </div>
           </div>
@@ -2995,7 +2995,7 @@ const ProposalViewerV2: React.FC = () => {
               margin: 0,
             }}
           >
-            {displayData?.heroTitle || `${clientName} wellness proposal`}
+            {displayData?.heroTitle || 'Employee Happiness Delivered.'}
           </h1>
         )}
         {/* "Let the client build it" toggle — when on, every service on

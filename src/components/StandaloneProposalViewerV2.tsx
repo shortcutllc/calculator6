@@ -865,7 +865,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
             gap: isCompact ? 8 : 16,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+            {/* Just the Shortcut logo. The divider + client name were removed —
+                the client is already branded by the hero logo + "Prepared for"
+                line, and option switching lives in the body tabs. */}
             <img
               src="/shortcut-logo-blue.svg"
               alt="Shortcut"
@@ -876,41 +879,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 flexShrink: 0,
               }}
             />
-            <div
-              style={{
-                width: 1,
-                height: 24,
-                background: 'rgba(0,0,0,0.1)',
-                flexShrink: 0,
-              }}
-            />
-            <div
-              style={{
-                fontFamily: T.fontD,
-                fontSize: 14,
-                color: T.fgMuted,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                minWidth: 0,
-              }}
-            >
-              <span style={{ fontWeight: 600 }}>{clientName}</span>
-              {(() => {
-                const current = proposalOptions.find((o: any) => o.id === id);
-                if (proposalOptions.length > 1 && current?.option_name) {
-                  return (
-                    <>
-                      <span style={{ margin: '0 6px' }}> · </span>
-                      <span
-                        style={{ fontWeight: 700, color: T.navy }}
-                      >{current.option_name}</span>
-                    </>
-                  );
-                }
-                return null;
-              })()}
-            </div>
           </div>
 
           <div
@@ -1152,67 +1120,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 margin: 0,
               }}
             >
-              {displayData?.heroTitle || `${clientName} wellness proposal`}
+              {displayData?.heroTitle || 'Employee Happiness Delivered.'}
             </h1>
           </div>
         </div>
 
-        {/* Hero subtitle — short, dynamic. Pulls from displayData.eventDates +
-            location count so it stays current with the proposal contents.
-            Matches the V2 design reference copy. */}
-        {(() => {
-          // Word form for small counts ("Two offices") feels more like real
-          // copy than "2 offices". Fall back to digits at 10+.
-          const NUM_WORDS = [
-            'Zero',
-            'One',
-            'Two',
-            'Three',
-            'Four',
-            'Five',
-            'Six',
-            'Seven',
-            'Eight',
-            'Nine',
-          ];
-          const officeWord =
-            stats.locationCount < NUM_WORDS.length
-              ? `${NUM_WORDS[stats.locationCount]} office${
-                  stats.locationCount === 1 ? '' : 's'
-                }`
-              : `${stats.locationCount} offices`;
-          const dates = (displayData?.eventDates || []).filter(
-            (d: string) => d && d !== 'TBD' && !d.startsWith('TBD')
-          );
-          let dateRange = '';
-          if (dates.length > 0) {
-            try {
-              const sorted = [...dates].sort();
-              const first = new Date(sorted[0]);
-              const last = new Date(sorted[sorted.length - 1]);
-              dateRange = formatDateRange(first, last);
-            } catch {
-              dateRange = '';
-            }
-          }
-          const optionVerb = proposalOptions.length > 1 ? 'Pick an option below, ' : '';
-          return (
-            <p
-              style={{
-                fontFamily: T.fontD,
-                fontSize: 15,
-                lineHeight: 1.55,
-                color: T.fgMuted,
-                margin: '12px 0 24px',
-                maxWidth: 720,
-              }}
-            >
-              {officeWord}
-              {dateRange ? `, ${dateRange}` : ''}. {optionVerb}toggle services on or off,
-              and approve when you're ready.
-            </p>
-          );
-        })()}
+        {/* Hero subtitle removed — it duplicated the "Toggle, repeat, or
+            expand any row" helper and the location row below, and added bulk
+            before the first service card on mobile. */}
 
         {/* Hero mini-stats grid removed — the lifted Pricing summary card
             below carries the same numbers (services, dates, total) and the
