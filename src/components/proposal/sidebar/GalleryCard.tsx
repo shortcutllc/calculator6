@@ -113,8 +113,16 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
     >
       <Eyebrow style={{ marginBottom: 12 }}>From recent events</Eyebrow>
 
-      {/* Featured tile — real media if available, gradient placeholder otherwise. */}
+      {/* Featured tile — real media if available, gradient placeholder otherwise.
+          Click opens the lightbox straight to this item (plays video / pops
+          the photo full-size). */}
       <div
+        onClick={() => {
+          if (featured) {
+            setActiveMediaId(featured.id);
+            setLightboxOpen(true);
+          }
+        }}
         style={{
           aspectRatio: '4 / 3',
           borderRadius: 12,
@@ -124,6 +132,7 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
           marginBottom: 8,
           position: 'relative',
           overflow: 'hidden',
+          cursor: featured ? 'pointer' : 'default',
         }}
       >
         {featured?.media_type === 'image' && featured.media_url && (
@@ -256,12 +265,17 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ serviceTypes }) => {
               <div
                 key={t.id}
                 title={t.caption || undefined}
+                onClick={() => {
+                  setActiveMediaId(t.id);
+                  setLightboxOpen(true);
+                }}
                 style={{
                   aspectRatio: '4 / 3',
                   borderRadius: 8,
                   background: bg,
                   position: 'relative',
                   overflow: 'hidden',
+                  cursor: 'pointer',
                 }}
               >
                 {t.media_type === 'video' && (
@@ -508,6 +522,7 @@ const GalleryLightbox: React.FC<GalleryLightboxProps> = ({
                   poster={active.poster_url || undefined}
                   controls
                   autoPlay
+                  playsInline
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',

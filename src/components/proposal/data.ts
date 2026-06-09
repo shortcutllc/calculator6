@@ -162,6 +162,27 @@ export const SERVICE_IMAGE_PATH: Record<string, string> = {
   stretch: '/Stretch Slider.png',
 };
 
+// SERVICE_GALLERY — multiple photos per service type for the per-card image
+// gallery (prototype). Populated with real assets already in /public so the
+// two gallery treatments can be judged live. Long-term this would be sourced
+// from `proposal_gallery` filtered by service type (same table the sidebar
+// GalleryCard already reads). Services without an entry fall back to the
+// single SERVICE_IMAGE_PATH cover.
+export const SERVICE_GALLERY: Record<string, string[]> = {
+  massage: [
+    '/Massage Slider.png',
+    '/massage-guy-shortcut.jpg',
+    '/Landing Page Hero Images/Massage Hero.png',
+    '/QR Code Sign/Service Images/Massage.png',
+  ],
+  nails: [
+    '/Nails Slider.png',
+    '/Landing Page Hero Images/Nails Hero.png',
+    '/QR Code Sign/Service Images/Nails.png',
+    '/Holiday Proposal/Hero Images/Nails 2x.png',
+  ],
+};
+
 // Frequency presets used by the FrequencyPicker. README question 2: user
 // confirmed "Add a custom entry too." Custom isn't a preset value — it's a
 // sentinel handled in the picker UI.
