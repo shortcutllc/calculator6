@@ -1,5 +1,5 @@
-import React from 'react';
-import { Mail, Circle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Circle, Sparkles } from 'lucide-react';
 import { Eyebrow, T } from '../shared/primitives';
 
 // Account team static map — sourced from existing references in the codebase.
@@ -55,10 +55,23 @@ export const resolveTeamMember = (email?: string): AccountTeamMember => {
 
 interface AccountTeamCardProps {
   email?: string;
+  /** Optional personal note from the rep ("A note from Shortcut"). Rendered
+   *  inside this card with a read-more toggle instead of as a separate block
+   *  in the main column. */
+  note?: string;
 }
 
-const AccountTeamCard: React.FC<AccountTeamCardProps> = ({ email }) => {
+const NOTE_CLAMP = 150;
+
+const AccountTeamCard: React.FC<AccountTeamCardProps> = ({ email, note }) => {
   const member = resolveTeamMember(email);
+  const [noteExpanded, setNoteExpanded] = useState(false);
+  const trimmedNote = (note || '').trim();
+  const isLongNote = trimmedNote.length > NOTE_CLAMP;
+  const shownNote =
+    isLongNote && !noteExpanded
+      ? `${trimmedNote.slice(0, NOTE_CLAMP).replace(/\s+\S*$/, '')}…`
+      : trimmedNote;
   return (
     <div
       style={{
@@ -112,6 +125,60 @@ const AccountTeamCard: React.FC<AccountTeamCardProps> = ({ email }) => {
           </div>
         </div>
       </div>
+
+      {trimmedNote && (
+        <div
+          style={{
+            marginBottom: 12,
+            paddingTop: 12,
+            borderTop: '1px dashed rgba(0,0,0,0.08)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 6,
+            }}
+          >
+            <Sparkles size={13} color={T.aqua} strokeWidth={2.25} />
+            <Eyebrow>A note from Shortcut</Eyebrow>
+          </div>
+          <p
+            style={{
+              fontFamily: T.fontD,
+              fontSize: 13.5,
+              color: T.fgMuted,
+              lineHeight: 1.55,
+              margin: 0,
+            }}
+          >
+            {shownNote}
+            {isLongNote && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => setNoteExpanded((v) => !v)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 12.5,
+                    color: T.coral,
+                  }}
+                >
+                  {noteExpanded ? 'Read less' : 'Read more'}
+                </button>
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       <a
         href={`mailto:${member.email}`}

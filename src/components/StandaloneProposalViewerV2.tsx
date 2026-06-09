@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ChevronDown, Download, History as HistoryIcon, HelpCircle, MapPin, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, Download, History as HistoryIcon, HelpCircle, MapPin, Sparkles, CheckCircle2, MoreHorizontal, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { generatePDF } from '../utils/pdf';
@@ -26,6 +26,7 @@ import {
   selectionKey,
   ServiceSelection,
 } from './proposal/useServiceSelections';
+import { useProposalGallery } from './proposal/useProposalGallery';
 import { formatCurrency, SERVICE_DISPLAY } from './proposal/data';
 import AccountTeamCard from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
@@ -41,7 +42,6 @@ import RequestChangesModal from './proposal/RequestChangesModal';
 import ApproveConfirmModal from './proposal/ApproveConfirmModal';
 import HelpModal from './proposal/HelpModal';
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
-import ServiceDetailsSection from './proposal/sections/ServiceDetailsSection';
 import ParticipantBenefitsSection from './proposal/sections/ParticipantBenefitsSection';
 import AdditionalResourcesSection from './proposal/sections/AdditionalResourcesSection';
 import CLEOutlineSection from './proposal/sections/CLEOutlineSection';
@@ -92,6 +92,49 @@ const formatDateRange = (first: Date, last: Date): string => {
   return `${format(first, 'MMM d, yyyy')} – ${format(last, 'MMM d, yyyy')}`;
 };
 
+// Header overflow-menu row. Icon + label, full-width hover target. Kept local
+// to the viewer since it's the only surface that uses the ⋯ menu.
+const HeaderMenuItem: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}> = ({ icon, label, onClick, disabled }) => {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        width: '100%',
+        padding: '9px 12px',
+        background: hover && !disabled ? T.lightGray : 'transparent',
+        border: 'none',
+        borderRadius: 8,
+        cursor: disabled ? 'wait' : 'pointer',
+        fontFamily: T.fontUi,
+        fontWeight: 700,
+        fontSize: 13,
+        color: T.navy,
+        textAlign: 'left',
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <span style={{ display: 'inline-flex', color: T.fgMuted, flexShrink: 0 }}>
+        {icon}
+      </span>
+      {label}
+    </button>
+  );
+};
+
 const StandaloneProposalViewerV2: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -102,13 +145,37 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [proposal, setProposal] = useState<any>(null);
+  // Real per-service gallery photos (proposal_gallery, grouped by service_type)
+  // for each ServiceCard's photo strip.
+  const galleryByService = useProposalGallery();
   const [isApproving, setIsApproving] = useState(false);
   const [postApproval, setPostApproval] = useState(false);
   const [requestChangesOpen, setRequestChangesOpen] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const [showingOriginal, setShowingOriginal] = useState(false);
+
+  // Close the header overflow menu on outside-click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
   // Client edit mode — lets the client tweak totalHours, numPros, classLength
   // and pricing-option params, then submit changes for staff review.
   const [isClientEditing, setIsClientEditing] = useState(false);
@@ -340,6 +407,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
   }, [displayData?.gratuityType, displayData?.gratuityValue, gratuityBase]);
 
   const grandTotal = summary.total + customItemsTotal + (gratuity?.amount || 0);
+  // Per-event total for the sidebar — frequency never moves this; only the
+  // bottom Pricing summary annualizes. No volume discount (it's annual).
+  const perEventGrandTotal =
+    summary.perEventTotal + customItemsTotal + (gratuity?.amount || 0);
 
   // ---- Approve flow -------------------------------------------------------
   const handleApprove = useCallback(async () => {
@@ -636,6 +707,27 @@ const StandaloneProposalViewerV2: React.FC = () => {
     [id, proposal, isApproved]
   );
 
+  // Client-facing massage format pick (chair / table). This only swaps the
+  // format label + description copy — it deliberately does NOT change
+  // appointment length, count, or pricing (those stay exactly as the admin
+  // built them). So we just set massageType and persist; no recalc.
+  const handleChangeMassageType = useCallback(
+    async (loc: string, date: string, idx: number, type: 'chair' | 'table') => {
+      if (!id || isApproved || !proposal?.data) return;
+      const next = JSON.parse(JSON.stringify(proposal.data));
+      const svc = next.services?.[loc]?.[date]?.services?.[idx];
+      if (!svc) return;
+      svc.massageType = type;
+      setProposal((p: any) => ({ ...p, data: next }));
+      try {
+        await supabase.from('proposals').update({ data: next }).eq('id', id);
+      } catch (err) {
+        console.error('Persist massageType failed:', err);
+      }
+    },
+    [id, proposal, isApproved]
+  );
+
   // ---- PDF download — same flow as V1: html2canvas on #proposal-content
   const [isDownloading, setIsDownloading] = useState(false);
   const handleDownloadPdf = useCallback(async () => {
@@ -746,7 +838,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
     <div
       className="pv-page pv-page--client"
       id="proposal-content"
-      style={{ minHeight: '100vh', background: T.beige }}
+      style={{ minHeight: '100vh', background: T.lightGray }}
     >
       {/* ===== Sticky header ===== */}
       <header
@@ -822,19 +914,21 @@ const StandaloneProposalViewerV2: React.FC = () => {
           </div>
 
           <div
+            ref={menuRef}
             style={{
+              position: 'relative',
               display: 'flex',
               alignItems: 'center',
               gap: isCompact ? 6 : 10,
               flexShrink: 0,
-              // Phones: allow Edit / How it works / PDF to wrap onto a
-              // second line if they collectively outgrow the row.
               flexWrap: isCompact ? 'wrap' : 'nowrap',
               justifyContent: isCompact ? 'flex-start' : 'flex-end',
             }}
           >
             <StatusPill status={(status as any) || 'draft'} />
             {isClientEditing ? (
+              // While editing, the in-progress task actions stay visible —
+              // they're what the client came to the header to do.
               <>
                 <button
                   type="button"
@@ -881,104 +975,91 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 </button>
               </>
             ) : (
-              !isApproved &&
-              !showingOriginal && (
+              // Default state: identity + status carry the bar; every action
+              // (Edit / View original / Help / PDF) lives in one overflow menu
+              // so the header stays calm and the sidebar "Approve" CTA is the
+              // single loud action on the page.
+              <>
                 <button
                   type="button"
-                  onClick={enterClientEditMode}
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  title="More actions"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 14px',
-                    background: T.navy,
-                    color: '#fff',
-                    border: 'none',
+                    justifyContent: 'center',
+                    padding: '8px 10px',
+                    background: menuOpen ? T.lightGray : 'transparent',
+                    border: '1.5px solid rgba(0,0,0,0.08)',
                     borderRadius: 10,
                     cursor: 'pointer',
-                    fontFamily: T.fontUi,
-                    fontWeight: 700,
-                    fontSize: 13,
+                    color: T.navy,
                   }}
-                  title="Tweak hours, pros, and pricing options"
                 >
-                  Edit
+                  <MoreHorizontal size={18} />
                 </button>
-              )
+                {menuOpen && (
+                  <div
+                    role="menu"
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      minWidth: 210,
+                      background: '#fff',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      borderRadius: 12,
+                      boxShadow: '0 14px 36px rgba(0,0,0,0.16)',
+                      padding: 6,
+                      zIndex: 40,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                    }}
+                  >
+                    {!isApproved && !showingOriginal && (
+                      <HeaderMenuItem
+                        icon={<Pencil size={15} />}
+                        label="Edit proposal"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          enterClientEditMode();
+                        }}
+                      />
+                    )}
+                    {hasOriginalSnapshot && !isApproved && (
+                      <HeaderMenuItem
+                        icon={<HistoryIcon size={15} />}
+                        label={showingOriginal ? 'View current' : 'View original'}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setShowingOriginal((v) => !v);
+                        }}
+                      />
+                    )}
+                    <HeaderMenuItem
+                      icon={<HelpCircle size={15} />}
+                      label="Help"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setHelpOpen(true);
+                      }}
+                    />
+                    <HeaderMenuItem
+                      icon={<Download size={15} />}
+                      label={isDownloading ? 'Generating…' : 'Download PDF'}
+                      disabled={isDownloading}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleDownloadPdf();
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             )}
-            {hasOriginalSnapshot && !isApproved && !isClientEditing && (
-              <button
-                type="button"
-                onClick={() => setShowingOriginal((v) => !v)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 14px',
-                  background: showingOriginal ? T.lightGray : 'transparent',
-                  border: '1.5px solid rgba(0,0,0,0.08)',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  fontFamily: T.fontUi,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  color: T.navy,
-                }}
-                title={
-                  showingOriginal
-                    ? 'View your current selections'
-                    : 'View the proposal as originally sent'
-                }
-              >
-                <HistoryIcon size={14} />
-                {showingOriginal ? 'View current' : 'View original'}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setHelpOpen(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 12px',
-                background: 'transparent',
-                border: '1.5px solid rgba(0,0,0,0.08)',
-                borderRadius: 10,
-                cursor: 'pointer',
-                fontFamily: T.fontUi,
-                fontWeight: 700,
-                fontSize: 13,
-                color: T.navy,
-              }}
-              title="How this works"
-            >
-              <HelpCircle size={14} />
-              How it works
-            </button>
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isDownloading}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 14px',
-                background: 'transparent',
-                border: '1.5px solid rgba(0,0,0,0.08)',
-                borderRadius: 10,
-                cursor: isDownloading ? 'wait' : 'pointer',
-                fontFamily: T.fontUi,
-                fontWeight: 700,
-                fontSize: 13,
-                color: T.navy,
-                opacity: isDownloading ? 0.6 : 1,
-              }}
-            >
-              <Download size={14} />
-              {isDownloading ? 'Generating…' : 'PDF'}
-            </button>
           </div>
         </div>
       </header>
@@ -1344,49 +1425,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           )}
 
-          {/* Custom note (from staff) */}
-          {customNote && (
-            <div
-              style={{
-                background: 'rgba(158,250,255,.18)',
-                border: '1px solid rgba(0,152,173,.18)',
-                borderRadius: 16,
-                padding: '22px 24px',
-                display: 'flex',
-                gap: 14,
-                alignItems: 'flex-start',
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: T.aqua,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Sparkles size={18} color={T.navy} strokeWidth={2.25} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <Eyebrow>A note from Shortcut</Eyebrow>
-                <p
-                  style={{
-                    fontFamily: T.fontD,
-                    fontSize: 15,
-                    color: T.navy,
-                    lineHeight: 1.55,
-                    margin: '6px 0 0',
-                  }}
-                >
-                  {customNote}
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Custom note moved to the sidebar AccountTeamCard (it reads as a
+              note from the rep, and clearing it here lets the services move up
+              into the first viewport). */}
 
           {/* Services per location/date */}
           <div>
@@ -1418,10 +1459,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         if (a === 'unlimited' || a === '∞') {
                           locUnlimited = true;
                         } else {
-                          locAppts += (Number(a) || 0) * (s.frequency || 1);
+                          // Per-event — frequency only annualizes the bottom
+                          // Pricing summary, never the left-column rollups.
+                          locAppts += Number(a) || 0;
                         }
-                        locCost +=
-                          (Number(svc?.serviceCost) || 0) * (s.frequency || 1);
+                        locCost += Number(svc?.serviceCost) || 0;
                       });
                     }
                   );
@@ -1493,25 +1535,34 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             >
                               {locUnlimited ? '∞' : locAppts.toLocaleString('en-US')} appts
                             </span>
-                            <span
-                              style={{
-                                width: 4,
-                                height: 4,
-                                borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.2)',
-                              }}
-                            />
-                            <span
-                              style={{
-                                fontFamily: T.fontD,
-                                fontWeight: 700,
-                                fontSize: 14,
-                                color: T.navy,
-                                letterSpacing: '-0.01em',
-                              }}
-                            >
-                              {formatCurrency(locCost)}
-                            </span>
+                            {/* Per-location subtotal only when there's more
+                                than one location — for a single-location
+                                proposal this just duplicates the sidebar
+                                Proposal Total, so we let the sidebar own the
+                                number and keep this row to date + appt context. */}
+                            {Object.keys(displayData.services || {}).length > 1 && (
+                              <>
+                                <span
+                                  style={{
+                                    width: 4,
+                                    height: 4,
+                                    borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.2)',
+                                  }}
+                                />
+                                <span
+                                  style={{
+                                    fontFamily: T.fontD,
+                                    fontWeight: 700,
+                                    fontSize: 14,
+                                    color: T.navy,
+                                    letterSpacing: '-0.01em',
+                                  }}
+                                >
+                                  {formatCurrency(locCost)}
+                                </span>
+                              </>
+                            )}
                           </>
                         }
                       />
@@ -1541,11 +1592,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
                               if (a === 'unlimited' || a === '∞') {
                                 hasUnlimited = true;
                               } else {
-                                dayAppts += (Number(a) || 0) * (s.frequency || 1);
+                                // Per-event — the day breakdown shows one
+                                // event day, not the annualized figure.
+                                dayAppts += Number(a) || 0;
                               }
-                              dayCost +=
-                                (Number(service?.serviceCost) || 0) *
-                                (s.frequency || 1);
+                              dayCost += Number(service?.serviceCost) || 0;
                             }
                           );
                           return (
@@ -1592,6 +1643,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                         onChangeFrequency={(next) =>
                                           setFrequency(key, next)
                                         }
+                                        onChangeMassageType={(type) =>
+                                          handleChangeMassageType(loc, date, idx, type)
+                                        }
+                                        galleryImages={galleryByService[service.serviceType]}
                                         autoRecurringDiscount={displayData?.autoRecurringDiscount}
                                         internalView={false}
                                         editing={isClientEditing}
@@ -1971,7 +2026,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     letterSpacing: '-0.02em',
                   }}
                 >
-                  Total
+                  {summary.totalEvents >
+                  summary.rows.filter((r) => r.included).length
+                    ? 'Annual total'
+                    : 'Total'}
                 </span>
                 <span
                   style={{
@@ -2008,16 +2066,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
             <WhyShortcutSection serviceTypes={serviceTypes} />
           )}
 
-          {/* Per-service details (Benefits + What's Included + features) for
-              every non-mindfulness service in the proposal. Mindfulness gets
-              its own ParticipantBenefits + AdditionalResources sections
-              below instead, so we filter mindfulness out here. */}
-          {(() => {
-            const detail = serviceTypes.filter((s) => !isMindfulnessLike(s));
-            return detail.length > 0 ? (
-              <ServiceDetailsSection serviceTypes={detail} />
-            ) : null;
-          })()}
+          {/* Per-service details (Benefits + What's Included + features) now
+              live inside each service card's "What a … day looks like"
+              dropdown (ServiceDayDetails), so the standalone section that used
+              to sit here was removed. */}
 
           {/* Mindfulness-only sections — only render when at least one
               mindfulness service exists in the proposal. */}
@@ -2379,93 +2431,169 @@ const StandaloneProposalViewerV2: React.FC = () => {
           >
             {(() => {
               const nothingSelected = summary.rows.every((r) => !r.included);
+              const includedCount = summary.rows.filter((r) => r.included).length;
+              const hasRepeats = summary.totalEvents > includedCount;
               return (
                 <>
-                  <Eyebrow color="rgba(255,255,255,0.6)">
-                    {nothingSelected ? 'Build your proposal' : 'Proposal total'}
-                  </Eyebrow>
+                  {/* Heading — mirrors the bottom Pricing summary card, compact */}
                   <div
                     style={{
-                      fontFamily: T.fontD,
-                      fontWeight: 800,
-                      fontSize: isCompact ? 36 : 44,
-                      lineHeight: 1,
-                      color: nothingSelected ? 'rgba(255,255,255,0.55)' : T.aqua,
-                      letterSpacing: '-0.025em',
-                      marginTop: 8,
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      marginBottom: 16,
                     }}
                   >
-                    {formatCurrency(grandTotal)}
+                    <CardHeading size="item" style={{ color: '#fff', fontSize: 19 }}>
+                      {nothingSelected ? 'Build your proposal' : 'Pricing summary'}
+                    </CardHeading>
+                    <Eyebrow color="rgba(255,255,255,0.55)">
+                      {includedCount} of {summary.rows.length}
+                    </Eyebrow>
                   </div>
+
                   {nothingSelected ? (
                     <div
                       style={{
                         fontFamily: T.fontD,
                         fontSize: 13,
                         color: 'rgba(255,255,255,0.75)',
-                        marginTop: 8,
                         lineHeight: 1.45,
+                        marginBottom: 16,
                       }}
                     >
                       Select services below to see your price.
                     </div>
-                  ) : summary.serviceDiscountAmount > 0 ||
-                    summary.discountPercent > 0 ||
-                    (typeof displayData?.autoRecurringSavings === 'number' &&
-                      displayData.autoRecurringSavings > 0) ? (
-                    // Compact discount breakdown beneath the headline total.
-                    // Subtotal is always the PRE-any-discount figure here so
-                    // the arithmetic is legible. Each discount type gets its
-                    // own line so flipping pricing options (which changes
-                    // service-discount dollars per option) visibly updates
-                    // the saving number, AND the recurring discount surfaces
-                    // here too — matching what the bottom summary already
-                    // shows so the two cards stay consistent.
-                    <div
-                      style={{
-                        fontFamily: T.fontD,
-                        fontSize: 13,
-                        color: 'rgba(255,255,255,0.75)',
-                        marginTop: 8,
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      <div>Subtotal {formatCurrency(summary.originalSubtotal)}</div>
-                      {summary.serviceDiscountAmount > 0 && (
-                        <div style={{ color: T.aqua }}>
-                          Service discount −{formatCurrency(summary.serviceDiscountAmount)}
+                  ) : (
+                    <>
+                      {/* Per-event line items (same layout as the bottom card) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 14 }}>
+                        {summary.rows.map((row) => (
+                          <div
+                            key={row.key}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'baseline',
+                              justifyContent: 'space-between',
+                              gap: 8,
+                              opacity: row.included ? 1 : 0.45,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 7,
+                                minWidth: 0,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontFamily: T.fontD,
+                                  fontWeight: 600,
+                                  fontSize: 13.5,
+                                  color: '#fff',
+                                  textDecoration: row.included ? 'none' : 'line-through',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {SERVICE_DISPLAY[row.serviceType] || row.serviceType}
+                              </span>
+                              {/* Repeat indicator — mirrors the bottom Pricing
+                                  summary. The pill only flags the frequency;
+                                  the price beside it stays per-event (the
+                                  annual roll-up lives in the bottom card). */}
+                              {row.frequency > 1 && row.included && (
+                                <span
+                                  style={{
+                                    flexShrink: 0,
+                                    background: T.aqua,
+                                    color: T.navy,
+                                    padding: '1px 7px',
+                                    borderRadius: 9999,
+                                    fontFamily: T.fontUi,
+                                    fontWeight: 700,
+                                    fontSize: 10,
+                                    letterSpacing: '.02em',
+                                  }}
+                                >
+                                  ×{row.frequency} / yr
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              style={{
+                                fontFamily: T.fontD,
+                                fontWeight: 700,
+                                fontSize: 13.5,
+                                color: '#fff',
+                                whiteSpace: 'nowrap',
+                                textDecoration: row.included ? 'none' : 'line-through',
+                              }}
+                            >
+                              {formatCurrency(row.unitCost)}
+                            </span>
+                          </div>
+                        ))}
+                        {customLineItems
+                          .filter((it: any) => (Number(it.amount) || 0) > 0 || it.name)
+                          .map((it: any, i: number) => (
+                            <div
+                              key={it.id || `c-${i}`}
+                              style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}
+                            >
+                              <span style={{ fontFamily: T.fontD, fontWeight: 600, fontSize: 13.5, color: '#fff' }}>
+                                {it.name || 'Custom item'}
+                              </span>
+                              <span style={{ fontFamily: T.fontD, fontWeight: 700, fontSize: 13.5, color: '#fff', whiteSpace: 'nowrap' }}>
+                                {formatCurrency(Number(it.amount) || 0)}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', marginBottom: 12 }} />
+
+                      {/* Totals — per event. Frequency never changes these. */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+                          <span>Subtotal</span>
+                          <span style={{ color: '#fff' }}>
+                            {formatCurrency(summary.perEventOriginalSubtotal + customItemsTotal)}
+                          </span>
                         </div>
-                      )}
-                      {typeof displayData?.autoRecurringDiscount === 'number' &&
-                        displayData.autoRecurringDiscount > 0 &&
-                        typeof displayData?.autoRecurringSavings === 'number' &&
-                        displayData.autoRecurringSavings > 0 && (
-                          <div style={{ color: T.aqua }}>
-                            Recurring discount −
-                            {formatCurrency(displayData.autoRecurringSavings)} (
-                            {displayData.autoRecurringDiscount}%)
+                        {summary.perEventServiceDiscount > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: T.aqua }}>
+                            <span>Service discount</span>
+                            <span>−{formatCurrency(summary.perEventServiceDiscount)}</span>
                           </div>
                         )}
-                      {summary.discountPercent > 0 && (
-                        <div style={{ color: T.aqua }}>
-                          Volume discount −{formatCurrency(summary.discountAmount)} (
-                          {summary.discountPercent}%)
+                        {gratuity && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+                            <span>Gratuity{gratuity.type === 'percentage' ? ` · ${gratuity.value}%` : ''}</span>
+                            <span style={{ color: '#fff' }}>{formatCurrency(gratuity.amount)}</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+                          <span style={{ fontFamily: T.fontD, fontWeight: 700, fontSize: 15, color: '#fff' }}>
+                            {hasRepeats ? 'Per event' : 'Total'}
+                          </span>
+                          <span style={{ fontFamily: T.fontD, fontWeight: 800, fontSize: 30, lineHeight: 1, color: T.aqua, letterSpacing: '-0.02em' }}>
+                            {formatCurrency(perEventGrandTotal)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {hasRepeats && (
+                        <div style={{ fontFamily: T.fontD, fontSize: 11.5, color: 'rgba(255,255,255,0.55)', marginTop: 10, lineHeight: 1.45 }}>
+                          Some services repeat — the annual total is in the Pricing summary below.
                         </div>
                       )}
-                    </div>
-                  ) : summary.totalEvents > 0 && summary.totalEvents < 4 ? (
-                    <div
-                      style={{
-                        fontFamily: T.fontD,
-                        fontSize: 12,
-                        color: 'rgba(255,255,255,0.65)',
-                        marginTop: 6,
-                      }}
-                    >
-                      Add {4 - summary.totalEvents} more event
-                      {4 - summary.totalEvents === 1 ? '' : 's'} for a 15% volume discount.
-                    </div>
-                  ) : null}
+                    </>
+                  )}
                 </>
               );
             })()}
@@ -2474,38 +2602,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
               style={{
                 height: 1,
                 background: 'rgba(255,255,255,0.12)',
-                margin: '18px 0',
+                margin: '16px 0',
               }}
             />
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 16,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 13,
-                  color: 'rgba(255,255,255,0.75)',
-                }}
-              >
-                Services included
-              </span>
-              <span
-                style={{
-                  fontFamily: T.fontD,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  color: '#fff',
-                }}
-              >
-                {summary.rows.filter((r) => r.included).length} of {summary.rows.length}
-              </span>
-            </div>
 
             {isApproved ? (
               <div
@@ -2602,7 +2701,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
           {isMindfulnessOnly && <FacilitatorCard />}
 
           {/* Account team — driven by data.accountTeamMemberEmail, defaults to Jaimie */}
-          <AccountTeamCard email={displayData?.accountTeamMemberEmail} />
+          <AccountTeamCard
+            email={displayData?.accountTeamMemberEmail}
+            note={customNote}
+          />
 
           {/* Gallery — placeholder for now, real media wires in Phase 6 */}
           <GalleryCard

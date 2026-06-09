@@ -84,7 +84,6 @@ import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
-import ServiceDetailsSection from './proposal/sections/ServiceDetailsSection';
 import ParticipantBenefitsSection from './proposal/sections/ParticipantBenefitsSection';
 import AdditionalResourcesSection from './proposal/sections/AdditionalResourcesSection';
 import CLEOutlineSection from './proposal/sections/CLEOutlineSection';
@@ -4020,12 +4019,8 @@ const ProposalViewerV2: React.FC = () => {
           {serviceTypes.length > 0 && (
             <WhyShortcutSection serviceTypes={serviceTypes} />
           )}
-          {(() => {
-            const detail = serviceTypes.filter((s) => !isMindfulnessLike(s));
-            return detail.length > 0 ? (
-              <ServiceDetailsSection serviceTypes={detail} />
-            ) : null;
-          })()}
+          {/* Per-service details now live inside each service card's
+              "What a … day looks like" dropdown — standalone section removed. */}
           {hasMindfulness && <ParticipantBenefitsSection />}
           {hasCLE && <CLEOutlineSection />}
           {hasCLE && <CLEAccreditationSection />}

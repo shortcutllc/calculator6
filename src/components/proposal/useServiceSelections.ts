@@ -44,6 +44,21 @@ export interface ServiceSelectionSummary {
   /** Subtotal minus discountAmount. (Gratuity is intentionally not added — */
   /** per project decision #3 it stays as a staff-editable add-on only.) */
   total: number;
+
+  // --- Per-EVENT figures (frequency forced to 1) ---------------------------
+  // Frequency is treated as display-only on the card + sidebar: picking
+  // "twice a year" must NOT move those totals — it only annualizes the
+  // bottom Pricing summary. These per-event figures back the sidebar.
+  // The volume discount is deliberately excluded here: it's driven by the
+  // annual event count, so it lives only in the annualized bottom summary.
+  /** Per-event subtotal AFTER per-service/recurring discount (= sum of unit). */
+  perEventSubtotal: number;
+  /** Per-event subtotal BEFORE per-service discount (for the Subtotal line). */
+  perEventOriginalSubtotal: number;
+  /** Per-event dollars saved by per-service discount. */
+  perEventServiceDiscount: number;
+  /** Per-event total (= perEventSubtotal; no annual volume discount). */
+  perEventTotal: number;
 }
 
 export const selectionKey = (location: string, date: string, serviceIndex: number): string =>
@@ -179,6 +194,10 @@ export function useServiceSelections({
     let originalSubtotal = 0;    // sum of pre-discount line costs (for display)
     let serviceDiscountAmount = 0; // sum of per-service savings (originalSubtotal − subtotal)
     let totalEvents = 0;
+    // Per-event mirrors (frequency forced to 1) — back the per-event sidebar.
+    let perEventSubtotal = 0;
+    let perEventOriginalSubtotal = 0;
+    let perEventServiceDiscount = 0;
 
     Object.entries(servicesByLocation || {}).forEach(([loc, byDate]) => {
       Object.entries(byDate || {}).forEach(([date, dateData]) => {
@@ -224,6 +243,10 @@ export function useServiceSelections({
             // displayData.autoRecurringSavings.
             serviceDiscountAmount += (originalUnit - preRecurringUnit) * st.frequency;
             totalEvents += st.frequency;
+            // Per-event mirrors — identical math, frequency held at 1.
+            perEventSubtotal += unit;
+            perEventOriginalSubtotal += originalUnit;
+            perEventServiceDiscount += originalUnit - preRecurringUnit;
           }
         });
       });
@@ -248,6 +271,10 @@ export function useServiceSelections({
       discountPercent,
       discountAmount,
       total,
+      perEventSubtotal,
+      perEventOriginalSubtotal,
+      perEventServiceDiscount,
+      perEventTotal: perEventSubtotal,
     };
   }, [state, servicesByLocation]);
 
