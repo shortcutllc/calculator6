@@ -1356,11 +1356,23 @@ const StandaloneProposalViewerV2: React.FC = () => {
           <div>
             <SectionLabel
               eyebrow="Your proposal"
-              title="Make it yours."
+              title="Pick the services you want to start with."
               size="section"
-              mb={24}
-              action={<Eyebrow>Toggle, repeat, or expand any row</Eyebrow>}
+              mb={10}
             />
+            <p
+              style={{
+                fontFamily: T.fontD,
+                fontSize: 15,
+                color: T.fgMuted,
+                lineHeight: 1.55,
+                margin: '0 0 24px',
+                maxWidth: 680,
+              }}
+            >
+              Toggle each service on or off and set how often it repeats. Book
+              4 total events a year for 15% off, or 9 for 20%.
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {Object.entries(displayData.services || {}).map(
                 ([loc, byDate]: [string, any]) => {
