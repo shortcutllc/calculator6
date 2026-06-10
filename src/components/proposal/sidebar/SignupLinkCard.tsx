@@ -38,8 +38,8 @@ const normaliseUrl = (raw: string): string =>
 
 const SignupLinkCard: React.FC<SignupLinkCardProps> = ({
   url,
-  title = 'See the employee booking flow',
-  description = "Step through the same seamless sign-up your team will see on event day — book a sample appointment, no real reservation made.",
+  title = "Pick a time. That's the whole thing.",
+  description = 'No app to download. No account to make. Book a sample appointment and see how little your team has to do. You do even less.',
 }) => {
   if (!url || !isProbablyValidUrl(url)) return null;
 
@@ -56,7 +56,7 @@ const SignupLinkCard: React.FC<SignupLinkCardProps> = ({
         gap: 12,
       }}
     >
-      <Eyebrow color={T.coral}>Try the booking flow</Eyebrow>
+      <Eyebrow color={T.coral}>The employee experience</Eyebrow>
       <CardHeading size="card">{title}</CardHeading>
       {/* Silent autoplay loop of the actual employee booking flow — shows,
           doesn't tell. Square asset so it fills the sidebar card cleanly.
@@ -112,7 +112,7 @@ const SignupLinkCard: React.FC<SignupLinkCardProps> = ({
           boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
         }}
       >
-        Try the demo
+        Try it yourself
         <ExternalLink size={14} />
       </a>
     </div>
