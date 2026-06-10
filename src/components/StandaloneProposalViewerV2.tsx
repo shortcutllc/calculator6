@@ -1355,8 +1355,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
           {/* Services per location/date */}
           <div>
             <SectionLabel
-              eyebrow="What's included"
-              title="Services, dates, and locations"
+              eyebrow="Your proposal"
+              title="Make it yours."
               size="section"
               mb={24}
               action={<Eyebrow>Toggle, repeat, or expand any row</Eyebrow>}
@@ -1707,7 +1707,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
             {/* Line items */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-              {summary.rows.map((row) => (
+              {summary.rows.filter((row) => row.included).map((row) => (
                 <div
                   key={row.key}
                   style={{
@@ -2273,64 +2273,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
         {/* --- Sidebar --- */}
         <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Compact change-request notice — lives in the sidebar so it
-              doesn't eat hero space. Tracks `requestSent` (just submitted
-              this session) or `proposal.has_changes` (persisted). */}
-          {(requestSent || proposal?.has_changes) && !isApproved && !showingOriginal && (
-            <div
-              style={{
-                background: 'rgba(255,80,80,0.08)',
-                border: '1px solid rgba(255,80,80,0.25)',
-                borderRadius: 12,
-                padding: '10px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  background: T.coral,
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: T.fontUi,
-                  fontWeight: 700,
-                  fontSize: 11,
-                  flexShrink: 0,
-                }}
-              >
-                ✓
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontFamily: T.fontD,
-                    fontWeight: 700,
-                    fontSize: 12,
-                    color: T.navy,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  Changes sent
-                </div>
-                <div
-                  style={{
-                    fontFamily: T.fontD,
-                    fontSize: 11,
-                    color: T.fgMuted,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  Your account team will follow up shortly.
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Live Total card — desktop only.
               On desktop this is sticky so price + Approve stay visible
@@ -2392,7 +2334,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     <>
                       {/* Per-event line items (same layout as the bottom card) */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 14 }}>
-                        {summary.rows.map((row) => (
+                        {summary.rows.filter((row) => row.included).map((row) => (
                           <div
                             key={row.key}
                             style={{

@@ -239,7 +239,7 @@ const getServiceDescription = (service: any): string => {
     case 'massage':
       const massageType = service.massageType || 'massage';
       if (massageType === 'chair') {
-        return "Treat your team to rejuvenating chair massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.";
+        return "Recharge during the workday with a seated massage focused on relieving tension in the neck, shoulders, back, and arms.";
       } else if (massageType === 'table') {
         return "Treat your team to rejuvenating table massage sessions right in the workplace. Our expert therapists create a luxurious spa-like ambiance with soothing scents, customized lighting and relaxing sounds.";
       } else {

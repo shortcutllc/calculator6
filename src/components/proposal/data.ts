@@ -62,7 +62,7 @@ export const SERVICE_DESC: Record<string, string> = {
 // match is found, so it's safe to leave sub-types out of these maps.
 export const MASSAGE_TYPE_DESC: Record<string, string> = {
   chair:
-    "Chair massage brings the spa to the office in 15–20 minute sessions. Our vetted therapists work through tension in the neck, shoulders, and back while employees stay clothed and seated — no setup, no oils, no downtime.",
+    'Recharge during the workday with a seated massage focused on relieving tension in the neck, shoulders, back, and arms.',
   table:
     'Table massage offers a deeper, longer experience in a quiet space we set up at your office. Therapists work through full-body tension with oils and aromatherapy. Best for half-day and full-day wellness events.',
 };
