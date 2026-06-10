@@ -58,6 +58,29 @@ const SignupLinkCard: React.FC<SignupLinkCardProps> = ({
     >
       <Eyebrow color={T.coral}>Try the booking flow</Eyebrow>
       <CardHeading size="card">{title}</CardHeading>
+      {/* Silent autoplay loop of the actual employee booking flow — shows,
+          doesn't tell. Square asset so it fills the sidebar card cleanly.
+          Hosted in public/ (served by Netlify). */}
+      <div
+        style={{
+          borderRadius: 12,
+          overflow: 'hidden',
+          background: '#0B2A3A',
+          lineHeight: 0,
+          border: '1px solid rgba(0,0,0,0.06)',
+        }}
+      >
+        <video
+          src="/booking-flow-demo.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label="Employee booking flow demo"
+          style={{ width: '100%', height: 'auto', display: 'block' }}
+        />
+      </div>
       <p
         style={{
           fontFamily: T.fontD,
