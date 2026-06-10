@@ -338,6 +338,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
   }, [displayData]);
 
   const isMindfulnessLike = (s: string) => s === 'mindfulness' || s.startsWith('mindfulness-');
+  // Pricing-summary line label: append the unit so each row reads
+  // "Massage event" / "Nails event". Session-based services (mindfulness,
+  // yoga, sound bath) use "session" instead of "event".
+  const serviceLineLabel = (s: string) => {
+    const name = SERVICE_DISPLAY[s] || s;
+    const isSession = isMindfulnessLike(s) || s === 'yoga' || s === 'sound-bath';
+    return `${name} ${isSession ? 'session' : 'event'}`;
+  };
   const hasMindfulness = serviceTypes.some(isMindfulnessLike);
   const isMindfulnessOnly =
     serviceTypes.length > 0 && serviceTypes.every(isMindfulnessLike);
@@ -1720,7 +1728,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         textDecoration: row.included ? 'none' : 'line-through',
                       }}
                     >
-                      {SERVICE_DISPLAY[row.serviceType] || row.serviceType}
+                      {serviceLineLabel(row.serviceType)}
                     </span>
                     {row.frequency > 1 && row.included && (
                       <span
@@ -2415,7 +2423,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                   whiteSpace: 'nowrap',
                                 }}
                               >
-                                {SERVICE_DISPLAY[row.serviceType] || row.serviceType}
+                                {serviceLineLabel(row.serviceType)}
                               </span>
                               {/* Repeat indicator — mirrors the bottom Pricing
                                   summary. The pill only flags the frequency;
