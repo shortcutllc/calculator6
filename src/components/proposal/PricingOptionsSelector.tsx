@@ -611,6 +611,32 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                     </span>
                   </div>
                 )}
+              {/* Recurrence seed — quietly shows what quarterly does to the
+                  recommended tier's per-employee price (4 events = the 15%
+                  volume tier). Suppressed when a recurring discount is
+                  already applied — the price on the tile already reflects it. */}
+              {!editing &&
+                isRecommended &&
+                recurringPct === 0 &&
+                (opt.totalAppointments || 0) > 0 &&
+                finalPrice > 0 && (
+                  <div
+                    style={{
+                      fontFamily: T.fontD,
+                      fontSize: 11.5,
+                      color: T.fgMuted,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    Book it quarterly and it's about{' '}
+                    <span style={{ fontWeight: 700, color: T.teal }}>
+                      {formatCurrency(
+                        (finalPrice * 0.85) / (opt.totalAppointments as number)
+                      )}{' '}
+                      per employee
+                    </span>
+                  </div>
+                )}
               {editing && options.length > 1 && onRemoveOption && (
                 <button
                   type="button"
@@ -639,6 +665,30 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
           );
         })}
       </div>
+      {/* No-ask guardrail (admin only): approval rates drop sharply above
+          $2,500 — the typical champion's no-ask budget line for a NEW client.
+          Interim stand-in for a real new-vs-returning client flag. */}
+      {editing &&
+        onSetRecommended &&
+        recommendedIndex >= 0 &&
+        (options[recommendedIndex]?.serviceCost || 0) > 2500 && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: '8px 12px',
+              background: 'rgba(254,220,100,.25)',
+              borderRadius: 8,
+              fontFamily: T.fontD,
+              fontSize: 12,
+              color: '#8C5A07',
+              lineHeight: 1.45,
+            }}
+          >
+            The recommended tier is over $2,500 — above the typical no-ask
+            approval line. Fine for a returning client; consider sizing down
+            for a first-time buyer.
+          </div>
+        )}
       {editing && onAddOption && (
         <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
           <button

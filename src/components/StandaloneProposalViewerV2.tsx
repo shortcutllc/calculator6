@@ -2005,6 +2005,19 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     appointments per event
                   </div>
                 )}
+              {/* The rebook stat does closing duty here, not just sidebar
+                  duty — it's the champion's defense for the spend. */}
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.5)',
+                  textAlign: 'right',
+                  marginTop: 8,
+                }}
+              >
+                87% of companies rebook after their first event.
+              </div>
             </div>
 
             <p

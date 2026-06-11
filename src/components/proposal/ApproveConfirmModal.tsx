@@ -159,6 +159,19 @@ const ApproveConfirmModal: React.FC<ApproveConfirmModalProps> = ({
           </div>
         </div>
 
+        <p
+          style={{
+            fontFamily: T.fontD,
+            fontSize: 12.5,
+            color: T.fgMuted,
+            lineHeight: 1.5,
+            margin: '12px 2px 0',
+          }}
+        >
+          87% of companies rebook after their first event — you'll be in good
+          company.
+        </p>
+
         <div
           style={{
             display: 'flex',
