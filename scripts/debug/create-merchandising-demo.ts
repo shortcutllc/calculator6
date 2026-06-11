@@ -119,9 +119,9 @@ console.log(`Demo 1 created: ${demo1.id} (${demo1.slug})`);
 // ---------------------------------------------------------------------------
 const groupId = randomUUID();
 const groupSpecs = [
-  { name: 'Half day', hours: 4, rate: 160, order: 1 },
-  { name: 'Full day', hours: 6, rate: 150, order: 2 },
-  { name: 'All day', hours: 8, rate: 140, order: 3 },
+  { name: 'Starter', hours: 4, rate: 160, order: 1 },
+  { name: 'Standard', hours: 6, rate: 150, order: 2 },
+  { name: 'Extended', hours: 8, rate: 140, order: 3 },
 ];
 for (const spec of groupSpecs) {
   const d = buildProposalData('Demo Multi-Option', 'New York', massageService(spec.hours, spec.rate), false);

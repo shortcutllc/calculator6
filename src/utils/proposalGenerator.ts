@@ -186,13 +186,15 @@ export const generatePricingOptionsForService = (service: any): any[] => {
     ? Math.max(baseRate - RATE_STEP, Number(baseService.proHourly) || 0)
     : baseRate;
 
-  // Canonical day shapes (Will, 2026-06-11): tiers use hours any office can
-  // actually schedule — no 6.25-hour bookings — and the names stay true to
-  // the hours. Pros and appointment length carry over from the base config.
+  // Canonical bookable hours (no 6.25-hour events), with size names rather
+  // than day names — the ladder sells coverage, not duration (the same
+  // appointment count can fit a shorter day with more pros). "Standard" on
+  // the middle is deliberate: it reinforces the Most-popular badge and the
+  // compromise effect in a single word.
   const TIERS = [
-    { name: 'Half day', hours: 4, rate: entryRate },
-    { name: 'Full day', hours: 6, rate: baseRate || baseService.hourlyRate, recommended: true },
-    { name: 'All day', hours: 8, rate: topRate },
+    { name: 'Starter', hours: 4, rate: entryRate },
+    { name: 'Standard', hours: 6, rate: baseRate || baseService.hourlyRate, recommended: true },
+    { name: 'Extended', hours: 8, rate: topRate },
   ];
 
   const options = TIERS.map((tier) => {
