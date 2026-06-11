@@ -91,6 +91,18 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
   const display = editing
     ? computed
     : [...computed].sort((a, b) => b.finalPrice - a.finalPrice);
+  // Per-employee chips only earn their place when the rate actually differs
+  // across options — a flat ladder shows three identical prices that tell no
+  // story and invite retail-price comparisons. Compare on rounded dollars
+  // (what the client would see).
+  const perEmployeeRates = computed
+    .filter(({ opt }) => (opt.totalAppointments || 0) > 0)
+    .map(({ opt, finalPrice }) =>
+      Math.round(finalPrice / (opt.totalAppointments as number))
+    );
+  const showPerEmployee =
+    perEmployeeRates.length > 1 &&
+    new Set(perEmployeeRates).size > 1;
   // Empty-options state in editing mode — show a Generate prompt
   if (editing && options.length === 0) {
     return (
@@ -575,10 +587,11 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                   </span>
                 )}
               </div>
-              {/* Per-person cost — the number a buyer can defend upward.
-                  Appointment-based services only (flat-rate classes have no
-                  per-person denominator). */}
+              {/* Per-employee cost — the number a buyer can defend upward.
+                  Appointment-based services only, and only when the rate
+                  differs across options (a flat ladder has no story). */}
               {!editing &&
+                showPerEmployee &&
                 (opt.totalAppointments || 0) > 0 &&
                 finalPrice > 0 && (
                   <div>
@@ -594,7 +607,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {formatCurrency(finalPrice / (opt.totalAppointments as number))} per person
+                      {formatCurrency(finalPrice / (opt.totalAppointments as number))} per employee
                     </span>
                   </div>
                 )}

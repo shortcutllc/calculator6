@@ -2001,7 +2001,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                           (summary as any).perEventAppointments
                       )}
                     </span>{' '}
-                    per person · {(summary as any).perEventAppointments}{' '}
+                    per employee · {(summary as any).perEventAppointments}{' '}
                     appointments per event
                   </div>
                 )}

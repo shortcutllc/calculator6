@@ -138,7 +138,7 @@ const ApproveConfirmModal: React.FC<ApproveConfirmModalProps> = ({
                   marginTop: 3,
                 }}
               >
-                about {formatCurrency(perPerson)} per person
+                about {formatCurrency(perPerson)} per employee
               </div>
             )}
           </div>

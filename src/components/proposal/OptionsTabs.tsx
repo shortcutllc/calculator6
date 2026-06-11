@@ -59,6 +59,14 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
     ordered.length >= 3
       ? ordered[Math.floor(ordered.length / 2)].id
       : null;
+  // Per-employee line only when the rate differs across options — identical
+  // chips tell no story and invite retail-price comparison.
+  const perEmployeeRates = ordered
+    .map((o) => optionMetrics(o))
+    .filter((m) => m.appointmentCount > 0 && m.cost > 0)
+    .map((m) => Math.round(m.cost / m.appointmentCount));
+  const showPerEmployee =
+    perEmployeeRates.length > 1 && new Set(perEmployeeRates).size > 1;
 
   return (
     <div style={{ marginBottom: 32 }}>
@@ -217,7 +225,7 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
                 >
                   Total locked in
                 </div>
-                {m.appointmentCount > 0 && m.cost > 0 && (
+                {showPerEmployee && m.appointmentCount > 0 && m.cost > 0 && (
                   <div
                     style={{
                       fontFamily: T.fontD,
@@ -227,7 +235,7 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
                       marginTop: 6,
                     }}
                   >
-                    {formatCurrency(m.cost / m.appointmentCount)} per person
+                    {formatCurrency(m.cost / m.appointmentCount)} per employee
                   </div>
                 )}
               </div>
