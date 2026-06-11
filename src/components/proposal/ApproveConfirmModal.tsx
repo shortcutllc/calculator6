@@ -23,6 +23,8 @@ interface ApproveConfirmModalProps {
   optionName?: string | null;
   /** Optional client first-name personalization */
   clientFirstName?: string;
+  /** Optional per-person cost line under the total (appointment-based services) */
+  perPerson?: number | null;
 }
 
 const ApproveConfirmModal: React.FC<ApproveConfirmModalProps> = ({
@@ -35,6 +37,7 @@ const ApproveConfirmModal: React.FC<ApproveConfirmModalProps> = ({
   servicesTotal,
   optionName,
   clientFirstName,
+  perPerson,
 }) => {
   if (!open) return null;
 
@@ -126,6 +129,18 @@ const ApproveConfirmModal: React.FC<ApproveConfirmModalProps> = ({
             >
               {formatCurrency(total)}
             </div>
+            {typeof perPerson === 'number' && perPerson > 0 && (
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 12,
+                  color: T.fgMuted,
+                  marginTop: 3,
+                }}
+              >
+                about {formatCurrency(perPerson)} per person
+              </div>
+            )}
           </div>
           <div style={{ textAlign: 'right' }}>
             <Eyebrow>Services</Eyebrow>

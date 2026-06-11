@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { Check, Plus, Star, Trash2 } from 'lucide-react';
 import { Eyebrow, T } from './shared/primitives';
 import { formatCurrency } from './data';
 
@@ -22,6 +22,9 @@ export interface PricingOptionVariant {
   originalPrice?: number;
   // mindfulness flavor
   classLength?: number;
+  /** Staff-marked recommended tier. When no option carries the flag, the
+   *  middle-priced option of a 3+ set is treated as recommended. */
+  recommended?: boolean;
 }
 
 interface PricingOptionsSelectorProps {
@@ -36,6 +39,8 @@ interface PricingOptionsSelectorProps {
   onAddOption?: () => void;
   onRemoveOption?: (index: number) => void;
   onGenerateOptions?: () => void;
+  /** Admin: mark an option as the recommended tier (exclusive across the set). */
+  onSetRecommended?: (index: number) => void;
   /** Proposal-wide auto-recurring discount % (e.g. 10, 15, 20). Each option's
    *  stored `serviceCost` is the pre-recurring price; we apply this on the
    *  fly so the tile shows what the client actually pays if they pick it,
@@ -58,11 +63,34 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
   onAddOption,
   onRemoveOption,
   onGenerateOptions,
+  onSetRecommended,
   autoRecurringDiscount,
   appTime,
 }) => {
   // Clamp to a sane range; treat 0/undefined/negative as "no recurring".
   const recurringPct = Math.max(0, Math.min(99, Number(autoRecurringDiscount) || 0));
+  // Final per-option price (post-recurring) drives both display order and the
+  // recommended-tier fallback, so compute it once up front. `i` is the STORED
+  // index — selection + edit callbacks must always use it, never the display
+  // position.
+  const computed = options.map((opt, i) => ({
+    opt,
+    i,
+    finalPrice: opt.serviceCost * (1 - recurringPct / 100),
+  }));
+  // Recommended tier: an explicit staff flag wins; otherwise the middle-priced
+  // option of a 3+ set. Two-option sets get no implicit recommendation.
+  let recommendedIndex = options.findIndex((o) => o.recommended);
+  if (recommendedIndex < 0 && options.length >= 3) {
+    const byPrice = [...computed].sort((a, b) => a.finalPrice - b.finalPrice);
+    recommendedIndex = byPrice[Math.floor(byPrice.length / 2)].i;
+  }
+  // Clients see options priciest-first (anchor high, everything after feels
+  // moderate). Editing keeps stored order so admin index-based controls stay
+  // predictable.
+  const display = editing
+    ? computed
+    : [...computed].sort((a, b) => b.finalPrice - a.finalPrice);
   // Empty-options state in editing mode — show a Generate prompt
   if (editing && options.length === 0) {
     return (
@@ -173,22 +201,25 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
           // 1 to N options reflow without crushing the cells below
           // readability.
           gridTemplateColumns: `repeat(auto-fit, minmax(180px, 1fr))`,
-          gap: 10,
+          columnGap: 10,
+          // Extra row gap so the "Most popular" badge (-10px overhang) never
+          // collides with a tile above it when the grid wraps.
+          rowGap: 16,
         }}
       >
-        {options.map((opt, i) => {
+        {display.map(({ opt, i, finalPrice }) => {
           const on = i === selected;
+          const isRecommended = i === recommendedIndex;
           const handleSelect = () => {
             if (!disabled && onSelect) onSelect(i);
           };
-          // Compute the price the client actually pays for this option:
-          // start from the stored serviceCost (post-per-service-discount,
-          // pre-recurring) and apply the recurring multiplier on top.
+          // `finalPrice` is the price the client actually pays for this
+          // option: stored serviceCost (post-per-service-discount,
+          // pre-recurring) with the recurring multiplier applied on top.
           // The strike-through "original" is whatever the option's
           // originalPrice was at generation time (pre-per-service-discount).
           const perServicePct = opt.discountPercent || 0;
           const baseCost = opt.serviceCost;
-          const finalPrice = baseCost * (1 - recurringPct / 100);
           const originalPrice =
             typeof opt.originalPrice === 'number' && opt.originalPrice > 0
               ? opt.originalPrice
@@ -223,6 +254,8 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                 minWidth: 0,
                 border: on
                   ? `2px solid ${T.coral}`
+                  : isRecommended && !editing
+                  ? `2px solid ${T.navy}`
                   : '1.5px solid rgba(0,0,0,0.08)',
                 padding: '16px 18px',
                 borderRadius: 12,
@@ -230,9 +263,35 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                 flexDirection: 'column',
                 gap: 8,
                 transition: 'border-color .2s, box-shadow .2s',
-                boxShadow: on ? '0 4px 12px rgba(255,80,80,.12)' : 'none',
+                boxShadow: on
+                  ? '0 4px 12px rgba(255,80,80,.12)'
+                  : isRecommended && !editing
+                  ? '0 4px 12px rgba(9,54,79,.10)'
+                  : 'none',
               }}
             >
+              {isRecommended && !editing && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -10,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: T.coral,
+                    color: '#fff',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 10,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    padding: '3px 10px',
+                    borderRadius: 9999,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Most popular
+                </span>
+              )}
               <div
                 style={{
                   display: 'flex',
@@ -342,6 +401,38 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                         {opt.totalAppointments}
                       </span>
                     </div>
+                  )}
+                  {onSetRecommended && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSetRecommended(i);
+                      }}
+                      style={{
+                        marginTop: 8,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '4px 10px',
+                        background: opt.recommended ? T.navy : '#fff',
+                        color: opt.recommended ? '#fff' : T.navy,
+                        border: opt.recommended
+                          ? `1.5px solid ${T.navy}`
+                          : '1.5px solid rgba(0,0,0,0.12)',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        fontFamily: T.fontUi,
+                        fontWeight: 700,
+                        fontSize: 11,
+                      }}
+                    >
+                      <Star
+                        size={11}
+                        fill={opt.recommended ? 'currentColor' : 'none'}
+                      />
+                      {opt.recommended ? 'Recommended' : 'Mark recommended'}
+                    </button>
                   )}
                 </div>
               ) : (
@@ -484,6 +575,29 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                   </span>
                 )}
               </div>
+              {/* Per-person cost — the number a buyer can defend upward.
+                  Appointment-based services only (flat-rate classes have no
+                  per-person denominator). */}
+              {!editing &&
+                (opt.totalAppointments || 0) > 0 &&
+                finalPrice > 0 && (
+                  <div>
+                    <span
+                      style={{
+                        fontFamily: T.fontUi,
+                        fontWeight: 600,
+                        fontSize: 11,
+                        color: T.teal,
+                        background: 'rgba(0,152,173,.10)',
+                        padding: '2px 8px',
+                        borderRadius: 9999,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {formatCurrency(finalPrice / (opt.totalAppointments as number))} per person
+                    </span>
+                  </div>
+                )}
               {editing && options.length > 1 && onRemoveOption && (
                 <button
                   type="button"

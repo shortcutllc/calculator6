@@ -198,6 +198,7 @@ export function useServiceSelections({
     let perEventSubtotal = 0;
     let perEventOriginalSubtotal = 0;
     let perEventServiceDiscount = 0;
+    let perEventAppointments = 0;
 
     Object.entries(servicesByLocation || {}).forEach(([loc, byDate]) => {
       Object.entries(byDate || {}).forEach(([date, dateData]) => {
@@ -247,6 +248,9 @@ export function useServiceSelections({
             perEventSubtotal += unit;
             perEventOriginalSubtotal += originalUnit;
             perEventServiceDiscount += originalUnit - preRecurringUnit;
+            // Appointment-based services only — flat-rate classes contribute
+            // no per-person denominator.
+            perEventAppointments += Number(service?.totalAppointments) || 0;
           }
         });
       });
@@ -275,6 +279,7 @@ export function useServiceSelections({
       perEventOriginalSubtotal,
       perEventServiceDiscount,
       perEventTotal: perEventSubtotal,
+      perEventAppointments,
     };
   }, [state, servicesByLocation]);
 

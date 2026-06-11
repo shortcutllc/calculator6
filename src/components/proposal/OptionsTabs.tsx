@@ -48,15 +48,17 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
   const navigate = useNavigate();
   if (!options || options.length < 2) return null;
 
-  // Show the cheapest "Most affordable" hint to help the client compare
-  const cheapest = options.reduce(
-    (best, o) => {
-      const m = optionMetrics(o);
-      if (!best || m.cost < best.cost) return { id: o.id, cost: m.cost };
-      return best;
-    },
-    null as { id: string; cost: number } | null
+  // Anchor high: render priciest first so everything after feels moderate.
+  const ordered = [...options].sort(
+    (a, b) => optionMetrics(b).cost - optionMetrics(a).cost
   );
+  // "Most popular" goes on the middle-priced option of a 3+ set. The old
+  // "Best value" badge on the cheapest actively pushed deals to the floor —
+  // retired. Two-option sets get no badge (there is no middle to recommend).
+  const popularId =
+    ordered.length >= 3
+      ? ordered[Math.floor(ordered.length / 2)].id
+      : null;
 
   return (
     <div style={{ marginBottom: 32 }}>
@@ -83,10 +85,10 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
           gap: 14,
         }}
       >
-        {options.map((opt) => {
+        {ordered.map((opt) => {
           const active = opt.id === currentId;
           const approved = opt.status === 'approved';
-          const cheapestHere = cheapest && cheapest.id === opt.id && options.length > 1;
+          const popularHere = popularId === opt.id;
           const m = optionMetrics(opt);
           return (
             <button
@@ -130,7 +132,7 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
                   {opt.option_name || `Option ${opt.option_order ?? ''}`}
                 </Eyebrow>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {cheapestHere && !active && (
+                  {popularHere && (
                     <span
                       style={{
                         fontFamily: T.fontUi,
@@ -138,13 +140,13 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
                         fontSize: 10,
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase',
-                        color: T.coral,
-                        background: 'rgba(255,80,80,0.10)',
+                        color: active ? T.navy : '#fff',
+                        background: active ? T.aqua : T.coral,
                         padding: '3px 8px',
                         borderRadius: 9999,
                       }}
                     >
-                      Best value
+                      Most popular
                     </span>
                   )}
                   {approved && (
@@ -215,6 +217,19 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
                 >
                   Total locked in
                 </div>
+                {m.appointmentCount > 0 && m.cost > 0 && (
+                  <div
+                    style={{
+                      fontFamily: T.fontD,
+                      fontWeight: 600,
+                      fontSize: 13,
+                      color: active ? 'rgba(255,255,255,0.75)' : T.teal,
+                      marginTop: 6,
+                    }}
+                  >
+                    {formatCurrency(m.cost / m.appointmentCount)} per person
+                  </div>
+                )}
               </div>
 
               {/* Stats row */}

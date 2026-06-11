@@ -1242,9 +1242,12 @@ const ProposalViewerV2: React.FC = () => {
       return;
     }
     svc.pricingOptions = generated;
-    svc.selectedOption = 0;
+    // Default selection = the recommended tier (the generator flags the
+    // middle option). Defaults win — 87% of clients never move off them.
+    const recIdx = generated.findIndex((o: any) => o.recommended);
+    svc.selectedOption = recIdx >= 0 ? recIdx : 0;
     updated.hasPricingOptions = true;
-    const sel = svc.pricingOptions[0];
+    const sel = svc.pricingOptions[svc.selectedOption];
     svc.totalAppointments = sel.totalAppointments;
     svc.serviceCost = sel.serviceCost;
     svc.proRevenue = sel.proRevenue ?? svc.proRevenue;
@@ -1252,6 +1255,27 @@ const ProposalViewerV2: React.FC = () => {
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });
     setDisplayData({ ...recalc, customization: currentProposal?.customization });
+  };
+
+  const handleSetRecommendedOption = (
+    loc: string,
+    date: string,
+    idx: number,
+    optIdx: number
+  ) => {
+    if (!editedData || !isEditing) return;
+    const updated = { ...editedData };
+    const svc = updated.services[loc][date].services[idx];
+    if (!svc?.pricingOptions?.[optIdx]) return;
+    // Exclusive flag: clicking the current recommended clears it; clicking
+    // another option moves it.
+    const wasRecommended = Boolean(svc.pricingOptions[optIdx].recommended);
+    svc.pricingOptions = svc.pricingOptions.map((o: any, i: number) => ({
+      ...o,
+      recommended: i === optIdx ? !wasRecommended : false,
+    }));
+    setEditedData({ ...updated, customization: currentProposal?.customization });
+    setDisplayData({ ...updated, customization: currentProposal?.customization });
   };
 
   // -----------------------------------------------------------------------
@@ -3861,6 +3885,9 @@ const ProposalViewerV2: React.FC = () => {
                                       onGeneratePricingOptions={() =>
                                         handleGeneratePricingOptions(loc, date, idx)
                                       }
+                                      onSetRecommendedOption={(optIdx) =>
+                                        handleSetRecommendedOption(loc, date, idx, optIdx)
+                                      }
                                       onChangeServiceType={(t) =>
                                         handleServiceTypeChange(loc, date, idx, t)
                                       }
@@ -4063,6 +4090,15 @@ const ProposalViewerV2: React.FC = () => {
               autoRecurringApplied={displayData?.autoRecurringDiscount}
               autoRecurringSavings={displayData?.autoRecurringSavings}
               onChangeAutoRecurring={handleChangeAutoRecurring}
+              validUntil={(displayData?.validUntil as string | null) || null}
+              onChangeValidUntil={(v) => {
+                if (!editedData || !isEditing) return;
+                const updated = { ...editedData };
+                if (v) updated.validUntil = v;
+                else delete updated.validUntil;
+                setEditedData({ ...updated, customization: currentProposal?.customization });
+                setDisplayData({ ...updated, customization: currentProposal?.customization });
+              }}
             />
           )}
 
@@ -5508,6 +5544,7 @@ interface ServiceBlockProps {
   onAddPricingOption: () => void;
   onRemovePricingOption: (optIdx: number) => void;
   onGeneratePricingOptions: () => void;
+  onSetRecommendedOption: (optIdx: number) => void;
   onChangeServiceType: (t: string) => void;
   onChangeMassageType: (t: string) => void;
   onChangeNailsType: (t: string) => void;
@@ -5538,6 +5575,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
   onAddPricingOption,
   onRemovePricingOption,
   onGeneratePricingOptions,
+  onSetRecommendedOption,
   onChangeServiceType,
   onChangeMassageType,
   onChangeNailsType,
@@ -5569,6 +5607,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
         onAddPricingOption={onAddPricingOption}
         onRemovePricingOption={onRemovePricingOption}
         onGeneratePricingOptions={onGeneratePricingOptions}
+        onSetRecommendedOption={onSetRecommendedOption}
         autoRecurringDiscount={autoRecurringDiscount}
       />
 
@@ -6801,6 +6840,10 @@ interface PricingExtrasEditorProps {
   autoRecurringApplied: number | undefined;
   autoRecurringSavings: number | undefined;
   onChangeAutoRecurring: (mode: 'auto' | 'off' | 'fixed', value?: number) => void;
+  /** Pricing validity date (yyyy-mm-dd). Renders the "confirmed through" line
+   *  on the client viewer. Empty = no line. */
+  validUntil: string | null;
+  onChangeValidUntil: (v: string) => void;
 }
 const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
   customLineItems,
@@ -6816,6 +6859,8 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
   autoRecurringApplied,
   autoRecurringSavings,
   onChangeAutoRecurring,
+  validUntil,
+  onChangeValidUntil,
 }) => (
   <div
     style={{
@@ -7158,6 +7203,85 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
             )}
           </div>
         )}
+      </div>
+    </div>
+
+    {/* Pricing validity — drives the calm "confirmed through" line on the
+        client viewer. A real operational constraint (pro calendars), not a
+        countdown. */}
+    <div>
+      <div
+        style={{
+          fontFamily: T.fontUi,
+          fontWeight: 700,
+          fontSize: 11,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: T.fgMuted,
+          marginBottom: 10,
+        }}
+      >
+        Pricing valid through
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <input
+          type="date"
+          value={validUntil || ''}
+          onChange={(e) => onChangeValidUntil(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            fontFamily: T.fontD,
+            fontWeight: 600,
+            fontSize: 14,
+            color: T.navy,
+            border: '1.5px solid rgba(0,0,0,0.1)',
+            borderRadius: 8,
+            background: '#fff',
+            outline: 'none',
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const d = new Date();
+            d.setDate(d.getDate() + 30);
+            onChangeValidUntil(d.toISOString().slice(0, 10));
+          }}
+          style={{
+            padding: '8px 12px',
+            background: '#fff',
+            color: T.navy,
+            border: '1.5px solid rgba(0,0,0,0.12)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontFamily: T.fontUi,
+            fontWeight: 700,
+            fontSize: 12,
+          }}
+        >
+          30 days out
+        </button>
+        {validUntil && (
+          <button
+            type="button"
+            onClick={() => onChangeValidUntil('')}
+            style={{
+              padding: '8px 12px',
+              background: 'transparent',
+              color: T.fgMuted,
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: T.fontUi,
+              fontWeight: 700,
+              fontSize: 12,
+            }}
+          >
+            Clear
+          </button>
+        )}
+        <span style={{ fontFamily: T.fontD, fontSize: 12, color: T.fgMuted }}>
+          Client sees: "Pricing and pro availability confirmed through [date]."
+        </span>
       </div>
     </div>
   </div>

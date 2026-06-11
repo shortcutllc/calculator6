@@ -93,6 +93,7 @@ interface ServiceCardProps {
   onAddPricingOption?: () => void;
   onRemovePricingOption?: (index: number) => void;
   onGeneratePricingOptions?: () => void;
+  onSetRecommendedOption?: (index: number) => void;
   /** Service image on the left side */
   showImage?: boolean;
   /** Tighter padding for nested contexts */
@@ -145,6 +146,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   onAddPricingOption,
   onRemovePricingOption,
   onGeneratePricingOptions,
+  onSetRecommendedOption,
   showImage = true,
   compact = false,
   included = true,
@@ -983,6 +985,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             onAddOption={internalView ? onAddPricingOption : undefined}
             onRemoveOption={internalView ? onRemovePricingOption : undefined}
             onGenerateOptions={internalView ? onGeneratePricingOptions : undefined}
+            onSetRecommended={internalView ? onSetRecommendedOption : undefined}
             autoRecurringDiscount={autoRecurringDiscount}
             appTime={service.appTime}
           />

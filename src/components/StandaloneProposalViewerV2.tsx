@@ -1979,6 +1979,32 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   {formatCurrency(grandTotal)}
                 </span>
               </div>
+              {/* Per-person framing — the number a champion repeats to their
+                  CFO. Per-event math (volume discount applied, gratuity
+                  excluded), appointment-based services only. */}
+              {(summary as any).perEventAppointments > 0 &&
+                summary.perEventSubtotal > 0 && (
+                  <div
+                    style={{
+                      fontFamily: T.fontD,
+                      fontSize: 13,
+                      color: 'rgba(255,255,255,0.65)',
+                      textAlign: 'right',
+                      marginTop: 6,
+                    }}
+                  >
+                    About{' '}
+                    <span style={{ fontWeight: 700, color: T.aqua }}>
+                      {formatCurrency(
+                        (summary.perEventSubtotal *
+                          (1 - summary.discountPercent / 100)) /
+                          (summary as any).perEventAppointments
+                      )}
+                    </span>{' '}
+                    per person · {(summary as any).perEventAppointments}{' '}
+                    appointments per event
+                  </div>
+                )}
             </div>
 
             <p
@@ -1990,6 +2016,17 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 marginBottom: 0,
               }}
             >
+              {displayData?.validUntil && (
+                <>
+                  Pricing and pro availability confirmed through{' '}
+                  {new Date(`${String(displayData.validUntil).slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                  . We'll re-confirm both after that date.{' '}
+                </>
+              )}
               Invoice issued before each event. Payment due 48 hours prior to the first scheduled event.
               Cancellation: 72+ hrs notice = no charge. See the service agreement below for full terms.
             </p>
@@ -2631,6 +2668,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
           proposalOptions.find((o: any) => o.id === id)?.option_name || null
         }
         clientFirstName={contactFirst || undefined}
+        perPerson={
+          (summary as any).perEventAppointments > 0
+            ? (summary.perEventSubtotal *
+                (1 - summary.discountPercent / 100)) /
+              (summary as any).perEventAppointments
+            : null
+        }
       />
 
       {/* Help / "how this works" modal */}

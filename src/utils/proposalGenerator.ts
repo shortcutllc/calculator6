@@ -164,12 +164,15 @@ export const generatePricingOptionsForService = (service: any): any[] => {
   const baseService = { ...service };
   const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(baseService);
   
-  // Create different pricing options based on service type and quantities
+  // Create different pricing options based on service type and quantities.
+  // Human names replace the old "Option 1/2/3" — generic labels gave clients
+  // nothing to compare. The middle tier carries `recommended: true`, which
+  // drives the "Most popular" badge and the default selection downstream.
   const options = [];
-  
-  // Option 1: Standard (current configuration)
+
+  // Essentials: current configuration
   options.push({
-    name: 'Option 1',
+    name: 'Essentials',
     totalAppointments: totalAppointments,
     totalHours: baseService.totalHours,
     numPros: baseService.numPros,
@@ -178,8 +181,8 @@ export const generatePricingOptionsForService = (service: any): any[] => {
     originalPrice: originalPrice,
     discountPercent: baseService.discountPercent || 0
   });
-  
-  // Option 2: Extended (25% more appointments)
+
+  // Extended day: 25% more appointments — the recommended middle tier
   const extendedAppointments = Math.floor(totalAppointments * 1.25);
   const extendedService = {
     ...baseService,
@@ -187,17 +190,18 @@ export const generatePricingOptionsForService = (service: any): any[] => {
   };
   const { serviceCost: extendedCost, originalPrice: extendedOriginalPrice } = calculateServiceResults(extendedService);
   options.push({
-    name: 'Option 2',
+    name: 'Extended day',
     totalAppointments: extendedAppointments,
     totalHours: extendedService.totalHours,
     numPros: baseService.numPros,
     hourlyRate: baseService.hourlyRate,
     serviceCost: extendedCost,
     originalPrice: extendedOriginalPrice,
-    discountPercent: baseService.discountPercent || 0
+    discountPercent: baseService.discountPercent || 0,
+    recommended: true
   });
-  
-  // Option 3: Premium (50% more appointments)
+
+  // All-team day: 50% more appointments
   const premiumAppointments = Math.floor(totalAppointments * 1.5);
   const premiumService = {
     ...baseService,
@@ -205,7 +209,7 @@ export const generatePricingOptionsForService = (service: any): any[] => {
   };
   const { serviceCost: premiumCost, originalPrice: premiumOriginalPrice } = calculateServiceResults(premiumService);
   options.push({
-    name: 'Option 3',
+    name: 'All-team day',
     totalAppointments: premiumAppointments,
     totalHours: premiumService.totalHours,
     numPros: baseService.numPros,
@@ -214,7 +218,7 @@ export const generatePricingOptionsForService = (service: any): any[] => {
     originalPrice: premiumOriginalPrice,
     discountPercent: baseService.discountPercent || 0
   });
-  
+
   return options;
 };
 
