@@ -1344,11 +1344,17 @@ const StandaloneProposalViewerV2: React.FC = () => {
               note from the rep, and clearing it here lets the services move up
               into the first viewport). */}
 
-          {/* Services per location/date */}
+          {/* Services per location/date. Single-service proposals get review
+              copy instead of "pick" copy — there's nothing to pick when the
+              one service always arrives included. */}
           <div>
             <SectionLabel
               eyebrow="Your proposal"
-              title="Pick the services you want to start with."
+              title={
+                summary.rows.length === 1
+                  ? 'Review your proposal.'
+                  : 'Pick the services you want to start with.'
+              }
               size="section"
               mb={10}
             />
@@ -1362,8 +1368,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 maxWidth: 680,
               }}
             >
-              Toggle each service on or off and set how often it repeats. Book
-              4 total events a year for 15% off, or 9 for 20%.
+              {summary.rows.length === 1
+                ? 'Adjust the details, set how often it repeats, and approve when you’re ready. Book 4 events a year for 15% off, or 9 for 20%.'
+                : 'Toggle each service on or off and set how often it repeats. Book 4 total events a year for 15% off, or 9 for 20%.'}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {Object.entries(displayData.services || {}).map(
@@ -2151,7 +2158,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 }}
               >
                 {summary.rows.every((r) => !r.included)
-                  ? 'Pick the services you want.'
+                  ? summary.rows.length === 1
+                    ? 'Add your service back to continue.'
+                    : 'Pick the services you want.'
                   : 'Ready to move forward?'}
               </h2>
               <p

@@ -166,7 +166,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
-  const isMindful = service.serviceType === 'mindfulness';
+  // Covers the whole mindfulness family (mindfulness-cle, -soles, -movement,
+  // …) — proposalGenerator prices all of them as flat-rate classes, so the
+  // card must match: description fallback, per-session hero stat, fixedPrice
+  // cell. An exact match here silently dropped the description (and showed an
+  // appointments hero) on every subtype card.
+  const isMindful =
+    service.serviceType === 'mindfulness' ||
+    service.serviceType.startsWith('mindfulness-');
   // Flat-price class services share mindfulness's display: per-session price,
   // class length, format, unlimited participants. Sound bath + yoga join it.
   const isFlatClass =
