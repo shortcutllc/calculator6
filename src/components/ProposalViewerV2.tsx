@@ -4090,6 +4090,12 @@ const ProposalViewerV2: React.FC = () => {
               autoRecurringApplied={displayData?.autoRecurringDiscount}
               autoRecurringSavings={displayData?.autoRecurringSavings}
               onChangeAutoRecurring={handleChangeAutoRecurring}
+              singleEvent={
+                Object.values(displayData?.services || {}).reduce(
+                  (n: number, byDate: any) => n + Object.keys(byDate || {}).length,
+                  0
+                ) <= 1
+              }
               validUntil={(displayData?.validUntil as string | null) || null}
               onChangeValidUntil={(v) => {
                 if (!editedData || !isEditing) return;
@@ -6844,6 +6850,9 @@ interface PricingExtrasEditorProps {
    *  on the client viewer. Empty = no line. */
   validUntil: string | null;
   onChangeValidUntil: (v: string) => void;
+  /** True when the proposal has a single event date — drives the
+   *  discounting-the-trial guardrail. */
+  singleEvent: boolean;
 }
 const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
   customLineItems,
@@ -6861,6 +6870,7 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
   onChangeAutoRecurring,
   validUntil,
   onChangeValidUntil,
+  singleEvent,
 }) => (
   <div
     style={{
@@ -7130,6 +7140,31 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
         contracts always win — set those on individual services if you need finer
         control.
       </div>
+      {/* Discounting-the-trial guardrail: a fixed recurring discount on a
+          single-event proposal gives away margin without purchasing any
+          commitment, and hides the "book it quarterly" seed line clients
+          should see instead. */}
+      {autoRecurringMode === 'fixed' &&
+        (autoRecurringApplied || 0) > 0 &&
+        singleEvent && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: '8px 12px',
+              background: 'rgba(254,220,100,.25)',
+              borderRadius: 8,
+              fontFamily: T.fontD,
+              fontSize: 12,
+              color: '#8C5A07',
+              lineHeight: 1.45,
+            }}
+          >
+            This applies a recurring discount to a single-event proposal —
+            discounting the trial. Historically, first events with an applied
+            discount close at 4% vs 18% without one. Set it to No discount and
+            the client sees full price plus what booking quarterly would save.
+          </div>
+        )}
     </div>
 
     {/* Gratuity */}
