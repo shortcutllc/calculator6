@@ -611,14 +611,14 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                     </span>
                   </div>
                 )}
-              {/* Recurrence seed — quietly shows what quarterly does to the
-                  recommended tier's per-employee price (4 events = the 15%
-                  volume tier). Suppressed when a recurring discount is
+              {/* Recurrence seed — quietly shows what quarterly earns on the
+                  recommended tier (4 events = the 15% volume tier). Dollar
+                  amount, not a rate: above $100 absolute savings read bigger
+                  than percentages. Suppressed when a recurring discount is
                   already applied — the price on the tile already reflects it. */}
               {!editing &&
                 isRecommended &&
                 recurringPct === 0 &&
-                (opt.totalAppointments || 0) > 0 &&
                 finalPrice > 0 && (
                   <div
                     style={{
@@ -628,12 +628,9 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                       lineHeight: 1.45,
                     }}
                   >
-                    Book it quarterly and it's about{' '}
+                    Book it quarterly and save about{' '}
                     <span style={{ fontWeight: 700, color: T.teal }}>
-                      {formatCurrency(
-                        (finalPrice * 0.85) / (opt.totalAppointments as number)
-                      )}{' '}
-                      per employee
+                      {formatCurrency(finalPrice * 0.15)} per event
                     </span>
                   </div>
                 )}

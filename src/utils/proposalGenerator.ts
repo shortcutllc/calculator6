@@ -186,59 +186,37 @@ export const generatePricingOptionsForService = (service: any): any[] => {
     ? Math.max(baseRate - RATE_STEP, Number(baseService.proHourly) || 0)
     : baseRate;
 
-  const options = [];
+  // Canonical day shapes (Will, 2026-06-11): tiers use hours any office can
+  // actually schedule — no 6.25-hour bookings — and the names stay true to
+  // the hours. Pros and appointment length carry over from the base config.
+  const TIERS = [
+    { name: 'Half day', hours: 4, rate: entryRate },
+    { name: 'Full day', hours: 6, rate: baseRate || baseService.hourlyRate, recommended: true },
+    { name: 'All day', hours: 8, rate: topRate },
+  ];
 
-  // Essentials: current configuration at the entry-premium rate
-  const entryService = { ...baseService, hourlyRate: entryRate };
-  const { serviceCost: entryCost, originalPrice: entryOriginalPrice } = calculateServiceResults(entryService);
-  options.push({
-    name: 'Essentials',
-    totalAppointments: totalAppointments,
-    totalHours: baseService.totalHours,
-    numPros: baseService.numPros,
-    hourlyRate: entryRate,
-    serviceCost: usesHourlyRate ? entryCost : serviceCost,
-    originalPrice: usesHourlyRate ? entryOriginalPrice : originalPrice,
-    discountPercent: baseService.discountPercent || 0
-  });
-
-  // Extended day: 25% more appointments at the base rate — the recommended
-  // middle tier, priced exactly as today
-  const extendedAppointments = Math.floor(totalAppointments * 1.25);
-  const extendedService = {
-    ...baseService,
-    totalHours: baseService.totalHours * 1.25
-  };
-  const { serviceCost: extendedCost, originalPrice: extendedOriginalPrice } = calculateServiceResults(extendedService);
-  options.push({
-    name: 'Extended day',
-    totalAppointments: extendedAppointments,
-    totalHours: extendedService.totalHours,
-    numPros: baseService.numPros,
-    hourlyRate: baseService.hourlyRate,
-    serviceCost: extendedCost,
-    originalPrice: extendedOriginalPrice,
-    discountPercent: baseService.discountPercent || 0,
-    recommended: true
-  });
-
-  // All-team day: 50% more appointments at the upgrade rate
-  const premiumAppointments = Math.floor(totalAppointments * 1.5);
-  const premiumService = {
-    ...baseService,
-    totalHours: baseService.totalHours * 1.5,
-    hourlyRate: topRate
-  };
-  const { serviceCost: premiumCost, originalPrice: premiumOriginalPrice } = calculateServiceResults(premiumService);
-  options.push({
-    name: 'All-team day',
-    totalAppointments: premiumAppointments,
-    totalHours: premiumService.totalHours,
-    numPros: baseService.numPros,
-    hourlyRate: topRate,
-    serviceCost: premiumCost,
-    originalPrice: premiumOriginalPrice,
-    discountPercent: baseService.discountPercent || 0
+  const options = TIERS.map((tier) => {
+    const tierService = {
+      ...baseService,
+      totalHours: tier.hours,
+      hourlyRate: tier.rate,
+    };
+    const {
+      totalAppointments: tierAppointments,
+      serviceCost: tierCost,
+      originalPrice: tierOriginalPrice,
+    } = calculateServiceResults(tierService);
+    return {
+      name: tier.name,
+      totalAppointments: tierAppointments,
+      totalHours: tier.hours,
+      numPros: baseService.numPros,
+      hourlyRate: tier.rate,
+      serviceCost: tierCost,
+      originalPrice: tierOriginalPrice,
+      discountPercent: baseService.discountPercent || 0,
+      ...(tier.recommended ? { recommended: true } : {}),
+    };
   });
 
   return options;

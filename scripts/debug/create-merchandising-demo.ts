@@ -22,6 +22,15 @@ const sb = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { aut
 const { data: anyProposal } = await sb.from('proposals').select('user_id').not('user_id', 'is', null).limit(1).single();
 const userId = anyProposal?.user_id ?? null;
 
+// Idempotent: clear previous demo rows (is_test script-created) before recreating
+const { data: removed } = await sb
+  .from('proposals')
+  .delete()
+  .in('client_name', ['Demo First Event', 'Demo Multi-Option'])
+  .eq('is_test', true)
+  .select('id');
+console.log(`Removed ${removed?.length ?? 0} previous demo proposals`);
+
 const validUntil = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10); })();
 const eventDate = (() => { const d = new Date(); d.setDate(d.getDate() + 35); return d.toISOString().slice(0, 10); })();
 
@@ -111,8 +120,8 @@ console.log(`Demo 1 created: ${demo1.id} (${demo1.slug})`);
 const groupId = randomUUID();
 const groupSpecs = [
   { name: 'Half day', hours: 4, rate: 160, order: 1 },
-  { name: 'Full day', hours: 5, rate: 150, order: 2 },
-  { name: 'All-team day', hours: 7, rate: 140, order: 3 },
+  { name: 'Full day', hours: 6, rate: 150, order: 2 },
+  { name: 'All day', hours: 8, rate: 140, order: 3 },
 ];
 for (const spec of groupSpecs) {
   const d = buildProposalData('Demo Multi-Option', 'New York', massageService(spec.hours, spec.rate), false);
