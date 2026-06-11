@@ -168,21 +168,42 @@ export const generatePricingOptionsForService = (service: any): any[] => {
   // Human names replace the old "Option 1/2/3" — generic labels gave clients
   // nothing to compare. The middle tier carries `recommended: true`, which
   // drives the "Most popular" badge and the default selection downstream.
+  //
+  // Rate ladder ("Ladder A", approved 2026-06-11): per-employee cost must
+  // DECLINE up the ladder so bigger tiers read as the smarter buy. Entry tier
+  // carries a +$10/hr premium (the anchor that makes the middle look right),
+  // the recommended middle keeps the base rate (today's economics, and it's
+  // the default tier), the top tier gets -$10/hr. Only hourly-priced services
+  // get the step — headshots price off proHourly + retouching and
+  // group-session services are flat-rate, so their ladders stay proportional
+  // (the per-employee chip auto-hides on flat ladders).
+  const RATE_STEP = 10;
+  const baseRate = Number(baseService.hourlyRate) || 0;
+  const usesHourlyRate = baseRate > 0 && baseService.serviceType !== 'headshot';
+  const entryRate = usesHourlyRate ? baseRate + RATE_STEP : baseRate;
+  // Never let the top-tier rate fall to or below what the pro is paid.
+  const topRate = usesHourlyRate
+    ? Math.max(baseRate - RATE_STEP, Number(baseService.proHourly) || 0)
+    : baseRate;
+
   const options = [];
 
-  // Essentials: current configuration
+  // Essentials: current configuration at the entry-premium rate
+  const entryService = { ...baseService, hourlyRate: entryRate };
+  const { serviceCost: entryCost, originalPrice: entryOriginalPrice } = calculateServiceResults(entryService);
   options.push({
     name: 'Essentials',
     totalAppointments: totalAppointments,
     totalHours: baseService.totalHours,
     numPros: baseService.numPros,
-    hourlyRate: baseService.hourlyRate,
-    serviceCost: serviceCost,
-    originalPrice: originalPrice,
+    hourlyRate: entryRate,
+    serviceCost: usesHourlyRate ? entryCost : serviceCost,
+    originalPrice: usesHourlyRate ? entryOriginalPrice : originalPrice,
     discountPercent: baseService.discountPercent || 0
   });
 
-  // Extended day: 25% more appointments — the recommended middle tier
+  // Extended day: 25% more appointments at the base rate — the recommended
+  // middle tier, priced exactly as today
   const extendedAppointments = Math.floor(totalAppointments * 1.25);
   const extendedService = {
     ...baseService,
@@ -201,11 +222,12 @@ export const generatePricingOptionsForService = (service: any): any[] => {
     recommended: true
   });
 
-  // All-team day: 50% more appointments
+  // All-team day: 50% more appointments at the upgrade rate
   const premiumAppointments = Math.floor(totalAppointments * 1.5);
   const premiumService = {
     ...baseService,
-    totalHours: baseService.totalHours * 1.5
+    totalHours: baseService.totalHours * 1.5,
+    hourlyRate: topRate
   };
   const { serviceCost: premiumCost, originalPrice: premiumOriginalPrice } = calculateServiceResults(premiumService);
   options.push({
@@ -213,7 +235,7 @@ export const generatePricingOptionsForService = (service: any): any[] => {
     totalAppointments: premiumAppointments,
     totalHours: premiumService.totalHours,
     numPros: baseService.numPros,
-    hourlyRate: baseService.hourlyRate,
+    hourlyRate: topRate,
     serviceCost: premiumCost,
     originalPrice: premiumOriginalPrice,
     discountPercent: baseService.discountPercent || 0
