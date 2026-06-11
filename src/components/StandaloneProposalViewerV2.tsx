@@ -42,10 +42,6 @@ import RequestChangesModal from './proposal/RequestChangesModal';
 import ApproveConfirmModal from './proposal/ApproveConfirmModal';
 import HelpModal from './proposal/HelpModal';
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
-import ParticipantBenefitsSection from './proposal/sections/ParticipantBenefitsSection';
-import AdditionalResourcesSection from './proposal/sections/AdditionalResourcesSection';
-import CLEOutlineSection from './proposal/sections/CLEOutlineSection';
-import CLEAccreditationSection from './proposal/sections/CLEAccreditationSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 
 // ============================================================================
@@ -346,12 +342,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
     const isSession = isMindfulnessLike(s) || s === 'yoga' || s === 'sound-bath';
     return `${name} ${isSession ? 'session' : 'event'}`;
   };
-  const hasMindfulness = serviceTypes.some(isMindfulnessLike);
   const isMindfulnessOnly =
     serviceTypes.length > 0 && serviceTypes.every(isMindfulnessLike);
-  const hasCLE = serviceTypes.some(
-    (s) => s === 'mindfulness-cle' || s.startsWith('mindfulness-cle')
-  );
 
   // ---- Derived stats ------------------------------------------------------
   const stats = useMemo(() => {
@@ -2006,12 +1998,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
               dropdown (ServiceDayDetails), so the standalone section that used
               to sit here was removed. */}
 
-          {/* Mindfulness-only sections — only render when at least one
-              mindfulness service exists in the proposal. */}
-          {hasMindfulness && <ParticipantBenefitsSection />}
-          {hasCLE && <CLEOutlineSection />}
-          {hasCLE && <CLEAccreditationSection />}
-          {hasMindfulness && <AdditionalResourcesSection />}
+          {/* Mindfulness/CLE page-level sections removed — ParticipantBenefits,
+              AdditionalResources, CLE outline, and CLE accreditation all live
+              inside the service card's "What a session looks like" dropdown
+              now (ServiceDayDetails + the isCLE block in ServiceCard). */}
 
           {/* Event-day summary — per-location at-a-glance */}
           <EventDaySummaryCard
@@ -2302,8 +2292,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
               borderRadius: 16,
               padding: '22px 24px',
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-              position: 'sticky',
-              top: 80,
+              // Deliberately not sticky: with the app-shell overflow fix the
+              // sticky would now actually engage, and a pinned card floats
+              // over the sibling cards as they scroll underneath it.
             }}
           >
             {(() => {

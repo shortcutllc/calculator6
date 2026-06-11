@@ -149,7 +149,12 @@ function App() {
         <HolidayPageProvider>
         <div className="min-h-screen flex flex-col bg-gray-100">
           {!isSharedView && <Navigation />}
-          <main className={`flex-1 overflow-y-auto transition-[margin-left] duration-200 ${!isSharedView ? `${sidebarCollapsed ? 'md:ml-14' : 'md:ml-60'} pt-14 md:pt-0` : ''}`}>
+          {/* overflow-y-auto is omitted on shared (client) views: the shell is
+              min-h-screen so the document is the real scroller and the class
+              never scrolls anything — but it DOES make <main> the nearest
+              scroll container, which silently kills every position:sticky
+              inside the proposal viewer (sticky header + Live Total card). */}
+          <main className={`flex-1 transition-[margin-left] duration-200 ${!isSharedView ? `overflow-y-auto ${sidebarCollapsed ? 'md:ml-14' : 'md:ml-60'} pt-14 md:pt-0` : ''}`}>
             <Routes>
               <Route path={config.app.routes.login} element={<Login />} />
               <Route path={config.app.routes.register} element={<Register />} />

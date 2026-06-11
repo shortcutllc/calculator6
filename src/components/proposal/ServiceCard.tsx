@@ -24,6 +24,8 @@ import {
 } from './data';
 import { SERVICE_CONTENT } from './sections/serviceContent';
 import { ServiceDayDetails } from './sections/ServiceDetailsSection';
+import CLEOutlineSection from './sections/CLEOutlineSection';
+import CLEAccreditationSection from './sections/CLEAccreditationSection';
 import { GalleryStrip, PhotoCountPill } from './ServiceGallery';
 
 // ============================================================================
@@ -246,6 +248,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     ? 'mindfulness'
     : service.serviceType;
   const dayContent = SERVICE_CONTENT[contentKey] || null;
+  // CLE classes carry extra page-level content (class outline + state
+  // accreditation) that lives inside this card's dropdown rather than as
+  // standalone sections at the bottom of the proposal.
+  const isCLE = service.serviceType.startsWith('mindfulness-cle');
 
   // When pricing options exist, the selected option drives the effective
   // hours/pros. Selecting an option mirrors serviceCost + totalAppointments
@@ -1053,6 +1059,22 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                   Features) — moved here from the old standalone section at the
                   bottom of the page. */}
               <ServiceDayDetails content={dayContent} />
+              {/* CLE-specific extras: class outline + state accreditation.
+                  These used to render as standalone sections at the bottom of
+                  the proposal; they belong with the class they describe. */}
+              {isCLE && (
+                <div
+                  style={{
+                    marginTop: 20,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 16,
+                  }}
+                >
+                  <CLEOutlineSection />
+                  <CLEAccreditationSection />
+                </div>
+              )}
             </div>
           )}
         </div>

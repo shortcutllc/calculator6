@@ -84,10 +84,6 @@ import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
-import ParticipantBenefitsSection from './proposal/sections/ParticipantBenefitsSection';
-import AdditionalResourcesSection from './proposal/sections/AdditionalResourcesSection';
-import CLEOutlineSection from './proposal/sections/CLEOutlineSection';
-import CLEAccreditationSection from './proposal/sections/CLEAccreditationSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 import { generateLineItems } from './StripeInvoiceButton';
 import type { InvoiceLineItem } from './InvoiceConfirmationModal';
@@ -2303,12 +2299,8 @@ const ProposalViewerV2: React.FC = () => {
   }, [displayData]);
   const isMindfulnessLike = (s: string) =>
     s === 'mindfulness' || s.startsWith('mindfulness-');
-  const hasMindfulness = serviceTypes.some(isMindfulnessLike);
   const isMindfulnessOnly =
     serviceTypes.length > 0 && serviceTypes.every(isMindfulnessLike);
-  const hasCLE = serviceTypes.some(
-    (s) => s === 'mindfulness-cle' || s.startsWith('mindfulness-cle')
-  );
 
   const pricingRows = useMemo(() => {
     const rows: Array<{
@@ -4021,10 +4013,8 @@ const ProposalViewerV2: React.FC = () => {
           )}
           {/* Per-service details now live inside each service card's
               "What a … day looks like" dropdown — standalone section removed. */}
-          {hasMindfulness && <ParticipantBenefitsSection />}
-          {hasCLE && <CLEOutlineSection />}
-          {hasCLE && <CLEAccreditationSection />}
-          {hasMindfulness && <AdditionalResourcesSection />}
+          {/* Mindfulness/CLE page-level sections removed — all of it lives in
+              the service card dropdown now (mirrors the client viewer). */}
 
           {/* Service agreement preview — same V2 collapsed-by-default card the
               client sees, so staff can sanity-check the partner-name copy. */}
