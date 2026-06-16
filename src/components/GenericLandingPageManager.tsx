@@ -238,6 +238,18 @@ const GenericLandingPageManager: React.FC = () => {
         <div className="flex gap-3">
           <button
             onClick={async () => {
+              const url = `${window.location.origin}/book-a-call`;
+              await navigator.clipboard.writeText(url);
+              alert('Book a Call page link copied to clipboard!');
+            }}
+            className="inline-flex items-center px-4 py-2 text-sm font-bold text-shortcut-blue bg-shortcut-teal bg-opacity-20 rounded-md hover:bg-shortcut-teal hover:bg-opacity-30 transition-colors"
+            title="Copy generic Book a Call landing page link"
+          >
+            <Link className="w-4 h-4 mr-2" />
+            Copy Book a Call Link
+          </button>
+          <button
+            onClick={async () => {
               const url = `${window.location.origin}/holiday-generic`;
               await navigator.clipboard.writeText(url);
               alert('Generic page link copied to clipboard!');
