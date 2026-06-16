@@ -337,6 +337,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               <div style={{ position: 'relative', flexShrink: 0, width: imgW }}>
                 <ServiceImage
                   serviceType={service.serviceType}
+                  massageType={service.massageType}
                   height={imgH}
                   width={imgW}
                 />

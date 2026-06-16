@@ -163,6 +163,9 @@ export const StatusPill: React.FC<StatusPillProps> = ({ status, size = 'md' }) =
 // ============================================================================
 interface ServiceImageProps {
   serviceType: string;
+  // Massage is the one service with photo variants: table massage uses its own
+  // slider image, chair/generic massage uses the default. Other services ignore this.
+  massageType?: string;
   height?: number;
   width?: number | string;
   style?: React.CSSProperties;
@@ -174,12 +177,19 @@ const GLYPH_MAP: Record<string, React.ComponentType<any>> = {
 };
 export const ServiceImage: React.FC<ServiceImageProps> = ({
   serviceType,
+  massageType,
   height = 160,
   width = '100%',
   style,
 }) => {
   const [imgFailed, setImgFailed] = useState(false);
-  const photo = SERVICE_IMAGE_PATH[serviceType];
+  // Table massage has its own photo; chair/generic massage and everything else
+  // key straight off serviceType.
+  const imageKey =
+    serviceType === 'massage' && massageType === 'table'
+      ? 'table-massage'
+      : serviceType;
+  const photo = SERVICE_IMAGE_PATH[imageKey];
   const g = SERVICE_GRAPHIC[serviceType] || SERVICE_GRAPHIC.massage;
   const Glyph = GLYPH_MAP[g.glyph] || Sparkles;
 
@@ -210,6 +220,12 @@ export const ServiceImage: React.FC<ServiceImageProps> = ({
             objectFit: 'cover',
             display: 'block',
             transform: 'scale(1.1)',
+            // The table-massage photo frames its subject toward the left, so it
+            // jams against the left edge under a center crop. Nudge the crop
+            // window left (subject shifts right) for a balanced portrait. The
+            // cover overflow is large enough that this never reveals the
+            // baked-in border. Other photos keep the default center crop.
+            objectPosition: imageKey === 'table-massage' ? '40% 50%' : '50% 50%',
           }}
         />
       </div>

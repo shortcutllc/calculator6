@@ -141,6 +141,10 @@ export const SERVICE_GRAPHIC: Record<
 // the image isn't found.
 export const SERVICE_IMAGE_PATH: Record<string, string> = {
   massage: '/Massage Slider.png',
+  // Table massage gets its own slider photo (deeper, lying-down experience).
+  // Chair massage + the generic "massage" type keep the default image above.
+  // Resolved in ServiceImage via the massageType prop, not serviceType alone.
+  'table-massage': '/Table Massage Slider.png',
   headshot: '/Headshot Slider.png',
   headshots: '/Headshot Slider.png',
   facial: '/Facials Slider.png',
