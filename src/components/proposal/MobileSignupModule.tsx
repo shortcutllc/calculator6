@@ -7,6 +7,7 @@
 // Styling (bm- card, frame) lives in mobile-signup-demo.css.
 
 import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
+import { ExternalLink, Link as LinkIcon, Check } from 'lucide-react';
 import {
   MobileSignupDemoCore,
   useMdTimeline,
@@ -14,6 +15,22 @@ import {
   type MdState,
 } from './MobileSignupDemo';
 import './mobile-signup-demo.css';
+
+// Accept a pasted test-event URL the same way SignupLinkCard did: an http(s)
+// URL, or a bare domain we can safely prefix.
+const isProbablyValidUrl = (raw?: string | null): boolean => {
+  if (!raw) return false;
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
+  try {
+    const u = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    return !!u.host;
+  } catch {
+    return false;
+  }
+};
+const normaliseUrl = (raw: string): string =>
+  /^https?:\/\//i.test(raw.trim()) ? raw.trim() : `https://${raw.trim()}`;
 
 // ── iPhone frame ────────────────────────────────────────────
 // Outer dims match the design (402 x 874). The screen clips its children;
@@ -92,15 +109,39 @@ interface MobileSignupModuleProps {
   speed?: number;
   zoom?: boolean;
   size?: number;
+  /** Admin-pasted test-event URL. When set, the Copy link + Try it yourself
+   *  CTAs render below the demo. When absent, only the demo shows. */
+  url?: string | null;
+  /** CTA copy. Defaults match the brand voice (mirrors the old SignupLinkCard). */
+  title?: string;
+  description?: string;
 }
 
 const MobileSignupModule: React.FC<MobileSignupModuleProps> = ({
   speed = 1,
   zoom = true,
   size = 340,
+  url,
+  title = "Pick a time. That's the whole thing.",
+  description = 'No app to download. No account to make. Book a sample appointment and see how little your team has to do. You do even less.',
 }) => {
   const reduced = usePrefersReducedMotion();
   const state = useMdTimeline(speed, reduced);
+  // The phone stage keeps the design's ~square proportion; the CTA footer (if
+  // any) grows the card below it.
+  const areaH = Math.round(size * 0.87);
+  const showCta = isProbablyValidUrl(url);
+  const [copied, setCopied] = useState(false);
+  const copyLink = async () => {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(normaliseUrl(url));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked — no-op, the Try it yourself link still works */
+    }
+  };
   const areaRef = useRef<HTMLDivElement>(null);
   const phoneRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState<{ W: number; H: number; dw: number; dh: number } | null>(null);
@@ -155,18 +196,37 @@ const MobileSignupModule: React.FC<MobileSignupModuleProps> = ({
   }
 
   return (
-    <div className="bm-card msd-host" style={{ width: size, height: size }}>
+    <div className="bm-card msd-host" style={{ width: size }}>
       <div className="bm-card-head">
         <div className="bm-eyebrow">The employee sign-up</div>
         <div className="bm-live-pill">Demo</div>
       </div>
-      <div ref={areaRef} className="bm-area">
+      <div ref={areaRef} className="bm-area" style={{ height: areaH }}>
         <div ref={phoneRef} style={{ position: 'absolute', top: 0, left: 0, ...style }}>
           <IOSDevice width={402} height={874}>
             <MobileSignupDemoCore state={state} />
           </IOSDevice>
         </div>
       </div>
+      {showCta && (
+        <div className="bm-foot">
+          {title && <div className="bm-foot-title">{title}</div>}
+          {description && <p className="bm-foot-copy">{description}</p>}
+          <div className="bm-foot-actions">
+            <button type="button" className="bm-btn bm-btn-secondary" onClick={copyLink}>
+              {copied ? <><Check size={14} /> Copied</> : <><LinkIcon size={14} /> Copy link</>}
+            </button>
+            <a
+              className="bm-btn bm-btn-coral"
+              href={normaliseUrl(url as string)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Try it yourself <ExternalLink size={14} />
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

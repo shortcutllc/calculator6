@@ -79,7 +79,7 @@ import AccountTeamCard, {
   DEFAULT_TEAM_EMAIL,
 } from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
-import SignupLinkCard from './proposal/sidebar/SignupLinkCard';
+import MobileSignupModule from './proposal/MobileSignupModule';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
@@ -4671,12 +4671,11 @@ const ProposalViewerV2: React.FC = () => {
             </div>
           </div>
 
-          {/* Demo sign-up — preview of the CTA card that the client viewer
-              renders when an admin pastes a URL in edit mode. The paste
-              UI lives in the "Demo sign-up link" row above the sidebar
-              (in the main column's edit panel) so the admin can copy a
-              URL in once and see how it'll appear here. */}
-          <SignupLinkCard
+          {/* The employee sign-up — same self-playing demo module the client
+              viewer renders, so staff preview matches exactly. The CTAs (Copy
+              link + Try it yourself) appear once an admin pastes a test-event
+              URL in the "Demo sign-up link" edit row above the sidebar. */}
+          <MobileSignupModule
             url={displayData?.signupLink}
             title={displayData?.signupLinkTitle}
             description={displayData?.signupLinkDescription}

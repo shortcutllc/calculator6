@@ -289,8 +289,38 @@
   border-radius: 9999px; padding: 4px 10px;
 }
 .bm-area {
-  position: relative; flex: 1; min-height: 0;
+  position: relative; flex-shrink: 0;
   overflow: hidden; background: var(--sc-light-gray);
+}
+
+/* CTA footer — shown only when an admin set a test-event URL */
+.bm-foot {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 18px 18px;
+}
+.bm-foot-title {
+  font-family: var(--font-display); font-weight: 700; font-size: 16px;
+  letter-spacing: -0.01em; line-height: 1.2; color: var(--sc-navy);
+}
+.bm-foot-copy {
+  font-family: var(--font-display); font-weight: 400; font-size: 13px;
+  line-height: 1.5; color: rgba(3, 34, 50, 0.6); margin: 0;
+}
+.bm-foot-actions { display: flex; gap: 8px; }
+.bm-btn {
+  flex: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 11px 14px; border-radius: 10px;
+  font-family: var(--font-ui); font-weight: 700; font-size: 13px;
+  text-decoration: none; cursor: pointer; line-height: 1; white-space: nowrap;
+}
+.bm-btn-coral {
+  background: var(--sc-coral); color: #fff; border: none;
+  box-shadow: 0 2px 8px rgba(255, 80, 80, 0.25);
+}
+.bm-btn-secondary {
+  background: #fff; color: var(--sc-navy);
+  border: 1.5px solid var(--sc-gray-300);
 }
 
 /* ── Respect reduced motion: kill every transition/animation. The timeline

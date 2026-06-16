@@ -33,7 +33,6 @@ import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
 import TrustCard from './proposal/sidebar/TrustCard';
 import FaqCard from './proposal/sidebar/FaqCard';
 import GalleryCard from './proposal/sidebar/GalleryCard';
-import SignupLinkCard from './proposal/sidebar/SignupLinkCard';
 import MobileSignupModule from './proposal/MobileSignupModule';
 import OptionsTabs, { ProposalOption } from './proposal/OptionsTabs';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
@@ -2563,22 +2562,17 @@ const StandaloneProposalViewerV2: React.FC = () => {
           </div>
           )}
 
-          {/* Demo sign-up — surfaces an admin-pasted URL as a CTA card.
-              Renders nothing when data.signupLink is empty, so default
-              proposals stay clean. Position it near the top so on mobile
-              (where the sidebar stacks below the main column) it's the
-              first sidebar card visitors hit after the Approve CTA. */}
-          <SignupLinkCard
+          {/* The employee sign-up — self-playing mobile demo inside an iPhone
+              frame with a dynamic zoom camera. Autoplays + loops; freezes on a
+              static fitted frame under prefers-reduced-motion. When an admin has
+              set a test-event URL (data.signupLink), the Copy link + Try it
+              yourself CTAs render below the demo; otherwise the demo shows alone.
+              Replaces the old MP4 SignupLinkCard. */}
+          <MobileSignupModule
             url={displayData?.signupLink}
             title={displayData?.signupLinkTitle}
             description={displayData?.signupLinkDescription}
           />
-
-          {/* Live employee sign-up demo — the self-playing mobile flow inside
-              an iPhone frame with a dynamic zoom camera (the "employee sign-up"
-              module from the design). Autoplays + loops; freezes on a static
-              fitted frame under prefers-reduced-motion. */}
-          <MobileSignupModule />
 
           {/* Facilitator — only for mindfulness-only proposals. Courtney
               photo + bio mirroring V1 StandaloneProposalViewer (right rail). */}
