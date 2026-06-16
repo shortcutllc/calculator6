@@ -34,6 +34,7 @@ import TrustCard from './proposal/sidebar/TrustCard';
 import FaqCard from './proposal/sidebar/FaqCard';
 import GalleryCard from './proposal/sidebar/GalleryCard';
 import SignupLinkCard from './proposal/sidebar/SignupLinkCard';
+import MobileSignupModule from './proposal/MobileSignupModule';
 import OptionsTabs, { ProposalOption } from './proposal/OptionsTabs';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
@@ -2572,6 +2573,12 @@ const StandaloneProposalViewerV2: React.FC = () => {
             title={displayData?.signupLinkTitle}
             description={displayData?.signupLinkDescription}
           />
+
+          {/* Live employee sign-up demo — the self-playing mobile flow inside
+              an iPhone frame with a dynamic zoom camera (the "employee sign-up"
+              module from the design). Autoplays + loops; freezes on a static
+              fitted frame under prefers-reduced-motion. */}
+          <MobileSignupModule />
 
           {/* Facilitator — only for mindfulness-only proposals. Courtney
               photo + bio mirroring V1 StandaloneProposalViewer (right rail). */}

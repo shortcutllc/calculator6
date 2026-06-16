@@ -1,0 +1,304 @@
+/* mobile-signup-demo.css — styles for the self-playing employee sign-up demo
+   embedded in the proposal right-column slot.
+
+   Ported from the design handoff:
+     - signup_redesign/lite.css   (lt- classes, the sign-up screen UI)
+     - signup_demo/mobile-demo.css (md- classes: tap dot, caret, transitions)
+
+   Design tokens (--sc-*, --font-*, --ease-out) are scoped to .msd-host so they
+   never leak into the rest of the app (which uses the --pv-* token set). All
+   lt-/md- selectors below only ever appear inside .msd-host. */
+
+.msd-host {
+  --sc-navy: #09364f;
+  --sc-coral: #ff5050;
+  --sc-deep-navy: #003c5e;
+  --sc-navy-shadow: #032232;
+  --sc-aqua: #9efaff;
+  --sc-teal: #0098ad;
+  --sc-light-gray: #f1f6f5;
+  --sc-gray-100: #f5f5f5;
+  --sc-gray-200: #e5e7eb;
+  --sc-gray-300: #d1d5db;
+  --font-display: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The bare phone screen that fills the module slot. No bezel, no card chrome —
+   just a rounded, clipped portrait surface the demo paints into. */
+.msd-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 340 / 600;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* ── md- layer: viewport, scroll, tap dot, caret, transitions ── */
+.md-viewport {
+  position: relative; width: 100%; height: 100%;
+  overflow: hidden; background: #fff;
+}
+.md-viewport * { box-sizing: border-box; }
+.md-content {
+  position: absolute; top: 0; left: 0; right: 0;
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.md-fade { transition: opacity 600ms ease; }
+
+.md-dot {
+  position: absolute; top: 0; left: 0; width: 26px; height: 26px;
+  z-index: 40; pointer-events: none; opacity: 0;
+  transform: translate(180px, 420px);
+  transition: transform 550ms cubic-bezier(0.3, 0, 0.2, 1), opacity 250ms ease;
+}
+.md-dot-inner {
+  width: 100%; height: 100%; border-radius: 9999px;
+  background: rgba(9,54,79,0.28);
+  border: 1.5px solid rgba(255,255,255,0.9);
+  box-shadow: 0 3px 10px rgba(9,54,79,0.3);
+  transition: transform 150ms ease;
+}
+.md-dot.tap .md-dot-inner { transform: scale(0.62); background: rgba(9,54,79,0.45); }
+
+.md-caret {
+  display: inline-block; width: 1.5px; height: 16px;
+  background: var(--sc-navy); margin-left: 2px;
+  animation: msdBlink 1s steps(1) infinite;
+}
+@keyframes msdBlink { 50% { opacity: 0; } }
+
+.md-screen { animation: msdIn 450ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes msdIn { from { opacity: 0; transform: translateY(10px); } }
+
+.md-check { animation: msdPop 500ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes msdPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── lt- layer: the sign-up screen UI (subset used by the demo) ── */
+.msd-host .lt-btn {
+  font-family: var(--font-ui); font-weight: 700; font-size: 14px;
+  border-radius: 9999px; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 28px; line-height: 1; white-space: nowrap;
+}
+.msd-host .lt-btn-coral { background: var(--sc-coral); color: #fff; }
+.msd-host .lt-btn-secondary {
+  background: transparent; color: var(--sc-navy);
+  border: 2px solid var(--sc-navy); padding: 12px 26px;
+}
+.msd-host .lt-btn-sm { padding: 10px 20px; font-size: 13px; }
+.msd-host .lt-btn-disabled { background: var(--sc-gray-200); color: rgba(3,34,50,0.35); cursor: default; }
+
+.msd-host .lt-eyebrow {
+  font-family: var(--font-ui); font-weight: 700; font-size: 12px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: rgba(3,34,50,0.6);
+  margin: 0 0 10px;
+}
+.msd-host .lt-h2 {
+  font-family: var(--font-display); font-weight: 700; font-size: 24px;
+  line-height: 1.1; letter-spacing: -0.01em; color: var(--sc-navy); margin: 0;
+}
+.msd-host .lt-h3 {
+  font-family: var(--font-display); font-weight: 700; font-size: 18px;
+  line-height: 1.1; letter-spacing: -0.01em; color: var(--sc-navy); margin: 0;
+}
+.msd-host .lt-body {
+  font-family: var(--font-display); font-weight: 400; font-size: 16px;
+  line-height: 1.4; color: rgba(3,34,50,0.92); margin: 0;
+}
+.msd-host .lt-small { font-size: 14px; line-height: 1.4; color: rgba(3,34,50,0.65); }
+.msd-host .lt-consent a { color: var(--sc-navy); text-decoration: underline; font-weight: 600; }
+
+.msd-host .lt-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 600; font-size: 14px;
+  color: var(--sc-navy);
+}
+.msd-host .lt-meta svg { width: 18px; height: 18px; stroke: var(--sc-teal); flex-shrink: 0; }
+
+.msd-host .lt-service-card {
+  border: 2px solid var(--sc-gray-200); border-radius: 16px;
+  background: #fff; padding: 16px; cursor: pointer; text-align: left;
+  transition: border-color 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
+}
+.msd-host .lt-service-card.selected {
+  border-color: var(--sc-navy);
+  box-shadow: 0 4px 16px rgba(9,54,79,0.10);
+}
+.msd-host .lt-service-card .lt-service-name {
+  font-family: var(--font-display); font-weight: 700; font-size: 16px;
+  letter-spacing: -0.01em; color: var(--sc-navy);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.msd-host .lt-service-card .lt-service-sub {
+  font-family: var(--font-display); font-weight: 400; font-size: 13px;
+  color: rgba(3,34,50,0.55); margin-top: 4px; line-height: 1.35;
+}
+.msd-host .lt-radio {
+  width: 18px; height: 18px; border-radius: 9999px;
+  border: 2px solid var(--sc-gray-300); flex-shrink: 0;
+}
+.msd-host .lt-service-card.selected .lt-radio {
+  border-color: var(--sc-coral); border-width: 5px;
+}
+
+.msd-host .lt-pro { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.msd-host .lt-avatar {
+  width: 48px; height: 48px; border-radius: 9999px; flex-shrink: 0;
+  background: var(--sc-teal); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-ui); font-weight: 700; font-size: 15px;
+}
+.msd-host .lt-pro-name {
+  font-family: var(--font-display); font-weight: 700; font-size: 17px;
+  letter-spacing: -0.01em; color: var(--sc-navy);
+}
+.msd-host .lt-tag {
+  font-family: var(--font-ui); font-weight: 700; font-size: 11px;
+  border-radius: 9999px; padding: 4px 10px;
+  background: rgba(0,152,173,0.1); color: var(--sc-navy);
+}
+.msd-host .lt-slot-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.msd-host .lt-slot {
+  font-family: var(--font-ui); font-weight: 700; font-size: 13px;
+  color: var(--sc-navy); background: #fff;
+  border: 1px solid rgba(0,0,0,0.16); border-radius: 9999px;
+  padding: 10px 18px; cursor: pointer; line-height: 1;
+  transition: transform 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
+}
+.msd-host .lt-slot.selected { background: var(--sc-coral); border-color: var(--sc-coral); color: #fff; }
+.msd-host .lt-slot.taken { opacity: 0.35; text-decoration: line-through; cursor: default; }
+
+.msd-host .lt-field { display: flex; flex-direction: column; gap: 6px; }
+.msd-host .lt-label {
+  font-family: var(--font-ui); font-weight: 700; font-size: 13px;
+  color: var(--sc-navy);
+}
+.msd-host .lt-input {
+  font-family: var(--font-display); font-weight: 500; font-size: 16px;
+  color: var(--sc-navy); background: #fff;
+  border: 2px solid var(--sc-gray-200); border-radius: 12px;
+  padding: 13px 16px; width: 100%;
+  display: flex; align-items: center;
+  transition: border-color 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
+}
+.msd-host .lt-input.focus { border-color: var(--sc-aqua); box-shadow: 0 0 0 2px var(--sc-aqua); }
+
+.msd-host .lt-consent { display: flex; align-items: flex-start; gap: 10px; }
+.msd-host .lt-checkbox {
+  width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0; margin-top: 1px;
+  border: 2px solid var(--sc-gray-300); background: #fff;
+}
+.msd-host .lt-checkbox.checked {
+  background: var(--sc-navy); border-color: var(--sc-navy);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.msd-host .lt-divider { height: 1px; background: rgba(0,0,0,0.07); border: none; margin: 28px 0; }
+
+.msd-host .lt-bar {
+  height: 6px; border-radius: 9999px; background: var(--sc-gray-200);
+  overflow: hidden; position: relative;
+}
+.msd-host .lt-bar > span {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--sc-teal); border-radius: 9999px; display: block;
+}
+
+.msd-host .lt-check-circle {
+  width: 64px; height: 64px; border-radius: 9999px; background: var(--sc-coral);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto;
+}
+
+/* Mobile sign-up screen (hero, sheet, pinned CTA bar) */
+.msd-host .lt-m-hero { position: relative; flex-shrink: 0; }
+.msd-host .lt-m-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.msd-host .lt-m-hero-chrome {
+  position: absolute; top: 16px; left: 16px; right: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.msd-host .lt-m-circle {
+  width: 36px; height: 36px; border-radius: 9999px; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.msd-host .lt-m-circle svg { width: 18px; height: 18px; stroke: var(--sc-navy-shadow); stroke-width: 2; }
+.msd-host .lt-m-brand-pill {
+  background: #fff; border-radius: 9999px; padding: 8px 14px;
+  display: flex; align-items: center; gap: 7px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  font-family: var(--font-ui); font-weight: 700; font-size: 12px; color: var(--sc-navy);
+}
+.msd-host .lt-m-brand-pill img { height: 13px; display: block; }
+.msd-host .lt-m-sheet {
+  position: relative; z-index: 2; background: #fff;
+  border-radius: 24px 24px 0 0; margin-top: -24px;
+  padding: 28px 20px 120px; flex: 1;
+}
+.msd-host .lt-m-h1 {
+  font-family: var(--font-display); font-weight: 800; font-size: 28px;
+  line-height: 1.12; letter-spacing: -0.02em; color: var(--sc-navy); margin: 0;
+}
+.msd-host .lt-m-service-stack { display: flex; flex-direction: column; gap: 10px; }
+.msd-host .lt-m-service-stack .lt-service-card { padding: 14px 16px; }
+.msd-host .lt-m-service-stack .lt-service-name { font-size: 15px; }
+.msd-host .lt-m-cta-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 30;
+  background: #fff; border-top: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+  padding: 14px 20px 22px;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+.msd-host .lt-m-cta-bar .lt-btn { padding: 15px 26px; }
+.msd-host .lt-m-slot-note {
+  font-family: var(--font-ui); font-weight: 700; font-size: 15px; color: var(--sc-navy);
+}
+.msd-host .lt-m-slot-sub { font-size: 13px; color: rgba(3,34,50,0.65); margin-top: 2px; }
+
+/* ── bm- layer: the "employee sign-up" card that frames the demo ── */
+.bm-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+.bm-card-head {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 12px;
+}
+.bm-eyebrow {
+  font-family: var(--font-ui); font-weight: 700; font-size: 12px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: rgba(3, 34, 50, 0.55);
+}
+.bm-live-pill {
+  font-family: var(--font-ui); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--sc-navy); background: var(--sc-aqua);
+  border-radius: 9999px; padding: 4px 10px;
+}
+.bm-area {
+  position: relative; flex: 1; min-height: 0;
+  overflow: hidden; background: var(--sc-light-gray);
+}
+
+/* ── Respect reduced motion: kill every transition/animation. The timeline
+      itself is also frozen on a static frame in JS (see useMdTimeline). ── */
+@media (prefers-reduced-motion: reduce) {
+  .md-content, .md-dot, .md-dot-inner,
+  .msd-host .lt-service-card, .msd-host .lt-slot,
+  .msd-host .lt-input, .msd-host .lt-btn { transition: none; }
+  .md-fade { transition: none; }
+  .md-screen, .md-check, .md-caret { animation: none; }
+}
