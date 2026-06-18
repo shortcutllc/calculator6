@@ -7,7 +7,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { executeTool } from './slack-tools.js';
 import { getConversation, saveConversation } from './slack-conversation-store.js';
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_TOOL_ROUNDS = 8; // Safety limit on tool call loops
 
 // --- System Prompt ---
