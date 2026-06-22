@@ -8,7 +8,7 @@ import { assembleProposal } from './proposal-assembler.js';
 import { applyOperations } from './proposal-editor.js';
 import { calculateEventOptions } from './reverse-calculator.js';
 import { searchClients, getClientByName, searchProposals } from './client-lookup.js';
-import { fetchAndStoreLogo, storeProvidedLogo, fetchLogoUrl, searchLogoViaBrave } from './logo-fetcher.js';
+import { fetchAndStoreLogo, storeProvidedLogo, fetchLogoUrl, searchLogoViaBrave, svgLikelyInvisibleOnLight, fetchSvgText } from './logo-fetcher.js';
 import { recalculateProposalSummary } from './pricing-engine.js';
 import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption } from './proposal-linker.js';
@@ -769,6 +769,8 @@ async function handleCreateProposal(params, supabase, userId) {
   // not "logo applied" just because we stored a string.
   if (verifiedState.clientLogoUrl) {
     verifiedState.clientLogoReachable = await checkUrlReachable(verifiedState.clientLogoUrl);
+    // Reachable ≠ visible: a white/transparent SVG loads fine but shows blank.
+    verifiedState.logoLikelyVisible = await checkLogoVisible(verifiedState.clientLogoUrl);
   }
 
   return {
@@ -852,6 +854,8 @@ async function handleEditProposal(params, supabase, userId) {
   const verifiedState = buildVerifiedState(updatedData, updatedCustomization);
   if (verifiedState.clientLogoUrl) {
     verifiedState.clientLogoReachable = await checkUrlReachable(verifiedState.clientLogoUrl);
+    // Reachable ≠ visible: a white/transparent SVG loads fine but shows blank.
+    verifiedState.logoLikelyVisible = await checkLogoVisible(verifiedState.clientLogoUrl);
   }
 
   return {
@@ -894,6 +898,8 @@ async function handleGetProposal(params, supabase) {
   const verifiedState = buildVerifiedState(proposal.data, proposal.customization);
   if (verifiedState.clientLogoUrl) {
     verifiedState.clientLogoReachable = await checkUrlReachable(verifiedState.clientLogoUrl);
+    // Reachable ≠ visible: a white/transparent SVG loads fine but shows blank.
+    verifiedState.logoLikelyVisible = await checkLogoVisible(verifiedState.clientLogoUrl);
   }
 
   return {
@@ -1731,6 +1737,22 @@ async function checkUrlReachable(url) {
     }
     return false;
   } catch { return false; }
+}
+
+/**
+ * Stronger than reachability: would this logo actually be VISIBLE on the
+ * proposal's light nav background? A white/transparent SVG passes
+ * checkUrlReachable (200 OK) but renders blank. For SVGs we inspect the markup;
+ * raster formats we trust if reachable (can't decode pixels in-function).
+ * Returns true (visible), false (likely blank), or null (couldn't determine).
+ */
+async function checkLogoVisible(url) {
+  if (!url || typeof url !== 'string') return null;
+  const isSvg = url.toLowerCase().split('?')[0].endsWith('.svg');
+  if (!isSvg) return true; // raster: assume visible if it loads
+  const svgText = await fetchSvgText(url);
+  if (!svgText) return null; // couldn't fetch the markup — unknown
+  return !svgLikelyInvisibleOnLight(svgText);
 }
 
 function buildVerifiedState(proposalData, customization) {

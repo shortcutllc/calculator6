@@ -14,6 +14,63 @@
 const BRANDFETCH_API_KEY = process.env.BRANDFETCH_API_KEY;
 
 /**
+ * Heuristic: would this SVG render as blank / near-invisible on a LIGHT
+ * background (the proposal nav is light)? This is the thing HTTP-reachability
+ * checks can't see — a white-on-transparent wordmark loads fine (200 OK) but
+ * shows up as empty white space.
+ *
+ * Logic: the default SVG fill is BLACK, so an SVG with no explicit colors is
+ * visible. We only flag when EVERY explicit color drawn (fill / stroke /
+ * stop-color / inline style) is white, near-white, or none — i.e. a logo
+ * designed to sit on a dark background. Embedded rasters/gradients we can't
+ * reason about, so we treat them as visible (don't over-reject).
+ */
+function svgLikelyInvisibleOnLight(svgText) {
+  if (!svgText || typeof svgText !== 'string') return false;
+  const text = svgText.toLowerCase();
+  // Embedded raster or external image reference — can't reason about pixels.
+  if (text.includes('<image') || text.includes('xlink:href') || text.includes('data:image')) {
+    return false;
+  }
+
+  const colors = [];
+  const re = /(?:fill|stroke|stop-color)\s*[:=]\s*["']?\s*(#[0-9a-f]{3,8}|rgba?\([^)]*\)|[a-z]+)/g;
+  let m;
+  while ((m = re.exec(text)) !== null) colors.push(m[1].trim());
+
+  const isWhiteish = (c) => {
+    if (c === '#fff' || c === '#ffffff' || c === 'white' || c === '#fefefe' || c === '#fcfcfc') return true;
+    const rgb = c.match(/rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+    if (rgb) {
+      const [r, g, b] = [rgb[1], rgb[2], rgb[3]].map(Number);
+      return r >= 245 && g >= 245 && b >= 245;
+    }
+    return false;
+  };
+
+  // 'none' / 'transparent' aren't visible colors — exclude from the verdict.
+  const drawn = colors.filter((c) => c !== 'none' && c !== 'transparent');
+  // No explicit colors → relies on default black fill → visible.
+  if (drawn.length === 0) return false;
+  // Every drawn color is whiteish → invisible on a light background.
+  return drawn.every(isWhiteish);
+}
+
+/**
+ * Fetch an SVG's text so we can inspect it for visibility. Returns null on any
+ * failure (caller treats null as "couldn't check" → don't reject).
+ */
+async function fetchSvgText(url) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    return await r.text();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Brandfetch is the higher-quality source — returns SVG/PNG with explicit type
  * metadata (logo vs symbol vs icon, light vs dark theme). Mirrors the ranking
  * in create-workhuman-landing-page so Pro tools and the Workhuman landing-page
@@ -40,14 +97,28 @@ async function fetchLogoFromBrandfetch(domain) {
       return s;
     };
     const sorted = [...logos].sort((a, b) => rank(b) - rank(a));
+    // Prefer PNG for white-background proposals: Brandfetch PNGs are the dark,
+    // full-color wordmark, whereas SVG wordmarks are often white-on-transparent
+    // (designed to overlay dark backgrounds) and vanish on the light nav.
+    // SVG is only accepted after it passes the visibility check.
+    let rasterFallback = null;
     for (const logo of sorted) {
       const formats = logo.formats || [];
-      const svg = formats.find((f) => f.format === 'svg');
       const png = formats.find((f) => f.format === 'png');
       const webp = formats.find((f) => f.format === 'webp');
-      const pick = svg || png || webp || formats[0];
-      if (pick?.src) return pick.src;
+      const svg = formats.find((f) => f.format === 'svg');
+      if (png?.src) return png.src;
+      if (webp?.src) return webp.src;
+      if (svg?.src) {
+        const svgText = await fetchSvgText(svg.src);
+        // Accept SVG only if we couldn't check (null) or it renders on light.
+        if (!svgText || !svgLikelyInvisibleOnLight(svgText)) return svg.src;
+      }
+      if (!rasterFallback && formats[0]?.src) rasterFallback = formats[0].src;
     }
+    // Every candidate was an invisible-on-light SVG — last resort is whatever
+    // raw format we saw first (better a wrong guess than guaranteed-blank).
+    if (rasterFallback) return rasterFallback;
   } catch (e) {
     console.warn('Brandfetch error:', e.message);
   }
@@ -305,5 +376,7 @@ export {
   storeLogo,
   fetchAndStoreLogo,
   storeProvidedLogo,
-  searchLogoViaBrave
+  searchLogoViaBrave,
+  svgLikelyInvisibleOnLight,
+  fetchSvgText
 };
