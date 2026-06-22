@@ -30,6 +30,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { svgLikelyInvisibleOnLight, fetchSvgText } from './lib/logo-fetcher.js';
 
 const BRANDFETCH_API_KEY = process.env.BRANDFETCH_API_KEY;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -64,16 +65,28 @@ async function getLogoFromBrandfetch(domain) {
     };
     const sorted = [...logos].sort((a, b) => rank(b) - rank(a));
 
+    // Prefer PNG (dark wordmark) over SVG: SVG wordmarks are often
+    // white-on-transparent and render blank on the page's light background.
+    // SVG is only accepted after the visibility check passes.
+    let rawFallback = null;
     for (const logo of sorted) {
       const formats = logo.formats || [];
-      const svg = formats.find(f => f.format === 'svg');
       const png = formats.find(f => f.format === 'png');
       const webp = formats.find(f => f.format === 'webp');
-      const pick = svg || png || webp || formats[0];
-      if (pick?.src) {
-        return { url: pick.src, source: 'brandfetch', method: `${logo.type}/${pick.format}` };
+      const svg = formats.find(f => f.format === 'svg');
+      if (png?.src) return { url: png.src, source: 'brandfetch', method: `${logo.type}/png` };
+      if (webp?.src) return { url: webp.src, source: 'brandfetch', method: `${logo.type}/webp` };
+      if (svg?.src) {
+        const svgText = await fetchSvgText(svg.src);
+        if (!svgText || !svgLikelyInvisibleOnLight(svgText)) {
+          return { url: svg.src, source: 'brandfetch', method: `${logo.type}/svg` };
+        }
+      }
+      if (!rawFallback && formats[0]?.src) {
+        rawFallback = { url: formats[0].src, source: 'brandfetch', method: `${logo.type}/${formats[0].format}` };
       }
     }
+    if (rawFallback) return rawFallback;
   } catch (e) {
     console.warn('Brandfetch error:', e.message);
   }
@@ -220,18 +233,46 @@ function generateUniqueToken() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
+/**
+ * Reachable ≠ visible. A white/transparent SVG loads fine but renders blank on
+ * the page's light background. For SVGs we inspect the markup; raster formats we
+ * trust (can't decode pixels here). Returns true unless we can prove it's blank.
+ */
+async function isLogoVisible(url) {
+  if (!url) return false;
+  const isSvg = url.toLowerCase().split('?')[0].endsWith('.svg');
+  if (!isSvg) return true;
+  const svgText = await fetchSvgText(url);
+  if (!svgText) return true; // couldn't fetch markup — don't over-reject
+  return !svgLikelyInvisibleOnLight(svgText);
+}
+
 async function findLogo(companyName, domain, overrideLogoUrl) {
   if (overrideLogoUrl) {
     const stored = await storeLogoInSupabase(overrideLogoUrl, companyName);
     return { url: stored || overrideLogoUrl, source: 'override', method: 'manual', stored: !!stored };
   }
-  let result = await getLogoFromBrandfetch(domain);
-  if (!result) result = await getLogoFromSchemaOrg(domain);
-  if (!result) result = await getLogoFromImgTags(domain);
-  if (!result) result = await getLogoFromIcon(domain);
-  if (!result) return { url: null, source: null, stored: false };
-  const stored = await storeLogoInSupabase(result.url, companyName);
-  return { url: stored || result.url, source: result.source, method: result.method, stored: !!stored };
+  // Try each source in priority order; accept the first that's actually visible.
+  // Any source can return a white SVG (the homepage <img> scorer even prefers
+  // SVG), so the visibility gate applies across all of them — not just Brandfetch.
+  const sources = [getLogoFromBrandfetch, getLogoFromSchemaOrg, getLogoFromImgTags, getLogoFromIcon];
+  let firstFound = null;
+  for (const getLogo of sources) {
+    const result = await getLogo(domain);
+    if (!result?.url) continue;
+    if (!firstFound) firstFound = result;
+    if (await isLogoVisible(result.url)) {
+      const stored = await storeLogoInSupabase(result.url, companyName);
+      return { url: stored || result.url, source: result.source, method: result.method, stored: !!stored };
+    }
+  }
+  // Everything we found was an invisible-on-light SVG — fall back to the first
+  // hit rather than shipping no logo at all.
+  if (firstFound) {
+    const stored = await storeLogoInSupabase(firstFound.url, companyName);
+    return { url: stored || firstFound.url, source: firstFound.source, method: firstFound.method, stored: !!stored, visibilityWarning: true };
+  }
+  return { url: null, source: null, stored: false };
 }
 
 // ---- Handler ----
