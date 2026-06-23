@@ -1761,6 +1761,7 @@ const ProposalViewerV2: React.FC = () => {
         await fetch('/.netlify/functions/proposal-event-notification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
           body: JSON.stringify({
             eventType: 'approve',
             proposalId: id,

@@ -405,6 +405,8 @@ export const StandaloneProposalViewer: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        // Survive the page unloading right after approval (see V2 viewer note).
+        keepalive: true,
         body: JSON.stringify({
           eventType: eventType,
           proposalId: id,

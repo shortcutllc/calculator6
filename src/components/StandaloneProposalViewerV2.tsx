@@ -555,11 +555,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
         .eq('id', id);
       if (error) throw error;
       setPostApproval(true);
-      // Best-effort Slack notification — reuses the existing function
+      // Best-effort Slack notification — reuses the existing function.
+      // keepalive lets the request finish even if the client closes/navigates
+      // right after approving (the likely reason approve pings were getting
+      // dropped while view/changes pings, sent while the client lingers, land).
       try {
         await fetch('/.netlify/functions/proposal-event-notification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
           body: JSON.stringify({
             eventType: 'approve',
             proposalId: id,
