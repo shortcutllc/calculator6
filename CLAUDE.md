@@ -9,13 +9,14 @@ Shortcut is an all-in-one corporate wellness platform delivering in-person and v
 
 ---
 
-## ⚠️ Active redesign in progress — `redesign-2026` branch
+## Proposal V2 refresh — SHIPPED to production (2026-06-23)
 
-A major redesign of both proposal viewers is underway on the `redesign-2026` branch (NOT main). Production is untouched. Full details in [memory/proposal_viewer_redesign_2026.md](memory/proposal_viewer_redesign_2026.md) — read that before touching `StandaloneProposalViewer*` / `ProposalViewer*` files.
+The V2 proposal redesign is **live on `main` / production**: the refreshed desktop client viewer, a separate mobile "Airbnb-model" tree for phones, the discount-aware repeat picker, and the service-aware post-approval pre-event survey. The old `redesign-2026` branch was fully merged into main and retired. Work happens directly on `main` now (no separate redesign branch).
 
-- Branch: `redesign-2026` (auto-deploys to preview URL: `redesign-2026--resplendent-narwhal-3de33b.netlify.app`)
-- Workflow: edit → review on `localhost:5174` → commit + push → preview deploys automatically. Production untouched until explicit merge to `main`.
-- Status: Phase 2 (Standalone client viewer) ~complete. Phase 3 (Internal admin viewer) next.
+- Mobile viewer: [memory/mobile_proposal_viewer.md](memory/mobile_proposal_viewer.md)
+- Pre-event survey: [memory/proposal_pre_event_survey.md](memory/proposal_pre_event_survey.md)
+- UI copy + contrast rules (no dashes as punctuation, no pastel text on light bg): [memory/feedback_ui_copy_rules.md](memory/feedback_ui_copy_rules.md)
+- Earlier redesign context (historical): [memory/proposal_viewer_redesign_2026.md](memory/proposal_viewer_redesign_2026.md)
 
 ---
 
