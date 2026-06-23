@@ -62,67 +62,21 @@ const WhyShortcutSection: React.FC<WhyShortcutSectionProps> = ({
   const { bullets, variantNote } = resolveBullets(serviceTypes, forcedVariant);
   if (bullets.length === 0) return null;
 
+  // Design refresh: lt-card + pv-why-block with teal-dot bullets.
   return (
-    <div
-      style={{
-        background: 'linear-gradient(135deg, rgba(158,250,255,.22), rgba(158,250,255,.06))',
-        border: '1px solid rgba(0,152,173,.18)',
-        borderRadius: 20,
-        padding: '32px 36px',
-      }}
-    >
-      <Eyebrow>Why Shortcut</Eyebrow>
-      <CardHeading size="section" style={{ marginTop: 6, marginBottom: 4 }}>
-        Wellness that works.
-      </CardHeading>
-      <p
-        style={{
-          fontFamily: T.fontD,
-          fontSize: 15,
-          color: T.fgMuted,
-          lineHeight: 1.55,
-          margin: '0 0 24px',
-          maxWidth: 640,
-        }}
-      >
-        With Shortcut, you can count on
-        {variantNote ? ` — ${variantNote}:` : ':'}
+    <div className="lt-card pv-why-block">
+      <p className="lt-eyebrow">Why Shortcut</p>
+      <h2 className="lt-h2">Wellness that works.</h2>
+      <p className="lt-body pv-why-lead">
+        With Shortcut, you can count on{variantNote ? ` (${variantNote})` : ''}:
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="pv-why">
         {bullets.map((b, i) => (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 14,
-            }}
-          >
-            <DotBullet />
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontFamily: T.fontD,
-                  fontWeight: 800,
-                  fontSize: 16,
-                  color: T.navy,
-                  letterSpacing: '-0.01em',
-                  marginBottom: 4,
-                }}
-              >
-                {b.title}
-              </div>
-              <div
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 14,
-                  color: T.fgMuted,
-                  lineHeight: 1.55,
-                  maxWidth: 580,
-                }}
-              >
-                {b.description}
-              </div>
+          <div className="pv-bullet" key={i}>
+            <span className="bd-ic" />
+            <div>
+              <h4>{b.title}</h4>
+              <p>{b.description}</p>
             </div>
           </div>
         ))}

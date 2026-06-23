@@ -82,7 +82,7 @@ export interface ServiceCardService {
   originalServiceCost?: number;
 }
 
-interface ServiceCardProps {
+export interface ServiceCardProps {
   service: ServiceCardService;
   /** Inline-edit mode for staff/admin */
   editing?: boolean;

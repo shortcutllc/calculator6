@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Heart, Camera, Sparkles, ChevronDown, Clock, Check } from 'lucide-react';
 import {
   SERVICE_DISPLAY,
@@ -651,39 +652,77 @@ interface FrequencyPickerProps {
   onChange?: (next: number) => void;
   compact?: boolean;
   disabled?: boolean;
+  /** Hide the inline clock + "Repeats" prefix so the pill shows just the
+   *  selected value (used by the mobile card, which has its own left label). */
+  hideLabel?: boolean;
 }
+/** Recurring volume-discount % for a given events/year count. Mirrors
+ *  calculateRecurringDiscount in proposalGenerator (≥9 → 20%, ≥4 → 15%). */
+export const freqDiscount = (occurrences: number): number =>
+  occurrences >= 9 ? 20 : occurrences >= 4 ? 15 : 0;
+
 export const FrequencyPicker: React.FC<FrequencyPickerProps> = ({
   value,
   onChange,
   compact,
   disabled,
+  hideLabel,
 }) => {
   const [open, setOpen] = useState(false);
   const [customMode, setCustomMode] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // Fixed-position coords for the portaled menu, so it is never clipped by the
+  // service card's `overflow:hidden` (the reason mobile previously used a
+  // native <select>). Computed from the trigger on open.
+  const [coords, setCoords] = useState<{ top: number; left: number; minWidth: number } | null>(null);
 
-  // Close popover on outside-click
+  const openPicker = () => {
+    const r = triggerRef.current?.getBoundingClientRect();
+    if (r) {
+      const menuW = Math.max(220, r.width);
+      // Keep the menu on-screen if the trigger sits near the right edge.
+      const left = Math.min(r.left, window.innerWidth - menuW - 8);
+      setCoords({ top: r.bottom + 4, left: Math.max(8, left), minWidth: menuW });
+    }
+    setOpen(true);
+  };
+
+  // Close on outside-click (checking both the trigger and the portaled menu)
+  // and on scroll/resize (fixed coords would otherwise drift from the trigger).
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setCustomMode(false);
-      }
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (triggerRef.current?.contains(t) || popoverRef.current?.contains(t)) return;
+      setOpen(false);
+      setCustomMode(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const onDismiss = () => {
+      setOpen(false);
+      setCustomMode(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', onDismiss, true);
+    window.addEventListener('resize', onDismiss);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', onDismiss, true);
+      window.removeEventListener('resize', onDismiss);
+    };
   }, [open]);
 
   const presetMatch = FREQ_OPTIONS.find((o) => o.value === value);
   const label = presetMatch ? presetMatch.label : `${value}× / year`;
+  const selDiscount = freqDiscount(value);
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+    <div style={{ position: 'relative', display: 'inline-block' }}>
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? setOpen(false) : openPicker())}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -691,7 +730,7 @@ export const FrequencyPicker: React.FC<FrequencyPickerProps> = ({
           padding: compact ? '6px 10px' : '8px 12px',
           background: '#fff',
           border: '1.5px solid #D5DDE3',
-          borderRadius: 10,
+          borderRadius: 9999,
           cursor: disabled ? 'not-allowed' : 'pointer',
           fontFamily: T.fontUi,
           fontWeight: 700,
@@ -701,39 +740,59 @@ export const FrequencyPicker: React.FC<FrequencyPickerProps> = ({
           opacity: disabled ? 0.6 : 1,
         }}
       >
-        <Clock size={13} color={T.fgMuted} />
-        <span
-          style={{
-            color: T.fgMuted,
-            fontWeight: 600,
-            fontSize: 12,
-            textTransform: 'uppercase',
-            letterSpacing: '.06em',
-          }}
-        >
-          Repeats
-        </span>
+        {!hideLabel && <Clock size={13} color={T.fgMuted} />}
+        {!hideLabel && (
+          <span
+            style={{
+              color: T.fgMuted,
+              fontWeight: 600,
+              fontSize: 12,
+              textTransform: 'uppercase',
+              letterSpacing: '.06em',
+            }}
+          >
+            Repeats
+          </span>
+        )}
         <span style={{ color: T.navy }}>{label}</span>
+        {selDiscount > 0 && (
+          <span
+            style={{
+              fontFamily: T.fontUi,
+              fontWeight: 700,
+              fontSize: 11,
+              color: T.success,
+              background: 'rgba(30,158,106,0.12)',
+              borderRadius: 9999,
+              padding: '1px 7px',
+            }}
+          >
+            {selDiscount}% off
+          </span>
+        )}
         <ChevronDown size={13} color={T.fgMuted} />
       </button>
-      {open && (
+      {open && coords && createPortal(
         <div
+          ref={popoverRef}
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 4px)',
-            left: 0,
-            zIndex: 20,
+            position: 'fixed',
+            top: coords.top,
+            left: coords.left,
+            zIndex: 1000,
             background: '#fff',
             border: '1px solid rgba(0,0,0,0.08)',
-            borderRadius: 10,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            borderRadius: 12,
+            boxShadow: '0 12px 32px rgba(0,0,0,0.16)',
             padding: 4,
-            minWidth: 200,
+            minWidth: coords.minWidth,
           }}
         >
           {!customMode ? (
             <>
-              {FREQ_OPTIONS.map((o) => (
+              {FREQ_OPTIONS.map((o) => {
+                const d = freqDiscount(o.value);
+                return (
                 <button
                   type="button"
                   key={o.value}
@@ -745,8 +804,9 @@ export const FrequencyPicker: React.FC<FrequencyPickerProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    gap: 10,
                     width: '100%',
-                    padding: '8px 10px',
+                    padding: '9px 10px',
                     background: o.value === value ? T.lightGray : 'transparent',
                     border: 'none',
                     borderRadius: 8,
@@ -759,9 +819,26 @@ export const FrequencyPicker: React.FC<FrequencyPickerProps> = ({
                   }}
                 >
                   <span>{o.label}</span>
-                  {o.value === value && <Check size={13} color={T.coral} strokeWidth={3} />}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    {d > 0 && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: T.success,
+                          background: 'rgba(30,158,106,0.12)',
+                          borderRadius: 9999,
+                          padding: '1px 7px',
+                        }}
+                      >
+                        {d}% off
+                      </span>
+                    )}
+                    {o.value === value && <Check size={13} color={T.coral} strokeWidth={3} />}
+                  </span>
                 </button>
-              ))}
+                );
+              })}
               <button
                 type="button"
                 onClick={() => setCustomMode(true)}
@@ -829,11 +906,12 @@ export const FrequencyPicker: React.FC<FrequencyPickerProps> = ({
                 </span>
               </div>
               <div style={{ fontFamily: T.fontD, fontSize: 12, color: T.fgMuted, marginTop: 6 }}>
-                Press enter or click outside to apply.
+                4+ events / year = 15% off · 9+ = 20% off. Press enter to apply.
               </div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

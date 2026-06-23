@@ -1,23 +1,36 @@
 import React from 'react';
 import { MapPin } from 'lucide-react';
-import { Eyebrow, CardHeading, MiniStat, ServiceTypeChip, T } from './shared/primitives';
-import { formatCurrency } from './data';
+import { Eyebrow, CardHeading, T } from './shared/primitives';
+import { formatCurrency, SERVICE_DISPLAY } from './data';
 import { ServiceSelectionRow } from './useServiceSelections';
 
-// EventDaySummaryCard — at-a-glance card per location showing 4 mini stats
-// + the service chips. Lives in the main column, below the per-location
-// service blocks. Mirrors V1's "location summary" with the new design.
+// EventDaySummaryCard — at-a-glance card per location. Design refresh: three
+// teal-tinted stat tiles (Dates / Services / Appointments) over a list of
+// per-day rows (date · services · day total). Lives in the main column, below
+// the per-location service blocks.
 
 interface EventDaySummaryCardProps {
   /** Same shape as ProposalData.services */
   servicesByLocation: Record<string, Record<string, { services: any[] }>>;
-  /** Pricing rows from useServiceSelections — used to subtotal per location */
+  /** Pricing rows from useServiceSelections (reserved for future per-day totals) */
   rows: ServiceSelectionRow[];
+}
+
+// "2026-05-13" → "Wed, May 13"; passes through non-date keys like "Date TBD".
+function formatDayLabel(key: string): string {
+  const d = new Date(key);
+  if (!isNaN(d.getTime()) && /\d{4}|\d{1,2}[/-]/.test(key)) {
+    return d.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+  return key;
 }
 
 const EventDaySummaryCard: React.FC<EventDaySummaryCardProps> = ({
   servicesByLocation,
-  rows,
 }) => {
   const locations = Object.keys(servicesByLocation || {});
   if (locations.length === 0) return null;
@@ -32,21 +45,26 @@ const EventDaySummaryCard: React.FC<EventDaySummaryCardProps> = ({
         {locations.map((loc) => {
           const byDate = servicesByLocation[loc] || {};
           const dates = Object.keys(byDate);
-          // Count + sum across the location
+
           let serviceCount = 0;
           let appointmentCount = 0;
-          const types = new Set<string>();
-          Object.values(byDate).forEach((dd: any) => {
-            (dd?.services || []).forEach((s: any) => {
-              serviceCount += 1;
+          const dayRows = dates.map((date) => {
+            const ds: any[] = byDate[date]?.services || [];
+            serviceCount += ds.length;
+            let dayTotal = 0;
+            const names = ds.map((s) => {
               appointmentCount += Number(s?.totalAppointments) || 0;
-              if (s?.serviceType) types.add(s.serviceType);
+              dayTotal += Number(s?.serviceCost) || 0;
+              return SERVICE_DISPLAY[s?.serviceType] || s?.serviceType || 'Service';
             });
+            return { date, label: formatDayLabel(date), names, dayTotal };
           });
-          // Subtotal from active selections in this location
-          const subtotal = rows
-            .filter((r) => r.included && r.location === loc)
-            .reduce((sum, r) => sum + r.lineCost, 0);
+
+          const stats: [string, string][] = [
+            ['Dates', dates.length.toString()],
+            ['Services', serviceCount.toString()],
+            ['Appointments', appointmentCount.toLocaleString('en-US')],
+          ];
 
           return (
             <div
@@ -70,45 +88,73 @@ const EventDaySummaryCard: React.FC<EventDaySummaryCardProps> = ({
                 <CardHeading size="item">{loc}</CardHeading>
               </div>
 
+              {/* Three teal-tinted stat tiles */}
               <div
                 style={{
                   display: 'grid',
-                  // auto-fit reflows 4 mini-stats into 2-up or 1-up
-                  // on narrower viewports.
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                  gap: 8,
-                  marginBottom: 14,
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 12,
+                  marginBottom: 16,
                 }}
               >
-                <MiniStat
-                  label="Dates"
-                  value={dates.length.toString()}
-                  accent="neutral"
-                />
-                <MiniStat
-                  label="Services"
-                  value={serviceCount.toString()}
-                  accent="neutral"
-                />
-                <MiniStat
-                  label="Appointments"
-                  value={appointmentCount.toLocaleString('en-US')}
-                  accent="neutral"
-                />
-                <MiniStat label="Subtotal" value={formatCurrency(subtotal)} accent="coral" />
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 6,
-                  flexWrap: 'wrap',
-                }}
-              >
-                {Array.from(types).map((t) => (
-                  <ServiceTypeChip key={t} serviceType={t} />
+                {stats.map(([k, v]) => (
+                  <div
+                    key={k}
+                    style={{
+                      background: 'rgba(0,152,173,0.06)',
+                      borderRadius: 14,
+                      padding: '16px 18px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: T.fontD,
+                        fontWeight: 800,
+                        fontSize: 28,
+                        color: T.navy,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {v}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: T.fontUi,
+                        fontWeight: 700,
+                        fontSize: 10,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        color: 'rgba(3,34,50,0.45)',
+                        marginTop: 4,
+                      }}
+                    >
+                      {k}
+                    </div>
+                  </div>
                 ))}
               </div>
+
+              {/* Per-day rows */}
+              {dayRows.map(({ date, label, names, dayTotal }, i) => (
+                <div
+                  key={date}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    fontSize: 13,
+                    padding: '8px 0',
+                    borderTop: i === 0 ? '1px solid rgba(0,0,0,0.07)' : 'none',
+                  }}
+                >
+                  <span style={{ color: 'rgba(3,34,50,0.55)' }}>{label}</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right' }}>
+                    {names.join(', ')}
+                    {dayTotal > 0 ? ` · ${formatCurrency(dayTotal)}` : ''}
+                  </span>
+                </div>
+              ))}
             </div>
           );
         })}

@@ -53,15 +53,20 @@ interface GalleryRow {
 }
 
 const SERVICE_OPTIONS: { value: string; label: string }[] = [
-  'massage',
-  'headshot',
-  'facial',
-  'nails',
-  'hair',
-  'hair-makeup',
-  'headshot-hair-makeup',
-  'mindfulness',
-].map((v) => ({ value: v, label: SERVICE_DISPLAY[v] || v }));
+  // 'hero' = the top-of-proposal mosaic (not a service). The viewer prefers
+  // these for the hero gallery; the rest are per-service galleries.
+  { value: 'hero', label: 'Hero gallery (top of proposal)' },
+  ...[
+    'massage',
+    'headshot',
+    'facial',
+    'nails',
+    'hair',
+    'hair-makeup',
+    'headshot-hair-makeup',
+    'mindfulness',
+  ].map((v) => ({ value: v, label: SERVICE_DISPLAY[v] || v })),
+];
 
 const ProposalGalleryAdmin: React.FC = () => {
   const navigate = useNavigate();
@@ -572,7 +577,10 @@ const ProposalGalleryAdmin: React.FC = () => {
     if (!grouped[r.service_type]) grouped[r.service_type] = [];
     grouped[r.service_type].push(r);
   });
-  const groupKeys = Object.keys(grouped).sort();
+  // Hero gallery first, then per-service groups alphabetically.
+  const groupKeys = Object.keys(grouped).sort((a, b) =>
+    a === 'hero' ? -1 : b === 'hero' ? 1 : a.localeCompare(b)
+  );
 
   if (loading) {
     return (
@@ -758,7 +766,9 @@ const ProposalGalleryAdmin: React.FC = () => {
                     }}
                   >
                     <CardHeading size="card">
-                      {SERVICE_DISPLAY[key] || key}
+                      {key === 'hero'
+                        ? 'Hero gallery · top of proposal'
+                        : SERVICE_DISPLAY[key] || key}
                     </CardHeading>
                     <Eyebrow>
                       {grouped[key].length} item

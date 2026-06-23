@@ -3,15 +3,119 @@ import { CheckCircle2, AlertCircle, Loader2, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from './Button';
 import { format, parseISO } from 'date-fns';
+import type { SurveyAnswer, SurveyQuestion } from '../types/survey';
+import {
+  getServiceSurveyBlocks,
+  buildQuestionPromptMap,
+} from '../utils/serviceSurveyQuestions';
 
 interface ProposalSurveyFormProps {
   proposalId: string;
   includesMassage?: boolean;
+  /** Massage formats actually selected in the proposal ('chair' / 'table').
+   *  Drives the proposal-aware table/chair question (pre-fill + "both"). */
+  massageFormats?: Array<'chair' | 'table'>;
+  /** All service-type slugs present in the proposal — drives which per-service
+   *  question blocks (hair, headshot, nails, facial, …) render. */
+  serviceTypes?: string[];
   locations?: string[];
   officeLocation?: string; // Single office location from proposal (legacy)
   officeLocations?: { [location: string]: string }; // Multiple office locations from proposal
   onSuccess?: () => void;
 }
+
+// Per-service answers: { [serviceType]: { [questionId]: answer } }
+type ServiceResponses = Record<string, Record<string, SurveyAnswer>>;
+
+// Renders one per-service survey question (single/multi choice, open text, yes/no)
+// using the form's existing Tailwind styling.
+const QuestionField: React.FC<{
+  question: SurveyQuestion;
+  value: SurveyAnswer | undefined;
+  onChange: (next: SurveyAnswer) => void;
+}> = ({ question, value, onChange }) => {
+  const { type, prompt, helpText, options } = question;
+  return (
+    <div>
+      <label className="block text-sm font-bold text-shortcut-blue mb-2">
+        {prompt}
+        {!question.required && (
+          <span className="text-gray-500 font-normal"> (Optional)</span>
+        )}
+      </label>
+      {helpText && <p className="text-xs text-gray-500 mb-2">{helpText}</p>}
+
+      {type === 'open_text' && (
+        <textarea
+          value={(value as string) || ''}
+          onChange={(e) => onChange(e.target.value)}
+          rows={2}
+          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+        />
+      )}
+
+      {type === 'yes_no' && (
+        <div className="space-y-2">
+          {['Yes', 'No'].map((opt) => (
+            <label key={opt} className="flex items-center">
+              <input
+                type="radio"
+                name={question.id}
+                value={opt}
+                checked={value === opt}
+                onChange={() => onChange(opt)}
+                className="mr-2"
+              />
+              <span className="text-gray-700">{opt}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
+      {type === 'single_choice' && (
+        <div className="space-y-2">
+          {(options || []).map((opt) => (
+            <label key={opt} className="flex items-center">
+              <input
+                type="radio"
+                name={question.id}
+                value={opt}
+                checked={value === opt}
+                onChange={() => onChange(opt)}
+                className="mr-2"
+              />
+              <span className="text-gray-700">{opt}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
+      {type === 'multi_choice' && (
+        <div className="space-y-2">
+          {(options || []).map((opt) => {
+            const arr = Array.isArray(value) ? (value as string[]) : [];
+            const checked = arr.includes(opt);
+            return (
+              <label key={opt} className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() =>
+                    onChange(
+                      checked ? arr.filter((v) => v !== opt) : [...arr, opt]
+                    )
+                  }
+                  className="mr-2"
+                />
+                <span className="text-gray-700">{opt}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface SurveyFormData {
   table_or_chair_preference: string;
@@ -24,14 +128,44 @@ interface SurveyFormData {
   coi_required: boolean | null;
 }
 
-const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({ 
-  proposalId, 
-  includesMassage = true, 
-  locations = [], 
+const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
+  proposalId,
+  includesMassage = true,
+  massageFormats = [],
+  serviceTypes = [],
+  locations = [],
   officeLocation,
   officeLocations,
-  onSuccess 
+  onSuccess
 }) => {
+  // Per-service question blocks present in this proposal (hair, headshot, …).
+  const serviceBlocks = getServiceSurveyBlocks(serviceTypes);
+  const promptMap = buildQuestionPromptMap();
+  // Per-service answers (stored in the `responses` JSONB column).
+  const [responses, setResponses] = useState<ServiceResponses>({});
+  const setResponse = (
+    serviceType: string,
+    questionId: string,
+    value: SurveyAnswer
+  ) => {
+    setResponses((prev) => ({
+      ...prev,
+      [serviceType]: { ...(prev[serviceType] || {}), [questionId]: value },
+    }));
+    setError(null);
+  };
+
+  // Proposal-aware table/chair default: derive a sensible preset from the
+  // formats actually chosen in the proposal (chair-only, table-only, or both).
+  const uniqueFormats = Array.from(new Set(massageFormats));
+  const massageFormatDefault =
+    uniqueFormats.length > 1
+      ? 'Both (Chair + Table)'
+      : uniqueFormats[0] === 'table'
+      ? 'Table'
+      : uniqueFormats[0] === 'chair'
+      ? 'Chair'
+      : '';
   // Initialize form data with office addresses from proposal if available
   const getInitialOfficeAddresses = () => {
     if (officeLocations && Object.keys(officeLocations).length > 0) {
@@ -241,21 +375,26 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
             billing_contact: data.billing_contact || '',
             coi_required: data.coi_required,
           });
+          // Per-service answers (hair / headshot / nails / facial …)
+          if (data.responses && typeof data.responses === 'object') {
+            setResponses(data.responses as ServiceResponses);
+          }
           setSuccess(true);
           setShowReadOnlyView(true); // Show read-only view if response exists
         } else {
-          // No existing survey response, but pre-fill with proposal office addresses if available
-          if (officeLocations && Object.keys(officeLocations).length > 0) {
-            setFormData(prev => ({
-              ...prev,
-              office_addresses: officeLocations
-            }));
-          } else if (officeLocation) {
-            setFormData(prev => ({
-              ...prev,
-              office_address: officeLocation
-            }));
-          }
+          // No existing survey response — pre-fill from the proposal: office
+          // addresses, and the table/chair preference derived from the massage
+          // format(s) the client actually selected (#2).
+          setFormData(prev => ({
+            ...prev,
+            ...(officeLocations && Object.keys(officeLocations).length > 0
+              ? { office_addresses: officeLocations }
+              : officeLocation
+              ? { office_address: officeLocation }
+              : {}),
+            table_or_chair_preference:
+              prev.table_or_chair_preference || massageFormatDefault,
+          }));
         }
       } catch (err) {
         console.error('Error loading survey response:', err);
@@ -301,24 +440,42 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         point_of_contact: formData.point_of_contact || null,
         billing_contact: formData.billing_contact || null,
         coi_required: formData.coi_required,
+        // Per-service answers (hair / headshot / nails / facial …)
+        responses,
       };
 
-      if (existingResponse) {
-        // Update existing response
-        const { error: updateError } = await supabase
-          .from('proposal_survey_responses')
-          .update(surveyData)
-          .eq('proposal_id', proposalId);
+      const writeSurvey = (payload: any) =>
+        existingResponse
+          ? supabase
+              .from('proposal_survey_responses')
+              .update(payload)
+              .eq('proposal_id', proposalId)
+          : supabase.from('proposal_survey_responses').insert(payload);
 
-        if (updateError) throw updateError;
-      } else {
-        // Insert new response
-        const { error: insertError } = await supabase
-          .from('proposal_survey_responses')
-          .insert(surveyData);
+      // The per-service `responses` JSONB column ships with migration
+      // 20260622000000. If a deploy lands before that migration runs, degrade
+      // gracefully: save everything else (massage + logistics) without the
+      // per-service answers rather than failing the whole submission. They
+      // start persisting again automatically once the column exists.
+      const isMissingResponsesCol = (err: any) => {
+        const code = err?.code || '';
+        const msg = (err?.message || '') + (err?.details || '');
+        return (
+          code === '42703' ||
+          code === 'PGRST204' ||
+          (/responses/i.test(msg) && /column|schema cache/i.test(msg))
+        );
+      };
 
-        if (insertError) throw insertError;
+      let { error: writeError } = await writeSurvey(surveyData);
+      if (writeError && isMissingResponsesCol(writeError)) {
+        const { responses: _omitResponses, ...withoutResponses } = surveyData;
+        console.warn(
+          'proposal_survey_responses.responses missing — saving without per-service answers (apply migration 20260622000000).'
+        );
+        ({ error: writeError } = await writeSurvey(withoutResponses));
       }
+      if (writeError) throw writeError;
 
       setSuccess(true);
       setShowSuccessBanner(true);
@@ -472,14 +629,41 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
                 </div>
                 
                 <div className="bg-white rounded p-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-1">2. Preferred Gender of Massage Professional</p>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Preferred Gender of Massage Professional</p>
                   <p className="text-gray-700">
                     {existingResponse.preferred_gender || <span className="text-gray-400 italic">Not provided</span>}
                   </p>
                 </div>
               </>
             )}
-            
+
+            {/* Per-service answers (hair / headshot / nails / facial …) */}
+            {serviceBlocks.map((block) => {
+              const svcKey = block.serviceTypes[0];
+              const ans = (existingResponse.responses || {})[svcKey] || {};
+              return (
+                <div key={block.label} className="bg-white rounded p-4">
+                  <p className="text-sm font-bold text-shortcut-navy-blue mb-2">{block.label}</p>
+                  <div className="space-y-2">
+                    {block.questions.map((q) => {
+                      const v = ans[q.id];
+                      const display = Array.isArray(v) ? v.join(', ') : v;
+                      return (
+                        <div key={q.id}>
+                          <p className="text-xs font-semibold text-gray-600">
+                            {promptMap[q.id] || q.prompt}
+                          </p>
+                          <p className="text-gray-700">
+                            {display || <span className="text-gray-400 italic">Not provided</span>}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
             {/* Office Address(es) - Show multiple if available or if multiple locations exist */}
             {(() => {
               let officeAddresses: { [key: string]: string } = {};
@@ -503,7 +687,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
               
               return (
                 <div className="bg-white rounded p-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-2">{includesMassage ? '3' : '1'}. Office Address{shouldShowMultiple ? 'es' : ''}</p>
+                  <p className="text-sm font-semibold text-gray-900 mb-2">Office Address{shouldShowMultiple ? 'es' : ''}</p>
                   {shouldShowMultiple ? (
                     <div className="space-y-2">
                       {locations.length > 1 ? (
@@ -537,28 +721,28 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
             })()}
             
             <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">{includesMassage ? '4' : '2'}. Name of the Space(s) Where Services Will Take Place</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">Name of the Space(s) Where Services Will Take Place</p>
               <p className="text-gray-700">
                 {existingResponse.massage_space_name || <span className="text-gray-400 italic">Not provided</span>}
               </p>
             </div>
             
             <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">{includesMassage ? '5' : '3'}. Point of Contact (including phone number)</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">Point of Contact (including phone number)</p>
               <p className="text-gray-700 whitespace-pre-wrap">
                 {existingResponse.point_of_contact || <span className="text-gray-400 italic">Not provided</span>}
               </p>
             </div>
             
             <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">{includesMassage ? '6' : '4'}. Billing Contact / Who to Address Invoice To</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">Billing Contact / Who to Address Invoice To</p>
               <p className="text-gray-700 whitespace-pre-wrap">
                 {existingResponse.billing_contact || <span className="text-gray-400 italic">Not provided</span>}
               </p>
             </div>
             
             <div className="bg-white rounded p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-1">{includesMassage ? '7' : '5'}. Will a Certificate of Insurance (COI) be Required?</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">Will a Certificate of Insurance (COI) be Required?</p>
               <p className="text-gray-700">
                 {existingResponse.coi_required !== null 
                   ? (existingResponse.coi_required ? 'Yes' : 'No')
@@ -572,12 +756,24 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
       {/* Editable form - only show if not in read-only view or if user clicks edit */}
       {!showReadOnlyView && (
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Massage section header */}
+        {includesMassage && (
+          <h3 className="text-base font-bold text-shortcut-navy-blue pt-2">Massage</h3>
+        )}
+
         {/* Question 1: Table or Chair Preference - Only show if massage is included */}
         {includesMassage && (
           <div>
             <label className="block text-sm font-bold text-shortcut-blue mb-2">
-              1. Table or chair preference <span className="text-gray-500 font-normal">(Optional)</span>
+              Table or chair preference <span className="text-gray-500 font-normal">(Optional)</span>
             </label>
+            {massageFormatDefault && (
+              <p className="text-xs text-shortcut-navy-blue bg-shortcut-teal bg-opacity-10 rounded px-3 py-2 mb-2">
+                {uniqueFormats.length > 1
+                  ? 'Your proposal includes both Chair and Table massage, so we set this to “Both.” Adjust it if you need to.'
+                  : `Your proposal is set up for ${massageFormatDefault} massage. Change it below if you'd prefer otherwise.`}
+              </p>
+            )}
             <div className="space-y-2">
               <label className="flex items-center">
                 <input
@@ -605,6 +801,17 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
                 <input
                   type="radio"
                   name="table_or_chair_preference"
+                  value="Both (Chair + Table)"
+                  checked={formData.table_or_chair_preference === 'Both (Chair + Table)'}
+                  onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">Both (Chair + Table)</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="table_or_chair_preference"
                   value="No preference"
                   checked={formData.table_or_chair_preference === 'No preference'}
                   onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
@@ -616,7 +823,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
             <input
               type="text"
               placeholder="Or enter custom preference"
-              value={formData.table_or_chair_preference && !['Table', 'Chair', 'No preference'].includes(formData.table_or_chair_preference) ? formData.table_or_chair_preference : ''}
+              value={formData.table_or_chair_preference && !['Table', 'Chair', 'Both (Chair + Table)', 'No preference'].includes(formData.table_or_chair_preference) ? formData.table_or_chair_preference : ''}
               onChange={(e) => handleChange('table_or_chair_preference', e.target.value)}
               className="mt-2 w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
             />
@@ -627,7 +834,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         {includesMassage && (
           <div>
             <label className="block text-sm font-bold text-shortcut-blue mb-2">
-              2. Preferred gender of the massage professional <span className="text-gray-500 font-normal">(Optional)</span>
+              Do you have a preferred gender for the massage professionals? <span className="text-gray-500 font-normal">(Optional)</span>
             </label>
             <div className="space-y-2">
               <label className="flex items-center">
@@ -674,11 +881,35 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
           </div>
         )}
 
-        {/* Question 3 (or 1): Office Address(es) */}
+        {/* Per-service question blocks (hair / headshot / nails / facial …) */}
+        {serviceBlocks.map((block) => (
+          <div key={block.label} className="space-y-4">
+            <div className="pt-2">
+              <h3 className="text-base font-bold text-shortcut-navy-blue">{block.label}</h3>
+              {block.blurb && <p className="text-xs text-gray-500 mt-0.5">{block.blurb}</p>}
+            </div>
+            {block.questions.map((q) => {
+              const svcKey = block.serviceTypes[0];
+              return (
+                <QuestionField
+                  key={q.id}
+                  question={q}
+                  value={responses[svcKey]?.[q.id]}
+                  onChange={(next) => setResponse(svcKey, q.id, next)}
+                />
+              );
+            })}
+          </div>
+        ))}
+
+        {/* Shared event logistics (asked once for the whole event) */}
+        <h3 className="text-base font-bold text-shortcut-navy-blue pt-2">Event logistics</h3>
+
+        {/* Office Address(es) */}
         {locations.length > 1 ? (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-4">
-              {includesMassage ? '3' : '1'}. Office addresses
+              Office addresses
             </label>
             <div className="space-y-4">
               {locations.map((location) => {
@@ -691,7 +922,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
                         Office Address for {location}
                       </label>
                       {hasPrefilledAddress && !existingResponse && (
-                        <span className="text-xs font-medium text-shortcut-teal bg-shortcut-teal bg-opacity-10 px-2 py-1 rounded">
+                        <span className="text-xs font-semibold text-shortcut-navy-blue bg-shortcut-teal bg-opacity-10 px-2 py-1 rounded">
                           Pre-filled from proposal
                         </span>
                       )}
@@ -724,10 +955,10 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-semibold text-gray-700">
-                {includesMassage ? '3' : '1'}. Office address
+                Office address
               </label>
               {officeLocation && !existingResponse && (
-                <span className="text-xs font-medium text-shortcut-teal bg-shortcut-teal bg-opacity-10 px-2 py-1 rounded">
+                <span className="text-xs font-semibold text-shortcut-navy-blue bg-shortcut-teal bg-opacity-10 px-2 py-1 rounded">
                   Pre-filled from proposal
                 </span>
               )}
@@ -749,7 +980,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         {/* Question 4 (or 2): Service Space Name */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            {includesMassage ? '4' : '2'}. Name of the space(s) where services will take place
+            Name of the space(s) where services will take place
           </label>
           <input
             type="text"
@@ -763,7 +994,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         {/* Question 5 (or 3): Point of Contact */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            {includesMassage ? '5' : '3'}. Point of contact (including phone number)
+            Point of contact (including phone number)
           </label>
           <textarea
             value={formData.point_of_contact}
@@ -777,7 +1008,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         {/* Question 6 (or 4): Billing Contact */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            {includesMassage ? '6' : '4'}. Billing contact / who to address the invoice to
+            Billing contact / who to address the invoice to
           </label>
           <textarea
             value={formData.billing_contact}
@@ -791,7 +1022,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         {/* Question 7 (or 5): COI Required */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            {includesMassage ? '7' : '5'}. Will a Certificate of Insurance (COI) be required?
+            Will a Certificate of Insurance (COI) be required?
           </label>
           <div className="space-y-2">
             <label className="flex items-center">

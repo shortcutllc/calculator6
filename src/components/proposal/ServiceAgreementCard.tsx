@@ -3,36 +3,15 @@ import { FileText, ChevronDown, X } from 'lucide-react';
 import { Eyebrow, CardHeading, T } from './shared/primitives';
 import ServiceAgreement from '../ServiceAgreement';
 
-// ServiceAgreementCard — collapsed-by-default summary of the *real* Shortcut
-// Events Service Agreement. The 4 quick-reads pull directly from the
-// signed-terms doc (ServiceAgreement.tsx). The "Read full agreement" link
-// opens a modal that renders that full doc verbatim, with the client's name
-// substituted into the Partner field (the only per-client customization
-// the agreement currently has).
+// ServiceAgreementCard — design refresh: a compact pv-agreement-row that
+// expands a pv-agreement-body with the key terms. "Read the full agreement"
+// opens the real signed-terms doc (ServiceAgreement.tsx) in a modal, with the
+// client's name substituted into the Partner field.
 
 interface ServiceAgreementCardProps {
   /** Used in the modal to personalize the "Partner" references in the doc. */
   clientName?: string;
 }
-
-const QUICK_READS: { title: string; body: string }[] = [
-  {
-    title: 'Payment terms',
-    body: 'Shortcut invoices before each event. Payment is due 48 hours prior to the first scheduled event. Late payments past the grace period may incur a 5% fee.',
-  },
-  {
-    title: 'Cancellation',
-    body: '72+ hours notice: no penalty. 48–72 hours: may be a 25% service charge. Less than 24 hours: may be a 50% service charge. Charges are at our discretion and often waived if you reschedule.',
-  },
-  {
-    title: 'On-site logistics',
-    body: 'We bring all equipment, supplies, and fully insured pros. You provide the space and ensure minimum participant requirements are met. Additional providers or hours need 5 days notice; new events need 7.',
-  },
-  {
-    title: 'Insurance & liability',
-    body: 'Shortcut maintains $2M general liability per occurrence. Each party indemnifies the other for its own negligence. Confidentiality protections apply during and after the term.',
-  },
-];
 
 const ServiceAgreementCard: React.FC<ServiceAgreementCardProps> = ({ clientName }) => {
   const [expanded, setExpanded] = useState(false);
@@ -50,176 +29,63 @@ const ServiceAgreementCard: React.FC<ServiceAgreementCardProps> = ({ clientName 
 
   return (
     <>
-      {!expanded ? (
+      <div
+        className="pv-agreement-row"
+        role="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className="ic">
+          <FileText size={19} />
+        </div>
+        <div>
+          <h4>Service agreement</h4>
+          <p>Payment, cancellation, on-site logistics</p>
+        </div>
+        <span className="qv">
+          {expanded ? 'Hide' : 'Quick view'}
+          <ChevronDown
+            size={15}
+            style={{
+              transform: expanded ? 'rotate(180deg)' : 'none',
+              transition: 'transform .2s',
+            }}
+          />
+        </span>
+      </div>
+      <div className={'pv-agreement-body' + (expanded ? ' open' : '')}>
+        <p>
+          Invoice issued before each event. Payment due 48 hours prior to the first
+          scheduled event. Cancellation: 72+ hours notice = no charge; 48 to 72 hours,
+          a 25% service charge may apply; under 24 hours, 50%.
+        </p>
+        <p>
+          Shortcut provides all professionals, equipment, and setup. The client provides
+          the event space and standard building access. Full terms apply on approval.
+        </p>
         <button
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={() => setShowFullModal(true)}
           style={{
-            width: '100%',
-            background: '#fff',
-            border: '1px solid rgba(0,0,0,0.06)',
-            borderRadius: 16,
-            padding: '18px 22px',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
+            gap: 6,
+            marginTop: 14,
+            padding: '9px 16px',
+            background: '#fff',
+            border: `1.5px solid ${T.navy}`,
+            borderRadius: 9999,
             cursor: 'pointer',
-            textAlign: 'left',
+            fontFamily: T.fontUi,
+            fontWeight: 700,
+            fontSize: 13,
+            color: T.navy,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: T.lightGray,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <FileText size={18} color={T.navy} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontFamily: T.fontD,
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: T.navy,
-                }}
-              >
-                Service agreement
-              </div>
-              <div
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 12,
-                  color: T.fgMuted,
-                }}
-              >
-                Payment, cancellation, on-site logistics
-              </div>
-            </div>
-          </div>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontFamily: T.fontUi,
-              fontWeight: 700,
-              fontSize: 12,
-              color: T.coral,
-              letterSpacing: '0.02em',
-            }}
-          >
-            Quick view
-            <ChevronDown size={14} />
-          </span>
+          <FileText size={14} />
+          Read the full agreement
         </button>
-      ) : (
-        <div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              marginBottom: 18,
-              gap: 16,
-            }}
-          >
-            <div>
-              <Eyebrow style={{ marginBottom: 6 }}>Service agreement</Eyebrow>
-              <CardHeading size="section">The key terms</CardHeading>
-            </div>
-            <button
-              type="button"
-              onClick={() => setExpanded(false)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                fontFamily: T.fontUi,
-                fontWeight: 700,
-                fontSize: 13,
-                color: T.coral,
-              }}
-            >
-              Hide
-            </button>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-              gap: 12,
-              marginBottom: 14,
-            }}
-          >
-            {QUICK_READS.map((t) => (
-              <div
-                key={t.title}
-                style={{
-                  background: '#fff',
-                  borderRadius: 16,
-                  padding: '20px 22px',
-                  border: '1px solid rgba(0,0,0,0.06)',
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: T.fontD,
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: T.navy,
-                    marginBottom: 6,
-                  }}
-                >
-                  {t.title}
-                </div>
-                <p
-                  style={{
-                    fontFamily: T.fontD,
-                    fontSize: 13,
-                    color: T.fgMuted,
-                    lineHeight: 1.55,
-                    margin: 0,
-                  }}
-                >
-                  {t.body}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowFullModal(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '10px 16px',
-              background: '#fff',
-              border: `1.5px solid ${T.navy}`,
-              borderRadius: 10,
-              cursor: 'pointer',
-              fontFamily: T.fontUi,
-              fontWeight: 700,
-              fontSize: 13,
-              color: T.navy,
-            }}
-          >
-            <FileText size={14} />
-            Read the full agreement
-          </button>
-        </div>
-      )}
+      </div>
 
       {/* Full-agreement modal */}
       {showFullModal && (
@@ -273,10 +139,6 @@ const ServiceAgreementCard: React.FC<ServiceAgreementCardProps> = ({ clientName 
             >
               <X size={16} />
             </button>
-            {/* Re-use the existing ServiceAgreement component but force the
-                "expanded" state by rendering it inside a wrapper that hides
-                the original collapse button. We pass clientName so the doc
-                substitutes "{clientName} (Partner)" properly. */}
             <div style={{ padding: '24px 24px 8px' }}>
               <Eyebrow style={{ marginBottom: 6 }}>Full agreement</Eyebrow>
               <CardHeading size="card">Shortcut Events Service Agreement</CardHeading>

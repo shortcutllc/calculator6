@@ -88,7 +88,7 @@ const TrustCard: React.FC = () => {
         background: '#fff',
         borderRadius: 16,
         padding: '22px 24px',
-        border: '1px solid rgba(0,0,0,0.06)',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.07)',
       }}
     >
       <Eyebrow style={{ marginBottom: 12 }}>Trusted by 500+ companies</Eyebrow>

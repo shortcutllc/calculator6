@@ -21,7 +21,7 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: 'Can we add more services later?',
-    a: 'Yes — give us 5+ days notice for additional providers or hours on an existing event, and 7+ days notice for an entirely new event.',
+    a: 'Yes. Give us 5+ days notice for additional providers or hours on an existing event, and 7+ days notice for an entirely new event.',
   },
 ];
 
@@ -33,7 +33,7 @@ const FaqCard: React.FC = () => {
         background: '#fff',
         borderRadius: 16,
         padding: '22px 24px',
-        border: '1px solid rgba(0,0,0,0.06)',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.07)',
       }}
     >
       <Eyebrow style={{ marginBottom: 14 }}>Common questions</Eyebrow>

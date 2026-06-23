@@ -1,0 +1,242 @@
+/* ============================================================
+   proposal-refresh-mobile.css
+   Mobile (≤767px) rendering of the client proposal viewer — the
+   "Airbnb listing" model from `Proposal V2 Mobile.html` (pvm-*).
+   Tokens (--sc-* / --font-* / --status-*) come from the `.pv-root`
+   rule in proposal-refresh.css — the mobile tree carries BOTH
+   `pv-root` (for tokens) and `pvm-page`. Positioning is adapted
+   from the mock's device-frame (absolute) to in-app (fixed/flow).
+   ============================================================ */
+
+.pvm-page { position: relative; background: #fff; min-height: 100vh; overflow-x: hidden; color: var(--sc-navy); font-family: var(--font-display); -webkit-font-smoothing: antialiased; }
+.pvm-page * { box-sizing: border-box; }
+.pvm-page img { display: block; max-width: 100%; }
+
+/* ── Hero (full-bleed photo, Airbnb model) ── */
+.pvm-hero { position: relative; height: 340px; }
+.pvm-hero > img { width: 100%; height: 100%; object-fit: cover; }
+.pvm-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(3,34,50,0.28) 0%, rgba(3,34,50,0) 26%, rgba(3,34,50,0) 70%, rgba(3,34,50,0.12) 100%); }
+.pvm-hero-chrome { position: absolute; top: calc(16px + env(safe-area-inset-top)); left: 16px; right: 16px; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pvm-circle { width: 38px; height: 38px; border-radius: 9999px; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.18); border: none; cursor: pointer; flex-shrink: 0; }
+.pvm-circle svg { width: 19px; height: 19px; stroke: var(--sc-navy); stroke-width: 2; fill: none; }
+.pvm-brand-pill { background: #fff; border-radius: 9999px; padding: 9px 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); max-width: 78%; }
+.pvm-brand-pill img.partner { height: 15px; display: block; max-width: 120px; object-fit: contain; }
+.pvm-brand-pill .nm { font-family: var(--font-ui); font-weight: 700; font-size: 12px; color: var(--sc-navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pvm-brand-pill .div { width: 1px; height: 15px; background: rgba(0,0,0,0.12); flex-shrink: 0; }
+.pvm-brand-pill .pw { font-family: var(--font-ui); font-weight: 700; font-size: 10px; color: rgba(3,34,50,0.45); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.pvm-brand-pill .pw img { height: 12px; }
+.pvm-photocount { position: absolute; right: 16px; bottom: 40px; z-index: 3; display: inline-flex; align-items: center; gap: 7px; background: rgba(3,34,50,0.62); color: #fff; font-family: var(--font-ui); font-weight: 700; font-size: 12px; border-radius: 9999px; padding: 8px 13px; cursor: pointer; border: none; }
+.pvm-photocount svg { width: 14px; height: 14px; stroke: #fff; fill: none; }
+
+/* ── Sheet (overlaps hero) ── */
+.pvm-sheet { position: relative; z-index: 2; background: #fff; border-radius: 24px 24px 0 0; margin-top: -24px; padding: 22px 20px 150px; }
+
+.pvm-eyebrow { font-family: var(--font-ui); font-weight: 700; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--sc-coral); margin: 0 0 7px; }
+.pvm-h1 { font-family: var(--font-display); font-weight: 800; font-size: 27px; line-height: 1.12; letter-spacing: -0.02em; color: var(--sc-navy); margin: 0; }
+.pvm-meta { display: flex; flex-direction: column; gap: 9px; margin-top: 16px; }
+.pvm-meta span { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 600; font-size: 14px; color: rgba(3,34,50,0.8); }
+.pvm-meta svg { width: 17px; height: 17px; stroke: var(--sc-teal); fill: none; flex-shrink: 0; }
+
+.pvm-savings { display: flex; align-items: center; gap: 11px; margin-top: 18px; background: rgba(30,158,106,0.10); border: 1px solid rgba(30,158,106,0.22); border-radius: 14px; padding: 12px 14px; }
+.pvm-savings svg { width: 19px; height: 19px; stroke: var(--status-success); fill: none; flex-shrink: 0; }
+.pvm-savings .t { font-family: var(--font-display); font-size: 13.5px; line-height: 1.4; color: var(--sc-navy); }
+.pvm-savings .t strong { font-weight: 700; color: var(--status-success); }
+
+.pvm-divider { height: 1px; background: rgba(0,0,0,0.08); border: none; margin: 26px 0; }
+
+.pvm-label { font-family: var(--font-ui); font-weight: 700; font-size: 12px; letter-spacing: 0.07em; text-transform: uppercase; color: rgba(3,34,50,0.5); display: flex; align-items: center; gap: 9px; margin: 0 0 16px; }
+.pvm-label::before { content: ""; width: 7px; height: 7px; border-radius: 9999px; background: var(--sc-coral); flex-shrink: 0; }
+.pvm-h2 { font-family: var(--font-display); font-weight: 700; font-size: 21px; letter-spacing: -0.01em; margin: 0 0 4px; }
+
+/* location label (multi-location proposals) */
+.pvm-loc { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--sc-navy); margin: 4px 0 14px; }
+.pvm-loc svg { width: 16px; height: 16px; stroke: var(--sc-teal); fill: none; flex-shrink: 0; }
+.pvm-loc small { font-family: var(--font-ui); font-weight: 700; font-size: 11px; color: rgba(3,34,50,0.45); }
+
+/* ── Service card (stacked: photo on top) ── */
+.pvm-svc { border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 4px 16px rgba(9,54,79,0.10); border: 1px solid rgba(0,0,0,0.05); margin-bottom: 16px; transition: opacity .25s ease, background .25s ease; }
+.pvm-svc-photo { position: relative; height: 168px; }
+.pvm-svc-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 28%; }
+.pvm-photo-label { position: absolute; left: 12px; top: 12px; background: #fff; color: var(--sc-navy); font-family: var(--font-ui); font-weight: 700; font-size: 11px; border-radius: 9999px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(9,54,79,0.18); }
+.pvm-photo-count { position: absolute; right: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 5px; background: rgba(3,34,50,0.62); color: #fff; font-family: var(--font-ui); font-weight: 700; font-size: 11px; border-radius: 9999px; padding: 5px 10px; border: none; cursor: pointer; }
+.pvm-photo-count svg { width: 12px; height: 12px; stroke: #fff; fill: none; }
+.pvm-svc-body { padding: 16px 16px 6px; }
+.pvm-svc-top { display: flex; align-items: center; gap: 9px; }
+.pvm-dot { width: 11px; height: 11px; border-radius: 9999px; flex-shrink: 0; }
+.pvm-svc-name { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -0.01em; margin: 0; }
+.pvm-toggle { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; background: none; border: none; padding: 0; }
+.pvm-toggle .lbl { font-family: var(--font-ui); font-weight: 700; font-size: 11px; color: var(--status-success); }
+.pvm-switch { width: 38px; height: 22px; border-radius: 9999px; background: var(--status-success); position: relative; transition: background .2s; flex-shrink: 0; }
+.pvm-switch::after { content: ""; position: absolute; top: 2.5px; right: 2.5px; width: 17px; height: 17px; border-radius: 9999px; background: #fff; transition: all .2s; }
+.pvm-svc.off .pvm-switch { background: var(--sc-gray-300); }
+.pvm-svc.off .pvm-switch::after { right: auto; left: 2.5px; }
+.pvm-svc.off .pvm-toggle .lbl { color: rgba(3,34,50,0.4); }
+.pvm-svc.off { opacity: 0.62; background: #FBF7F3; }
+.pvm-add { margin-left: auto; font-family: var(--font-ui); font-weight: 700; font-size: 12px; color: #fff; background: var(--sc-coral); border: none; border-radius: 9999px; padding: 8px 14px; cursor: pointer; }
+.pvm-svc-desc { font-family: var(--font-display); font-size: 14px; line-height: 1.5; color: rgba(3,34,50,0.7); margin: 12px 0 0; }
+.pvm-readmore { color: var(--sc-coral); font-weight: 700; cursor: pointer; }
+.pvm-svc-metrics { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.07); }
+.pvm-bignum { font-family: var(--font-display); font-weight: 800; font-size: 26px; line-height: 0.9; letter-spacing: -0.02em; }
+.pvm-metric-sub { font-family: var(--font-ui); font-weight: 700; font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(3,34,50,0.4); margin-top: 6px; }
+.pvm-cost { text-align: right; }
+.pvm-cost .v { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.01em; }
+.pvm-cost .orig { font-family: var(--font-display); font-weight: 600; font-size: 13px; color: rgba(3,34,50,0.4); text-decoration: line-through; }
+.pvm-cost .k { font-family: var(--font-ui); font-weight: 700; font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(3,34,50,0.4); margin-top: 2px; }
+
+/* repeats row */
+.pvm-repeats { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(0,0,0,0.12); }
+.pvm-repeats .rl { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-ui); font-weight: 700; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(3,34,50,0.45); }
+.pvm-repeats .rl svg { width: 15px; height: 15px; stroke: var(--sc-teal); fill: none; }
+
+/* format segmented toggle (chair/table) */
+.pvm-format { display: flex; align-items: center; gap: 10px; margin-top: 13px; }
+.pvm-format-label { font-family: var(--font-ui); font-weight: 700; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(3,34,50,0.42); flex-shrink: 0; }
+.pvm-format-seg { display: inline-flex; flex: 1; background: var(--sc-gray-100); border-radius: 9999px; padding: 3px; gap: 3px; }
+.pvm-format-seg button { flex: 1; font-family: var(--font-ui); font-weight: 700; font-size: 13px; color: rgba(3,34,50,0.6); background: transparent; border: none; border-radius: 9999px; padding: 10px 0; cursor: pointer; transition: color .15s; text-transform: capitalize; }
+.pvm-format-seg button.on { background: #fff; color: var(--sc-navy); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+
+/* how it works (per-service dropdown) */
+.pvm-how { border-top: 1px solid rgba(0,0,0,0.07); }
+.pvm-how-head { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; cursor: pointer; padding: 14px 16px; font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--sc-navy); text-align: left; }
+.pvm-how-head .chev { width: 16px; height: 16px; stroke: var(--sc-coral); fill: none; transition: transform .2s; flex-shrink: 0; }
+.pvm-how.open .pvm-how-head .chev { transform: rotate(180deg); }
+.pvm-how-body { max-height: 0; overflow: hidden; transition: max-height .3s; }
+.pvm-how.open .pvm-how-body { max-height: 420px; }
+.pvm-how-inner { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.pvm-how-item { display: flex; align-items: flex-start; gap: 9px; font-family: var(--font-display); font-size: 13.5px; line-height: 1.4; color: rgba(3,34,50,0.72); }
+.pvm-how-item svg { width: 15px; height: 15px; stroke: var(--sc-teal); fill: none; flex-shrink: 0; margin-top: 2px; }
+
+/* pricing options (stacked rows) */
+.pvm-pricing { background: var(--sc-gray-100); border-top: 1px solid rgba(0,0,0,0.06); margin-top: 14px; padding: 14px 16px 16px; }
+.pvm-pricing-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+.pvm-pricing-head .lbl { font-family: var(--font-ui); font-weight: 700; font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--sc-navy); }
+.pvm-pricing-head .hint { font-family: var(--font-display); font-size: 12px; color: rgba(3,34,50,0.5); }
+.pvm-popt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; border: 1.5px solid rgba(0,0,0,0.08); border-radius: 13px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.pvm-popt:last-child { margin-bottom: 0; }
+.pvm-popt.on { border: 2px solid var(--sc-coral); box-shadow: 0 4px 12px rgba(255,80,80,0.12); }
+.pvm-popt-radio { width: 20px; height: 20px; border-radius: 9999px; border: 2px solid var(--sc-gray-300); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.pvm-popt.on .pvm-popt-radio { border: none; background: var(--sc-coral); }
+.pvm-popt.on .pvm-popt-radio svg { width: 12px; height: 12px; stroke: #fff; stroke-width: 3; fill: none; }
+.pvm-popt-main .nm { font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.pvm-popt-main .sb { font-family: var(--font-display); font-size: 12px; color: rgba(3,34,50,0.5); margin-top: 1px; }
+.pvm-popt-price { margin-left: auto; text-align: right; }
+.pvm-popt-price .v { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.pvm-popt-price .orig { display: block; font-family: var(--font-display); font-weight: 600; font-size: 12px; color: rgba(3,34,50,0.4); text-decoration: line-through; }
+.pvm-popt-price .off { display: block; font-family: var(--font-ui); font-weight: 700; font-size: 10px; color: var(--status-success); margin-top: 1px; }
+
+/* day-by-day */
+.pvm-day { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 18px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+.pvm-day h4 { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin: 0 0 10px; }
+.pvm-day-thumbs { display: flex; gap: 7px; margin-bottom: 12px; }
+.pvm-day-thumbs img { width: 42px; height: 42px; border-radius: 9px; object-fit: cover; }
+.pvm-row { display: flex; justify-content: space-between; gap: 14px; font-size: 13px; padding: 3px 0; }
+.pvm-row .k { color: rgba(3,34,50,0.55); flex-shrink: 0; } .pvm-row .v { font-weight: 700; text-align: right; }
+
+/* why shortcut */
+.pvm-bullet { display: flex; gap: 13px; align-items: flex-start; padding: 13px 0; }
+.pvm-bullet:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.06); }
+.pvm-bullet .bi { width: 11px; height: 11px; border-radius: 9999px; background: var(--sc-teal); flex-shrink: 0; margin-top: 4px; }
+.pvm-bullet h5 { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin: 0 0 3px; }
+.pvm-bullet p { font-size: 13.5px; line-height: 1.45; color: rgba(3,34,50,0.62); margin: 0; }
+
+/* getting started steps */
+.pvm-step { display: flex; gap: 13px; padding: 11px 0; }
+.pvm-step .n { width: 28px; height: 28px; border-radius: 9999px; border: 1.5px solid rgba(0,0,0,0.12); display: flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.pvm-step:first-child .n { background: var(--sc-coral); border-color: var(--sc-coral); color: #fff; }
+.pvm-step h5 { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin: 0 0 2px; }
+.pvm-step p { font-size: 13px; line-height: 1.45; color: rgba(3,34,50,0.6); margin: 0; }
+
+/* account team */
+.pvm-team { display: flex; align-items: center; gap: 12px; }
+.pvm-team .av { width: 46px; height: 46px; border-radius: 9999px; background: var(--sc-teal); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-weight: 700; font-size: 15px; flex-shrink: 0; }
+.pvm-team .nm { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.pvm-team .rl { font-size: 13px; color: rgba(3,34,50,0.55); }
+.pvm-note { background: rgba(0,152,173,0.08); border-radius: 14px; padding: 15px; margin-top: 14px; }
+.pvm-note .nh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.pvm-note .nh img { width: 15px; height: 15px; }
+.pvm-note p { font-family: var(--font-display); font-size: 13.5px; line-height: 1.5; margin: 0; color: rgba(3,34,50,0.78); }
+
+/* demo card */
+.pvm-demo { display: flex; align-items: center; gap: 13px; width: 100%; background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 16px; padding: 15px 16px; box-shadow: 0 4px 16px rgba(9,54,79,0.08); cursor: pointer; text-align: left; }
+.pvm-demo .ic { width: 38px; height: 38px; border-radius: 9999px; background: rgba(255,80,80,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pvm-demo .ic svg { width: 16px; height: 16px; fill: var(--sc-coral); margin-left: 2px; }
+.pvm-demo .tx { font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1.2; }
+.pvm-demo .tx small { display: block; font-family: var(--font-ui); font-weight: 600; font-size: 11.5px; color: rgba(3,34,50,0.5); margin-top: 2px; }
+.pvm-demo .chev { margin-left: auto; flex-shrink: 0; }
+.pvm-demo .chev svg { width: 18px; height: 18px; stroke: rgba(3,34,50,0.4); fill: none; transition: transform .2s; }
+.pvm-demo[aria-expanded="true"] .chev svg { transform: rotate(90deg); }
+.pvm-demo-panel { margin-top: 14px; }
+
+/* trust */
+.pvm-stat { background: rgba(158,250,255,0.28); border-radius: 13px; padding: 14px 16px; display: flex; align-items: baseline; gap: 9px; margin-bottom: 14px; }
+.pvm-stat .big { font-family: var(--font-display); font-weight: 800; font-size: 36px; letter-spacing: -0.025em; line-height: 1; }
+.pvm-stat .lbl { font-family: var(--font-display); font-weight: 600; font-size: 13.5px; }
+.pvm-logos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pvm-logo { aspect-ratio: 16/9; border-radius: 9px; background: #fff; border: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; padding: 8px; }
+.pvm-logo img { max-width: 76%; max-height: 60%; object-fit: contain; }
+
+/* faq */
+.pvm-faq-item { border-bottom: 1px solid rgba(0,0,0,0.08); }
+.pvm-faq-q { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 0; cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.pvm-faq-q svg { width: 18px; height: 18px; stroke: var(--sc-navy); fill: none; transition: transform .2s; flex-shrink: 0; }
+.pvm-faq-item.open .pvm-faq-q svg { transform: rotate(180deg); }
+.pvm-faq-a { font-size: 13.5px; line-height: 1.55; color: rgba(3,34,50,0.65); max-height: 0; overflow: hidden; transition: max-height .3s, padding .3s; }
+.pvm-faq-item.open .pvm-faq-a { max-height: 320px; padding: 0 0 16px; }
+
+/* service agreement */
+.pvm-agree { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 15px; padding: 15px 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); cursor: pointer; }
+.pvm-agree .ic { width: 38px; height: 38px; border-radius: 11px; background: var(--sc-light-gray); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pvm-agree .ic svg { width: 18px; height: 18px; stroke: var(--sc-navy); fill: none; }
+.pvm-agree h5 { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin: 0; }
+.pvm-agree p { font-size: 12.5px; color: rgba(3,34,50,0.5); margin: 2px 0 0; }
+.pvm-agree .chev { margin-left: auto; } .pvm-agree .chev svg { width: 16px; height: 16px; stroke: rgba(3,34,50,0.4); fill: none; }
+
+/* footer */
+.pvm-footer { text-align: center; padding: 30px 0 6px; }
+.pvm-footer img { height: 19px; margin: 0 auto 8px; opacity: 0.6; }
+.pvm-footer p { font-family: var(--font-ui); font-weight: 700; font-size: 11px; color: rgba(3,34,50,0.4); margin: 0; }
+.pvm-footer button { background: none; border: none; font-family: var(--font-ui); font-weight: 700; font-size: 12px; color: var(--sc-teal); cursor: pointer; margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
+.pvm-footer button svg { width: 14px; height: 14px; stroke: var(--sc-teal); fill: none; }
+
+/* ── Sticky bottom CTA bar ── */
+.pvm-cta-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; background: #fff; border-top: 1px solid rgba(0,0,0,0.08); box-shadow: 0 -6px 20px rgba(9,54,79,0.08); padding: 13px 18px calc(13px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 14px; }
+.pvm-cta-total { display: flex; flex-direction: column; cursor: pointer; flex-shrink: 0; background: none; border: none; padding: 0; text-align: left; }
+.pvm-cta-total .v { display: flex; align-items: center; gap: 6px; font-family: var(--font-display); font-weight: 800; font-size: 21px; letter-spacing: -0.01em; color: var(--sc-navy); }
+.pvm-cta-total .v svg { width: 15px; height: 15px; stroke: var(--sc-navy); fill: none; transition: transform .2s; }
+.pvm-cta-total .k { font-family: var(--font-ui); font-weight: 700; font-size: 10.5px; color: rgba(3,34,50,0.5); margin-top: 1px; }
+.pvm-approve { margin-left: auto; flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--sc-coral); color: #fff; font-family: var(--font-ui); font-weight: 700; font-size: 15px; border: none; border-radius: 9999px; padding: 15px 20px; cursor: pointer; }
+.pvm-approve svg { width: 17px; height: 17px; stroke: #fff; fill: none; }
+.pvm-approve:disabled { opacity: 0.5; }
+.pvm-approved-pill { margin-left: auto; flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(30,158,106,0.12); color: var(--status-success); font-family: var(--font-ui); font-weight: 700; font-size: 14px; border-radius: 9999px; padding: 14px 20px; }
+.pvm-approved-pill svg { width: 16px; height: 16px; stroke: var(--status-success); fill: none; }
+
+/* ── Pricing breakdown sheet (slides up from bottom bar) ── */
+.pvm-scrim { position: fixed; inset: 0; z-index: 50; background: rgba(3,34,50,0.5); opacity: 0; pointer-events: none; transition: opacity .3s; }
+.pvm-scrim.open { opacity: 1; pointer-events: auto; }
+.pvm-pricesheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; transform: translateY(100%); transition: transform .35s cubic-bezier(.22,1,.36,1); background: linear-gradient(165deg, #00496F 0%, #003C5E 100%); color: #fff; border-radius: 24px 24px 0 0; padding: 10px 22px calc(28px + env(safe-area-inset-bottom)); max-height: 86%; overflow-y: auto; box-shadow: 0 -12px 40px rgba(0,0,0,0.35); }
+.pvm-pricesheet.open { transform: translateY(0); }
+.pvm-grab { width: 40px; height: 4px; border-radius: 9999px; background: rgba(255,255,255,0.3); margin: 0 auto 16px; }
+.pvm-pricesheet h3 { font-family: var(--font-display); font-weight: 800; font-size: 21px; margin: 0 0 16px; color: #fff; }
+.pvm-pl { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.pvm-pl .k { font-family: var(--font-display); font-weight: 500; font-size: 14px; color: rgba(255,255,255,0.82); }
+.pvm-pl .k small { color: rgba(255,255,255,0.5); }
+.pvm-pl .v { font-family: var(--font-display); font-weight: 700; font-size: 15px; white-space: nowrap; }
+.pvm-pl.discount .v { color: var(--sc-aqua); }
+.pvm-pl-div { height: 1px; background: rgba(255,255,255,0.14); margin: 10px 0; }
+.pvm-pl-total { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 14px; border-top: 2px solid rgba(158,250,255,0.4); }
+.pvm-pl-total .k { font-family: var(--font-display); font-weight: 800; font-size: 17px; }
+.pvm-pl-total .v { font-family: var(--font-display); font-weight: 800; font-size: 30px; color: var(--sc-aqua); letter-spacing: -0.02em; }
+.pvm-pl-fine { font-size: 11.5px; line-height: 1.5; color: rgba(255,255,255,0.55); margin: 16px 0 0; }
+.pvm-pl-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 18px; background: var(--sc-aqua); color: var(--sc-navy); font-family: var(--font-ui); font-weight: 700; font-size: 15px; border: none; border-radius: 9999px; padding: 16px; cursor: pointer; }
+.pvm-pl-btn svg { width: 17px; height: 17px; stroke: var(--sc-navy); fill: none; }
+
+/* ── Lightbox ── */
+.pvm-lb { position: fixed; inset: 0; z-index: 70; background: rgba(3,34,50,0.95); display: none; align-items: center; justify-content: center; }
+.pvm-lb.open { display: flex; }
+.pvm-lb img { max-width: 92%; max-height: 72%; border-radius: 14px; object-fit: contain; }
+.pvm-lb-close { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px; width: 40px; height: 40px; border-radius: 9999px; border: none; background: rgba(255,255,255,0.16); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.pvm-lb-close svg { width: 20px; height: 20px; stroke: currentColor; fill: none; }
+.pvm-lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 9999px; border: none; background: rgba(255,255,255,0.92); color: var(--sc-navy); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.pvm-lb-nav svg { width: 22px; height: 22px; stroke: currentColor; fill: none; }
+.pvm-lb-prev { left: 12px; } .pvm-lb-next { right: 12px; }
+.pvm-lb-counter { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); font-family: var(--font-ui); font-weight: 700; font-size: 13px; color: rgba(255,255,255,0.85); }

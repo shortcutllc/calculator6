@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ChevronDown, Download, History as HistoryIcon, HelpCircle, MapPin, Sparkles, CheckCircle2, MoreHorizontal, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, ArrowLeft, X, Download, History as HistoryIcon, HelpCircle, MapPin, Calendar, Users, Check, Play, FileText, Image as ImageIcon, Sparkles, CheckCircle2, MoreHorizontal, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { generatePDF } from '../utils/pdf';
@@ -11,6 +11,7 @@ import {
 } from '../utils/proposalGenerator';
 import ProposalSurveyForm from './ProposalSurveyForm';
 import ServiceCard from './proposal/ServiceCard';
+import ServiceCardRefresh from './proposal/ServiceCardRefresh';
 import {
   Eyebrow,
   CardHeading,
@@ -27,7 +28,8 @@ import {
   ServiceSelection,
 } from './proposal/useServiceSelections';
 import { useProposalGallery } from './proposal/useProposalGallery';
-import { formatCurrency, SERVICE_DISPLAY } from './proposal/data';
+import ProposalGallery, { type GalleryPhoto } from './proposal/ProposalGallery';
+import { formatCurrency, SERVICE_DISPLAY, SERVICE_IMAGE_PATH } from './proposal/data';
 import AccountTeamCard from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
 import TrustCard from './proposal/sidebar/TrustCard';
@@ -36,11 +38,23 @@ import GalleryCard from './proposal/sidebar/GalleryCard';
 import MobileSignupModule from './proposal/MobileSignupModule';
 import OptionsTabs, { ProposalOption } from './proposal/OptionsTabs';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
+import DayByDayCards from './proposal/DayByDayCards';
 import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
 import RequestChangesModal from './proposal/RequestChangesModal';
 import ApproveConfirmModal from './proposal/ApproveConfirmModal';
 import HelpModal from './proposal/HelpModal';
+import '../styles/proposal-refresh.css';
+import '../styles/proposal-refresh-mobile.css';
+import MobileServiceCard from './proposal/mobile/MobileServiceCard';
+import MobileDayByDay from './proposal/mobile/MobileDayByDay';
+import ServiceAgreement from './ServiceAgreement';
+import { resolveTeamMember } from './proposal/sidebar/AccountTeamCard';
+import {
+  UNIFIED_WHY_SHORTCUT,
+  CLE_WHY_SHORTCUT,
+  SERVICE_CONTENT as SERVICE_CONTENT_MAP,
+} from './proposal/sections/serviceContent';
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 
@@ -153,6 +167,84 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [showingOriginal, setShowingOriginal] = useState(false);
+
+  // ---- Mobile (≤767px) shell state — Airbnb-model viewer ------------------
+  // Declared above the loading/not-found early returns to keep the hook count
+  // stable. Drives the pricing bottom-sheet, the demo expand, the agreement
+  // modal, the FAQ accordion, and the shared photo lightbox.
+  const [mSheetOpen, setMSheetOpen] = useState(false);
+  const [mDemoOpen, setMDemoOpen] = useState(false);
+  const [mAgreeOpen, setMAgreeOpen] = useState(false);
+  const [mFaqOpen, setMFaqOpen] = useState<number | null>(0);
+  const [mLightbox, setMLightbox] = useState<{ images: string[]; caps?: string[]; index: number } | null>(null);
+
+  // ---- Right-column dock (design refresh) --------------------------------
+  // The navy pricing card sticks (top:88) while the user scrolls the service
+  // cards, then RELEASES at the bottom of the day-by-day breakdown. A dock
+  // wrapper is sized to that distance so position:sticky lets go there rather
+  // than floating over the cards below. A "see the demo" pill rides under the
+  // docked card and collapses once the demo scrolls into view. Desktop only.
+  // (Declared here, above the loading/not-found early returns, so the hook
+  // count is stable across renders.)
+  const asideRef = useRef<HTMLElement>(null);
+  const dockReleaseRef = useRef<HTMLDivElement>(null);
+  const demoRef = useRef<HTMLDivElement>(null);
+  const [dockHeight, setDockHeight] = useState<number | undefined>(undefined);
+  const [demoRevealed, setDemoRevealed] = useState(false);
+
+  useEffect(() => {
+    if (isMobile) {
+      setDockHeight(undefined);
+      return;
+    }
+    let raf = 0;
+    const compute = () => {
+      const aside = asideRef.current;
+      const rel = dockReleaseRef.current;
+      if (aside && rel) {
+        const top = aside.getBoundingClientRect().top + window.scrollY;
+        const bottom = rel.getBoundingClientRect().bottom + window.scrollY;
+        setDockHeight(Math.max(0, Math.round(bottom - top)));
+      }
+      // Bidirectional pill ↔ demo (mirrors the design's updateReveal): reveal
+      // the demo + collapse the pill once the demo scrolls into view; restore
+      // the pill + hide the demo when scrolled back up. 0.72 viewport trigger.
+      const demo = demoRef.current;
+      if (demo) {
+        setDemoRevealed(
+          demo.getBoundingClientRect().top < window.innerHeight * 0.72
+        );
+      }
+    };
+    const schedule = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        compute();
+      });
+    };
+    compute();
+    // The release marker's position only settles after the service cards +
+    // images lay out, and shifts as cards expand. Recompute on scroll, resize,
+    // any document growth, and once after async content lands.
+    const ro = new ResizeObserver(schedule);
+    ro.observe(document.documentElement);
+    window.addEventListener('resize', schedule);
+    window.addEventListener('scroll', schedule, { passive: true });
+    const settle = setTimeout(compute, 400);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', schedule);
+      window.removeEventListener('scroll', schedule);
+      clearTimeout(settle);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [isMobile, loading]);
+
+  // On mobile the sidebar stacks below; the demo is always shown (no dock/pill).
+  useEffect(() => {
+    if (isMobile) setDemoRevealed(true);
+  }, [isMobile]);
 
   // Close the header overflow menu on outside-click or Escape.
   useEffect(() => {
@@ -333,6 +425,22 @@ const StandaloneProposalViewerV2: React.FC = () => {
     return Array.from(set);
   }, [displayData]);
 
+  // Massage formats actually selected across the proposal ('chair' / 'table') —
+  // feeds the survey's proposal-aware table/chair question.
+  const massageFormats = useMemo(() => {
+    const set = new Set<'chair' | 'table'>();
+    Object.values(displayData?.services || {}).forEach((byDate: any) => {
+      Object.values(byDate || {}).forEach((dd: any) => {
+        (dd?.services || []).forEach((s: any) => {
+          if (s?.serviceType === 'massage') {
+            set.add(s?.massageType === 'table' ? 'table' : 'chair');
+          }
+        });
+      });
+    });
+    return Array.from(set);
+  }, [displayData]);
+
   const isMindfulnessLike = (s: string) => s === 'mindfulness' || s.startsWith('mindfulness-');
   // Pricing-summary line label: append the unit so each row reads
   // "Massage event" / "Nails event". Session-based services (mindfulness,
@@ -378,6 +486,23 @@ const StandaloneProposalViewerV2: React.FC = () => {
       hasHeadshot,
       costPerHeadshot,
     };
+  }, [displayData]);
+
+  // Date-range label for the intro meta-row (reference `.pv-meta-row`):
+  // earliest–latest event date across the proposal, or null if unparseable.
+  const proposalDateLabel = useMemo(() => {
+    const dates: string[] = [];
+    Object.values(displayData?.services || {}).forEach((byDate: any) =>
+      Object.keys(byDate || {}).forEach((d) => dates.push(d))
+    );
+    const parsed = dates
+      .map((d) => ({ raw: d, t: new Date(d).getTime() }))
+      .filter((x) => !isNaN(x.t))
+      .sort((a, b) => a.t - b.t);
+    if (!parsed.length) return null;
+    const a = formatDateLabel(parsed[0].raw);
+    const b = formatDateLabel(parsed[parsed.length - 1].raw);
+    return a === b ? a : `${a} – ${b}`;
   }, [displayData]);
 
   // ---- Custom line items (staff-set extras: catering, travel, etc.) -----
@@ -770,6 +895,25 @@ const StandaloneProposalViewerV2: React.FC = () => {
     };
   }, [id, isApproved]);
 
+  // ---- Auto-scroll to the pre-event survey on the approval transition ------
+  // When the client approves (isApproved flips false→true) and we don't yet
+  // have a survey response, smooth-scroll to the survey so they're guided
+  // straight into completing it. Fires once per transition, desktop + mobile
+  // (targets the shared #proposal-survey-form anchor).
+  const prevApprovedRef = useRef(false);
+  useEffect(() => {
+    if (isApproved && !prevApprovedRef.current && !hasSurveyResponse) {
+      const t = setTimeout(() => {
+        document
+          .getElementById('proposal-survey-form')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 450);
+      prevApprovedRef.current = isApproved;
+      return () => clearTimeout(t);
+    }
+    prevApprovedRef.current = isApproved;
+  }, [isApproved, hasSurveyResponse]);
+
   // ---- Loading + error states --------------------------------------------
   if (loading) {
     return (
@@ -833,12 +977,694 @@ const StandaloneProposalViewerV2: React.FC = () => {
   };
 
 
+  // ======================================================================
+  //  MOBILE (≤767px) — "Airbnb listing" rendering (Proposal V2 Mobile)
+  //  A distinct presentation over the SAME selection/pricing/approval state
+  //  as desktop. Activated for true phones only (isCompact); tablets keep the
+  //  reflowed desktop layout below.
+  // ======================================================================
+  if (isCompact && proposal) {
+    // Hero + lightbox photos: prefer gallery-admin 'hero' photos, else this
+    // proposal's per-service photos (mirrors the desktop top mosaic).
+    const baseType = (s: string) => s.replace(/s$/, '').split('-')[0];
+    const heroTagged = (galleryByService['hero'] || []).map((src) => ({
+      src,
+      cap: clientName,
+    }));
+    const wantedTypes = new Set(serviceTypes.map(baseType));
+    const perService =
+      heroTagged.length > 0
+        ? heroTagged
+        : Object.entries(galleryByService)
+            .filter(([t]) => t !== 'hero' && wantedTypes.has(baseType(t)))
+            .flatMap(([t, urls]) =>
+              (urls || []).map((src) => ({
+                src,
+                cap: SERVICE_DISPLAY[t] || t,
+              }))
+            );
+    const mPhotos = perService;
+    const heroSrc =
+      mPhotos[0]?.src ||
+      SERVICE_IMAGE_PATH[serviceTypes[0]] ||
+      '/proposal-refresh/massage-office.png';
+    const openLightbox = (images: string[], start = 0, caps?: string[]) =>
+      setMLightbox(images.length ? { images, caps, index: start } : null);
+    const lbStep = (d: number) =>
+      setMLightbox((s) =>
+        s
+          ? { ...s, index: (s.index + d + s.images.length) % s.images.length }
+          : s
+      );
+
+    // Roll up included appointments / service count + dates / location.
+    let mApptTotal = 0;
+    let mUnlimited = false;
+    const mTypeSet = new Set<string>();
+    const allDates: string[] = [];
+    Object.entries(displayData.services || {}).forEach(([loc, byDate]: [string, any]) => {
+      Object.entries(byDate || {}).forEach(([date, dd]: [string, any]) => {
+        allDates.push(date);
+        (dd?.services || []).forEach((svc: any, idx: number) => {
+          if (!get(selectionKey(loc, date, idx)).included) return;
+          mTypeSet.add(svc.serviceType);
+          const a = svc?.totalAppointments;
+          if (a === 'unlimited' || a === '∞') mUnlimited = true;
+          else mApptTotal += Number(a) || 0;
+        });
+      });
+    });
+    const mServiceCount = mTypeSet.size;
+    const mLocations = Object.keys(displayData.services || {});
+    const mMultiLoc = mLocations.length > 1;
+    const parsedDates = allDates
+      .map((d) => ({ raw: d, t: new Date(d).getTime() }))
+      .filter((x) => !isNaN(x.t))
+      .sort((a, b) => a.t - b.t);
+    let mDateLabel = 'Dates to be confirmed';
+    if (parsedDates.length) {
+      const a = formatDateLabel(parsedDates[0].raw);
+      const b = formatDateLabel(parsedDates[parsedDates.length - 1].raw);
+      mDateLabel = a === b ? a : `${a} – ${b}`;
+    }
+    const mAddress = resolveOfficeAddress(mLocations[0]) || mLocations[0] || '';
+
+    // Why-Shortcut variant (mirrors WhyShortcutSection's resolution).
+    const isCleProposal = serviceTypes.some((t) => t.startsWith('mindfulness-cle'));
+    const whyBullets = isCleProposal
+      ? CLE_WHY_SHORTCUT
+      : serviceTypes.length === 1 && SERVICE_CONTENT_MAP[serviceTypes[0]]
+      ? SERVICE_CONTENT_MAP[serviceTypes[0]].whyShortcut
+      : UNIFIED_WHY_SHORTCUT;
+
+    const team = resolveTeamMember(displayData?.accountTeamMemberEmail);
+    const includedRows = summary.rows.filter((r: any) => r.included);
+    const MOBILE_LOGOS = [
+      'DraftKings',
+      'NFL',
+      'Paramount',
+      'Warner Bros',
+      'PwC',
+      'BCG',
+    ].map((n) => `/Holiday Proposal/Parnter Logos/${n}.svg`);
+    const MOBILE_FAQ = [
+      {
+        q: 'What happens if we need to cancel?',
+        a: "With 72+ hours notice there's no penalty. From 48–72 hours out, a 25% service charge may apply. Under 24 hours, a 50% charge may apply — often waived if you reschedule.",
+      },
+      {
+        q: 'When and how do we pay?',
+        a: 'We invoice before each event. Payment is due 48 hours before the first scheduled event. Pay via ACH or card.',
+      },
+      {
+        q: 'Are equipment and supplies included?',
+        a: 'Yes. We bring all equipment, supplies, and fully insured pros. You provide the space.',
+      },
+    ];
+
+    return (
+      <div className="pv-root pvm-page" id="proposal-content">
+        {/* HERO */}
+        <div className="pvm-hero">
+          <img src={heroSrc} alt={clientName} />
+          <div className="pvm-hero-chrome">
+            <button
+              className="pvm-circle"
+              aria-label="Back"
+              onClick={() => window.history.back()}
+            >
+              <ArrowLeft />
+            </button>
+            <span className="pvm-brand-pill">
+              {clientLogoUrl ? (
+                <img className="partner" src={clientLogoUrl} alt={clientName} />
+              ) : (
+                <span className="nm">{clientName}</span>
+              )}
+              <span className="div" />
+              <span className="pw">with Shortcut</span>
+            </span>
+          </div>
+          {mPhotos.length > 0 && (
+            <button
+              className="pvm-photocount"
+              onClick={() =>
+                openLightbox(
+                  mPhotos.map((p) => p.src),
+                  0,
+                  mPhotos.map((p) => p.cap)
+                )
+              }
+            >
+              <ImageIcon /> 1 / {mPhotos.length}
+            </button>
+          )}
+        </div>
+
+        {/* SHEET */}
+        <div className="pvm-sheet">
+          <p className="pvm-eyebrow">
+            Prepared for {clientName}
+            {contactFirst ? ` · ${contactFirst}` : ''}
+          </p>
+          <h1 className="pvm-h1">
+            {displayData?.heroTitle || 'Employee Happiness Delivered.'}
+          </h1>
+          <div className="pvm-meta">
+            <span>
+              <Calendar /> {mDateLabel}
+            </span>
+            {mAddress && (
+              <span>
+                <MapPin /> {mAddress}
+              </span>
+            )}
+            <span>
+              <Users /> {mUnlimited ? 'Unlimited' : mApptTotal.toLocaleString('en-US')}{' '}
+              appointments across {mServiceCount} service
+              {mServiceCount === 1 ? '' : 's'}
+            </span>
+          </div>
+          <div className="pvm-savings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <path d="m17 2 4 4-4 4" />
+              <path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4" />
+              <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+            </svg>
+            <span className="t">
+              Make it recurring and save <strong>15% on 4 events a year</strong>, or{' '}
+              <strong>20% on 9</strong>.
+            </span>
+          </div>
+
+          {/* Post-approval pre-event survey — prominent, auto-scrolled to on
+              approval. Shares #proposal-survey-form so the scroll effect works. */}
+          {isApproved && !hasSurveyResponse && id && (
+            <>
+              <hr className="pvm-divider" />
+              <div
+                id="proposal-survey-form"
+                style={{
+                  border: '2px solid var(--sc-coral)',
+                  borderRadius: 18,
+                  padding: 16,
+                  boxShadow: '0 8px 24px rgba(255,80,80,0.14)',
+                  scrollMarginTop: 16,
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'rgba(255,80,80,0.12)',
+                    color: 'var(--sc-coral)',
+                    fontFamily: T.fontUi,
+                    fontWeight: 700,
+                    fontSize: 10,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    borderRadius: 9999,
+                    padding: '5px 11px',
+                  }}
+                >
+                  <Sparkles size={12} /> One last step
+                </span>
+                <h2 className="pvm-h2" style={{ marginTop: 10 }}>
+                  Tell us your event details
+                </h2>
+                <p
+                  style={{
+                    fontFamily: T.fontD,
+                    fontSize: 13.5,
+                    color: 'rgba(3,34,50,0.6)',
+                    lineHeight: 1.5,
+                    margin: '4px 0 14px',
+                  }}
+                >
+                  You're approved. Now help us prep the day. It takes about 3
+                  minutes, and our team can't finalize logistics without it.
+                </p>
+                <ProposalSurveyForm
+                  proposalId={id}
+                  includesMassage={massageFormats.length > 0}
+                  massageFormats={massageFormats}
+                  serviceTypes={serviceTypes}
+                  locations={Object.keys(displayData?.services || {})}
+                  officeLocation={displayData?.officeLocation}
+                  officeLocations={displayData?.officeLocations}
+                  onSuccess={() => setHasSurveyResponse(true)}
+                />
+              </div>
+            </>
+          )}
+
+          <hr className="pvm-divider" />
+
+          {/* SERVICES */}
+          <p className="pvm-label">Your services</p>
+          {Object.entries(displayData.services || {}).map(
+            ([loc, byDate]: [string, any]) => (
+              <div key={loc}>
+                {mMultiLoc && (
+                  <div className="pvm-loc">
+                    <MapPin /> {loc}
+                  </div>
+                )}
+                {Object.entries(byDate || {}).flatMap(
+                  ([date, dd]: [string, any]) =>
+                    (dd?.services || []).map((service: any, idx: number) => {
+                      const key = selectionKey(loc, date, idx);
+                      const sel = get(key);
+                      return (
+                        <MobileServiceCard
+                          key={key}
+                          service={service}
+                          included={sel.included}
+                          frequency={sel.frequency}
+                          onToggleInclude={(next) => setIncluded(key, next)}
+                          onChangeFrequency={(next) => setFrequency(key, next)}
+                          onChangeMassageType={(type) =>
+                            handleChangeMassageType(loc, date, idx, type)
+                          }
+                          galleryImages={galleryByService[service.serviceType]}
+                          autoRecurringDiscount={displayData?.autoRecurringDiscount}
+                          onSelectPricingOption={(optIdx) =>
+                            handleSelectPricingOption(loc, date, idx, optIdx)
+                          }
+                          onOpenLightbox={openLightbox}
+                        />
+                      );
+                    })
+                )}
+              </div>
+            )
+          )}
+
+          <hr className="pvm-divider" />
+
+          {/* DAY BY DAY */}
+          <p className="pvm-label">Day-by-day breakdown</p>
+          <MobileDayByDay
+            servicesByLocation={displayData.services || {}}
+            isIncluded={(l, d, i) => get(selectionKey(l, d, i)).included}
+          />
+
+          <hr className="pvm-divider" />
+
+          {/* DEMO */}
+          <button
+            className="pvm-demo"
+            aria-expanded={mDemoOpen}
+            onClick={() => setMDemoOpen((v) => !v)}
+          >
+            <span className="ic">
+              <Play fill="currentColor" stroke="none" />
+            </span>
+            <span className="tx">
+              See the sign-up demo
+              <small>Watch how your team books in seconds</small>
+            </span>
+            <span className="chev">
+              <ChevronRight />
+            </span>
+          </button>
+          {mDemoOpen && (
+            <div className="pvm-demo-panel">
+              <MobileSignupModule
+                url={displayData?.signupLink}
+                title={displayData?.signupLinkTitle}
+                description={displayData?.signupLinkDescription}
+              />
+            </div>
+          )}
+
+          <hr className="pvm-divider" />
+
+          {/* WHY SHORTCUT */}
+          <p className="pvm-label">Why Shortcut</p>
+          <h2 className="pvm-h2">Wellness that works.</h2>
+          <div className="pvm-why">
+            {whyBullets.map((b, i) => (
+              <div className="pvm-bullet" key={i}>
+                <span className="bi" />
+                <div>
+                  <h5>{b.title}</h5>
+                  <p>{b.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <hr className="pvm-divider" />
+
+          {/* GETTING STARTED */}
+          <p className="pvm-label">Getting started</p>
+          <h2 className="pvm-h2">You approve. We handle the rest.</h2>
+          <div style={{ marginTop: 8 }}>
+            <div className="pvm-step">
+              <span className="n">1</span>
+              <div>
+                <h5>Your sign-up link goes out</h5>
+                <p>Employees book their own slots from any device, up to two weeks ahead.</p>
+              </div>
+            </div>
+            <div className="pvm-step">
+              <span className="n">2</span>
+              <div>
+                <h5>We promote it for you</h5>
+                <p>Digital invites and on-site signage drive turnout.</p>
+              </div>
+            </div>
+            <div className="pvm-step">
+              <span className="n">3</span>
+              <div>
+                <h5>We run the day</h5>
+                <p>Our pros, equipment, and signage arrive — you do nothing.</p>
+              </div>
+            </div>
+          </div>
+
+          <hr className="pvm-divider" />
+
+          {/* ACCOUNT TEAM */}
+          <p className="pvm-label">Your account team</p>
+          <div className="pvm-team">
+            <div className="av">{team.initial}</div>
+            <div>
+              <div className="nm">{team.name}</div>
+              <div className="rl">{team.title}</div>
+            </div>
+          </div>
+          {customNote && (
+            <div className="pvm-note">
+              <div className="nh">
+                <Sparkles size={15} color="var(--sc-teal)" />
+                <span
+                  className="pvm-eyebrow"
+                  style={{ margin: 0, color: 'var(--sc-teal)' }}
+                >
+                  A note from Shortcut
+                </span>
+              </div>
+              <p>{customNote}</p>
+            </div>
+          )}
+
+          <hr className="pvm-divider" />
+
+          {/* TRUST */}
+          <p className="pvm-label">Trusted by 500+ companies</p>
+          <div className="pvm-stat">
+            <span className="big">87%</span>
+            <span className="lbl">rebook with Shortcut</span>
+          </div>
+          <div className="pvm-logos">
+            {MOBILE_LOGOS.map((src) => (
+              <div className="pvm-logo" key={src}>
+                <img src={src} alt="" />
+              </div>
+            ))}
+          </div>
+
+          <hr className="pvm-divider" />
+
+          {/* FAQ */}
+          <p className="pvm-label">Common questions</p>
+          <div className="pvm-faq">
+            {MOBILE_FAQ.map((item, i) => (
+              <div
+                className={'pvm-faq-item' + (mFaqOpen === i ? ' open' : '')}
+                key={i}
+              >
+                <div
+                  className="pvm-faq-q"
+                  onClick={() => setMFaqOpen(mFaqOpen === i ? null : i)}
+                >
+                  {item.q}
+                  <ChevronDown />
+                </div>
+                <div className="pvm-faq-a">{item.a}</div>
+              </div>
+            ))}
+          </div>
+
+          <hr className="pvm-divider" />
+
+          {/* SERVICE AGREEMENT */}
+          <button className="pvm-agree" onClick={() => setMAgreeOpen(true)}>
+            <div className="ic">
+              <FileText />
+            </div>
+            <div>
+              <h5>Service agreement</h5>
+              <p>Payment, cancellation, on-site logistics</p>
+            </div>
+            <span className="chev">
+              <ChevronRight />
+            </span>
+          </button>
+
+          <div className="pvm-footer">
+            <p style={{ marginBottom: 8 }}>proposals.getshortcut.co</p>
+            <button onClick={handleDownloadPdf}>
+              <Download /> Download PDF
+            </button>
+          </div>
+        </div>
+
+        {/* STICKY BOTTOM CTA */}
+        <div className="pvm-cta-bar">
+          <button className="pvm-cta-total" onClick={() => setMSheetOpen((v) => !v)}>
+            <span className="v">
+              {formatCurrency(grandTotal)}
+              {mSheetOpen ? <ChevronDown /> : <ChevronDown style={{ transform: 'rotate(180deg)' }} />}
+            </span>
+            <span className="k">
+              {mServiceCount} service{mServiceCount === 1 ? '' : 's'} · view breakdown
+            </span>
+          </button>
+          {isApproved ? (
+            <span className="pvm-approved-pill">
+              <Check /> Approved
+            </span>
+          ) : (
+            <button
+              className="pvm-approve"
+              onClick={() => setApproveConfirmOpen(true)}
+            >
+              <Check /> Approve
+            </button>
+          )}
+        </div>
+
+        {/* PRICING SHEET */}
+        <div
+          className={'pvm-scrim' + (mSheetOpen ? ' open' : '')}
+          onClick={() => setMSheetOpen(false)}
+        />
+        <div className={'pvm-pricesheet' + (mSheetOpen ? ' open' : '')}>
+          <div className="pvm-grab" />
+          <h3>Pricing summary</h3>
+          {includedRows.map((row: any) => (
+            <div className="pvm-pl" key={row.key}>
+              <span className="k">
+                {serviceLineLabel(row.serviceType)}
+                {row.frequency > 1 ? ` · ×${row.frequency}/yr` : ''}{' '}
+                <small>· {row.location}</small>
+              </span>
+              <span className="v">{formatCurrency(row.lineCost)}</span>
+            </div>
+          ))}
+          {customLineItems
+            .filter((it: any) => (Number(it.amount) || 0) > 0 || it.name)
+            .map((it: any, i: number) => (
+              <div className="pvm-pl" key={it.id || `c-${i}`}>
+                <span className="k">{it.name || 'Custom item'}</span>
+                <span className="v">{formatCurrency(Number(it.amount) || 0)}</span>
+              </div>
+            ))}
+          <div className="pvm-pl-div" />
+          <div className="pvm-pl">
+            <span className="k">Subtotal</span>
+            <span className="v">
+              {formatCurrency(summary.originalSubtotal + customItemsTotal)}
+            </span>
+          </div>
+          {summary.serviceDiscountAmount > 0 && (
+            <div className="pvm-pl discount">
+              <span className="k">Service discount</span>
+              <span className="v">−{formatCurrency(summary.serviceDiscountAmount)}</span>
+            </div>
+          )}
+          {summary.discountPercent > 0 && (
+            <div className="pvm-pl discount">
+              <span className="k">Volume discount · {summary.discountPercent}%</span>
+              <span className="v">−{formatCurrency(summary.discountAmount)}</span>
+            </div>
+          )}
+          {typeof displayData?.autoRecurringDiscount === 'number' &&
+            displayData.autoRecurringDiscount > 0 &&
+            typeof displayData?.autoRecurringSavings === 'number' &&
+            displayData.autoRecurringSavings > 0 && (
+              <div className="pvm-pl discount">
+                <span className="k">
+                  Recurring discount · {displayData.autoRecurringDiscount}%
+                </span>
+                <span className="v">
+                  −{formatCurrency(displayData.autoRecurringSavings)}
+                </span>
+              </div>
+            )}
+          {gratuity && (
+            <div className="pvm-pl">
+              <span className="k">
+                Gratuity
+                {gratuity.type === 'percentage' ? ` · ${gratuity.value}%` : ''}
+              </span>
+              <span className="v">{formatCurrency(gratuity.amount)}</span>
+            </div>
+          )}
+          <div className="pvm-pl-total">
+            <span className="k">
+              {summary.totalEvents > includedRows.length ? 'Annual total' : 'Total'}
+            </span>
+            <span className="v">{formatCurrency(grandTotal)}</span>
+          </div>
+          <p className="pvm-pl-fine">
+            Invoice issued before each event. Payment due 48 hours prior to the
+            first scheduled event. Cancellation: 72+ hrs notice = no charge.
+          </p>
+          {!isApproved && (
+            <button
+              className="pvm-pl-btn"
+              onClick={() => {
+                setMSheetOpen(false);
+                setApproveConfirmOpen(true);
+              }}
+            >
+              <Check /> Approve proposal
+            </button>
+          )}
+        </div>
+
+        {/* LIGHTBOX */}
+        <div className={'pvm-lb' + (mLightbox ? ' open' : '')}>
+          <button
+            className="pvm-lb-close"
+            aria-label="Close"
+            onClick={() => setMLightbox(null)}
+          >
+            <X />
+          </button>
+          {mLightbox && mLightbox.images.length > 1 && (
+            <button className="pvm-lb-nav pvm-lb-prev" aria-label="Previous" onClick={() => lbStep(-1)}>
+              <ChevronLeft />
+            </button>
+          )}
+          {mLightbox && <img src={mLightbox.images[mLightbox.index]} alt="" />}
+          {mLightbox && mLightbox.images.length > 1 && (
+            <button className="pvm-lb-nav pvm-lb-next" aria-label="Next" onClick={() => lbStep(1)}>
+              <ChevronRight />
+            </button>
+          )}
+          {mLightbox && (
+            <div className="pvm-lb-counter">
+              {mLightbox.index + 1} / {mLightbox.images.length}
+              {mLightbox.caps?.[mLightbox.index]
+                ? `  ·  ${mLightbox.caps[mLightbox.index]}`
+                : ''}
+            </div>
+          )}
+        </div>
+
+        {/* AGREEMENT MODAL */}
+        {mAgreeOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setMAgreeOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(9,54,79,0.45)',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+              padding: '32px 12px',
+              overflowY: 'auto',
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#fff',
+                width: '100%',
+                maxWidth: 640,
+                borderRadius: 18,
+                padding: '20px 18px',
+                position: 'relative',
+              }}
+            >
+              <button
+                onClick={() => setMAgreeOpen(false)}
+                aria-label="Close"
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  background: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+              <ServiceAgreement clientName={clientName} forceExpanded />
+            </div>
+          </div>
+        )}
+
+        {/* Shared approve / request-changes modals (same state as desktop) */}
+        <RequestChangesModal
+          open={requestChangesOpen}
+          onClose={() => setRequestChangesOpen(false)}
+          onSubmit={handleSubmitChangeRequest}
+          previousNote={displayData?.clientChangesNote}
+        />
+        <ApproveConfirmModal
+          open={approveConfirmOpen}
+          onClose={() => !isApproving && setApproveConfirmOpen(false)}
+          onConfirm={async () => {
+            await handleApprove();
+            setApproveConfirmOpen(false);
+          }}
+          busy={isApproving}
+          total={grandTotal}
+          servicesIncluded={includedRows.length}
+          servicesTotal={summary.rows.length}
+          optionName={
+            proposalOptions.find((o: any) => o.id === id)?.option_name || null
+          }
+          clientFirstName={contactFirst || undefined}
+        />
+      </div>
+    );
+  }
+
   // ---- Main render -------------------------------------------------------
   return (
     <div
-      className="pv-page pv-page--client"
+      className="pv-page pv-page--client pv-root"
       id="proposal-content"
-      style={{ minHeight: '100vh', background: T.lightGray }}
+      style={{ minHeight: '100vh', background: '#fff' }}
     >
       {/* ===== Sticky header ===== */}
       <header
@@ -865,20 +1691,35 @@ const StandaloneProposalViewerV2: React.FC = () => {
             gap: isCompact ? 8 : 16,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-            {/* Just the Shortcut logo. The divider + client name were removed —
-                the client is already branded by the hero logo + "Prepared for"
-                line, and option switching lives in the body tabs. */}
-            <img
-              src="/shortcut-logo-blue.svg"
-              alt="Shortcut"
-              style={{
-                height: 22,
-                width: 'auto',
-                display: 'block',
-                flexShrink: 0,
-              }}
-            />
+          {/* Design refresh (#6): partner/client logo lives in the nav, followed
+              by a divider + lowercase "with [Shortcut]" lockup. */}
+          <div className="pv-brand" style={{ minWidth: 0 }}>
+            {clientLogoUrl ? (
+              <img
+                className="pv-partner"
+                src={clientLogoUrl}
+                alt={clientName || 'Client'}
+                style={{ height: 26, width: 'auto', display: 'block', flexShrink: 0 }}
+              />
+            ) : (
+              <span
+                style={{
+                  fontFamily: T.fontD,
+                  fontWeight: 800,
+                  fontSize: 18,
+                  letterSpacing: '-0.02em',
+                  color: T.navy,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {clientName || 'Proposal'}
+              </span>
+            )}
+            <span className="pv-brand-divider" />
+            <span className="pv-powered">
+              <span>with</span>
+              <img src="/shortcut-logo-blue.svg" alt="Shortcut" />
+            </span>
           </div>
 
           <div
@@ -943,88 +1784,158 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 </button>
               </>
             ) : (
-              // Default state: identity + status carry the bar; every action
-              // (Edit / View original / Help / PDF) lives in one overflow menu
-              // so the header stays calm and the sidebar "Approve" CTA is the
-              // single loud action on the page.
+              // Design refresh: surface Help (round icon) + Download PDF
+              // (secondary pill) + Approve (coral) as visible header actions.
+              // Edit / View original stay in a compact overflow menu.
               <>
                 <button
                   type="button"
-                  onClick={() => setMenuOpen((v) => !v)}
-                  aria-haspopup="menu"
-                  aria-expanded={menuOpen}
-                  title="More actions"
+                  onClick={() => setHelpOpen(true)}
+                  title="How to review"
+                  aria-label="Help"
                   style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 9999,
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    background: '#fff',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '8px 10px',
-                    background: menuOpen ? T.lightGray : 'transparent',
-                    border: '1.5px solid rgba(0,0,0,0.08)',
-                    borderRadius: 10,
                     cursor: 'pointer',
                     color: T.navy,
+                    flexShrink: 0,
                   }}
                 >
-                  <MoreHorizontal size={18} />
+                  <HelpCircle size={18} />
                 </button>
-                {menuOpen && (
-                  <div
-                    role="menu"
+                {!isCompact && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadPdf}
+                    disabled={isDownloading}
                     style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      minWidth: 210,
-                      background: '#fff',
-                      border: '1px solid rgba(0,0,0,0.08)',
-                      borderRadius: 12,
-                      boxShadow: '0 14px 36px rgba(0,0,0,0.16)',
-                      padding: 6,
-                      zIndex: 40,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 2,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      padding: '9px 18px',
+                      background: 'transparent',
+                      border: `2px solid ${T.navy}`,
+                      borderRadius: 9999,
+                      cursor: isDownloading ? 'wait' : 'pointer',
+                      fontFamily: T.fontUi,
+                      fontWeight: 700,
+                      fontSize: 13,
+                      color: T.navy,
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {!isApproved && !showingOriginal && (
-                      <HeaderMenuItem
-                        icon={<Pencil size={15} />}
-                        label="Edit proposal"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          enterClientEditMode();
-                        }}
-                      />
-                    )}
-                    {hasOriginalSnapshot && !isApproved && (
-                      <HeaderMenuItem
-                        icon={<HistoryIcon size={15} />}
-                        label={showingOriginal ? 'View current' : 'View original'}
-                        onClick={() => {
-                          setMenuOpen(false);
-                          setShowingOriginal((v) => !v);
-                        }}
-                      />
-                    )}
-                    <HeaderMenuItem
-                      icon={<HelpCircle size={15} />}
-                      label="Help"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        setHelpOpen(true);
+                    <Download size={15} />
+                    {isDownloading ? 'Generating…' : 'Download PDF'}
+                  </button>
+                )}
+                {!isApproved && (
+                  <button
+                    type="button"
+                    onClick={() => setApproveConfirmOpen(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      padding: '11px 20px',
+                      background: T.coral,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 9999,
+                      cursor: 'pointer',
+                      fontFamily: T.fontUi,
+                      fontWeight: 700,
+                      fontSize: 13,
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
+                    }}
+                  >
+                    <CheckCircle2 size={15} />
+                    Approve proposal
+                  </button>
+                )}
+                {(!isApproved || isCompact) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setMenuOpen((v) => !v)}
+                      aria-haspopup="menu"
+                      aria-expanded={menuOpen}
+                      title="More actions"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 38,
+                        height: 38,
+                        background: menuOpen ? T.lightGray : 'transparent',
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        borderRadius: 9999,
+                        cursor: 'pointer',
+                        color: T.navy,
+                        flexShrink: 0,
                       }}
-                    />
-                    <HeaderMenuItem
-                      icon={<Download size={15} />}
-                      label={isDownloading ? 'Generating…' : 'Download PDF'}
-                      disabled={isDownloading}
-                      onClick={() => {
-                        setMenuOpen(false);
-                        handleDownloadPdf();
-                      }}
-                    />
-                  </div>
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
+                    {menuOpen && (
+                      <div
+                        role="menu"
+                        style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 8px)',
+                          right: 0,
+                          minWidth: 210,
+                          background: '#fff',
+                          border: '1px solid rgba(0,0,0,0.08)',
+                          borderRadius: 12,
+                          boxShadow: '0 14px 36px rgba(0,0,0,0.16)',
+                          padding: 6,
+                          zIndex: 40,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 2,
+                        }}
+                      >
+                        {!isApproved && !showingOriginal && (
+                          <HeaderMenuItem
+                            icon={<Pencil size={15} />}
+                            label="Edit proposal"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              enterClientEditMode();
+                            }}
+                          />
+                        )}
+                        {hasOriginalSnapshot && !isApproved && (
+                          <HeaderMenuItem
+                            icon={<HistoryIcon size={15} />}
+                            label={showingOriginal ? 'View current' : 'View original'}
+                            onClick={() => {
+                              setMenuOpen(false);
+                              setShowingOriginal((v) => !v);
+                            }}
+                          />
+                        )}
+                        {isCompact && (
+                          <HeaderMenuItem
+                            icon={<Download size={15} />}
+                            label={isDownloading ? 'Generating…' : 'Download PDF'}
+                            disabled={isDownloading}
+                            onClick={() => {
+                              setMenuOpen(false);
+                              handleDownloadPdf();
+                            }}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -1053,58 +1964,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
             marginBottom: 14,
           }}
         >
-          {clientLogoUrl ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '10px 14px',
-                background: '#fff',
-                borderRadius: 12,
-                border: '1px solid rgba(0,0,0,0.06)',
-                maxWidth: 220,
-                height: 64,
-                flexShrink: 0,
-              }}
-            >
-              <img
-                src={clientLogoUrl}
-                alt={`${clientName} logo`}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: 44,
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  display: 'block',
-                }}
-              />
-            </div>
-          ) : (
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 12,
-                background: '#fff',
-                border: '1px solid rgba(0,0,0,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: T.fontD,
-                fontWeight: 800,
-                fontSize: 26,
-                color: T.navy,
-                flexShrink: 0,
-              }}
-            >
-              {initial}
-            </div>
-          )}
-
+          {/* Design refresh: title-led hero. The client logo moved to the nav
+              bar (#6), so no logo/avatar block here. */}
           <div style={{ minWidth: 0 }}>
             <Eyebrow style={{ marginBottom: 4 }}>
-              Prepared for · {proposalLabel}
+              Prepared for · {clientName}
               {contactFirst && ` · ${contactFirst}`}
             </Eyebrow>
             <h1
@@ -1134,6 +1998,40 @@ const StandaloneProposalViewerV2: React.FC = () => {
             dark sidebar Live Total card keeps it sticky for scroll. */}
       </section>
 
+      {/* ===== Hero photo gallery (design refresh) =====
+          Real proposal_gallery photos for this proposal's services, topped up
+          with curated office stock so the mosaic always reads full. */}
+      <section
+        style={{
+          padding: isCompact ? '0 16px' : '0 24px',
+          maxWidth: 1280,
+          margin: '0 auto',
+        }}
+      >
+        <ProposalGallery
+          photos={(() => {
+            // Prefer photos explicitly tagged 'hero' in the gallery admin (the
+            // top-of-proposal mosaic). If none are set, fall back to THIS
+            // proposal's per-service photos (normalize plurals + subtypes so
+            // 'nails'→'nail', 'mindfulness-cle'→'mindfulness').
+            const hero = (galleryByService['hero'] || []).map(
+              (src): GalleryPhoto => ({ src })
+            );
+            if (hero.length) return hero;
+            const base = (s: string) => s.replace(/s$/, '').split('-')[0];
+            const wanted = new Set(serviceTypes.map(base));
+            return Object.entries(galleryByService)
+              .filter(([type]) => type !== 'hero' && wanted.has(base(type)))
+              .flatMap(([type, urls]): GalleryPhoto[] =>
+                (urls || []).map((src) => ({
+                  src,
+                  cap: type.charAt(0).toUpperCase() + type.slice(1),
+                }))
+              );
+          })()}
+        />
+      </section>
+
       {/* ===== 2-col body grid ===== */}
       <section
         style={{
@@ -1150,14 +2048,21 @@ const StandaloneProposalViewerV2: React.FC = () => {
         }}
       >
         {/* --- Main column --- */}
-        <main style={{ display: 'flex', flexDirection: 'column', gap: 48, minWidth: 0 }}>
+        {/* Block flow (not flex+gap) so the design's section margins
+            (.pv-sec-label 40px, .pv-getstarted, .pv-why-block, .pv-final …)
+            collapse exactly like the reference. A flex gap stacks on top of
+            those margins and the zero-height dock marker eats an extra gap
+            slot, which over-spaced the day-by-day / getting-started sections. */}
+        <main style={{ minWidth: 0 }}>
           {/* Options tabs — only when there's a sibling group */}
           {proposalOptions.length > 1 && id && (
-            <OptionsTabs
-              options={proposalOptions}
-              currentId={id}
-              queryString={queryString}
-            />
+            <div style={{ marginBottom: 32 }}>
+              <OptionsTabs
+                options={proposalOptions}
+                currentId={id}
+                queryString={queryString}
+              />
+            </div>
           )}
 
           {/* Banner — proposal approved. Pinned high so it's the first thing
@@ -1172,6 +2077,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 border: '1px solid rgba(30,158,106,.30)',
                 borderRadius: 16,
                 padding: '20px 24px',
+                marginBottom: 32,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 16,
@@ -1309,6 +2215,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 border: '1px solid rgba(140,90,7,.25)',
                 borderRadius: 12,
                 padding: '14px 18px',
+                marginBottom: 32,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
@@ -1364,14 +2271,59 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 fontSize: 15,
                 color: T.fgMuted,
                 lineHeight: 1.55,
-                margin: '0 0 24px',
+                margin: '0 0 18px',
                 maxWidth: 680,
               }}
             >
               {summary.rows.length === 1
-                ? 'Adjust the details, set how often it repeats, and approve when you’re ready. Book 4 events a year for 15% off, or 9 for 20%.'
-                : 'Toggle each service on or off and set how often it repeats. Book 4 total events a year for 15% off, or 9 for 20%.'}
+                ? 'Adjust the details, set how often it repeats, and approve when you’re ready.'
+                : 'Toggle each service on or off and set how often it repeats.'}
             </p>
+            {/* Savings callout (design refresh) — recurring-volume framing.
+                Uses the repeat icon + "make it recurring" copy to match the
+                reference + the mobile viewer. */}
+            <div className="pv-savings" style={{ marginBottom: 0 }}>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#1E9E6A"
+                strokeWidth={2.2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="m17 2 4 4-4 4" />
+                <path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4" />
+                <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+              </svg>
+              <span className="txt">
+                Make it recurring and save <strong>15% on 4 events a year</strong>, or{' '}
+                <strong>20% on 9</strong>.
+              </span>
+            </div>
+            {/* Intro meta-row (reference `.pv-meta-row`): date · location · appts. */}
+            <div className="pv-meta-row">
+              {proposalDateLabel && (
+                <span className="lt-meta">
+                  <Calendar size={18} /> {proposalDateLabel}
+                </span>
+              )}
+              {(() => {
+                const locs = Object.keys(displayData?.services || {});
+                const addr = resolveOfficeAddress(locs[0]) || locs[0];
+                return addr ? (
+                  <span className="lt-meta">
+                    <MapPin size={18} /> {addr}
+                  </span>
+                ) : null;
+              })()}
+              <span className="lt-meta">
+                <Users size={18} /> {stats.appointmentCount.toLocaleString('en-US')}{' '}
+                appointments
+              </span>
+            </div>
+            {/* "Your services" section label (design refresh). */}
+            <p className="pv-sec-label">Your services</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {Object.entries(displayData.services || {}).map(
                 ([loc, byDate]: [string, any]) => {
@@ -1516,12 +2468,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
                           // sees a consistent number when looking at one date.
                           let dayAppts = 0;
                           let dayCost = 0;
+                          let dayServiceCount = 0;
                           let hasUnlimited = false;
                           (dateData?.services || []).forEach(
                             (service: any, idx: number) => {
                               const k = selectionKey(loc, date, idx);
                               const s = get(k);
                               if (!s.included) return;
+                              dayServiceCount += 1;
                               const a = service?.totalAppointments;
                               if (a === 'unlimited' || a === '∞') {
                                 hasUnlimited = true;
@@ -1542,17 +2496,19 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                 gap: 12,
                               }}
                             >
-                              <div
-                                style={{
-                                  fontFamily: T.fontUi,
-                                  fontWeight: 700,
-                                  fontSize: 12,
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.1em',
-                                  color: T.fgMuted,
-                                }}
-                              >
-                                {formatDateLabel(date)}
+                              {/* Day heading (reference `.pv-day-head`): navy
+                                  date + "N services · M appts" sub-count. */}
+                              <div className="pv-day-head">
+                                <h3>{formatDateLabel(date)}</h3>
+                                <span className="sub">
+                                  {dayServiceCount} service
+                                  {dayServiceCount === 1 ? '' : 's'}
+                                  {' · '}
+                                  {hasUnlimited
+                                    ? '∞'
+                                    : dayAppts.toLocaleString('en-US')}{' '}
+                                  appts
+                                </span>
                               </div>
                               <div
                                 style={{
@@ -1566,7 +2522,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                     const key = selectionKey(loc, date, idx);
                                     const sel = get(key);
                                     return (
-                                      <ServiceCard
+                                      <ServiceCardRefresh
                                         key={key}
                                         service={service}
                                         included={sel.included}
@@ -1635,25 +2591,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                   }
                                 )}
                               </div>
-                              {(dateData?.services || []).length > 0 && (
-                                <DaySummaryBox
-                                  dayNumber={dateIndex + 1}
-                                  appointments={hasUnlimited ? 'unlimited' : dayAppts}
-                                  totalCost={dayCost}
-                                  originalCost={
-                                    typeof dateData?.originalTotalCost === 'number'
-                                      ? dateData.originalTotalCost
-                                      : undefined
-                                  }
-                                  discountLabel={
-                                    typeof displayData?.autoRecurringDiscount ===
-                                      'number' &&
-                                    displayData.autoRecurringDiscount > 0
-                                      ? `${displayData.autoRecurringDiscount}% recurring discount`
-                                      : undefined
-                                  }
-                                />
-                              )}
+                              {/* Per-day "Day N summary" module removed (design
+                                  refresh) — the Day-by-day breakdown covers it. */}
                             </div>
                           );
                         }
@@ -1681,16 +2620,22 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           </div>
 
-          {/* Pricing summary card — lifted above Why Shortcut so the bottom-
-              line lands within the first scroll. Same dark-navy treatment as
-              before; the Approve CTA still anchors the page bottom. */}
+          {/* Dock release anchor — the docked navy pricing card (right column)
+              unsticks at the bottom of the LAST service day, before the
+              day-by-day breakdown (matches the design's lastDay measurement). */}
+          <div ref={dockReleaseRef} aria-hidden style={{ height: 0 }} />
+
+          {/* Pricing summary removed from the LEFT column (design refresh) — it
+              now lives only in the right column as the docked navy card. */}
+          {false && (
           <div
             style={{
-              background: T.navy,
+              background: 'linear-gradient(160deg, #00496F 0%, #003C5E 100%)',
               color: '#fff',
               borderRadius: 24,
               padding: isCompact ? '24px 22px' : isMobile ? '28px 28px' : '36px 40px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+              border: '1px solid rgba(158,250,255,0.18)',
+              boxShadow: '0 12px 32px rgba(0,60,94,0.28)',
             }}
           >
             {/* Heading row — design has the title on the left + an
@@ -1993,34 +2938,44 @@ const StandaloneProposalViewerV2: React.FC = () => {
               Cancellation: 72+ hrs notice = no charge. See the service agreement below for full terms.
             </p>
           </div>
+          )}
+
+          {/* Day-by-day breakdown */}
+          <DayByDayCards
+            servicesByLocation={displayData.services || {}}
+            isIncluded={(loc, date, idx) => get(selectionKey(loc, date, idx)).included}
+          />
+
+          {/* Getting started — Wise-style 3-step module (design refresh).
+              Replaces the sidebar WhatsNextCard; post-event-survey step dropped. */}
+          <div className="pv-getstarted">
+            <p className="pv-sec-label">Getting started</p>
+            <h2 className="lt-h2">You approve. We handle the rest.</h2>
+            <div className="pv-steps-grid">
+              <div className="pv-step-card">
+                <div className="num">1</div>
+                <h4>Your sign-up link goes out</h4>
+                <p>Up to two weeks before, employees book their own slots from any device.</p>
+              </div>
+              <div className="pv-step-card">
+                <div className="num">2</div>
+                <h4>We promote it for you</h4>
+                <p>Digital invites and on-site signage drive turnout, so the day fills up.</p>
+              </div>
+              <div className="pv-step-card">
+                <div className="num">3</div>
+                <h4>We run the day</h4>
+                <p>Our pros, equipment, and setup arrive on-site. You do nothing.</p>
+              </div>
+            </div>
+          </div>
 
           {/* Why Shortcut — variant resolves from serviceTypes (single service,
-              multi-service unified, or CLE). Rendered for every proposal. */}
+              multi-service unified, or CLE). Sits after Getting started, before
+              the final CTA (design order). */}
           {serviceTypes.length > 0 && (
             <WhyShortcutSection serviceTypes={serviceTypes} />
           )}
-
-          {/* Per-service details (Benefits + What's Included + features) now
-              live inside each service card's "What a … day looks like"
-              dropdown (ServiceDayDetails), so the standalone section that used
-              to sit here was removed. */}
-
-          {/* Mindfulness/CLE page-level sections removed — ParticipantBenefits,
-              AdditionalResources, CLE outline, and CLE accreditation all live
-              inside the service card's "What a session looks like" dropdown
-              now (ServiceDayDetails + the isCLE block in ServiceCard). */}
-
-          {/* Event-day summary — per-location at-a-glance */}
-          <EventDaySummaryCard
-            servicesByLocation={displayData.services || {}}
-            rows={summary.rows}
-          />
-
-          {/* Service agreement — collapsed by default. Pulls real terms from
-              the existing ServiceAgreement.tsx; modal personalizes "Partner". */}
-          <ServiceAgreementCard clientName={clientName} />
-
-
 
           {/* Approve CTA — pre-approval is the call-to-action; post-approval
               the same card flips to a success state with the option to fill
@@ -2235,44 +3190,52 @@ const StandaloneProposalViewerV2: React.FC = () => {
               id="proposal-survey-form"
               style={{
                 background: '#fff',
-                border: '1px solid rgba(0,0,0,0.06)',
+                border: `2px solid ${T.coral}`,
                 borderRadius: 20,
                 padding: '28px 32px',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+                boxShadow: '0 8px 28px rgba(255,80,80,0.14)',
+                scrollMarginTop: 96,
               }}
             >
-              <div
+              <span
                 style={{
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 10,
-                  marginBottom: 8,
+                  gap: 7,
+                  background: 'rgba(255,80,80,0.12)',
+                  color: T.coral,
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  borderRadius: 9999,
+                  padding: '6px 12px',
+                  marginBottom: 12,
                 }}
               >
-                <Sparkles size={20} color={T.coral} />
-                <CardHeading size="card" style={{ margin: 0 }}>
-                  Quick event-details form
-                </CardHeading>
-              </div>
+                <Sparkles size={13} color={T.coral} /> One last step
+              </span>
+              <CardHeading size="card" style={{ margin: 0 }}>
+                Tell us your event details
+              </CardHeading>
               <p
                 style={{
                   fontFamily: T.fontD,
                   fontSize: 14,
                   color: T.fgMuted,
                   lineHeight: 1.55,
-                  margin: '0 0 18px',
+                  margin: '6px 0 18px',
                 }}
               >
-                Helps us prep day-of logistics — takes about 3 minutes.
+                You're approved. Now help us prep the day. It takes about 3
+                minutes, and our team can't finalize logistics without it.
               </p>
               <ProposalSurveyForm
                 proposalId={id}
-                includesMassage={Object.values(displayData?.services || {}).some(
-                  (byDate: any) =>
-                    Object.values(byDate || {}).some((dd: any) =>
-                      (dd?.services || []).some((s: any) => s.serviceType === 'massage')
-                    )
-                )}
+                includesMassage={massageFormats.length > 0}
+                massageFormats={massageFormats}
+                serviceTypes={serviceTypes}
                 locations={Object.keys(displayData?.services || {})}
                 officeLocation={displayData?.officeLocation}
                 officeLocations={displayData?.officeLocations}
@@ -2280,10 +3243,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
               />
             </div>
           )}
+
+          {/* Service agreement — sits below the final CTA (design order). */}
+          <ServiceAgreementCard clientName={clientName} />
         </main>
 
         {/* --- Sidebar --- */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <aside ref={asideRef} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Live Total card — desktop only.
               On desktop this is sticky so price + Approve stay visible
@@ -2294,13 +3260,17 @@ const StandaloneProposalViewerV2: React.FC = () => {
               serves the conversion role, so we skip this entirely on
               mobile. */}
           {!isMobile && (
+          <div className="pv-price-dock" style={{ height: dockHeight }}>
+            <div className="pv-dock-sticky">
           <div
             style={{
-              background: T.navy,
+              // Design refresh: navy gradient + aqua hairline + deeper shadow.
+              background: 'linear-gradient(160deg, #00496F 0%, #003C5E 100%)',
               color: '#fff',
               borderRadius: 16,
               padding: '22px 24px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+              border: '1px solid rgba(158,250,255,0.18)',
+              boxShadow: '0 12px 32px rgba(0,60,94,0.28)',
               // Deliberately not sticky: with the app-shell overflow fix the
               // sticky would now actually engage, and a pinned card floats
               // over the sibling cards as they scroll underneath it.
@@ -2560,6 +3530,35 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 : 'Selections auto-save as you toggle.'}
             </div>
           </div>
+            {/* Demo pill — rides under the docked pricing card, collapses once
+                the demo scrolls into view (desktop only). */}
+            {/* Always mounted so the collapse animates; is-hidden toggles with
+                scroll. Clicking smooth-scrolls to the demo (it never vanishes —
+                it returns when the user scrolls back up to the services). */}
+            <button
+              type="button"
+              className={'pv-demo-pill' + (demoRevealed ? ' is-hidden' : '')}
+              style={{ display: 'flex' }}
+              onClick={() => {
+                const el = demoRef.current;
+                if (!el) return;
+                const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+              }}
+            >
+              <span className="ic">
+                <svg viewBox="0 0 24 24" width="15" height="15"><path d="M8 5v14l11-7z" /></svg>
+              </span>
+              <span className="tx">
+                See the sign-up demo
+                <small>How employees book in seconds</small>
+              </span>
+              <span className="chev">
+                <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></svg>
+              </span>
+            </button>
+            </div>
+          </div>
           )}
 
           {/* The employee sign-up — self-playing mobile demo inside an iPhone
@@ -2568,11 +3567,20 @@ const StandaloneProposalViewerV2: React.FC = () => {
               set a test-event URL (data.signupLink), the Copy link + Try it
               yourself CTAs render below the demo; otherwise the demo shows alone.
               Replaces the old MP4 SignupLinkCard. */}
-          <MobileSignupModule
-            url={displayData?.signupLink}
-            title={displayData?.signupLinkTitle}
-            description={displayData?.signupLinkDescription}
-          />
+          <div
+            ref={demoRef}
+            style={{
+              transition: 'opacity .5s ease, transform .5s ease',
+              opacity: isMobile || demoRevealed ? 1 : 0,
+              transform: isMobile || demoRevealed ? 'none' : 'translateY(14px)',
+            }}
+          >
+            <MobileSignupModule
+              url={displayData?.signupLink}
+              title={displayData?.signupLinkTitle}
+              description={displayData?.signupLinkDescription}
+            />
+          </div>
 
           {/* Facilitator — only for mindfulness-only proposals. Courtney
               photo + bio mirroring V1 StandaloneProposalViewer (right rail). */}
@@ -2584,21 +3592,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
             note={customNote}
           />
 
-          {/* Gallery — placeholder for now, real media wires in Phase 6 */}
-          <GalleryCard
-            serviceTypes={Array.from(
-              new Set(
-                Object.values(displayData?.services || {}).flatMap((byDate: any) =>
-                  Object.values(byDate || {}).flatMap((dd: any) =>
-                    (dd?.services || []).map((s: any) => s.serviceType)
-                  )
-                )
-              )
-            )}
-          />
-
-          {/* What's next — 4-step process */}
-          <WhatsNextCard activeStep={isApproved ? 3 : 1} />
+          {/* Sidebar gallery removed (design refresh) — gallery now lives as the
+              top hero mosaic. "What's next" moved to the left-column "Getting
+              started" module. */}
 
           {/* Trust — 87% rebook + client logos */}
           <TrustCard />
@@ -2607,6 +3603,12 @@ const StandaloneProposalViewerV2: React.FC = () => {
           <FaqCard />
         </aside>
       </section>
+
+      {/* Footer (design refresh) — centered Shortcut mark + URL. */}
+      <div className="pv-footer">
+        <img src="/shortcut-logo-blue.svg" alt="Shortcut" />
+        <p>proposals.getshortcut.co</p>
+      </div>
 
       {/* Request-changes modal — overlays the page */}
       <RequestChangesModal
