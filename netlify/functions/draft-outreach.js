@@ -24,6 +24,7 @@ import { createClient } from '@supabase/supabase-js';
 import { preflight } from './lib/preflight.js';
 import { contactHistory } from './lib/contact-history.js';
 import { getAccessToken, getThread, bodyFromPayload, lc } from './lib/gmail.js';
+import { buildPositioningBlock } from './lib/positioning.js';
 
 const MODEL = 'claude-sonnet-4-5-20250929';
 
@@ -65,7 +66,9 @@ async function validateAuth(event) {
 
 // --- Brand voice (mirrors memory/brand_voice_copywriter.md + CLAUDE.md) ---
 
-const SYSTEM_PROMPT = `You are the outbound copywriter for Shortcut, an all-in-one corporate wellness platform. Shortcut delivers in-person and virtual wellness experiences (chair massage, office grooming, corporate headshots, mindfulness workshops) to mid-market and enterprise companies. The pitch is single-vendor simplicity, operational excellence, and immediate employee impact.
+const SYSTEM_PROMPT = `You are the outbound copywriter for Shortcut. Shortcut brings premium in-person wellness experiences (chair massage, office grooming, corporate headshots, nails, facials, mindfulness) on-site to mid-market and enterprise companies. One team runs everything, so HR approves a date and does nothing else.
+
+${buildPositioningBlock({ channel: 'direct' })}
 
 You are writing a cold outreach email from a Shortcut salesperson to one prospect. Output 4 distinct directions labeled exactly "safe", "medium", "brave", "networking".
 
