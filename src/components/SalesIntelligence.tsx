@@ -37,6 +37,7 @@ interface PlayBRow {
   engagement_state: 'replied' | 'no_reply' | 'net_new' | 're_engage' | null;
   touches: number | null; last_contacted_at: string | null;
   reply_sentiment: string | null; is_leadgen: boolean | null;
+  mv_status: string | null;
   last_sender_name: string | null; last_sender_email: string | null;
 }
 const PB_STATE: Record<string, { label: string; tone: string; hint: string }> = {
@@ -2607,6 +2608,16 @@ const SalesIntelligence: React.FC = () => {
                             {r.contact_email
                               ? <span className="text-gray-500">{r.contact_email}</span>
                               : <span className="italic">no email</span>}
+                            {r.mv_status && (
+                              <span
+                                className={`px-1 rounded text-[10px] font-semibold ${
+                                  r.mv_status === 'ok' ? 'bg-green-100 text-green-700'
+                                  : r.mv_status === 'catch_all' ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-red-100 text-red-700'}`}
+                                title={`MillionVerifier: ${r.mv_status}`}>
+                                {r.mv_status === 'ok' ? 'verified' : r.mv_status === 'catch_all' ? 'catch all' : r.mv_status}
+                              </span>
+                            )}
                             {r.contact_linkedin && (
                               <a href={r.contact_linkedin} target="_blank" rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}

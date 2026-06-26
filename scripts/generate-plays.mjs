@@ -79,7 +79,7 @@ async function replaceAll(table, rows) {
     'id, canonical_key, display_name, trajectory, activity_status, completed_events, last_event_at, fit_score, fit_breakdown, ext_industry, ext_employee_size, contact_domains, contacts, is_internal, special_handling, demoed_not_closed');
   const sites = await readAll('crm_sites', 'company_id, city');
   const persons = await readAll('apollo_person_cache', 'email, email_domain, company_headcount, industry, linkedin_url, location');
-  const ocs = await readAll('outreach_contacts', 'email, name, title, company, email_domain, crm_company_id, linkedin_url, location, source');
+  const ocs = await readAll('outreach_contacts', 'email, name, title, company, email_domain, crm_company_id, linkedin_url, location, source, mv_status');
 
   // Per-contact engagement state for Play B badges/filters: did we email them,
   // how many times, when last, did they reply (+ sentiment). Bulk-loaded once.
@@ -224,7 +224,7 @@ async function replaceAll(table, rows) {
     const cat = titleCat(o.title);
     const cur = prospects.get(dom);
     const rank = cat && GOOD.has(cat) ? 2 : cat ? 1 : 0;
-    if (!cur || rank > cur._rank) prospects.set(dom, { domain: dom, company: o.company, email: o.email, name: o.name, title: o.title, linkedin: o.linkedin_url || null, location: o.location || null, source: o.source || null, cat, _rank: rank });
+    if (!cur || rank > cur._rank) prospects.set(dom, { domain: dom, company: o.company, email: o.email, name: o.name, title: o.title, linkedin: o.linkedin_url || null, location: o.location || null, source: o.source || null, mv_status: o.mv_status || null, cat, _rank: rank });
   }
   const playB = [];
   for (const p of prospects.values()) {
@@ -261,6 +261,7 @@ async function replaceAll(table, rows) {
       touches: snd ? snd.count : 0,
       last_contacted_at: snd ? snd.last : null,
       reply_sentiment: rep ? rep.sentiment : null,
+      mv_status: p.mv_status || null,
       is_leadgen: isLeadgen,
       last_sender_name: ls?.name || null,
       last_sender_email: ls?.email || null,
@@ -311,6 +312,7 @@ async function replaceAll(table, rows) {
     contact_email: r.email, contact_linkedin: r.linkedin, contact_location: r.location,
     engagement_state: r.engagement_state, touches: r.touches,
     last_contacted_at: r.last_contacted_at, reply_sentiment: r.reply_sentiment,
+    mv_status: r.mv_status || null,
     is_leadgen: r.is_leadgen,
     last_sender_name: r.last_sender_name, last_sender_email: r.last_sender_email,
     generated_at: genAt,
