@@ -60,12 +60,16 @@ export const DIFFERENTIATION = {
   demoted_breadth: 'Grooming and headshots are uncontested (no rival offers them) but they do NOT close. Use only as a "we even do X" breadth proof, deep in the message. NEVER open with them or headline them.',
 };
 
-// Shared proof points.
+// REAL proof points (mirror memory/proof_points.md). These are the ONLY
+// numbers/names allowed in copy. NEVER invent or estimate a stat (a fabricated
+// "84% booked" was caught 2026-06-25; the real figure is 90%+).
 export const PROOF = {
-  rebook: '87% of clients rebook.',
-  participation: 'On-site events reach near-100% of those present vs ~24% utilization for typical wellness benefits (Gallup).',
-  cost: 'Median deal ~$1,452, about $46/employee, roughly 7% of existing wellness spend.',
-  named: 'DraftKings, BCG, PwC, TripAdvisor.',
+  booked: 'Over 90% of appointment slots get booked across all our events.', // Pillar 1 headline receipt
+  rebook: '87% of companies rebook for a second event.',
+  scale: 'Over 500 companies served across the US.',
+  land_expand: 'BCG and DraftKings use Shortcut at every one of their US offices.',
+  testimonial: '"Shortcut has become an extension of the DraftKings family." (DraftKings)',
+  named: 'BCG, DraftKings.', // cleared marquee only — do NOT add PwC/TripAdvisor/etc. without clearance
 };
 
 // Broker-channel persona hooks (carrier-fund angle is the differentiator here).
@@ -107,7 +111,10 @@ export function buildPositioningBlock({ channel = 'direct', seasonal = false, re
     `- One vendor, not a directory: ${DIFFERENTIATION.vs_aggregators}`,
     `- Service breadth (menu, NOT the headline): on-site = ${SERVICE_MENU.on_site.join(', ')}; virtual (remote/hybrid) = ${SERVICE_MENU.virtual.join(', ')}.`,
     `- DEMOTED: ${DIFFERENTIATION.demoted_breadth}`,
-    `- Proof to deploy when relevant: ${PROOF.rebook} ${PROOF.named}`,
+    `- REAL proof (use these EXACT figures/names when proof helps): ${PROOF.booked} ${PROOF.rebook} ${PROOF.scale} ${PROOF.land_expand}`,
+    `- NO FABRICATION: only the proof above and the names ${PROOF.named} may appear. NEVER invent or estimate a number, and do NOT name other clients (PwC, TripAdvisor, etc.) without clearance. If you lack a stat, omit it.`,
+    '- CRAFT (make it felt — see messaging_craft): plain "barbecue" register, mirror their internal monologue, no corporate words. Lead with ONE emotion, prove with ONE real receipt above. De-risk and reassure, never pressure (FOMU > FOMO — overwhelmed buyers stall under urgency).',
+    '- AVOID: fear-mongering about a burnout/mental-health crisis, hype/buzzwords, guilt-tripping, perks-theater/pizza-party energy, inflated ROI or health-savings claims, urgency/scarcity/FOMO.',
   ];
   if (remote) {
     lines.push('- This prospect may have remote/hybrid staff: surface the VIRTUAL option (mindfulness, sound baths, nutrition coaching) so they hear "your whole team, wherever they are".');
