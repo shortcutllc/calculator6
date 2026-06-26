@@ -1,17 +1,18 @@
 /**
  * positioning.js — THE single programmatic source of Shortcut's positioning.
  *
- * Mirrors memory/messaging_spine.md (v2, locked 2026-06-25). That memory file is
- * the human source of truth; this is its machine-readable twin. Every drafting
- * surface (draft-outreach.js personal lane, the cold sequence composer, the copy
- * evaluator) imports from HERE so positioning cannot drift between surfaces.
+ * Mirrors memory/messaging_spine.md (v3, locked 2026-06-25 — Will reprioritized
+ * the differentiators to what actually CLOSES). That memory file is the human
+ * source of truth; this is its machine-readable twin. Every drafting surface
+ * (draft-outreach.js, the cold sequence composer, the copy evaluator) imports
+ * from HERE so positioning cannot drift between surfaces.
  *
  * When the spine changes, update BOTH this file and messaging_spine.md.
  */
 
 // North star (internal, never a tagline).
 export const POSITIONING_STATEMENT =
-  'For HR and office managers at mid-market and enterprise companies tired of wellness perks employees ignore (and the hassle of running them), Shortcut is the one vendor that delivers premium on-site wellness your team actually shows up for, and handles every logistic so you approve a date and do nothing else.';
+  'For HR and office managers tired of wellness perks employees ignore (and the hassle of running them), Shortcut is the one vendor for your whole team, in office and remote, that people actually use, fully managed start to finish. You approve a date and do nothing else.';
 
 // Lead with the problem. Three voice directions; medium is the fight-for.
 export const PROBLEM_FIRST = {
@@ -20,27 +21,43 @@ export const PROBLEM_FIRST = {
   brave: 'The average wellness budget buys a lot of things nobody opens. We bring the one they line up for.',
 };
 
-// Exactly four pillars, each with proof. (Landing pages use only THREE — a 4th
-// claim breeds skepticism — but outreach may draw on any.)
+// The THREE lead pillars, IN PRIORITY (this is what closes — exactly three).
+// Order matters: drafts should lead with #1, then #2, then #3.
 export const PILLARS = [
-  { key: 'actually_used', claim: 'Actually used', proof: 'Opt-out and comes to the desk, so participation approaches everyone present vs ~24% for typical wellness programs (Gallup).' },
-  { key: 'zero_work', claim: 'Zero work for you', proof: 'One vendor runs booking, vetted pros, equipment, and the day itself. You approve a date, we do the rest.' },
-  { key: 'premium', claim: 'Premium, done right', proof: 'Vetted, licensed, insured pros. A spa-grade experience run like clockwork.' },
-  { key: 'costs_less', claim: 'Costs less than what is wasted', proof: 'Roughly 7% of what is already in the wellness budget, and it does not sit on a shelf.' },
+  { key: 'actually_used', claim: 'People actually use it, and love it', proof: 'Opt-out and comes to them, so participation approaches everyone vs ~24% for typical wellness programs (Gallup). The part of the budget that does not sit unused.' },
+  { key: 'zero_lift', claim: 'Zero lift for managers', proof: 'Fully managed start to finish: booking, vetted pros, equipment, the day itself. You approve a date and do nothing else. (This is the real "turnkey" benefit. Lead with it in plain words. Never write the word "turnkey".)' },
+  { key: 'one_vendor_whole_team', claim: 'One vendor for your whole team, in office and remote', proof: 'On-site experiences plus virtual for remote and hybrid teams, all from one team. Breadth from one team is the differentiator, not any single service.' },
 ];
 
-// What ONLY Shortcut can say (competitive scan). Use to differentiate, never the
-// dead "all-in-one" frame.
+// Supporting points — proof / objection handling, NOT headline pillars.
+export const SUPPORTING = [
+  { key: 'premium', point: 'Premium, done right: vetted, licensed, insured pros, run like clockwork.' },
+  { key: 'costs_less', point: 'Costs less than what is wasted: roughly 7% of what is already in the wellness budget.' },
+];
+
+// Service menu — the breadth, delivered two ways from one team. Lead with
+// "your whole team, wherever they are", NOT a service checklist. Grooming +
+// headshots live HERE (menu breadth proof), never in the headline.
+export const SERVICE_MENU = {
+  on_site: ['massage (chair and table)', 'nails', 'facials', 'hair and grooming', 'headshots'],
+  virtual: ['mindfulness', 'sound baths', 'nutrition coaching'],
+  note: 'Virtual serves remote and hybrid teams. Some services run either way (e.g. mindfulness). Mention the virtual option when the prospect is distributed/remote-friendly.',
+};
+
+// What ONLY Shortcut can say, in CLOSE-priority order (Will, 2026-06-25).
 export const DIFFERENTIATION = {
-  whitespace: 'One vendor that actually DELIVERS a premium curated suite of in-person experiences (massage, grooming, headshots, nails, facials, mindfulness) into the office, with participation approaching everyone, and can deploy carrier wellness funds to pay for it.',
-  uncontested: [
-    'Grooming and headshots in a wellness program: no competitor offers these at all.',
-    'Participation as the outcome: rivals brag about access, nobody owns "people actually show up".',
-    'Carrier-fund deployment paired with premium in-person delivery: nobody pairs the two.',
-    'A calm, premium, human voice in a field that shouts buzzwords.',
+  whitespace: 'One vendor for your whole team, in office and remote, that people actually use, fully managed, with carrier-fund deployment. Breadth from one team (on-site plus virtual) is the differentiator; no single service is.',
+  priority: [
+    'People actually use it and love it (participation as the outcome). Rivals brag about access; nobody owns "people actually show up". THE lead.',
+    'Zero lift for managers (fully managed, you approve a date and do nothing). The real turnkey benefit, said in plain words.',
+    'One vendor, whole team, in office and remote (breadth from one team, including virtual for remote/hybrid). The structural differentiator.',
+    'Carrier-fund deployment paired with premium delivery (channel lever, especially brokers).',
+    'Calm, premium, human voice (tonal, not a closer).',
   ],
-  vs_marketplaces: 'We do not book you a masseuse. We run a whole experience, plus five more services single-service marketplaces do not offer.',
+  vs_marketplaces: 'We do not book you a masseuse. We run your whole wellness program, on-site and remote.',
   vs_aggregators: 'We ARE the vendor, not the directory. One team owns the quality, not a network of strangers.',
+  // grooming + headshots are uncontested but they do NOT close — menu breadth proof only.
+  demoted_breadth: 'Grooming and headshots are uncontested (no rival offers them) but they do NOT close. Use only as a "we even do X" breadth proof, deep in the message. NEVER open with them or headline them.',
 };
 
 // Shared proof points.
@@ -48,7 +65,7 @@ export const PROOF = {
   rebook: '87% of clients rebook.',
   participation: 'On-site events reach near-100% of those present vs ~24% utilization for typical wellness benefits (Gallup).',
   cost: 'Median deal ~$1,452, about $46/employee, roughly 7% of existing wellness spend.',
-  named: 'DraftKings, BCG, PwC, TripAdvisor, Schrodinger.',
+  named: 'DraftKings, BCG, PwC, TripAdvisor.',
 };
 
 // Broker-channel persona hooks (carrier-fund angle is the differentiator here).
@@ -60,12 +77,12 @@ export const BROKER_HOOKS = {
   carrier_funds: 'we can deploy carrier wellness funds (Cigna HIF, Aetna allowance, Anthem fund) to pay for it.',
 };
 
-// DEAD as differentiators — everyone says them. Allowed as a plain benefit
-// (e.g. "you approve a date, we do the rest") but NEVER as the differentiation
-// claim. The copy evaluator flags these used as the positioning frame.
+// Banned as WORDS — everyone says them. CRITICAL: ban the word "turnkey"/
+// "all-in-one", but the BENEFIT it points to ("fully managed, you approve a
+// date and do nothing") is lead pillar #2 and MUST still lead. Ban the word,
+// keep the benefit. The copy evaluator flags these words verbatim.
 export const DEAD_DIFFERENTIATORS = [
   'all-in-one', 'one-stop', 'one stop shop', 'turnkey', 'nationwide network',
-  'on-site and remote', 'hybrid workforce',
 ];
 
 // Off-spine evergreen: "gift" framing is SEASONAL (holiday) ONLY.
@@ -76,24 +93,30 @@ export const SEASONAL_ONLY_PHRASES = ['a gift they', 'gift your team', 'perfect 
  * @param {Object} [o]
  * @param {'direct'|'broker'} [o.channel]  broker adds the carrier-fund angle
  * @param {boolean} [o.seasonal]           allow the "gift" framing (holiday only)
+ * @param {boolean} [o.remote]             prospect is distributed → surface virtual
  */
-export function buildPositioningBlock({ channel = 'direct', seasonal = false } = {}) {
+export function buildPositioningBlock({ channel = 'direct', seasonal = false, remote = false } = {}) {
   const lines = [
-    'POSITIONING (source of truth — memory/messaging_spine.md v2). Everything you write ladders to this:',
+    'POSITIONING (source of truth — memory/messaging_spine.md v3). Everything you write ladders to this:',
     `- North star (internal, do not quote): ${POSITIONING_STATEMENT}`,
     '- LEAD WITH THE PROBLEM, calm not fear-based. Reference line to adapt (do not paste verbatim):',
     `    "${PROBLEM_FIRST.medium}"`,
-    '- Value pillars (claim + proof, pick what fits, do not list all four):',
-    ...PILLARS.map((p) => `    ${p.claim}: ${p.proof}`),
+    '- THE THREE LEAD PILLARS, in this order (lead with #1, then #2, then #3 — this is what closes):',
+    ...PILLARS.map((p, i) => `    ${i + 1}. ${p.claim}: ${p.proof}`),
     `- Differentiation (the white space): ${DIFFERENTIATION.whitespace}`,
-    `- Strongest uncontested ground: ${DIFFERENTIATION.uncontested[0]} ${DIFFERENTIATION.uncontested[1]}`,
+    `- One vendor, not a directory: ${DIFFERENTIATION.vs_aggregators}`,
+    `- Service breadth (menu, NOT the headline): on-site = ${SERVICE_MENU.on_site.join(', ')}; virtual (remote/hybrid) = ${SERVICE_MENU.virtual.join(', ')}.`,
+    `- DEMOTED: ${DIFFERENTIATION.demoted_breadth}`,
     `- Proof to deploy when relevant: ${PROOF.rebook} ${PROOF.named}`,
   ];
+  if (remote) {
+    lines.push('- This prospect may have remote/hybrid staff: surface the VIRTUAL option (mindfulness, sound baths, nutrition coaching) so they hear "your whole team, wherever they are".');
+  }
   if (channel === 'broker') {
     lines.push(`- Broker angle: ${BROKER_HOOKS.carrier_funds} Frame value as: ${BROKER_HOOKS.wellness_consultant}, ${BROKER_HOOKS.producer_partner}.`);
   }
   lines.push(
-    `- DO NOT use as your differentiator (dead, everyone says them): ${DEAD_DIFFERENTIATORS.join(', ')}. "You approve a date, we do the rest" is fine as a benefit, never as the headline claim.`,
+    `- BANNED WORDS (never write them): ${DEAD_DIFFERENTIATORS.join(', ')}. CRITICAL: still LEAD with the benefit behind "turnkey" in plain words ("fully managed, you approve a date and do nothing else"). Ban the word, keep the benefit.`,
   );
   if (!seasonal) {
     lines.push('- DO NOT use "gift" framing. That is holiday-seasonal only. This is year-round operational value.');
