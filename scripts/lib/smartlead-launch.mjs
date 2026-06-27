@@ -103,3 +103,23 @@ export async function launchCampaign({ apiKey, name, cloneFromId, sequence, lead
   }
   return { ...plan, dry: false, campaign_id: id, assigned_senders: assigned, uploaded, url: `https://app.smartlead.ai/app/email-campaign/${id}/sequences` };
 }
+
+/**
+ * Edit an EXISTING campaign's copy IN PLACE (no new campaign). Smartlead has no
+ * safe one-shot replace, so: GET existing steps, DELETE each, POST the new ones.
+ * Use when Will submits draft edits to a live campaign. Leads/senders untouched.
+ * @param {Object} a  { apiKey, campaignId, sequence, fetchImpl?, dryRun? }
+ */
+export async function updateCampaignSequence({ apiKey, campaignId, sequence, fetchImpl = fetch, dryRun = false }) {
+  if (!apiKey) throw new Error('updateCampaignSequence: apiKey required');
+  if (!campaignId) throw new Error('updateCampaignSequence: campaignId required');
+  const newSeqs = toSmartleadSequences(sequence.steps || sequence);
+  if (!newSeqs.length) throw new Error('updateCampaignSequence: empty sequence');
+  if (dryRun) return { campaign_id: campaignId, would_write_steps: newSeqs.length, dry: true };
+  const existing = await sl(fetchImpl, 'GET', `/campaigns/${campaignId}/sequences`, apiKey);
+  const rows = Array.isArray(existing) ? existing : (existing.sequences || existing.data || []);
+  let deleted = 0;
+  for (const s of rows) { if (s.id != null) { await sl(fetchImpl, 'DELETE', `/campaigns/${campaignId}/sequences/${s.id}`, apiKey); deleted += 1; } }
+  await sl(fetchImpl, 'POST', `/campaigns/${campaignId}/sequences`, apiKey, { sequences: newSeqs });
+  return { campaign_id: campaignId, deleted, wrote_steps: newSeqs.length, url: `https://app.smartlead.ai/app/email-campaign/${campaignId}/sequences` };
+}

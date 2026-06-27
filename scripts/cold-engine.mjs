@@ -38,6 +38,7 @@ const TARGET = Math.max(0, parseInt(val('--target', '300'), 10) || 300);   // ne
 const SENDERS = Math.max(1, parseInt(val('--senders', '4'), 10) || 4);     // sacrificial sending mailboxes available
 const VERIFY_MAX = Math.max(TARGET, parseInt(val('--verify-max', String(TARGET)), 10) || TARGET); // how many to verify/skim (raise to land more ok)
 const CLONE = val('--clone', null);                                        // Smartlead template campaign id to clone
+const EDIT = val('--edit', null);                                          // existing campaign id → update its copy in place
 const SEGMENT = (val('--segment', 'direct') || 'direct').toLowerCase();     // direct | broker | law | realestate — NEVER mix
 const REGION = val('--region', null);                                      // eastern → NYC/Miami/Boston/Philly/DC
 const EASTERN = ['New York', 'Miami', 'Boston', 'Philadelphia', 'Washington DC'];
@@ -111,8 +112,9 @@ async function readAll(t, cols, mod) {
 }
 
 import { evaluateColdList } from './lib/cold-list-evaluator.mjs';
-import { launchCampaign } from './lib/smartlead-launch.mjs';
+import { launchCampaign, updateCampaignSequence } from './lib/smartlead-launch.mjs';
 import { COLD_SEQUENCE_V3 } from './lib/cold-sequence-v3.mjs';
+import { evaluateCopy } from './lib/copy-evaluator.mjs';
 
 // MillionVerifier one email → result code (ok|catch_all|unknown|invalid|disposable)
 async function mvVerify(email, mvKey) {
@@ -126,6 +128,24 @@ async function mvVerify(email, mvKey) {
 (async () => {
   log(`COLD ENGINE — segment ${SEGMENT.toUpperCase()} · target ${TARGET}/wk · ${SENDERS} senders · dry=${!CONFIRM}`);
 
+  // --edit <campaignId>: update an existing campaign's COPY in place (no new
+  // campaign, leads/senders untouched). Skips the whole lead pipeline.
+  if (EDIT) {
+    const verdict = evaluateCopy(COLD_SEQUENCE_V3);
+    log(`EDIT campaign ${EDIT}: copy verdict ${verdict.verdict.toUpperCase()} (${verdict.violations.length} violations)`);
+    if (verdict.verdict !== 'pass') { for (const v of verdict.violations) log(`  • E${v.step} ${v.rule}: ${v.detail}`); return; }
+    const SL = envKey('SMARTLEAD_API_KEY');
+    if (!SL) { log('EDIT refused: MISSING SMARTLEAD_API_KEY (openclaw .env).'); return; }
+    if (!CONFIRM) {
+      const plan = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: COLD_SEQUENCE_V3, dryRun: true });
+      log(`EDIT plan: would replace campaign ${EDIT}'s sequence with the current v3 copy (${plan.would_write_steps} steps). Re-run with --confirm.`);
+      return;
+    }
+    const res = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: COLD_SEQUENCE_V3 });
+    log(`EDIT done: campaign ${res.campaign_id} — deleted ${res.deleted} old steps, wrote ${res.wrote_steps}. ${res.url}`);
+    return;
+  }
+
   // ---------- DISCOVERY ----------
   let belief = null;
   if (existsSync(`${ROOT}/belief_model.json`)) {
@@ -134,7 +154,7 @@ async function mvVerify(email, mvKey) {
   log(belief ? `belief model loaded (${belief.generated_at})` : 'no belief_model.json — using evaluator defaults');
 
   // load context sets + firmographics, once
-  const contacts = await readAll('outreach_contacts', 'email, name, company, title, email_domain, location, source, crm_company_id, broker_track, mv_status');
+  const contacts = await readAll('outreach_contacts', 'email, name, company, title, email_domain, location, source, crm_company_id, broker_track, mv_status, channel, graduated_at');
   const sends = await readAll('outreach_sends', 'email, campaign_id');
   const persons = await readAll('apollo_person_cache', 'email, email_domain, company_headcount');
   const companies = await readAll('crm_companies', 'contact_domains, completed_events, ext_employee_size');
@@ -170,6 +190,7 @@ async function mvVerify(email, mvKey) {
   for (const o of contacts) {
     const e = lc(o.email); if (!e || contactedAll.has(e)) continue;          // unsent only
     if (supp.has(e) || personalLane.has(e)) continue;
+    if (o.channel === 'personal' || o.graduated_at) continue;               // graduated to personal — never re-cold
     const dom = lc(o.email_domain)?.replace(/^www\./, '') || (e.includes('@') ? e.split('@')[1] : null);
     if (dom && clientDomains.has(dom)) continue;
     const hc = hcByEmail.get(e) || (dom ? hcByDom.get(dom) : 0) || 0;
