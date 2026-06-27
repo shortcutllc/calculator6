@@ -45,7 +45,7 @@ export function assigneeForGmail(email) {
 /** Pull a rep first-name out of a Smartlead campaign_name (" - Will", "- Jaimie"). */
 export function repFromCampaignName(campaignName) {
   if (!campaignName) return null;
-  const m = String(campaignName).match(/[-–—]\s*(Will|Jaimie|Marc|Caren)\b/i);
+  const m = String(campaignName).match(/\b(Will|Jaimie|Marc|Caren)\b/i);
   if (!m) return null;
   const first = m[1].toLowerCase();
   const hit = CANONICAL.find((x) => x.first === first);

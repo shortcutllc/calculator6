@@ -16,6 +16,7 @@
  *   node scripts/graduate-replies.mjs --confirm  # write channel/graduated state
  */
 
+import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { assigneeForGmail, repFromCampaignName } from '../netlify/functions/lib/assignee.js';
 
@@ -73,16 +74,28 @@ async function readAll(t, cols, mod) {
     }
   }
 
+  // Smartlead cache: email → campaign_name. Richer owner-via-campaign source for
+  // legacy Smartlead sends (no sender_email). repFromCampaignName now matches the
+  // rep name anywhere ("| Will", "Jaimie Campaign", "Will MHAM"), not just "- Will".
+  let cacheName = new Map();
+  try {
+    const leads = JSON.parse(readFileSync('/Users/willnewton/.openclaw/workspace/smartlead_cache.json', 'utf8')).leads || {};
+    cacheName = new Map(Object.entries(leads).map(([k, v]) => [lc(k), v?.campaign_name || null]));
+  } catch { /* cache optional */ }
+  const resolveOwner = (email) => coldOwner.get(email)?.owner || repFromCampaignName(cacheName.get(email)) || null;
+
   // Candidates: positive reply + was reached cold + not already graduated.
   const toGraduate = [];
   for (const email of positives) {
     if (!coldOwner.has(email)) continue;                 // not a cold lead
     const c = contactByEmail.get(email);
     if (c && (c.channel === 'personal' || c.graduated_at)) continue; // already graduated
-    toGraduate.push({ email, owner: coldOwner.get(email).owner, name: c?.name || null, company: c?.company || null });
+    toGraduate.push({ email, owner: resolveOwner(email), name: c?.name || null, company: c?.company || null });
   }
 
+  const owned = toGraduate.filter((g) => g.owner).length;
   log(`\nPositive cold replies ready to graduate: ${toGraduate.length}`);
+  log(`  owner assigned: ${owned} (${toGraduate.length ? Math.round(owned / toGraduate.length * 100) : 0}%) · unassigned: ${toGraduate.length - owned}`);
   for (const g of toGraduate.slice(0, 25)) log(`  ${g.email.padEnd(38)} owner=${g.owner || '?'}  ${g.company || ''}`);
   if (toGraduate.length > 25) log(`  …and ${toGraduate.length - 25} more`);
 
