@@ -116,10 +116,8 @@ export async function updateCampaignSequence({ apiKey, campaignId, sequence, fet
   const newSeqs = toSmartleadSequences(sequence.steps || sequence);
   if (!newSeqs.length) throw new Error('updateCampaignSequence: empty sequence');
   if (dryRun) return { campaign_id: campaignId, would_write_steps: newSeqs.length, dry: true };
-  const existing = await sl(fetchImpl, 'GET', `/campaigns/${campaignId}/sequences`, apiKey);
-  const rows = Array.isArray(existing) ? existing : (existing.sequences || existing.data || []);
-  let deleted = 0;
-  for (const s of rows) { if (s.id != null) { await sl(fetchImpl, 'DELETE', `/campaigns/${campaignId}/sequences/${s.id}`, apiKey); deleted += 1; } }
+  // Smartlead POST /sequences is a full "save sequences" that REPLACES the whole
+  // set (there is no per-step DELETE endpoint), so just POST the new sequence.
   await sl(fetchImpl, 'POST', `/campaigns/${campaignId}/sequences`, apiKey, { sequences: newSeqs });
-  return { campaign_id: campaignId, deleted, wrote_steps: newSeqs.length, url: `https://app.smartlead.ai/app/email-campaign/${campaignId}/sequences` };
+  return { campaign_id: campaignId, wrote_steps: newSeqs.length, url: `https://app.smartlead.ai/app/email-campaign/${campaignId}/sequences` };
 }

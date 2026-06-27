@@ -144,7 +144,7 @@ async function mvVerify(email, mvKey) {
       return;
     }
     const res = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: SEQ });
-    log(`EDIT done: campaign ${res.campaign_id} — deleted ${res.deleted} old steps, wrote ${res.wrote_steps}. ${res.url}`);
+    log(`EDIT done: campaign ${res.campaign_id} — replaced sequence, wrote ${res.wrote_steps} steps. ${res.url}`);
     return;
   }
 
