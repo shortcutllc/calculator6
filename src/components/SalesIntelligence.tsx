@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, Briefcase } from 'lucide-react';
+import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, Briefcase, Workflow } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 import { createLandingPageForLead } from '../services/WorkhumanLeadService';
 import { useAuth } from '../contexts/AuthContext';
+import SystemLoopDiagram from './SystemLoopDiagram';
 
 // Rep email → first name (for timestamped notes). Mirrors WorkhumanLeads.
 const REP_EMAIL_TO_FIRST_NAME: Record<string, string> = {
@@ -14,7 +15,7 @@ const REP_EMAIL_TO_FIRST_NAME: Record<string, string> = {
   'caren@getshortcut.co': 'Caren',
 };
 
-type TabId = 'playA' | 'playB' | 'followups' | 'brokers' | 'drafts' | 'recon';
+type TabId = 'playA' | 'playB' | 'followups' | 'brokers' | 'drafts' | 'recon' | 'loop';
 interface SavedDraftRow {
   id: string; recipient_email: string | null; subject: string; body: string;
   direction_label: string | null; source_company: string | null; source_contact: string | null;
@@ -1527,6 +1528,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'brokers', label: 'Brokers', icon: <Briefcase size={18} /> },
   { id: 'drafts', label: 'Drafts', icon: <Bookmark size={18} /> },
   { id: 'recon', label: 'Reconciliation', icon: <BarChart3 size={18} /> },
+  { id: 'loop', label: 'System', icon: <Workflow size={18} /> },
 ];
 
 function exportCSV(rows: Record<string, unknown>[], filename: string) {
@@ -1543,7 +1545,7 @@ function exportCSV(rows: Record<string, unknown>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-const VALID_TABS: TabId[] = ['playA', 'playB', 'followups', 'brokers', 'drafts', 'recon'];
+const VALID_TABS: TabId[] = ['playA', 'playB', 'followups', 'brokers', 'drafts', 'recon', 'loop'];
 const FU_CACHE_KEY = 'sales_intel.followups.v1';
 const FU_CACHE_TTL_MS = 30 * 60 * 1000;
 
@@ -3322,6 +3324,8 @@ const SalesIntelligence: React.FC = () => {
             </table>
           )}
         </div>
+      ) : tab === 'loop' ? (
+        <SystemLoopDiagram />
       ) : (
         <div className="space-y-4">
           {recon.map((r) => (
