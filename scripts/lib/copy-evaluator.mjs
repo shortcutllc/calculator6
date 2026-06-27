@@ -94,6 +94,20 @@ export function evaluateCopy(sequence, opts = {}) {
     // spine — hard
     for (const p of DEAD_DIFFERENTIATORS) if (lc(all).includes(lc(p))) flag(bp.step, 'dead_differentiator', `"${p}" — dead as a differentiator`);
     if (!seasonal) for (const p of SEASONAL_ONLY_PHRASES) if (lc(all).includes(lc(p))) flag(bp.step, 'seasonal_gift', `"${p}" — gift framing is holiday-only`);
+
+    // FACT (all steps): massage is chair/table in a conference room turned spa, NEVER at desks.
+    if (/\bat\s+(?:their\s+|your\s+)?desks?\b/i.test(all) || /\bdesk-?side\b/i.test(all)) flag(bp.step, 'massage_at_desk', 'massage is chair/table in a conference room, never "at desks"');
+
+    // E1 PLACEMENT (the acquisition lead): massage-led, breadth-signalling, no remote/virtual.
+    if (bp.step === 1) {
+      if (/\b(remote|virtual|hybrid|distributed)\b/i.test(all)) flag(1, 'e1_mentions_remote', 'E1 must not mention remote/virtual (that is a later-touch objection-handler, not the acquisition lead)');
+      const svc = [...all.matchAll(/\b(massage|nails|facials|grooming|headshots|mindfulness|nutrition|sound ?bath)\b/gi)].map((m) => m[1].toLowerCase());
+      if (!svc.length) flag(1, 'e1_no_service', 'E1 names no service');
+      else if (svc[0] !== 'massage') flag(1, 'massage_not_leading', `E1 leads with ${svc[0]}, not massage (massage is the hero service)`);
+      const nonMassage = svc.some((s) => s !== 'massage');
+      const oneTeam = /one team|one vendor|all from one/i.test(all);
+      if (!nonMassage || !oneTeam) flag(1, 'no_breadth_signal', 'E1 must signal breadth: a non-massage service AND a one-team/one-vendor phrase');
+    }
   }
 
   const verdict = v.length === 0 ? 'pass' : 'reject';

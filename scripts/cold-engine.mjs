@@ -39,6 +39,8 @@ const SENDERS = Math.max(1, parseInt(val('--senders', '4'), 10) || 4);     // sa
 const VERIFY_MAX = Math.max(TARGET, parseInt(val('--verify-max', String(TARGET)), 10) || TARGET); // how many to verify/skim (raise to land more ok)
 const CLONE = val('--clone', null);                                        // Smartlead template campaign id to clone
 const EDIT = val('--edit', null);                                          // existing campaign id → update its copy in place
+const OPENER = (val('--opener', 'generic') || 'generic').toLowerCase();     // generic | rto (segment-level E1 A/B)
+const SEQ = coldSequenceV3(['generic', 'rto'].includes(OPENER) ? OPENER : 'generic');
 const SEGMENT = (val('--segment', 'direct') || 'direct').toLowerCase();     // direct | broker | law | realestate — NEVER mix
 const REGION = val('--region', null);                                      // eastern → NYC/Miami/Boston/Philly/DC
 const EASTERN = ['New York', 'Miami', 'Boston', 'Philadelphia', 'Washington DC'];
@@ -113,7 +115,7 @@ async function readAll(t, cols, mod) {
 
 import { evaluateColdList } from './lib/cold-list-evaluator.mjs';
 import { launchCampaign, updateCampaignSequence } from './lib/smartlead-launch.mjs';
-import { COLD_SEQUENCE_V3 } from './lib/cold-sequence-v3.mjs';
+import { coldSequenceV3 } from './lib/cold-sequence-v3.mjs';
 import { evaluateCopy } from './lib/copy-evaluator.mjs';
 
 // MillionVerifier one email → result code (ok|catch_all|unknown|invalid|disposable)
@@ -131,17 +133,17 @@ async function mvVerify(email, mvKey) {
   // --edit <campaignId>: update an existing campaign's COPY in place (no new
   // campaign, leads/senders untouched). Skips the whole lead pipeline.
   if (EDIT) {
-    const verdict = evaluateCopy(COLD_SEQUENCE_V3);
+    const verdict = evaluateCopy(SEQ);
     log(`EDIT campaign ${EDIT}: copy verdict ${verdict.verdict.toUpperCase()} (${verdict.violations.length} violations)`);
     if (verdict.verdict !== 'pass') { for (const v of verdict.violations) log(`  • E${v.step} ${v.rule}: ${v.detail}`); return; }
     const SL = envKey('SMARTLEAD_API_KEY');
     if (!SL) { log('EDIT refused: MISSING SMARTLEAD_API_KEY (openclaw .env).'); return; }
     if (!CONFIRM) {
-      const plan = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: COLD_SEQUENCE_V3, dryRun: true });
+      const plan = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: SEQ, dryRun: true });
       log(`EDIT plan: would replace campaign ${EDIT}'s sequence with the current v3 copy (${plan.would_write_steps} steps). Re-run with --confirm.`);
       return;
     }
-    const res = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: COLD_SEQUENCE_V3 });
+    const res = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: SEQ });
     log(`EDIT done: campaign ${res.campaign_id} — deleted ${res.deleted} old steps, wrote ${res.wrote_steps}. ${res.url}`);
     return;
   }
@@ -312,7 +314,7 @@ async function mvVerify(email, mvKey) {
   }
   const SMARTLEAD = envKey('SMARTLEAD_API_KEY');
   // Default to the approved v3 copy; --clone <id> overrides to clone a template.
-  const launchOpts = { apiKey: SMARTLEAD, name: campaignName, leads: bundle.leads, cloneFromId: CLONE, sequence: CLONE ? undefined : COLD_SEQUENCE_V3 };
+  const launchOpts = { apiKey: SMARTLEAD, name: campaignName, leads: bundle.leads, cloneFromId: CLONE, sequence: CLONE ? undefined : SEQ };
   if (!(DO_LAUNCH && CONFIRM)) {
     try {
       const plan = await launchCampaign({ ...launchOpts, dryRun: true });

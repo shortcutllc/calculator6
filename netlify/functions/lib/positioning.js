@@ -110,6 +110,7 @@ export function buildPositioningBlock({ channel = 'direct', seasonal = false, re
     `- Differentiation (the white space): ${DIFFERENTIATION.whitespace}`,
     `- One vendor, not a directory: ${DIFFERENTIATION.vs_aggregators}`,
     `- Service breadth (menu, NOT the headline): on-site = ${SERVICE_MENU.on_site.join(', ')}; virtual (remote/hybrid) = ${SERVICE_MENU.virtual.join(', ')}.`,
+    '- FACT (same class as never-fabricate): massage is delivered as chair or table in a conference room turned into a spa-like space. NEVER say massage "at their desks" / "at desk".',
     `- DEMOTED: ${DIFFERENTIATION.demoted_breadth}`,
     `- REAL proof (use these EXACT figures/names when proof helps): ${PROOF.booked} ${PROOF.rebook} ${PROOF.scale} ${PROOF.land_expand}`,
     `- NO FABRICATION: only the proof above and the names ${PROOF.named} may appear. NEVER invent or estimate a number, and do NOT name other clients (PwC, TripAdvisor, etc.) without clearance. If you lack a stat, omit it.`,
