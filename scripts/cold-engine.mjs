@@ -273,7 +273,13 @@ async function mvVerify(email, mvKey) {
   // ---------- CRITIQUE (the skeptic) ----------
   const ctx = { suppressed: supp, clientDomains, contacted: contactedAll, personalLane, senderCount: SENDERS };
   const goodBands = belief ? new Set((belief.who?.size_band || []).filter((b) => b.reply_lb95 > 0 && b.confidence !== 'insufficient').map((b) => b.value)) : undefined;
-  const verdict = evaluateColdList(working, ctx, goodBands && goodBands.size ? { goodBands } : {});
+  const evalOpts = goodBands && goodBands.size ? { goodBands } : {};
+  // Vertical pools (law / realestate / broker) are precision-pulled by their own
+  // vertical titles + industry, so the generic converting-title floor (calibrated
+  // for the direct HR/OfficeMgr ICP — e.g. a CLE Manager scores as "Other") does
+  // not apply: the whole pool IS the ICP by construction. Relax it off-direct.
+  if (SEGMENT !== 'direct') evalOpts.minGoodTitleRate = 0;
+  const verdict = evaluateColdList(working, ctx, evalOpts);
 
   log('================ SKEPTIC VERDICT ================');
   log(`verdict: ${verdict.verdict.toUpperCase()}  · score ${verdict.score}`);
