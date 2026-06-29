@@ -196,6 +196,17 @@ async function mvVerify(email, mvKey) {
     if (d && hc && !hcByDom.has(d)) hcByDom.set(d, hc);
   }
 
+  // Per-lead CLE landing page by state (accredited NY/FL/PA only; NY = default
+  // /cle). Powers the {{cle_url}} merge tag in the law E3 so each firm gets its
+  // own state's page. Never points anywhere we are not accredited.
+  const CLE_BASE = 'https://proposals.getshortcut.co';
+  const cleUrlFor = (loc) => {
+    const s = (loc || '').toLowerCase();
+    if (/pennsylvania|philadelph|pittsburgh|\bpa\b/.test(s)) return `${CLE_BASE}/cle/pa`;
+    if (/florida|miami|tampa|orlando|fort lauderdale|jacksonville|\bfl\b/.test(s)) return `${CLE_BASE}/cle/fl`;
+    return `${CLE_BASE}/cle`; // New York (and safe default)
+  };
+
   // CANDIDATE POOL = leads we have but have NEVER sent to (ready to launch)
   const candidates = [];
   for (const o of contacts) {
@@ -211,7 +222,7 @@ async function mvVerify(email, mvKey) {
     if (o.broker_track || (dom && brokerDomains.has(dom))) segment = 'broker';
     else if ((o.source || '').endsWith('-law')) segment = 'law';
     else if ((o.source || '').endsWith('-realestate')) segment = 'realestate';
-    candidates.push({ email: e, email_domain: dom, name: o.name || null, company: o.company || null, title_cat: titleCat(o.title), size_band: sizeBand(hc), mv_status: o.mv_status || null, source: o.source || null, segment, hub: hubOf(o.location) });
+    candidates.push({ email: e, email_domain: dom, name: o.name || null, company: o.company || null, title_cat: titleCat(o.title), size_band: sizeBand(hc), mv_status: o.mv_status || null, source: o.source || null, segment, hub: hubOf(o.location), cle_url: cleUrlFor(o.location) });
   }
   const bySeg = candidates.reduce((m, c) => { m[c.segment] = (m[c.segment] || 0) + 1; return m; }, {});
   let pool = candidates.filter((c) => c.segment === SEGMENT);
@@ -314,7 +325,11 @@ async function mvVerify(email, mvKey) {
         first_name: first || '',
         last_name: rest.join(' '),
         company_name: l.company || '',
-        custom_fields: { title_cat: l.title_cat, size_band: l.size_band, mv: l.mv_status || '', source: l.source || '' },
+        custom_fields: {
+          title_cat: l.title_cat, size_band: l.size_band, mv: l.mv_status || '', source: l.source || '',
+          // Law E3 links each firm to ITS state's CLE page via {{cle_url}}.
+          ...(SEGMENT === 'law' ? { cle_url: l.cle_url || `https://proposals.getshortcut.co/cle` } : {}),
+        },
       };
     }),
   };

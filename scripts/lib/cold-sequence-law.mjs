@@ -65,17 +65,22 @@ Following up on the note below. {Wondering if we could connect?|Worth a quick ch
 %sender-firstname%`,
 };
 
-// E3 — the wellness-day upsell + utilization proof. One link allowed.
+// E3 — the wellness-day upsell + utilization proof, with the state CLE page.
+// {{cle_url}} resolves per lead to their state's page (NY /cle, FL /cle/fl,
+// PA /cle/pa) — set in cold-engine custom_fields. The page shows the accredited
+// session AND the wellness-day packages, so it matches this email exactly.
 const E3 = {
   step: 3, delayDays: 4,
   subjects: [''],
   body: `{Hi|Hey} {{first_name}},
 
-{One more thought|A quick add}. While you have everyone in the room, many firms make it a full day.
+{One more thought|A quick add}. While you have everyone together for the session, many firms make it a full day.
 
-{We add chair massage in a conference room turned spa, plus nails and facials|On top of the session, we run chair massage, nails, and facials}, all from one team. {It is the part people actually show up for|It is the part attorneys actually book}. Over 90% of slots get booked, and 87% of firms rebook.
+{We add chair massage in a conference room turned spa, plus nails and facials|On top of the CLE, we run chair massage, nails, and facials}, all from one team. {It is the part people actually show up for|It is the part attorneys actually book}. Over 90% of slots get booked, and 87% of firms rebook.
 
-{Happy to share a quick overview|Open to sending a short overview whenever works}. {Just reply and I will send it over|Worth a short call?}
+You can see the accredited session and the full day here: {{cle_url}}
+
+{Happy to talk it through|Open to a quick call whenever works}. {Just reply and I will answer questions|Worth a short call?}
 
 {Warmly,|Thanks,}
 %sender-firstname%`,
