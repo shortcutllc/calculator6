@@ -212,7 +212,7 @@ async function processLead(sb, anthropic, g, { dryRun }) {
   let drafted;
   try {
     drafted = await draftReply(anthropic, {
-      repFirstName: repEmail.split('@')[0],
+      repFirstName: (ownerName.split(' ')[0] || repEmail.split('@')[0]),
       name, title: pic.identity?.title || null, company,
       industry: pic.identity?.industry || null,
       replyContent: replyText,
