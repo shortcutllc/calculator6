@@ -41,6 +41,7 @@ const CONFIRM = has('--confirm');
 const CITY = val('--city', 'New York Metropolitan Area');   // NYC default (openclaw metro string)
 const USE_MV = !has('--no-mv');
 const INCLUDE_LAW_RE = has('--include-law-re');
+const VERTICAL = (val('--vertical', '') || '').toLowerCase();   // '' (direct) | law | realestate
 
 // Proven ICP titles + include_similar_titles so Apollo auto-matches variants.
 const TITLES = [
@@ -50,6 +51,40 @@ const TITLES = [
   'Employee Experience', 'Workplace Experience', 'Workplace Manager',
   'Facilities Manager', 'Events Manager',
 ];
+// Vertical title-sets (from memory/vertical_law_firm_gtm.md + vertical_real_estate_gtm.md).
+// Post-gated to the vertical's industry below, so generic titles (e.g. "Community
+// Manager") only survive at a law firm / real-estate co. For LAW CLE, run with a
+// NY/FL/PA --city (accreditation gating); the cle sequence only ships there.
+const VERTICAL_TITLES = {
+  // Precise CLE-organizer + wellness-organizer roles (research 2026-06-29, see
+  // memory/vertical_law_firm_gtm.md "Apollo title strings"). include_similar_titles
+  // expands variants; the law-practice industry tag keeps the generic ones clean.
+  law: [
+    // CLE / Professional Development organizers (book the session)
+    'CLE Manager', 'CLE Coordinator', 'CLE and Events Manager',
+    'Director of Professional Development', 'Professional Development Manager',
+    'Professional Development Coordinator', 'Director of Attorney Development',
+    'Manager of Attorney Development', 'Director of Talent Development', 'Chief Talent Officer',
+    'Learning and Development Manager',
+    // Wellbeing owners + event logistics (gated to law practice)
+    'Director of Wellbeing', 'Director of Attorney Well-Being', 'Manager of Benefits and Wellness',
+    'Director of Administration', 'Firm Administrator', 'Manager of Events and Conference Services',
+  ],
+  realestate: [
+    'Tenant Experience Manager', 'Director of Tenant Experience', 'Director of Amenities',
+    'Community Manager', 'Member Experience Manager', 'Director of Member Experience',
+    'Property Manager', 'General Manager', 'Asset Manager', 'Workplace Experience Manager',
+    'Head of Hospitality', 'Resident Experience Manager', 'Lifestyle Manager',
+  ],
+};
+const EFFECTIVE_TITLES = (VERTICAL && VERTICAL_TITLES[VERTICAL]) ? VERTICAL_TITLES[VERTICAL] : TITLES;
+// Apollo industry tag IDs to CONSTRAIN a vertical search to its own industry at
+// the API level (the vertical titles alone are too generic — "Property Manager"
+// / "Community Manager" exist everywhere). Verified from CBRE/JLL/Wachtell/etc.
+const VERTICAL_INDUSTRY_TAGS = {
+  law: ['5567ce1f7369644d391c0000'],          // law practice
+  realestate: ['5567cd477369645401010000'],   // real estate
+};
 const SIZE_RANGES = ['201,500', '501,1000', '1001,2000', '2001,5000'];
 
 // Apollo email_status we accept (reject guessed/unavailable/null). (openclaw)
@@ -196,7 +231,9 @@ async function upsert(table, rows, conflict) {
 }
 
 (async () => {
-  log(`ICP: ${TITLES.length} titles (+similar) × sizes ${SIZE_RANGES.join('/')} · CITY "${CITY}" · pages ${PAGES} · MV ${USE_MV ? 'on' : 'off'}`);
+  log(`ICP${VERTICAL ? ` [VERTICAL=${VERTICAL}]` : ''}: ${EFFECTIVE_TITLES.length} titles (+similar) × sizes ${SIZE_RANGES.join('/')} · CITY "${CITY}" · pages ${PAGES} · MV ${USE_MV ? 'on' : 'off'}`);
+  if (VERTICAL === 'law') log('  LAW pull: post-gated to law practice/legal services, tagged apollo-leadgen-law. For the CLE sequence, use a NY/FL/PA --city (we are accredited only there).');
+  if (VERTICAL === 'realestate') log('  REAL-ESTATE pull: post-gated to real estate, tagged apollo-leadgen-realestate.');
   const known = await loadKnown();
   log(`known: cache ${known.cacheIds.size} ids / suppression ${known.supp.size} / contacts ${known.known.size} / client-domains ${known.clientDomains.size}`);
 
@@ -205,11 +242,14 @@ async function upsert(table, rows, conflict) {
   let total = 0;
   for (let page = 1; page <= PAGES; page += 1) {
     const j = await apollo('mixed_people/api_search', {
-      person_titles: TITLES,
+      person_titles: EFFECTIVE_TITLES,
       include_similar_titles: true,
       person_locations: [CITY],
       organization_num_employees_ranges: SIZE_RANGES,
       organization_not_industry_tag_ids: EXCLUDED_INDUSTRY_TAG_IDS,
+      // Vertical pulls constrain to the vertical's own industry (else generic
+      // titles flood the search with insurance/marketing people).
+      ...(VERTICAL && VERTICAL_INDUSTRY_TAGS[VERTICAL] ? { organization_industry_tag_ids: VERTICAL_INDUSTRY_TAGS[VERTICAL] } : {}),
       page, per_page: PER_PAGE,
     });
     total = j.total_entries ?? total;
@@ -275,7 +315,12 @@ async function upsert(table, rows, conflict) {
     // ---- POST-GATE before outbound ----
     if (!email) { gated.no_email += 1; continue; }
     if (p.email_status && !ACCEPTED_EMAIL_STATUSES.has(lc(p.email_status))) { gated.email_status += 1; continue; }
-    if (industry && !ALLOWED_INDUSTRIES.has(industry) && !LAW_INDUSTRIES.has(industry) && !RE_INDUSTRIES.has(industry)) { gated.industry += 1; continue; }
+    // Industry gate. In a VERTICAL pull, require the vertical's own industry (so
+    // generic titles only survive at a law firm / real-estate co). Otherwise the
+    // normal allowed-industry gate (law/RE pass through to be tagged + segmented).
+    if (VERTICAL === 'law') { if (!LAW_INDUSTRIES.has(industry)) { gated.industry += 1; continue; } }
+    else if (VERTICAL === 'realestate') { if (!RE_INDUSTRIES.has(industry)) { gated.industry += 1; continue; } }
+    else if (industry && !ALLOWED_INDUSTRIES.has(industry) && !LAW_INDUSTRIES.has(industry) && !RE_INDUSTRIES.has(industry)) { gated.industry += 1; continue; }
     if (known.supp.has(email)) { gated.suppressed += 1; continue; }
     if (known.known.has(email)) { gated.known += 1; continue; }
     if (dom && known.clientDomains.has(dom)) { gated.client += 1; continue; }
@@ -288,9 +333,12 @@ async function upsert(table, rows, conflict) {
       await sleep(80);
     }
 
-    // Law / real estate → separate source (excluded from main cold pool).
+    // Law / real estate → separate source (own segment). A VERTICAL pull tags
+    // explicitly; otherwise law/RE encountered incidentally are tagged + split.
     let source = 'apollo-leadgen';
-    if (!INCLUDE_LAW_RE) {
+    if (VERTICAL === 'law') { source = 'apollo-leadgen-law'; lawRe += 1; }
+    else if (VERTICAL === 'realestate') { source = 'apollo-leadgen-realestate'; lawRe += 1; }
+    else if (!INCLUDE_LAW_RE) {
       if (LAW_INDUSTRIES.has(industry)) { source = 'apollo-leadgen-law'; lawRe += 1; }
       else if (RE_INDUSTRIES.has(industry)) { source = 'apollo-leadgen-realestate'; lawRe += 1; }
     }
