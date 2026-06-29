@@ -19,9 +19,14 @@ eq(classifyArchetype({ industry: 'management consulting', employees: '35000', si
 eq(classifyArchetype({ industry: 'financial services', signals: { keywords: ['fintech', 'investing app', 'platform'] } }).archetype, 'high_growth_tech', 'fintech via keywords');
 eq(classifyArchetype({ industry: 'financial services' }).archetype, 'elite_prof_services', 'bare financial services → finance/elite');
 
-// Ambiguous MEDIA: adtech (high tech) → tech; bare agency → other (NOT elite).
-eq(classifyArchetype({ industry: 'marketing & advertising', signals: { technology_count: 60 } }).archetype, 'high_growth_tech', 'adtech via tech footprint');
+// Ambiguous MEDIA: adtech (tech keywords) → tech; bare agency → other (NOT elite).
+eq(classifyArchetype({ industry: 'marketing & advertising', signals: { keywords: ['adtech', 'platform'] } }).archetype, 'high_growth_tech', 'adtech via tech keywords');
 eq(classifyArchetype({ industry: 'marketing & advertising' }).archetype, 'other', 'bare agency → other, not elite');
+
+// A big traditional insurer (high tech_count from size, public, no fintech keywords) must NOT flip to tech.
+eq(classifyArchetype({ industry: 'financial services', employees: '12000', signals: { technology_count: 90, is_public: true, founded_year: 1845, keywords: ['insurance', 'annuities', 'retirement'] } }).archetype, 'elite_prof_services', 'big public insurer stays finance, not tech');
+// A young private fintech with high tech_count but sparse keywords → tech via startup shape.
+eq(classifyArchetype({ industry: 'financial services', signals: { technology_count: 70, is_public: false, founded_year: 2016 } }).archetype, 'high_growth_tech', 'young private fintech via startup-tech shape');
 
 // Non-prime industries → other.
 eq(classifyArchetype({ industry: 'hospital & health care' }).archetype, 'other', 'healthcare → other');

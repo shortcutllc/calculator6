@@ -69,9 +69,14 @@ export function classifyArchetype(input = {}) {
   if (TECH_VERTICALS.has(ind)) { archetype = 'high_growth_tech'; score = 70; reasons.push(`tech vertical: ${ind}`); }
   else if (PROF_SERVICES.has(ind)) { archetype = 'elite_prof_services'; score = 70; reasons.push(`professional services: ${ind}`); }
   else if (AMBIG_FINANCE.has(ind) || AMBIG_MEDIA.has(ind)) {
-    if (highTech || techKw) { archetype = 'high_growth_tech'; score = 55; reasons.push(`${ind} + tech footprint (${techCount ?? '?'} tech${techKw ? ', tech keywords' : ''}) → tech-enabled`); }
-    else if (AMBIG_FINANCE.has(ind)) { archetype = 'elite_prof_services'; score = 50; needsSignal = !hasSig; reasons.push(`${ind}, ${hasSig ? 'low tech footprint' : 'NO tech signal yet (guess)'} → finance`); }
-    else { archetype = 'other'; needsSignal = !hasSig; reasons.push(`${ind}, ${hasSig ? 'no tech footprint' : 'NO tech signal yet (guess)'} → traditional agency/media`); }
+    // A big traditional insurer/bank ALSO has a huge tech stack — so raw
+    // technology_count alone is NOT a fintech signal. Flip to tech only on
+    // tech-SPECIFIC keywords (fintech/platform/api/...) OR a young-private-funded
+    // profile (the actual startup shape). A large public firm stays in finance.
+    const startupTech = highTech && !sig.is_public && (founded ? founded >= 2005 : false);
+    if (techKw || startupTech) { archetype = 'high_growth_tech'; score = 55; reasons.push(`${ind} + ${techKw ? 'tech keywords' : `young private tech (${techCount} tech, ${founded})`} → tech-enabled`); }
+    else if (AMBIG_FINANCE.has(ind)) { archetype = 'elite_prof_services'; score = 50; needsSignal = !hasSig; reasons.push(`${ind}, ${hasSig ? 'no fintech signal' : 'NO tech signal yet (guess)'} → finance`); }
+    else { archetype = 'other'; needsSignal = !hasSig; reasons.push(`${ind}, ${hasSig ? 'no adtech signal' : 'NO tech signal yet (guess)'} → traditional agency/media`); }
   } else if (!ind) {
     needsSignal = true; reasons.push('no industry signal — enrich to classify');
   } else {
