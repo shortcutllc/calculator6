@@ -20,10 +20,15 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
+import { classifyArchetype } from './lib/archetype.mjs';
 
 const ROOT = '/Users/willnewton/Documents/GitHub/calculator6';
 const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
 const CONFIRM = process.argv.includes('--confirm');
+// --gaps: enrich the companies the archetype classifier is GUESSING on (ambiguous
+// vertical with no tech signal, or no industry) — go get the deciding signal
+// exactly where it changes the answer, instead of blanket-enriching everything.
+const GAPS = process.argv.includes('--gaps');
 const CACHE = `${ROOT}/apollo_org_cache.json`;
 
 const envKey = (name) => {
@@ -65,17 +70,33 @@ const signalsOf = (o) => ({
 
 (async () => {
   log(CONFIRM ? 'BACKFILL — LIVE (spends Apollo credits + writes)' : 'BACKFILL — dry run (no spend, no writes)');
-  const persons = await readAll('apollo_person_cache', 'email_domain, industry');
+  const persons = await readAll('apollo_person_cache', 'email_domain, company_headcount, industry');
   const domKnown = new Set(persons.filter((p) => p.industry).map((p) => lc(p.email_domain)));
-  const co = await readAll('crm_companies', 'id, display_name, completed_events, contact_domains, ext_industry, is_internal, special_handling');
-  const clients = co.filter((c) => !c.is_internal && !c.special_handling && c.completed_events > 0);
-  const missing = clients.filter((c) => !c.ext_industry && !(c.contact_domains || []).some((d) => domKnown.has(lc(d))));
-  const targets = missing.map((c) => ({ ...c, dom: firstDom(c) })).filter((c) => c.dom);
+  const co = await readAll('crm_companies', 'id, display_name, completed_events, contact_domains, ext_industry, ext_employee_size, is_internal, special_handling');
+  const cachePre = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, 'utf8')) : {};
+
+  let targets;
+  if (GAPS) {
+    // modal industry by domain (the score-companies fallback) so we classify the
+    // same way the classifier does, then keep only the ones it is guessing on.
+    const domAgg = new Map();
+    for (const p of persons) { const d = lc(p.email_domain); if (!d) continue; if (!domAgg.has(d)) domAgg.set(d, {}); if (p.industry) domAgg.get(d)[p.industry] = (domAgg.get(d)[p.industry] || 0) + 1; }
+    const domInd = (ds) => { for (const d of ds || []) { const e = domAgg.get(lc(d)); if (e) return Object.entries(e).sort((a, b) => b[1] - a[1])[0]?.[0] || null; } return null; };
+    targets = co.filter((c) => !c.is_internal && !c.special_handling).map((c) => {
+      const sig = (c.contact_domains || []).map((d) => cachePre[lc(d)]).find(Boolean) || null;
+      const r = classifyArchetype({ industry: c.ext_industry || sig?.industry || domInd(c.contact_domains), employees: c.ext_employee_size, signals: sig });
+      return { ...c, dom: firstDom(c), needs: r.needs_signal };
+    }).filter((c) => c.needs && c.dom && !cachePre[c.dom]);   // guessing + enrichable + not already enriched
+  } else {
+    const clients = co.filter((c) => !c.is_internal && !c.special_handling && c.completed_events > 0);
+    const missing = clients.filter((c) => !c.ext_industry && !(c.contact_domains || []).some((d) => domKnown.has(lc(d))));
+    targets = missing.map((c) => ({ ...c, dom: firstDom(c) })).filter((c) => c.dom);
+  }
 
   // de-dupe by domain (LVMH brands share lvmhuspc.com etc.) — enrich once, apply to all
   const byDom = new Map();
   for (const t of targets) { if (!byDom.has(t.dom)) byDom.set(t.dom, []); byDom.get(t.dom).push(t); }
-  log(`targets: ${targets.length} companies across ${byDom.size} unique domains (${missing.length - targets.length} skipped: no usable domain)`);
+  log(`${GAPS ? 'GAPS mode (classifier is guessing)' : 'missing-industry'}: ${targets.length} companies across ${byDom.size} unique domains to enrich`);
 
   const cache = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, 'utf8')) : {};
   if (!CONFIRM) {

@@ -59,15 +59,21 @@ export function classifyArchetype(input = {}) {
   const reasons = [];
   let archetype = 'other';
   let score = 0;
+  // needs_signal = the classifier is GUESSING and a tech-footprint signal would
+  // change/confirm the answer. The system should go enrich exactly these (an
+  // ambiguous vertical with no signal, or no industry at all), not default
+  // silently and not blanket-enrich everything. Curiosity, scoped.
+  let needsSignal = false;
+  const hasSig = techCount != null || (sig.keywords && sig.keywords.length);
 
   if (TECH_VERTICALS.has(ind)) { archetype = 'high_growth_tech'; score = 70; reasons.push(`tech vertical: ${ind}`); }
   else if (PROF_SERVICES.has(ind)) { archetype = 'elite_prof_services'; score = 70; reasons.push(`professional services: ${ind}`); }
   else if (AMBIG_FINANCE.has(ind) || AMBIG_MEDIA.has(ind)) {
     if (highTech || techKw) { archetype = 'high_growth_tech'; score = 55; reasons.push(`${ind} + tech footprint (${techCount ?? '?'} tech${techKw ? ', tech keywords' : ''}) → tech-enabled`); }
-    else if (AMBIG_FINANCE.has(ind)) { archetype = 'elite_prof_services'; score = 50; reasons.push(`${ind}, low tech footprint → finance`); }
-    else { archetype = 'other'; reasons.push(`${ind}, no tech footprint → traditional agency/media, not a prime cluster`); }
+    else if (AMBIG_FINANCE.has(ind)) { archetype = 'elite_prof_services'; score = 50; needsSignal = !hasSig; reasons.push(`${ind}, ${hasSig ? 'low tech footprint' : 'NO tech signal yet (guess)'} → finance`); }
+    else { archetype = 'other'; needsSignal = !hasSig; reasons.push(`${ind}, ${hasSig ? 'no tech footprint' : 'NO tech signal yet (guess)'} → traditional agency/media`); }
   } else if (!ind) {
-    reasons.push('no industry signal');
+    needsSignal = true; reasons.push('no industry signal — enrich to classify');
   } else {
     reasons.push(`"${ind}" not in a prime cluster`);
   }
@@ -85,7 +91,7 @@ export function classifyArchetype(input = {}) {
     if (highTech) { score += 5; reasons.push(`digitally sophisticated (${techCount} tech)`); }
   }
 
-  return { archetype, archetype_score: Math.min(100, score), reasons };
+  return { archetype, archetype_score: Math.min(100, score), confidence: needsSignal ? 'low' : 'high', needs_signal: needsSignal, reasons };
 }
 
 export const ARCHETYPES = ['high_growth_tech', 'elite_prof_services', 'other'];
