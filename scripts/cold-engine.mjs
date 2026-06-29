@@ -121,6 +121,7 @@ async function readAll(t, cols, mod) {
 }
 
 import { evaluateColdList } from './lib/cold-list-evaluator.mjs';
+import { cleanCompany } from './lib/clean-company.mjs';
 import { launchCampaign, updateCampaignSequence } from './lib/smartlead-launch.mjs';
 import { coldSequenceV3 } from './lib/cold-sequence-v3.mjs';
 import { coldSequenceLaw } from './lib/cold-sequence-law.mjs';
@@ -324,7 +325,7 @@ async function mvVerify(email, mvKey) {
         email: l.email,
         first_name: first || '',
         last_name: rest.join(' '),
-        company_name: l.company || '',
+        company_name: cleanCompany(l.company) || '',
         custom_fields: {
           title_cat: l.title_cat, size_band: l.size_band, mv: l.mv_status || '', source: l.source || '',
           // Law E3 links each firm to ITS state's CLE page via {{cle_url}}.

@@ -14,6 +14,7 @@ import { writeFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { preflight } from './preflight.mjs';
 import { assigneeForGmail, repFromCampaignName } from '../netlify/functions/lib/assignee.js';
+import { cleanCompany } from './lib/clean-company.mjs';
 
 const ROOT = '/Users/willnewton/Documents/GitHub/calculator6';
 const URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
@@ -300,13 +301,13 @@ async function replaceAll(table, rows) {
   const genAt = new Date().toISOString();
   await replaceAll('crm_play_a', playA.map((r, i) => ({
     rank: i + 1, play_score: r.score, fit_score: r.fit, company_id: r.company_id,
-    company_name: r.company, employees: String(r.emp), industry: r.industry,
+    company_name: cleanCompany(r.company), employees: String(r.emp), industry: r.industry,
     sites_served: r.our_sites, sites_list: r.cities,
     last_event_at: r.last_event_at, months_since_event: r.months_since_event, play_status: r.play_status,
     generated_at: genAt,
   })));
   await replaceAll('crm_play_b', playB.map((r, i) => ({
-    rank: i + 1, score: r.score, company_name: String(r.company), domain: r.domain,
+    rank: i + 1, score: r.score, company_name: cleanCompany(String(r.company)), domain: r.domain,
     employees: String(r.emp), industry: r.industry, contact_name: r.contact,
     contact_title: r.title, title_category: r.title_cat,
     contact_email: r.email, contact_linkedin: r.linkedin, contact_location: r.location,

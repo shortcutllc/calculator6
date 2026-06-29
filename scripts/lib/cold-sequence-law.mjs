@@ -25,7 +25,7 @@ const E1_CLE = {
 
 {Every attorney needs their ethics credit, and it is the one they put off|The ethics credit is mandatory, and the one most attorneys leave until last}.
 
-Shortcut is an accredited CLE provider. Our {one hour|sixty minute} Ethics and Professionalism session covers an hour of that requirement. {We handle the board submission, attendance, and reporting|We file with the board, track attendance, and report the credit}, so your firm does nothing.
+{Shortcut runs on-site wellness for over 500 companies|Shortcut brings on-site wellness to 500+ companies}, and we are an accredited CLE provider. Our {one hour|sixty minute} Ethics and Professionalism session covers an hour of that requirement. {We handle the board submission, attendance, and reporting|We file with the board, track attendance, and report the credit}, so your firm does nothing.
 
 {Led by Courtney Schulnick, a litigator of twenty years turned mindfulness teacher|Taught by Courtney Schulnick, who practiced law for two decades before teaching mindfulness}. Accredited in New York, Florida, and Pennsylvania.
 
@@ -80,7 +80,7 @@ const E3 = {
 
 You can see the accredited session and the full day here: {{cle_url}}
 
-{Happy to talk it through|Open to a quick call whenever works}. {Just reply and I will answer questions|Worth a short call?}
+{Happy to talk it through|Open to a quick call whenever works}. {Just reply and I will answer any questions.|Worth a short call?}
 
 {Warmly,|Thanks,}
 %sender-firstname%`,
