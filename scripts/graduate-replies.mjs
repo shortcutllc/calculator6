@@ -12,8 +12,12 @@
  * there as a hot reply); this step is the routing + state that feeds them.
  *
  *   export SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=...
- *   node scripts/graduate-replies.mjs            # dry: who WOULD graduate
- *   node scripts/graduate-replies.mjs --confirm  # write channel/graduated state
+ *   node scripts/graduate-replies.mjs                     # dry: who WOULD graduate
+ *   node scripts/graduate-replies.mjs --confirm           # write channel/graduated state
+ *   node scripts/graduate-replies.mjs --confirm --notify  # + auto-draft a suggested
+ *                                                         #   reply and ping each owner
+ *                                                         #   in Slack (drafts only,
+ *                                                         #   never sends)
  */
 
 import { readFileSync } from 'fs';
@@ -21,6 +25,19 @@ import { createClient } from '@supabase/supabase-js';
 import { assigneeForGmail, repFromCampaignName } from '../netlify/functions/lib/assignee.js';
 
 const CONFIRM = process.argv.includes('--confirm');
+const RESEARCH = process.argv.includes('--research');   // corroborate owners via Smartlead campaign inboxes
+const NOTIFY = process.argv.includes('--notify');       // after writing, trigger the auto-draft + Slack ping
+// Deployed graduation-notify-background endpoint (override for local/preview).
+const NOTIFY_URL = (process.env.GRADUATION_NOTIFY_URL || 'https://proposals.getshortcut.co/.netlify/functions/graduation-notify-background').trim();
+const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
+const SMARTLEAD = (() => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').match(/^SMARTLEAD_API_KEY=(.+)$/m)?.[1] || '').trim(); } catch { return ''; } })();
+// Smartlead sending domain → rep (getshortcutcorporate=Caren, shortcutcorpwellness/employeewellness=Jaimie).
+const repFromAccount = (fromEmail) => {
+  const e = lc(fromEmail); const dom = e?.split('@')[1];
+  if (dom === 'getshortcutcorporate.com') return 'Caren Skutch';
+  if (dom === 'shortcutcorpwellness.com' || dom === 'shortcutemployeewellness.com') return 'Jaimie Pritchard';
+  return assigneeForGmail(e);
+};
 const URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
 const KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 if (!/^https?:\/\//i.test(URL) || !KEY) { console.error('MISSING_ENV'); process.exit(2); }
@@ -77,10 +94,10 @@ async function readAll(t, cols, mod) {
   // Smartlead cache: email → campaign_name. Richer owner-via-campaign source for
   // legacy Smartlead sends (no sender_email). repFromCampaignName now matches the
   // rep name anywhere ("| Will", "Jaimie Campaign", "Will MHAM"), not just "- Will".
-  let cacheName = new Map();
+  const cacheName = new Map(); const cacheCid = new Map();
   try {
-    const leads = JSON.parse(readFileSync('/Users/willnewton/.openclaw/workspace/smartlead_cache.json', 'utf8')).leads || {};
-    cacheName = new Map(Object.entries(leads).map(([k, v]) => [lc(k), v?.campaign_name || null]));
+    const leads = JSON.parse(readFileSync(`${OPENCLAW}/smartlead_cache.json`, 'utf8')).leads || {};
+    for (const [k, v] of Object.entries(leads)) { const e = lc(k); cacheName.set(e, v?.campaign_name || null); cacheCid.set(e, v?.campaign_id || null); }
   } catch { /* cache optional */ }
   const resolveOwner = (email) => coldOwner.get(email)?.owner || repFromCampaignName(cacheName.get(email)) || null;
 
@@ -91,6 +108,35 @@ async function readAll(t, cols, mod) {
     const c = contactByEmail.get(email);
     if (c && (c.channel === 'personal' || c.graduated_at)) continue; // already graduated
     toGraduate.push({ email, owner: resolveOwner(email), name: c?.name || null, company: c?.company || null });
+  }
+
+  // --research: corroborate unassigned owners via the Smartlead campaign's
+  // sending inboxes (per campaign, memoized). Single-rep campaign → assign that
+  // rep; mixed-domain (Caren + Jaimie rotated) stays unassigned for human claim.
+  if (RESEARCH && SMARTLEAD) {
+    const campRep = new Map();
+    const getCampRep = async (cid) => {
+      if (!cid) return null;
+      if (campRep.has(cid)) return campRep.get(cid);
+      let rep = null;
+      try {
+        const r = await fetch(`https://server.smartlead.ai/api/v1/campaigns/${cid}/email-accounts?api_key=${SMARTLEAD}`);
+        const accs = await r.json();
+        const reps = new Set((Array.isArray(accs) ? accs : []).map((a) => repFromAccount(a.from_email || a.email)).filter(Boolean));
+        rep = reps.size === 1 ? [...reps][0] : (reps.size > 1 ? 'MIXED' : null);
+      } catch { rep = null; }
+      campRep.set(cid, rep); return rep;
+    };
+    let researched = 0;
+    for (const g of toGraduate) {
+      if (g.owner) continue;
+      const rep = await getCampRep(cacheCid.get(g.email));
+      if (rep && rep !== 'MIXED') { g.owner = rep; researched += 1; }
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    log(`  researched ${researched} more owners via Smartlead campaign inboxes`);
+  } else if (RESEARCH) {
+    log('  (--research skipped: MISSING SMARTLEAD_API_KEY)');
   }
 
   const owned = toGraduate.filter((g) => g.owner).length;
@@ -112,5 +158,22 @@ async function readAll(t, cols, mod) {
     if (error) log(`  writeback warn: ${error.message}`); else saved += rows.length;
   }
   log(`\nGRADUATED ${saved} leads to the personal lane (channel=personal). They leave cold and surface in Follow-ups for a 1:1 reply.`);
+
+  // --notify: kick the auto-draft + Slack ping for newly graduated leads.
+  // The function reads pending graduations (graduation_notified_at IS NULL)
+  // itself and is capped + idempotent, so a fire-and-forget POST is safe.
+  // It DRAFTS and PINGS only — the rep still clicks Send (human door).
+  if (NOTIFY) {
+    try {
+      const r = await fetch(NOTIFY_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
+      });
+      log(`  notify: triggered graduation-notify-background (HTTP ${r.status}). Owners get a suggested reply in Slack shortly.`);
+    } catch (e) {
+      log(`  notify warn: could not reach graduation-notify-background (${e.message}). Run it manually or wait for the cron.`);
+    }
+  } else {
+    log('  (add --notify to auto-draft a suggested reply + ping each owner in Slack)');
+  }
   log('DONE');
 })().catch((e) => { console.error('GRADUATE_ERROR:', e.message); process.exit(1); });
