@@ -31,26 +31,9 @@ export const CLE_STATE_CONFIGS: Record<string, StateConfig> = {
     sealAlt: 'Seal of the Commonwealth of Pennsylvania',
     rulesName: 'Pennsylvania Rules of Professional Conduct',
   },
-  CA: {
-    code: 'CA', name: 'California',
-    creditLabel: '1.0 CA Ethics & Professionalism Credit',
-    creditDesc: '1.0 California CLE credit in Ethics & Professionalism',
-    boardName: 'the California State Bar',
-    abbr: 'CA',
-    sealImage: '/ca-state-seal.png',
-    sealAlt: 'Seal of the State of California',
-    rulesName: 'California Rules of Professional Conduct',
-  },
-  TX: {
-    code: 'TX', name: 'Texas',
-    creditLabel: '1.0 TX Ethics & Professionalism Credit',
-    creditDesc: '1.0 Texas CLE credit in Ethics & Professionalism',
-    boardName: 'the Texas State Bar CLE Committee',
-    abbr: 'TX',
-    sealImage: '/tx-state-seal.png',
-    sealAlt: 'Seal of the State of Texas',
-    rulesName: 'Texas Disciplinary Rules of Professional Conduct',
-  },
+  // NOTE: Shortcut is CLE-accredited ONLY in NY, FL, PA. CA and TX configs were
+  // removed (we are not accredited there — their landing pages claimed State Bar
+  // approval we do not have). Do not re-add a state until accreditation is real.
   FL: {
     code: 'FL', name: 'Florida',
     creditLabel: '1.0 FL Ethics & Professionalism Credit',

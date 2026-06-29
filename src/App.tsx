@@ -62,6 +62,7 @@ const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'))
 const DraftKingsReport = lazy(() => import('./components/DraftKingsReport'));
 const DraftKingsLVReport = lazy(() => import('./components/DraftKingsLVReport'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
+const HeroGallerySample = lazy(() => import('./components/HeroGallerySample'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
@@ -919,7 +920,9 @@ function App() {
                   </Suspense>
                 }
               />
-              {['PA','CA','TX','FL'].map((st) => (
+              {/* CLE accredited ONLY in NY (default /cle), FL, PA. CA/TX removed —
+                  we are not accredited there, so those pages made a false claim. */}
+              {['PA','FL'].map((st) => (
                 <Route
                   key={st}
                   path={`/cle/${st.toLowerCase()}`}
@@ -1003,6 +1006,19 @@ function App() {
                     </div>
                   }>
                     <DraftKingsLVReport />
+                  </Suspense>
+                }
+              />
+              {/* Throwaway dev exploration: Airbnb-style rich-imagery header. */}
+              <Route
+                path="/hero-sample"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <HeroGallerySample />
                   </Suspense>
                 }
               />
