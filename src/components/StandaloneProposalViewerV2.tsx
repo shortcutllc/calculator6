@@ -3317,6 +3317,26 @@ const StandaloneProposalViewerV2: React.FC = () => {
               const nothingSelected = summary.rows.every((r) => !r.included);
               const includedCount = summary.rows.filter((r) => r.included).length;
               const hasRepeats = summary.totalEvents > includedCount;
+              // Volume discount, expressed two ways for the sidebar:
+              //  • per event — the slice of one event's subtotal the discount
+              //    removes, so the "Per event" total reflects what each event
+              //    actually costs once the 4+/9+ threshold is met.
+              //  • annual — summary.discountAmount, the total saved across the
+              //    year (shown as the savings banner).
+              const perEventVolumeDiscount =
+                summary.discountPercent > 0
+                  ? summary.perEventSubtotal * (summary.discountPercent / 100)
+                  : 0;
+              const perEventTotalNet = perEventGrandTotal - perEventVolumeDiscount;
+              // Per-event auto-recurring discount: the gap between the pre-
+              // discount subtotal and the post-discount line items that ISN'T
+              // the per-service discount. Itemizing it keeps the sidebar math
+              // self-consistent (Subtotal − discounts = Total) the same way
+              // the mobile sheet does.
+              const perEventRecurringDiscount =
+                summary.perEventOriginalSubtotal -
+                summary.perEventSubtotal -
+                summary.perEventServiceDiscount;
               return (
                 <>
                   {/* Heading — mirrors the bottom Pricing summary card, compact */}
@@ -3455,6 +3475,27 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             <span>−{formatCurrency(summary.perEventServiceDiscount)}</span>
                           </div>
                         )}
+                        {perEventRecurringDiscount > 0.01 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: T.aqua }}>
+                            <span>
+                              Recurring discount
+                              {typeof displayData?.autoRecurringDiscount === 'number' &&
+                              displayData.autoRecurringDiscount > 0
+                                ? ` · ${displayData.autoRecurringDiscount}%`
+                                : ''}
+                            </span>
+                            <span>−{formatCurrency(perEventRecurringDiscount)}</span>
+                          </div>
+                        )}
+                        {/* Volume discount — applied PER EVENT so the "Per event"
+                            total below reflects what each event costs once the
+                            4+ (15%) / 9+ (20%) threshold is met. */}
+                        {summary.discountPercent > 0 && perEventVolumeDiscount > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: T.aqua }}>
+                            <span>Volume discount · {summary.discountPercent}%</span>
+                            <span>−{formatCurrency(perEventVolumeDiscount)}</span>
+                          </div>
+                        )}
                         {gratuity && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
                             <span>Gratuity{gratuity.type === 'percentage' ? ` · ${gratuity.value}%` : ''}</span>
@@ -3466,16 +3507,16 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             {hasRepeats ? 'Per event' : 'Total'}
                           </span>
                           <span style={{ fontFamily: T.fontD, fontWeight: 800, fontSize: 30, lineHeight: 1, color: T.aqua, letterSpacing: '-0.02em' }}>
-                            {formatCurrency(perEventGrandTotal)}
+                            {formatCurrency(perEventTotalNet)}
                           </span>
                         </div>
                       </div>
 
-                      {/* Volume-discount savings banner. The per-event totals
-                          above deliberately exclude the annual volume discount,
-                          so once the client crosses the 4-events threshold this
-                          surfaces the discount tag + dollars saved (annual) that
-                          would otherwise only appear in the bottom card. */}
+                      {/* Annual savings banner. The discount line above is per
+                          event; this surfaces the total saved across the year
+                          (summary.discountAmount) with the discount tag, so the
+                          client sees both the per-event price and the annual win
+                          without a separate bottom card. */}
                       {summary.discountPercent > 0 && summary.discountAmount > 0 && (
                         <div
                           style={{
@@ -3522,7 +3563,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
                       {hasRepeats && (
                         <div style={{ fontFamily: T.fontD, fontSize: 11.5, color: 'rgba(255,255,255,0.55)', marginTop: 10, lineHeight: 1.45 }}>
-                          Some services repeat — the annual total is in the Pricing summary below.
+                          Price shown is per event. You have {summary.totalEvents} events booked across the year.
                         </div>
                       )}
                     </>
