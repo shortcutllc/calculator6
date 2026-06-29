@@ -82,10 +82,16 @@ const EFFECTIVE_TITLES = (VERTICAL && VERTICAL_TITLES[VERTICAL]) ? VERTICAL_TITL
 // the API level (the vertical titles alone are too generic — "Property Manager"
 // / "Community Manager" exist everywhere). Verified from CBRE/JLL/Wachtell/etc.
 const VERTICAL_INDUSTRY_TAGS = {
-  law: ['5567ce1f7369644d391c0000'],          // law practice
-  realestate: ['5567cd477369645401010000'],   // real estate
+  law: ['5567ce1f7369644d391c0000', '5567ce2d7369644d25250000'],   // law practice + legal services
+  realestate: ['5567cd477369645401010000'],                        // real estate
 };
+// Law firms span 50 → 14,000+ employees (the biggest AmLaw firms: Kirkland 7k,
+// Latham 8.5k, DLA Piper 14k). The default 201-5000 cap excluded both small
+// firms AND the largest (richest CLE targets). For LAW, search 51+ with no real
+// ceiling.
+const LAW_SIZE_RANGES = ['51,100', '101,200', '201,500', '501,1000', '1001,2000', '2001,5000', '5001,10000', '10001,50000'];
 const SIZE_RANGES = ['201,500', '501,1000', '1001,2000', '2001,5000'];
+const EFFECTIVE_SIZE_RANGES = VERTICAL === 'law' ? LAW_SIZE_RANGES : SIZE_RANGES;
 
 // Apollo email_status we accept (reject guessed/unavailable/null). (openclaw)
 const ACCEPTED_EMAIL_STATUSES = new Set(['verified', 'likely to engage']);
@@ -231,7 +237,7 @@ async function upsert(table, rows, conflict) {
 }
 
 (async () => {
-  log(`ICP${VERTICAL ? ` [VERTICAL=${VERTICAL}]` : ''}: ${EFFECTIVE_TITLES.length} titles (+similar) × sizes ${SIZE_RANGES.join('/')} · CITY "${CITY}" · pages ${PAGES} · MV ${USE_MV ? 'on' : 'off'}`);
+  log(`ICP${VERTICAL ? ` [VERTICAL=${VERTICAL}]` : ''}: ${EFFECTIVE_TITLES.length} titles (+similar) × sizes ${EFFECTIVE_SIZE_RANGES.join('/')} · CITY "${CITY}" · pages ${PAGES} · MV ${USE_MV ? 'on' : 'off'}`);
   if (VERTICAL === 'law') log('  LAW pull: post-gated to law practice/legal services, tagged apollo-leadgen-law. For the CLE sequence, use a NY/FL/PA --city (we are accredited only there).');
   if (VERTICAL === 'realestate') log('  REAL-ESTATE pull: post-gated to real estate, tagged apollo-leadgen-realestate.');
   const known = await loadKnown();
@@ -245,7 +251,7 @@ async function upsert(table, rows, conflict) {
       person_titles: EFFECTIVE_TITLES,
       include_similar_titles: true,
       person_locations: [CITY],
-      organization_num_employees_ranges: SIZE_RANGES,
+      organization_num_employees_ranges: EFFECTIVE_SIZE_RANGES,
       organization_not_industry_tag_ids: EXCLUDED_INDUSTRY_TAG_IDS,
       // Vertical pulls constrain to the vertical's own industry (else generic
       // titles flood the search with insurance/marketing people).
