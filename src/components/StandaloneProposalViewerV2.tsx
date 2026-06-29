@@ -3471,6 +3471,55 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* Volume-discount savings banner. The per-event totals
+                          above deliberately exclude the annual volume discount,
+                          so once the client crosses the 4-events threshold this
+                          surfaces the discount tag + dollars saved (annual) that
+                          would otherwise only appear in the bottom card. */}
+                      {summary.discountPercent > 0 && summary.discountAmount > 0 && (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            padding: '10px 12px',
+                            background: 'rgba(30,158,106,0.16)',
+                            border: '1px solid rgba(30,158,106,0.38)',
+                            borderRadius: 10,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8,
+                          }}
+                        >
+                          <span
+                            style={{
+                              background: '#1E9E6A',
+                              color: '#fff',
+                              fontFamily: T.fontUi,
+                              fontWeight: 700,
+                              fontSize: 10.5,
+                              letterSpacing: '.04em',
+                              textTransform: 'uppercase',
+                              padding: '3px 9px',
+                              borderRadius: 9999,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {summary.discountPercent}% volume discount
+                          </span>
+                          <span
+                            style={{
+                              fontFamily: T.fontD,
+                              fontWeight: 700,
+                              fontSize: 13,
+                              color: '#9FE9C4',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            You save {formatCurrency(summary.discountAmount)}/yr
+                          </span>
+                        </div>
+                      )}
+
                       {hasRepeats && (
                         <div style={{ fontFamily: T.fontD, fontSize: 11.5, color: 'rgba(255,255,255,0.55)', marginTop: 10, lineHeight: 1.45 }}>
                           Some services repeat — the annual total is in the Pricing summary below.
