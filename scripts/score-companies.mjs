@@ -55,7 +55,7 @@ async function readAll(table, cols) {
 (async () => {
   log(DRY ? 'DRY RUN — no writes' : 'LIVE RUN');
   const companies = await readAll('crm_companies',
-    'id, canonical_key, display_name, trajectory, activity_status, completed_events, last_completed_at, last_event_at, contact_domains, ext_industry, ext_employee_size, is_internal, special_handling, demoed_not_closed');
+    'id, canonical_key, display_name, trajectory, activity_status, completed_events, last_completed_at, last_event_at, contact_domains, ext_industry, ext_employee_size, archetype, archetype_score, is_internal, special_handling, demoed_not_closed');
   const persons = await readAll('apollo_person_cache', 'email_domain, company_headcount, industry');
   const ocs = await readAll('outreach_contacts', 'crm_company_id, email_domain, title');
 
@@ -126,18 +126,21 @@ async function readAll(table, cols) {
     const cats = titleCatsFor(co);
     const tlScore = cats.size === 0 ? 0.5 : ([...cats].some((c) => GOOD_TITLES.has(c)) ? 1.0 : 0.6);
     const f = firmoOf(co);
-    let fScore = 0.5; // neutral when unknown — don't penalize missing firmographics
-    if (f.ind || f.band) {
-      const iS = f.ind ? share(indDist, f.ind) / maxIndShare : 0.5;
-      const bS = f.band ? share(bandDist, f.band) / maxBandShare : 0.5;
-      fScore = 0.5 * iS + 0.5 * bS;
-    }
+    // Firmographic-fit is now ARCHETYPE-fit: the two-cluster archetype is the real
+    // targeting signal (the Apollo industry label is lossy — see archetype.mjs).
+    // Prime clusters score high (scaled by archetype_score); 'other' is floored
+    // low; size keeps a secondary vote (501-5000 = the value sweet spot).
+    const prime = co.archetype === 'high_growth_tech' || co.archetype === 'elite_prof_services';
+    const aS = prime ? 0.55 + 0.45 * ((co.archetype_score || 60) / 100)
+      : co.archetype === 'other' ? 0.30 : 0.50;   // unclassified → neutral
+    const bS = f.band ? share(bandDist, f.band) / maxBandShare : 0.5;
+    const fScore = 0.6 * aS + 0.4 * bS;
     const fit = internal ? 0 : Math.round(
       100 * (W.trajectory * tScore + W.recency * rScore + W.title * tlScore + W.firmo * fScore));
     return {
       id: co.id, key: co.canonical_key, name: co.display_name, trajectory: co.trajectory,
       activity: co.activity_status, internal, fit_score: fit,
-      fit_breakdown: { trajectory: +tScore.toFixed(2), recency: +rScore.toFixed(2), title: +tlScore.toFixed(2), firmo: +fScore.toFixed(2), title_cats: [...cats], ind: f.ind, band: f.band, weights: W },
+      fit_breakdown: { trajectory: +tScore.toFixed(2), recency: +rScore.toFixed(2), title: +tlScore.toFixed(2), firmo: +fScore.toFixed(2), archetype: co.archetype || null, archetype_score: co.archetype_score ?? null, archetype_fit: +aS.toFixed(2), title_cats: [...cats], ind: f.ind, band: f.band, weights: W },
     };
   });
 
