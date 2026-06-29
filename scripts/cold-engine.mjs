@@ -39,9 +39,16 @@ const SENDERS = Math.max(1, parseInt(val('--senders', '4'), 10) || 4);     // sa
 const VERIFY_MAX = Math.max(TARGET, parseInt(val('--verify-max', String(TARGET)), 10) || TARGET); // how many to verify/skim (raise to land more ok)
 const CLONE = val('--clone', null);                                        // Smartlead template campaign id to clone
 const EDIT = val('--edit', null);                                          // existing campaign id → update its copy in place
-const OPENER = (val('--opener', 'generic') || 'generic').toLowerCase();     // generic | rto (segment-level E1 A/B)
-const SEQ = coldSequenceV3(['generic', 'rto'].includes(OPENER) ? OPENER : 'generic');
 const SEGMENT = (val('--segment', 'direct') || 'direct').toLowerCase();     // direct | broker | law | realestate — NEVER mix
+const OPENER = (val('--opener', '') || '').toLowerCase();                   // E1 A/B; valid set depends on segment (see resolveSequence)
+// Each segment has its OWN sequence + valid openers. Law/realestate are NOT the
+// direct massage pitch — see memory/vertical_law_firm_gtm.md + vertical_real_estate_gtm.md.
+function resolveSequence(segment, opener) {
+  if (segment === 'law') return coldSequenceLaw(['cle', 'wellness'].includes(opener) ? opener : 'cle');
+  if (segment === 'realestate') return coldSequenceRealEstate(['building', 'portfolio'].includes(opener) ? opener : 'building');
+  return coldSequenceV3(['generic', 'rto'].includes(opener) ? opener : 'generic'); // direct (broker uses --clone)
+}
+const SEQ = resolveSequence(SEGMENT, OPENER);
 const REGION = val('--region', null);                                      // eastern → NYC/Miami/Boston/Philly/DC
 const EASTERN = ['New York', 'Miami', 'Boston', 'Philadelphia', 'Washington DC'];
 const CITIES = (val('--cities', REGION === 'eastern' ? EASTERN.join('|') : '') || '').split('|').map((s) => s.trim()).filter(Boolean);
@@ -116,6 +123,8 @@ async function readAll(t, cols, mod) {
 import { evaluateColdList } from './lib/cold-list-evaluator.mjs';
 import { launchCampaign, updateCampaignSequence } from './lib/smartlead-launch.mjs';
 import { coldSequenceV3 } from './lib/cold-sequence-v3.mjs';
+import { coldSequenceLaw } from './lib/cold-sequence-law.mjs';
+import { coldSequenceRealEstate } from './lib/cold-sequence-realestate.mjs';
 import { evaluateCopy } from './lib/copy-evaluator.mjs';
 
 // MillionVerifier one email → result code (ok|catch_all|unknown|invalid|disposable)

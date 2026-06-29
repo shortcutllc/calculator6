@@ -40,6 +40,8 @@ const lc = (t) => String(t || '').toLowerCase();
 
 export function evaluateCopy(sequence, opts = {}) {
   const seasonal = !!opts.seasonal;
+  const segment = (opts.segment || sequence?.segment || 'direct').toLowerCase();   // direct | law | realestate | broker
+  const opener = (opts.opener || sequence?.opener || '').toLowerCase();
   const steps = sequence?.steps || [];
   const v = [];               // violations (hard → reject)
   const warn = [];            // soft (allowed, surfaced)
@@ -98,15 +100,39 @@ export function evaluateCopy(sequence, opts = {}) {
     // FACT (all steps): massage is chair/table in a conference room turned spa, NEVER at desks.
     if (/\bat\s+(?:their\s+|your\s+)?desks?\b/i.test(all) || /\bdesk-?side\b/i.test(all)) flag(bp.step, 'massage_at_desk', 'massage is chair/table in a conference room, never "at desks"');
 
-    // E1 PLACEMENT (the acquisition lead): massage-led, breadth-signalling, no remote/virtual.
+    // ---- LAW / CLE compliance (every step, segment=law) — hard. These claims
+    // are compliance-sensitive: CLE is accredited ONLY in NY/FL/PA and our
+    // course is ONE hour of the ethics category, never the whole requirement.
+    if (segment === 'law') {
+      if (/cover(?:s|ed)?\s+(?:your\s+)?(?:whole\s+|entire\s+|full\s+)?(?:ethics\s+|cle\s+)?requirement/i.test(all)
+        || /(?:fulfill|satisf|complete)(?:s|es|ed)?\s+(?:your\s+)?(?:entire\s+|whole\s+|all\s+)?(?:ethics|cle)\b/i.test(all)
+        || /all\s+(?:your\s+|their\s+)?(?:ethics|cle)\s+(?:credits|requirements|hours)/i.test(all)) {
+        flag(bp.step, 'cle_overstates', 'never claim it covers the full ethics/CLE requirement — it is ONE hour of the ethics category ("an hour of your mandatory ethics credit")');
+      }
+      // accreditation claimed for any state outside NY/FL/PA
+      const mentionsCle = /\b(cle|accredit|ethics credit|ethics and professionalism)\b/i.test(all);
+      const otherState = /\b(california|texas|illinois|new jersey|connecticut|massachusetts|georgia|maryland|nevada|\bCA\b|\bTX\b|\bIL\b|\bNJ\b|\bMA\b|\bGA\b)\b/i;
+      if (mentionsCle && otherState.test(all)) flag(bp.step, 'cle_wrong_state', 'CLE is accredited ONLY in New York, Florida, Pennsylvania — do not name another state');
+    }
+
+    // ---- E1 PLACEMENT (the acquisition lead) — segment-specific.
     if (bp.step === 1) {
-      if (/\b(remote|virtual|hybrid|distributed)\b/i.test(all)) flag(1, 'e1_mentions_remote', 'E1 must not mention remote/virtual (that is a later-touch objection-handler, not the acquisition lead)');
-      const svc = [...all.matchAll(/\b(massage|nails|facials|grooming|headshots|mindfulness|nutrition|sound ?bath)\b/gi)].map((m) => m[1].toLowerCase());
-      if (!svc.length) flag(1, 'e1_no_service', 'E1 names no service');
-      else if (svc[0] !== 'massage') flag(1, 'massage_not_leading', `E1 leads with ${svc[0]}, not massage (massage is the hero service)`);
-      const nonMassage = svc.some((s) => s !== 'massage');
-      const oneTeam = /one team|one vendor|all from one/i.test(all);
-      if (!nonMassage || !oneTeam) flag(1, 'no_breadth_signal', 'E1 must signal breadth: a non-massage service AND a one-team/one-vendor phrase');
+      if (segment === 'law' && opener === 'cle') {
+        // CLE-led: must reference the CLE/ethics-credit wedge; no massage lead required.
+        if (!/\b(cle|ethics|credit|accredit)/i.test(all)) flag(1, 'law_e1_no_cle', 'law CLE E1 must lead with the CLE / ethics-credit wedge');
+      } else if (segment === 'realestate') {
+        // Amenity-led: must signal building/tenant/amenity value, not lead with a service.
+        if (!/\b(amenit|tenant|building|member|resident|portfolio|occupanc|renewal|calendar|commute)\b/i.test(all)) flag(1, 're_e1_no_amenity', 'real estate E1 must signal amenity / tenant / building value (the buyer is the landlord/operator, not the employer)');
+      } else {
+        // direct + law-wellness: massage-led, breadth-signalling, no remote/virtual.
+        if (/\b(remote|virtual|hybrid|distributed)\b/i.test(all)) flag(1, 'e1_mentions_remote', 'E1 must not mention remote/virtual (that is a later-touch objection-handler, not the acquisition lead)');
+        const svc = [...all.matchAll(/\b(massage|nails|facials|grooming|headshots|mindfulness|nutrition|sound ?bath)\b/gi)].map((m) => m[1].toLowerCase());
+        if (!svc.length) flag(1, 'e1_no_service', 'E1 names no service');
+        else if (svc[0] !== 'massage') flag(1, 'massage_not_leading', `E1 leads with ${svc[0]}, not massage (massage is the hero service)`);
+        const nonMassage = svc.some((s) => s !== 'massage');
+        const oneTeam = /one team|one vendor|all from one/i.test(all);
+        if (!nonMassage || !oneTeam) flag(1, 'no_breadth_signal', 'E1 must signal breadth: a non-massage service AND a one-team/one-vendor phrase');
+      }
     }
   }
 
