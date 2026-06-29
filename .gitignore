@@ -31,3 +31,4 @@ dist-ssr
 
 # Large media files (served by Netlify from public/, not needed in git)
 public/workhuman-tv/*.mp4
+apollo_org_cache.json
