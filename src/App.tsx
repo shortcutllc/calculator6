@@ -62,7 +62,6 @@ const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'))
 const DraftKingsReport = lazy(() => import('./components/DraftKingsReport'));
 const DraftKingsLVReport = lazy(() => import('./components/DraftKingsLVReport'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
-const HeroGallerySample = lazy(() => import('./components/HeroGallerySample'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
@@ -1006,19 +1005,6 @@ function App() {
                     </div>
                   }>
                     <DraftKingsLVReport />
-                  </Suspense>
-                }
-              />
-              {/* Throwaway dev exploration: Airbnb-style rich-imagery header. */}
-              <Route
-                path="/hero-sample"
-                element={
-                  <Suspense fallback={
-                    <div className="min-h-screen flex items-center justify-center">
-                      <LoadingSpinner size="large" />
-                    </div>
-                  }>
-                    <HeroGallerySample />
                   </Suspense>
                 }
               />
