@@ -71,7 +71,20 @@ function toEngineAction(h) {
     const hub = String(h.value).split('|')[1]?.trim();
     if (hub && /new york|miami|boston|philadelphia|washington/i.test(hub)) return { flag: '--region eastern', actionable: true, note: `cell ${h.value}; engine cannot yet filter title, so this targets the hub only` };
   }
-  return { flag: null, actionable: false, note: 'No cold-engine filter for this face yet (title/size/industry). Advisory: prioritise this cell when building the pool. A cell-filter flag is a future engine enhancement.' };
+  // Size is ALREADY wired: Apollo pulls 201-5000 (find-leads SIZE_RANGES) and
+  // cold-engine filters to the belief model's good size bands (cold-engine.mjs).
+  // So a winning size cell needs no new feature — just confirm it is in range.
+  if (h.face === 'size_band') {
+    return { flag: null, actionable: false, note: `Already handled: Apollo pulls mid-market (find-leads SIZE_RANGES) and the cold engine filters to the belief model's good size bands. Confirm ${h.value} is in SIZE_RANGES + goodBands; no new feature needed.` };
+  }
+  // Industry is allow/deny only: Apollo's allow-list treats 82 industries
+  // equally and the cold engine does not weight the pool by industry at all.
+  // The real lever is to PRIORITISE proven-winning industries, not build
+  // targeting from scratch.
+  if (h.face === 'industry') {
+    return { flag: null, actionable: false, note: `Allow/deny exists (Apollo's 82-industry allow-list) but is not PRIORITISED. Weight find-leads + the cold-engine pool toward ${h.value} (the engine already weights by size; do the same for industry).` };
+  }
+  return { flag: null, actionable: false, note: 'No direct cold-engine flag for this face. Advisory: prioritise this cell when building the pool.' };
 }
 
 (async () => {
@@ -155,7 +168,7 @@ function toEngineAction(h) {
     },
     accepted, rejected,
     honest_read: hasActionableTargeting
-      ? `Firmographic cells with a real edge (${advisoryCells.map((c) => `${c.face}=${c.value}`).join(', ')}) cleared the skeptic, but the cold engine cannot filter them yet — they ride as advisory pool-weighting. Building a cell-filter (size/industry) into the engine is the highest-value enhancement the data points to. Title cells stay explore-only (back-filled history). The big lever remains CHANNEL (graduation, ~28x).`
+      ? `Firmographic cells with a real edge cleared the skeptic: ${advisoryCells.map((c) => `${c.face}=${c.value}`).join(', ')}. Note what is ALREADY wired vs the real gap: SIZE is handled (Apollo pulls mid-market and the engine filters to the belief model's good size bands), so a winning size cell needs no new feature. INDUSTRY is allow/deny only (Apollo's 82-industry allow-list, treated equally; the cold engine does not weight the pool by industry) — so the genuine improvement is to PRIORITISE proven-winning industries in find-leads + the cold-engine pool, the same way it already weights by size. Title cells stay explore-only (back-filled history). The big lever remains CHANNEL (graduation, ~28x).`
       : 'No targeting cell earns a trustworthy edge over baseline at adequate n (title cells are back-filled selection bias; the rest are low-n). Expected: cold-to-ICP converges ~1% positive regardless of targeting. The real lever stays CHANNEL (graduation to the personal lane, ~28x). Cold experiments are about cost/deliverability and the opener A/B, not targeting finesse.',
   };
 
