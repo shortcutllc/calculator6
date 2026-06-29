@@ -94,6 +94,7 @@ export interface ServiceCardProps {
   onEditPricingOption?: (index: number, field: keyof PricingOptionVariant, value: any) => void;
   onAddPricingOption?: () => void;
   onRemovePricingOption?: (index: number) => void;
+  onRemoveAllPricingOptions?: () => void;
   onGeneratePricingOptions?: () => void;
   /** Service image on the left side */
   showImage?: boolean;
@@ -146,6 +147,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   onEditPricingOption,
   onAddPricingOption,
   onRemovePricingOption,
+  onRemoveAllPricingOptions,
   onGeneratePricingOptions,
   showImage = true,
   compact = false,
@@ -996,6 +998,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             onEditOption={onEditPricingOption}
             onAddOption={internalView ? onAddPricingOption : undefined}
             onRemoveOption={internalView ? onRemovePricingOption : undefined}
+            onRemoveAllOptions={internalView ? onRemoveAllPricingOptions : undefined}
             onGenerateOptions={internalView ? onGeneratePricingOptions : undefined}
             autoRecurringDiscount={autoRecurringDiscount}
             appTime={service.appTime}

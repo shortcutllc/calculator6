@@ -35,6 +35,8 @@ interface PricingOptionsSelectorProps {
   onEditOption?: (index: number, field: keyof PricingOptionVariant, value: any) => void;
   onAddOption?: () => void;
   onRemoveOption?: (index: number) => void;
+  /** Remove every pricing option from this service in one click (admin only). */
+  onRemoveAllOptions?: () => void;
   onGenerateOptions?: () => void;
   /** Proposal-wide auto-recurring discount % (e.g. 10, 15, 20). Each option's
    *  stored `serviceCost` is the pre-recurring price; we apply this on the
@@ -57,6 +59,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
   onEditOption,
   onAddOption,
   onRemoveOption,
+  onRemoveAllOptions,
   onGenerateOptions,
   autoRecurringDiscount,
   appTime,
@@ -242,20 +245,47 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                 }}
               >
                 {/* Single bold name — the old light "OPTION N" eyebrow above
-                    it just duplicated this, so it's gone. */}
-                <div
-                  style={{
-                    fontFamily: T.fontD,
-                    fontWeight: 700,
-                    fontSize: 16,
-                    color: T.navy,
-                    letterSpacing: '-.01em',
-                    lineHeight: 1.2,
-                    minWidth: 0,
-                  }}
-                >
-                  {opt.name}
-                </div>
+                    it just duplicated this, so it's gone. In editing mode the
+                    name becomes an inline input so admins can rename options
+                    from the default "Option 1 / Option 2 / …". */}
+                {editing && onEditOption ? (
+                  <input
+                    type="text"
+                    value={opt.name || ''}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => onEditOption(i, 'name', e.target.value)}
+                    placeholder={`Option ${i + 1}`}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      fontFamily: T.fontD,
+                      fontWeight: 700,
+                      fontSize: 16,
+                      color: T.navy,
+                      letterSpacing: '-.01em',
+                      lineHeight: 1.2,
+                      border: '1.5px solid rgba(0,0,0,0.1)',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      background: '#fff',
+                      outline: 'none',
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      fontFamily: T.fontD,
+                      fontWeight: 700,
+                      fontSize: 16,
+                      color: T.navy,
+                      letterSpacing: '-.01em',
+                      lineHeight: 1.2,
+                      minWidth: 0,
+                    }}
+                  >
+                    {opt.name}
+                  </div>
+                )}
                 <div
                   style={{
                     width: 18,
@@ -512,29 +542,62 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
           );
         })}
       </div>
-      {editing && onAddOption && (
-        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={onAddOption}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 12px',
-              background: '#fff',
-              color: T.navy,
-              border: '1.5px solid rgba(0,0,0,0.12)',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontFamily: T.fontUi,
-              fontWeight: 700,
-              fontSize: 12,
-            }}
-          >
-            <Plus size={12} />
-            Add option
-          </button>
+      {editing && (onAddOption || onRemoveAllOptions) && (
+        <div
+          style={{
+            marginTop: 12,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+          }}
+        >
+          {onRemoveAllOptions && options.length > 0 && (
+            <button
+              type="button"
+              onClick={onRemoveAllOptions}
+              title="Remove all pricing options for this service"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                background: '#fff',
+                color: T.coral,
+                border: `1.5px solid ${T.coral}`,
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontFamily: T.fontUi,
+                fontWeight: 700,
+                fontSize: 12,
+              }}
+            >
+              <Trash2 size={12} />
+              Remove all options
+            </button>
+          )}
+          {onAddOption && (
+            <button
+              type="button"
+              onClick={onAddOption}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                background: '#fff',
+                color: T.navy,
+                border: '1.5px solid rgba(0,0,0,0.12)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontFamily: T.fontUi,
+                fontWeight: 700,
+                fontSize: 12,
+              }}
+            >
+              <Plus size={12} />
+              Add option
+            </button>
+          )}
         </div>
       )}
     </div>

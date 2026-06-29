@@ -397,7 +397,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
   );
 
   // ---- Selection state ----------------------------------------------------
-  const { get, setIncluded, setFrequency, summary } = useServiceSelections({
+  const { get, setIncluded, setFrequency, summary, state: selectionState } = useServiceSelections({
     servicesByLocation: displayData?.services || {},
     initialState: displayData?.optionsState,
     onChange: persistOptionsState,
@@ -487,6 +487,31 @@ const StandaloneProposalViewerV2: React.FC = () => {
       costPerHeadshot,
     };
   }, [displayData]);
+
+  // Selection-aware appointment count for the intro meta-row. Unlike
+  // `stats.appointmentCount` (which sums every service regardless of state),
+  // this counts only services the client has currently included, so the
+  // number tracks their toggles in real time. When nothing is included yet
+  // the meta-row hides the appointment pill entirely (count 0, no unlimited).
+  const includedAppointments = useMemo(() => {
+    let count = 0;
+    let hasUnlimited = false;
+    Object.entries(displayData?.services || {}).forEach(
+      ([loc, byDate]: [string, any]) => {
+        Object.entries(byDate || {}).forEach(([date, dd]: [string, any]) => {
+          (dd?.services || []).forEach((svc: any, idx: number) => {
+            const sel = selectionState[selectionKey(loc, date, idx)];
+            // Undefined state defaults to included (matches the hook DEFAULT).
+            if (sel && !sel.included) return;
+            const a = svc?.totalAppointments;
+            if (a === 'unlimited' || a === '∞') hasUnlimited = true;
+            else count += Number(a) || 0;
+          });
+        });
+      }
+    );
+    return { count, hasUnlimited };
+  }, [displayData, selectionState]);
 
   // Date-range label for the intro meta-row (reference `.pv-meta-row`):
   // earliest–latest event date across the proposal, or null if unparseable.
@@ -1143,11 +1168,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 <MapPin /> {mAddress}
               </span>
             )}
-            <span>
-              <Users /> {mUnlimited ? 'Unlimited' : mApptTotal.toLocaleString('en-US')}{' '}
-              appointments across {mServiceCount} service
-              {mServiceCount === 1 ? '' : 's'}
-            </span>
+            {(mApptTotal > 0 || mUnlimited) && (
+              <span>
+                <Users /> {mUnlimited ? 'Unlimited' : mApptTotal.toLocaleString('en-US')}{' '}
+                appointments across {mServiceCount} service
+                {mServiceCount === 1 ? '' : 's'}
+              </span>
+            )}
           </div>
           <div className="pvm-savings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -1156,8 +1183,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
               <path d="M21 13v1a4 4 0 0 1-4 4H3" />
             </svg>
             <span className="t">
-              Make it recurring and save <strong>15% on 4 events a year</strong>, or{' '}
-              <strong>20% on 9</strong>.
+              Sign up for more, save more. Commit to 4 events a year and{' '}
+              <strong>save 15%</strong>, or go with 9 and <strong>save 20%</strong>.
             </span>
           </div>
 
@@ -2281,7 +2308,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             >
               {summary.rows.length === 1
                 ? 'Adjust the details, set how often it repeats, and approve when you’re ready.'
-                : 'Toggle each service on or off and set how often it repeats.'}
+                : 'Select the services you’d like to include, then set how often you want them. Toggle any service on or off. Your proposal updates automatically.'}
             </p>
             {/* Savings callout (design refresh) — recurring-volume framing.
                 Uses the repeat icon + "make it recurring" copy to match the
@@ -2301,8 +2328,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 <path d="M21 13v1a4 4 0 0 1-4 4H3" />
               </svg>
               <span className="txt">
-                Make it recurring and save <strong>15% on 4 events a year</strong>, or{' '}
-                <strong>20% on 9</strong>.
+                Sign up for more, save more. Commit to 4 events a year and{' '}
+                <strong>save 15%</strong>, or go with 9 and <strong>save 20%</strong>.
               </span>
             </div>
             {/* Intro meta-row (reference `.pv-meta-row`): date · location · appts. */}
@@ -2321,10 +2348,16 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   </span>
                 ) : null;
               })()}
-              <span className="lt-meta">
-                <Users size={18} /> {stats.appointmentCount.toLocaleString('en-US')}{' '}
-                appointments
-              </span>
+              {(includedAppointments.count > 0 ||
+                includedAppointments.hasUnlimited) && (
+                <span className="lt-meta">
+                  <Users size={18} />{' '}
+                  {includedAppointments.hasUnlimited
+                    ? 'Unlimited'
+                    : includedAppointments.count.toLocaleString('en-US')}{' '}
+                  appointments
+                </span>
+              )}
             </div>
             {/* "Your services" section label (design refresh). */}
             <p className="pv-sec-label">Your services</p>

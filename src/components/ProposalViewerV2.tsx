@@ -1184,7 +1184,18 @@ const ProposalViewerV2: React.FC = () => {
     const updated = { ...editedData };
     const svc = updated.services[loc][date].services[idx];
     if (!svc.pricingOptions) svc.pricingOptions = [];
-    const optionNum = svc.pricingOptions.length + 1;
+    // Name the new option with the next sequential number that isn't already
+    // taken. `length + 1` collides after a delete — e.g. deleting Option 1 of
+    // 3 leaves [Option 2, Option 3], and length+1 would be 3 (a duplicate).
+    // Parse the trailing number off existing "Option N" names and take max+1
+    // so survivors keep their numbers (Option 2 / Option 3) and new options
+    // continue from there.
+    const existingNums = svc.pricingOptions.map((o: any) => {
+      const m = /(\d+)\s*$/.exec(String(o?.name || ''));
+      return m ? parseInt(m[1], 10) : 0;
+    });
+    const optionNum =
+      (existingNums.length ? Math.max(...existingNums) : 0) + 1;
     const blank: any = {
       name: `Option ${optionNum}`,
       totalHours: svc.totalHours,
@@ -1210,6 +1221,10 @@ const ProposalViewerV2: React.FC = () => {
     const updated = { ...editedData };
     const svc = updated.services[loc][date].services[idx];
     if (!svc?.pricingOptions || svc.pricingOptions.length <= 1) return;
+    // Splice out the one option; survivors KEEP their stored names. We
+    // intentionally do NOT renumber — deleting "Option 1" of 3 must leave
+    // "Option 2" and "Option 3", not collapse them back to 1 and 2. Names
+    // stay editable in the card.
     svc.pricingOptions.splice(optIdx, 1);
     if ((svc.selectedOption || 0) >= svc.pricingOptions.length) {
       svc.selectedOption = svc.pricingOptions.length - 1;
@@ -1221,6 +1236,32 @@ const ProposalViewerV2: React.FC = () => {
       svc.proRevenue = sel.proRevenue;
       // Don't copy discountPercent — service is source of truth.
     }
+    const recalc = recalculateServiceTotals(updated);
+    setEditedData({ ...recalc, customization: currentProposal?.customization });
+    setDisplayData({ ...recalc, customization: currentProposal?.customization });
+  };
+
+  const handleRemoveAllPricingOptions = (
+    loc: string,
+    date: string,
+    idx: number
+  ) => {
+    if (!editedData || !isEditing) return;
+    if (
+      !window.confirm(
+        'Remove all pricing options for this service? The service keeps its base pricing and clients will no longer see options to pick from.'
+      )
+    ) {
+      return;
+    }
+    const updated = { ...editedData };
+    const svc = updated.services[loc][date].services[idx];
+    if (!svc?.pricingOptions || svc.pricingOptions.length === 0) return;
+    // Drop every option. The service keeps whatever totals it currently
+    // carries (from the previously-selected option), so base pricing is
+    // preserved — we only clear the option set + selection pointer.
+    svc.pricingOptions = [];
+    svc.selectedOption = 0;
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });
     setDisplayData({ ...recalc, customization: currentProposal?.customization });
@@ -3851,6 +3892,9 @@ const ProposalViewerV2: React.FC = () => {
                                       onRemovePricingOption={(optIdx) =>
                                         handleRemovePricingOption(loc, date, idx, optIdx)
                                       }
+                                      onRemoveAllPricingOptions={() =>
+                                        handleRemoveAllPricingOptions(loc, date, idx)
+                                      }
                                       onGeneratePricingOptions={() =>
                                         handleGeneratePricingOptions(loc, date, idx)
                                       }
@@ -5497,6 +5541,7 @@ interface ServiceBlockProps {
   onEditPricingOption: (optIdx: number, field: string, value: any) => void;
   onAddPricingOption: () => void;
   onRemovePricingOption: (optIdx: number) => void;
+  onRemoveAllPricingOptions: () => void;
   onGeneratePricingOptions: () => void;
   onChangeServiceType: (t: string) => void;
   onChangeMassageType: (t: string) => void;
@@ -5527,6 +5572,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
   onEditPricingOption,
   onAddPricingOption,
   onRemovePricingOption,
+  onRemoveAllPricingOptions,
   onGeneratePricingOptions,
   onChangeServiceType,
   onChangeMassageType,
@@ -5558,6 +5604,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
         }
         onAddPricingOption={onAddPricingOption}
         onRemovePricingOption={onRemovePricingOption}
+        onRemoveAllPricingOptions={onRemoveAllPricingOptions}
         onGeneratePricingOptions={onGeneratePricingOptions}
         autoRecurringDiscount={autoRecurringDiscount}
       />
