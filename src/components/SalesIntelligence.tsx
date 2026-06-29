@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, Briefcase, Workflow } from 'lucide-react';
+import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, Briefcase, Workflow, Scale } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 import { createLandingPageForLead } from '../services/WorkhumanLeadService';
@@ -15,7 +15,7 @@ const REP_EMAIL_TO_FIRST_NAME: Record<string, string> = {
   'caren@getshortcut.co': 'Caren',
 };
 
-type TabId = 'playA' | 'playB' | 'followups' | 'brokers' | 'drafts' | 'recon' | 'loop';
+type TabId = 'playA' | 'playB' | 'law' | 'followups' | 'brokers' | 'drafts' | 'recon' | 'loop';
 interface SavedDraftRow {
   id: string; recipient_email: string | null; subject: string; body: string;
   direction_label: string | null; source_company: string | null; source_contact: string | null;
@@ -1524,6 +1524,7 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
   { id: 'playB', label: 'Play B — Net-New', icon: <Crosshair size={18} /> },
+  { id: 'law', label: 'Law — CLE', icon: <Scale size={18} /> },
   { id: 'followups', label: 'Follow-ups', icon: <Send size={18} /> },
   { id: 'brokers', label: 'Brokers', icon: <Briefcase size={18} /> },
   { id: 'drafts', label: 'Drafts', icon: <Bookmark size={18} /> },
@@ -1545,7 +1546,9 @@ function exportCSV(rows: Record<string, unknown>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-const VALID_TABS: TabId[] = ['playA', 'playB', 'followups', 'brokers', 'drafts', 'recon', 'loop'];
+const VALID_TABS: TabId[] = ['playA', 'playB', 'law', 'followups', 'brokers', 'drafts', 'recon', 'loop'];
+// Law tab = Play B filtered to the law-firm industry (CLE/wellness vertical).
+const LAW_INDUSTRY_RE = /law practice|legal services/i;
 const FU_CACHE_KEY = 'sales_intel.followups.v1';
 const FU_CACHE_TTL_MS = 30 * 60 * 1000;
 
@@ -2326,15 +2329,20 @@ const SalesIntelligence: React.FC = () => {
     () => playA.filter((x) => !search || x.company_name?.toLowerCase().includes(search.toLowerCase())),
     [playA, search],
   );
+  // The Law tab reuses the entire Play B render against the law-industry subset.
+  const pbBase = useMemo(
+    () => (tab === 'law' ? playB.filter((x) => LAW_INDUSTRY_RE.test(x.industry || '')) : playB),
+    [playB, tab],
+  );
   const pbCounts = useMemo(() => {
-    const c: Record<string, number> = { all: playB.length, replied: 0, no_reply: 0, net_new: 0, re_engage: 0 };
-    for (const x of playB) if (x.engagement_state) c[x.engagement_state] = (c[x.engagement_state] || 0) + 1;
+    const c: Record<string, number> = { all: pbBase.length, replied: 0, no_reply: 0, net_new: 0, re_engage: 0 };
+    for (const x of pbBase) if (x.engagement_state) c[x.engagement_state] = (c[x.engagement_state] || 0) + 1;
     return c;
-  }, [playB]);
+  }, [pbBase]);
 
   const fb = useMemo(() => {
     const sRank: Record<string, number> = { replied: 0, no_reply: 1, net_new: 2, re_engage: 3 };
-    let rows = playB.filter((x) => !search
+    let rows = pbBase.filter((x) => !search
       || x.company_name?.toLowerCase().includes(search.toLowerCase())
       || x.contact_name?.toLowerCase().includes(search.toLowerCase())
       || x.contact_email?.toLowerCase().includes(search.toLowerCase())
@@ -2347,7 +2355,7 @@ const SalesIntelligence: React.FC = () => {
       recent: (a, b) => new Date(b.last_contacted_at || 0).getTime() - new Date(a.last_contacted_at || 0).getTime(),
     };
     return [...rows].sort(cmp[pbSort]);
-  }, [playB, search, pbFilter, pbSort]);
+  }, [pbBase, search, pbFilter, pbSort]);
 
   const th = 'text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 py-2';
   const td = 'px-3 py-2 text-sm text-gray-800 border-t border-gray-100';
@@ -2449,7 +2457,7 @@ const SalesIntelligence: React.FC = () => {
         ))}
       </div>
 
-      {(tab === 'playA' || tab === 'playB') && (
+      {(tab === 'playA' || tab === 'playB' || tab === 'law') && (
         <div className="flex items-center justify-between mb-3 gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
@@ -2463,7 +2471,7 @@ const SalesIntelligence: React.FC = () => {
           <button
             onClick={() => (tab === 'playA'
               ? exportCSV(fa as unknown as Record<string, unknown>[], 'play_a.csv')
-              : exportCSV(fb as unknown as Record<string, unknown>[], 'play_b.csv'))}
+              : exportCSV(fb as unknown as Record<string, unknown>[], tab === 'law' ? 'law_leads.csv' : 'play_b.csv'))}
             className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
           >
             <FileDown size={16} /> Export CSV
@@ -2543,8 +2551,13 @@ const SalesIntelligence: React.FC = () => {
             </tbody>
           </table>
         </div>
-      ) : tab === 'playB' ? (
+      ) : (tab === 'playB' || tab === 'law') ? (
         <div>
+          {tab === 'law' && (
+            <div className="mb-3 text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              Law firm vertical. Lead with the accredited Ethics CLE wedge in <strong>NY, FL, PA</strong> only, then upsell the wellness day. CLE is not accredited elsewhere.
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2 mb-3">
             {(['all', 'replied', 'no_reply', 'net_new', 're_engage'] as PBFilter[]).map((f) => (
               <button
