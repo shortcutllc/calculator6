@@ -1,31 +1,24 @@
 import React from 'react';
 
-// Self-contained SVG (inline styles, no external CSS) of the cold-engine brain as
-// it runs today: a weekly BUILD lane and a daily RUN lane, joined into one loop by
-// the feedback arrow (every outcome updates the belief model). Below: the gates the
-// work passes through (verification waterfall, three-tier copy gate) and the two
-// permanent human doors. Green = built + on cron; amber = the one open item
-// (real-estate lead pulls, parked on an ICP pick).
+// Plain-language explainer of the cold outreach system for someone who doesn't
+// work on it. Two parts: (1) an SVG of the flow — a weekly routine that builds and
+// launches a batch, and a daily routine that handles the replies, joined into a
+// loop — and (2) a separate written explainer of "the brain" (how it decides who to
+// email and what works). Green = runs automatically; blue = a person must act.
 const GREEN = { fill: '#dcfce7', stroke: '#16a34a' };
-const BLUE = { fill: '#e0edff', stroke: '#2563eb' };
+const BLUE = { fill: '#dbeafe', stroke: '#2563eb' };
 const AMBER = { fill: '#fef3c7', stroke: '#d97706' };
 const INK = '#1e293b';
 const MUTE = '#475569';
 const ARROW = '#64748b';
 
-function Box({ x, y, w = 158, tone, title, sub, time, door }:
-  { x: number; y: number; w?: number; tone: typeof GREEN; title: string; sub: string; time?: string; door?: boolean }) {
+function Box({ x, y, w = 150, tone, title, sub, door }:
+  { x: number; y: number; w?: number; tone: typeof GREEN; title: string; sub: string; door?: boolean }) {
   return (
     <g>
-      <rect x={x} y={y} width={w} height={56} rx={8} fill={tone.fill} stroke={tone.stroke} strokeWidth={1.5} />
-      {time && (
-        <g>
-          <rect x={x + w - 44} y={y + 7} width={37} height={16} rx={8} fill="#fff" stroke={tone.stroke} strokeWidth={1} opacity={0.9} />
-          <text x={x + w - 25.5} y={y + 18.5} textAnchor="middle" fontSize={10} fontWeight={600} fill={MUTE}>{time}</text>
-        </g>
-      )}
-      <text x={x + w / 2} y={y + 26} textAnchor="middle" fontSize={13.5} fontWeight={600} fill={INK}>{door ? `${title} ⛬` : title}</text>
-      <text x={x + w / 2} y={y + 44} textAnchor="middle" fontSize={11} fill={MUTE}>{sub}</text>
+      <rect x={x} y={y} width={w} height={58} rx={8} fill={tone.fill} stroke={tone.stroke} strokeWidth={1.5} />
+      <text x={x + w / 2} y={y + 25} textAnchor="middle" fontSize={13.5} fontWeight={600} fill={INK}>{door ? `${title} 🔒` : title}</text>
+      <text x={x + w / 2} y={y + 43} textAnchor="middle" fontSize={11} fill={MUTE}>{sub}</text>
     </g>
   );
 }
@@ -34,129 +27,102 @@ const Arrow = ({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: num
   <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={ARROW} strokeWidth={1.5} markerEnd="url(#loopArrow)" />
 );
 
-// 5 evenly spaced columns
-const COL = [30, 208, 386, 564, 742];
-const BW = 158;
+const COL = [40, 220, 400, 580, 760];
+const BW = 150;
+
+function BrainCard({ n, title, body }: { n: string; title: string; body: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-shortcut-navy-blue text-white text-xs font-semibold flex items-center justify-center">{n}</span>
+        <h4 className="text-sm font-semibold text-shortcut-navy-blue">{title}</h4>
+      </div>
+      <p className="text-sm text-gray-600 leading-relaxed">{body}</p>
+    </div>
+  );
+}
 
 export default function SystemLoopDiagram() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-shortcut-navy-blue mb-1">The cold engine, end to end</h2>
-      <p className="text-sm text-gray-500 mb-4">
-        One self-improving loop. The daily lane manufactures and routes warm replies; the weekly lane rebuilds the lead pool and learns
-        from every outcome. Green is built and on cron, amber is the one open item. Both human doors are permanent.
-      </p>
-      <svg width="100%" viewBox="0 0 930 632" role="img" aria-label="Cold engine loop diagram" style={{ maxWidth: 940 }}>
-        <defs>
-          <marker id="loopArrow" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6" fill="none" stroke={ARROW} strokeWidth={1.5} />
-          </marker>
-        </defs>
+    <div className="space-y-6">
+      {/* ============ PART 1: THE FLOW ============ */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-shortcut-navy-blue mb-1">How the cold outreach works</h2>
+        <p className="text-sm text-gray-500 mb-4 max-w-3xl">
+          Two routines run on their own. <span className="font-medium text-gray-700">Every Monday</span> the system builds and
+          prepares a new batch of cold emails. <span className="font-medium text-gray-700">Every morning</span> it handles the
+          replies that come back. A person never has to do the busywork &mdash; they only step in at the two
+          <span className="font-medium text-gray-700"> 🔒 locked steps</span>, where a human decides to send.
+        </p>
+        <svg width="100%" viewBox="0 0 920 372" role="img" aria-label="Cold outreach flow diagram" style={{ maxWidth: 940 }}>
+          <defs>
+            <marker id="loopArrow" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6" fill="none" stroke={ARROW} strokeWidth={1.5} />
+            </marker>
+          </defs>
 
-        {/* ===================== DAILY RUN LANE ===================== */}
-        <text x={30} y={22} fontSize={13} fontWeight={700} fill={INK}>Daily run — every morning</text>
+          {/* ---- WEEKLY ROUTINE (top) ---- */}
+          <text x={40} y={20} fontSize={13} fontWeight={700} fill={INK}>Every Monday &mdash; build and prepare a new batch</text>
 
-        <Box x={COL[0]} y={32} tone={GREEN} title="1 · Pull replies" sub="Smartlead + Gmail" time="6:05" />
-        <Box x={COL[1]} y={32} tone={GREEN} title="2 · Enrich" sub="classify replies" time="6:30" />
-        <Box x={COL[2]} y={32} tone={GREEN} title="3 · Sync state" sub="bounce + membership" time="6:50" />
-        <Box x={COL[3]} y={32} tone={GREEN} title="4 · Plays" sub="rebuild lists" time="6:45" />
-        <Box x={COL[4]} y={32} tone={BLUE} title="5 · Graduate" sub="positive → personal" time="7:05" door />
+          <Box x={COL[0]} y={30} tone={GREEN} title="Learn" sub="what worked last week" />
+          <Box x={COL[1]} y={30} tone={GREEN} title="Plan" sub="proven + a few tests" />
+          <Box x={COL[2]} y={30} w={330} tone={GREEN} title="Build the batch" sub="find people, check emails, write, quality-check" />
+          <Box x={COL[4]} y={30} tone={BLUE} title="Ready" sub="a person clicks Send" door />
 
-        <Arrow x1={COL[0] + BW} y1={60} x2={COL[1] - 2} y2={60} />
-        <Arrow x1={COL[1] + BW} y1={60} x2={COL[2] - 2} y2={60} />
-        <Arrow x1={COL[2] + BW} y1={60} x2={COL[3] - 2} y2={60} />
-        <Arrow x1={COL[3] + BW} y1={60} x2={COL[4] - 2} y2={60} />
+          <Arrow x1={COL[0] + BW} y1={59} x2={COL[1] - 2} y2={59} />
+          <Arrow x1={COL[1] + BW} y1={59} x2={COL[2] - 2} y2={59} />
+          <Arrow x1={COL[2] + 330} y1={59} x2={COL[4] - 2} y2={59} />
 
-        {/* graduate -> the 28x payoff */}
-        <Arrow x1={COL[4] + BW / 2} y1={88} x2={COL[4] + BW / 2} y2={112} />
-        <Box x={COL[4] - 12} y={114} w={182} tone={BLUE} title="Auto-draft + Slack ping" sub="rep reviews, rep sends ⛬" />
-        <text x={COL[4] + BW / 2 + 79} y={150} textAnchor="end" fontSize={10.5} fill="#2563eb">personal lane ≈ 28× cold</text>
+          {/* ---- DAILY ROUTINE (bottom) ---- */}
+          <text x={40} y={170} fontSize={13} fontWeight={700} fill={INK}>Every morning &mdash; handle the replies</text>
 
-        {/* ===================== WEEKLY BUILD LANE ===================== */}
-        <text x={30} y={214} fontSize={13} fontWeight={700} fill={INK}>Weekly build — Monday</text>
+          <Box x={COL[0]} y={182} tone={GREEN} title="Read replies" sub="check every inbox" />
+          <Box x={COL[1]} y={182} tone={GREEN} title="Sort them" sub="interested? no? bounced?" />
+          <Box x={COL[2]} y={182} tone={GREEN} title="Clean up" sub="drop dead + opted-out" />
+          <Box x={COL[3]} y={182} tone={GREEN} title="Refresh lists" sub="update the sales view" />
+          <Box x={COL[4]} y={182} tone={BLUE} title="Hand off" sub="hot lead → a person" door />
 
-        <Box x={COL[0]} y={224} tone={GREEN} title="A · Belief model" sub="Wilson floor" time="7:30" />
-        <Box x={COL[1]} y={224} tone={GREEN} title="B · Improve loop" sub="80% exploit / 20% explore" time="7:30" />
-        <Box x={COL[2]} y={224} w={336} tone={GREEN} title="C · Cold engine builds next batch" sub="pull → verify → skeptic → compose → judge" time="8:00" />
-        <Box x={COL[4]} y={224} tone={BLUE} title="D · Smartlead DRAFT" sub="human clicks Start ⛬" />
+          <Arrow x1={COL[0] + BW} y1={211} x2={COL[1] - 2} y2={211} />
+          <Arrow x1={COL[1] + BW} y1={211} x2={COL[2] - 2} y2={211} />
+          <Arrow x1={COL[2] + BW} y1={211} x2={COL[3] - 2} y2={211} />
+          <Arrow x1={COL[3] + BW} y1={211} x2={COL[4] - 2} y2={211} />
 
-        <Arrow x1={COL[0] + BW} y1={252} x2={COL[1] - 2} y2={252} />
-        <Arrow x1={COL[1] + BW} y1={252} x2={COL[2] - 2} y2={252} />
-        <Arrow x1={COL[2] + 336} y1={252} x2={COL[4] - 2} y2={252} />
+          {/* hand-off payoff */}
+          <Arrow x1={COL[4] + BW / 2} y1={240} x2={COL[4] + BW / 2} y2={262} />
+          <Box x={COL[4] - 32} y={264} w={182} tone={BLUE} title="Draft reply + alert the rep" sub="the rep reviews and sends 🔒" />
 
-        {/* segments feeding the cold engine */}
-        <text x={COL[2]} y={302} fontSize={11} fontWeight={600} fill={MUTE}>Segments (own copy + pull):</text>
-        <g>
-          <rect x={COL[2] + 132} y={291} width={66} height={18} rx={9} fill={GREEN.fill} stroke={GREEN.stroke} />
-          <text x={COL[2] + 165} y={303.5} textAnchor="middle" fontSize={10.5} fill={INK}>Direct</text>
-          <rect x={COL[2] + 204} y={291} width={70} height={18} rx={9} fill={GREEN.fill} stroke={GREEN.stroke} />
-          <text x={COL[2] + 239} y={303.5} textAnchor="middle" fontSize={10.5} fill={INK}>Law · CLE</text>
-          <rect x={COL[2] + 280} y={291} width={56} height={18} rx={9} fill={AMBER.fill} stroke={AMBER.stroke} />
-          <text x={COL[2] + 308} y={303.5} textAnchor="middle" fontSize={10.5} fill={INK}>Real est.</text>
-        </g>
-        <text x={COL[2] + 132} y={326} fontSize={10} fill={MUTE}>Real-estate pulls parked pending the ICP sub-segment pick.</text>
+          {/* ---- THE LOOP (daily results feed Monday's Learn) ---- */}
+          <path d="M28 182 C 6 150, 6 95, 24 60" fill="none" stroke="#9333ea" strokeWidth={1.75} strokeDasharray="5 4" markerEnd="url(#loopArrow)" />
+          <text x={16} y={150} fontSize={10.5} fontWeight={600} fill="#9333ea" transform="rotate(-90 16 150)">replies teach the system</text>
+        </svg>
 
-        {/* ===================== THE LOOP: feedback ===================== */}
-        {/* daily graduate/track outcomes curve back up-left into the belief model */}
-        <path d="M40 224 C 10 180, 10 110, 24 60" fill="none" stroke="#9333ea" strokeWidth={1.75} strokeDasharray="5 4" markerEnd="url(#loopArrow)" />
-        <text x={14} y={166} fontSize={10.5} fontWeight={600} fill="#9333ea" transform="rotate(-90 14 166)">every outcome → beliefs</text>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
+          <span><span className="inline-block w-3 h-3 rounded-sm align-middle mr-1" style={{ background: GREEN.fill, border: `1px solid ${GREEN.stroke}` }} /> Runs automatically</span>
+          <span><span className="inline-block w-3 h-3 rounded-sm align-middle mr-1" style={{ background: BLUE.fill, border: `1px solid ${BLUE.stroke}` }} /> 🔒 A person decides to send</span>
+          <span className="text-gray-400">The computer drafts and alerts; a human always clicks the final Send.</span>
+        </div>
+      </div>
 
-        {/* ===================== GATES BAND ===================== */}
-        <line x1={30} y1={356} x2={900} y2={356} stroke="#e2e8f0" strokeWidth={1} />
-        <text x={30} y={380} fontSize={13} fontWeight={700} fill={INK}>The gates every batch passes</text>
-
-        {/* verification waterfall */}
-        <text x={30} y={406} fontSize={11.5} fontWeight={600} fill={MUTE}>Verification waterfall (ships ok-only)</text>
-        <g>
-          <rect x={30} y={414} width={150} height={34} rx={7} fill={GREEN.fill} stroke={GREEN.stroke} />
-          <text x={105} y={435} textAnchor="middle" fontSize={11} fill={INK}>Apollo email_status</text>
-          <rect x={196} y={414} width={150} height={34} rx={7} fill={GREEN.fill} stroke={GREEN.stroke} />
-          <text x={271} y={429} textAnchor="middle" fontSize={11} fill={INK}>MillionVerifier</text>
-          <text x={271} y={442} textAnchor="middle" fontSize={9.5} fill={MUTE}>ok / catch-all / bad</text>
-          <rect x={362} y={414} width={170} height={34} rx={7} fill={GREEN.fill} stroke={GREEN.stroke} />
-          <text x={447} y={429} textAnchor="middle" fontSize={11} fill={INK}>BounceBan</text>
-          <text x={447} y={442} textAnchor="middle" fontSize={9.5} fill={MUTE}>resolves catch-alls</text>
-          <Arrow x1={180} y1={431} x2={194} y2={431} />
-          <Arrow x1={346} y1={431} x2={360} y2={431} />
-        </g>
-
-        {/* three-tier copy gate */}
-        <text x={566} y={406} fontSize={11.5} fontWeight={600} fill={MUTE}>Three-tier copy gate</text>
-        <g>
-          <rect x={566} y={414} width={104} height={34} rx={7} fill={GREEN.fill} stroke={GREEN.stroke} />
-          <text x={618} y={429} textAnchor="middle" fontSize={11} fill={INK}>copy-evaluator</text>
-          <text x={618} y={442} textAnchor="middle" fontSize={9.5} fill={MUTE}>rules</text>
-          <rect x={686} y={414} width={104} height={34} rx={7} fill={GREEN.fill} stroke={GREEN.stroke} />
-          <text x={738} y={429} textAnchor="middle" fontSize={11} fill={INK}>LLM judge</text>
-          <text x={738} y={442} textAnchor="middle" fontSize={9.5} fill={MUTE}>strategic fit</text>
-          <rect x={806} y={414} width={94} height={34} rx={7} fill={BLUE.fill} stroke={BLUE.stroke} />
-          <text x={853} y={429} textAnchor="middle" fontSize={11} fill={INK}>Human ⛬</text>
-          <text x={853} y={442} textAnchor="middle" fontSize={9.5} fill={MUTE}>clicks Start</text>
-          <Arrow x1={670} y1={431} x2={684} y2={431} />
-          <Arrow x1={790} y1={431} x2={804} y2={431} />
-        </g>
-
-        {/* ===================== FOOTNOTES ===================== */}
-        <line x1={30} y1={474} x2={900} y2={474} stroke="#e2e8f0" strokeWidth={1} />
-        <text x={30} y={498} fontSize={11.5} fill={MUTE}>
-          <tspan fontWeight={700} fill={INK}>⛬ Two human doors (permanent):</tspan> the cold launch (Start in Smartlead) and every real reply send. The system drafts and pings, never sends.
-        </text>
-        <text x={30} y={520} fontSize={11.5} fill={MUTE}>
-          <tspan fontWeight={700} fill="#2563eb">Blue</tspan> = a human-approval step. <tspan fontWeight={700} fill="#16a34a">Green</tspan> = built and running on cron. <tspan fontWeight={700} fill="#d97706">Amber</tspan> = open (real-estate pulls).
-        </text>
-        <text x={30} y={542} fontSize={11.5} fill={MUTE}>
-          <tspan fontWeight={700} fill={INK}>The loop:</tspan> cold targeting tops out near 1% positive, so the engine's real job is to manufacture warm replies cheaply, then graduate them to the personal lane (~28×).
-        </text>
-        <text x={30} y={564} fontSize={11.5} fill={MUTE}>
-          <tspan fontWeight={700} fill={INK}>Learning:</tspan> each reply updates the belief model (Wilson lower-bound, so small samples sink); spend stays ~80% on proven cells, ~20% on bounded new bets.
-        </text>
-        <text x={30} y={586} fontSize={11.5} fill={MUTE}>
-          <tspan fontWeight={700} fill={INK}>Recycle:</tspan> no-reply past cooldown re-engages; catch-alls park for BounceBan; bounce / unsubscribe / DNC auto-suppress.
-        </text>
-        <text x={30} y={608} fontSize={11.5} fill={MUTE}>
-          <tspan fontWeight={700} fill={INK}>Provenance guard:</tspan> only Apollo-sourced, verified leads ever reach a campaign. Guessed-pattern (sheet) emails are refused unless BounceBan clears them.
-        </text>
-      </svg>
+      {/* ============ PART 2: THE BRAIN ============ */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-shortcut-navy-blue mb-1">The brain: how it decides who to email</h2>
+        <p className="text-sm text-gray-500 mb-4 max-w-3xl">
+          Behind the routines is a simple idea: keep score of what actually gets replies, and put more effort there over time.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <BrainCard n="1" title="It keeps a scorecard"
+            body={<>For every kind of prospect &mdash; their industry, company size, job title and city &mdash; it tracks how often that group actually replies. Nothing is hard-coded; the scorecard is built from real results.</>} />
+          <BrainCard n="2" title="It isn't fooled by small wins"
+            body={<>One reply from a tiny group isn't proof. The brain judges each group by its realistic worst case, so big, consistent results outrank lucky flukes and it never chases a one-off.</>} />
+          <BrainCard n="3" title="It spends 80 / 20"
+            body={<>Each week roughly 80% of the effort goes to the prospect types that have proven they reply, and about 20% tests new ideas &mdash; so it keeps improving without betting everything on a hunch.</>} />
+          <BrainCard n="4" title="The honest truth it found"
+            body={<>Cold email tops out near <span className="font-medium text-gray-700">1% interested</span> no matter how good the targeting. So its real job isn't to win at cold email &mdash; it's to cheaply produce warm replies, then hand each one to a real person, because a 1-to-1 human follow-up converts about <span className="font-medium text-gray-700">28× better</span>.</>} />
+        </div>
+        <div className="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-4 text-sm text-gray-700 leading-relaxed">
+          <span className="font-semibold text-shortcut-navy-blue">In one sentence:</span> the machine does all the finding, checking, writing and sorting so that the few people who reply land in front of a human, ready for a personal conversation &mdash; which is where deals actually happen.
+        </div>
+      </div>
     </div>
   );
 }
