@@ -350,6 +350,24 @@ async function mvVerify(email, mvKey) {
     log('Most common fix: run --verify --confirm so deliverability is known, and --pull --confirm to reach target volume.');
     return;
   }
+  // ---------- JUDGE (advisory LLM strategic-fit — the middle gate between the
+  // deterministic skeptic and the human launch click). Never blocks. ----------
+  if (has('--judge')) {
+    const ak = envKey('ANTHROPIC_API_KEY');
+    if (!ak) log('JUDGE: skipped (no ANTHROPIC_API_KEY in .env / openclaw .env).');
+    else if (CLONE) log('JUDGE: skipped (cloning a template — no composed copy to judge).');
+    else {
+      try {
+        const [{ default: Anthropic }, { judgeCopy }] = await Promise.all([import('@anthropic-ai/sdk'), import('./lib/copy-judge.mjs')]);
+        const j = await judgeCopy({ anthropic: new Anthropic({ apiKey: ak }), sequence: SEQ, segment: SEGMENT });
+        log(`JUDGE (advisory): ${j.verdict.toUpperCase()} · ${j.score}/100 — ${j.would_reply_read}`);
+        if (j.issues.length) log('  issues: ' + j.issues.map((i) => `[${i.severity}] E${i.step} ${i.issue}`).join(' · '));
+        if (j.suggestions.length) log('  fixes: ' + j.suggestions.slice(0, 4).join(' · '));
+        log('  (advisory only — does not block; the human decides.)');
+      } catch (e) { log(`JUDGE: error (${e.message}) — proceeding, advisory only.`); }
+    }
+  }
+
   const SMARTLEAD = envKey('SMARTLEAD_API_KEY');
   // Default to the approved v3 copy; --clone <id> overrides to clone a template.
   const launchOpts = { apiKey: SMARTLEAD, name: campaignName, leads: bundle.leads, cloneFromId: CLONE, sequence: CLONE ? undefined : SEQ };
