@@ -2378,14 +2378,29 @@ const SalesIntelligence: React.FC = () => {
     [playB, tab],
   );
   const pbCounts = useMemo(() => {
-    const c: Record<string, number> = { all: pbBase.length, replied: 0, no_reply: 0, net_new: 0, re_engage: 0, verified: 0, unverified: 0, catchall: 0, bad: 0, in_campaign: 0 };
+    // FACETED counts: each filter group's numbers reflect the OTHER active filters,
+    // so a pill's count equals exactly what clicking it shows. (Without this, the
+    // engagement counts ignored the deliverability filter, so e.g. "Re-engage (346)"
+    // showed almost nothing under the default "verified" filter.)
+    const sl = search.toLowerCase();
+    const matchSearch = (x: PlayBRow) => !search
+      || x.company_name?.toLowerCase().includes(sl)
+      || x.contact_name?.toLowerCase().includes(sl)
+      || x.contact_email?.toLowerCase().includes(sl)
+      || x.contact_title?.toLowerCase().includes(sl);
+    const matchDeliv = (x: PlayBRow) => pbDeliv === 'all' || delivOf(x) === pbDeliv;
+    const matchEng = (x: PlayBRow) => pbFilter === 'all' || x.engagement_state === pbFilter;
+    const matchCamp = (x: PlayBRow) => pbCampaign === 'all' || (pbCampaign === 'in' ? !!x.in_campaign : !x.in_campaign);
+    const c: Record<string, number> = { all: 0, engAll: 0, delivAll: 0, replied: 0, no_reply: 0, net_new: 0, re_engage: 0, verified: 0, unverified: 0, catchall: 0, bad: 0, in_campaign: 0 };
     for (const x of pbBase) {
-      if (x.engagement_state) c[x.engagement_state] = (c[x.engagement_state] || 0) + 1;
-      c[delivOf(x)] += 1;
-      if (x.in_campaign) c.in_campaign += 1;
+      if (!matchSearch(x)) continue;
+      if (matchDeliv(x) && matchCamp(x)) { c.engAll += 1; if (x.engagement_state) c[x.engagement_state] += 1; }   // engagement facet (under deliv + campaign)
+      if (matchEng(x) && matchCamp(x)) { c.delivAll += 1; c[delivOf(x)] += 1; }                                   // deliverability facet (under engagement + campaign)
+      if (matchEng(x) && matchDeliv(x) && x.in_campaign) c.in_campaign += 1;                                       // campaign facet (under engagement + deliv)
     }
+    c.all = c.engAll;
     return c;
-  }, [pbBase]);
+  }, [pbBase, search, pbFilter, pbDeliv, pbCampaign]);
 
   const fb = useMemo(() => {
     const sRank: Record<string, number> = { replied: 0, no_reply: 1, net_new: 2, re_engage: 3 };
@@ -2653,7 +2668,7 @@ const SalesIntelligence: React.FC = () => {
                     ? 'border-shortcut-navy-blue bg-shortcut-navy-blue text-white'
                     : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
               >
-                {d === 'all' ? 'All' : PB_DELIV[d].label} <span className="opacity-70">({d === 'all' ? pbCounts.all : pbCounts[d] ?? 0})</span>
+                {d === 'all' ? 'All' : PB_DELIV[d].label} <span className="opacity-70">({d === 'all' ? pbCounts.delivAll : pbCounts[d] ?? 0})</span>
               </button>
             ))}
             <div className="ml-auto flex items-center gap-1.5 text-xs text-gray-500">
