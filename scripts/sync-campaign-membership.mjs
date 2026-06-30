@@ -33,14 +33,15 @@ async function readAll(t, c, mod) { const o = []; for (let f = 0; ; f += 1000) {
   const list = (Array.isArray(camps) ? camps : camps.data || []).filter((c) => c && c.id && (ALL || KEEP.has(String(c.status || '').toUpperCase())));
   log(`scanning ${list.length} campaign(s) (active + draft + paused)…`);
 
-  const member = new Map(); // email -> campaignId (most recent wins)
+  const member = new Map(); // email -> [{ id, name, date }]  (a lead can be in several)
   for (const c of list) {
+    const meta = { id: String(c.id), name: c.name || '', date: c.created_at || null };
     let off = 0;
     for (;;) {
       const r = await fetch(api(`/campaigns/${c.id}/leads?offset=${off}&limit=100`));
       const j = await r.json().catch(() => ({}));
       const a = j.data || [];
-      for (const L of a) { const e = lc(L.lead?.email); if (e) member.set(e, String(c.id)); }
+      for (const L of a) { const e = lc(L.lead?.email); if (!e) continue; if (!member.has(e)) member.set(e, []); if (!member.get(e).some((m) => m.id === meta.id)) member.get(e).push(meta); }
       if (a.length < 100) break; off += 100; if (off > 5000) break;
       await new Promise((res) => setTimeout(res, 60));
     }
@@ -54,11 +55,14 @@ async function readAll(t, c, mod) { const o = []; for (let f = 0; ; f += 1000) {
 
   if (!CONFIRM) { log('\nDRY RUN — re-run with --confirm to write in_campaign.'); return; }
 
-  // set members true (chunked upsert by email)
-  const rows = [...member.entries()].map(([email, cid]) => ({ email, in_campaign: true, smartlead_campaign_id: cid }));
+  // set members true (chunked upsert by email) — newest campaign first
+  const rows = [...member.entries()].map(([email, ms]) => {
+    const sorted = [...ms].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    return { email, in_campaign: true, smartlead_campaign_id: sorted[0]?.id || null, campaign_memberships: sorted };
+  });
   let wrote = 0;
   for (let i = 0; i < rows.length; i += 200) { const { error } = await sb.from('outreach_contacts').upsert(rows.slice(i, i + 200), { onConflict: 'email' }); if (error) log('  warn:', error.message); else wrote += rows.slice(i, i + 200).length; }
   // un-flag the rest
-  for (let i = 0; i < toUnflag.length; i += 200) { await sb.from('outreach_contacts').update({ in_campaign: false, smartlead_campaign_id: null }).in('email', toUnflag.slice(i, i + 200)); }
+  for (let i = 0; i < toUnflag.length; i += 200) { await sb.from('outreach_contacts').update({ in_campaign: false, smartlead_campaign_id: null, campaign_memberships: null }).in('email', toUnflag.slice(i, i + 200)); }
   log(`\nDONE — flagged ${wrote} in-campaign, un-flagged ${toUnflag.length}.`);
 })().catch((e) => { console.error('SYNC_MEMBERSHIP_ERROR:', e.message); process.exit(1); });

@@ -41,8 +41,12 @@ interface PlayBRow {
   mv_status: string | null;
   bounceban_status: string | null;
   in_campaign: boolean | null; smartlead_campaign_id: string | null;
+  campaign_memberships: { id: string; name: string; date: string | null }[] | null;
   last_sender_name: string | null; last_sender_email: string | null;
 }
+// Compact a Smartlead campaign name + its date for the Play B in-campaign list.
+const fmtCampDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
+const shortCampaign = (name: string) => (name || '').replace(/^Cold Engine \|\s*/i, '').replace(/\s*\|\s*\d+\s*leads?$/i, '').trim() || name;
 const PB_STATE: Record<string, { label: string; tone: string; hint: string }> = {
   replied:   { label: 'Replied',   tone: 'bg-green-100 text-green-800', hint: 'Emailed & they responded — warmest, never closed' },
   no_reply:  { label: 'No reply',  tone: 'bg-gray-100 text-gray-700',   hint: 'Emailed, silent — needs a new angle' },
@@ -2051,7 +2055,7 @@ const SalesIntelligence: React.FC = () => {
   // cardTarget removed — replaced with inline expansion (paExpanded / pbExpanded / fuExpanded).
   const [pbFilter, setPbFilter] = useState<PBFilter>('all');
   const [pbDeliv, setPbDeliv] = useState<PBDeliv | 'all'>('verified');   // default: hide catch-all + bad
-  const [hideInCampaign, setHideInCampaign] = useState(false);
+  const [pbCampaign, setPbCampaign] = useState<'all' | 'in' | 'out'>('all');   // filter by Smartlead campaign membership
   const [pbSort, setPbSort] = useState<PBSort>('state');
   const [pbExpanded, setPbExpanded] = useState<string | null>(null);
   // Play A inline expansion (matches Play B + Workhuman pattern — no side drawer).
@@ -2382,7 +2386,8 @@ const SalesIntelligence: React.FC = () => {
       || x.contact_title?.toLowerCase().includes(search.toLowerCase()));
     if (pbFilter !== 'all') rows = rows.filter((x) => x.engagement_state === pbFilter);
     if (pbDeliv !== 'all') rows = rows.filter((x) => delivOf(x) === pbDeliv);
-    if (hideInCampaign) rows = rows.filter((x) => !x.in_campaign);
+    if (pbCampaign === 'in') rows = rows.filter((x) => x.in_campaign);
+    else if (pbCampaign === 'out') rows = rows.filter((x) => !x.in_campaign);
     const cmp: Record<PBSort, (a: PlayBRow, b: PlayBRow) => number> = {
       state: (a, b) => (sRank[a.engagement_state || 'z'] - sRank[b.engagement_state || 'z']) || (b.score - a.score),
       score: (a, b) => b.score - a.score,
@@ -2390,7 +2395,7 @@ const SalesIntelligence: React.FC = () => {
       recent: (a, b) => new Date(b.last_contacted_at || 0).getTime() - new Date(a.last_contacted_at || 0).getTime(),
     };
     return [...rows].sort(cmp[pbSort]);
-  }, [pbBase, search, pbFilter, pbDeliv, hideInCampaign, pbSort]);
+  }, [pbBase, search, pbFilter, pbDeliv, pbCampaign, pbSort]);
 
   const th = 'text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 py-2';
   const td = 'px-3 py-2 text-sm text-gray-800 border-t border-gray-100';
@@ -2636,10 +2641,18 @@ const SalesIntelligence: React.FC = () => {
                 {d === 'all' ? 'All' : PB_DELIV[d].label} <span className="opacity-70">({d === 'all' ? pbCounts.all : pbCounts[d] ?? 0})</span>
               </button>
             ))}
-            <label className="ml-auto flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
-              <input type="checkbox" checked={hideInCampaign} onChange={(e) => setHideInCampaign(e.target.checked)} className="rounded border-gray-300" />
-              Hide in-campaign <span className="opacity-70">({pbCounts.in_campaign ?? 0})</span>
-            </label>
+            <div className="ml-auto flex items-center gap-1.5 text-xs text-gray-500">
+              <span>Campaign</span>
+              <select
+                value={pbCampaign}
+                onChange={(e) => setPbCampaign(e.target.value as 'all' | 'in' | 'out')}
+                className="border border-gray-300 rounded px-2 py-1 text-xs"
+              >
+                <option value="all">All</option>
+                <option value="in">In a campaign ({pbCounts.in_campaign ?? 0})</option>
+                <option value="out">Not in a campaign</option>
+              </select>
+            </div>
           </div>
           <div className="overflow-x-auto border border-gray-200 rounded">
             <table className="min-w-full">
@@ -2664,10 +2677,19 @@ const SalesIntelligence: React.FC = () => {
                         <td className={`${td} font-medium`}>
                           {r.company_name}
                           {r.in_campaign && (
-                            <span className="ml-2 align-middle text-[10px] font-semibold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded"
-                              title={`Already in a Smartlead campaign${r.smartlead_campaign_id ? ` (${r.smartlead_campaign_id})` : ''}`}>
-                              in campaign
+                            <span className="ml-2 align-middle text-[10px] font-semibold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                              in campaign{(r.campaign_memberships?.length || 0) > 1 ? `s · ${r.campaign_memberships!.length}` : ''}
                             </span>
+                          )}
+                          {r.in_campaign && r.campaign_memberships && r.campaign_memberships.length > 0 && (
+                            <div className="mt-1 space-y-0.5 font-normal">
+                              {r.campaign_memberships.map((m) => (
+                                <div key={m.id} className="text-[10px] text-indigo-700 leading-tight" title={m.name}>
+                                  {shortCampaign(m.name)}
+                                  {m.date && <span className="text-indigo-400"> · {fmtCampDate(m.date)}</span>}
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </td>
                         <td className={td}>
