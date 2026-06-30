@@ -75,7 +75,13 @@ export function evaluateColdList(leads, ctx, options = {}) {
     if (contacted.has(email)) { drop(raw, 'already_contacted'); continue; }
     if (dom && clientDomains.has(dom)) { drop(raw, 'existing_client_domain'); continue; }
     if (raw.mv_status && MV_FAIL.has(raw.mv_status)) { drop(raw, `undeliverable_${raw.mv_status}`); continue; }
-    if (MV_RISKY.has(raw.mv_status)) { parked.push({ ...raw, email, email_domain: dom }); continue; } // catch_all → park, never send
+    // catch_all → the BounceBan second pass decides: 'deliverable' is recovered
+    // and falls through to sendable; 'undeliverable' is dropped; risky/unchecked
+    // is parked (never sent, held for a future recheck).
+    if (MV_RISKY.has(raw.mv_status) && raw.bounceban_status !== 'deliverable') {
+      if (raw.bounceban_status === 'undeliverable') { drop(raw, 'bounceban_undeliverable'); continue; }
+      parked.push({ ...raw, email, email_domain: dom }); continue;
+    }
     // per-domain cap (anti-blast)
     const n = perDomain.get(dom) || 0;
     if (dom && n >= opts.maxPerDomain) { drop(raw, 'per_domain_cap'); continue; }
@@ -85,7 +91,8 @@ export function evaluateColdList(leads, ctx, options = {}) {
 
   // ---- stats on what survived cleaning ----
   const total = cleanLeads.length;
-  const okCount = cleanLeads.filter((l) => MV_SEND.has(l.mv_status)).length;
+  // sendable = MV 'ok' OR a catch_all BounceBan confirmed 'deliverable'.
+  const okCount = cleanLeads.filter((l) => MV_SEND.has(l.mv_status) || l.bounceban_status === 'deliverable').length;
   const riskyCount = parked.length;   // catch_all are parked, not shipped
   const unverified = cleanLeads.filter((l) => !l.mv_status).length;
   const goodTitleCount = cleanLeads.filter((l) => GOOD_TITLES.has(l.title_cat)).length;

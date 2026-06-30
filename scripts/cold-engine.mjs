@@ -166,7 +166,7 @@ async function mvVerify(email, mvKey) {
   log(belief ? `belief model loaded (${belief.generated_at})` : 'no belief_model.json — using evaluator defaults');
 
   // load context sets + firmographics, once
-  const contacts = await readAll('outreach_contacts', 'email, name, company, title, email_domain, location, source, crm_company_id, broker_track, mv_status, channel, graduated_at');
+  const contacts = await readAll('outreach_contacts', 'email, name, company, title, email_domain, location, source, crm_company_id, broker_track, mv_status, bounceban_status, channel, graduated_at');
   const sends = await readAll('outreach_sends', 'email, campaign_id');
   const persons = await readAll('apollo_person_cache', 'email, email_domain, company_headcount');
   const companies = await readAll('crm_companies', 'contact_domains, completed_events, ext_employee_size');
@@ -229,7 +229,7 @@ async function mvVerify(email, mvKey) {
     if (o.broker_track || (dom && brokerDomains.has(dom))) segment = 'broker';
     else if ((o.source || '').endsWith('-law')) segment = 'law';
     else if ((o.source || '').endsWith('-realestate')) segment = 'realestate';
-    candidates.push({ email: e, email_domain: dom, name: o.name || null, company: o.company || null, title_cat: titleCat(o.title), size_band: sizeBand(hc), mv_status: o.mv_status || null, source: o.source || null, segment, hub: hubOf(o.location), cle_url: cleUrlFor(o.location) });
+    candidates.push({ email: e, email_domain: dom, name: o.name || null, company: o.company || null, title_cat: titleCat(o.title), size_band: sizeBand(hc), mv_status: o.mv_status || null, bounceban_status: o.bounceban_status || null, source: o.source || null, segment, hub: hubOf(o.location), cle_url: cleUrlFor(o.location) });
   }
   const bySeg = candidates.reduce((m, c) => { m[c.segment] = (m[c.segment] || 0) + 1; return m; }, {});
   let pool = candidates.filter((c) => c.segment === SEGMENT);
@@ -334,7 +334,7 @@ async function mvVerify(email, mvKey) {
         last_name: rest.join(' '),
         company_name: cleanCompany(l.company) || '',
         custom_fields: {
-          title_cat: l.title_cat, size_band: l.size_band, mv: l.mv_status || '', source: l.source || '',
+          title_cat: l.title_cat, size_band: l.size_band, mv: l.mv_status || '', bb: l.bounceban_status || '', source: l.source || '',
           // Law E3 links each firm to ITS state's CLE page via {{cle_url}}.
           ...(SEGMENT === 'law' ? { cle_url: l.cle_url || `https://proposals.getshortcut.co/cle` } : {}),
         },

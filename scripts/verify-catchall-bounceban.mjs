@@ -17,7 +17,7 @@
  */
 import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
-import { verifyEmail, credits } from './lib/bounceban.mjs';
+import { verifyEmail } from './lib/bounceban.mjs';
 
 const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
 const envKey = (n) => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').match(new RegExp(`^${n}=(.+)$`, 'm'))?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } };
@@ -36,10 +36,7 @@ const log = (...a) => console.log(...a);
 async function readAll(t, c, mod) { const o = []; for (let f = 0; ; f += 1000) { let q = sb.from(t).select(c).range(f, f + 999); if (mod) q = mod(q); const { data, error } = await q; if (error) throw new Error(error.message); o.push(...data); if (data.length < 1000) break; } return o; }
 
 (async () => {
-  log(CONFIRM ? 'BOUNCEBAN VERIFY — LIVE (spends credits + writes)' : 'BOUNCEBAN VERIFY — dry run');
-  const bal = await credits({ apiKey: BB });
-  log('credits:', JSON.stringify(bal).slice(0, 120));
-
+  log(CONFIRM ? 'BOUNCEBAN VERIFY — LIVE (spends ~1 credit per resolved email)' : 'BOUNCEBAN VERIFY — dry run');
   const statuses = INCLUDE_UNKNOWN ? ['catch_all', 'unknown'] : ['catch_all'];
   let rows = await readAll('outreach_contacts', 'email, source, mv_status, bounceban_status', (q) => q.in('mv_status', statuses).is('bounceban_status', null));
   if (!ALL) rows = rows.filter((r) => String(r.source || '').startsWith('apollo-leadgen'));

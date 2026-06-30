@@ -66,9 +66,10 @@ const leadList = (leads) => (leads || []).map((l) => ({
 export function verifiedOnly(leads) {
   return (leads || []).filter((l) => {
     const cf = l.custom_fields || {};
-    const mvOk = (cf.mv ?? l.mv_status) === 'ok';
+    // sendable = MV 'ok' OR a catch_all BounceBan confirmed 'deliverable'.
+    const sendable = (cf.mv ?? l.mv_status) === 'ok' || (cf.bb ?? l.bounceban_status) === 'deliverable';
     const src = String(cf.source ?? l.source ?? '');
-    return mvOk && !src.startsWith('sheet:');
+    return sendable && !src.startsWith('sheet:');
   });
 }
 
