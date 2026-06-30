@@ -35,6 +35,15 @@ const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
 const VIDEO_RE = /\.(mp4|webm|ogg|ogv|mov|m4v)(\?|#|$)/i;
 const isVideo = (src: string) => VIDEO_RE.test(src);
 
+// Mosaic tiles only tease the video — they loop the first few seconds so the
+// hero feels alive without playing the whole clip. Clicking the tile opens the
+// lightbox, which plays it in full with controls.
+const PREVIEW_SECONDS = 5;
+const loopPreview = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const v = e.currentTarget;
+  if (v.currentTime >= PREVIEW_SECONDS) v.currentTime = 0;
+};
+
 function Icon({ d, size = 16 }: { d: string; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -120,6 +129,7 @@ const ProposalGallery: React.FC<ProposalGalleryProps> = ({ photos, topUp = true 
                   playsInline
                   autoPlay
                   preload="metadata"
+                  onTimeUpdate={loopPreview}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
                 {/* Play badge — signals it's a video and that the lightbox plays

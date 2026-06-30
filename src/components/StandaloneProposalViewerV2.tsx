@@ -75,6 +75,14 @@ import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 const isVideoSrc = (src?: string): boolean =>
   !!src && /\.(mp4|webm|ogg|ogv|mov|m4v)(\?|#|$)/i.test(src);
 
+// Hero preview videos tease the first few seconds on a loop; the lightbox plays
+// the full clip with controls.
+const HERO_PREVIEW_SECONDS = 5;
+const loopHeroPreview = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const v = e.currentTarget;
+  if (v.currentTime >= HERO_PREVIEW_SECONDS) v.currentTime = 0;
+};
+
 // Photo strips stay image-only: a video contributes its poster frame, and a
 // poster-less video is skipped (there's no still to show). The hero mosaic and
 // lightbox take the items directly so they can play the video instead.
@@ -1129,7 +1137,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
         {/* HERO */}
         <div className="pvm-hero">
           {isVideoSrc(heroSrc) ? (
-            <video src={heroSrc} muted loop playsInline autoPlay preload="metadata" />
+            <video
+              src={heroSrc}
+              muted
+              loop
+              playsInline
+              autoPlay
+              preload="metadata"
+              onTimeUpdate={loopHeroPreview}
+            />
           ) : (
             <img src={heroSrc} alt={clientName} />
           )}
