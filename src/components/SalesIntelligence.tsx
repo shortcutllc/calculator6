@@ -2164,8 +2164,8 @@ const SalesIntelligence: React.FC = () => {
     setLoading(true); setError(null);
     try {
       const [a, b, r] = await Promise.all([
-        supabase.from('crm_play_a').select('*').order('rank', { ascending: true }),
-        supabase.from('crm_play_b').select('*').order('rank', { ascending: true }),
+        supabase.from('crm_play_a').select('*').order('rank', { ascending: true }).limit(5000),
+        supabase.from('crm_play_b').select('*').order('rank', { ascending: true }).limit(5000),
         supabase.from('crm_reconciliation').select('*').order('total', { ascending: false }),
       ]);
       if (a.error) throw a.error;
