@@ -1184,7 +1184,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </svg>
             <span className="t">
               Sign up for more, save more. Commit to 4 events a year and{' '}
-              <strong>save 15%</strong>, or go with 9 and <strong>save 20%</strong>.
+              <strong>save 15%</strong> — or go with 9 and <strong>save 20%</strong>.
             </span>
           </div>
 
@@ -2287,11 +2287,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
               one service always arrives included. */}
           <div>
             <SectionLabel
-              eyebrow="Your proposal"
+              eyebrow="Your Proposal"
               title={
                 summary.rows.length === 1
                   ? 'Review your proposal.'
-                  : 'Pick the services you want to start with.'
+                  : 'Build your ideal wellness program.'
               }
               size="section"
               mb={10}
@@ -2308,7 +2308,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             >
               {summary.rows.length === 1
                 ? 'Adjust the details, set how often it repeats, and approve when you’re ready.'
-                : 'Select the services you’d like to include, then set how often you want them. Toggle any service on or off. Your proposal updates automatically.'}
+                : 'Select the services you’d like to include, then set how often you want them. Toggle any service on or off — your proposal updates automatically.'}
             </p>
             {/* Savings callout (design refresh) — recurring-volume framing.
                 Uses the repeat icon + "make it recurring" copy to match the
@@ -2329,7 +2329,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </svg>
               <span className="txt">
                 Sign up for more, save more. Commit to 4 events a year and{' '}
-                <strong>save 15%</strong>, or go with 9 and <strong>save 20%</strong>.
+                <strong>save 15%</strong> — or go with 9 and <strong>save 20%</strong>.
               </span>
             </div>
             {/* Intro meta-row (reference `.pv-meta-row`): date · location · appts. */}
