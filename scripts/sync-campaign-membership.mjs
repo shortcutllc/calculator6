@@ -28,10 +28,22 @@ async function readAll(t, c, mod) { const o = []; for (let f = 0; ; f += 1000) {
 (async () => {
   if (!SL) { console.error('MISSING SMARTLEAD_API_KEY'); process.exit(2); }
   log(CONFIRM ? 'SYNC MEMBERSHIP — LIVE' : 'SYNC MEMBERSHIP — dry run');
-  const KEEP = new Set(['ACTIVE', 'START', 'STARTED', 'RUNNING', 'DRAFTED']);   // current campaigns only (not old paused)
+  // "In a campaign" = ACTIVE campaigns (always) + RECENT drafts (a draft we are
+  // currently working on). Old abandoned drafts are excluded so they don't tag
+  // leads with stale memberships. --all overrides.
+  const ACTIVE = new Set(['ACTIVE', 'START', 'STARTED', 'RUNNING']);
+  const DRAFT_MAX_AGE_DAYS = 120;
+  const recentCutoff = Date.now() - DRAFT_MAX_AGE_DAYS * 86400000;
   const camps = (await (await fetch(api('/campaigns'))).json());
-  const list = (Array.isArray(camps) ? camps : camps.data || []).filter((c) => c && c.id && (ALL || KEEP.has(String(c.status || '').toUpperCase())));
-  log(`scanning ${list.length} campaign(s) (active + draft + paused)…`);
+  const list = (Array.isArray(camps) ? camps : camps.data || []).filter((c) => {
+    if (!c || !c.id) return false;
+    if (ALL) return true;
+    const st = String(c.status || '').toUpperCase();
+    if (ACTIVE.has(st)) return true;
+    if (st === 'DRAFTED') return c.created_at && new Date(c.created_at).getTime() > recentCutoff;
+    return false;
+  });
+  log(`scanning ${list.length} campaign(s) (active + drafts < ${DRAFT_MAX_AGE_DAYS}d)…`);
 
   const member = new Map(); // email -> [{ id, name, date }]  (a lead can be in several)
   for (const c of list) {
