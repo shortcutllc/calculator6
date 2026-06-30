@@ -219,7 +219,7 @@ async function mvVerify(email, mvKey) {
     // Manually-imported "sheet:*" leads are unverified guessed-pattern emails that
     // MillionVerifier false-OK'd (they hard-bounced on netflix/coinbase/gusto/etsy
     // in campaign 3557935). mv='ok' alone is NOT enough without Apollo provenance.
-    if ((o.source || '').startsWith('sheet:')) { sheetSkipped += 1; continue; }
+    if ((o.source || '').startsWith('sheet:') && o.bounceban_status !== 'deliverable') { sheetSkipped += 1; continue; }
     const dom = lc(o.email_domain)?.replace(/^www\./, '') || (e.includes('@') ? e.split('@')[1] : null);
     if (dom && clientDomains.has(dom)) continue;
     const hc = hcByEmail.get(e) || (dom ? hcByDom.get(dom) : 0) || 0;

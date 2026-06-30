@@ -66,10 +66,13 @@ const leadList = (leads) => (leads || []).map((l) => ({
 export function verifiedOnly(leads) {
   return (leads || []).filter((l) => {
     const cf = l.custom_fields || {};
-    // sendable = MV 'ok' OR a catch_all BounceBan confirmed 'deliverable'.
-    const sendable = (cf.mv ?? l.mv_status) === 'ok' || (cf.bb ?? l.bounceban_status) === 'deliverable';
+    const mv = cf.mv ?? l.mv_status;
+    const bb = cf.bb ?? l.bounceban_status;
     const src = String(cf.source ?? l.source ?? '');
-    return sendable && !src.startsWith('sheet:');
+    // Apollo provenance: MV-'ok' OR BounceBan-'deliverable'. Sheet provenance:
+    // ONLY a BounceBan-'deliverable' (the strong, real-deliverability probe) —
+    // never MV-'ok' alone (that false-OK'd guessed sheet emails and bounced).
+    return src.startsWith('sheet:') ? (bb === 'deliverable') : (mv === 'ok' || bb === 'deliverable');
   });
 }
 

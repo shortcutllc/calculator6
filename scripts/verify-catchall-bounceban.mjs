@@ -26,6 +26,7 @@ const arg = (f) => process.argv.includes(f);
 const argv = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 const CONFIRM = arg('--confirm');
 const ALL = arg('--all');
+const PLAYB = arg('--play-b');   // restrict to leads present in crm_play_b (any source)
 const INCLUDE_UNKNOWN = arg('--include-unknown');
 const MAX = parseInt(argv('--max', '100000'), 10);
 const CONCURRENCY = Math.max(1, parseInt(argv('--concurrency', '5'), 10));
@@ -39,7 +40,11 @@ async function readAll(t, c, mod) { const o = []; for (let f = 0; ; f += 1000) {
   log(CONFIRM ? 'BOUNCEBAN VERIFY — LIVE (spends ~1 credit per resolved email)' : 'BOUNCEBAN VERIFY — dry run');
   const statuses = INCLUDE_UNKNOWN ? ['catch_all', 'unknown'] : ['catch_all'];
   let rows = await readAll('outreach_contacts', 'email, source, mv_status, bounceban_status', (q) => q.in('mv_status', statuses).is('bounceban_status', null));
-  if (!ALL) rows = rows.filter((r) => String(r.source || '').startsWith('apollo-leadgen'));
+  if (PLAYB) {
+    const pb = await readAll('crm_play_b', 'contact_email');
+    const inPB = new Set(pb.map((r) => String(r.contact_email || '').toLowerCase()).filter(Boolean));
+    rows = rows.filter((r) => inPB.has(String(r.email || '').toLowerCase()));
+  } else if (!ALL) rows = rows.filter((r) => String(r.source || '').startsWith('apollo-leadgen'));
   const supp = new Set((await readAll('crm_suppression', 'email')).map((r) => String(r.email).toLowerCase()));
   rows = rows.filter((r) => r.email && !supp.has(r.email.toLowerCase())).slice(0, MAX);
 
