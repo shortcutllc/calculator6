@@ -58,8 +58,27 @@ const leadList = (leads) => (leads || []).map((l) => ({
  * @param {Function} [a.fetchImpl]  injectable fetch (defaults to global)
  * @param {boolean} [a.dryRun]      resolve the plan but create nothing
  */
+// HARD INVARIANT at the upload boundary: only MillionVerifier-'ok', Apollo-
+// provenance leads ever reach a Smartlead campaign. This sits BEHIND the
+// cold-list-evaluator + the cold-engine provenance guard as a last line of
+// defence — no code path can push an unverified or guessed address into a
+// sending campaign (the 3557935 hard-bounce class). Returns only safe leads.
+export function verifiedOnly(leads) {
+  return (leads || []).filter((l) => {
+    const cf = l.custom_fields || {};
+    const mvOk = (cf.mv ?? l.mv_status) === 'ok';
+    const src = String(cf.source ?? l.source ?? '');
+    return mvOk && !src.startsWith('sheet:');
+  });
+}
+
 export async function launchCampaign({ apiKey, name, cloneFromId, sequence, leads = [], fetchImpl = fetch, dryRun = false }) {
   if (!apiKey) throw new Error('launchCampaign: SMARTLEAD_API_KEY required');
+  const safe = verifiedOnly(leads);
+  const rejected = (leads || []).length - safe.length;
+  if (rejected > 0) console.warn(`launchCampaign: REFUSED ${rejected} unverified lead(s) (not MV-ok or sheet-sourced) — only verified leads are uploaded.`);
+  if ((leads || []).length && !safe.length) throw new Error('launchCampaign: every lead failed the MV-ok/provenance check — refusing to create an all-unverified campaign.');
+  leads = safe;
   const { ids: senderIds, source: senderSource } = await resolveSenderIds(apiKey, fetchImpl);
   const schedule = campaignSchedule(senderIds.length);
   const plan = {
