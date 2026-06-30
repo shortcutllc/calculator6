@@ -16,6 +16,38 @@ import { DEAD_DIFFERENTIATORS, SEASONAL_ONLY_PHRASES } from '../../netlify/funct
 // Brand voice banned words (mirror draft-outreach.js HARD WRITING RULES).
 const BANNED_WORDS = ['elevate', 'leverage', 'synergy', 'unlock', 'empower', 'transform', 'reimagine', 'seamless', 'holistic', 'curated'];
 
+// ---- COLD SUBJECT LINTER (see memory/cold_email_subjects.md) ----
+// Cold E1 subjects must read like a 1-line internal note: 1-4 words, no sell, no
+// spam/urgency/money words, no fake Re:/Fwd: (the one pattern that actively burns
+// sacrificial domains), no ALL-CAPS/emoji/exclamation.
+const SUBJ_FAKE_THREAD = /^\s*(re|fwd|fw)\s*:/i;
+const SUBJ_SPAM = /\b(free|discount|guarantee|risk[- ]?free|cash|earn|cheap|act now|urgent|asap|limited time|last chance|winner|amazing|incredible|miracle|best price|% off)\b|\$/i;
+const SUBJ_SELL = /\b(boost|improve|increase|accelerate|maximize|guaranteed|save big|better|best)\b/i;     // overt sell / superlative / command
+const SUBJ_EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{2190}-\u{21FF}]/u;
+const SUBJ_ACRONYM_OK = new Set(['CLE', 'RTO', 'NYC', 'USA', 'LLC', 'LLP', 'CEO', 'CFO', 'CHRO', 'PTO']);
+const subjWords = (s) => String(s || '').replace(/\{\{[^}]+\}\}/g, 'x').split(/\s+/).filter(Boolean);
+
+/** Lint one cold subject → array of {hard, rule, detail}. */
+export function lintSubject(subject) {
+  const s = String(subject || '');
+  const out = [];
+  if (!s.trim()) return out;                                   // blank = threaded follow-up, fine
+  if (SUBJ_FAKE_THREAD.test(s)) out.push({ hard: true, rule: 'subject_fake_thread', detail: 'fake Re:/Fwd: on a cold touch is deceptive and burns sacrificial domains' });
+  if (SUBJ_EMOJI.test(s)) out.push({ hard: true, rule: 'subject_emoji', detail: 'no emoji in cold subjects (spam signal)' });
+  if (/!/.test(s)) out.push({ hard: true, rule: 'subject_exclamation', detail: 'no exclamation in subject' });
+  const m = SUBJ_SPAM.exec(s); if (m) out.push({ hard: true, rule: 'subject_spam_word', detail: `"${m[0]}"` });
+  const sell = SUBJ_SELL.exec(s); if (sell) out.push({ hard: true, rule: 'subject_sell_word', detail: `"${sell[0]}" — overt sell/superlative, not an internal-note subject` });
+  const caps = (s.match(/\b[A-Z]{4,}\b/g) || []).filter((w) => !SUBJ_ACRONYM_OK.has(w));
+  if (caps.length) out.push({ hard: true, rule: 'subject_allcaps', detail: `"${caps[0]}"` });
+  const n = subjWords(s).length;
+  if (n > 6) out.push({ hard: false, rule: 'subject_long', detail: `${n} words — cold subjects want 1-4; 7+ opens decline sharply` });
+  else if (n > 4) out.push({ hard: false, rule: 'subject_longish', detail: `${n} words (1-4 ideal)` });
+  if (n > 1 && /\?/.test(s)) out.push({ hard: false, rule: 'subject_multiword_question', detail: 'a "?" reads best on a 1-2 word problem-noun, not a long question' });
+  if (/\d/.test(s)) out.push({ hard: false, rule: 'subject_number', detail: 'numbers slightly hurt cold opens (Belkins)' });
+  if (/\{\{first_?name\}\}/i.test(s)) out.push({ hard: false, rule: 'subject_firstname_token', detail: 'prefer {{company}}/trigger over {{first_name}} (reads as mail-merge)' });
+  return out;
+}
+
 // The fixed skeleton (copy is composed into it; this enforces it).
 export const SEQUENCE_BLUEPRINT = [
   { step: 1, delayDays: 0, role: 'problem-first hook + one pillar (actually-used)', words: [40, 95], maxLinks: 0, subjectVariants: 2, requireMergeTag: true },
@@ -65,7 +97,10 @@ export function evaluateCopy(sequence, opts = {}) {
     // subject variants
     if (subjects.length < bp.subjectVariants) flag(bp.step, 'subject_variants', `needs ${bp.subjectVariants} subject(s), got ${subjects.length}`);
     for (const subj of subjects) {
-      if (subj.split(/\s+/).filter(Boolean).length > 7) warn.push({ step: bp.step, rule: 'subject_long', detail: `"${subj}"` });
+      for (const issue of lintSubject(subj)) {
+        if (issue.hard) flag(bp.step, issue.rule, `"${subj}" — ${issue.detail}`);
+        else warn.push({ step: bp.step, rule: issue.rule, detail: `"${subj}" — ${issue.detail}` });
+      }
     }
 
     // links discipline
