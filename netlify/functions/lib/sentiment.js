@@ -11,9 +11,11 @@
  */
 
 const DNC   = /\bunsubscribe\b|\bremove me\b|\btake me off\b|\bopt[- ]?out\b|\bdo not (contact|email|reach)\b|\bstop (emailing|contacting)\b|\bno longer\b.*\b(here|with)\b/i;
-const OOO   = /\bout of (the )?office\b|\boutofoffice\b|\bautomatic(ally)? repl|\bauto[- ]?reply\b|\bon (leave|vacation|pto|holiday|annual leave)\b|\bannual leave\b|\b(currently )?(away|unavailable)\b|\blimited access to (email|phone)\b|\breturn(ing)? (on|to the office)\b|\bback (in the office|on)\b|\bupon my return\b|\bwhile i'?m (away|out)\b/i;
+const OOO   = /\bout of (the )?office\b|\boutofoffice\b|\bautomatic(ally)? repl|\bauto[- ]?reply\b|\bon (leave|vacation|pto|holiday|annual leave)\b|\b(maternity|paternity|parental|medical|sick|annual) leave\b|\b(currently )?(away|unavailable)\b|\blimited access to (email|phone)\b|\breturn(ing)? (on|to the office)\b|\breturning \d|\bback (in the office|on)\b|\bupon my return\b|\bwhile i'?m (away|out)\b/i;
 const NEG   = /\bnot interested\b|\bno,? thank|\bwe('| a)re all set\b|\ball set (here|for|on)\b|\bnot at this time\b|\bnot a (fit|priority|good time)\b|\bnot taking on new\b|\bno need\b|\bplease (stop|don'?t)\b|\bdecline|\bnot looking\b/i;
-const POS   = /\binterested\b|\blet'?s (chat|connect|talk|set up)|\bhappy to (chat|connect|hop|meet)\b|\bsounds (good|great|interesting)\b|\bschedule a\b|\bset up a (call|time|meeting)\b|\bbook a\b|\btell me more\b|\bwho'?s the right (person|contact)\b|\byes,? (let|i|we|please|happy)\b/i;
+// POS broadened after the first live positive ("I would love to meet, can we set
+// sometime?") fell through to neutral — graduate-replies only graduates positives.
+const POS   = /\binterested\b|\b(would |i'?d )?love to (chat|connect|talk|meet|hear|learn)|\blet'?s (chat|connect|talk|set up|meet|find)|\bhappy to (chat|connect|hop|meet|talk)\b|\bwould like to (chat|connect|talk|meet|learn|hear)\b|\b(can|could|shall) we (chat|connect|talk|meet|set ?up|schedule|find a time)|\bsounds (good|great|interesting)\b|\bschedule a\b|\bset ?(up)? ?(a )?(call|time|meeting|something|sometime)\b|\bbook a\b|\btell me more\b|\bsend (me )?(more|info|the|a)\b|\bopen to (chat|connect|talk|meet|a call|learning)\b|\bwho'?s the right (person|contact)\b|\byes,? (let|i|we|please|happy)\b/i;
 const LATER = /\b(circle back|reach back out|follow up|next (quarter|year)|in \d+ (weeks|months)|revisit)\b|\bnot right now\b|\bmaybe (later|in)\b|\bdown the (road|line)\b/i;
 
 export function classify(text) {
