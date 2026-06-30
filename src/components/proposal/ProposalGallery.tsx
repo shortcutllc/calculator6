@@ -28,6 +28,13 @@ const FALLBACK: GalleryPhoto[] = [
 const NAVY = '#09364F';
 const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
+// Gallery items can be videos as well as stills (the gallery admin accepts
+// .mp4/.mov uploads). An <img> can't play those, so detect them by extension
+// and render a <video> instead — a muted looping preview in the mosaic tile,
+// full controls in the lightbox.
+const VIDEO_RE = /\.(mp4|webm|ogg|ogv|mov|m4v)(\?|#|$)/i;
+const isVideo = (src: string) => VIDEO_RE.test(src);
+
 function Icon({ d, size = 16 }: { d: string; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -102,9 +109,40 @@ const ProposalGallery: React.FC<ProposalGalleryProps> = ({ photos, topUp = true 
             key={p.src}
             onClick={() => openAt(i)}
             className={'pv-gtile' + (i === 0 ? ' pv-gtile-main' : '')}
-            style={{ border: 'none', padding: 0, font: 'inherit' }}
+            style={{ border: 'none', padding: 0, font: 'inherit', position: 'relative' }}
           >
-            <img src={p.src} alt={p.cap || ''} />
+            {isVideo(p.src) ? (
+              <>
+                <video
+                  src={p.src}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay
+                  preload="metadata"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+                {/* Play badge — signals it's a video and that the lightbox plays
+                    it with sound (autoplay here is muted). */}
+                <span
+                  aria-hidden
+                  style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 46, height: 46, borderRadius: 9999,
+                    background: 'rgba(3,34,50,0.55)', backdropFilter: 'blur(2px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <svg width={18} height={18} viewBox="0 0 24 24" fill="#fff">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+              </>
+            ) : (
+              <img src={p.src} alt={p.cap || ''} />
+            )}
             {i === 0 && p.cap && <span className="pv-gtag">{p.cap}</span>}
           </button>
         ))}
@@ -130,11 +168,25 @@ const ProposalGallery: React.FC<ProposalGalleryProps> = ({ photos, topUp = true 
           <button onClick={() => step(-1)} aria-label="Previous" style={lbNav('left')}>
             <Icon d="m15 18-6-6 6-6" size={24} />
           </button>
-          <img
-            src={merged[idx].src} alt={merged[idx].cap || ''}
-            style={{ maxWidth: '84vw', maxHeight: '80vh', borderRadius: 16,
-              boxShadow: '0 30px 80px rgba(0,0,0,0.5)', objectFit: 'contain' }}
-          />
+          {isVideo(merged[idx].src) ? (
+            <video
+              // key forces a remount when navigating between items so the new
+              // source actually loads and restarts (changing src alone won't).
+              key={merged[idx].src}
+              src={merged[idx].src}
+              controls
+              autoPlay
+              playsInline
+              style={{ maxWidth: '84vw', maxHeight: '80vh', borderRadius: 16,
+                boxShadow: '0 30px 80px rgba(0,0,0,0.5)', background: '#000' }}
+            />
+          ) : (
+            <img
+              src={merged[idx].src} alt={merged[idx].cap || ''}
+              style={{ maxWidth: '84vw', maxHeight: '80vh', borderRadius: 16,
+                boxShadow: '0 30px 80px rgba(0,0,0,0.5)', objectFit: 'contain' }}
+            />
+          )}
           <button onClick={() => step(1)} aria-label="Next" style={lbNav('right')}>
             <Icon d="m9 18 6-6-6-6" size={24} />
           </button>

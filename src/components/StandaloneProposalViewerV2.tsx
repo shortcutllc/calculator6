@@ -27,7 +27,7 @@ import {
   selectionKey,
   ServiceSelection,
 } from './proposal/useServiceSelections';
-import { useProposalGallery } from './proposal/useProposalGallery';
+import { useProposalGallery, type GalleryItem } from './proposal/useProposalGallery';
 import ProposalGallery, { type GalleryPhoto } from './proposal/ProposalGallery';
 import { formatCurrency, SERVICE_DISPLAY, SERVICE_IMAGE_PATH } from './proposal/data';
 import AccountTeamCard from './proposal/sidebar/AccountTeamCard';
@@ -70,6 +70,19 @@ import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 // ============================================================================
 
 // ----- Helpers ---------------------------------------------------------------
+// Gallery media can be a video (.mp4/.mov uploads) as well as a still. An <img>
+// can't play those, so detect by extension and render a <video> instead.
+const isVideoSrc = (src?: string): boolean =>
+  !!src && /\.(mp4|webm|ogg|ogv|mov|m4v)(\?|#|$)/i.test(src);
+
+// Photo strips stay image-only: a video contributes its poster frame, and a
+// poster-less video is skipped (there's no still to show). The hero mosaic and
+// lightbox take the items directly so they can play the video instead.
+const toStripImages = (items?: GalleryItem[]): string[] =>
+  (items || [])
+    .filter((it) => it.type === 'image' || it.poster)
+    .map((it) => (it.type === 'video' ? (it.poster as string) : it.url));
+
 const formatDateLabel = (raw: string): string => {
   if (!raw || raw === 'TBD') return 'Date TBD';
   // Try ISO first, then fall back to the raw string if parsing fails
@@ -1016,8 +1029,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
     // Hero + lightbox photos: prefer gallery-admin 'hero' photos, else this
     // proposal's per-service photos (mirrors the desktop top mosaic).
     const baseType = (s: string) => s.replace(/s$/, '').split('-')[0];
-    const heroTagged = (galleryByService['hero'] || []).map((src) => ({
-      src,
+    const heroTagged = (galleryByService['hero'] || []).map((it) => ({
+      src: it.url,
       cap: clientName,
     }));
     const wantedTypes = new Set(serviceTypes.map(baseType));
@@ -1026,9 +1039,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
         ? heroTagged
         : Object.entries(galleryByService)
             .filter(([t]) => t !== 'hero' && wantedTypes.has(baseType(t)))
-            .flatMap(([t, urls]) =>
-              (urls || []).map((src) => ({
-                src,
+            .flatMap(([t, items]) =>
+              (items || []).map((it) => ({
+                src: it.url,
                 cap: SERVICE_DISPLAY[t] || t,
               }))
             );
@@ -1115,7 +1128,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
       <div className="pv-root pvm-page" id="proposal-content">
         {/* HERO */}
         <div className="pvm-hero">
-          <img src={heroSrc} alt={clientName} />
+          {isVideoSrc(heroSrc) ? (
+            <video src={heroSrc} muted loop playsInline autoPlay preload="metadata" />
+          ) : (
+            <img src={heroSrc} alt={clientName} />
+          )}
           <div className="pvm-hero-chrome">
             <button
               className="pvm-circle"
@@ -1278,7 +1295,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                           onChangeMassageType={(type) =>
                             handleChangeMassageType(loc, date, idx, type)
                           }
-                          galleryImages={galleryByService[service.serviceType]}
+                          galleryImages={toStripImages(galleryByService[service.serviceType])}
                           autoRecurringDiscount={displayData?.autoRecurringDiscount}
                           onSelectPricingOption={(optIdx) =>
                             handleSelectPricingOption(loc, date, idx, optIdx)
@@ -1593,7 +1610,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
               <ChevronLeft />
             </button>
           )}
-          {mLightbox && <img src={mLightbox.images[mLightbox.index]} alt="" />}
+          {mLightbox &&
+            (isVideoSrc(mLightbox.images[mLightbox.index]) ? (
+              <video
+                key={mLightbox.images[mLightbox.index]}
+                src={mLightbox.images[mLightbox.index]}
+                controls
+                autoPlay
+                playsInline
+              />
+            ) : (
+              <img src={mLightbox.images[mLightbox.index]} alt="" />
+            ))}
           {mLightbox && mLightbox.images.length > 1 && (
             <button className="pvm-lb-nav pvm-lb-next" aria-label="Next" onClick={() => lbStep(1)}>
               <ChevronRight />
@@ -2046,17 +2074,17 @@ const StandaloneProposalViewerV2: React.FC = () => {
             // proposal's per-service photos (normalize plurals + subtypes so
             // 'nails'→'nail', 'mindfulness-cle'→'mindfulness').
             const hero = (galleryByService['hero'] || []).map(
-              (src): GalleryPhoto => ({ src })
+              (it): GalleryPhoto => ({ src: it.url, cap: it.caption })
             );
             if (hero.length) return hero;
             const base = (s: string) => s.replace(/s$/, '').split('-')[0];
             const wanted = new Set(serviceTypes.map(base));
             return Object.entries(galleryByService)
               .filter(([type]) => type !== 'hero' && wanted.has(base(type)))
-              .flatMap(([type, urls]): GalleryPhoto[] =>
-                (urls || []).map((src) => ({
-                  src,
-                  cap: type.charAt(0).toUpperCase() + type.slice(1),
+              .flatMap(([type, items]): GalleryPhoto[] =>
+                (items || []).map((it) => ({
+                  src: it.url,
+                  cap: it.caption || type.charAt(0).toUpperCase() + type.slice(1),
                 }))
               );
           })()}
@@ -2575,7 +2603,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                         onChangeMassageType={(type) =>
                                           handleChangeMassageType(loc, date, idx, type)
                                         }
-                                        galleryImages={galleryByService[service.serviceType]}
+                                        galleryImages={toStripImages(galleryByService[service.serviceType])}
                                         autoRecurringDiscount={displayData?.autoRecurringDiscount}
                                         internalView={false}
                                         editing={isClientEditing}
