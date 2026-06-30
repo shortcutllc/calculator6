@@ -127,14 +127,39 @@ async function readAll(t, cols, mod) {
       } catch { rep = null; }
       campRep.set(cid, rep); return rep;
     };
-    let researched = 0;
+    // Per-lead fallback for MIXED-domain campaigns (Cold Engine uses both Caren's
+    // + Jaimie's inboxes): the campaign-level inbox check can't say WHO sent to a
+    // given lead, but the lead's message-history shows the actual sending inbox in
+    // the SENT 'from' address → the real owner. Bounded to unresolved repliers.
+    const ownerFromHistory = async (email) => {
+      try {
+        const lr = await fetch(`https://server.smartlead.ai/api/v1/leads/?api_key=${SMARTLEAD}&email=${encodeURIComponent(email)}`);
+        const lj = await lr.json();
+        const L = Array.isArray(lj) ? lj[0] : (lj?.data?.[0] || lj);
+        const lid = L?.id || L?.lead?.id;
+        const camps = L?.lead_campaign_data || L?.campaigns || [];
+        if (!lid || !camps.length) return null;
+        for (const c of camps) {                               // try each campaign the lead is in
+          const cid = c.campaign_id || c.id; if (!cid) continue;
+          const hr = await fetch(`https://server.smartlead.ai/api/v1/campaigns/${cid}/leads/${lid}/message-history?api_key=${SMARTLEAD}`);
+          const hj = await hr.json();
+          const arr = hj.history || hj.data || (Array.isArray(hj) ? hj : []);
+          const sent = arr.find((m) => String(m.type || '').toUpperCase() === 'SENT' && m.from);
+          const rep = sent ? repFromAccount(sent.from) : null;
+          if (rep) return rep;
+        }
+      } catch { /* fall through */ }
+      return null;
+    };
+    let researched = 0; let viaHistory = 0;
     for (const g of toGraduate) {
       if (g.owner) continue;
       const rep = await getCampRep(cacheCid.get(g.email));
       if (rep && rep !== 'MIXED') { g.owner = rep; researched += 1; }
+      else { const h = await ownerFromHistory(g.email); if (h) { g.owner = h; viaHistory += 1; } }
       await new Promise((r) => setTimeout(r, 60));
     }
-    log(`  researched ${researched} more owners via Smartlead campaign inboxes`);
+    log(`  researched ${researched} owners via campaign inboxes + ${viaHistory} via per-lead message-history`);
   } else if (RESEARCH) {
     log('  (--research skipped: MISSING SMARTLEAD_API_KEY)');
   }
