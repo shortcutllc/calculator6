@@ -42,6 +42,7 @@ const CITY = val('--city', 'New York Metropolitan Area');   // NYC default (open
 const USE_MV = !has('--no-mv');
 const INCLUDE_LAW_RE = has('--include-law-re');
 const VERTICAL = (val('--vertical', '') || '').toLowerCase();   // '' (direct) | law | realestate
+const RE_SEGMENT = (val('--re-segment', '') || '').toLowerCase();   // realestate sub-segment: coworking | office
 
 // Proven ICP titles + include_similar_titles so Apollo auto-matches variants.
 const TITLES = [
@@ -77,7 +78,42 @@ const VERTICAL_TITLES = {
     'Head of Hospitality', 'Resident Experience Manager', 'Lifestyle Manager',
   ],
 };
-const EFFECTIVE_TITLES = (VERTICAL && VERTICAL_TITLES[VERTICAL]) ? VERTICAL_TITLES[VERTICAL] : TITLES;
+// REAL-ESTATE sub-segments. Industry+title alone can't isolate CRE amenity people:
+// "Community Manager" is overwhelmingly a residential-apartment / social-media title,
+// and the "real estate" industry tag is dominated by residential brokerages. So each
+// sub-segment is pinned to a COMPANY-DOMAIN allowlist of the named operators (the ICP
+// in memory/vertical_real_estate_gtm.md), which is what actually kills the flood.
+//   coworking/flex (C2) → champion = Community / Member Experience Manager at a location
+//   office/property-mgr (C1) → champion = Tenant Experience Manager; prize = Dir. of Amenities
+const RE_SEGMENTS = {
+  coworking: {
+    titles: [
+      'Community Manager', 'Member Experience Manager', 'Director of Member Experience',
+      'VP of Member Experience', 'Head of Member Experience', 'Head of Community',
+      'Head of Hospitality', 'General Manager', 'Area Manager', 'Director of Operations',
+    ],
+    domains: [
+      'wework.com', 'industriousoffice.com', 'convene.com', 'regus.com', 'spacesworks.com',
+      'knotel.com', 'bondcollective.com', 'serendipitylabs.com', 'venturex.com', 'theyardspace.com',
+    ],
+  },
+  office: {
+    titles: [
+      'Tenant Experience Manager', 'Tenant Engagement Manager', 'Director of Tenant Experience',
+      'Director of Amenities', 'Director of Workplace Experience', 'Workplace Experience Manager',
+      'Property Manager', 'General Manager', 'Asset Manager', 'Director of Operations',
+      'Placemaking Manager', 'Director of Marketing',
+    ],
+    domains: [
+      'cbre.com', 'jll.com', 'cushmanwakefield.com', 'tishmanspeyer.com', 'hines.com',
+      'brookfieldproperties.com', 'bxp.com', 'slgreen.com', 'vno.com', 'related.com',
+      'silversteinproperties.com', 'rudin.com', 'rxrrealty.com', 'colliers.com', 'nmrk.com',
+    ],
+  },
+};
+const RE_ON = VERTICAL === 'realestate' && RE_SEGMENTS[RE_SEGMENT];
+const EFFECTIVE_TITLES = RE_ON ? RE_SEGMENTS[RE_SEGMENT].titles
+  : (VERTICAL && VERTICAL_TITLES[VERTICAL]) ? VERTICAL_TITLES[VERTICAL] : TITLES;
 // Apollo industry tag IDs to CONSTRAIN a vertical search to its own industry at
 // the API level (the vertical titles alone are too generic — "Property Manager"
 // / "Community Manager" exist everywhere). Verified from CBRE/JLL/Wachtell/etc.
@@ -239,7 +275,10 @@ async function upsert(table, rows, conflict) {
 (async () => {
   log(`ICP${VERTICAL ? ` [VERTICAL=${VERTICAL}]` : ''}: ${EFFECTIVE_TITLES.length} titles (+similar) × sizes ${EFFECTIVE_SIZE_RANGES.join('/')} · CITY "${CITY}" · pages ${PAGES} · MV ${USE_MV ? 'on' : 'off'}`);
   if (VERTICAL === 'law') log('  LAW pull: post-gated to law practice/legal services, tagged apollo-leadgen-law. For the CLE sequence, use a NY/FL/PA --city (we are accredited only there).');
-  if (VERTICAL === 'realestate') log('  REAL-ESTATE pull: post-gated to real estate, tagged apollo-leadgen-realestate.');
+  if (VERTICAL === 'realestate') {
+    if (RE_ON) log(`  REAL-ESTATE [${RE_SEGMENT}] pull: pinned to ${RE_SEGMENTS[RE_SEGMENT].domains.length} operator domains (${RE_SEGMENTS[RE_SEGMENT].domains.slice(0, 4).join(', ')}…), tagged apollo-leadgen-realestate.`);
+    else log('  REAL-ESTATE pull WITHOUT --re-segment: no company pin — this WILL flood with residential/insurance. Use --re-segment coworking|office.');
+  }
   const known = await loadKnown();
   log(`known: cache ${known.cacheIds.size} ids / suppression ${known.supp.size} / contacts ${known.known.size} / client-domains ${known.clientDomains.size}`);
 
@@ -251,11 +290,20 @@ async function upsert(table, rows, conflict) {
       person_titles: EFFECTIVE_TITLES,
       include_similar_titles: true,
       person_locations: [CITY],
-      organization_num_employees_ranges: EFFECTIVE_SIZE_RANGES,
-      organization_not_industry_tag_ids: EXCLUDED_INDUSTRY_TAG_IDS,
+      // When pinned to named operator domains, the COMPANY is the constraint — don't
+      // also gate on size or the vertical industry tag (operators are tagged
+      // inconsistently, e.g. WeWork shows as "Internet"), which would zero the result.
+      ...(RE_ON ? {} : { organization_num_employees_ranges: EFFECTIVE_SIZE_RANGES }),
+      // The exclusion list bars real estate (RE is kept out of the main cold pool).
+      // A domain-pinned RE pull has already named the companies, so applying it here
+      // would exclude the very operators we pinned to (CBRE etc. = 0 results).
+      ...(RE_ON ? {} : { organization_not_industry_tag_ids: EXCLUDED_INDUSTRY_TAG_IDS }),
       // Vertical pulls constrain to the vertical's own industry (else generic
       // titles flood the search with insurance/marketing people).
-      ...(VERTICAL && VERTICAL_INDUSTRY_TAGS[VERTICAL] ? { organization_industry_tag_ids: VERTICAL_INDUSTRY_TAGS[VERTICAL] } : {}),
+      ...(VERTICAL && !RE_ON && VERTICAL_INDUSTRY_TAGS[VERTICAL] ? { organization_industry_tag_ids: VERTICAL_INDUSTRY_TAGS[VERTICAL] } : {}),
+      // Real-estate sub-segments pin to the named operators by company domain — the
+      // only reliable way to isolate coworking / commercial-office amenity people.
+      ...(RE_ON ? { q_organization_domains_list: RE_SEGMENTS[RE_SEGMENT].domains } : {}),
       page, per_page: PER_PAGE,
     });
     total = j.total_entries ?? total;
@@ -325,6 +373,9 @@ async function upsert(table, rows, conflict) {
     // generic titles only survive at a law firm / real-estate co). Otherwise the
     // normal allowed-industry gate (law/RE pass through to be tagged + segmented).
     if (VERTICAL === 'law') { if (!LAW_INDUSTRIES.has(industry)) { gated.industry += 1; continue; } }
+    // Domain-pinned RE: the operator allowlist IS the trust; don't re-gate on a
+    // normalized industry string (WeWork etc. are tagged "Internet", not "real estate").
+    else if (RE_ON) { /* domain pin already constrained the company */ }
     else if (VERTICAL === 'realestate') { if (!RE_INDUSTRIES.has(industry)) { gated.industry += 1; continue; } }
     else if (industry && !ALLOWED_INDUSTRIES.has(industry) && !LAW_INDUSTRIES.has(industry) && !RE_INDUSTRIES.has(industry)) { gated.industry += 1; continue; }
     if (known.supp.has(email)) { gated.suppressed += 1; continue; }
