@@ -2163,15 +2163,25 @@ const SalesIntelligence: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
+      // Supabase caps a single response at 1000 rows, so page through rank to
+      // load the WHOLE list (else lower-ranked catch-all/bad leads never appear).
+      const fetchAllRows = async <T,>(table: string): Promise<T[]> => {
+        const out: T[] = [];
+        for (let from = 0; ; from += 1000) {
+          const { data, error } = await supabase.from(table).select('*').order('rank', { ascending: true }).range(from, from + 999);
+          if (error) throw error;
+          out.push(...((data || []) as T[]));
+          if (!data || data.length < 1000) break;
+        }
+        return out;
+      };
       const [a, b, r] = await Promise.all([
-        supabase.from('crm_play_a').select('*').order('rank', { ascending: true }).limit(5000),
-        supabase.from('crm_play_b').select('*').order('rank', { ascending: true }).limit(5000),
+        fetchAllRows<PlayARow>('crm_play_a'),
+        fetchAllRows<PlayBRow>('crm_play_b'),
         supabase.from('crm_reconciliation').select('*').order('total', { ascending: false }),
       ]);
-      if (a.error) throw a.error;
-      if (b.error) throw b.error;
       if (r.error) throw r.error;
-      setPlayA(a.data || []); setPlayB(b.data || []); setRecon(r.data || []);
+      setPlayA(a); setPlayB(b); setRecon(r.data || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
     } finally {
