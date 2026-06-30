@@ -17,7 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
 const SL = (() => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').match(/^SMARTLEAD_API_KEY=(.+)$/m)?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } })();
 const CONFIRM = process.argv.includes('--confirm');
-const ALL = process.argv.includes('--all'); // include paused/completed too (default: active + drafted)
+const ALL = process.argv.includes('--all'); // include paused/completed too (default: active + drafted only)
 const sb = createClient((process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL).trim(), process.env.SUPABASE_SERVICE_ROLE_KEY.trim(), { auth: { persistSession: false } });
 const lc = (s) => String(s || '').trim().toLowerCase() || null;
 const log = (...a) => console.log(...a);
@@ -28,7 +28,7 @@ async function readAll(t, c, mod) { const o = []; for (let f = 0; ; f += 1000) {
 (async () => {
   if (!SL) { console.error('MISSING SMARTLEAD_API_KEY'); process.exit(2); }
   log(CONFIRM ? 'SYNC MEMBERSHIP — LIVE' : 'SYNC MEMBERSHIP — dry run');
-  const KEEP = new Set(['ACTIVE', 'START', 'STARTED', 'RUNNING', 'DRAFTED', 'PAUSED']);
+  const KEEP = new Set(['ACTIVE', 'START', 'STARTED', 'RUNNING', 'DRAFTED']);   // current campaigns only (not old paused)
   const camps = (await (await fetch(api('/campaigns'))).json());
   const list = (Array.isArray(camps) ? camps : camps.data || []).filter((c) => c && c.id && (ALL || KEEP.has(String(c.status || '').toUpperCase())));
   log(`scanning ${list.length} campaign(s) (active + draft + paused)…`);
