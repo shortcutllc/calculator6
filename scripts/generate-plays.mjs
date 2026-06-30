@@ -221,6 +221,7 @@ async function replaceAll(table, rows) {
   const prospects = new Map();
   for (const o of ocs) {
     if (o.crm_company_id) continue;            // already tied to a client = not net-new
+    if (/broker/i.test(o.source || '')) continue;  // brokers belong in the Brokers lane, not Play B
     const dom = lc(o.email_domain); if (!dom) continue;
     const cat = titleCat(o.title);
     const cur = prospects.get(dom);

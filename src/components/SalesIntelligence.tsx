@@ -15,7 +15,7 @@ const REP_EMAIL_TO_FIRST_NAME: Record<string, string> = {
   'caren@getshortcut.co': 'Caren',
 };
 
-type TabId = 'playA' | 'playB' | 'law' | 'followups' | 'brokers' | 'drafts' | 'recon' | 'loop';
+type TabId = 'playA' | 'playB' | 'law' | 'realestate' | 'followups' | 'brokers' | 'drafts' | 'recon' | 'loop';
 interface SavedDraftRow {
   id: string; recipient_email: string | null; subject: string; body: string;
   direction_label: string | null; source_company: string | null; source_contact: string | null;
@@ -1548,6 +1548,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
   { id: 'playB', label: 'Play B — Net-New', icon: <Crosshair size={18} /> },
   { id: 'law', label: 'Law — CLE', icon: <Scale size={18} /> },
+  { id: 'realestate', label: 'Real Estate', icon: <Building2 size={18} /> },
   { id: 'followups', label: 'Follow-ups', icon: <Send size={18} /> },
   { id: 'brokers', label: 'Brokers', icon: <Briefcase size={18} /> },
   { id: 'drafts', label: 'Drafts', icon: <Bookmark size={18} /> },
@@ -1569,9 +1570,11 @@ function exportCSV(rows: Record<string, unknown>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-const VALID_TABS: TabId[] = ['playA', 'playB', 'law', 'followups', 'brokers', 'drafts', 'recon', 'loop'];
+const VALID_TABS: TabId[] = ['playA', 'playB', 'law', 'realestate', 'followups', 'brokers', 'drafts', 'recon', 'loop'];
 // Law tab = Play B filtered to the law-firm industry (CLE/wellness vertical).
 const LAW_INDUSTRY_RE = /law practice|legal services/i;
+// Real Estate tab = Play B filtered to CRE / property / coworking (B2B2C amenity vertical).
+const RE_INDUSTRY_RE = /real estate|property manage|commercial real|leasing|coworking/i;
 const FU_CACHE_KEY = 'sales_intel.followups.v1';
 const FU_CACHE_TTL_MS = 30 * 60 * 1000;
 
@@ -2366,7 +2369,9 @@ const SalesIntelligence: React.FC = () => {
   );
   // The Law tab reuses the entire Play B render against the law-industry subset.
   const pbBase = useMemo(
-    () => (tab === 'law' ? playB.filter((x) => LAW_INDUSTRY_RE.test(x.industry || '')) : playB),
+    () => (tab === 'law' ? playB.filter((x) => LAW_INDUSTRY_RE.test(x.industry || ''))
+      : tab === 'realestate' ? playB.filter((x) => RE_INDUSTRY_RE.test(x.industry || ''))
+      : playB),
     [playB, tab],
   );
   const pbCounts = useMemo(() => {
@@ -2499,7 +2504,7 @@ const SalesIntelligence: React.FC = () => {
         ))}
       </div>
 
-      {(tab === 'playA' || tab === 'playB' || tab === 'law') && (
+      {(tab === 'playA' || tab === 'playB' || tab === 'law' || tab === 'realestate') && (
         <div className="flex items-center justify-between mb-3 gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
@@ -2513,7 +2518,7 @@ const SalesIntelligence: React.FC = () => {
           <button
             onClick={() => (tab === 'playA'
               ? exportCSV(fa as unknown as Record<string, unknown>[], 'play_a.csv')
-              : exportCSV(fb as unknown as Record<string, unknown>[], tab === 'law' ? 'law_leads.csv' : 'play_b.csv'))}
+              : exportCSV(fb as unknown as Record<string, unknown>[], tab === 'law' ? 'law_leads.csv' : tab === 'realestate' ? 'real_estate_leads.csv' : 'play_b.csv'))}
             className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
           >
             <FileDown size={16} /> Export CSV
@@ -2593,11 +2598,16 @@ const SalesIntelligence: React.FC = () => {
             </tbody>
           </table>
         </div>
-      ) : (tab === 'playB' || tab === 'law') ? (
+      ) : (tab === 'playB' || tab === 'law' || tab === 'realestate') ? (
         <div>
           {tab === 'law' && (
             <div className="mb-3 text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded px-3 py-2">
               Law firm vertical. Lead with the accredited Ethics CLE wedge in <strong>NY, FL, PA</strong> only, then upsell the wellness day. CLE is not accredited elsewhere.
+            </div>
+          )}
+          {tab === 'realestate' && (
+            <div className="mb-3 text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              Real estate vertical. B2B2C amenity, NOT employer-buys-for-staff. Lead with tenant attraction / retention / NOI and filling the amenity calendar. Building-level Tenant Experience Mgr = fast pilot; owner-level Dir. of Amenities = the portfolio prize.
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2 mb-3">
