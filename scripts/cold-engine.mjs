@@ -210,10 +210,16 @@ async function mvVerify(email, mvKey) {
 
   // CANDIDATE POOL = leads we have but have NEVER sent to (ready to launch)
   const candidates = [];
+  let sheetSkipped = 0;
   for (const o of contacts) {
     const e = lc(o.email); if (!e || contactedAll.has(e)) continue;          // unsent only
     if (supp.has(e) || personalLane.has(e)) continue;
     if (o.channel === 'personal' || o.graduated_at) continue;               // graduated to personal — never re-cold
+    // PROVENANCE GUARD: only cold-send leads from our verified Apollo pipeline.
+    // Manually-imported "sheet:*" leads are unverified guessed-pattern emails that
+    // MillionVerifier false-OK'd (they hard-bounced on netflix/coinbase/gusto/etsy
+    // in campaign 3557935). mv='ok' alone is NOT enough without Apollo provenance.
+    if ((o.source || '').startsWith('sheet:')) { sheetSkipped += 1; continue; }
     const dom = lc(o.email_domain)?.replace(/^www\./, '') || (e.includes('@') ? e.split('@')[1] : null);
     if (dom && clientDomains.has(dom)) continue;
     const hc = hcByEmail.get(e) || (dom ? hcByDom.get(dom) : 0) || 0;
@@ -231,6 +237,7 @@ async function mvVerify(email, mvKey) {
   const deficit = Math.max(0, TARGET - pool.length);
   const cityNote = CITIES.length ? ` · cities [${CITIES.join(', ')}]` : '';
   log(`DISCOVERY: ${candidates.length} unsent (${Object.entries(bySeg).map(([s, n]) => `${n} ${s}`).join(' / ')}) · targeting ${SEGMENT.toUpperCase()}${cityNote} → ${pool.length} ready · target ${TARGET} · deficit ${deficit}`);
+  if (sheetSkipped) log(`  provenance guard: excluded ${sheetSkipped} unverified sheet-import leads (cold ships only verified Apollo-pipeline leads).`);
   if (SEGMENT === 'broker') log('  NOTE: broker batch — clone a BROKER template (carrier-fund angle), not a direct-corporate one. Consider the personal lane for Tier-A brokers.');
 
   // ---------- HANDOFF (pull to fill deficit) ----------
