@@ -1546,7 +1546,7 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
-  { id: 'playB', label: 'Play B — Net-New', icon: <Crosshair size={18} /> },
+  { id: 'playB', label: 'Net-New — Standard', icon: <Crosshair size={18} /> },
   { id: 'law', label: 'Law — CLE', icon: <Scale size={18} /> },
   { id: 'realestate', label: 'Real Estate', icon: <Building2 size={18} /> },
   { id: 'followups', label: 'Follow-ups', icon: <Send size={18} /> },
@@ -2369,9 +2369,12 @@ const SalesIntelligence: React.FC = () => {
   );
   // The Law tab reuses the entire Play B render against the law-industry subset.
   const pbBase = useMemo(
+    // Each lead lives in ONE tab by segment: law + real estate get their specialized
+    // angle in their own tabs; the general "Standard" tab excludes them (+ brokers,
+    // already excluded upstream) so it's only standard-angle net-new leads.
     () => (tab === 'law' ? playB.filter((x) => LAW_INDUSTRY_RE.test(x.industry || ''))
       : tab === 'realestate' ? playB.filter((x) => RE_INDUSTRY_RE.test(x.industry || ''))
-      : playB),
+      : playB.filter((x) => !LAW_INDUSTRY_RE.test(x.industry || '') && !RE_INDUSTRY_RE.test(x.industry || ''))),
     [playB, tab],
   );
   const pbCounts = useMemo(() => {

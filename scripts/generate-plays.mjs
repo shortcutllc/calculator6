@@ -230,13 +230,22 @@ async function replaceAll(table, rows) {
   }
   const playB = [];
   for (const p of prospects.values()) {
-    const e = byDom.get(p.domain); if (!e) continue;             // need firmographics
-    const ind = Object.entries(e.ind).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-    const hc = e.hc.length ? e.hc.sort((a, b) => a - b)[e.hc.length >> 1] : 0;
+    // SEGMENT (from source): law + real estate are net-new leads worked with their
+    // OWN specialized angle (their own tabs); everything else is general "standard
+    // angle" net-new. Vertical leads are pre-targeted by segment, so they enter Play
+    // B even without Apollo firmographics, tagged with their segment industry so the
+    // vertical tabs catch them (the sheet-imported RE/law leads were being dropped).
+    const segment = /real ?estate/i.test(p.source || '') ? 'realestate'
+      : (/leadgen-law|sheet:law|\blaw\b/i.test(p.source || '')) ? 'law' : 'general';
+    const vertical = segment !== 'general';
+    const e = byDom.get(p.domain);
+    if (!e && !vertical) continue;                               // general leads still need firmographics
+    const byDomInd = e ? (Object.entries(e.ind).sort((a, b) => b[1] - a[1])[0]?.[0] || null) : null;
+    const hc = e && e.hc.length ? e.hc.sort((a, b) => a - b)[e.hc.length >> 1] : 0;
+    const ind = segment === 'realestate' ? 'real estate' : segment === 'law' ? 'law practice' : byDomInd;
     let s = 0;
-    if (ind && topInd.has(ind)) s += 45;
-    s += sizeScore(hc);
-    if (p.cat && GOOD.has(p.cat)) s += 25; else if (p.cat) s += 8;
+    if (vertical) s = 60;                                        // pre-targeted by segment; baseline score
+    else { if (ind && topInd.has(ind)) s += 45; s += sizeScore(hc); if (p.cat && GOOD.has(p.cat)) s += 25; else if (p.cat) s += 8; }
     if (s < 40) continue;                                        // weak resemblance — drop
     const gate = await preflight(sb, { email: p.email, domain: p.domain });
     if (gate.recommendation === 'skip_suppressed' || gate.recommendation === 'skip_already_client'
