@@ -56,19 +56,21 @@ const PB_STATE: Record<string, { label: string; tone: string; hint: string }> = 
 type PBFilter = 'all' | 'replied' | 'no_reply' | 'net_new' | 're_engage';
 type PBSort = 'state' | 'score' | 'recent' | 'touches';
 // Email deliverability bucket: MV 'ok' or BounceBan 'deliverable' = verified;
-// an unresolved catch_all = catchall; invalid/unknown/undeliverable = bad.
-type PBDeliv = 'verified' | 'catchall' | 'bad';
+// unresolved catch_all = catchall; invalid/unknown/undeliverable = bad; NO status
+// yet (never run through verification) = unverified (NOT verified — that was a bug).
+type PBDeliv = 'verified' | 'unverified' | 'catchall' | 'bad';
 const delivOf = (r: PlayBRow): PBDeliv => {
   if (r.mv_status === 'ok' || r.bounceban_status === 'deliverable') return 'verified';
   if (r.bounceban_status === 'undeliverable') return 'bad';
   if (r.mv_status === 'invalid' || r.mv_status === 'unknown' || r.mv_status === 'disposable') return 'bad';
   if (r.mv_status === 'catch_all') return 'catchall';
-  return 'verified'; // no status yet → don't hide
+  return 'unverified'; // never checked — honestly unverified, not "verified"
 };
 const PB_DELIV: Record<PBDeliv, { label: string; tone: string }> = {
-  verified: { label: 'verified', tone: 'bg-green-100 text-green-700' },
-  catchall: { label: 'catch all', tone: 'bg-amber-100 text-amber-700' },
-  bad:      { label: 'bad',       tone: 'bg-red-100 text-red-700' },
+  verified:   { label: 'verified',   tone: 'bg-green-100 text-green-700' },
+  unverified: { label: 'unverified', tone: 'bg-gray-100 text-gray-600' },
+  catchall:   { label: 'catch all',  tone: 'bg-amber-100 text-amber-700' },
+  bad:        { label: 'bad',        tone: 'bg-red-100 text-red-700' },
 };
 interface ReconRow {
   bucket: string; total: number; title_breakdown: Record<string, number>;
@@ -2368,7 +2370,7 @@ const SalesIntelligence: React.FC = () => {
     [playB, tab],
   );
   const pbCounts = useMemo(() => {
-    const c: Record<string, number> = { all: pbBase.length, replied: 0, no_reply: 0, net_new: 0, re_engage: 0, verified: 0, catchall: 0, bad: 0, in_campaign: 0 };
+    const c: Record<string, number> = { all: pbBase.length, replied: 0, no_reply: 0, net_new: 0, re_engage: 0, verified: 0, unverified: 0, catchall: 0, bad: 0, in_campaign: 0 };
     for (const x of pbBase) {
       if (x.engagement_state) c[x.engagement_state] = (c[x.engagement_state] || 0) + 1;
       c[delivOf(x)] += 1;
@@ -2628,11 +2630,11 @@ const SalesIntelligence: React.FC = () => {
           </div>
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="text-[11px] uppercase tracking-wide text-gray-400 mr-1">Email</span>
-            {(['verified', 'catchall', 'bad', 'all'] as (PBDeliv | 'all')[]).map((d) => (
+            {(['verified', 'unverified', 'catchall', 'bad', 'all'] as (PBDeliv | 'all')[]).map((d) => (
               <button
                 key={d}
                 onClick={() => setPbDeliv(d)}
-                title={d === 'verified' ? 'MV-ok or BounceBan-deliverable — safe to send' : d === 'catchall' ? 'Catch-all, not yet resolved by BounceBan' : d === 'bad' ? 'Invalid / undeliverable — do not send' : 'Everything'}
+                title={d === 'verified' ? 'MV-ok or BounceBan-deliverable — safe to send' : d === 'unverified' ? 'Never run through verification — run MV/BounceBan before sending' : d === 'catchall' ? 'Catch-all, not yet resolved by BounceBan' : d === 'bad' ? 'Invalid / undeliverable — do not send' : 'Everything'}
                 className={`text-xs px-2.5 py-1 rounded-full border transition ${
                   pbDeliv === d
                     ? 'border-shortcut-navy-blue bg-shortcut-navy-blue text-white'
