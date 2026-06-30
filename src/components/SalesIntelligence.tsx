@@ -39,6 +39,8 @@ interface PlayBRow {
   touches: number | null; last_contacted_at: string | null;
   reply_sentiment: string | null; is_leadgen: boolean | null;
   mv_status: string | null;
+  bounceban_status: string | null;
+  in_campaign: boolean | null; smartlead_campaign_id: string | null;
   last_sender_name: string | null; last_sender_email: string | null;
 }
 const PB_STATE: Record<string, { label: string; tone: string; hint: string }> = {
@@ -49,6 +51,21 @@ const PB_STATE: Record<string, { label: string; tone: string; hint: string }> = 
 };
 type PBFilter = 'all' | 'replied' | 'no_reply' | 'net_new' | 're_engage';
 type PBSort = 'state' | 'score' | 'recent' | 'touches';
+// Email deliverability bucket: MV 'ok' or BounceBan 'deliverable' = verified;
+// an unresolved catch_all = catchall; invalid/unknown/undeliverable = bad.
+type PBDeliv = 'verified' | 'catchall' | 'bad';
+const delivOf = (r: PlayBRow): PBDeliv => {
+  if (r.mv_status === 'ok' || r.bounceban_status === 'deliverable') return 'verified';
+  if (r.bounceban_status === 'undeliverable') return 'bad';
+  if (r.mv_status === 'invalid' || r.mv_status === 'unknown' || r.mv_status === 'disposable') return 'bad';
+  if (r.mv_status === 'catch_all') return 'catchall';
+  return 'verified'; // no status yet → don't hide
+};
+const PB_DELIV: Record<PBDeliv, { label: string; tone: string }> = {
+  verified: { label: 'verified', tone: 'bg-green-100 text-green-700' },
+  catchall: { label: 'catch all', tone: 'bg-amber-100 text-amber-700' },
+  bad:      { label: 'bad',       tone: 'bg-red-100 text-red-700' },
+};
 interface ReconRow {
   bucket: string; total: number; title_breakdown: Record<string, number>;
   generated_at: string;
@@ -2033,6 +2050,8 @@ const SalesIntelligence: React.FC = () => {
   const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null);
   // cardTarget removed — replaced with inline expansion (paExpanded / pbExpanded / fuExpanded).
   const [pbFilter, setPbFilter] = useState<PBFilter>('all');
+  const [pbDeliv, setPbDeliv] = useState<PBDeliv | 'all'>('verified');   // default: hide catch-all + bad
+  const [hideInCampaign, setHideInCampaign] = useState(false);
   const [pbSort, setPbSort] = useState<PBSort>('state');
   const [pbExpanded, setPbExpanded] = useState<string | null>(null);
   // Play A inline expansion (matches Play B + Workhuman pattern — no side drawer).
@@ -2335,8 +2354,12 @@ const SalesIntelligence: React.FC = () => {
     [playB, tab],
   );
   const pbCounts = useMemo(() => {
-    const c: Record<string, number> = { all: pbBase.length, replied: 0, no_reply: 0, net_new: 0, re_engage: 0 };
-    for (const x of pbBase) if (x.engagement_state) c[x.engagement_state] = (c[x.engagement_state] || 0) + 1;
+    const c: Record<string, number> = { all: pbBase.length, replied: 0, no_reply: 0, net_new: 0, re_engage: 0, verified: 0, catchall: 0, bad: 0, in_campaign: 0 };
+    for (const x of pbBase) {
+      if (x.engagement_state) c[x.engagement_state] = (c[x.engagement_state] || 0) + 1;
+      c[delivOf(x)] += 1;
+      if (x.in_campaign) c.in_campaign += 1;
+    }
     return c;
   }, [pbBase]);
 
@@ -2348,6 +2371,8 @@ const SalesIntelligence: React.FC = () => {
       || x.contact_email?.toLowerCase().includes(search.toLowerCase())
       || x.contact_title?.toLowerCase().includes(search.toLowerCase()));
     if (pbFilter !== 'all') rows = rows.filter((x) => x.engagement_state === pbFilter);
+    if (pbDeliv !== 'all') rows = rows.filter((x) => delivOf(x) === pbDeliv);
+    if (hideInCampaign) rows = rows.filter((x) => !x.in_campaign);
     const cmp: Record<PBSort, (a: PlayBRow, b: PlayBRow) => number> = {
       state: (a, b) => (sRank[a.engagement_state || 'z'] - sRank[b.engagement_state || 'z']) || (b.score - a.score),
       score: (a, b) => b.score - a.score,
@@ -2355,7 +2380,7 @@ const SalesIntelligence: React.FC = () => {
       recent: (a, b) => new Date(b.last_contacted_at || 0).getTime() - new Date(a.last_contacted_at || 0).getTime(),
     };
     return [...rows].sort(cmp[pbSort]);
-  }, [pbBase, search, pbFilter, pbSort]);
+  }, [pbBase, search, pbFilter, pbDeliv, hideInCampaign, pbSort]);
 
   const th = 'text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 py-2';
   const td = 'px-3 py-2 text-sm text-gray-800 border-t border-gray-100';
@@ -2586,6 +2611,26 @@ const SalesIntelligence: React.FC = () => {
               </select>
             </div>
           </div>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="text-[11px] uppercase tracking-wide text-gray-400 mr-1">Email</span>
+            {(['verified', 'catchall', 'bad', 'all'] as (PBDeliv | 'all')[]).map((d) => (
+              <button
+                key={d}
+                onClick={() => setPbDeliv(d)}
+                title={d === 'verified' ? 'MV-ok or BounceBan-deliverable — safe to send' : d === 'catchall' ? 'Catch-all, not yet resolved by BounceBan' : d === 'bad' ? 'Invalid / undeliverable — do not send' : 'Everything'}
+                className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                  pbDeliv === d
+                    ? 'border-shortcut-navy-blue bg-shortcut-navy-blue text-white'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+              >
+                {d === 'all' ? 'All' : PB_DELIV[d].label} <span className="opacity-70">({d === 'all' ? pbCounts.all : pbCounts[d] ?? 0})</span>
+              </button>
+            ))}
+            <label className="ml-auto flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+              <input type="checkbox" checked={hideInCampaign} onChange={(e) => setHideInCampaign(e.target.checked)} className="rounded border-gray-300" />
+              Hide in-campaign <span className="opacity-70">({pbCounts.in_campaign ?? 0})</span>
+            </label>
+          </div>
           <div className="overflow-x-auto border border-gray-200 rounded">
             <table className="min-w-full">
               <thead className="bg-gray-50">
@@ -2606,7 +2651,15 @@ const SalesIntelligence: React.FC = () => {
                       <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setPbExpanded(open ? null : key)}>
                         <td className={`${td} text-gray-400`}>{open ? '▾' : '▸'}</td>
                         <td className={td}>{r.rank}</td>
-                        <td className={`${td} font-medium`}>{r.company_name}</td>
+                        <td className={`${td} font-medium`}>
+                          {r.company_name}
+                          {r.in_campaign && (
+                            <span className="ml-2 align-middle text-[10px] font-semibold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded"
+                              title={`Already in a Smartlead campaign${r.smartlead_campaign_id ? ` (${r.smartlead_campaign_id})` : ''}`}>
+                              in campaign
+                            </span>
+                          )}
+                        </td>
                         <td className={td}>
                           {st && (
                             <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${st.tone}`} title={st.hint}>
@@ -2623,14 +2676,11 @@ const SalesIntelligence: React.FC = () => {
                             {r.contact_email
                               ? <span className="text-gray-500">{r.contact_email}</span>
                               : <span className="italic">no email</span>}
-                            {r.mv_status && (
+                            {(r.mv_status || r.bounceban_status) && (
                               <span
-                                className={`px-1 rounded text-[10px] font-semibold ${
-                                  r.mv_status === 'ok' ? 'bg-green-100 text-green-700'
-                                  : r.mv_status === 'catch_all' ? 'bg-amber-100 text-amber-700'
-                                  : 'bg-red-100 text-red-700'}`}
-                                title={`MillionVerifier: ${r.mv_status}`}>
-                                {r.mv_status === 'ok' ? 'verified' : r.mv_status === 'catch_all' ? 'catch all' : r.mv_status}
+                                className={`px-1 rounded text-[10px] font-semibold ${PB_DELIV[delivOf(r)].tone}`}
+                                title={`MillionVerifier: ${r.mv_status || '—'}${r.bounceban_status ? ` · BounceBan: ${r.bounceban_status}` : ''}`}>
+                                {r.mv_status === 'catch_all' && r.bounceban_status === 'deliverable' ? 'verified ✓' : PB_DELIV[delivOf(r)].label}
                               </span>
                             )}
                             {r.contact_linkedin && (
