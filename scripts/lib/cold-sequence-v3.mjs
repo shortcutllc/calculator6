@@ -15,7 +15,7 @@
 
 const E1_GENERIC = {
   step: 1, delayDays: 0,
-  subjects: ['the part they actually use', 'wellness without the coordination'],
+  subjects: ['the part they actually use', 'wellness without the coordination', 'the perk people actually book'],
   body: `{Hi|Hey} {{first_name}},
 
 {Booking the vendors, chasing the RSVPs, running the day, it all lands on someone already busy|Wellness perks are easy to buy and a headache to actually run, and that work lands on someone already busy}.

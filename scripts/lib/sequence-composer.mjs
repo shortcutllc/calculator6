@@ -116,12 +116,18 @@ export function toSmartleadSequences(steps) {
   // (NOT a sequence_variants wrapper — that's the GET shape and the POST rejects
   // it). A/B happens via spintax in the single subject line. Matches the working
   // create_post_event_campaigns.js format.
-  return (steps || []).map((s) => ({
-    seq_number: s.step,
-    seq_delay_details: { delay_in_days: s.delayDays ?? 0 },
-    subject: (s.subjects && s.subjects[0]) || '',
-    email_body: htmlBody(s.body),
-  }));
+  return (steps || []).map((s) => {
+    // Multiple subjects ROTATE via SPINTAX in the single subject field (Smartlead's
+    // POST rejects the sequence_variants A/B wrapper). 2-3 phrasings → {a|b|c} and
+    // Smartlead picks one per send. One subject → as-is. Blank → threaded follow-up.
+    const subs = (s.subjects || []).filter(Boolean);
+    return {
+      seq_number: s.step,
+      seq_delay_details: { delay_in_days: s.delayDays ?? 0 },
+      subject: subs.length > 1 ? `{${subs.join('|')}}` : (subs[0] || ''),
+      email_body: htmlBody(s.body),
+    };
+  });
 }
 
 export { buildSystemPrompt, E2_REFERENCE };
