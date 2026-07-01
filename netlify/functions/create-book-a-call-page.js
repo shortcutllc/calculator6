@@ -59,7 +59,7 @@ export const handler = async (event) => {
         const { logoUrl: storedUrl } = await storeProvidedLogo(sb, found, company);
         logoUrl = storedUrl || found; logoSource = 'brandfetch_or_fallback';
       }
-      const { url: pageUrl } = await createLandingPage(sb, userId, {
+      const { uniqueToken } = await createLandingPage(sb, userId, {
         partnerName: company,
         partnerLogoUrl: logoUrl,
         customMessage: opts.customMessage || null,
@@ -73,6 +73,9 @@ export const handler = async (event) => {
         },
         status: 'published',
       });
+      // The BOOK-A-CALL render (not the generic marketing page) — same data row,
+      // different route/component. This is the personalized book-a-call page.
+      const pageUrl = `https://proposals.getshortcut.co/book-a-call/${uniqueToken}`;
       results.push({ company, url: pageUrl, logoSource, logoApplied: !!logoUrl });
     } catch (e) {
       results.push({ company, error: e.message });

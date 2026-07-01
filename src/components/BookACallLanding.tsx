@@ -69,6 +69,35 @@ const BookACallLanding: React.FC<BookACallLandingProps> = ({ infoMode = false })
   const [pageLoading, setPageLoading] = useState(!!id);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  // Many partner logos (esp. Brandfetch wordmarks) are white-on-transparent,
+  // designed for dark backgrounds — invisible on this white header. Measure the
+  // loaded logo's luminance and, if it's near-white, render it on a dark chip so
+  // it stays visible. Set null until measured.
+  const [logoOnDark, setLogoOnDark] = useState(false);
+  // Measure with a SEPARATE crossOrigin probe so the display <img> never depends
+  // on CORS (forcing crossOrigin on it would break non-CORS logo hosts). If the
+  // probe is CORS-blocked or tainted, we just leave the logo on white.
+  const measureLogo = (src: string) => {
+    const probe = new Image();
+    probe.crossOrigin = 'anonymous';
+    probe.onload = () => {
+      try {
+        const cv = document.createElement('canvas');
+        cv.width = probe.naturalWidth; cv.height = probe.naturalHeight;
+        const ctx = cv.getContext('2d');
+        if (!ctx || !cv.width) return;
+        ctx.drawImage(probe, 0, 0);
+        const d = ctx.getImageData(0, 0, cv.width, cv.height).data;
+        let opaque = 0; let lum = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i + 3] < 20) continue;
+          opaque += 1; lum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        }
+        if (opaque > 0 && lum / opaque > 210) setLogoOnDark(true); // near-white → dark chip
+      } catch { /* tainted → leave on white */ }
+    };
+    probe.src = src;
+  };
   // Info-only variant — driven by the route (infoMode prop) OR the record flag.
   const [infoOnly, setInfoOnly] = useState(false);
   const isInfo = infoMode || infoOnly;
@@ -864,12 +893,15 @@ const BookACallLanding: React.FC<BookACallLandingProps> = ({ infoMode = false })
           {/* Left Side - Partner Logo or Company Name */}
           <div className="flex items-center flex-shrink-0">
             {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={companyName || 'Partner'}
-                className="h-8 sm:h-10 w-auto object-contain"
-                style={{ maxWidth: '120px' }}
-              />
+              <div className={logoOnDark ? 'bg-[#003756] rounded-lg px-3 py-1.5 flex items-center' : 'flex items-center'}>
+                <img
+                  src={logoUrl}
+                  alt={companyName || 'Partner'}
+                  onLoad={() => logoUrl && measureLogo(logoUrl)}
+                  className="h-8 sm:h-10 w-auto object-contain"
+                  style={{ maxWidth: '120px' }}
+                />
+              </div>
             ) : companyName ? (
               <span className="text-sm font-medium text-gray-600">
                 {companyName}
