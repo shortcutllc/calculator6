@@ -1230,7 +1230,16 @@ async function handleCreateLandingPage(params, supabase, userId) {
         }
       }
 
-      // If no existing logo, search via Brave/Clearbit
+      // If no existing logo, try BRANDFETCH first (domain-aware, higher quality:
+      // dark PNG wordmark, visibility-gated), then fall back to Brave/Clearbit.
+      if (!logoUrl) {
+        const bf = await fetchLogoUrl(params.partnerName, params.partnerDomain || null);
+        if (bf) {
+          const { logoUrl: storedUrl } = await storeProvidedLogo(supabase, bf, params.partnerName);
+          logoUrl = storedUrl || bf;
+          logoSource = 'brandfetch';
+        }
+      }
       if (!logoUrl) {
         const searchResult = await searchLogoViaBrave(params.partnerName);
         if (searchResult.logoUrl) {
