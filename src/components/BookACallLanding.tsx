@@ -98,6 +98,10 @@ const BookACallLanding: React.FC<BookACallLandingProps> = ({ infoMode = false })
     };
     probe.src = src;
   };
+  // Measure whenever the logo URL resolves — NOT via the <img> onLoad, which does
+  // not fire when the browser serves the image from cache (a returning viewer would
+  // then keep an invisible white logo). useEffect runs regardless of cache state.
+  useEffect(() => { if (logoUrl) measureLogo(logoUrl); }, [logoUrl]);
   // Info-only variant — driven by the route (infoMode prop) OR the record flag.
   const [infoOnly, setInfoOnly] = useState(false);
   const isInfo = infoMode || infoOnly;
@@ -897,7 +901,7 @@ const BookACallLanding: React.FC<BookACallLandingProps> = ({ infoMode = false })
                 <img
                   src={logoUrl}
                   alt={companyName || 'Partner'}
-                  onLoad={() => logoUrl && measureLogo(logoUrl)}
+                  crossOrigin="anonymous"
                   className="h-8 sm:h-10 w-auto object-contain"
                   style={{ maxWidth: '120px' }}
                 />
