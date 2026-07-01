@@ -23,13 +23,13 @@ const E1_BUILDING = {
   subjects: ['filling your amenity calendar, handled', 'one wellness vendor for the building'],
   body: `{Hi|Hey} {{first_name}},
 
-{Keeping the amenity calendar full, with programming tenants actually show up for, is its own job|A full amenity calendar that tenants actually use is harder than it looks}.
+{Keeping the amenity calendar full, with programming that actually attracts and keeps tenants, is its own job|A full amenity calendar that helps retain tenants is harder than it looks}.
 
-Shortcut runs on-site wellness as a building amenity. {We turn a room into a spa for the day|We set up a spa-like space for the day}, with chair massage, nails, and facials, all from one team. Over 90% of slots get booked, so you have real utilization to show.
+Shortcut runs on-site wellness as a building amenity. {We turn a room into a spa for the day|We set up a spa-like space for the day}, with chair massage, nails, and facials, all from one team. Over 90% of slots get booked, so you have real utilization to show at renewal.
 
 {You pick the dates. We handle the vendors, the setup, and the COI|You pick the dates, we handle the rest, including the COI}.
 
-{Worth a quick chat about {{company_name}}?|Open to running one pilot day?}
+{Open to running one pilot day at {{company_name}}?|Worth setting up a pilot day?}
 
 {Warmly,|Thanks,}
 %sender-firstname%`,
@@ -72,7 +72,7 @@ const E3 = {
 
 {Here is what sets us apart for a building|One thing that makes this easy}. Most wellness comes from a different vendor each time, or an app that books it but does not run it.
 
-We are one team and one invoice. {On-site massage, nails, and facials|Massage, nails, and facials on-site}, plus virtual sessions for hybrid tenants, and we slot into your existing tenant app.
+We are one team and one invoice. {On-site massage, nails, and facials|Massage, nails, and facials on-site}, plus virtual sessions for hybrid tenants, {and we slot into your existing tenant app|and we work alongside your tenant communications}.
 
 BCG and DraftKings use us at every one of their US offices, and 87% of clients rebook.
 
