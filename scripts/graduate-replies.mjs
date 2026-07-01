@@ -27,6 +27,14 @@ import { assigneeForGmail, repFromCampaignName } from '../netlify/functions/lib/
 const CONFIRM = process.argv.includes('--confirm');
 const RESEARCH = process.argv.includes('--research');   // corroborate owners via Smartlead campaign inboxes
 const NOTIFY = process.argv.includes('--notify');       // after writing, trigger the auto-draft + Slack ping
+// RECENCY GUARD — only graduate FRESH positive replies. Without this, a reclassify
+// (or a corpus backfill) turns old neutral replies into positives and the cron
+// graduates years-old replies (a Jan 2023 "let's meet" auto-drafted in 2026). A
+// positive reply must be within this many days, and must HAVE a date (fail closed:
+// the historical Gmail corpus has null reply_date — never auto-graduate those).
+const RECENCY_DAYS = (() => { const i = process.argv.indexOf('--recency-days'); const v = i >= 0 ? parseInt(process.argv[i + 1], 10) : parseInt(process.env.GRADUATION_RECENCY_DAYS || '', 10); return Number.isFinite(v) && v > 0 ? v : 14; })();
+const RECENCY_CUTOFF = Date.now() - RECENCY_DAYS * 86400000;
+const isFresh = (d) => { const t = d ? new Date(d).getTime() : NaN; return Number.isFinite(t) && t >= RECENCY_CUTOFF; };
 // Deployed graduation-notify-background endpoint (override for local/preview).
 const NOTIFY_URL = (process.env.GRADUATION_NOTIFY_URL || 'https://proposals.getshortcut.co/.netlify/functions/graduation-notify-background').trim();
 const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
@@ -75,9 +83,17 @@ async function readAll(t, cols, mod) {
   const campaignName = new Map(campaigns.map((c) => [String(c.campaign_id), c.name || null]));
   const contactByEmail = new Map(contacts.map((c) => [lc(c.email), c]));
 
-  // POSITIVE repliers (triage: only positive graduates).
+  // POSITIVE repliers (triage: only positive graduates) — AND the reply must be
+  // fresh (see RECENCY_DAYS). Stale positives are the historical corpus; graduating
+  // them auto-drafts a reply to a conversation from years ago.
   const positives = new Set();
-  for (const r of replies) { if (lc(r.reply_sentiment) === 'positive' && lc(r.email)) positives.add(lc(r.email)); }
+  let staleSkipped = 0;
+  for (const r of replies) {
+    if (lc(r.reply_sentiment) !== 'positive' || !lc(r.email)) continue;
+    if (!isFresh(r.reply_date)) { staleSkipped += 1; continue; }
+    positives.add(lc(r.email));
+  }
+  log(`Positive replies: ${positives.size} fresh (<=${RECENCY_DAYS}d) · ${staleSkipped} stale/undated skipped by the recency guard.`);
 
   // Owner = rep on the most-recent COLD send to that email.
   const coldOwner = new Map(); // email -> { owner, last }

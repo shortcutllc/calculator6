@@ -45,6 +45,11 @@ import { getAccessToken, getSignature, createDraft, lc } from './lib/gmail.js';
 const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
 const SLACK_API = 'https://slack.com/api';
 const DEFAULT_MAX = 25;   // safety cap — graduations trickle in; never blast hundreds at once
+// RECENCY GUARD (defense in depth — the primary gate is in graduate-replies.mjs):
+// never auto-draft/ping for an OLD reply, even if it somehow got graduated. Fail
+// closed on missing dates (the historical Gmail corpus has null reply_date).
+const RECENCY_DAYS = Number.isFinite(+process.env.GRADUATION_RECENCY_DAYS) && +process.env.GRADUATION_RECENCY_DAYS > 0 ? +process.env.GRADUATION_RECENCY_DAYS : 14;
+const RECENCY_CUTOFF = Date.now() - RECENCY_DAYS * 86400000;
 
 // Owner NAME (graduated_owner) -> rep Gmail. Mirrors lib/assignee.js KNOWN +
 // lib/slack-event-ping.js ASSIGNEE_TO_EMAIL. Keep these aligned; extract to a
@@ -182,6 +187,19 @@ async function processLead(sb, anthropic, g, { dryRun }) {
     .eq('email', repEmail).maybeSingle();
   if (!acct?.slack_user_id) return { email, skipped: 'owner_not_on_slack', owner: ownerName };
   if (!shouldPing(acct, email)) return { email, skipped: 'muted_or_snoozed', owner: ownerName };
+
+  // RECENCY GUARD: skip (and mark notified so it stops surfacing) any lead whose
+  // newest positive reply is older than RECENCY_DAYS, or has no date. Stops the
+  // historical corpus from getting a fresh auto-draft years after the fact.
+  const { data: rr } = await sb.from('outreach_replies')
+    .select('reply_date').eq('email', email).eq('reply_sentiment', 'positive')
+    .order('reply_date', { ascending: false, nullsFirst: false }).limit(1);
+  const newestReply = rr?.[0]?.reply_date;
+  const fresh = newestReply && new Date(newestReply).getTime() >= RECENCY_CUTOFF;
+  if (!fresh) {
+    if (!dryRun) await markNotified(sb, email);
+    return { email, owner: ownerName, skipped: 'stale_reply', reply_date: newestReply || null };
+  }
 
   // Lead picture for identity + the actual reply text.
   let pic;
