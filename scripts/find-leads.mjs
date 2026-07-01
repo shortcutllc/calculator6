@@ -111,6 +111,14 @@ const RE_SEGMENTS = {
     ],
   },
 };
+// Vet OUT residential / multifamily at the Apollo stage. Our RE ICP is COMMERCIAL
+// (office tenant experience, coworking member experience) — apartment/residential
+// "resident experience / multifamily property" roles are a different, weaker buyer.
+// They slip in because include_similar_titles expands "Property Manager" ->
+// "Residential Property Manager" at mixed operators (Brookfield/Rudin/Colliers have
+// residential arms). Keyed on residential/multifamily words ONLY — never "community"
+// (that is the coworking champion title, a keep).
+const RESIDENTIAL_TITLE_RE = /\bmulti.?family\b|\bresidential\b|\bapartments?\b|\bresident (experience|services|relations|manager|director|coordinator)\b/i;
 const RE_ON = VERTICAL === 'realestate' && RE_SEGMENTS[RE_SEGMENT];
 const EFFECTIVE_TITLES = RE_ON ? RE_SEGMENTS[RE_SEGMENT].titles
   : (VERTICAL && VERTICAL_TITLES[VERTICAL]) ? VERTICAL_TITLES[VERTICAL] : TITLES;
@@ -341,7 +349,7 @@ async function upsert(table, rows, conflict) {
   log(`ENRICHING ${toEnrich.length} (≤${MAX})…`);
   const cacheRows = []; const contactRows = [];
   let added = 0; let lawRe = 0; let spent = 0;
-  const gated = { email_status: 0, industry: 0, suppressed: 0, known: 0, client: 0, no_email: 0, mv_invalid: 0 };
+  const gated = { email_status: 0, industry: 0, residential: 0, suppressed: 0, known: 0, client: 0, no_email: 0, mv_invalid: 0 };
   for (const c of toEnrich) {
     let j;
     try { j = await apollo('people/match', { id: c.id, reveal_personal_emails: false }); }
@@ -378,6 +386,8 @@ async function upsert(table, rows, conflict) {
     else if (RE_ON) { /* domain pin already constrained the company */ }
     else if (VERTICAL === 'realestate') { if (!RE_INDUSTRIES.has(industry)) { gated.industry += 1; continue; } }
     else if (industry && !ALLOWED_INDUSTRIES.has(industry) && !LAW_INDUSTRIES.has(industry) && !RE_INDUSTRIES.has(industry)) { gated.industry += 1; continue; }
+    // Vet out residential / multifamily (commercial-office / coworking ICP only).
+    if (VERTICAL === 'realestate' && RESIDENTIAL_TITLE_RE.test(p.title || '')) { gated.residential += 1; continue; }
     if (known.supp.has(email)) { gated.suppressed += 1; continue; }
     if (known.known.has(email)) { gated.known += 1; continue; }
     if (dom && known.clientDomains.has(dom)) { gated.client += 1; continue; }
