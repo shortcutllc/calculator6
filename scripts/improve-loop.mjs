@@ -32,6 +32,8 @@ import { critiqueHypotheses, minNToProve } from './lib/belief-skeptic.mjs';
 
 const ROOT = '/Users/willnewton/Documents/GitHub/calculator6';
 const REBUILD = process.argv.includes('--rebuild');
+const NOTIFY = process.argv.includes('--notify');   // POST the plan digest to Slack (via the Netlify fn holding the bot token)
+const DIGEST_URL = (process.env.IMPROVE_LOOP_DIGEST_URL || 'https://proposals.getshortcut.co/.netlify/functions/improve-loop-digest-background').trim();
 const log = (...a) => console.log(...a);
 const pct = (x) => `${(x * 100).toFixed(2)}%`;
 
@@ -228,6 +230,33 @@ function toEngineAction(h) {
     log(`  explore (20%): none survived the skeptic — run base only or invest in graduation.`);
   }
   log(`\nWrote belief_experiments.json + belief_experiments.md to repo root.`);
+
+  // --notify: DM the weekly plan to Will via the Netlify digest fn (which holds the
+  // Slack bot token). Fire-and-forget; a Slack failure never fails the loop.
+  if (NOTIFY) {
+    const digest = {
+      week,
+      baseline_floor: pct(baseline_positive_floor),
+      honest_read: plan.honest_read,
+      exploit_cmd: exploitCmd,
+      advisory_cells: advisoryCells.map((c) => ({ face: c.face, value: c.value, floor: pct(c.positive_floor) })),
+      explore: arm ? {
+        face: arm.hypothesis.face, value: arm.hypothesis.value, mechanism: arm.mechanism,
+        target: pct(arm.target_positive_rate), min_sends: arm.min_sends_to_call_it || null,
+        command: arm.recommended_command || null,
+      } : null,
+      counts: plan.counts,
+    };
+    try {
+      const r = await fetch(DIGEST_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(digest) });
+      log(`  notify: posted plan digest to Slack (HTTP ${r.status}).`);
+    } catch (e) {
+      log(`  notify warn: could not reach improve-loop-digest (${e.message}). Plan still written locally.`);
+    }
+  } else {
+    log('  (add --notify to DM this plan to Slack)');
+  }
+
   log('The loop recommends. It does not launch. Human approves + runs the cold engine.');
   log('DONE');
 })().catch((e) => { console.error('IMPROVE_LOOP_ERROR:', e.message); process.exit(1); });

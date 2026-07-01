@@ -217,7 +217,10 @@ async function replaceAll(table, rows) {
   playA.sort((a, b) => b.score - a.score);
 
   // ---------- PLAY B: cold prospects that look like winners (gated) ----------
-  // best contact per prospect company (prefer good title)
+  // best contact per prospect company: prefer a SENDABLE contact (mv ok / bounceban
+  // deliverable), then good title. Without the sendability weight a company with a
+  // catch-all "perfect title" contact would surface that dead address over a
+  // verified, slightly-worse-title one — so the tab shows a lead we can't email.
   const prospects = new Map();
   for (const o of ocs) {
     if (o.crm_company_id) continue;            // already tied to a client = not net-new
@@ -225,7 +228,9 @@ async function replaceAll(table, rows) {
     const dom = lc(o.email_domain); if (!dom) continue;
     const cat = titleCat(o.title);
     const cur = prospects.get(dom);
-    const rank = cat && GOOD.has(cat) ? 2 : cat ? 1 : 0;
+    const sendable = o.mv_status === 'ok' || o.bounceban_status === 'deliverable';
+    const titleRank = cat && GOOD.has(cat) ? 2 : cat ? 1 : 0;
+    const rank = (sendable ? 10 : 0) + titleRank;   // sendable dominates, good title breaks ties
     if (!cur || rank > cur._rank) prospects.set(dom, { domain: dom, company: o.company, email: o.email, name: o.name, title: o.title, linkedin: o.linkedin_url || null, location: o.location || null, source: o.source || null, mv_status: o.mv_status || null, bounceban_status: o.bounceban_status || null, in_campaign: o.in_campaign || false, smartlead_campaign_id: o.smartlead_campaign_id || null, campaign_memberships: o.campaign_memberships || null, cat, _rank: rank });
   }
   const playB = [];
