@@ -60,18 +60,35 @@ JUDGE ON (be specific, cite the step):
 
 Be honest and critical — if it's mediocre, say so and say exactly why. Reserve a high score for copy you'd actually bet on.
 
-Return ONLY valid JSON, no prose:
-{
-  "verdict": "pass" | "revise",
-  "score": 0-100,
-  "would_reply_read": "one sentence: would this buyer reply, and why / why not",
-  "strengths": ["..."],
-  "issues": [{"step": 1, "severity": "high|medium|low", "issue": "..."}],
-  "suggestions": ["concrete, rewrite-level fixes"],
-  "subject_take": "one line on the subject(s)"
+Report your verdict by calling the report_verdict tool. verdict "pass" only if you'd send it; "revise" if it needs work. Score: 80+ strong, 60-79 workable-with-fixes, <60 weak.`;
 }
-verdict "pass" only if you'd send it; "revise" if it needs work. Score: 80+ strong, 60-79 workable-with-fixes, <60 weak.`;
-}
+
+// Forced-tool schema — guarantees a valid structured object (no free-text JSON to
+// parse/truncate). This is what fixed the "Expected ',' or ']'" parse errors.
+const VERDICT_SCHEMA = {
+  type: 'object',
+  properties: {
+    verdict: { type: 'string', enum: ['pass', 'revise'], description: 'pass only if you would send it as-is' },
+    score: { type: 'integer', minimum: 0, maximum: 100 },
+    would_reply_read: { type: 'string', description: 'one sentence: would this buyer reply, and why / why not' },
+    strengths: { type: 'array', items: { type: 'string' } },
+    issues: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          step: { type: 'integer', description: 'which email (1-4)' },
+          severity: { type: 'string', enum: ['high', 'medium', 'low'] },
+          issue: { type: 'string' },
+        },
+        required: ['issue'],
+      },
+    },
+    suggestions: { type: 'array', items: { type: 'string' }, description: 'concrete, rewrite-level fixes' },
+    subject_take: { type: 'string', description: 'one line on the subject(s)' },
+  },
+  required: ['verdict', 'score', 'would_reply_read'],
+};
 
 function renderSequenceForJudge(sequence, segment, context) {
   const steps = sequence?.steps || [];
@@ -85,6 +102,8 @@ function renderSequenceForJudge(sequence, segment, context) {
   return lines.filter((l) => l !== '').join('\n');
 }
 
+// Fallback only: if a model/SDK path ever returns text instead of a tool call,
+// salvage the JSON object rather than throwing.
 function extractJson(text) {
   const s = String(text || '');
   const a = s.indexOf('{'); const b = s.lastIndexOf('}');
@@ -106,12 +125,16 @@ export async function judgeCopy({ anthropic, sequence, segment = 'direct', conte
   if (!sequence?.steps?.length) throw new Error('judgeCopy: sequence with steps required');
   const seg = ['direct', 'law', 'realestate', 'broker'].includes(segment) ? segment : 'direct';
   const resp = await anthropic.messages.create({
-    model, max_tokens: 1500,
+    model, max_tokens: 2000, temperature: 0.2,   // low: a gate should score the same copy consistently run-to-run
     system: buildJudgeSystem(seg),
+    tools: [{ name: 'report_verdict', description: 'Report the strategic-fit verdict for this cold sequence.', input_schema: VERDICT_SCHEMA }],
+    tool_choice: { type: 'tool', name: 'report_verdict' },
     messages: [{ role: 'user', content: renderSequenceForJudge(sequence, seg, context) }],
   });
-  const text = (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
-  const j = extractJson(text);
+  // Forced tool_use → the input IS the validated object. Fall back to text-JSON only
+  // if some path returns prose instead of a tool call.
+  const toolUse = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_verdict');
+  const j = toolUse?.input || extractJson((resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim());
   return {
     verdict: j.verdict === 'pass' ? 'pass' : 'revise',
     score: Math.max(0, Math.min(100, Number(j.score) || 0)),
