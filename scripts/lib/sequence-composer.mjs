@@ -26,6 +26,7 @@ const E2_REFERENCE = 'Hi {{first_name}}, hope your day is treating you well. Fol
 
 const VOICE = [
   'VOICE: warm, conversational, like a competent friend who runs a wellness company. Confident, never loud. Premium without pretension.',
+  'STANDALONE (hard rule): every email except the E2 bump must make complete sense to a busy reader who never opened the earlier emails. Threading quotes the old emails BELOW and preview panes show only the new text, so each of E1/E3/E4 names the CONCRETE services (chair massage, nails, facials, mindfulness...), never just the category word "wellness". The word ranges are guidance and they YIELD to this: if naming the services, one real proof point, and the ask pushes an email over its range, run longer. Never cut an essential element to hit a word count.',
   'HARD RULES (any violation fails): no dashes as punctuation (no em/en dash, no " - "; intra-word hyphens like mid-market are fine — end the sentence instead). No exclamation points. No buzzwords. Never these words: elevate, leverage, synergy, unlock, empower, transform, reimagine, seamless, holistic, curated. Specifics over superlatives.',
   'Merge tags allowed: {{first_name}}, {{company_name}}. One low-pressure, interest-based CTA per email (not "book 30 minutes").',
   'SPINTAX (required for deliverability): rotate copy with spintax {option1|option2|option3} on the greeting, several key phrases, and the CTA of EVERY email, so no two sends are byte-identical. Aim for 6+ spintax groups per email. Every variant must stay on-spine and read equally well. Do not spin merge tags.',
@@ -42,7 +43,7 @@ function blueprintInstructions() {
     if (b.step === 4) extra = ' Soft close / graceful breakup. Easy out, no pressure.';
     return `  E${b.step} (send day +${b.delayDays}, ~${b.words[0]}-${b.words[1]} words, ${subj}, ${links}): ${b.role}.${extra}`;
   });
-  return `SEQUENCE BLUEPRINT (compose copy INTO this fixed structure):\n${lines.join('\n')}`;
+  return `SEQUENCE BLUEPRINT (compose copy INTO this fixed structure):\n${lines.join('\n')}\n  Word ranges are guidance, not caps: the standalone essentials (concrete services, one real proof, the ask) always win — go over the range rather than drop one.`;
 }
 
 function buildSystemPrompt({ channel = 'direct', seasonal = false, winningTemplates = [] } = {}) {

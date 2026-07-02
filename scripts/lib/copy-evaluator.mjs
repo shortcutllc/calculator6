@@ -67,6 +67,16 @@ const wordCount = (t) => { const s = stripForCount(t); return s ? s.split(' ').l
 // Merge-tag links ({{landing_url}}/{{cle_url}}) render as URLs per lead — they
 // count toward the link budget so E1/E2 stay link-free and E3 keeps exactly one.
 const countLinks = (t) => (String(t || '').match(/https?:\/\/|\]\(|href=|\{\{\s*(?:landing_url|cle_url)\s*\}\}/gi) || []).length;
+// STANDALONE RULE (Will, 2026-07-02): every pitch-carrying touch (E1, E3 + every
+// E3 variant) must stand alone — a busy reader who never opens the earlier emails
+// (threading quotes them BELOW, previews show only the new text) must still learn
+// WHAT we actually run. Concrete services, not the category word "wellness".
+// Born from the short E3 shipping with "what we run on-site and virtually" and no
+// service named — Will caught it, the gates did not. E2 is exempt (pure bump).
+// PRIORITY: this beats the word budget — extend length to fit the essentials,
+// never cut a service/proof/who-we-are element to hit a word target (word overage
+// is a warning; a non-standalone email is a hard reject).
+const SERVICE_RE = /\b(?:chair )?(?:massage|nails?|facials?|mindfulness|meditation|headshots?|nutrition|grooming|sound ?baths?|yoga)\b/i;
 const countSpintax = (t) => (String(t || '').match(/\{[^{}]*\|[^{}]*\}/g) || []).length;
 // em/en dash anywhere, or clause hyphen " - " (intra-word hyphens like mid-market are fine)
 const hasDash = (t) => /[—–]/.test(String(t || '')) || /\s-\s/.test(String(t || ''));
@@ -137,6 +147,16 @@ export function evaluateCopy(sequence, opts = {}) {
     // FACT (all steps): massage is chair/table in a conference room turned spa, NEVER at desks.
     if (/\bat\s+(?:their\s+|your\s+)?desks?\b/i.test(all) || /\bdesk-?side\b/i.test(all)) flag(bp.step, 'massage_at_desk', 'massage is chair/table in a conference room, never "at desks"');
 
+    // ---- STANDALONE (hard on E1 + E3; law-CLE E1 exempt — the CLE course IS its
+    // offer). E4 gets a soft warn (a breakup can stay light).
+    const standaloneExempt = bp.step === 1 && segment === 'law' && opener === 'cle';
+    if ((bp.step === 1 || bp.step === 3) && !standaloneExempt && !SERVICE_RE.test(body)) {
+      flag(bp.step, 'not_standalone', `E${bp.step} names no concrete service — a reader who never opened the earlier emails must still learn what we run (extend length if needed; never cut services to fit a word budget)`);
+    }
+    if (bp.step === 4 && !SERVICE_RE.test(body) && !/wellness|amenity|cle|ethics/i.test(body)) {
+      warn.push({ step: 4, rule: 'not_standalone', detail: 'E4 has no service or category anchor — fine for a breakup, but check it reads sensibly alone' });
+    }
+
     // ---- A/B VARIANTS: step.body is variant A (already checked above); run the
     // body-level gates on every EXTRA variant so a bad variant B can't ship via
     // the manual Smartlead-UI paste unlinted.
@@ -153,6 +173,8 @@ export function evaluateCopy(sequence, opts = {}) {
       for (const p of DEAD_DIFFERENTIATORS) if (lc(vb).includes(lc(p))) flag(bp.step, 'dead_differentiator', `[${tag}] "${p}"`);
       if (/\bat\s+(?:their\s+|your\s+)?desks?\b/i.test(vb) || /\bdesk-?side\b/i.test(vb)) flag(bp.step, 'massage_at_desk', `[${tag}] never "at desks"`);
       if (countSpintax(vb) < 3) warn.push({ step: bp.step, rule: 'low_spintax', detail: `[${tag}] wants 3+ spintax groups` });
+      // every variant must stand alone too — a variant ships to half the leads
+      if ((bp.step === 1 || bp.step === 3) && !SERVICE_RE.test(vb)) flag(bp.step, 'not_standalone', `[${tag}] names no concrete service — each variant must stand alone`);
     }
 
     // ---- LAW / CLE compliance (every step, segment=law) — hard. These claims

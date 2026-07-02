@@ -54,4 +54,29 @@ const reNoAmenity = { segment: 'realestate', opener: 'building', steps: [
 r = evaluateCopy(reNoAmenity, { segment: 'realestate', opener: 'building' });
 ok(r.violations.some((x) => x.rule === 're_e1_no_amenity'), 'real estate E1 with no amenity/tenant signal must be flagged');
 
+// STANDALONE (Will, 2026-07-02 — the miss that created this rule): an E3 that
+// says "what we run" without naming a single concrete service must hard-fail.
+// This exact copy shipped and Will caught it, not the gates.
+const vagueE3 = coldSequenceV3('generic', { e3Link: true });
+vagueE3.steps = vagueE3.steps.map((s) => (s.step === 3
+  ? { ...s, abVariants: undefined, body: `{Hi|Hey} {{first_name}},\n\n{I put together a short page for the {{company_name}} team|I made a quick page for the {{company_name}} team}, with how a day works, what we run on-site and virtually, and a rough price: {{landing_url}}\n\nOver 90% of slots get booked at these events.\n\n{No pressure|Have a look}.\n\n{Warmly,|Thanks,}\n%sender-firstname%` }
+  : s));
+r = evaluateCopy(vagueE3, { segment: 'direct', opener: 'generic' });
+ok(r.violations.some((x) => x.step === 3 && x.rule === 'not_standalone'), 'vague E3 (no service named) must hard-fail not_standalone');
+
+// A vague VARIANT must fail too, even when variant A is fine (a variant ships to
+// half the leads — every variant must stand alone).
+const goodWithVagueVariant = coldSequenceV3('generic', { e3Link: true });
+goodWithVagueVariant.steps = goodWithVagueVariant.steps.map((s) => (s.step === 3
+  ? { ...s, abVariants: [s.abVariants[0], { variantLabel: 'B-vague', body: 'Hi {{first_name}}, quick page for your team with what we run and a rough price: {{landing_url}}. {No pressure|Have a look}. {Warmly,|Thanks,}' }] }
+  : s));
+r = evaluateCopy(goodWithVagueVariant, { segment: 'direct', opener: 'generic' });
+ok(r.violations.some((x) => x.step === 3 && x.rule === 'not_standalone' && /B-vague/.test(x.detail)), 'vague E3 VARIANT must hard-fail not_standalone');
+
+// The shipped e3Link sequences (both segments, both variants) must PASS the rule.
+for (const seq of [coldSequenceV3('generic', { e3Link: true }), coldSequenceRealEstate('building', { e3Link: true })]) {
+  const rr = evaluateCopy(seq, { segment: seq.segment, opener: seq.opener });
+  ok(rr.verdict === 'pass', `${seq.label} must pass standalone — violations: ${JSON.stringify(rr.violations)}`);
+}
+
 console.log(`cold-sequence.test.mjs — ${pass} assertions passed ✓`);

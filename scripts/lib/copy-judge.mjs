@@ -57,10 +57,11 @@ JUDGE ON (be specific, cite the step):
 5. SUBJECT QUALITY — short, internal-note, no cliché/sell, points at their world.
 6. THE ASK — one low-friction soft CTA, not pushy, no premature link/calendar.
 7. SEQUENCE LOGIC — E2 is a real bump (no new pitch), E3 earns the differentiation, E4 closes softly. Each email earns its place.
+8. STANDALONE — judge each email (and each variant) as if it is the ONLY one the buyer ever reads: previews show just the new text, nobody scrolls the quoted thread. Would they know exactly WHAT is being offered (the concrete services) from this email alone? Vague category words ("wellness", "what we run") without named services is a real issue. When an email is missing an essential (services, one real proof, a clear ask), the fix is to ADD it even if the email runs longer — never suggest cutting an essential to shorten.
 
 Be honest and critical — if it's mediocre, say so and say exactly why. Reserve a high score for copy you'd actually bet on.
 
-Report your verdict by calling the report_verdict tool. verdict "pass" only if you'd send it; "revise" if it needs work. Score: 80+ strong, 60-79 workable-with-fixes, <60 weak.`;
+Report your verdict by calling the report_verdict tool. verdict "pass" only if you'd send it; "revise" if it needs work. Score: 80+ strong, 60-79 workable-with-fixes, <60 weak. A "revise" verdict MUST name the specific issues that caused it (step + what is wrong) and give concrete suggestions — a revise with an empty issues list is an invalid report. Always fill strengths, issues, and suggestions.`;
 }
 
 // Forced-tool schema — guarantees a valid structured object (no free-text JSON to
@@ -87,7 +88,9 @@ const VERDICT_SCHEMA = {
     suggestions: { type: 'array', items: { type: 'string' }, description: 'concrete, rewrite-level fixes' },
     subject_take: { type: 'string', description: 'one line on the subject(s)' },
   },
-  required: ['verdict', 'score', 'would_reply_read'],
+  // issues/suggestions/strengths REQUIRED: at low temperature the model skipped
+  // optional fields, producing "revise" verdicts with no issues (unactionable).
+  required: ['verdict', 'score', 'would_reply_read', 'strengths', 'issues', 'suggestions'],
 };
 
 function renderSequenceForJudge(sequence, segment, context) {
@@ -124,16 +127,28 @@ export async function judgeCopy({ anthropic, sequence, segment = 'direct', conte
   if (!anthropic) throw new Error('judgeCopy: anthropic client required');
   if (!sequence?.steps?.length) throw new Error('judgeCopy: sequence with steps required');
   const seg = ['direct', 'law', 'realestate', 'broker'].includes(segment) ? segment : 'direct';
-  const resp = await anthropic.messages.create({
-    model, max_tokens: 2000, temperature: 0.2,   // low: a gate should score the same copy consistently run-to-run
+  // tool_choice AUTO, not forced: forcing the tool suppresses the model's text
+  // reasoning pass, and without it the judge returned rich scalars but EMPTY
+  // issues/suggestions arrays (a "revise" with no issues — unactionable). Let it
+  // critique in text first, then call report_verdict; force only as a retry.
+  const baseReq = {
+    model, max_tokens: 3000, temperature: 0.2,   // low: a gate should score the same copy consistently run-to-run
     system: buildJudgeSystem(seg),
-    tools: [{ name: 'report_verdict', description: 'Report the strategic-fit verdict for this cold sequence.', input_schema: VERDICT_SCHEMA }],
-    tool_choice: { type: 'tool', name: 'report_verdict' },
-    messages: [{ role: 'user', content: renderSequenceForJudge(sequence, seg, context) }],
-  });
-  // Forced tool_use → the input IS the validated object. Fall back to text-JSON only
-  // if some path returns prose instead of a tool call.
-  const toolUse = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_verdict');
+    tools: [{ name: 'report_verdict', description: 'Report the strategic-fit verdict for this cold sequence. Call this exactly once, AFTER writing your step-by-step critique in text.', input_schema: VERDICT_SCHEMA }],
+    messages: [{ role: 'user', content: renderSequenceForJudge(sequence, seg, context) + '\n\nFirst write your step-by-step critique as text (every step, every variant). Then call report_verdict once with ALL findings — every issue and suggestion from your critique goes into the arrays.' }],
+  };
+  let resp = await anthropic.messages.create({ ...baseReq, tool_choice: { type: 'auto' } });
+  let toolUse = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_verdict');
+  if (!toolUse) {
+    // model wrote prose without the call → force it, carrying its critique forward
+    const critique = (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+    resp = await anthropic.messages.create({
+      ...baseReq,
+      tool_choice: { type: 'tool', name: 'report_verdict' },
+      messages: [...baseReq.messages, { role: 'assistant', content: critique || '(no critique)' }, { role: 'user', content: 'Now call report_verdict with all findings from your critique.' }],
+    });
+    toolUse = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_verdict');
+  }
   const j = toolUse?.input || extractJson((resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim());
   return {
     verdict: j.verdict === 'pass' ? 'pass' : 'revise',
