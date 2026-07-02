@@ -58,6 +58,10 @@ export async function mintLandingPages({ sb, companies, log = console.log }) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leads: batch.map((b) => ({ company: b.company, domain: b.domain })) }),
       });
+      // A slow batch can hit the fn's time cap → 502 with pages PARTIALLY created
+      // server-side. Log it loudly (was silent once): the reuse scan on the next
+      // run picks those orphaned pages up, so re-running self-heals.
+      if (!r.ok) log(`  mint batch warn: HTTP ${r.status} for [${batch.map((b) => b.company).join(', ')}] — re-run to pick up via reuse`);
       const j = await r.json().catch(() => ({}));
       for (const res of j.results || []) {
         if (res.url) map.set(keyOf(res.company), res.url);

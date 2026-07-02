@@ -103,7 +103,7 @@ const E3_LINK_SHORT = {
   step: 3, delayDays: 4, subjects: [''], variantLabel: 'A-short',
   body: `{Hi|Hey} {{first_name}},
 
-{I put together a short page for the {{company_name}} team|I made a quick page for {{company_name}}}, with how a day works, what we run on-site and virtually, and a rough price: {{landing_url}}
+{I put together a short page for the {{company_name}} team|I made a quick page for the {{company_name}} team}, with how a day works, what we run on-site and virtually, and a rough price: {{landing_url}}
 
 Over 90% of slots get booked at these events, so it is the part of the wellness budget people actually use.
 
@@ -123,7 +123,7 @@ Most wellness vendors do one thing, or hand you a directory of contractors. We a
 
 BCG and DraftKings use us at every one of their US offices, and 87% of companies rebook.
 
-{I put together a short page for the {{company_name}} team|I made a quick overview for {{company_name}}}, with how a day works, the services, and a rough price: {{landing_url}}
+{I put together a short page for the {{company_name}} team|I made a quick overview for the {{company_name}} team}, with how a day works, the services, and a rough price: {{landing_url}}
 
 {No pressure, just so you can see the shape of it|Have a look whenever it is useful}.
 
