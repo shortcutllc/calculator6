@@ -347,7 +347,13 @@ export const handler = async (event) => {
       if (pic?.preflight?.suppressed || pic?.preflight?.is_client) { results.push({ email: t.email, skipped: pic.preflight.suppressed ? 'suppressed' : 'is_client' }); continue; }
 
       let note = await draftNote(anthropic, { lead: t, firm, exemplars, audience });
-      guardNote(note, audience);
+      // GATE: deterministic guards -> revise-once on violation (guard throws used
+      // to skip the lead outright with no revision and no visibility)
+      try { guardNote(note, audience); } catch (ge) {
+        console.error(`guard hit for ${t.email}: ${ge.message} — revising`);
+        note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead: t, firm });
+        guardNote(note, audience);
+      }
       // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator)
       const review = await critiqueNote(anthropic, note, audience);
       if (!review.pass && review.issues.length) {
@@ -394,7 +400,15 @@ export const handler = async (event) => {
       }
       results.push({ email: t.email, status: 'drafted', draftId: saved.id });
     } catch (e) {
+      console.error(`founder-queue error for ${t.email}:`, e.message);
       results.push({ email: t.email, status: 'error', error: e.message });
+      if (channel) {
+        await slackPost('chat.postMessage', {
+          channel, text: `Founder queue: ${t.email} skipped`,
+          blocks: [{ type: 'context', elements: [{ type: 'mrkdwn', text: `:warning: Skipped *${t.name || t.email}* (${firm?.display_name || t.company || ''}): ${String(e.message).slice(0, 180)}` }] }],
+          unfurl_links: false, unfurl_media: false,
+        });
+      }
     }
   }
   return { statusCode: 200, body: JSON.stringify({ ok: true, audience, drafted: results.filter((r) => r.status === 'drafted').length, results }) };
