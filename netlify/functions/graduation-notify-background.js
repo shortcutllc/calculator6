@@ -169,6 +169,25 @@ async function slackPost(method, body) {
 }
 
 // Draft the 4-direction JSON for one graduated lead. Returns { directions, fight_for, fight_for_reason } or throws.
+// GATE (feedback_no_ungated_copy, 2026-07-02): deterministic guards on every
+// drafted direction — this surface auto-drafts into reps' Gmail daily and ran
+// prompt-rules-only until now. Throws name the violation for the retry pass.
+function guardDirections(drafted, allowedUrl) {
+  const banned = ['elevate', 'leverage', 'synergy', 'unlock', 'empower', 'transform', 'reimagine', 'seamless', 'holistic', 'curated'];
+  const violations = [];
+  for (const d of drafted.directions || []) {
+    const all = `${d.subject || ''} ${d.body || ''}`;
+    if (/[—–]|\s-\s/.test(all)) violations.push(`[${d.label}] dash as punctuation`);
+    if (/!/.test(all)) violations.push(`[${d.label}] exclamation point`);
+    for (const w of banned) if (new RegExp(`\\b${w}\\b`, 'i').test(all)) violations.push(`[${d.label}] banned word: ${w}`);
+    const linkable = (d.body || '').replace(new RegExp((allowedUrl || 'NOMATCH').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '').replace(/getshortcut\.co/g, '');
+    if (/https?:\/\//.test(linkable)) violations.push(`[${d.label}] invented a link (only the provided booking page is allowed)`);
+    const words = (d.body || '').trim().split(/\s+/).filter(Boolean).length;
+    if (words > 140) violations.push(`[${d.label}] too long (${words}w, cap ~110)`);
+  }
+  return violations;
+}
+
 async function draftReply(anthropic, ctx) {
   const userPrompt = [
     'Prospect context (JSON — only use what is here, do not invent the rest):',
@@ -192,6 +211,9 @@ async function draftReply(anthropic, ctx) {
     '',
     `Sign emails from: ${ctx.repFirstName}`,
     '',
+    ctx.fixViolations?.length
+      ? `YOUR PREVIOUS DRAFT FAILED these hard rules — fix every one:\n${ctx.fixViolations.map((v) => `  - ${v}`).join('\n')}`
+      : '',
     'Return the JSON only.',
   ].filter(Boolean).join('\n');
 
@@ -278,6 +300,20 @@ async function processLead(sb, anthropic, g, { dryRun }) {
       replyContent: replyText,
       bookACallUrl,
     });
+    // gate + retry-once with violations fed back (generator ≠ evaluator)
+    let violations = guardDirections(drafted, bookACallUrl);
+    if (violations.length) {
+      drafted = await draftReply(anthropic, {
+        repFirstName: (ownerName.split(' ')[0] || repEmail.split('@')[0]),
+        name, title: pic.identity?.title || null, company,
+        industry: pic.identity?.industry || null,
+        replyContent: replyText,
+        bookACallUrl,
+        fixViolations: violations,
+      });
+      violations = guardDirections(drafted, bookACallUrl);
+      if (violations.length) throw new Error(`draft failed guards twice: ${violations.join('; ')}`);
+    }
   } catch (e) {
     // Draft failed: still surface the hot graduated reply so the owner can act
     // manually (the Draft button on this ping re-runs the reactive pipeline).
