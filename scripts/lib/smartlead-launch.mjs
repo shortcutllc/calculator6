@@ -124,7 +124,7 @@ export async function launchCampaign({ apiKey, name, cloneFromId, sequence, lead
     await sl(fetchImpl, 'POST', `/campaigns/${id}/leads`, apiKey, { lead_list: rows.slice(i, i + 100) });
     uploaded += Math.min(100, rows.length - i);
   }
-  return { ...plan, dry: false, campaign_id: id, assigned_senders: assigned, uploaded, url: `https://app.smartlead.ai/app/email-campaign/${id}/sequences` };
+  return { ...plan, dry: false, campaign_id: id, assigned_senders: assigned, uploaded, url: `https://app.smartlead.ai/app/email-campaigns-v2/${id}/sequences` };
 }
 
 /**
@@ -142,5 +142,5 @@ export async function updateCampaignSequence({ apiKey, campaignId, sequence, fet
   // Smartlead POST /sequences is a full "save sequences" that REPLACES the whole
   // set (there is no per-step DELETE endpoint), so just POST the new sequence.
   await sl(fetchImpl, 'POST', `/campaigns/${campaignId}/sequences`, apiKey, { sequences: newSeqs });
-  return { campaign_id: campaignId, wrote_steps: newSeqs.length, url: `https://app.smartlead.ai/app/email-campaign/${campaignId}/sequences` };
+  return { campaign_id: campaignId, wrote_steps: newSeqs.length, url: `https://app.smartlead.ai/app/email-campaigns-v2/${campaignId}/sequences` };
 }

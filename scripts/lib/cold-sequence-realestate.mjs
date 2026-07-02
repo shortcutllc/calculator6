@@ -103,7 +103,7 @@ const E3_LINK_SHORT = {
   step: 3, delayDays: 4, subjects: [''], variantLabel: 'A-short',
   body: `{Hi|Hey} {{first_name}},
 
-{I put together a short page for the {{company_name}} team|I made a quick page for the {{company_name}} team}, with how a pilot day works in the building, the services, and a rough price: {{landing_url}}
+{I put together a short page for the {{company_name}} team|I made a quick page for the {{company_name}} team}, with how a pilot day works in the building, the services (chair massage, nails, and facials for your tenants), and a rough price: {{landing_url}}
 
 Over 90% of slots get booked at these, so you have real utilization to show at renewal.
 
