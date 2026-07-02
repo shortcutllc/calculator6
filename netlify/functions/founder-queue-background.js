@@ -107,7 +107,9 @@ THE RECEIPT (use this, it is real and this audience's proof): Burberry pays for 
 WHERE WILL'S CREDIBILITY COMES FROM (hard honesty rule, Will 2026-07-02): Will's ground truth is the CLIENT side, not the broker side — this is his first broker outreach, so he can NEVER claim broker conversations ("I keep running into brokers...", "brokers tell me...") — he cannot back that up. What he CAN say, because it is true: he talks to companies every week, and a striking number are sitting on unused Cigna/Aetna wellness dollars or do not even know the fund exists; Shortcut helps them deploy those dollars on services their teams actually use (over 90% of slots get booked). Frame every observation from that client-side vantage: Will is telling the broker what he sees inside the broker's client demographic. NEVER disclose or comment on Will's own outreach in the note itself (no "this is my first broker outreach", no "I don't usually email brokers") — the honesty rule governs what he can CLAIM, it is not something to confess; a repeated "first" becomes a lie at scale.
 FUND-ELIGIBLE SERVICES (hard fact, Will 2026-07-02): carrier wellness funds cover ONLY these Shortcut services: chair massage, assisted stretch, sound baths, mindfulness, and nutrition coaching. Nails, facials, headshots and grooming are on Shortcut's general menu but are NOT fund-payable — in a broker note (which is entirely about fund deployment) name ONLY the eligible services, including in the who-we-are intro sentence.
 LOCATION: anchor the note in the broker's metro when their location is known (e.g. "your Philly clients", "your groups in Connecticut") — it is in the prospect JSON.
-THE ASK: a "would this land" peer question about THEIR book — if research surfaced a named client of theirs, ask about that client specifically ("would the same setup land with [client]?"); otherwise book-level ("do any of your Cigna or Aetna groups have fund dollars still sitting there this plan year?"). Offering to send the one-pager is a good soft close.
+THE ASK (help posture, Will 2026-07-02): close by asking whether this is something Will can HELP with — e.g. "Is this something I could help your Philly clients with?" or "Do any of your clients on Cigna or Aetna have fund dollars still sitting there this plan year? Happy to help them put those to use." The posture is offering help, never seeking validation. Offering to send the one-pager is a good soft close.
+LANGUAGE: never call employers "groups" (insurance jargon Will does not use) — say clients, companies, or partners.
+STRUCTURE (hard): 4 to 5 SHORT paragraphs separated by blank lines, each carrying ONE idea in at most two sentences. The Burberry receipt is ALWAYS its own one-sentence paragraph. If research produced a personal observation, it must connect to the fund thread within a sentence — an unconnected compliment reads as bolted-on research; if it cannot connect naturally, drop it and use the firm or metro angle instead.
 NEVER: say "partnership", mention referral fees/revenue/compensation (first touch is comp-free, always), ask for referrals outright, or pitch Shortcut as the point — the point is making THEM look good to their clients.`
     : `AUDIENCE: executive (CEO/COO/CHRO/Head of People) at an emerging tech company. Founder-to-founder/peer framing in sentence one. Tie the observation to the moment they are in (post-raise scaling, RTO, first People hire). One real proof point maximum (500+ companies, 87% rebook, or BCG/DraftKings). Close with an interest question, not a meeting ask.`}
 
@@ -161,8 +163,11 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
     tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   }
   if (!tu) throw new Error('no report_note from drafter');
-  const n = tu.input;
-  // deterministic guardrails (brand-hard rules) — fail loudly, the run skips the lead
+  return tu.input;
+}
+
+// Deterministic guardrails (brand-hard rules) — throw loudly; the run skips the lead.
+function guardNote(n, audience) {
   const all = `${n.subject} ${n.body}`;
   if (/[—–]|\s-\s/.test(all)) throw new Error('draft used a dash as punctuation');
   if (/!/.test(all)) throw new Error('draft used an exclamation point');
@@ -170,10 +175,86 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
     if (new RegExp(`\\b${w}\\b`, 'i').test(all)) throw new Error(`draft used banned word: ${w}`);
   }
   if (/https?:\/\//.test(n.body.replace(/getshortcut\.co/g, ''))) throw new Error('draft included a link (first touch is link-free)');
-  if (audience === 'brokers' && NON_FUND_SERVICES_RE.test(n.body)) throw new Error('broker note names a non-fund-eligible service (funds cover only massage, assisted stretch, sound bath, mindfulness, nutrition coaching)');
-  if (audience === 'brokers' && FAKE_BROKER_EXPERIENCE_RE.test(n.body)) throw new Error('broker note claims broker-side experience Will cannot back up — credibility comes from CLIENT conversations');
-  if (audience === 'brokers' && /\b(my|our) first (broker )?(outreach|note|email|message)\b|\bfirst time (I am|I'm|reaching|emailing|writing)\b/i.test(n.body)) throw new Error('broker note comments on Will\'s own outreach (a repeated "first" becomes false at scale)');
-  return n;
+  // structure: short paragraphs, one idea each (Will 2026-07-02 — v5 shipped a 3-sentence chunk)
+  for (const para of n.body.split(/\n\s*\n/)) {
+    const words = para.trim().split(/\s+/).filter(Boolean).length;
+    if (words > 46) throw new Error(`paragraph too chunky (${words} words) — max two short sentences per paragraph`);
+  }
+  if (audience === 'brokers') {
+    if (NON_FUND_SERVICES_RE.test(n.body)) throw new Error('broker note names a non-fund-eligible service (funds cover only massage, assisted stretch, sound bath, mindfulness, nutrition coaching)');
+    if (FAKE_BROKER_EXPERIENCE_RE.test(n.body)) throw new Error('broker note claims broker-side experience Will cannot back up — credibility comes from CLIENT conversations');
+    if (/\b(my|our) first (broker )?(outreach|note|email|message)\b|\bfirst time (I am|I'm|reaching|emailing|writing)\b/i.test(n.body)) throw new Error('broker note comments on Will\'s own outreach (a repeated "first" becomes false at scale)');
+    if (/\bgroups?\b/i.test(n.body)) throw new Error('broker note says "group(s)" — insurance jargon Will does not use (say clients, companies, or partners)');
+  }
+}
+
+// THE BRAIN'S REVIEW TIER (generator ≠ evaluator, Will 2026-07-02): a separate
+// skeptic pass reviews every note against Will's craft checklist before it
+// reaches him; one revision attempt on failure. Mirrors the cold engine's
+// composer↔evaluator loop — structure regressions die here, not in Will's Slack.
+const REVIEW_SCHEMA = {
+  type: 'object',
+  properties: {
+    pass: { type: 'boolean', description: 'true ONLY if every checklist item holds' },
+    issues: { type: 'array', items: { type: 'string' }, description: 'each failed item, specifically' },
+  },
+  required: ['pass', 'issues'],
+};
+async function critiqueNote(anthropic, note, audience) {
+  const checklist = `You are the skeptical reviewer for Will's founder notes. Default to FAILING. Check every item:
+1. STRUCTURE: 4-5 short paragraphs, each ONE idea, max two sentences. No chunky paragraphs. ${audience === 'brokers' ? 'The Burberry receipt sentence stands alone as its own paragraph.' : ''}
+2. OBSERVATION: if a personal research observation opens the note, it must connect to the note's thread within a sentence — an unconnected compliment fails.
+3. INTRO: one plain sentence saying who Will is and what Shortcut does, in concrete services.
+4. CLOSE: a help-posture question (offering to help), not a validation ask, not a meeting ask.
+5. VOICE: reads like a busy founder typed it — contractions, warm, zero sales energy, no template smell.
+${audience === 'brokers' ? '6. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
+Report via report_review, one issue string per failed item.`;
+  const resp = await anthropic.messages.create({
+    model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0,
+    system: checklist,
+    tools: [{ name: 'report_review', description: 'Report the review verdict.', input_schema: REVIEW_SCHEMA }],
+    tool_choice: { type: 'auto' },
+    messages: [{ role: 'user', content: `THE NOTE:\nSubject: ${note.subject}\n\n${note.body}\n\nReview against the checklist, then call report_review once.` }],
+  });
+  let tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_review');
+  if (!tu) {
+    const critique = (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+    const resp2 = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL, max_tokens: 600, temperature: 0, system: checklist,
+      tools: [{ name: 'report_review', description: 'Report the review verdict.', input_schema: REVIEW_SCHEMA }],
+      tool_choice: { type: 'tool', name: 'report_review' },
+      messages: [
+        { role: 'user', content: `THE NOTE:\nSubject: ${note.subject}\n\n${note.body}` },
+        { role: 'assistant', content: critique || '(reviewed)' },
+        { role: 'user', content: 'Call report_review now.' },
+      ],
+    });
+    tu = (resp2.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_review');
+  }
+  return tu?.input || { pass: true, issues: [] };
+}
+
+// One revision attempt with the skeptic's issues fed back (retry-once, like the composer).
+async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm }) {
+  const resp = await anthropic.messages.create({
+    model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
+    system: voiceSystem(exemplars, audience),
+    tools: [{ name: 'report_note', description: 'Report the revised founder note.', input_schema: NOTE_SCHEMA }],
+    tool_choice: { type: 'tool', name: 'report_note' },
+    messages: [{ role: 'user', content: [
+      'Your previous draft FAILED review. Fix every issue and re-report the full note (keep the research observation only if it can connect naturally):',
+      ...issues.map((i) => `  - ${i}`),
+      '',
+      `PREVIOUS DRAFT:\nSubject: ${note.subject}\n\n${note.body}`,
+      '',
+      'THE PERSON (JSON):',
+      JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, location: lead.location || null, firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null }, null, 2),
+    ].join('\n') }],
+  });
+  const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
+  if (!tu) throw new Error('revision produced no note');
+  // keep the original research trail; the revision only reworks copy
+  return { ...tu.input, research_note: tu.input.research_note || note.research_note };
 }
 
 export const handler = async (event) => {
@@ -259,7 +340,14 @@ export const handler = async (event) => {
       try { pic = await leadPicture(sb, { email: lc(t.email) }); } catch { /* optional */ }
       if (pic?.preflight?.suppressed || pic?.preflight?.is_client) { results.push({ email: t.email, skipped: pic.preflight.suppressed ? 'suppressed' : 'is_client' }); continue; }
 
-      const note = await draftNote(anthropic, { lead: t, firm, exemplars, audience });
+      let note = await draftNote(anthropic, { lead: t, firm, exemplars, audience });
+      guardNote(note, audience);
+      // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator)
+      const review = await critiqueNote(anthropic, note, audience);
+      if (!review.pass && review.issues.length) {
+        note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead: t, firm });
+        guardNote(note, audience);
+      }
 
       // Gmail draft — minimal inline sign-off, NO heavy signature (cold first-touch rule).
       let gmailDraftId = null; let gmailMessageId = null;
