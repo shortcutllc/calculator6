@@ -104,6 +104,7 @@ HONESTY RULE (hard): if the searches surface nothing specific about the PERSON, 
 ${audience === 'brokers'
     ? `AUDIENCE: employee-benefits broker (producer/consultant). This is CHANNEL COURTSHIP, not a pitch. THE CORE MESSAGE (get this exactly right): Will is offering to help the BROKER help their CLIENTS deploy carrier wellness funds they are otherwise forfeiting — making the broker the hero at renewal. The mechanics that make it credible (weave in ONE, naturally): most carriers allot these dollars per plan year and clients forfeit what they do not use (Cigna Health Improvement Fund, Aetna Wellness Allowance, Anthem wellness fund); deploying them means carrier pre-approval and receipt/invoice paperwork most HR teams never get around to; Shortcut removes that friction end to end.
 THE RECEIPT (use this, it is real and this audience's proof): Burberry pays for Shortcut chair massage through their Aetna Wellness Allowance, with no invoice friction for the HR team. (BCG/DraftKings are secondary here.)
+WHERE WILL'S CREDIBILITY COMES FROM (hard honesty rule, Will 2026-07-02): Will's ground truth is the CLIENT side, not the broker side — this is his first broker outreach, so he can NEVER claim broker conversations ("I keep running into brokers...", "brokers tell me...") — he cannot back that up. What he CAN say, because it is true: he talks to companies every week, and a striking number are sitting on unused Cigna/Aetna wellness dollars or do not even know the fund exists; Shortcut helps them deploy those dollars on services their teams actually use (over 90% of slots get booked). Frame every observation from that client-side vantage: Will is telling the broker what he sees inside the broker's client demographic.
 FUND-ELIGIBLE SERVICES (hard fact, Will 2026-07-02): carrier wellness funds cover ONLY these Shortcut services: chair massage, assisted stretch, sound baths, mindfulness, and nutrition coaching. Nails, facials, headshots and grooming are on Shortcut's general menu but are NOT fund-payable — in a broker note (which is entirely about fund deployment) name ONLY the eligible services, including in the who-we-are intro sentence.
 LOCATION: anchor the note in the broker's metro when their location is known (e.g. "your Philly clients", "your groups in Connecticut") — it is in the prospect JSON.
 THE ASK: a "would this land" peer question about THEIR book — if research surfaced a named client of theirs, ask about that client specifically ("would the same setup land with [client]?"); otherwise book-level ("do any of your Cigna or Aetna groups have fund dollars still sitting there this plan year?"). Offering to send the one-pager is a good soft close.
@@ -118,6 +119,9 @@ Report by calling report_note exactly once, AFTER your research. Body is plain t
 // about fund deployment, so naming a non-eligible service there misstates
 // eligibility to the exact audience that would catch it — hard reject.
 const NON_FUND_SERVICES_RE = /\b(nails?|manicures?|facials?|headshots?|grooming|barber|hair)\b/i;
+// Will can't back up broker-side experience (first broker outreach) — his ground
+// truth is CLIENT conversations. Reject drafts that fabricate broker relationships.
+const FAKE_BROKER_EXPERIENCE_RE = /\b(keep )?(running into|talk(ing)? (to|with)|hear(ing)? from|work(ing)? with) (a lot of |many |other )?brokers\b|\bbrokers (tell|keep telling) me\b/i;
 
 async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
   const userContent = [
@@ -167,6 +171,7 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
   }
   if (/https?:\/\//.test(n.body.replace(/getshortcut\.co/g, ''))) throw new Error('draft included a link (first touch is link-free)');
   if (audience === 'brokers' && NON_FUND_SERVICES_RE.test(n.body)) throw new Error('broker note names a non-fund-eligible service (funds cover only massage, assisted stretch, sound bath, mindfulness, nutrition coaching)');
+  if (audience === 'brokers' && FAKE_BROKER_EXPERIENCE_RE.test(n.body)) throw new Error('broker note claims broker-side experience Will cannot back up — credibility comes from CLIENT conversations');
   return n;
 }
 
