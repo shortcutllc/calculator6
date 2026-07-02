@@ -90,9 +90,55 @@ const E4 = {
 %sender-firstname%`,
 };
 
-export function coldSequenceV3(opener = 'generic') {
+// E3 LINK A/B (Will, 2026-07-02): with { e3Link: true }, E3 carries the sequence's
+// ONE link — the per-lead personalized book-a-call page ({{landing_url}} custom
+// field, minted via create-book-a-call-page). Two variants testing LENGTH/HOOK,
+// both soft-CTA (never "grab a time" — this buyer is allergic to being sold to):
+//   A short — brief page-note + one proof line (~58w)
+//   B long  — full differentiation + proof + page line (~105w)
+// Smartlead's API cannot store seq_variants (verified 2026-07-02: POST silently
+// drops them; PATCH/sub-routes 404) — the engine writes variant A; variant B is
+// pasted once into the Smartlead UI, which unlocks native per-variant stats.
+const E3_LINK_SHORT = {
+  step: 3, delayDays: 4, subjects: [''], variantLabel: 'A-short',
+  body: `{Hi|Hey} {{first_name}},
+
+{I put together a short page for the {{company_name}} team|I made a quick page for {{company_name}}}, with how a day works, what we run on-site and virtually, and a rough price: {{landing_url}}
+
+Over 90% of slots get booked at these events, so it is the part of the wellness budget people actually use.
+
+{No pressure, just so you can see the shape of it|Have a look whenever it is useful}.
+
+{Warmly,|Thanks,}
+%sender-firstname%`,
+};
+
+const E3_LINK_LONG = {
+  step: 3, delayDays: 4, subjects: [''], variantLabel: 'B-long',
+  body: `{Hi|Hey} {{first_name}},
+
+Most wellness vendors do one thing, or hand you a directory of contractors. We are one team and one invoice, covering your whole team {in the office and remote|wherever they work}.
+
+{On-site chair massage, nails, and facials|Chair massage, nails, and facials on-site}, plus virtual mindfulness and nutrition coaching for your distributed staff.
+
+BCG and DraftKings use us at every one of their US offices, and 87% of companies rebook.
+
+{I put together a short page for the {{company_name}} team|I made a quick overview for {{company_name}}}, with how a day works, the services, and a rough price: {{landing_url}}
+
+{No pressure, just so you can see the shape of it|Have a look whenever it is useful}.
+
+{Warmly,|Thanks,}
+%sender-firstname%`,
+};
+
+export function coldSequenceV3(opener = 'generic', { e3Link = false } = {}) {
   const e1 = opener === 'rto' ? E1_RTO : E1_GENERIC;
-  return { label: `v3 direct cold (${opener} opener, spintax)`, opener, steps: [e1, E2, E3, E4] };
+  // e3Link: step 3 = variant A (what the API can write) + abVariants for the
+  // gates and for the one-time UI paste of variant B.
+  const e3 = e3Link
+    ? { ...E3_LINK_SHORT, abVariants: [E3_LINK_SHORT, E3_LINK_LONG] }
+    : E3;
+  return { label: `v3 direct cold (${opener} opener${e3Link ? ', E3 link A/B' : ''}, spintax)`, opener, steps: [e1, E2, e3, E4] };
 }
 
 // Default = generic opener (back-compat for importers).

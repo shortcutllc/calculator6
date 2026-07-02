@@ -43,12 +43,35 @@ const SEGMENT = (val('--segment', 'direct') || 'direct').toLowerCase();     // d
 const OPENER = (val('--opener', '') || '').toLowerCase();                   // E1 A/B; valid set depends on segment (see resolveSequence)
 // Each segment has its OWN sequence + valid openers. Law/realestate are NOT the
 // direct massage pitch — see memory/vertical_law_firm_gtm.md + vertical_real_estate_gtm.md.
-function resolveSequence(segment, opener) {
+// E3 LINK A/B (Will, 2026-07-02): direct + realestate E3 carries the per-lead
+// book-a-call page link ({{landing_url}}) with a short-vs-long A/B. ON by default
+// for those segments (--no-e3-link to disable). Law keeps {{cle_url}} in its one
+// E3 link slot — the CLE page IS its personalized page. Smartlead's API cannot
+// store variants (verified 2026-07-02: POST silently drops them), so the engine
+// writes variant A and prints variant B for a one-time paste in the Smartlead UI,
+// which unlocks native per-variant stats.
+const E3LINK = has('--no-e3-link') ? false
+  : (has('--e3-link') || SEGMENT === 'direct' || SEGMENT === 'realestate');
+function resolveSequence(segment, opener, e3Link = false) {
   if (segment === 'law') return coldSequenceLaw(['cle', 'wellness'].includes(opener) ? opener : 'cle');
-  if (segment === 'realestate') return coldSequenceRealEstate(['building', 'portfolio'].includes(opener) ? opener : 'building');
-  return coldSequenceV3(['generic', 'rto'].includes(opener) ? opener : 'generic'); // direct (broker uses --clone)
+  if (segment === 'realestate') return coldSequenceRealEstate(['building', 'portfolio'].includes(opener) ? opener : 'building', { e3Link });
+  return coldSequenceV3(['generic', 'rto'].includes(opener) ? opener : 'generic', { e3Link }); // direct (broker uses --clone)
 }
-const SEQ = resolveSequence(SEGMENT, OPENER);
+const SEQ = resolveSequence(SEGMENT, OPENER, E3LINK);
+// Variant B → the one manual step: paste into Smartlead UI (Sequences → step 3 →
+// Add variant). Printed after every launch/edit that carries an A/B step.
+function printVariantB(seq) {
+  const e3 = (seq?.steps || []).find((s) => s.step === 3);
+  const vb = e3?.abVariants?.[1];
+  if (!vb) return;
+  console.log('\n================ E3 VARIANT B — one manual step ================');
+  console.log('Smartlead cannot receive A/B variants via API. In the campaign UI:');
+  console.log('Sequences → email #3 → Add A/B variant → paste this as the body');
+  console.log(`(label it "${vb.variantLabel}"), keep the subject blank/threaded, save.`);
+  console.log('----------------------------------------------------------------');
+  console.log(vb.body);
+  console.log('================================================================\n');
+}
 const REGION = val('--region', null);                                      // eastern → NYC/Miami/Boston/Philly/DC
 const EASTERN = ['New York', 'Miami', 'Boston', 'Philadelphia', 'Washington DC'];
 const CITIES = (val('--cities', REGION === 'eastern' ? EASTERN.join('|') : '') || '').split('|').map((s) => s.trim()).filter(Boolean);
@@ -143,11 +166,12 @@ async function mvVerify(email, mvKey) {
   // --edit <campaignId>: update an existing campaign's COPY in place (no new
   // campaign, leads/senders untouched). Skips the whole lead pipeline.
   if (EDIT) {
-    const verdict = evaluateCopy(SEQ);
+    const verdict = evaluateCopy(SEQ, { segment: SEGMENT, opener: OPENER });
     log(`EDIT campaign ${EDIT}: copy verdict ${verdict.verdict.toUpperCase()} (${verdict.violations.length} violations)`);
     if (verdict.verdict !== 'pass') { for (const v of verdict.violations) log(`  • E${v.step} ${v.rule}: ${v.detail}`); return; }
     const SL = envKey('SMARTLEAD_API_KEY');
     if (!SL) { log('EDIT refused: MISSING SMARTLEAD_API_KEY (openclaw .env).'); return; }
+    if (E3LINK) log('  E3 carries {{landing_url}} — every lead in this campaign needs the custom field first (scripts/mint-landing-pages.mjs --campaign <id> --confirm).');
     if (!CONFIRM) {
       const plan = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: SEQ, dryRun: true });
       log(`EDIT plan: would replace campaign ${EDIT}'s sequence with the current v3 copy (${plan.would_write_steps} steps). Re-run with --confirm.`);
@@ -155,6 +179,7 @@ async function mvVerify(email, mvKey) {
     }
     const res = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: SEQ });
     log(`EDIT done: campaign ${res.campaign_id} — replaced sequence, wrote ${res.wrote_steps} steps. ${res.url}`);
+    printVariantB(SEQ);
     return;
   }
 
@@ -369,6 +394,23 @@ async function mvVerify(email, mvKey) {
   }
 
   const SMARTLEAD = envKey('SMARTLEAD_API_KEY');
+
+  // ---------- PAGES (E3 link mode): one personalized book-a-call page per company,
+  // {{landing_url}} on every lead. Minted only on a real launch (Brandfetch spend);
+  // reused when a page for that company already exists. Generic fallback so the
+  // merge tag can never render empty. ----------
+  if (E3LINK && !CLONE) {
+    const uniq = new Set(bundle.leads.map((l) => lc(l.company_name)).filter(Boolean));
+    if (DO_LAUNCH && CONFIRM) {
+      const { mintLandingPages, landingUrlFor } = await import('./lib/landing-pages.mjs');
+      log(`PAGES: resolving ${uniq.size} company book-a-call pages (reuse first, Brandfetch-first mint for the rest)…`);
+      const pageMap = await mintLandingPages({ sb, companies: bundle.leads.map((l) => ({ company: l.company_name, domain: l.email.split('@')[1] })), log });
+      for (const l of bundle.leads) l.custom_fields.landing_url = landingUrlFor(pageMap, l.company_name);
+    } else {
+      log(`PAGES: E3 link A/B is ON — a confirmed launch will mint/reuse ~${uniq.size} personalized pages and set {{landing_url}} per lead.`);
+    }
+  }
+
   // Default to the approved v3 copy; --clone <id> overrides to clone a template.
   const launchOpts = { apiKey: SMARTLEAD, name: campaignName, leads: bundle.leads, cloneFromId: CLONE, sequence: CLONE ? undefined : SEQ };
   if (!(DO_LAUNCH && CONFIRM)) {
@@ -393,6 +435,7 @@ async function mvVerify(email, mvKey) {
     log(`LAUNCH complete: campaign ${res.campaign_id} · ${res.assigned_senders} senders · ${res.uploaded} leads.`);
     log(`  ${res.url}`);
     log('Track replies via pull-smartlead; positive replies graduate to the personal lane.');
+    printVariantB(SEQ);
   } catch (e) { log(`LAUNCH failed: ${e.message}`); process.exit(1); }
   log('DONE');
 })().catch((e) => { console.error('COLD_ENGINE_ERROR:', e.message); process.exit(1); });

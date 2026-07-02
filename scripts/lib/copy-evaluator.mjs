@@ -64,7 +64,9 @@ const stripForCount = (t) => String(t || '')
   .replace(/&nbsp;/g, ' ')
   .replace(/\s+/g, ' ').trim();
 const wordCount = (t) => { const s = stripForCount(t); return s ? s.split(' ').length : 0; };
-const countLinks = (t) => (String(t || '').match(/https?:\/\/|\]\(|href=/gi) || []).length;
+// Merge-tag links ({{landing_url}}/{{cle_url}}) render as URLs per lead — they
+// count toward the link budget so E1/E2 stay link-free and E3 keeps exactly one.
+const countLinks = (t) => (String(t || '').match(/https?:\/\/|\]\(|href=|\{\{\s*(?:landing_url|cle_url)\s*\}\}/gi) || []).length;
 const countSpintax = (t) => (String(t || '').match(/\{[^{}]*\|[^{}]*\}/g) || []).length;
 // em/en dash anywhere, or clause hyphen " - " (intra-word hyphens like mid-market are fine)
 const hasDash = (t) => /[—–]/.test(String(t || '')) || /\s-\s/.test(String(t || ''));
@@ -134,6 +136,24 @@ export function evaluateCopy(sequence, opts = {}) {
 
     // FACT (all steps): massage is chair/table in a conference room turned spa, NEVER at desks.
     if (/\bat\s+(?:their\s+|your\s+)?desks?\b/i.test(all) || /\bdesk-?side\b/i.test(all)) flag(bp.step, 'massage_at_desk', 'massage is chair/table in a conference room, never "at desks"');
+
+    // ---- A/B VARIANTS: step.body is variant A (already checked above); run the
+    // body-level gates on every EXTRA variant so a bad variant B can't ship via
+    // the manual Smartlead-UI paste unlinted.
+    for (const av of (s.abVariants || []).slice(1)) {
+      const vb = av.body || ''; const tag = av.variantLabel || 'variant';
+      const vLinks = countLinks(vb);
+      if (vLinks > bp.maxLinks) flag(bp.step, 'too_many_links', `[${tag}] ${vLinks} links, max ${bp.maxLinks}`);
+      const vwc = wordCount(vb);
+      if (vwc < bp.words[0]) warn.push({ step: bp.step, rule: 'short', detail: `[${tag}] ${vwc}w < ${bp.words[0]}` });
+      if (vwc > bp.words[1]) warn.push({ step: bp.step, rule: 'long', detail: `[${tag}] ${vwc}w > ${bp.words[1]}` });
+      if (hasDash(vb)) flag(bp.step, 'dash', `[${tag}] no em/en dashes or " - " as punctuation`);
+      if (/!/.test(vb)) flag(bp.step, 'exclamation', `[${tag}] no exclamation points`);
+      for (const w of BANNED_WORDS) if (new RegExp(`\\b${w}\\b`, 'i').test(vb)) flag(bp.step, 'banned_word', `[${tag}] ${w}`);
+      for (const p of DEAD_DIFFERENTIATORS) if (lc(vb).includes(lc(p))) flag(bp.step, 'dead_differentiator', `[${tag}] "${p}"`);
+      if (/\bat\s+(?:their\s+|your\s+)?desks?\b/i.test(vb) || /\bdesk-?side\b/i.test(vb)) flag(bp.step, 'massage_at_desk', `[${tag}] never "at desks"`);
+      if (countSpintax(vb) < 3) warn.push({ step: bp.step, rule: 'low_spintax', detail: `[${tag}] wants 3+ spintax groups` });
+    }
 
     // ---- LAW / CLE compliance (every step, segment=law) — hard. These claims
     // are compliance-sensitive: CLE is accredited ONLY in NY/FL/PA and our

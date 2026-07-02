@@ -95,9 +95,46 @@ const E4 = {
 %sender-firstname%`,
 };
 
-export function coldSequenceRealEstate(opener = 'building') {
+// E3 LINK A/B (Will, 2026-07-02) — same experiment as direct (see cold-sequence-v3):
+// E3 carries the one link, the per-lead branded book-a-call page ({{landing_url}}).
+// A short = page note + utilization proof; B long = full differentiation + page.
+// Amenity-framed (utilization to show at renewal), soft CTA only.
+const E3_LINK_SHORT = {
+  step: 3, delayDays: 4, subjects: [''], variantLabel: 'A-short',
+  body: `{Hi|Hey} {{first_name}},
+
+{I put together a short page for {{company_name}}|I made a quick page for {{company_name}}}, with how a pilot day works in the building, the services, and a rough price: {{landing_url}}
+
+Over 90% of slots get booked at these, so you have real utilization to show at renewal.
+
+{No pressure, just so you can see the shape of it|Have a look whenever it is useful}.
+
+{Warmly,|Thanks,}
+%sender-firstname%`,
+};
+
+const E3_LINK_LONG = {
+  step: 3, delayDays: 4, subjects: [''], variantLabel: 'B-long',
+  body: `{Hi|Hey} {{first_name}},
+
+Most building wellness comes from a different vendor each time, or an app that books it but does not run it. We are one team and one invoice. {On-site massage, nails, and facials|Massage, nails, and facials on-site}, plus virtual sessions for hybrid tenants, {and we slot into your existing tenant app|and we work alongside your tenant communications}.
+
+BCG and DraftKings use us at every one of their US offices, and 87% of clients rebook.
+
+{I put together a short page for {{company_name}}|I made a quick page for {{company_name}}}, with how a pilot day works, the services, and a rough price: {{landing_url}}
+
+{No pressure, just so you can see the shape of it|Have a look whenever it is useful}.
+
+{Warmly,|Thanks,}
+%sender-firstname%`,
+};
+
+export function coldSequenceRealEstate(opener = 'building', { e3Link = false } = {}) {
   const e1 = opener === 'portfolio' ? E1_PORTFOLIO : E1_BUILDING;
-  return { label: `real estate cold (${opener} opener, spintax)`, segment: 'realestate', opener, steps: [e1, E2, E3, E4] };
+  const e3 = e3Link
+    ? { ...E3_LINK_SHORT, abVariants: [E3_LINK_SHORT, E3_LINK_LONG] }
+    : E3;
+  return { label: `real estate cold (${opener} opener${e3Link ? ', E3 link A/B' : ''}, spintax)`, segment: 'realestate', opener, steps: [e1, E2, e3, E4] };
 }
 
 export const COLD_SEQUENCE_RE_BUILDING = coldSequenceRealEstate('building');
