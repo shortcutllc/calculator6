@@ -87,12 +87,12 @@ const NOTE_SCHEMA = {
   required: ['subject', 'body', 'research_note', 'linkedin_step'],
 };
 
-function voiceSystem(exemplars, audience) {
+function voiceSystem(exemplars, audience, ctaVariant = 'help') {
   return `You draft 1:1 networking emails for Will Newton, founder and CEO of Shortcut (getshortcut.co) — premium on-site wellness (chair massage, nails, facials, mindfulness) for companies like BCG and DraftKings, 500+ companies served, 87% rebook. You write AS Will, in his voice.
 
 WILL'S VOICE (non-negotiable): calm, human, practical, operator-direct. Writes like a busy founder to a peer: short sentences, zero fluff, zero sales energy, warm but never gushing. No buzzwords ever (elevate, leverage, synergy, unlock, empower, transform, seamless, holistic, curated are BANNED). No dashes as punctuation (end the sentence instead). No exclamation points. Specifics over superlatives.
 ${exemplars.length ? `\nREAL EXAMPLES OF WILL'S SENT EMAILS (match this register, rhythm, and warmth — do NOT copy content):\n${exemplars.map((e, i) => `--- example ${i + 1} ---\n${e}`).join('\n')}\n` : ''}
-THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Josh Braun style: open with a TRUE, SPECIFIC observation about THEM that proves Will did the work, one thought connecting it to Will's world, one low-pressure illumination question. 50-110 words. NO links, NO attachments, NO calendar ask, NO "15 minutes" ask.
+THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Josh Braun style: open with a TRUE, SPECIFIC observation about THEM that proves Will did the work, one thought connecting it to Will's world, one low-pressure illumination question. 50-110 words. NO links, NO attachments, NO calendar link ever, NO "15 minutes" phrasing. (Exception: the broker convo CTA variant may invite a short call — see THE ASK.)
 
 INTRODUCE WILL AND SHORTCUT CLEARLY (Will's requirement, 2026-07-02): early in the note, one plain human sentence that says who he is and what Shortcut does in concrete terms, e.g. "I'm Will, I run Shortcut. We bring wellness days into offices, chair massage, nails, facials, mindfulness, for teams like BCG and DraftKings." Never assume they can infer what Shortcut is. This intro sentence is exempt from the observation-first rule (observation first, intro second is the natural order).
 
@@ -109,7 +109,9 @@ PHRASING THE DEMOGRAPHIC: in observations say "companies", "the companies I talk
 WHERE WILL'S CREDIBILITY COMES FROM (hard honesty rule, Will 2026-07-02): Will's ground truth is the CLIENT side, not the broker side — this is his first broker outreach, so he can NEVER claim broker conversations ("I keep running into brokers...", "brokers tell me...") — he cannot back that up. What he CAN say, because it is true: he talks to companies every week, and a striking number are sitting on unused Cigna/Aetna wellness dollars or do not even know the fund exists; Shortcut helps them deploy those dollars on services their teams actually use (over 90% of slots get booked). Frame every observation from that client-side vantage: Will is telling the broker what he sees inside the broker's client demographic. NEVER disclose or comment on Will's own outreach in the note itself (no "this is my first broker outreach", no "I don't usually email brokers") — the honesty rule governs what he can CLAIM, it is not something to confess; a repeated "first" becomes a lie at scale. And Will NEVER asserts facts about THIS broker's own book ("a striking number of your clients are sitting on...") — he has not seen their book. Observations are always about companies WILL talks to; only QUESTIONS may reference the broker's clients ("Do any of your clients on Cigna...?").
 FUND-ELIGIBLE SERVICES (hard fact, Will 2026-07-02): carrier wellness funds cover ONLY these Shortcut services: chair massage, assisted stretch, sound baths, mindfulness, and nutrition coaching. Nails, facials, headshots and grooming are on Shortcut's general menu but are NOT fund-payable — in a broker note (which is entirely about fund deployment) name ONLY the eligible services, including in the who-we-are intro sentence.
 LOCATION: anchor the note in the broker's metro when their location is known (e.g. "your Philly clients", "your groups in Connecticut") — it is in the prospect JSON.
-THE ASK (help posture, Will 2026-07-02): close by asking whether this is something Will can HELP with — e.g. "Is this something I could help your Philly clients with?" or "Do any of your clients on Cigna or Aetna have fund dollars still sitting there this plan year? Happy to help them put those to use." The posture is offering help, never seeking validation. Offering to send the one-pager is a good soft close.
+${ctaVariant === 'convo'
+    ? `THE ASK (CONVO variant — under A/B test, Will 2026-07-02): invite a short conversation about how Will can help THE BROKER help their clients deploy these funds — e.g. "Open to a short call on how this could work for your clients?" or "Worth a quick conversation? I can walk you through how we make this easy for your clients." Soft and warm: no calendar link, no "15 minutes", no times proposed. The subtext (never stated as their incentive): their clients deploying these funds is a win the broker delivers at renewal.`
+    : `THE ASK (HELP variant, Will 2026-07-02): close by asking whether this is something Will can HELP with — e.g. "Is this something I could help your Philly clients with?" or "Do any of your clients on Cigna or Aetna have fund dollars still sitting there this plan year? Happy to help them put those to use." The posture is offering help, never seeking validation. Offering to send the one-pager is a good soft close.`}
 LANGUAGE: never call employers "groups" (insurance jargon Will does not use) — say clients, companies, or partners.
 STRUCTURE (hard): 4 to 5 SHORT paragraphs separated by blank lines, each carrying ONE idea in at most two sentences. The Burberry receipt is ALWAYS its own one-sentence paragraph. If research produced a personal observation, it must connect to the fund thread within a sentence — an unconnected compliment reads as bolted-on research; if it cannot connect naturally, drop it and use the firm or metro angle instead.
 NEVER: say "partnership", mention referral fees/revenue/compensation (first touch is comp-free, always), ask for referrals outright, or pitch Shortcut as the point — the point is making THEM look good to their clients.`
@@ -127,7 +129,7 @@ const NON_FUND_SERVICES_RE = /\b(nails?|manicures?|facials?|headshots?|grooming|
 // truth is CLIENT conversations. Reject drafts that fabricate broker relationships.
 const FAKE_BROKER_EXPERIENCE_RE = /\b(keep )?(running into|talk(ing)? (to|with)|hear(ing)? from|work(ing)? with) (a lot of |many |other )?brokers\b|\bbrokers (tell|keep telling) me\b/i;
 
-async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
+async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant }) {
   const userContent = [
     'THE PERSON (JSON, trusted):',
     JSON.stringify({
@@ -141,7 +143,7 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
 
   let resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 4000, temperature: 0.4,
-    system: voiceSystem(exemplars, audience),
+    system: voiceSystem(exemplars, audience, ctaVariant),
     tools: [
       { type: 'web_search_20250305', name: 'web_search', max_uses: 3 },
       { name: 'report_note', description: 'Report the finished founder note. Call exactly once, after researching.', input_schema: NOTE_SCHEMA },
@@ -153,7 +155,7 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
     const critique = (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
     resp = await anthropic.messages.create({
       model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
-      system: voiceSystem(exemplars, audience),
+      system: voiceSystem(exemplars, audience, ctaVariant),
       tools: [{ name: 'report_note', description: 'Report the finished founder note.', input_schema: NOTE_SCHEMA }],
       tool_choice: { type: 'tool', name: 'report_note' },
       messages: [
@@ -208,12 +210,12 @@ const REVIEW_SCHEMA = {
   },
   required: ['pass', 'issues'],
 };
-async function critiqueNote(anthropic, note, audience) {
+async function critiqueNote(anthropic, note, audience, ctaVariant = 'help') {
   const checklist = `You are the skeptical reviewer for Will's founder notes. Default to FAILING. Check every item:
 1. STRUCTURE: 4-5 short paragraphs, each ONE idea, max two sentences. No chunky paragraphs. ${audience === 'brokers' ? 'The Burberry receipt sentence stands alone as its own paragraph.' : ''}
 2. OBSERVATION: if a personal research observation opens the note, it must connect to the note's thread within a sentence — an unconnected compliment fails.
 3. INTRO: one plain sentence saying who Will is and what Shortcut does, in concrete services.
-4. CLOSE: a help-posture question (offering to help), not a validation ask, not a meeting ask.
+4. CLOSE: matches the CTA variant — either a help-posture question (offering to help) or, for the convo variant, a soft call invitation (no calendar link, no times). Never validation-seeking.
 5. VOICE: reads like a busy founder typed it — contractions, warm, zero sales energy, no template smell.
 ${audience === 'brokers' ? '6. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 Report via report_review, one issue string per failed item.`;
@@ -243,10 +245,10 @@ Report via report_review, one issue string per failed item.`;
 }
 
 // One revision attempt with the skeptic's issues fed back (retry-once, like the composer).
-async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm }) {
+async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant }) {
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
-    system: voiceSystem(exemplars, audience),
+    system: voiceSystem(exemplars, audience, ctaVariant),
     tools: [{ name: 'report_note', description: 'Report the revised founder note.', input_schema: NOTE_SCHEMA }],
     tool_choice: { type: 'tool', name: 'report_note' },
     messages: [{ role: 'user', content: [
@@ -348,18 +350,21 @@ export const handler = async (event) => {
       try { pic = await leadPicture(sb, { email: lc(t.email) }); } catch { /* optional */ }
       if (pic?.preflight?.suppressed || pic?.preflight?.is_client) { results.push({ email: t.email, skipped: pic.preflight.suppressed ? 'suppressed' : 'is_client' }); continue; }
 
-      let note = await draftNote(anthropic, { lead: t, firm, exemplars, audience });
+      // CTA A/B (Will 2026-07-02): alternate help-posture close vs convo-invite close;
+      // measured on replies per variant (cta_variant stored on the saved draft).
+      const ctaVariant = (targets.indexOf(t) % 2 === 0) ? 'help' : 'convo';
+      let note = await draftNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant });
       // GATE: deterministic guards -> revise-once on violation (guard throws used
       // to skip the lead outright with no revision and no visibility)
       try { guardNote(note, audience); } catch (ge) {
         console.error(`guard hit for ${t.email}: ${ge.message} — revising`);
-        note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead: t, firm });
+        note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead: t, firm, ctaVariant });
         guardNote(note, audience);
       }
       // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator)
-      const review = await critiqueNote(anthropic, note, audience);
+      const review = await critiqueNote(anthropic, note, audience, ctaVariant);
       if (!review.pass && review.issues.length) {
-        note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead: t, firm });
+        note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead: t, firm, ctaVariant });
         guardNote(note, audience);
       }
 
@@ -377,7 +382,7 @@ export const handler = async (event) => {
         source_company: t.company, source_contact: t.name, source_title: t.title,
         target_kind: 'founder_note',
         target_ref: {
-          audience, firm: firm?.display_name || null, tier: firm?.tier || null,
+          audience, cta_variant: ctaVariant, firm: firm?.display_name || null, tier: firm?.tier || null,
           research_note: note.research_note, linkedin_step: note.linkedin_step,
           rep_email: WILL, thread_id: null, gmail_draft_id: gmailDraftId, gmail_message_id: gmailMessageId,
           all_directions: [{ label: 'founder', subject: note.subject, body: note.body }],
@@ -393,6 +398,7 @@ export const handler = async (event) => {
           firm?.why ? `*Why this firm:* ${String(firm.why).slice(0, 180)}` : null,
           `*Research:* ${note.research_note}`,
           `*LinkedIn today:* ${note.linkedin_step}`,
+          `*CTA variant:* ${ctaVariant}`,
         ].filter(Boolean).join('\n') } };
         const preview = buildDraftPreviewBlocks(
           { who, email: lc(t.email), draftId: saved.id, threadId: null, repEmail: WILL, signatureText: null, gmailDraftId, gmailMessageId },
