@@ -104,12 +104,20 @@ HONESTY RULE (hard): if the searches surface nothing specific about the PERSON, 
 ${audience === 'brokers'
     ? `AUDIENCE: employee-benefits broker (producer/consultant). This is CHANNEL COURTSHIP, not a pitch. THE CORE MESSAGE (get this exactly right): Will is offering to help the BROKER help their CLIENTS deploy carrier wellness funds they are otherwise forfeiting — making the broker the hero at renewal. The mechanics that make it credible (weave in ONE, naturally): most carriers allot these dollars per plan year and clients forfeit what they do not use (Cigna Health Improvement Fund, Aetna Wellness Allowance, Anthem wellness fund); deploying them means carrier pre-approval and receipt/invoice paperwork most HR teams never get around to; Shortcut removes that friction end to end.
 THE RECEIPT (use this, it is real and this audience's proof): Burberry pays for Shortcut chair massage through their Aetna Wellness Allowance, with no invoice friction for the HR team. (BCG/DraftKings are secondary here.)
+FUND-ELIGIBLE SERVICES (hard fact, Will 2026-07-02): carrier wellness funds cover ONLY these Shortcut services: chair massage, assisted stretch, sound baths, mindfulness, and nutrition coaching. Nails, facials, headshots and grooming are on Shortcut's general menu but are NOT fund-payable — in a broker note (which is entirely about fund deployment) name ONLY the eligible services, including in the who-we-are intro sentence.
+LOCATION: anchor the note in the broker's metro when their location is known (e.g. "your Philly clients", "your groups in Connecticut") — it is in the prospect JSON.
 THE ASK: a "would this land" peer question about THEIR book — if research surfaced a named client of theirs, ask about that client specifically ("would the same setup land with [client]?"); otherwise book-level ("do any of your Cigna or Aetna groups have fund dollars still sitting there this plan year?"). Offering to send the one-pager is a good soft close.
 NEVER: say "partnership", mention referral fees/revenue/compensation (first touch is comp-free, always), ask for referrals outright, or pitch Shortcut as the point — the point is making THEM look good to their clients.`
     : `AUDIENCE: executive (CEO/COO/CHRO/Head of People) at an emerging tech company. Founder-to-founder/peer framing in sentence one. Tie the observation to the moment they are in (post-raise scaling, RTO, first People hire). One real proof point maximum (500+ companies, 87% rebook, or BCG/DraftKings). Close with an interest question, not a meeting ask.`}
 
 Report by calling report_note exactly once, AFTER your research. Body is plain text with real line breaks: greeting line, blank line, 2-3 short paragraphs, blank line, then exactly:\nWill\nFounder, Shortcut\ngetshortcut.co`;
 }
+
+// Carrier funds cover ONLY: chair massage, assisted stretch, sound baths,
+// mindfulness, nutrition coaching (Will, 2026-07-02). A broker note is entirely
+// about fund deployment, so naming a non-eligible service there misstates
+// eligibility to the exact audience that would catch it — hard reject.
+const NON_FUND_SERVICES_RE = /\b(nails?|manicures?|facials?|headshots?|grooming|barber|hair)\b/i;
 
 async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
   const userContent = [
@@ -158,6 +166,7 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience }) {
     if (new RegExp(`\\b${w}\\b`, 'i').test(all)) throw new Error(`draft used banned word: ${w}`);
   }
   if (/https?:\/\//.test(n.body.replace(/getshortcut\.co/g, ''))) throw new Error('draft included a link (first touch is link-free)');
+  if (audience === 'brokers' && NON_FUND_SERVICES_RE.test(n.body)) throw new Error('broker note names a non-fund-eligible service (funds cover only massage, assisted stretch, sound bath, mindfulness, nutrition coaching)');
   return n;
 }
 
