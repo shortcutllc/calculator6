@@ -226,7 +226,7 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVarian
     tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   }
   if (!tu) throw new Error('no report_note from drafter');
-  return { ...tu.input, body: autoSplitParagraphs(normalizeParagraphs(tu.input.body || '')) };
+  return { ...tu.input, body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))) };
 }
 
 // The model sometimes separates paragraphs with SINGLE newlines; the chunky-
@@ -243,6 +243,19 @@ function normalizeParagraphs(body) {
 // sentence boundary is pure formatting — zero wording changes — so do it
 // mechanically instead of burning revisions (the old chunky guard caused every
 // skip on Jul 6). Content guards (fabrication, cohort fit, banned words) still block.
+// Dash-as-punctuation is also an AUTO-FIX (Will's rule is mechanical: "Write
+// clean sentences. Period. New sentence."). The revise loop kept re-introducing
+// em dashes (Niural skipped on it 2026-07-06 after two revisions). Em/en dashes
+// and spaced hyphens between clauses become sentence breaks or commas.
+function autoFixDashes(body) {
+  return body
+    // clause break after a complete thought → period + capital
+    .replace(/([a-z0-9)])\s*[—–]\s*(\w)/g, (_, a, b) => `${a}. ${b.toUpperCase()}`)
+    .replace(/(\w)\s+-\s+(\w)/g, (_, a, b) => `${a}. ${b.toUpperCase()}`)
+    // any stragglers (start of line etc.) → comma
+    .replace(/\s*[—–]\s*/g, ', ');
+}
+
 function autoSplitParagraphs(body) {
   return body.split(/\n\s*\n/).map((para) => {
     const p = para.trim();
@@ -392,7 +405,7 @@ async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, 
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   if (!tu) throw new Error('revision produced no note');
   // keep the original research trail; the revision only reworks copy
-  return { ...tu.input, body: autoSplitParagraphs(normalizeParagraphs(tu.input.body || '')), research_note: tu.input.research_note || note.research_note };
+  return { ...tu.input, body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))), research_note: tu.input.research_note || note.research_note };
 }
 
 export const handler = async (event) => {
