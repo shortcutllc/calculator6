@@ -10,7 +10,7 @@
  * = 'manual') must never be overwritten by callers.
  */
 
-const DNC   = /\bunsubscribe\b|\bremove me\b|\btake me off\b|\bopt[- ]?out\b|\bdo not (contact|email|reach)\b|\bstop (emailing|contacting)\b|\bno longer\b.*\b(here|with)\b/i;
+const DNC   = /\bunsubscribe\b|\bremove me\b|\btake me off\b|\bopt[- ]?out\b|\bdo not (contact|email|reach)\b|\bstop (emailing|contacting)\b|\bno longer\b.*\b(here|with)\b|\b(asked|requested) to be removed\b|\bremoved? (me )?from (your|the|any|all)? ?(mail|list|email)/i;
 const OOO   = /\bout of (the )?office\b|\boutofoffice\b|\bautomatic(ally)? repl|\bauto[- ]?reply\b|\bon (leave|vacation|pto|holiday|annual leave)\b|\b(maternity|paternity|parental|medical|sick|annual) leave\b|\b(currently )?(away|unavailable)\b|\blimited access to (email|phone)\b|\breturn(ing)? (on|to the office)\b|\breturning \d|\bback (in the office|on)\b|\bupon my return\b|\bwhile i'?m (away|out)\b/i;
 const NEG   = /\bnot interested\b|\bno,? thank|\bwe('| a)re all set\b|\ball set (here|for|on)\b|\bnot at this time\b|\bnot a (fit|priority|good time)\b|\bnot taking on new\b|\bno need\b|\bplease (stop|don'?t)\b|\bdecline|\bnot looking\b/i;
 // POS broadened after the first live positive ("I would love to meet, can we set
