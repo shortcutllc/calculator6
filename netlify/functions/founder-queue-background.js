@@ -35,6 +35,19 @@ const SLACK_API = 'https://slack.com/api';
 const WILL = 'will@getshortcut.co';
 const DEFAULT_MAX = 5;   // ramp: wk1 ~5/day, wk2 ~10, ceiling 15 (founder_outreach_lane.md)
 
+// Will's "founder-min" Gmail signature, embedded verbatim (Will 2026-07-06).
+// Gmail's API only exposes the DEFAULT sendAs signature, which for will@ is the
+// heavy one (Founder & CEO + Book-a-call link + logo image) — exactly what the
+// founder-lane first-touch rules ban. So the minimal signature lives here.
+const FOUNDER_MIN_SIG_HTML = [
+  '<div dir="ltr" style="font-family:Outfit,sans-serif;font-size:11pt;color:rgb(0,0,0)">',
+  'Will Newton<br>',
+  'Founder, <b>Shortcut</b><br>',
+  '<a href="https://www.getshortcut.co" target="_blank">getshortcut.co</a><br>',
+  '(215) 218-8088',
+  '</div>',
+].join('');
+
 async function slackPost(method, body) {
   const r = await fetch(`${SLACK_API}/${method}`, {
     method: 'POST',
@@ -80,7 +93,7 @@ const NOTE_SCHEMA = {
   type: 'object',
   properties: {
     subject: { type: 'string', description: '1-4 words, lowercase internal-note style, no sell words' },
-    body: { type: 'string', description: "the founder note, 50-100 words, plain text with \\n line breaks, signed exactly:\\n\\nWill\\nFounder, Shortcut\\ngetshortcut.co" },
+    body: { type: 'string', description: "the founder note, 50-100 words, plain text with \\n line breaks, ending with the sign-off on its own two lines: either 'Cheers!' or 'Thanks!' then 'Will'. No company block after (his Gmail signature is appended separately)." },
     research_note: { type: 'string', description: 'one line for Will: the specific thing you found and used (or "nothing specific found — used firm-level angle")' },
     linkedin_step: { type: 'string', description: "today's LinkedIn action for Will for this person, one line (e.g. 'comment on her post about X, then blank connect')" },
   },
@@ -90,15 +103,23 @@ const NOTE_SCHEMA = {
 function voiceSystem(exemplars, audience, ctaVariant = 'help') {
   return `You draft 1:1 networking emails for Will Newton, founder and CEO of Shortcut (getshortcut.co) — premium on-site wellness (chair massage, nails, facials, mindfulness) for companies like BCG and DraftKings, 500+ companies served, 87% rebook. You write AS Will, in his voice.
 
-WILL'S VOICE (non-negotiable): calm, human, practical, operator-direct. Writes like a busy founder to a peer: short sentences, zero fluff, zero sales energy, warm but never gushing. No buzzwords ever (elevate, leverage, synergy, unlock, empower, transform, seamless, holistic, curated are BANNED). No dashes as punctuation (end the sentence instead). No exclamation points. Specifics over superlatives.
+WILL'S VOICE (non-negotiable): calm, warm, casual, practical. He writes like a busy founder dashing off a note to a peer he'd like to know, not like a company. Soft energy, zero sales push, curious about THEM. No buzzwords ever (elevate, leverage, synergy, unlock, empower, transform, seamless, holistic, curated, delve, pivotal, foster, streamline, navigate, landscape are BANNED). No dashes as punctuation (end the sentence instead). Specifics over superlatives. Plain verbs: things ARE and HAVE, they never "serve as" or "boast".
+
+RHYTHM (this is what makes it read human): vary sentence length a lot. At least one very short sentence. Never three sentences in a row with the same shape. No rule-of-three lists, no "not just X, but Y" constructions, no tidy parallel clauses. One small human aside is welcome (a parenthetical, a fragment, a sentence starting with And, But, or Honestly). If every sentence is the same medium length and perfectly balanced, it smells like AI. Read it aloud in your head: if Will wouldn't say the phrase to a friend, cut it.
 ${exemplars.length ? `\nREAL EXAMPLES OF WILL'S SENT EMAILS (match this register, rhythm, and warmth — do NOT copy content):\n${exemplars.map((e, i) => `--- example ${i + 1} ---\n${e}`).join('\n')}\n` : ''}
-THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Josh Braun style: open with a TRUE, SPECIFIC observation about THEM that proves Will did the work, one thought connecting it to Will's world, one low-pressure illumination question. 50-110 words. NO links, NO attachments, NO calendar link ever, NO "15 minutes" phrasing. (Exception: the broker convo CTA variant may invite a short call — see THE ASK.)
+THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Open with a TRUE, SPECIFIC observation about THEM when one exists (see OBSERVATION BAR), one thought connecting it to Will's world, one low-pressure question. 50-110 words, shorter is better when nothing is lost. NO links, NO attachments, NO calendar link ever, NO "15 minutes" phrasing. (Exception: the broker convo CTA variant may invite a short call — see THE ASK.)
+
+SIGN-OFF (Will 2026-07-06): end with "Cheers!" or "Thanks!" on its own line, then "Will" on the next line. Nothing after (his Gmail signature is appended automatically). That sign-off is the ONLY exclamation mark in the whole email, and it stays: it reads warm, and gratitude closes get the most replies.
 
 INTRODUCE WILL AND SHORTCUT CLEARLY (Will's requirement, 2026-07-02): early in the note, one plain human sentence that says who he is and what Shortcut does in concrete terms, e.g. "I'm Will, I run Shortcut. We bring wellness days into offices, chair massage, nails, facials, mindfulness, for teams like BCG and DraftKings." Never assume they can infer what Shortcut is. This intro sentence is exempt from the observation-first rule (observation first, intro second is the natural order).
 
-HUMAN TOUCH (fight the template feel): write like Will typed it between meetings. Small natural connectives are good ("honestly", "to be candid", "we keep running into this"). One sentence may be conversational filler if it earns warmth. Contractions everywhere. It should read like a person who is curious about THEM, not a company introducing itself. If any sentence could appear in a mass email, rewrite it.
+HUMAN TOUCH (fight the template feel): write like Will typed it between meetings. Small natural connectives are good ("honestly", "to be candid", "we keep running into this"). Contractions everywhere. It should read like a person who is curious about THEM, not a company introducing itself. Never open with "I hope this finds you well" or any stock pleasantry. If any sentence could appear in a mass email, rewrite it.
 
-RESEARCH FIRST (you have web search, up to 3 searches): search the person and their firm for something real and recent — a post, a firm announcement, a niche they own, an award, a client win. The observation must be checkable and specific ("your note last month on PBM transparency", "Alera picking up two Boston shops this spring").
+RESEARCH FIRST (you have web search, up to 3 searches): search the person and their firm for something real and recent — a post, a firm announcement, a niche they own, an award, a client win. The observation must be checkable and specific.
+OBSERVATION BAR (Will 2026-07-06, calibrate on these): a personal or firm find is usable ONLY if it connects to the note's actual thread ON ITS FACE — their wellbeing/benefits practice or role, their clients, their metro, something they wrote about wellness, benefits, or budgets. If connecting it takes a thematic bridge or a shared-value abstraction, it is FORCED: drop it and use the firm or metro angle instead.
+  GOOD (flows with the sell): "Given EPIC's Wellbeing & Health Management practice, I'm curious whether you're seeing this with your New York clients on those carriers." The find IS the thread.
+  FORCED (never do this): "I saw you're a Health Rosetta advisor. That transparency focus is exactly what I keep running into on the carrier wellness fund side." Credential → "transparency" → funds is a bolted-on bridge. A note with no personal line beats this every time.
+If the firm context includes a CONTENT HOOK (a verified piece of the firm's own published content), referencing it naturally is the best possible observation. Only reference content named in the context or found in YOUR OWN searches this run.
 HONESTY RULE (hard): if the searches surface nothing specific about the PERSON, use the firm-level angle from the context instead, framed honestly. NEVER imply Will read/saw something that does not exist. NEVER invent posts, quotes, news, or mutuals. A slightly less personal true note beats a fake-personal one every time.
 
 ${audience === 'brokers'
@@ -115,9 +136,11 @@ ${ctaVariant === 'convo'
 LANGUAGE: never call employers "groups" (insurance jargon Will does not use) — say clients, companies, or partners.
 STRUCTURE (hard): 4 to 5 SHORT paragraphs separated by blank lines, each carrying ONE idea in at most two sentences. The Burberry receipt is ALWAYS its own one-sentence paragraph. If research produced a personal observation, it must connect to the fund thread within a sentence — an unconnected compliment reads as bolted-on research; if it cannot connect naturally, drop it and use the firm or metro angle instead.
 NEVER: say "partnership", mention referral fees/revenue/compensation (first touch is comp-free, always), ask for referrals outright, or pitch Shortcut as the point — the point is making THEM look good to their clients.`
-    : `AUDIENCE: executive (CEO/COO/CHRO/Head of People) at an emerging tech company. Founder-to-founder/peer framing in sentence one. Tie the observation to the moment they are in (post-raise scaling, RTO, first People hire). One real proof point maximum (500+ companies, 87% rebook, or BCG/DraftKings). Close with an interest question, not a meeting ask.`}
+    : `AUDIENCE: executive (CEO/COO/CHRO/Head of People) at an emerging tech company (~100-500 people). Founder-to-founder framing: Will also runs a company, he knows the stage they're at. THE MOMENT is the observation — tie the note to what they're living through right now (just raised and hiring fast, RTO push, office move, first People hire, trying to make the office worth the commute). The same OBSERVATION BAR applies: the trigger must be real and checkable; a fundraise or job posting IS the thread, an abstract "saw you value culture" is not.
+WHAT SHORTCUT IS FOR THEM: wellness days in the office people actually book — chair massage, mindfulness, that kind of thing (full menu includes nails, facials, headshots). Over 90% of slots get booked when we run a day. Use ONE proof point maximum (500+ companies, 87% rebook, or BCG/DraftKings at every US office).
+THE ASK: an interest question, never a meeting ask ("Worth a look for {company}?", "Is this on your radar for the office push?"). No calendar link, no "15 minutes".`}
 
-Report by calling report_note exactly once, AFTER your research. Body is plain text with real line breaks: greeting line, blank line, 2-3 short paragraphs, blank line, then exactly:\nWill\nFounder, Shortcut\ngetshortcut.co`;
+Report by calling report_note exactly once, AFTER your research. Body is plain text with real line breaks: greeting line, blank line, 2-4 short paragraphs, blank line, then the sign-off exactly:\nCheers!\nWill   (or Thanks! instead of Cheers!)`;
 }
 
 // Carrier funds cover ONLY: chair massage, assisted stretch, sound baths,
@@ -174,10 +197,18 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVarian
 function guardNote(n, audience) {
   const all = `${n.subject} ${n.body}`;
   if (/[—–]|\s-\s/.test(all)) throw new Error('draft used a dash as punctuation');
-  if (/!/.test(all)) throw new Error('draft used an exclamation point');
-  for (const w of ['elevate', 'leverage', 'synergy', 'unlock', 'empower', 'transform', 'reimagine', 'seamless', 'holistic', 'curated']) {
+  // Exclamation marks: banned everywhere EXCEPT the sign-off line ("Cheers!" or
+  // "Thanks!"), which Will explicitly wants (2026-07-06) — warm, human close.
+  const withoutSignoff = all.replace(/^(Cheers!|Thanks!)$/gm, '');
+  if (/!/.test(withoutSignoff)) throw new Error('draft used an exclamation point outside the Cheers!/Thanks! sign-off');
+  if (!/\n(Cheers!|Thanks!)\n+Will\s*$/.test(n.body)) throw new Error("draft must end with 'Cheers!' or 'Thanks!' then 'Will' (no company block — the signature is appended)");
+  for (const w of ['elevate', 'leverage', 'synergy', 'unlock', 'empower', 'transform', 'reimagine', 'seamless', 'holistic', 'curated',
+    // AI-lexicon additions (voice research 2026-07-06): statistically overrepresented LLM words
+    'delve', 'pivotal', 'underscore', 'showcase', 'foster', 'landscape', 'navigate', 'realm', 'testament', 'tapestry', 'meticulous', 'streamline', 'additionally']) {
     if (new RegExp(`\\b${w}\\b`, 'i').test(all)) throw new Error(`draft used banned word: ${w}`);
   }
+  if (/hope this (email |message |note )?finds you/i.test(all)) throw new Error('draft opened with a stock AI pleasantry');
+  if (/\bnot (just|only) [^.!?\n]{0,60}, but\b/i.test(n.body)) throw new Error('draft used "not just X, but Y" parallelism (top AI tell)');
   if (/https?:\/\//.test(n.body.replace(/getshortcut\.co/g, ''))) throw new Error('draft included a link (first touch is link-free)');
   // structure: short paragraphs, one idea each (Will 2026-07-02 — v5 shipped a 3-sentence chunk)
   for (const para of n.body.split(/\n\s*\n/)) {
@@ -213,10 +244,10 @@ const REVIEW_SCHEMA = {
 async function critiqueNote(anthropic, note, audience, ctaVariant = 'help') {
   const checklist = `You are the skeptical reviewer for Will's founder notes. Default to FAILING. Check every item:
 1. STRUCTURE: 4-5 short paragraphs, each ONE idea, max two sentences. No chunky paragraphs. ${audience === 'brokers' ? 'The Burberry receipt sentence stands alone as its own paragraph.' : ''}
-2. OBSERVATION: if a personal research observation opens the note, it must connect to the note's thread within a sentence — an unconnected compliment fails.
+2. OBSERVATION (Will's bar, 2026-07-06): a personal research line is allowed ONLY if it connects to the note's thread ON ITS FACE (their wellbeing/benefits practice or role, their clients, their metro, something they wrote about wellness/benefits/budgets). A thematic bridge FAILS — e.g. "I saw you're a Health Rosetta advisor. That transparency focus is exactly what I keep running into on the fund side" is a bolted-on credential compliment, not a thread. Calibration GOOD: "Given EPIC's Wellbeing & Health Management practice, I'm curious whether you're seeing this with your New York clients." No personal line at all is a PASS; a forced one is a FAIL.
 3. INTRO: one plain sentence saying who Will is and what Shortcut does, in concrete services.
-4. CLOSE: matches the CTA variant — either a help-posture question (offering to help) or, for the convo variant, a soft call invitation (no calendar link, no times). Never validation-seeking.
-5. VOICE: reads like a busy founder typed it — contractions, warm, zero sales energy, no template smell.
+4. CLOSE: matches the CTA variant — either a help-posture question (offering to help) or, for the convo variant, a soft call invitation (no calendar link, no times). Never validation-seeking. Ends "Cheers!" or "Thanks!" then "Will" (the one exclamation mark allowed, nothing after).
+5. VOICE: reads like a busy founder typed it — contractions, warm, casual, zero sales energy, no template smell. Sentence lengths VARY (at least one short punchy sentence; no run of same-shape sentences); no rule-of-three lists; no "not just X, but Y". If it is uniformly smooth and balanced, FAIL it as AI-sounding.
 ${audience === 'brokers' ? '6. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
@@ -328,7 +359,9 @@ export const handler = async (event) => {
 
   // Voice exemplars once per run.
   const tok = await getAccessToken(sb, WILL);
-  const exemplars = await recentSentBodies(tok, 3);
+  // 5 exemplars, not 3 — few-shot voice samples are the strongest tone lever
+  // (Anthropic multishot guidance; voice research 2026-07-06).
+  const exemplars = await recentSentBodies(tok, 5);
 
   // Digest header DM.
   const open = await slackPost('conversations.open', { users: acct.slack_user_id });
@@ -352,7 +385,9 @@ export const handler = async (event) => {
 
       // CTA A/B (Will 2026-07-02): alternate help-posture close vs convo-invite close;
       // measured on replies per variant (cta_variant stored on the saved draft).
-      const ctaVariant = (targets.indexOf(t) % 2 === 0) ? 'help' : 'convo';
+      // body.cta overrides (used by --only redrafts to keep the A/B assignment).
+      const ctaVariant = ['help', 'convo'].includes(body.cta) ? body.cta
+        : (targets.indexOf(t) % 2 === 0) ? 'help' : 'convo';
       let note = await draftNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant });
       // GATE: deterministic guards -> revise-once on violation (guard throws used
       // to skip the lead outright with no revision and no visibility)
@@ -368,10 +403,11 @@ export const handler = async (event) => {
         guardNote(note, audience);
       }
 
-      // Gmail draft — minimal inline sign-off, NO heavy signature (cold first-touch rule).
+      // Gmail draft — founder-min signature embedded (Will 2026-07-06). Still no
+      // logo/booking-link (first-touch rule); founder-min is the minimal block.
       let gmailDraftId = null; let gmailMessageId = null;
       try {
-        const d = await createDraft(tok, { from: WILL, to: lc(t.email), subject: note.subject, body: note.body, signatureHtml: null, threadId: null });
+        const d = await createDraft(tok, { from: WILL, to: lc(t.email), subject: note.subject, body: note.body, signatureHtml: FOUNDER_MIN_SIG_HTML, threadId: null });
         gmailDraftId = d.id; gmailMessageId = d.messageId;
       } catch (e) { console.warn(`gmail draft failed for ${t.email}:`, e.message); }
 

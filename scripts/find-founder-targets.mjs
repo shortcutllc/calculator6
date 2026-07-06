@@ -42,6 +42,34 @@ const TITLES = [
 ];
 // Emerging-tech shape: 101-500 employees (the "just crossed 100" cohort).
 const SIZE_RANGES = ['101,200', '201,500'];
+// API-level industry exclusion — same 65 tag IDs find-leads.mjs uses, so bad
+// industries are filtered BEFORE the paid people/match. Learned Jul 6 2026:
+// api_search returns no organization.industry, so the post-filter alone let 91
+// of 150 paid enrichments die on the industry gate (49/150 yield).
+const EXCLUDED_INDUSTRY_TAG_IDS = [
+  '55718f947369642142b84a12', '5567e1a87369641f6d550100', '5567e27c7369642ade490000',
+  '5567cd4d73696439d9030000', '5567e1a17369641ea9d30100', '5567cdda7369644eed130000',
+  '5567cd4773696439dd350000', '5567e8a27369646ddb0b0000', '5567e19c7369641c48e70100',
+  '5567ce9e736964540d540000', '5567ce5b736964540d280000', '5567cd4f7369644d2d010000',
+  '5567e2097369642420150000', '5567f96c7369642a22080000', '5567d2ad7261697f2b1f0100',
+  '5567cd4f736964397e030000', '5567cd527369643981050000', '5567e29b736964256c370100',
+  '5567cd4c73696453e1300000', '5567cddb7369644d250c0000', '5567cdde73696439812c0000',
+  '5567d02b7369645d8b140000', '55680a8273696407b61f0000', '5567e1797369641c48c10100',
+  '556808697369647bfd420000', '5567cd8273696439b1240000', '5567cd4d73696439d9040000',
+  '5567d0467369645dbc200000', '5567e2c572616932bb3b0000', '5567ce2773696454308f0000',
+  '5567e15373696422aa0a0000', '5567cd4773696454303a0000', '5567e0af7369641ec7300000',
+  '5567cd4a7369643ba9010000', '5567e28a7369642ae2500000', '5567cd49736964541d010000',
+  '5567fd5a73696442b0f20000', '5567e0f27369640e5aed0c00', '5567e0e0736964198de70700',
+  '5567e2a97369642a553d0000', '5567e19b7369641ead740000', '5567e1de7369642069ea0100',
+  '55680085736964551e070000', '5567cd4d7369643b78100000', '5567ce9673696439d5c10000',
+  '5567e1097369641d91230300', '5567e36f73696431a4970000', '5567e3657369642f4ec90000',
+  '5567cdd87369643bc12f0000', '5567e0e073696408da441e00', '5567d04173696457ee520000',
+  '5567cd4e7369644cf93b0000', '5568047d7369646d406c0000', '5567cdd97369645430680000',
+  '5567ce9673696453d99f0000', '5567e8bb7369641a658f0000', '5567e25f736964256cff0000',
+  '5567ce9c7369644eed680000', '5567cd477369645401010000', '5567e1887369641d68d40100',
+  '5567cd4a73696439a9010000', '5567e0f973696416d34e0200', '5567e0ea7369640d2ba31600',
+  '5567ced173696450cb580000', '5567cd4c7369644d39080000',
+];
 // Post-filter: tech-ish industries only (Apollo labels are lossy; this is the
 // same coarse gate the archetype classifier uses for the tech cluster).
 const TECH_INDUSTRY_RE = /software|internet|information technology|computer|fintech|financial services|biotech|artificial intelligence|saas|e-?learning|health.*tech|marketing & advertising/i;
@@ -81,6 +109,7 @@ async function upsert(table, rows, conflict) { for (let i = 0; i < rows.length; 
       person_titles: TITLES, include_similar_titles: false,
       person_locations: [CITY],
       organization_num_employees_ranges: SIZE_RANGES,
+      organization_not_industry_tag_ids: EXCLUDED_INDUSTRY_TAG_IDS,
       page, per_page: 100,
     });
     total = j.pagination?.total_entries || total;
