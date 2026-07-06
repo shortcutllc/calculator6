@@ -57,7 +57,22 @@ function resolveSequence(segment, opener, e3Link = false) {
   if (segment === 'realestate') return coldSequenceRealEstate(['building', 'portfolio'].includes(opener) ? opener : 'building', { e3Link });
   return coldSequenceV3(['generic', 'rto'].includes(opener) ? opener : 'generic', { e3Link }); // direct (broker uses --clone)
 }
-const SEQ = resolveSequence(SEGMENT, OPENER, E3LINK);
+let SEQ = resolveSequence(SEGMENT, OPENER, E3LINK);
+// COPY PROPOSAL LANE (Will, 2026-07-06): if Will has APPROVED a newer copy asset
+// for this segment+opener (copy_assets, status='approved'), it overrides the
+// static template — the engine ships ratified text only, newest ratification
+// wins. Proposals never ship; only approval does. See propose-copy.mjs.
+async function loadApprovedCopy() {
+  try {
+    const { data } = await sb.from('copy_assets').select('id, label, steps, approved_at')
+      .eq('segment', SEGMENT).eq('opener', OPENER).eq('status', 'approved')
+      .order('approved_at', { ascending: false }).limit(1);
+    if (data?.length) {
+      SEQ = { label: `approved asset: ${data[0].label || data[0].id.slice(0, 8)} (${data[0].approved_at?.slice(0, 10)})`, segment: SEGMENT, opener: OPENER, steps: data[0].steps };
+      log(`COPY: using Will-approved DB asset "${SEQ.label}" (overrides static template).`);
+    }
+  } catch { /* table absent -> static templates (all Will-approved) */ }
+}
 // Variant B → the one manual step: paste into Smartlead UI (Sequences → step 3 →
 // Add variant). Printed after every launch/edit that carries an A/B step.
 function printVariantB(seq) {
@@ -84,6 +99,7 @@ if (!/^https?:\/\//i.test(URL) || !KEY) { console.error('MISSING_ENV (SUPABASE_U
 if (!['direct', 'broker', 'law', 'realestate'].includes(SEGMENT)) { console.error('--segment must be direct | broker | law | realestate (never mixed)'); process.exit(2); }
 const sb = createClient(URL, KEY, { auth: { persistSession: false } });
 const log = (...a) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...a);
+await loadApprovedCopy();
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 const sizeNum = (n) => parseInt(String(n || '').replace(/[^\d]/g, ''), 10) || 0;
 
