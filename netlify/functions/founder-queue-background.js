@@ -138,8 +138,10 @@ ${ctaVariant === 'convo'
 LANGUAGE: never call employers "groups" (insurance jargon Will does not use) — say clients, companies, or partners.
 STRUCTURE (hard): 4 to 5 SHORT paragraphs separated by blank lines, each carrying ONE idea in at most two sentences. The Burberry receipt is ALWAYS its own one-sentence paragraph. If research produced a personal observation, it must connect to the fund thread within a sentence — an unconnected compliment reads as bolted-on research; if it cannot connect naturally, drop it and use the firm or metro angle instead.
 NEVER: say "partnership", mention referral fees/revenue/compensation (first touch is comp-free, always), ask for referrals outright, or pitch Shortcut as the point — the point is making THEM look good to their clients.`
-    : `AUDIENCE: the wellness owner at an emerging tech company (~100-250 people, usually just crossed 100) — could be a People leader, Workplace/Office manager, Chief of Staff, EA, COO, or the CEO. Founder-to-founder framing: Will also runs a company, he knows the stage they're at. THE MOMENT is the observation — tie the note to what they're living through right now (just raised and hiring fast, RTO push, office move, first People hire, trying to make the office worth the commute). The same OBSERVATION BAR applies: the trigger must be real and checkable; a fundraise or job posting IS the thread, an abstract "saw you value culture" is not.
-If the prospect JSON has a why_now_trigger, it is VERIFIED (harvested with an evidence URL) — anchor the note's moment on it and skip inventing a different angle; your web searches then just add color. The honest evidence-backed frame for this stage: companies usually stand up their first real People function right around 100 employees, and that is when someone finally owns making the office worth coming to. Never claim they have wellness budget; a raise is a growth signal, not a budget claim.
+    : `AUDIENCE: the wellness owner at an emerging tech company (~100-250 people, usually just crossed 100) — could be a People leader, Workplace/Office manager, Chief of Staff, EA, COO, or the CEO. Founder-to-founder framing: Will also runs a company, he knows the stage they're at.
+COHORT THESIS (Will 2026-07-06 — write from THIS, never from other cohorts' playbooks): this company is in hypergrowth. Headcount is climbing fast, everyone is stretched, and the culture is forming in real time: what they do in the next year becomes "how we do things here". Their first real People leader either just landed or is being hired, and that person is choosing programs from scratch with nothing entrenched. What resonates: helping the team destress and recharge during the sprint, making people feel genuinely taken care of while everything is moving fast, and culture moments people remember, all with zero lift for a stretched (or not-yet-existing) People team. What does NOT resonate and is BANNED for this cohort: RTO framing, "make the office worth the commute" or "worth coming to", return-to-office language, perks-theater talk, enterprise-benefits vocabulary. These companies are not dragging anyone back to the office; do not project that problem onto them. EXCEPTION: office/commute framing is allowed ONLY when the lead's own verified trigger is explicitly about the office (a new lease, an X-days-in-office posting, an office move) — then it is their reality, not our template.
+THE MOMENT is the observation — tie the note to what they are living through right now (just raised and hiring fast, first People hire being made, scaling chaos). The same OBSERVATION BAR applies: the trigger must be real and checkable.
+If the prospect JSON has a why_now_trigger, it is VERIFIED (harvested with an evidence URL) — anchor the note's moment on it and skip inventing a different angle; your web searches then just add color. The honest evidence-backed frame for this stage: companies usually stand up their first real People function right around 100 employees, and that is the window where they decide what taking care of their team looks like. Never claim they have wellness budget; a raise is a growth signal, not a budget claim.
 WHAT SHORTCUT IS FOR THEM: wellness days in the office people actually book — chair massage, mindfulness, that kind of thing (full menu includes nails, facials, headshots). Over 90% of slots get booked when we run a day. Use ONE proof point maximum (500+ companies, 87% rebook, or BCG/DraftKings at every US office).
 THE ASK: an interest question, never a meeting ask ("Worth a look for {company}?", "Is this on your radar for the office push?"). No calendar link, no "15 minutes".`}
 
@@ -210,8 +212,15 @@ function normalizeParagraphs(body) {
   return body.replace(/([.?!])\n(?!\n)(?!Will\s*$)/g, '$1\n\n');
 }
 
+// Cohort-fit guard (Will 2026-07-06): RTO/commute framing is an established-company
+// angle. Emerging-tech hypergrowth companies are not dragging anyone back to the
+// office — projecting that problem onto them reads tone-deaf. Allowed only when
+// the lead's own verified trigger is explicitly about the office.
+const RTO_FRAME_RE = /\b(worth (the )?commut(e|ing)|worth coming (in|to)|return to (the )?office|rto|back to the office|reason to come in|come into the office)\b/i;
+const OFFICE_TRIGGER_RE = /\b(office|in.office|on.?site|days? (a|per) week|hybrid|lease|hq|headquarters)\b/i;
+
 // Deterministic guardrails (brand-hard rules) — throw loudly; the run skips the lead.
-function guardNote(n, audience) {
+function guardNote(n, audience, trigger = null) {
   const all = `${n.subject} ${n.body}`;
   if (/[—–]|\s-\s/.test(all)) throw new Error('draft used a dash as punctuation');
   // Exclamation marks: banned everywhere EXCEPT the sign-off line ("Cheers!" or
@@ -231,6 +240,9 @@ function guardNote(n, audience) {
   for (const para of n.body.split(/\n\s*\n/)) {
     const words = para.trim().split(/\s+/).filter(Boolean).length;
     if (words > 46) throw new Error(`paragraph too chunky (${words} words) — separate each idea with a BLANK line (\\n\\n between paragraphs) and keep every paragraph to at most two short sentences`);
+  }
+  if (audience !== 'brokers' && RTO_FRAME_RE.test(n.body) && !(trigger && OFFICE_TRIGGER_RE.test(trigger))) {
+    throw new Error('tech-exec note used RTO/commute framing — this cohort is in hypergrowth, not a return-to-office fight; write from the cohort thesis (destress during the sprint, culture forming now, first People leader choosing programs) unless the verified trigger itself is about the office');
   }
   if (audience === 'brokers') {
     if (NON_FUND_SERVICES_RE.test(n.body)) throw new Error('broker note names a non-fund-eligible service (funds cover only massage, assisted stretch, sound bath, mindfulness, nutrition coaching)');
@@ -267,6 +279,7 @@ async function critiqueNote(anthropic, note, audience, ctaVariant = 'help') {
 5. VOICE: reads like a busy founder typed it — contractions, warm, casual, zero sales energy, no template smell. Sentence lengths VARY (at least one short punchy sentence; no run of same-shape sentences); no rule-of-three lists; no "not just X, but Y". If it is uniformly smooth and balanced, FAIL it as AI-sounding.
 ${audience === 'brokers' ? '6. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.
+8. COHORT FIT (Will 2026-07-06): the note's angle must match this cohort's ACTUAL situation. ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech hypergrowth companies: the resonant frames are destressing the team during the sprint, culture forming right now, a first People leader choosing programs from scratch. FAIL any RTO / "worth the commute" / return-to-office framing (that is an established-company problem) unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0,
@@ -417,20 +430,20 @@ export const handler = async (event) => {
       // GATE: deterministic guards -> up to TWO revisions on violation (one wasn't
       // enough in practice: Jul 6, a chunky paragraph survived the first revise
       // and the lead skipped; the second attempt gets both failure messages)
-      try { guardNote(note, audience); } catch (ge) {
+      try { guardNote(note, audience, trigger); } catch (ge) {
         console.error(`guard hit for ${t.email}: ${ge.message} — revising`);
         note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead: t, firm, ctaVariant, trigger });
-        try { guardNote(note, audience); } catch (ge2) {
+        try { guardNote(note, audience, trigger); } catch (ge2) {
           console.error(`guard hit again for ${t.email}: ${ge2.message} — second revision`);
           note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead: t, firm, ctaVariant, trigger });
-          guardNote(note, audience);
+          guardNote(note, audience, trigger);
         }
       }
       // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator)
       const review = await critiqueNote(anthropic, note, audience, ctaVariant);
       if (!review.pass && review.issues.length) {
         note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead: t, firm, ctaVariant, trigger });
-        guardNote(note, audience);
+        guardNote(note, audience, trigger);
       }
 
       // Gmail draft — founder-min signature embedded (Will 2026-07-06). Still no

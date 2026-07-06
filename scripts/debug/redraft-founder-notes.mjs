@@ -34,14 +34,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (!row) { log(`${email}: no existing founder_note row — will draft fresh (cta defaults to help)`); }
     const cta = row?.target_ref?.cta_variant === 'convo' ? 'convo' : 'help';
     const audience = row?.target_ref?.audience || 'brokers';
+    const trigger = row?.target_ref?.trigger || null;
     const oldDraftId = row?.target_ref?.gmail_draft_id || null;
     if (!CONFIRM) { log(`${email}: would trash gmail draft ${oldDraftId || '(none)'}, delete row ${row?.id || '(none)'}, redraft with cta=${cta} audience=${audience}`); continue; }
 
     if (oldDraftId) { const ok = await deleteDraft(tok, oldDraftId); log(`${email}: old gmail draft ${oldDraftId} ${ok ? 'trashed' : 'not trashed (may already be gone)'}`); }
     if (row) { await sb.from('saved_drafts').delete().eq('id', row.id); log(`${email}: saved_drafts row deleted`); }
 
-    const r = await fetch(FN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: email, cta, audience }) });
-    log(`${email}: queue POST → ${r.status} (cta=${cta}, audience=${audience}); waiting for the new draft…`);
+    const r = await fetch(FN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: email, cta, audience, ...(trigger ? { trigger } : {}) }) });
+    log(`${email}: queue POST → ${r.status} (cta=${cta}, audience=${audience}${trigger ? ', trigger carried' : ''}); waiting for the new draft…`);
 
     let fresh = null;
     for (let i = 0; i < 30 && !fresh; i += 1) {
