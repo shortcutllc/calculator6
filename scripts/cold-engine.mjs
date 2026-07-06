@@ -191,7 +191,7 @@ async function mvVerify(email, mvKey) {
   log(belief ? `belief model loaded (${belief.generated_at})` : 'no belief_model.json — using evaluator defaults');
 
   // load context sets + firmographics, once
-  const contacts = await readAll('outreach_contacts', 'email, name, company, title, email_domain, location, source, crm_company_id, broker_track, mv_status, bounceban_status, channel, graduated_at');
+  const contacts = await readAll('outreach_contacts', 'email, name, company, title, email_domain, location, source, crm_company_id, broker_track, mv_status, bounceban_status, channel, graduated_at, in_campaign, resurface_after');
   const sends = await readAll('outreach_sends', 'email, campaign_id');
   const persons = await readAll('apollo_person_cache', 'email, email_domain, company_headcount');
   const companies = await readAll('crm_companies', 'contact_domains, completed_events, ext_employee_size');
@@ -237,7 +237,16 @@ async function mvVerify(email, mvKey) {
   const candidates = [];
   let sheetSkipped = 0;
   for (const o of contacts) {
-    const e = lc(o.email); if (!e || contactedAll.has(e)) continue;          // unsent only
+    const e = lc(o.email); if (!e) continue;
+    // OOO RESURFACE (task #10): a lead whose only reply was an out-of-office and
+    // whose window has passed (ooo-intel.mjs sets resurface_after) re-enters the
+    // pool once, bypassing the contacted-exclusion. Cleared at launch (one shot).
+    const resurfaceDue = o.resurface_after && new Date(o.resurface_after) <= new Date();
+    if (contactedAll.has(e) && !resurfaceDue) continue;                     // unsent only (or due back)
+    // IN-CAMPAIGN GUARD: leads already sitting in another campaign (incl. same-day
+    // DRAFTS the 6:40 membership sync hasn't seen) are excluded — without this,
+    // two Monday builds 15 min apart drew the SAME leads (3597510/3597609 overlap).
+    if (o.in_campaign && !resurfaceDue) continue;
     if (supp.has(e) || personalLane.has(e)) continue;
     if (o.channel === 'personal' || o.graduated_at) continue;               // graduated to personal — never re-cold
     // PROVENANCE GUARD: only cold-send leads from our verified Apollo pipeline.
@@ -432,6 +441,16 @@ async function mvVerify(email, mvKey) {
   log(`LAUNCH: building Smartlead campaign "${campaignName}" (${CLONE ? 'clone ' + CLONE : 'v3 copy'}) on the allowed-domain inboxes…`);
   try {
     const res = await launchCampaign(launchOpts);
+    // Mark shipped leads NOW (not at the 6:40 membership sync) so any build later
+    // today excludes them — and consume the one-shot resurface flag.
+    try {
+      const shippedRows = shipLeads.map((l) => ({ email: l.email, in_campaign: true, smartlead_campaign_id: String(res.campaign_id), resurface_after: null }));
+      for (let i = 0; i < shippedRows.length; i += 200) {
+        const { error } = await sb.from('outreach_contacts').upsert(shippedRows.slice(i, i + 200), { onConflict: 'email' });
+        if (error) log(`  in_campaign writeback warn: ${error.message}`);
+      }
+      log(`  marked ${shippedRows.length} leads in_campaign=${res.campaign_id} (same-day builds now exclude them).`);
+    } catch (e) { log(`  in_campaign writeback warn: ${e.message}`); }
     log(`LAUNCH complete: campaign ${res.campaign_id} · ${res.assigned_senders} senders · ${res.uploaded} leads.`);
     log(`  ${res.url}`);
     log('Track replies via pull-smartlead; positive replies graduate to the personal lane.');
