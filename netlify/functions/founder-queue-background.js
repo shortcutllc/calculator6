@@ -107,7 +107,7 @@ WILL'S VOICE (non-negotiable): calm, warm, casual, practical. He writes like a b
 
 RHYTHM (this is what makes it read human): vary sentence length a lot. At least one very short sentence. Never three sentences in a row with the same shape. No rule-of-three lists, no "not just X, but Y" constructions, no tidy parallel clauses. One small human aside is welcome (a parenthetical, a fragment, a sentence starting with And, But, or Honestly). If every sentence is the same medium length and perfectly balanced, it smells like AI. Read it aloud in your head: if Will wouldn't say the phrase to a friend, cut it.
 ${exemplars.length ? `\nREAL EXAMPLES OF WILL'S SENT EMAILS (match this register, rhythm, and warmth — do NOT copy content):\n${exemplars.map((e, i) => `--- example ${i + 1} ---\n${e}`).join('\n')}\n` : ''}
-THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Open with a TRUE, SPECIFIC observation about THEM when one exists (see OBSERVATION BAR), one thought connecting it to Will's world, one low-pressure question. 50-110 words, shorter is better when nothing is lost. NO links, NO attachments, NO calendar link ever, NO "15 minutes" phrasing. (Exception: the broker convo CTA variant may invite a short call — see THE ASK.)
+THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Open with a TRUE, SPECIFIC observation about THEM when one exists (see OBSERVATION BAR), one thought connecting it to Will's world, one low-pressure question. 50-110 words, shorter is better when nothing is lost. NO links, NO attachments, NO calendar link ever, NO "15 minutes" phrasing. (Exception: convo CTA variants may invite a short call — see THE ASK.)
 
 SIGN-OFF (Will 2026-07-06): end with "Cheers!" or "Thanks!" on its own line, then "Will" on the next line. Nothing after (his Gmail signature is appended automatically). That sign-off is the ONLY exclamation mark in the whole email, and it stays: it reads warm, and gratitude closes get the most replies.
 
@@ -147,7 +147,11 @@ HARD TONE RULES for this cohort:
 - BANNED (established-company angles): RTO framing, "make the office worth the commute"/"worth coming to", return-to-office language, perks-theater talk, enterprise-benefits vocabulary. EXCEPTION: office framing only when the verified trigger itself is about their office (a lease, an X-days-in-office posting).
 If the prospect JSON has a why_now_trigger, it is VERIFIED (harvested with an evidence URL) — anchor the note on it (for funding triggers that means congratulating it) and skip inventing a different angle; web searches just add color, and a note with no extra color is completely fine. Never claim they have wellness budget; a raise is a milestone to celebrate, not a budget claim.
 WHAT SHORTCUT IS FOR THEM: wellness days in the office people actually book — chair massage, mindfulness, that kind of thing (full menu includes nails, facials, headshots). Over 90% of slots get booked when we run a day. Use ONE proof point maximum (500+ companies, 87% rebook, or BCG/DraftKings at every US office).
-THE ASK: an interest question, never a meeting ask ("Worth a look for {company}?", "Is this on your radar for the office push?"). No calendar link, no "15 minutes".`}
+ZERO LIFT (required, one sentence — the spine's pillar this cohort needs most): make clear Shortcut handles everything, e.g. "we handle everything, you just pick a date" or "zero lift for your team: we bring the pros and the gear and run the day". A stretched team with a brand-new (or no) People leader needs to hear the whole thing is effortless for them.
+THE ASK (Will 2026-07-06 — ALWAYS offer something concrete; a bare curiosity question is not a close):
+${ctaVariant === 'convo'
+    ? `CONVO variant: offer a call, human and unpushy — "Would love to hop on a call if you think this could be a fit for {{company}}" or "Happy to jump on a quick call if it's useful". No calendar link, no "15 minutes", no times proposed.`
+    : `HELP/INFO variant: offer to send more — "I'd love to send over some more info if you're interested" or "Happy to share more on how our wellness experience works". Warm, zero pressure.`}`}
 
 Report by calling report_note exactly once, AFTER your research. Body is plain text with real line breaks: greeting line, blank line, 2-4 short paragraphs, blank line, then the sign-off exactly:\nCheers!\nWill   (or Thanks! instead of Cheers!)`;
 }
@@ -226,7 +230,7 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVarian
     tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   }
   if (!tu) throw new Error('no report_note from drafter');
-  return { ...tu.input, body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))) };
+  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))) };
 }
 
 // The model sometimes separates paragraphs with SINGLE newlines; the chunky-
@@ -252,8 +256,10 @@ function autoFixDashes(body) {
     // clause break after a complete thought → period + capital
     .replace(/([a-z0-9)])\s*[—–]\s*(\w)/g, (_, a, b) => `${a}. ${b.toUpperCase()}`)
     .replace(/(\w)\s+-\s+(\w)/g, (_, a, b) => `${a}. ${b.toUpperCase()}`)
-    // any stragglers (start of line etc.) → comma
-    .replace(/\s*[—–]\s*/g, ', ');
+    // catch-alls: EVERY remaining em/en dash and spaced hyphen → comma, so the
+    // dash guard (which mirrors these exact patterns) is unreachable
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(/\s-\s/g, ', ');
 }
 
 function autoSplitParagraphs(body) {
@@ -354,7 +360,7 @@ async function critiqueNote(anthropic, note, audience, ctaVariant = 'help') {
 1. STRUCTURE: 4-5 short paragraphs, each ONE idea, max two sentences. No chunky paragraphs. ${audience === 'brokers' ? 'The Burberry receipt sentence stands alone as its own paragraph.' : ''}
 2. OBSERVATION (Will's bar, 2026-07-06): a personal research line is allowed ONLY if it connects to the note's thread ON ITS FACE (their wellbeing/benefits practice or role, their clients, their metro, something they wrote about wellness/benefits/budgets). A thematic bridge FAILS — e.g. "I saw you're a Health Rosetta advisor. That transparency focus is exactly what I keep running into on the fund side" is a bolted-on credential compliment, not a thread. Calibration GOOD: "Given EPIC's Wellbeing & Health Management practice, I'm curious whether you're seeing this with your New York clients." No personal line at all is a PASS; a forced one is a FAIL. Also FAIL any observation framed as fresh news ("I saw you...", "congrats on...") when the underlying fact is older than ~6 months; stale facts may only appear as standing facts.
 3. INTRO: one plain sentence saying who Will is and what Shortcut does, in concrete services.
-4. CLOSE: matches the CTA variant — either a help-posture question (offering to help) or, for the convo variant, a soft call invitation (no calendar link, no times). Never validation-seeking. Ends "Cheers!" or "Thanks!" then "Will" (the one exclamation mark allowed, nothing after).
+4. CLOSE: OFFERS something concrete — ${audience === 'brokers' ? 'help with their clients, the one-pager, or (convo variant) a short call' : 'more info ("I\'d love to send over some more info if you\'re interested") or (convo variant) a call ("Would love to hop on a call if you think this could be a fit")'}. A bare curiosity question with no offer FAILS. No calendar link, no times. Never validation-seeking. Ends "Cheers!" or "Thanks!" then "Will" (the one exclamation mark allowed, nothing after).${audience === 'brokers' ? '' : '\n4b. ZERO LIFT: the note must carry one sentence making clear Shortcut handles everything (zero lift for their team). Missing it FAILS.'}
 5. VOICE: reads like a busy founder typed it — contractions, warm, casual, zero sales energy, no template smell. Sentence lengths VARY (at least one short punchy sentence; no run of same-shape sentences); no rule-of-three lists; no "not just X, but Y". If it is uniformly smooth and balanced, FAIL it as AI-sounding.
 ${audience === 'brokers' ? '6. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.
@@ -405,7 +411,7 @@ async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, 
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   if (!tu) throw new Error('revision produced no note');
   // keep the original research trail; the revision only reworks copy
-  return { ...tu.input, body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))), research_note: tu.input.research_note || note.research_note };
+  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))), research_note: tu.input.research_note || note.research_note };
 }
 
 export const handler = async (event) => {
