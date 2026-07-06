@@ -1,27 +1,29 @@
 /**
- * tech-scout.mjs — the "SDR" for the founder tech-exec lane (v1 test, 2026-07-06).
+ * tech-scout.mjs — the daily "SDR" for the founder tech-exec lane (2026-07-06).
  * See memory/tech_exec_targeting.md (v2: company-first, Apollo = enrichment only).
  *
- * INPUT: a candidates JSON (from the signal harvest — funding announcements,
- * first-People-hire postings, growth lists), each entry:
- *   { company, domain?, trigger_type, trigger, evidence_url, est_size_hint? }
+ * THE DAILY LOOP (cron, weekdays 7:35 — runs before the 7:45 founder queue):
+ *   --harvest   Claude + web_search sweeps the signal feeds (NYC funding news /
+ *               AlleyWatch, first-People-hire postings on ATS boards, growth
+ *               chatter) and writes the day's candidates JSON. Same pattern the
+ *               founder queue uses for research; no Apollo, no LinkedIn.
+ *   (pipeline)  per candidate: resolve domain (free) → org-enrich (1 credit) →
+ *               QUALIFY (60-280 heads crossing ~100 · tech-ish · NYC · not
+ *               client/known) → BUYER ID via the BROAD wellness-owner cluster
+ *               (People → Workplace/Office → CoS/EA → COO/CEO; never one title)
+ *               → enrich buyer (1 credit) + MV → outreach_contacts
+ *               (source='founder-personal', channel='personal').
+ *   --queue     each landed buyer is POSTed straight to founder-queue-background
+ *               with its VERIFIED why-now trigger + alternating help/convo CTA —
+ *               so tech-exec cards land in Will's Slack with the broker cards.
+ *   --report    the brain hook: replies per trigger_type (joins founder_note
+ *               drafts × outreach_replies) — appended to the Monday improve-loop
+ *               so feeds get pruned by data.
  *
- * PER CANDIDATE:
- *   1. resolve domain (free Apollo org search by name if missing)
- *   2. org-enrich by domain (1 credit) → headcount, industry, city, funding, growth
- *   3. QUALIFY: headcount 60-280 (crossing ~100 window) · tech-ish · NYC presence
- *      (org HQ or the trigger evidence is NYC-scoped) · not client/suppressed/known
- *   4. BUYER ID: free people search pinned to the domain with the BROAD wellness-
- *      owner cluster (never pigeonholed to one title — Will 2026-07-06); rank
- *      dedicated People/Workplace owner → CoS/EA/OfficeMgr → COO/CEO; pick top 1.
- *   5. enrich that person (1 credit) + email_status gate + inline MV →
- *      outreach_contacts (source='founder-personal', channel='personal')
- *   6. ledger entry in prime_targets.json (domain-keyed, idempotent) with the
- *      why-now trigger — the founder queue sends it via POST `trigger`.
- *
- * Dry by default (0 credits: skips org-enrich unless cached). --confirm spends.
- *   node scripts/tech-scout.mjs --candidates tech_scout_candidates.json
- *   node scripts/tech-scout.mjs --candidates tech_scout_candidates.json --confirm --max-orgs 30
+ * Dry by default (0 credits). --confirm spends. Ledger: prime_targets.json.
+ *   node scripts/tech-scout.mjs --harvest --confirm --max-orgs 12 --max-buyers 3 --queue
+ *   node scripts/tech-scout.mjs --candidates tech_scout_candidates.json --confirm
+ *   node scripts/tech-scout.mjs --report
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
@@ -32,13 +34,19 @@ const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
 const val = (f, d) => { const i = args.indexOf(f); return i !== -1 && args[i + 1] ? args[i + 1] : d; };
 const CONFIRM = has('--confirm');
+const HARVEST = has('--harvest');
+const QUEUE = has('--queue');
+const REPORT = has('--report');
 const CAND_PATH = val('--candidates', `${ROOT}/tech_scout_candidates.json`);
 const MAX_ORGS = parseInt(val('--max-orgs', '30'), 10) || 30;
+const MAX_BUYERS = parseInt(val('--max-buyers', '5'), 10) || 5;
+const QUEUE_URL = 'https://proposals.getshortcut.co/.netlify/functions/founder-queue-background';
 
 const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
 const envKey = (n) => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').match(new RegExp(`^${n}=(.+)$`, 'm'))?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } };
 const APOLLO = process.env.APOLLO_API_KEY || envKey('APOLLO_API_KEY');
 const MV = process.env.MILLIONVERIFIER_API_KEY || envKey('MILLIONVERIFIER_API_KEY');
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || envKey('ANTHROPIC_API_KEY');
 const sb = createClient((process.env.SUPABASE_URL || '').trim(), (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim(), { auth: { persistSession: false } });
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 const log = (...a) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...a);
@@ -79,8 +87,96 @@ const BUYER_SEARCH_TITLES = [
   'Chief Operating Officer', 'COO', 'Chief Executive Officer', 'CEO', 'Founder', 'Co-Founder',
 ];
 
+// ---- HARVEST: Claude + web_search sweeps the signal feeds and reports the day's
+// candidates via a forced tool call (same pattern as the founder queue's research).
+const HARVEST_SCHEMA = {
+  type: 'object',
+  properties: {
+    candidates: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          company: { type: 'string' }, domain: { type: ['string', 'null'] },
+          trigger_type: { type: 'string', enum: ['funding', 'people_posting', 'growth_list'] },
+          trigger: { type: 'string', description: 'one-line human-readable why-now with a date when known' },
+          evidence_url: { type: 'string' },
+        },
+        required: ['company', 'trigger_type', 'trigger', 'evidence_url'],
+      },
+    },
+  },
+  required: ['candidates'],
+};
+async function harvestCandidates() {
+  const { default: Anthropic } = await import('@anthropic-ai/sdk');
+  const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
+  const today = new Date().toISOString().slice(0, 10);
+  const sys = `You are the daily signal-collection pass for a corporate-wellness founder's NYC outreach. Today is ${today}. Find CANDIDATE COMPANIES that plausibly just crossed (or are about to cross) ~100 employees in the New York area, each with a concrete recent WHY-NOW trigger. Work three feeds with web search: (1) RECENT NYC FUNDING — AlleyWatch daily/weekly funding reports and news from the last ~10 days; Series A/B ~$10-60M at companies plausibly 50-250 employees; skip seed-stage tiny companies and unicorns. (2) FIRST-PEOPLE-HIRE POSTINGS — currently-open Head of People / People Operations roles at NYC companies (site:boards.greenhouse.io / jobs.lever.co / jobs.ashbyhq.com searches). (3) GROWTH CHATTER — only companies with indicated size 50-250. RULES: real companies only, every entry needs a live source URL, prefer companies with a physical NYC office (skip stated fully-remote), no duplicates. Aim for 8-20 fresh entries; quality over quantity. Report via report_candidates exactly once when done.`;
+  const resp = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5-20250929', max_tokens: 8000, temperature: 0.2,
+    system: sys,
+    tools: [
+      { type: 'web_search_20250305', name: 'web_search', max_uses: 12 },
+      { name: 'report_candidates', description: 'Report the harvested candidates. Call exactly once.', input_schema: HARVEST_SCHEMA },
+    ],
+    messages: [{ role: 'user', content: 'Run the three feeds, then call report_candidates once.' }],
+  });
+  let tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_candidates');
+  if (!tu) {
+    const critique = (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+    const r2 = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5-20250929', max_tokens: 8000, temperature: 0.2, system: sys,
+      tools: [{ name: 'report_candidates', description: 'Report the harvested candidates.', input_schema: HARVEST_SCHEMA }],
+      tool_choice: { type: 'tool', name: 'report_candidates' },
+      messages: [
+        { role: 'user', content: 'Run the three feeds, then call report_candidates once.' },
+        { role: 'assistant', content: critique || '(research complete)' },
+        { role: 'user', content: 'Call report_candidates now.' },
+      ],
+    });
+    tu = (r2.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_candidates');
+  }
+  return tu?.input?.candidates || [];
+}
+
+// ---- REPORT: the brain hook — replies per trigger_type. Joins the ledger
+// (domain → trigger_type) with founder-personal contacts, Will's sends, replies.
+async function runReport() {
+  const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
+  const contacts = (await readAll('outreach_contacts', 'email, email_domain, source')).filter((r) => r.source === 'founder-personal');
+  const byDomain = new Map(Object.entries(ledger));
+  const sends = await readAll('outreach_sends', 'email, sender_email');
+  const sentSet = new Set(sends.filter((s) => lc(s.sender_email) === 'will@getshortcut.co').map((s) => lc(s.email)));
+  const replies = await readAll('outreach_replies', 'email, reply_sentiment');
+  const repMap = new Map(); for (const r of replies) { const e = lc(r.email); if (!repMap.has(e)) repMap.set(e, []); repMap.get(e).push(lc(r.reply_sentiment)); }
+  const stats = {};
+  for (const c of contacts) {
+    const t = byDomain.get(lc(c.email_domain))?.trigger_type || 'untagged';
+    stats[t] ||= { leads: 0, sent: 0, replied: 0, positive: 0 };
+    stats[t].leads += 1;
+    const e = lc(c.email);
+    if (sentSet.has(e)) stats[t].sent += 1;
+    const rs = repMap.get(e) || [];
+    if (rs.length) stats[t].replied += 1;
+    if (rs.includes('positive')) stats[t].positive += 1;
+  }
+  console.log('FOUNDER TECH LANE — conversion by trigger type (feeds pruned by data, not opinion)');
+  for (const [t, s] of Object.entries(stats)) console.log(`  ${t.padEnd(16)} leads ${String(s.leads).padStart(3)} · sent ${String(s.sent).padStart(3)} · replied ${s.replied} · positive ${s.positive}`);
+  if (!Object.keys(stats).length) console.log('  (no founder-personal leads yet)');
+}
+
 (async () => {
+  if (REPORT) { await runReport(); return; }
   if (!APOLLO) { console.error('MISSING APOLLO_API_KEY'); process.exit(2); }
+  if (HARVEST) {
+    if (!ANTHROPIC_KEY) { console.error('MISSING ANTHROPIC_API_KEY for --harvest'); process.exit(2); }
+    log('HARVEST — sweeping signal feeds via web search…');
+    const fresh = await harvestCandidates();
+    log(`harvest returned ${fresh.length} candidates`);
+    if (fresh.length) writeFileSync(CAND_PATH, JSON.stringify(fresh, null, 1));
+    else if (!existsSync(CAND_PATH)) { console.error('harvest empty and no candidates file — stopping'); process.exit(1); }
+  }
   if (!existsSync(CAND_PATH)) { console.error(`no candidates file at ${CAND_PATH}`); process.exit(2); }
   const candidates = JSON.parse(readFileSync(CAND_PATH, 'utf8'));
   const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
@@ -94,7 +190,7 @@ const BUYER_SEARCH_TITLES = [
   const clientDomains = new Set((await readAll('crm_companies', 'primary_domain').catch(() => []))
     .map((r) => cleanDom(r.primary_domain)).filter(Boolean));
 
-  const results = []; let orgCredits = 0; let personCredits = 0;
+  const results = []; let orgCredits = 0; let personCredits = 0; let buyersLanded = 0;
   for (const cand of candidates) {
     if (orgCredits >= MAX_ORGS) { log('org-credit cap reached — stopping'); break; }
     const name = String(cand.company || '').trim();
@@ -140,6 +236,7 @@ const BUYER_SEARCH_TITLES = [
       };
       ledger[domain] = entry;
       if (!verdict) { results.push(entry); continue; }
+      if (buyersLanded >= MAX_BUYERS) { entry.status = 'qualified_buyer_deferred'; results.push(entry); continue; }
 
       // 4. buyer ID (free search, broad cluster)
       const ps = await apollo('mixed_people/api_search', {
@@ -176,6 +273,17 @@ const BUYER_SEARCH_TITLES = [
       }], { onConflict: 'email' });
       entry.status = insErr ? `insert_failed: ${insErr.message}` : 'buyer_landed';
       entry.buyer.mv_status = mv;
+      if (!insErr) {
+        buyersLanded += 1;
+        // --queue: feed the founder queue immediately with the VERIFIED trigger
+        // (help/convo CTA alternates per landed buyer, same A/B as brokers)
+        if (QUEUE) {
+          const cta = (buyersLanded % 2 === 1) ? 'help' : 'convo';
+          const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: email, audience: 'tech-execs', cta, trigger: cand.trigger }) });
+          entry.queued = qr.status === 202 || qr.status === 200;
+          log(`  queued ${email} (cta=${cta}) → HTTP ${qr.status}`);
+        }
+      }
       results.push(entry);
       await sleep(150);
     } catch (err) {
