@@ -319,14 +319,18 @@ export const handler = async (event) => {
     .select('email, slack_user_id, supabase_user_id').eq('email', WILL).maybeSingle();
   if (!acct?.slack_user_id) return { statusCode: 500, body: 'will@ not connected (gmail_accounts.slack_user_id)' };
 
-  // ---- TARGETS (brokers v1): priority-ranked, sendable, never personally contacted.
+  // ---- TARGETS. brokers (v1): priority-ranked broker contacts. tech-execs (v2,
+  // 2026-07-06): the founder-personal cohort from find-founder-targets.mjs
+  // (source='founder-personal', channel='personal' — never in the cold pool).
   const { data: firms } = await sb.from('crm_target_firms').select('id, display_name, tier, track, why, nyc_presence, priority_rank');
   const firmById = new Map((firms || []).map((f) => [f.id, f]));
   let rows = [];
   for (let f = 0; ; f += 1000) {
-    const { data } = await sb.from('outreach_contacts')
-      .select('email, name, title, company, location, mv_status, bounceban_status, broker_firm_id, broker_priority_rank, channel')
-      .not('broker_firm_id', 'is', null).range(f, f + 999);
+    const q = sb.from('outreach_contacts')
+      .select('email, name, title, company, location, mv_status, bounceban_status, broker_firm_id, broker_priority_rank, channel, source');
+    const { data } = audience === 'brokers'
+      ? await q.not('broker_firm_id', 'is', null).range(f, f + 999)
+      : await q.eq('source', 'founder-personal').range(f, f + 999);
     rows.push(...(data || [])); if (!data || data.length < 1000) break;
   }
   rows = rows.filter((r) => r.email && (r.mv_status === 'ok' || r.bounceban_status === 'deliverable'));
@@ -342,12 +346,12 @@ export const handler = async (event) => {
     (c || []).forEach((x) => contacted.add(lc(x.email)));
   }
   rows = rows.filter((r) => !supp.has(lc(r.email)) && !queued.has(lc(r.email)) && !contacted.has(lc(r.email)));
-  // one contact per firm per day (spread the courtship), then priority order
+  // one contact per firm/company per day (spread the courtship), then priority order
   rows.sort((a, b) => (a.broker_priority_rank ?? 9e9) - (b.broker_priority_rank ?? 9e9));
   const seenFirm = new Set(); const targets = [];
   for (const r of rows) {
     if (targets.length >= max) break;
-    const fid = r.broker_firm_id;
+    const fid = r.broker_firm_id || lc(r.company) || lc(r.email);
     if (seenFirm.has(fid)) continue;
     seenFirm.add(fid); targets.push(r);
   }
