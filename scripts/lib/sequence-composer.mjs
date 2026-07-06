@@ -39,8 +39,8 @@ function blueprintInstructions() {
     const subj = b.subjectVariants > 1 ? `${b.subjectVariants} DISTINCT subject lines (A/B)` : '1 subject line';
     let extra = '';
     if (b.mustBeBump) extra = ` This is a PURE BUMP — NO proof point, NO new pitch. Match this shape exactly in spirit: "${E2_REFERENCE}".`;
-    if (b.step === 1) extra = ' Lead with the problem, then one pillar (actually-used). Personalize with a merge tag.';
-    if (b.step === 3) extra = ' Differentiate on the v3 lead: one vendor for your whole team, in office AND remote (breadth from one team, including virtual for remote/hybrid). Grooming/headshots only as a brief "we even do X" menu aside, NEVER the lead. The one allowed link goes here.';
+    if (b.step === 1) extra = ' Lead with the problem, then one pillar (actually-used). Personalize with a merge tag. Massage-led; name concrete services. NEVER mention remote, virtual, or hybrid in E1 (that is E3\'s objection-handler, not the acquisition lead). First sentence: one clear human sentence (or a question) that names wellness — no comma-spliced lists.';
+    if (b.step === 3) extra = ' Differentiate on the v3 lead: one vendor for your whole team, in office AND remote (breadth from one team, including virtual for remote/hybrid). Grooming/headshots only as a brief "we even do X" menu aside, NEVER the lead. EXACTLY ONE link in this email and in the whole sequence — never two URLs. Name concrete services (standalone rule).';
     if (b.step === 4) extra = ' Soft close / graceful breakup. Easy out, no pressure.';
     return `  E${b.step} (send day +${b.delayDays}, ~${b.words[0]}-${b.words[1]} words, ${subj}, ${links}): ${b.role}.${extra}`;
   });
@@ -63,7 +63,9 @@ function buildSystemPrompt({ channel = 'direct', seasonal = false, winningTempla
     winners ? `MEASURED WINNERS (what historically earned replies for this profile — match the rhythm, do NOT copy):\n${winners}` : '',
     '',
     'OUTPUT: strict JSON only, no prose, no code fences. Plain text bodies with \\n line breaks (no HTML). Shape:',
-    '{ "steps": [ { "step": 1, "delayDays": 0, "subjects": ["..", ".."], "body": ".." }, { "step": 2, "delayDays": 3, "subjects": [".."], "body": ".." }, { "step": 3, "delayDays": 4, "subjects": [".."], "body": ".." }, { "step": 4, "delayDays": 5, "subjects": [".."], "body": ".." } ] }',
+    '{ "steps": [ { "step": 1, "delayDays": 0, "subjects": ["..", ".."], "body": ".." }, { "step": 2, "delayDays": 3, "subjects": [""], "body": ".." }, { "step": 3, "delayDays": 4, "subjects": [""], "body": ".." }, { "step": 4, "delayDays": 5, "subjects": [""], "body": ".." } ] }',
+    '',
+    'FINAL HARD CONSTRAINTS (these override EVERYTHING above, including the positioning): (1) E1 subjects and body must contain NONE of these words: remote, virtual, hybrid, distributed — the whole-team-wherever-they-work story lives in E3 ONLY. (2) E2/E3/E4 subjects are exactly "" (threaded). (3) At most ONE URL in the entire sequence, in E3. (4) No word from the banned list anywhere.',
   ].filter((x) => x !== '').join('\n');
 }
 
@@ -84,13 +86,13 @@ function parseJSON(text) {
  * @param {boolean} [a.seasonal]
  * @param {string} [a.model]
  */
-export async function composeSequence({ anthropic, segment, belief, winningTemplates = [], channel = 'direct', seasonal = false, model = DEFAULT_MODEL }) {
+export async function composeSequence({ anthropic, segment, belief, winningTemplates = [], channel = 'direct', seasonal = false, model = DEFAULT_MODEL, evalSegment = 'direct', evalOpener = '' }) {
   if (!anthropic) throw new Error('composeSequence: anthropic client required');
   const system = buildSystemPrompt({ channel, seasonal, winningTemplates });
   const baseUser = `Compose the 4-step sequence for this target segment: ${segment || 'mid-market HR / office managers'}.`;
 
   let lastSteps = null; let lastEval = null;
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
     const userContent = attempt === 1
       ? baseUser
       : `${baseUser}\n\nYour previous draft FAILED the copy check. Fix every issue and re-output the full JSON:\n${lastEval.violations.map((x) => `  - E${x.step} ${x.rule}: ${x.detail}`).join('\n')}`;
@@ -102,10 +104,10 @@ export async function composeSequence({ anthropic, segment, belief, winningTempl
     let parsed;
     try { parsed = parseJSON(text); } catch (e) { lastEval = { verdict: 'reject', violations: [{ step: 0, rule: 'parse', detail: e.message }] }; continue; }
     lastSteps = parsed.steps || [];
-    lastEval = evaluateCopy({ steps: lastSteps }, { seasonal });
+    lastEval = evaluateCopy({ steps: lastSteps }, { seasonal, segment: evalSegment, opener: evalOpener });
     if (lastEval.verdict === 'pass') return { steps: lastSteps, verdict: 'pass', violations: [], warnings: lastEval.warnings, attempts: attempt };
   }
-  return { steps: lastSteps, verdict: 'reject', violations: lastEval.violations, warnings: lastEval.warnings || [], attempts: 2 };
+  return { steps: lastSteps, verdict: 'reject', violations: lastEval.violations, warnings: lastEval.warnings || [], attempts: 3 };
 }
 
 // Plain text → the minimal HTML Smartlead expects.

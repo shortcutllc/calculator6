@@ -43,7 +43,7 @@ const log = (...a) => console.log(`[${new Date().toISOString().slice(11, 19)}]`,
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
 
   log(`COMPOSE: ${SEGMENT}/${OPENER}${NOTE ? ` — ${NOTE}` : ''}`);
-  const composed = await composeSequence({ anthropic, segment: `${SEGMENT} cold outreach, ${OPENER} opener angle`, channel: SEGMENT === 'broker' ? 'broker' : 'direct' });
+  const composed = await composeSequence({ anthropic, segment: `${SEGMENT} cold outreach, ${OPENER} opener angle`, channel: SEGMENT === 'broker' ? 'broker' : 'direct', evalSegment: SEGMENT, evalOpener: OPENER });
   if (composed.verdict !== 'pass') {
     console.error(`COMPOSER FAILED ITS OWN GATE after retry — not saved. Violations:\n${composed.violations.map((x) => `  E${x.step} ${x.rule}: ${x.detail}`).join('\n')}`);
     process.exit(1);
