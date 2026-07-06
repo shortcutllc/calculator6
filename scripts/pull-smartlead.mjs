@@ -88,12 +88,23 @@ async function upsert(table, rows, conflict) {
 (async () => {
   log(`${DRY ? 'DRY' : 'LIVE'} — window: ${FULL ? 'FULL history' : `last ${DAYS} days`}`);
   const all = await api('/campaigns');
-  // Scan ALL campaigns regardless of status — recent cold sends/replies live
-  // in COMPLETED campaigns (a finished sequence = COMPLETED). The 30-day
-  // ROW-level date filter is the real "recent only" gate; campaign status /
-  // updated_at are not reliable proxies (verified: 129/130 "updated" <35d).
-  const campaigns = Array.isArray(all) ? all : all.data || [];
-  log(`${campaigns.length} campaigns to scan (status-agnostic; ${FULL ? 'FULL history' : `last ${DAYS}d row filter`})`);
+  const allCampaigns = Array.isArray(all) ? all : all.data || [];
+  // CAMPAIGN-level scope (Will, 2026-07-06): don't sweep statistics for every
+  // historical campaign — a 2023 COMPLETED campaign cannot produce last-30-day
+  // rows, and the all-133 sweep cost ~12 min/run. Keep a campaign iff:
+  //   - status is live-ish (ACTIVE/START/PAUSED/DRAFTED — DRAFTED so a draft's
+  //     stats appear the moment Will clicks Start), OR
+  //   - created within --campaign-months (default 6) — recent COMPLETEDs still
+  //     carry in-window sends/replies (a finished sequence = COMPLETED).
+  // --full still scans everything (lifetime backfill mode).
+  const LIVE_STATUS = new Set(['ACTIVE', 'START', 'STARTED', 'PAUSED', 'DRAFTED']);
+  const mi = process.argv.indexOf('--campaign-months');
+  const CAMPAIGN_MONTHS = mi >= 0 && process.argv[mi + 1] ? parseInt(process.argv[mi + 1], 10) : 6;
+  const cutoff = Date.now() - CAMPAIGN_MONTHS * 30.44 * 86400000;
+  const campaigns = FULL ? allCampaigns : allCampaigns.filter((c) =>
+    LIVE_STATUS.has(String(c.status || '').toUpperCase())
+    || (c.created_at && new Date(c.created_at).getTime() >= cutoff));
+  log(`${campaigns.length}/${allCampaigns.length} campaigns to scan (${FULL ? 'FULL history' : `live-status or created <${CAMPAIGN_MONTHS}mo; last ${DAYS}d row filter`})`);
 
   // Smartlead /statistics returns ONE ROW PER SEQUENCE STEP, so a lead recurs
   // many times per campaign. Dedupe by the table's conflict key BEFORE upsert
