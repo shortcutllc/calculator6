@@ -92,7 +92,21 @@ async function apollo(path, bodyObj) {
 }
 const mvVerify = async (email) => { try { const r = await fetch(`https://api.millionverifier.com/api/v3/?api=${MV}&email=${encodeURIComponent(email)}&timeout=20`); const j = await r.json(); return (j.result || 'unknown').toLowerCase(); } catch { return 'unknown'; } };
 async function readAll(t, c) { const o = []; for (let f = 0; ; f += 1000) { const { data, error } = await sb.from(t).select(c).range(f, f + 999); if (error) throw new Error(error.message); o.push(...data); if (data.length < 1000) break; } return o; }
-async function upsert(table, rows, conflict) { for (let i = 0; i < rows.length; i += 200) { const { error } = await sb.from(table).upsert(rows.slice(i, i + 200), { onConflict: conflict, ignoreDuplicates: false }); if (error) log(`  ${table} warn: ${error.message}`); } }
+// Returns the count actually written; a failed chunk is LOUD (learned Jul 6 2026:
+// warn-only upserts let a wholly-failed write report "49 added" while writing 0).
+async function upsert(table, rows, conflict) {
+  let written = 0;
+  for (let i = 0; i < rows.length; i += 200) {
+    const chunk = rows.slice(i, i + 200);
+    const { error } = await sb.from(table).upsert(chunk, { onConflict: conflict, ignoreDuplicates: false });
+    if (error) log(`  ${table} UPSERT FAILED (${chunk.length} rows): ${error.message}`);
+    else written += chunk.length;
+  }
+  return written;
+}
+// Dedupe by key, keeping the LAST occurrence (same person on two Apollo pages
+// poisons the whole upsert chunk: "ON CONFLICT DO UPDATE cannot affect row twice").
+const dedupeBy = (rows, keyFn) => [...new Map(rows.map((r) => [keyFn(r), r])).values()];
 
 (async () => {
   if (!APOLLO) { console.error('MISSING APOLLO_API_KEY'); process.exit(2); }
@@ -117,7 +131,7 @@ async function upsert(table, rows, conflict) { for (let i = 0; i < rows.length; 
     log(`  page ${page}: +${(j.people || []).length} (pool ${total})`);
     if ((j.people || []).length < 100) break;
   }
-  const techish = candidates.filter((c) => !c.industry || TECH_INDUSTRY_RE.test(c.industry));
+  const techish = dedupeBy(candidates.filter((c) => !c.industry || TECH_INDUSTRY_RE.test(c.industry)), (c) => c.id);
   const fresh = techish.filter((c) => !cacheIds.has(c.id) && c.hasEmail);
   log(`fetched ${candidates.length} · tech-ish ${techish.length} · net-new enrichable ${fresh.length}`);
   if (!ENRICH || !CONFIRM) { log(`PREVIEW ONLY (0 credits). Enrich with: --enrich --max ${Math.min(fresh.length, 50)} --confirm`); return; }
@@ -160,8 +174,8 @@ async function upsert(table, rows, conflict) { for (let i = 0; i < rows.length; 
     });
     await sleep(120);
   }
-  if (cacheRows.length) await upsert('apollo_person_cache', cacheRows, 'apollo_contact_id');
-  if (contactRows.length) await upsert('outreach_contacts', contactRows, 'email');
-  log(`DONE — spent ~${toEnrich.length} Apollo credits · gated ${JSON.stringify(gated)} · ${contactRows.length} founder-personal targets added (channel=personal, cold engine can never touch them).`);
+  const cachedN = cacheRows.length ? await upsert('apollo_person_cache', dedupeBy(cacheRows, (r) => r.apollo_contact_id), 'apollo_contact_id') : 0;
+  const addedN = contactRows.length ? await upsert('outreach_contacts', dedupeBy(contactRows, (r) => r.email), 'email') : 0;
+  log(`DONE — spent ~${toEnrich.length} Apollo credits · gated ${JSON.stringify(gated)} · ${addedN} founder-personal targets WRITTEN (of ${contactRows.length} built; cache ${cachedN}). channel=personal, cold engine can never touch them.`);
   log('Next: rank by funding recency via org enrichment, then they feed the founder queue (audience: tech-execs).');
 })().catch((e) => { console.error('FOUNDER_TARGETS_ERROR:', e.message); process.exit(1); });
