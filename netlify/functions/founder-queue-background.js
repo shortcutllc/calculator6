@@ -339,7 +339,7 @@ export const handler = async (event) => {
   let rows = [];
   for (let f = 0; ; f += 1000) {
     const q = sb.from('outreach_contacts')
-      .select('email, name, title, company, location, mv_status, bounceban_status, broker_firm_id, broker_priority_rank, channel, source');
+      .select('email, name, title, company, location, mv_status, bounceban_status, broker_firm_id, broker_priority_rank, channel, source, linkedin_url');
     const { data } = audience === 'brokers'
       ? await q.not('broker_firm_id', 'is', null).range(f, f + 999)
       : await q.eq('source', 'founder-personal').range(f, f + 999);
@@ -440,6 +440,7 @@ export const handler = async (event) => {
         target_kind: 'founder_note',
         target_ref: {
           audience, cta_variant: ctaVariant, firm: firm?.display_name || null, tier: firm?.tier || null,
+          linkedin_url: t.linkedin_url || null,
           research_note: note.research_note, linkedin_step: note.linkedin_step,
           rep_email: WILL, thread_id: null, gmail_draft_id: gmailDraftId, gmail_message_id: gmailMessageId,
           all_directions: [{ label: 'founder', subject: note.subject, body: note.body }],
@@ -457,8 +458,12 @@ export const handler = async (event) => {
           `*LinkedIn today:* ${note.linkedin_step}`,
           `*CTA variant:* ${ctaVariant}`,
         ].filter(Boolean).join('\n') } };
+        // LinkedIn people-search fallback keeps the button useful if a contact
+        // ever lands without a stored profile URL (all 231 current ones have it).
+        const linkedinUrl = t.linkedin_url
+          || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${t.name || ''} ${firm?.display_name || t.company || ''}`.trim())}`;
         const preview = buildDraftPreviewBlocks(
-          { who, email: lc(t.email), draftId: saved.id, threadId: null, repEmail: WILL, signatureText: null, gmailDraftId, gmailMessageId },
+          { who, email: lc(t.email), draftId: saved.id, threadId: null, repEmail: WILL, signatureText: null, gmailDraftId, gmailMessageId, linkedinUrl, hideEditInBrowser: true },
           { label: 'founder', subject: note.subject, body: note.body }, null,
         );
         await slackPost('chat.postMessage', { channel, text: `Founder note ready: ${who}`, blocks: [{ type: 'divider' }, context, ...preview], unfurl_links: false, unfurl_media: false });

@@ -345,8 +345,14 @@ export function buildDraftPreviewBlocks(ctx, draft, fightFor) {
       deny: { type: 'plain_text', text: 'Cancel' },
     }),
     ...(openInGmailUrl ? [urlBtn('Open in Gmail', openInGmailUrl)] : []),
+    // ctx.linkedinUrl → LinkedIn button so the sender can pair the email with a
+    // connection request (Will 2026-07-06, founder queue). Founder cards also drop
+    // "Edit in browser" (ctx.hideEditInBrowser) — founder notes never enter the
+    // follow-ups view that URL opens, so for them it was a dead end. Rep-digest
+    // and graduation cards keep it (their drafts DO live in follow-ups).
+    ...(ctx.linkedinUrl ? [urlBtn('Open LinkedIn', ctx.linkedinUrl)] : []),
     actionBtn('Show other angles', `show_angles:${ctx.draftId}`, ctx.draftId),
-    urlBtn('Edit in browser', `${SI_URL_BASE}?lead=${encodeURIComponent(ctx.email)}&draft=${encodeURIComponent(ctx.draftId)}#followups`),
+    ...(ctx.hideEditInBrowser ? [] : [urlBtn('Edit in browser', `${SI_URL_BASE}?lead=${encodeURIComponent(ctx.email)}&draft=${encodeURIComponent(ctx.draftId)}#followups`)]),
     actionBtn('Cancel', `cancel_draft:${ctx.draftId}`, ctx.draftId, 'danger'),
   ];
   blocks.push({ type: 'actions', elements: actions });

@@ -58,7 +58,10 @@ const mvVerify = async (email) => { try { const r = await fetch(`https://api.mil
   // scope
   if (PLAYB) { const pb = await readAll('crm_play_b', 'contact_email'); const inPB = new Set(pb.map((r) => lc(r.contact_email)).filter(Boolean)); rows = rows.filter((r) => inPB.has(lc(r.email))); }
   else if (SOURCE) rows = rows.filter((r) => (r.source || '') === SOURCE);
-  else if (!ALL) rows = rows.filter((r) => (r.source || '').startsWith('apollo-leadgen'));
+  // Default scope covers the cold pool AND the founder personal lane (Will 2026-07-06:
+  // founder-lane emails are zero-tolerance on verification, but 'founder-personal' and
+  // 'broker_gtm_apollo' were invisible to the Monday cron — 33 tech-exec catch-alls parked).
+  else if (!ALL) rows = rows.filter((r) => (r.source || '').startsWith('apollo-leadgen') || r.source === 'founder-personal' || r.source === 'broker_gtm_apollo');
   if (NETNEW) { const sends = await readAll('outreach_sends', 'email'); const contacted = new Set(sends.map((s) => lc(s.email))); rows = rows.filter((r) => !contacted.has(lc(r.email)) && !r.in_campaign && r.channel !== 'personal'); }
   const supp = new Set((await readAll('crm_suppression', 'email')).map((r) => lc(r.email)));
   rows = rows.filter((r) => !supp.has(lc(r.email))).slice(0, MAX);
