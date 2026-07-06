@@ -405,12 +405,17 @@ export const handler = async (event) => {
       const ctaVariant = ['help', 'convo'].includes(body.cta) ? body.cta
         : (targets.indexOf(t) % 2 === 0) ? 'help' : 'convo';
       let note = await draftNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant });
-      // GATE: deterministic guards -> revise-once on violation (guard throws used
-      // to skip the lead outright with no revision and no visibility)
+      // GATE: deterministic guards -> up to TWO revisions on violation (one wasn't
+      // enough in practice: Jul 6, a chunky paragraph survived the first revise
+      // and the lead skipped; the second attempt gets both failure messages)
       try { guardNote(note, audience); } catch (ge) {
         console.error(`guard hit for ${t.email}: ${ge.message} — revising`);
         note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead: t, firm, ctaVariant });
-        guardNote(note, audience);
+        try { guardNote(note, audience); } catch (ge2) {
+          console.error(`guard hit again for ${t.email}: ${ge2.message} — second revision`);
+          note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead: t, firm, ctaVariant });
+          guardNote(note, audience);
+        }
       }
       // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator)
       const review = await critiqueNote(anthropic, note, audience, ctaVariant);
