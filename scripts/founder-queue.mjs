@@ -24,13 +24,14 @@ const MAX = Math.max(1, Math.min(15, parseInt(val('--max', '5'), 10) || 5));
 const ONLY = val('--only', null);
 const CTA = val('--cta', null); // 'help' | 'convo' — pin the A/B variant (for --only redrafts)
 const AUDIENCE = val('--audience', null); // 'brokers' (default) | 'tech-execs' (founder-personal cohort)
+const TRIGGER = val('--trigger', null);   // verified why-now from tech-scout (use with --only)
 const URL = (process.env.FOUNDER_QUEUE_URL || 'https://proposals.getshortcut.co/.netlify/functions/founder-queue-background').trim();
 const WILL = 'will@getshortcut.co';
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 
 (async () => {
   if (CONFIRM) {
-    const r = await fetch(URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: MAX, ...(ONLY ? { only: ONLY } : {}), ...(CTA ? { cta: CTA } : {}), ...(AUDIENCE ? { audience: AUDIENCE } : {}) }) });
+    const r = await fetch(URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: MAX, ...(ONLY ? { only: ONLY } : {}), ...(CTA ? { cta: CTA } : {}), ...(AUDIENCE ? { audience: AUDIENCE } : {}), ...(TRIGGER ? { trigger: TRIGGER } : {}) }) });
     console.log(`founder-queue → HTTP ${r.status}${r.status === 202 ? ' (accepted — background). Watch Slack: one card per lead, Gmail drafts in will@. ~1 min per lead.' : ''}`);
     if (r.status !== 202 && r.status !== 200) console.log((await r.text()).slice(0, 300));
     return;

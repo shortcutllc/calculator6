@@ -138,7 +138,8 @@ ${ctaVariant === 'convo'
 LANGUAGE: never call employers "groups" (insurance jargon Will does not use) — say clients, companies, or partners.
 STRUCTURE (hard): 4 to 5 SHORT paragraphs separated by blank lines, each carrying ONE idea in at most two sentences. The Burberry receipt is ALWAYS its own one-sentence paragraph. If research produced a personal observation, it must connect to the fund thread within a sentence — an unconnected compliment reads as bolted-on research; if it cannot connect naturally, drop it and use the firm or metro angle instead.
 NEVER: say "partnership", mention referral fees/revenue/compensation (first touch is comp-free, always), ask for referrals outright, or pitch Shortcut as the point — the point is making THEM look good to their clients.`
-    : `AUDIENCE: executive (CEO/COO/CHRO/Head of People) at an emerging tech company (~100-500 people). Founder-to-founder framing: Will also runs a company, he knows the stage they're at. THE MOMENT is the observation — tie the note to what they're living through right now (just raised and hiring fast, RTO push, office move, first People hire, trying to make the office worth the commute). The same OBSERVATION BAR applies: the trigger must be real and checkable; a fundraise or job posting IS the thread, an abstract "saw you value culture" is not.
+    : `AUDIENCE: the wellness owner at an emerging tech company (~100-250 people, usually just crossed 100) — could be a People leader, Workplace/Office manager, Chief of Staff, EA, COO, or the CEO. Founder-to-founder framing: Will also runs a company, he knows the stage they're at. THE MOMENT is the observation — tie the note to what they're living through right now (just raised and hiring fast, RTO push, office move, first People hire, trying to make the office worth the commute). The same OBSERVATION BAR applies: the trigger must be real and checkable; a fundraise or job posting IS the thread, an abstract "saw you value culture" is not.
+If the prospect JSON has a why_now_trigger, it is VERIFIED (harvested with an evidence URL) — anchor the note's moment on it and skip inventing a different angle; your web searches then just add color. The honest evidence-backed frame for this stage: companies usually stand up their first real People function right around 100 employees, and that is when someone finally owns making the office worth coming to. Never claim they have wellness budget; a raise is a growth signal, not a budget claim.
 WHAT SHORTCUT IS FOR THEM: wellness days in the office people actually book — chair massage, mindfulness, that kind of thing (full menu includes nails, facials, headshots). Over 90% of slots get booked when we run a day. Use ONE proof point maximum (500+ companies, 87% rebook, or BCG/DraftKings at every US office).
 THE ASK: an interest question, never a meeting ask ("Worth a look for {company}?", "Is this on your radar for the office push?"). No calendar link, no "15 minutes".`}
 
@@ -154,13 +155,18 @@ const NON_FUND_SERVICES_RE = /\b(nails?|manicures?|facials?|headshots?|grooming|
 // truth is CLIENT conversations. Reject drafts that fabricate broker relationships.
 const FAKE_BROKER_EXPERIENCE_RE = /\b(keep )?(running into|talk(ing)? (to|with)|hear(ing)? from|work(ing)? with) (a lot of |many |other )?brokers\b|\bbrokers (tell|keep telling) me\b/i;
 
-async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant }) {
+async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger }) {
   const userContent = [
     'THE PERSON (JSON, trusted):',
     JSON.stringify({
       name: lead.name, title: lead.title, company: lead.company,
       location: lead.location || null,
       firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null, nyc_presence: firm?.nyc_presence ?? null,
+      // why_now_trigger comes from the tech-scout signal harvest — it is VERIFIED
+      // (funding announcement / first-People-hire posting / growth signal with an
+      // evidence URL), so it satisfies the observation bar and should anchor the
+      // note's moment. Still phrase honestly; do not embellish beyond the fact.
+      why_now_trigger: trigger || null,
     }, null, 2),
     '',
     'Research them (person first, then firm), then call report_note once with the note in Will\'s voice.',
@@ -288,7 +294,7 @@ Report via report_review, one issue string per failed item.`;
 }
 
 // One revision attempt with the skeptic's issues fed back (retry-once, like the composer).
-async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant }) {
+async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger }) {
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
     system: voiceSystem(exemplars, audience, ctaVariant),
@@ -301,7 +307,7 @@ async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, 
       `PREVIOUS DRAFT:\nSubject: ${note.subject}\n\n${note.body}`,
       '',
       'THE PERSON (JSON):',
-      JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, location: lead.location || null, firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null }, null, 2),
+      JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, location: lead.location || null, firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null, why_now_trigger: trigger || null }, null, 2),
     ].join('\n') }],
   });
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
@@ -325,6 +331,9 @@ export const handler = async (event) => {
   const dryRun = !!body.dryRun;
   const only = lc(body.only) || null;
   const audience = body.audience || 'brokers';
+  // verified why-now from the tech-scout harvest (only meaningful with `only`
+  // since it describes one lead's company)
+  const trigger = typeof body.trigger === 'string' && body.trigger.trim() ? body.trigger.trim().slice(0, 300) : null;
 
   // Will's account (Slack + Gmail + user id).
   const { data: acct } = await sb.from('gmail_accounts')
@@ -404,23 +413,23 @@ export const handler = async (event) => {
       // body.cta overrides (used by --only redrafts to keep the A/B assignment).
       const ctaVariant = ['help', 'convo'].includes(body.cta) ? body.cta
         : (targets.indexOf(t) % 2 === 0) ? 'help' : 'convo';
-      let note = await draftNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant });
+      let note = await draftNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger });
       // GATE: deterministic guards -> up to TWO revisions on violation (one wasn't
       // enough in practice: Jul 6, a chunky paragraph survived the first revise
       // and the lead skipped; the second attempt gets both failure messages)
       try { guardNote(note, audience); } catch (ge) {
         console.error(`guard hit for ${t.email}: ${ge.message} — revising`);
-        note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead: t, firm, ctaVariant });
+        note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead: t, firm, ctaVariant, trigger });
         try { guardNote(note, audience); } catch (ge2) {
           console.error(`guard hit again for ${t.email}: ${ge2.message} — second revision`);
-          note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead: t, firm, ctaVariant });
+          note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead: t, firm, ctaVariant, trigger });
           guardNote(note, audience);
         }
       }
       // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator)
       const review = await critiqueNote(anthropic, note, audience, ctaVariant);
       if (!review.pass && review.issues.length) {
-        note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead: t, firm, ctaVariant });
+        note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead: t, firm, ctaVariant, trigger });
         guardNote(note, audience);
       }
 
@@ -441,6 +450,7 @@ export const handler = async (event) => {
         target_ref: {
           audience, cta_variant: ctaVariant, firm: firm?.display_name || null, tier: firm?.tier || null,
           linkedin_url: t.linkedin_url || null,
+          trigger: trigger || null,
           research_note: note.research_note, linkedin_step: note.linkedin_step,
           rep_email: WILL, thread_id: null, gmail_draft_id: gmailDraftId, gmail_message_id: gmailMessageId,
           all_directions: [{ label: 'founder', subject: note.subject, body: note.body }],

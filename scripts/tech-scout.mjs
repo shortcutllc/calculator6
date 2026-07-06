@@ -1,0 +1,196 @@
+/**
+ * tech-scout.mjs — the "SDR" for the founder tech-exec lane (v1 test, 2026-07-06).
+ * See memory/tech_exec_targeting.md (v2: company-first, Apollo = enrichment only).
+ *
+ * INPUT: a candidates JSON (from the signal harvest — funding announcements,
+ * first-People-hire postings, growth lists), each entry:
+ *   { company, domain?, trigger_type, trigger, evidence_url, est_size_hint? }
+ *
+ * PER CANDIDATE:
+ *   1. resolve domain (free Apollo org search by name if missing)
+ *   2. org-enrich by domain (1 credit) → headcount, industry, city, funding, growth
+ *   3. QUALIFY: headcount 60-280 (crossing ~100 window) · tech-ish · NYC presence
+ *      (org HQ or the trigger evidence is NYC-scoped) · not client/suppressed/known
+ *   4. BUYER ID: free people search pinned to the domain with the BROAD wellness-
+ *      owner cluster (never pigeonholed to one title — Will 2026-07-06); rank
+ *      dedicated People/Workplace owner → CoS/EA/OfficeMgr → COO/CEO; pick top 1.
+ *   5. enrich that person (1 credit) + email_status gate + inline MV →
+ *      outreach_contacts (source='founder-personal', channel='personal')
+ *   6. ledger entry in prime_targets.json (domain-keyed, idempotent) with the
+ *      why-now trigger — the founder queue sends it via POST `trigger`.
+ *
+ * Dry by default (0 credits: skips org-enrich unless cached). --confirm spends.
+ *   node scripts/tech-scout.mjs --candidates tech_scout_candidates.json
+ *   node scripts/tech-scout.mjs --candidates tech_scout_candidates.json --confirm --max-orgs 30
+ */
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { createClient } from '@supabase/supabase-js';
+
+const ROOT = '/Users/willnewton/Documents/GitHub/calculator6';
+const LEDGER = `${ROOT}/prime_targets.json`;
+const args = process.argv.slice(2);
+const has = (f) => args.includes(f);
+const val = (f, d) => { const i = args.indexOf(f); return i !== -1 && args[i + 1] ? args[i + 1] : d; };
+const CONFIRM = has('--confirm');
+const CAND_PATH = val('--candidates', `${ROOT}/tech_scout_candidates.json`);
+const MAX_ORGS = parseInt(val('--max-orgs', '30'), 10) || 30;
+
+const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
+const envKey = (n) => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').match(new RegExp(`^${n}=(.+)$`, 'm'))?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } };
+const APOLLO = process.env.APOLLO_API_KEY || envKey('APOLLO_API_KEY');
+const MV = process.env.MILLIONVERIFIER_API_KEY || envKey('MILLIONVERIFIER_API_KEY');
+const sb = createClient((process.env.SUPABASE_URL || '').trim(), (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim(), { auth: { persistSession: false } });
+const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
+const log = (...a) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...a);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const cleanDom = (d) => String(d || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].trim() || null;
+
+async function apollo(path, bodyObj) {
+  for (let a = 0; ; a += 1) {
+    const r = await fetch(`https://api.apollo.io/api/v1/${path}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO },
+      body: JSON.stringify(bodyObj),
+    });
+    if (r.status === 429 && a < 5) { await sleep(2000 * 2 ** a); continue; }
+    if (!r.ok) throw new Error(`${path} ${r.status}`);
+    return r.json();
+  }
+}
+const mvVerify = async (email) => { try { const r = await fetch(`https://api.millionverifier.com/api/v3/?api=${MV}&email=${encodeURIComponent(email)}&timeout=20`); const j = await r.json(); return (j.result || 'unknown').toLowerCase(); } catch { return 'unknown'; } };
+async function readAll(t, c) { const o = []; for (let f = 0; ; f += 1000) { const { data, error } = await sb.from(t).select(c).range(f, f + 999); if (error) throw new Error(error.message); o.push(...data); if (data.length < 1000) break; } return o; }
+
+// tech-ish gate — same coarse cluster as find-founder-targets, plus keyword rescue
+const TECH_INDUSTRY_RE = /software|internet|information technology|computer|fintech|financial services|biotech|artificial intelligence|saas|e-?learning|health.*tech|marketing & advertising/i;
+const TECH_KEYWORD_RE = /\b(saas|software|platform|api|ai|machine learning|fintech|developer|cloud|data|app)\b/i;
+
+// The BROAD buyer cluster, ranked (Will 2026-07-06: company-first, never one title).
+// Each tier: regex + rank. First match wins the contact-pick; lower rank = better.
+const BUYER_TIERS = [
+  { rank: 1, label: 'people-owner', re: /\b(chief people|chro|head of people|vp,? (of )?people|people operations|people ops|director,? (of )?people|head of hr|vp,? (of )?hr|human resources (director|lead|manager)|head of talent)\b/i },
+  { rank: 2, label: 'workplace-owner', re: /\b(workplace experience|employee experience|office (manager|operations|experience)|workplace (manager|operations|lead)|facilities (manager|director))\b/i },
+  { rank: 3, label: 'cos-ea', re: /\b(chief of staff|executive assistant|ea to)\b/i },
+  { rank: 4, label: 'exec-door', re: /\b(chief operating officer|coo|chief executive officer|ceo|co-?founder|founder)\b/i },
+];
+const buyerTier = (title) => { for (const t of BUYER_TIERS) if (t.re.test(title || '')) return t; return null; };
+const BUYER_SEARCH_TITLES = [
+  'Head of People', 'VP of People', 'Chief People Officer', 'People Operations', 'Director of People', 'Head of HR', 'Head of Talent',
+  'Workplace Experience', 'Employee Experience', 'Office Manager', 'Workplace Operations',
+  'Chief of Staff', 'Executive Assistant',
+  'Chief Operating Officer', 'COO', 'Chief Executive Officer', 'CEO', 'Founder', 'Co-Founder',
+];
+
+(async () => {
+  if (!APOLLO) { console.error('MISSING APOLLO_API_KEY'); process.exit(2); }
+  if (!existsSync(CAND_PATH)) { console.error(`no candidates file at ${CAND_PATH}`); process.exit(2); }
+  const candidates = JSON.parse(readFileSync(CAND_PATH, 'utf8'));
+  const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
+  log(`TECH SCOUT — ${candidates.length} candidates · ${CONFIRM ? 'LIVE (spends credits)' : 'DRY'} · max-orgs ${MAX_ORGS}`);
+
+  // known-universe guards
+  const knownEmails = new Set((await readAll('outreach_contacts', 'email')).map((r) => lc(r.email)));
+  const knownCompanies = new Set((await readAll('outreach_contacts', 'email_domain, source'))
+    .filter((r) => r.source === 'founder-personal').map((r) => lc(r.email_domain)));
+  const supp = new Set((await readAll('crm_suppression', 'email')).map((r) => lc(r.email)));
+  const clientDomains = new Set((await readAll('crm_companies', 'primary_domain').catch(() => []))
+    .map((r) => cleanDom(r.primary_domain)).filter(Boolean));
+
+  const results = []; let orgCredits = 0; let personCredits = 0;
+  for (const cand of candidates) {
+    if (orgCredits >= MAX_ORGS) { log('org-credit cap reached — stopping'); break; }
+    const name = String(cand.company || '').trim();
+    if (!name) continue;
+    let domain = cleanDom(cand.domain);
+    try {
+      // 1. resolve domain (free search)
+      if (!domain) {
+        const s = await apollo('mixed_companies/search', { q_organization_name: name, page: 1, per_page: 3 });
+        const hit = (s.organizations || s.accounts || [])[0];
+        domain = cleanDom(hit?.primary_domain || hit?.website_url);
+        if (!domain) { results.push({ company: name, status: 'no_domain' }); continue; }
+      }
+      if (ledger[domain]?.status === 'qualified') { results.push({ company: name, domain, status: 'already_in_ledger' }); continue; }
+      if (clientDomains.has(domain)) { results.push({ company: name, domain, status: 'is_client' }); continue; }
+      if (knownCompanies.has(domain)) { results.push({ company: name, domain, status: 'already_targeted' }); continue; }
+      if (!CONFIRM) { results.push({ company: name, domain, status: 'would_enrich', trigger: cand.trigger }); continue; }
+
+      // 2. org enrich (1 credit)
+      const e = await apollo(`organizations/enrich?domain=${encodeURIComponent(domain)}`, {}).catch(() => null);
+      orgCredits += 1;
+      const o = e?.organization;
+      if (!o) { results.push({ company: name, domain, status: 'org_enrich_miss' }); continue; }
+      const size = o.estimated_num_employees || null;
+      const industry = lc(o.industry) || '';
+      const kw = (o.keywords || []).join(' ');
+      const city = lc([o.city, o.state].filter(Boolean).join(', '));
+      const growth12 = o.organization_headcount_twelve_month_growth ?? null;
+
+      // 3. qualify
+      const sizeOk = size != null && size >= 60 && size <= 280;
+      const techOk = TECH_INDUSTRY_RE.test(industry) || TECH_KEYWORD_RE.test(kw);
+      const nycOk = /new york|brooklyn|nyc/.test(city || '') || /new york|nyc/i.test(`${cand.trigger} ${cand.evidence_url || ''}`);
+      const crossedRecently = size != null && growth12 != null && growth12 > 0 && (size / (1 + growth12)) < 100 && size >= 95;
+      const verdict = sizeOk && techOk && nycOk;
+      const entry = {
+        company: o.name || name, domain, status: verdict ? 'qualified' : 'disqualified',
+        why_not: verdict ? null : [!sizeOk && `size=${size}`, !techOk && `industry=${industry}`, !nycOk && `city=${city}`].filter(Boolean).join(' · '),
+        size, industry, city, growth_12mo: growth12, crossed_recently: crossedRecently,
+        latest_funding_stage: o.latest_funding_stage || null, latest_funding_date: o.latest_funding_round_date || null,
+        trigger_type: cand.trigger_type, trigger: cand.trigger, evidence_url: cand.evidence_url,
+        scouted_at: new Date().toISOString(),
+      };
+      ledger[domain] = entry;
+      if (!verdict) { results.push(entry); continue; }
+
+      // 4. buyer ID (free search, broad cluster)
+      const ps = await apollo('mixed_people/api_search', {
+        q_organization_domains_list: [domain], person_titles: BUYER_SEARCH_TITLES,
+        include_similar_titles: false, page: 1, per_page: 25,
+      });
+      const ranked = (ps.people || [])
+        .map((p) => ({ p, tier: buyerTier(p.title) }))
+        .filter((x) => x.tier && x.p.has_email)
+        .sort((a, b) => a.tier.rank - b.tier.rank);
+      if (!ranked.length) { entry.status = 'qualified_no_buyer_found'; results.push(entry); continue; }
+      const pick = ranked[0];
+
+      // 5. enrich the person (1 credit) + gates
+      const m = await apollo('people/match', { id: String(pick.p.id), reveal_personal_emails: false });
+      personCredits += 1;
+      const person = m.person || {};
+      const email = lc(person.email);
+      const now = new Date().toISOString();
+      entry.buyer = {
+        name: person.name || pick.p.name, title: person.title || pick.p.title, tier: pick.tier.label,
+        email: email || null, linkedin_url: person.linkedin_url || null,
+      };
+      if (!email) { entry.status = 'buyer_no_email'; results.push(entry); continue; }
+      if (person.email_status && !['verified', 'likely to engage', 'likely_to_engage'].includes(lc(person.email_status))) { entry.status = 'buyer_email_unverified'; results.push(entry); continue; }
+      if (knownEmails.has(email) || supp.has(email)) { entry.status = 'buyer_known_or_suppressed'; results.push(entry); continue; }
+      let mv = null;
+      if (MV) { mv = await mvVerify(email); if (mv === 'invalid' || mv === 'disposable') { entry.status = 'buyer_mv_invalid'; results.push(entry); continue; } }
+      const { error: insErr } = await sb.from('outreach_contacts').upsert([{
+        email, email_domain: domain, name: entry.buyer.name, title: entry.buyer.title,
+        company: entry.company, linkedin_url: entry.buyer.linkedin_url, location: city,
+        source: 'founder-personal', channel: 'personal',
+        mv_status: mv, mv_checked_at: mv ? now : null, first_seen: now, ingested_at: now,
+      }], { onConflict: 'email' });
+      entry.status = insErr ? `insert_failed: ${insErr.message}` : 'buyer_landed';
+      entry.buyer.mv_status = mv;
+      results.push(entry);
+      await sleep(150);
+    } catch (err) {
+      results.push({ company: name, domain, status: `error: ${err.message}` });
+    }
+  }
+
+  writeFileSync(LEDGER, JSON.stringify(ledger, null, 2));
+  log(`\n================ SCOUT DIGEST ================`);
+  for (const r of results) {
+    const line = [r.status.toUpperCase().padEnd(24), (r.company || '').padEnd(28), r.size ? `${r.size}pp` : '', r.crossed_recently ? 'CROSSED<12mo' : '', r.buyer ? `→ ${r.buyer.name} (${r.buyer.tier}: ${r.buyer.title})` : '', r.why_not || ''].filter(Boolean).join(' ');
+    console.log('  ' + line);
+  }
+  const landed = results.filter((r) => r.status === 'buyer_landed');
+  log(`candidates ${candidates.length} · org credits ${orgCredits} · person credits ${personCredits} · qualified ${results.filter((r) => String(r.status).startsWith('qualified') || r.status === 'buyer_landed' || String(r.status).startsWith('buyer_')).length} · buyers landed ${landed.length}`);
+  log(`ledger: ${LEDGER}`);
+  if (landed.length) log(`next: node scripts/founder-queue.mjs --confirm --audience tech-execs --only <email> --trigger "<why-now>" per lead (trigger is in the ledger).`);
+})().catch((e) => { console.error('SCOUT_ERROR:', e.message); process.exit(1); });
