@@ -68,13 +68,13 @@ async function api(path) {
   }
 }
 
-async function upsert(table, rows, conflict) {
+async function upsert(table, rows, conflict, { insertOnly = false } = {}) {
   if (!rows.length) return;
   for (let i = 0; i < rows.length; i += 400) {
     const batch = rows.slice(i, i + 400);
     for (let a = 0; ; a += 1) {
       try {
-        const { error } = await sb.from(table).upsert(batch, { onConflict: conflict, ignoreDuplicates: false });
+        const { error } = await sb.from(table).upsert(batch, { onConflict: conflict, ignoreDuplicates: insertOnly });
         if (error) throw new Error(error.message);
         break;
       } catch (e) {
@@ -167,6 +167,9 @@ async function upsert(table, rows, conflict) {
   await upsert('outreach_campaigns', campRows, 'campaign_id');
   await upsert('outreach_contacts', [...cMap.values()], 'email');
   await upsert('outreach_sends', sendRows, 'email,campaign_id');
-  await upsert('outreach_replies', replyRows, 'email,campaign_id,sentiment_source');
+  // INSERT-ONLY: presence rows must never clobber enrichment (reply_content /
+  // reply_sentiment written later by enrich-replies, or manual labels). Before
+  // this flag, every pull re-nulled every in-window reply's classification.
+  await upsert('outreach_replies', replyRows, 'email,campaign_id,sentiment_source', { insertOnly: true });
   log('Pre-flight gate refreshed natively (no openclaw). DONE');
 })().catch((e) => { console.error('PULL_ERROR:', e.message); process.exit(1); });
