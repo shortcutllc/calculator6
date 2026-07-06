@@ -24,6 +24,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchLogoUrl, storeProvidedLogo } from './lib/logo-fetcher.js';
 import { createLandingPage } from './lib/landing-page-assembler.js';
+import { scrapeVisibleLogo } from './create-workhuman-landing-page.js';
 
 const DEFAULT_OWNER = process.env.BOOK_A_CALL_OWNER_EMAIL || 'will@getshortcut.co';
 
@@ -45,7 +46,8 @@ export const handler = async (event) => {
     const max = Number.isFinite(body.max) ? Math.max(1, Math.min(15, body.max)) : 10;
     const { data: pages } = await sb.from('generic_landing_pages')
       .select('id, unique_token, data').gte('created_at', '2026-07-01')
-      .filter('data->>partnerLogoUrl', 'is', null).limit(max);
+      .filter('data->>partnerLogoUrl', 'is', null)
+      .filter('data->>logoAttempted', 'is', null).limit(max);
     const tally = { fixed: 0, nologo: 0, errors: 0 };
     for (const pg of pages || []) {
       const company = pg.data?.partnerName;
@@ -55,15 +57,23 @@ export const handler = async (event) => {
         let domain = null;
         const { data: oc } = await sb.from('outreach_contacts').select('email_domain').ilike('company', company).limit(5);
         if (oc?.length) domain = oc[0].email_domain;
-        const found = await fetchLogoUrl(company, domain);
-        if (!found) { tally.nologo += 1; continue; }
+        let found = await fetchLogoUrl(company, domain);
+        // Brandfetch quota-dead + Clearbit sunset -> keyless homepage scrape
+        // (schema.org / img tags / icons, visibility-gated) as the real fallback.
+        if (!found && domain) { const scraped = await scrapeVisibleLogo(domain); found = scraped?.url || null; }
+        if (!found) {
+          tally.nologo += 1;
+          await sb.from('generic_landing_pages').update({ data: { ...pg.data, logoAttempted: true } }).eq('id', pg.id);
+          continue;
+        }
         const { logoUrl: storedUrl } = await storeProvidedLogo(sb, found, company);
-        await sb.from('generic_landing_pages').update({ data: { ...pg.data, partnerLogoUrl: storedUrl || found } }).eq('id', pg.id);
+        await sb.from('generic_landing_pages').update({ data: { ...pg.data, partnerLogoUrl: storedUrl || found, logoAttempted: true } }).eq('id', pg.id);
         tally.fixed += 1;
       } catch (e) { tally.errors += 1; }
     }
     const { count } = await sb.from('generic_landing_pages').select('id', { count: 'exact', head: true })
-      .gte('created_at', '2026-07-01').filter('data->>partnerLogoUrl', 'is', null);
+      .gte('created_at', '2026-07-01').filter('data->>partnerLogoUrl', 'is', null)
+      .filter('data->>logoAttempted', 'is', null);
     return { statusCode: 200, body: JSON.stringify({ ...tally, remaining: count ?? -1 }) };
   }
 

@@ -404,3 +404,17 @@ export const handler = async (event) => {
     return { statusCode: 500, headers: cors, body: JSON.stringify({ error: e.message }) };
   }
 };
+
+// Exported for the book-a-call relogo path (2026-07-06): the keyless scrape chain
+// (schema.org -> homepage img tags -> icons), each candidate visibility-gated so a
+// white-on-transparent mark never ships to a light header. Brandfetch-independent.
+export async function scrapeVisibleLogo(domain) {
+  if (!domain) return null;
+  for (const f of [getLogoFromSchemaOrg, getLogoFromImgTags, getLogoFromIcon]) {
+    try {
+      const r = await f(domain);
+      if (r?.url && await isLogoVisible(r.url)) return r;
+    } catch { /* next source */ }
+  }
+  return null;
+}
