@@ -182,6 +182,27 @@ async function runReport() {
   const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
   log(`TECH SCOUT — ${candidates.length} candidates · ${CONFIRM ? 'LIVE (spends credits)' : 'DRY'} · max-orgs ${MAX_ORGS}`);
 
+  // SELF-HEAL (Will 2026-07-06: never lose a lead to a failed draft): any buyer
+  // this ledger landed whose founder note never materialized gets re-queued.
+  if (CONFIRM && QUEUE) {
+    const landedBuyers = Object.values(ledger).filter((e) => e.buyer?.email && (e.status === 'buyer_landed' || e.queued));
+    if (landedBuyers.length) {
+      const { data: drafted } = await sb.from('saved_drafts').select('recipient_email').eq('target_kind', 'founder_note');
+      const hasDraft = new Set((drafted || []).map((d) => lc(d.recipient_email)));
+      let healed = 0;
+      for (const e of landedBuyers) {
+        const em = lc(e.buyer.email);
+        if (hasDraft.has(em)) continue;
+        healed += 1;
+        const cta = healed % 2 === 1 ? 'help' : 'convo';
+        const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: em, audience: 'tech-execs', cta, trigger: e.trigger }) });
+        log(`  self-heal: re-queued ${em} (${e.company}) → HTTP ${qr.status}`);
+        await sleep(500);
+      }
+      if (!healed) log('  self-heal: all landed buyers have drafts.');
+    }
+  }
+
   // known-universe guards
   const knownEmails = new Set((await readAll('outreach_contacts', 'email')).map((r) => lc(r.email)));
   const knownCompanies = new Set((await readAll('outreach_contacts', 'email_domain, source'))

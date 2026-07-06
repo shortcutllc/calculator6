@@ -200,7 +200,7 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVarian
     tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   }
   if (!tu) throw new Error('no report_note from drafter');
-  return { ...tu.input, body: normalizeParagraphs(tu.input.body || '') };
+  return { ...tu.input, body: autoSplitParagraphs(normalizeParagraphs(tu.input.body || '')) };
 }
 
 // The model sometimes separates paragraphs with SINGLE newlines; the chunky-
@@ -210,6 +210,25 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVarian
 function normalizeParagraphs(body) {
   if (/\n\s*\n/.test(body)) return body;
   return body.replace(/([.?!])\n(?!\n)(?!Will\s*$)/g, '$1\n\n');
+}
+
+// Structure is an AUTO-FIX, never a lead-killer (Will 2026-07-06: "we shouldn't
+// skip leads because of poor drafting"). Splitting a >2-sentence paragraph at a
+// sentence boundary is pure formatting — zero wording changes — so do it
+// mechanically instead of burning revisions (the old chunky guard caused every
+// skip on Jul 6). Content guards (fabrication, cohort fit, banned words) still block.
+function autoSplitParagraphs(body) {
+  return body.split(/\n\s*\n/).map((para) => {
+    const p = para.trim();
+    // never touch the greeting or the sign-off block
+    if (/^(Hi|Hey|Hello)\b/.test(p) && p.length < 40) return para;
+    if (/(Cheers!|Thanks!)/.test(p)) return para;
+    const sentences = p.match(/[^.!?]+[.!?]+(\s|$)/g) || [];
+    if (sentences.length <= 2) return para;
+    const out = [];
+    for (let i = 0; i < sentences.length; i += 2) out.push(sentences.slice(i, i + 2).join('').trim());
+    return out.join('\n\n');
+  }).join('\n\n');
 }
 
 // Cohort-fit guard (Will 2026-07-06): RTO/commute framing is an established-company
@@ -332,7 +351,7 @@ async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, 
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   if (!tu) throw new Error('revision produced no note');
   // keep the original research trail; the revision only reworks copy
-  return { ...tu.input, body: normalizeParagraphs(tu.input.body || ''), research_note: tu.input.research_note || note.research_note };
+  return { ...tu.input, body: autoSplitParagraphs(normalizeParagraphs(tu.input.body || '')), research_note: tu.input.research_note || note.research_note };
 }
 
 export const handler = async (event) => {
