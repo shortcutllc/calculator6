@@ -16,15 +16,18 @@
 const E1_GENERIC = {
   step: 1, delayDays: 0,
   subjects: ['the part they actually use', 'wellness without the coordination', 'the perk people actually book'],
+  // WILL-APPROVED Jun-26, RESTORED Jul-6 (locked — see feedback_no_ungated_copy:
+  // "approved copy is locked"; the Jun-30 rewrite shipped without re-approval and
+  // Will rejected it on review: comma-spliced opener, problem domain never named).
   body: `{Hi|Hey} {{first_name}},
 
-{Booking the vendors, chasing the RSVPs, running the day, it all lands on someone already busy|Wellness perks are easy to buy and a headache to actually run, and that work lands on someone already busy}.
+{Most companies already pay for wellness their team never uses|Most wellness perks quietly go unused}.
 
-At Shortcut you approve a date and do nothing else. {We handle the booking, the vetted pros, the equipment, and the day itself|We run the booking, the vetted pros, the equipment, and the day}, starting with chair massage and adding nails, facials, and more from one team.
+At Shortcut, we are the part they actually show up for. We turn a conference room into a spa for the day, with {massage, nails, facials, and more|chair massage, nails, facials, and more}, all from one team, and {over 90% of slots booked|90%+ of slots booked}.
 
-{Over 90% of slots get booked|90%+ of slots book}, in a conference room we turn into a spa for the day.
+{You pick a date. We run the rest|We run everything, so all you do is pick a date}.
 
-{Worth a quick overview for {{company_name}}? Just reply and I will send a few details|Open to a few details for {{company_name}}? Just reply and I will share}.
+{Worth a quick chat about {{company_name}}?|Open to sharing a few details for your team?}
 
 {Warmly,|Thanks,}
 %sender-firstname%`,
