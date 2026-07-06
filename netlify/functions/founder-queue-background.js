@@ -139,9 +139,13 @@ LANGUAGE: never call employers "groups" (insurance jargon Will does not use) —
 STRUCTURE (hard): 4 to 5 SHORT paragraphs separated by blank lines, each carrying ONE idea in at most two sentences. The Burberry receipt is ALWAYS its own one-sentence paragraph. If research produced a personal observation, it must connect to the fund thread within a sentence — an unconnected compliment reads as bolted-on research; if it cannot connect naturally, drop it and use the firm or metro angle instead.
 NEVER: say "partnership", mention referral fees/revenue/compensation (first touch is comp-free, always), ask for referrals outright, or pitch Shortcut as the point — the point is making THEM look good to their clients.`
     : `AUDIENCE: the wellness owner at an emerging tech company (~100-250 people, usually just crossed 100) — could be a People leader, Workplace/Office manager, Chief of Staff, EA, COO, or the CEO. Founder-to-founder framing: Will also runs a company, he knows the stage they're at.
-COHORT THESIS (Will 2026-07-06 — write from THIS, never from other cohorts' playbooks): this company is in hypergrowth. Headcount is climbing fast, everyone is stretched, and the culture is forming in real time: what they do in the next year becomes "how we do things here". Their first real People leader either just landed or is being hired, and that person is choosing programs from scratch with nothing entrenched. What resonates: helping the team destress and recharge during the sprint, making people feel genuinely taken care of while everything is moving fast, and culture moments people remember, all with zero lift for a stretched (or not-yet-existing) People team. What does NOT resonate and is BANNED for this cohort: RTO framing, "make the office worth the commute" or "worth coming to", return-to-office language, perks-theater talk, enterprise-benefits vocabulary. These companies are not dragging anyone back to the office; do not project that problem onto them. EXCEPTION: office/commute framing is allowed ONLY when the lead's own verified trigger is explicitly about the office (a new lease, an X-days-in-office posting, an office move) — then it is their reality, not our template.
-THE MOMENT is the observation — tie the note to what they are living through right now (just raised and hiring fast, first People hire being made, scaling chaos). The same OBSERVATION BAR applies: the trigger must be real and checkable.
-If the prospect JSON has a why_now_trigger, it is VERIFIED (harvested with an evidence URL) — anchor the note's moment on it and skip inventing a different angle; your web searches then just add color. The honest evidence-backed frame for this stage: companies usually stand up their first real People function right around 100 employees, and that is the window where they decide what taking care of their team looks like. Never claim they have wellness budget; a raise is a growth signal, not a budget claim.
+COHORT THESIS — INTERNAL TARGETING CONTEXT, NEVER QUOTED AT THE PROSPECT (Will 2026-07-06): this company is in hypergrowth, their first People leader just landed or is being hired, and nothing is entrenched yet. That is why they are a fit. It is NOT what the note says.
+WHAT THE NOTE SAYS (Will 2026-07-06, sentiment is everything): Shortcut CELEBRATES their growth and offers to help their people relax along the way. A raise or a milestone is a real achievement, so the note opens CONGRATULATORY, genuine and brief ("congrats on the Series B, that's a big moment"). Then the offer, always as a question or an "if", never a diagnosis: "if the team's feeling the pace, we're an easy way to help everyone take a beat" / "curious how you're thinking about helping the team recharge as you grow". Will wants to be a valued partner that helps high-growth teams decompress, full stop.
+HARD TONE RULES for this cohort:
+- NEVER assert facts about THEIR team's state ("everyone is stretched", "your people are burned out", "you're probably overwhelmed"). Will has not met their team. Stress may appear only inside an "if"/"as"/"when" clause or a question.
+- NEVER warn about consequences or create urgency ("what you do now becomes how things are done", "before culture calcifies", "the window is closing"). We offer wellness, not threats. Zero fear framing.
+- BANNED (established-company angles): RTO framing, "make the office worth the commute"/"worth coming to", return-to-office language, perks-theater talk, enterprise-benefits vocabulary. EXCEPTION: office framing only when the verified trigger itself is about their office (a lease, an X-days-in-office posting).
+If the prospect JSON has a why_now_trigger, it is VERIFIED (harvested with an evidence URL) — anchor the note on it (for funding triggers that means congratulating it) and skip inventing a different angle; web searches just add color, and a note with no extra color is completely fine. Never claim they have wellness budget; a raise is a milestone to celebrate, not a budget claim.
 WHAT SHORTCUT IS FOR THEM: wellness days in the office people actually book — chair massage, mindfulness, that kind of thing (full menu includes nails, facials, headshots). Over 90% of slots get booked when we run a day. Use ONE proof point maximum (500+ companies, 87% rebook, or BCG/DraftKings at every US office).
 THE ASK: an interest question, never a meeting ask ("Worth a look for {company}?", "Is this on your radar for the office push?"). No calendar link, no "15 minutes".`}
 
@@ -174,7 +178,13 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVarian
     'Research them (person first, then firm), then call report_note once with the note in Will\'s voice.',
   ].join('\n');
 
-  let resp = await anthropic.messages.create({
+  // Research is OPTIONAL color, never load-bearing (Will 2026-07-06: Uniswap's
+  // invocation died three times, almost certainly hung in web search on a
+  // high-volume-content company). Hard 150s timeout on the researched draft;
+  // on timeout or error, draft from the verified trigger + firm context alone —
+  // "we have plenty of actionable ways to frame things without the perfect
+  // personalized anecdote."
+  const researchedDraft = anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 4000, temperature: 0.4,
     system: voiceSystem(exemplars, audience, ctaVariant),
     tools: [
@@ -183,6 +193,22 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVarian
     ],
     messages: [{ role: 'user', content: userContent }],
   });
+  let resp;
+  try {
+    resp = await Promise.race([
+      researchedDraft,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('research_timeout')), 150000)),
+    ]);
+  } catch (e) {
+    console.warn(`researched draft failed (${e.message}) — falling back to trigger-only draft (no web search)`);
+    resp = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL, max_tokens: 3000, temperature: 0.4,
+      system: voiceSystem(exemplars, audience, ctaVariant),
+      tools: [{ name: 'report_note', description: 'Report the finished founder note. Call exactly once.', input_schema: NOTE_SCHEMA }],
+      tool_choice: { type: 'tool', name: 'report_note' },
+      messages: [{ role: 'user', content: `${userContent}\n\nNOTE: web research is unavailable for this lead. Draft from the verified why_now_trigger and the provided context alone; set research_note to "no research pass — drafted from the verified trigger".` }],
+    });
+  }
   let tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   if (!tu) {
     const critique = (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
@@ -237,6 +263,13 @@ function autoSplitParagraphs(body) {
 // the lead's own verified trigger is explicitly about the office.
 const RTO_FRAME_RE = /\b(worth (the )?commut(e|ing)|worth coming (in|to)|return to (the )?office|rto|back to the office|reason to come in|come into the office)\b/i;
 const OFFICE_TRIGGER_RE = /\b(office|in.office|on.?site|days? (a|per) week|hybrid|lease|hq|headquarters)\b/i;
+// Tone guards (Will 2026-07-06): we CELEBRATE their growth and OFFER help.
+// Asserting their team's stress state is presumptuous ("everyone is stretched");
+// stress may only live inside an if/as/when clause or a question. Consequence/
+// urgency framing is a threat, not wellness ("what you do now becomes how
+// things are done here").
+const STRESS_ASSERTION_RE = /\b(everyone|your (team|people|folks)|people( there)?|the (team|whole team)|you) (is|are|'re|feels?|must be|are probably|is probably) (all )?(stretched( thin)?|burned? out|overwhelmed|exhausted|running on empty|maxed out|under water|underwater|swamped)\b/i;
+const CONSEQUENCE_FRAME_RE = /\b(becomes? how (things are|it's) done|before (it|the culture|things) (calcif|hardens|sets|is too late)|the window (is closing|closes)|now or never|pay (a|the) price|can't afford (not|to wait))\b/i;
 
 // Deterministic guardrails (brand-hard rules) — throw loudly; the run skips the lead.
 function guardNote(n, audience, trigger = null) {
@@ -267,7 +300,15 @@ function guardNote(n, audience, trigger = null) {
     if (words > 60) throw new Error(`paragraph too long (${words} words) — split it; max two short sentences per paragraph`);
   }
   if (audience !== 'brokers' && RTO_FRAME_RE.test(n.body) && !(trigger && OFFICE_TRIGGER_RE.test(trigger))) {
-    throw new Error('tech-exec note used RTO/commute framing — this cohort is in hypergrowth, not a return-to-office fight; write from the cohort thesis (destress during the sprint, culture forming now, first People leader choosing programs) unless the verified trigger itself is about the office');
+    throw new Error('tech-exec note used RTO/commute framing — this cohort is in hypergrowth, not a return-to-office fight; celebrate their growth and offer help unless the verified trigger itself is about the office');
+  }
+  if (audience !== 'brokers') {
+    // strip if/as/when/question clauses first — conditional stress framing is allowed
+    const assertions = n.body.split(/(?<=[.!?])\s+/).filter((s) => !/\b(if|as|when|whether)\b/i.test(s) && !/\?\s*$/.test(s.trim()));
+    for (const s of assertions) {
+      if (STRESS_ASSERTION_RE.test(s)) throw new Error(`note ASSERTS the team's stress state ("${s.trim().slice(0, 60)}...") — Will hasn't met their team; stress belongs only in an if/as/when clause or a question`);
+    }
+    if (CONSEQUENCE_FRAME_RE.test(n.body)) throw new Error('note uses consequence/urgency framing — we offer wellness, not warnings; celebrate their growth and offer help, zero fear framing');
   }
   if (audience === 'brokers') {
     if (NON_FUND_SERVICES_RE.test(n.body)) throw new Error('broker note names a non-fund-eligible service (funds cover only massage, assisted stretch, sound bath, mindfulness, nutrition coaching)');
@@ -304,7 +345,7 @@ async function critiqueNote(anthropic, note, audience, ctaVariant = 'help') {
 5. VOICE: reads like a busy founder typed it — contractions, warm, casual, zero sales energy, no template smell. Sentence lengths VARY (at least one short punchy sentence; no run of same-shape sentences); no rule-of-three lists; no "not just X, but Y". If it is uniformly smooth and balanced, FAIL it as AI-sounding.
 ${audience === 'brokers' ? '6. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.
-8. COHORT FIT (Will 2026-07-06): the note's angle must match this cohort's ACTUAL situation. ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech hypergrowth companies: the resonant frames are destressing the team during the sprint, culture forming right now, a first People leader choosing programs from scratch. FAIL any RTO / "worth the commute" / return-to-office framing (that is an established-company problem) unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
+8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. A funding trigger must open congratulatory (genuine, brief). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0,
