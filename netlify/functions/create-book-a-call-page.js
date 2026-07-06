@@ -37,6 +37,36 @@ export const handler = async (event) => {
 
   let body = {};
   try { body = JSON.parse(event.body || '{}'); } catch { return { statusCode: 400, body: 'bad JSON' }; }
+  // RELOGO MODE (2026-07-06): re-run the logo chain for pages that minted
+  // without one (Brandfetch quota ran dry mid-batch on Jul 2 — 412/493 pages
+  // fell back to the text-only header). Small per-call batch (sync fn limit);
+  // scripts/backfill-page-logos.mjs loops until remaining=0.
+  if (body.relogo) {
+    const max = Number.isFinite(body.max) ? Math.max(1, Math.min(15, body.max)) : 10;
+    const { data: pages } = await sb.from('generic_landing_pages')
+      .select('id, unique_token, data').gte('created_at', '2026-07-01')
+      .filter('data->>partnerLogoUrl', 'is', null).limit(max);
+    const tally = { fixed: 0, nologo: 0, errors: 0 };
+    for (const pg of pages || []) {
+      const company = pg.data?.partnerName;
+      if (!company) { tally.errors += 1; continue; }
+      try {
+        // domain via our contacts (best Brandfetch/Clearbit hit rate)
+        let domain = null;
+        const { data: oc } = await sb.from('outreach_contacts').select('email_domain').ilike('company', company).limit(5);
+        if (oc?.length) domain = oc[0].email_domain;
+        const found = await fetchLogoUrl(company, domain);
+        if (!found) { tally.nologo += 1; continue; }
+        const { logoUrl: storedUrl } = await storeProvidedLogo(sb, found, company);
+        await sb.from('generic_landing_pages').update({ data: { ...pg.data, partnerLogoUrl: storedUrl || found } }).eq('id', pg.id);
+        tally.fixed += 1;
+      } catch (e) { tally.errors += 1; }
+    }
+    const { count } = await sb.from('generic_landing_pages').select('id', { count: 'exact', head: true })
+      .gte('created_at', '2026-07-01').filter('data->>partnerLogoUrl', 'is', null);
+    return { statusCode: 200, body: JSON.stringify({ ...tally, remaining: count ?? -1 }) };
+  }
+
   const leads = Array.isArray(body.leads) ? body.leads : [];
   if (!leads.length) return { statusCode: 400, body: 'no leads' };
   const opts = body.options || {};
