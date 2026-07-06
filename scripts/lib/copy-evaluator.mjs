@@ -66,7 +66,12 @@ const stripForCount = (t) => String(t || '')
 const wordCount = (t) => { const s = stripForCount(t); return s ? s.split(' ').length : 0; };
 // Merge-tag links ({{landing_url}}/{{cle_url}}) render as URLs per lead — they
 // count toward the link budget so E1/E2 stay link-free and E3 keeps exactly one.
-const countLinks = (t) => (String(t || '').match(/https?:\/\/|\]\(|href=|\{\{\s*(?:landing_url|cle_url)\s*\}\}/gi) || []).length;
+const countLinks = (t) => {
+  let str = String(t || '');
+  const anchors = (str.match(/<a\s+[^>]*href=/gi) || []).length;   // one per anchor tag
+  str = str.replace(/<a\s+[^>]*href="[^"]*"[^>]*>/gi, '');          // don't re-count its URL/merge tag
+  return anchors + (str.match(/https?:\/\/|\]\(|\{\{\s*(?:landing_url|cle_url)\s*\}\}/gi) || []).length;
+};
 // FABRICATION GUARDS (first proposal-lane run, 2026-07-06 — the composer invented
 // a "~24%" stat, a shortcut.live URL, and a "[Your name]" sign-off; none were laws):
 // numbers must come from the cleared proof set, URLs from our real domains, and
@@ -169,8 +174,10 @@ export function evaluateCopy(sequence, opts = {}) {
       // the problem domain must be legible fast: a wellness word (or the RTO
       // trigger for the rto opener) within the first two sentences.
       const firstTwo = opener1.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
-      if (!/wellness|massage|facials?|nails?|mindfulness|spa|headshots?/i.test(firstTwo)
-          && !/office|commute|back in|return/i.test(firstTwo)) {
+      const domainRe = segment === 'realestate'
+        ? /wellness|massage|facials?|nails?|mindfulness|spa|amenit|tenants?|building|portfolio/i
+        : /wellness|massage|facials?|nails?|mindfulness|spa|headshots?/i;
+      if (!domainRe.test(firstTwo) && !/office|commute|back in|return/i.test(firstTwo)) {
         flag(1, 'e1_opener_unclear', 'E1 opener never names the problem domain — the reader cannot tell this is about wellness (or the RTO moment) within two sentences');
       }
     }

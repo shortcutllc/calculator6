@@ -103,7 +103,7 @@ const E3_LINK_SHORT = {
   step: 3, delayDays: 4, subjects: [''], variantLabel: 'A-short',
   body: `{Hi|Hey} {{first_name}},
 
-{I put together a short page for the {{company_name}} team|I made a quick page for the {{company_name}} team}, with how a pilot day works in the building, the services (chair massage, nails, and facials for your tenants), and a rough price: {{landing_url}}
+{I put together|I made} <a href="{{landing_url}}">a short page for the {{company_name}} team</a>, with how a pilot day works in the building, the services (chair massage, nails, and facials for your tenants), and a rough price.
 
 Over 90% of slots get booked at these, so you have real utilization to show at renewal.
 
@@ -121,7 +121,7 @@ Most building wellness comes from a different vendor each time, or an app that b
 
 BCG and DraftKings use us at every one of their US offices, and 87% of clients rebook.
 
-{I put together a short page for the {{company_name}} team|I made a quick page for the {{company_name}} team}, with how a pilot day works, the services, and a rough price: {{landing_url}}
+{I put together|I made} <a href="{{landing_url}}">a short page for the {{company_name}} team</a>, with how a pilot day works, the services, and a rough price.
 
 {No pressure, just so you can see the shape of it|Have a look whenever it is useful}.
 
