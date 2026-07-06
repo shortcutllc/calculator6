@@ -93,7 +93,7 @@ const NOTE_SCHEMA = {
   type: 'object',
   properties: {
     subject: { type: 'string', description: '1-4 words, lowercase internal-note style, no sell words' },
-    body: { type: 'string', description: "the founder note, 50-100 words, plain text with \\n line breaks, ending with the sign-off on its own two lines: either 'Cheers!' or 'Thanks!' then 'Will'. No company block after (his Gmail signature is appended separately)." },
+    body: { type: 'string', description: "the founder note, 50-100 words, plain text; separate paragraphs with a BLANK line (\\n\\n), ending with the sign-off: 'Cheers!' or 'Thanks!' then '\\nWill'. No company block after (his Gmail signature is appended separately)." },
     research_note: { type: 'string', description: 'one line for Will: the specific thing you found and used (or "nothing specific found — used firm-level angle")' },
     linkedin_step: { type: 'string', description: "today's LinkedIn action for Will for this person, one line (e.g. 'comment on her post about X, then blank connect')" },
   },
@@ -191,7 +191,16 @@ async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVarian
     tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   }
   if (!tu) throw new Error('no report_note from drafter');
-  return tu.input;
+  return { ...tu.input, body: normalizeParagraphs(tu.input.body || '') };
+}
+
+// The model sometimes separates paragraphs with SINGLE newlines; the chunky-
+// paragraph guard then sees one giant paragraph and kills the note (cause of the
+// Jul 6 morning + evening skips). Normalize: if the body has no blank lines,
+// promote sentence-ending single breaks to paragraph breaks (sign-off stays tight).
+function normalizeParagraphs(body) {
+  if (/\n\s*\n/.test(body)) return body;
+  return body.replace(/([.?!])\n(?!\n)(?!Will\s*$)/g, '$1\n\n');
 }
 
 // Deterministic guardrails (brand-hard rules) — throw loudly; the run skips the lead.
@@ -214,7 +223,7 @@ function guardNote(n, audience) {
   // structure: short paragraphs, one idea each (Will 2026-07-02 — v5 shipped a 3-sentence chunk)
   for (const para of n.body.split(/\n\s*\n/)) {
     const words = para.trim().split(/\s+/).filter(Boolean).length;
-    if (words > 46) throw new Error(`paragraph too chunky (${words} words) — max two short sentences per paragraph`);
+    if (words > 46) throw new Error(`paragraph too chunky (${words} words) — separate each idea with a BLANK line (\\n\\n between paragraphs) and keep every paragraph to at most two short sentences`);
   }
   if (audience === 'brokers') {
     if (NON_FUND_SERVICES_RE.test(n.body)) throw new Error('broker note names a non-fund-eligible service (funds cover only massage, assisted stretch, sound bath, mindfulness, nutrition coaching)');
@@ -296,7 +305,7 @@ async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, 
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   if (!tu) throw new Error('revision produced no note');
   // keep the original research trail; the revision only reworks copy
-  return { ...tu.input, research_note: tu.input.research_note || note.research_note };
+  return { ...tu.input, body: normalizeParagraphs(tu.input.body || ''), research_note: tu.input.research_note || note.research_note };
 }
 
 export const handler = async (event) => {
