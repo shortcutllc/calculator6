@@ -147,6 +147,28 @@ export function evaluateCopy(sequence, opts = {}) {
     // FACT (all steps): massage is chair/table in a conference room turned spa, NEVER at desks.
     if (/\bat\s+(?:their\s+|your\s+)?desks?\b/i.test(all) || /\bdesk-?side\b/i.test(all)) flag(bp.step, 'massage_at_desk', 'massage is chair/table in a conference room, never "at desks"');
 
+    // ---- E1 OPENER CLARITY (Will, 2026-07-06 — "poor grammar, not clear what
+    // problem we're talking about"): the opener must read like a human sentence
+    // and make the PROBLEM DOMAIN legible immediately.
+    if (bp.step === 1 && !(segment === 'law' && opener === 'cle')) {
+      const lines = String(body).split('\n').map((l) => l.trim()).filter((l) => l && !/^\{?(hi|hey)\b/i.test(l));
+      const opener1 = (lines[0] || '').replace(/\{([^{}|]+)\|[^{}]*\}/g, '$1');
+      const firstSentence = opener1.split(/(?<=[.!?])\s+/)[0] || '';
+      // comma-splice pileup: 3+ commas in the first sentence with no question =
+      // the "Booking the vendors, chasing the RSVPs, running the day, it all
+      // lands..." pattern — unreadable as a cold open.
+      if ((firstSentence.match(/,/g) || []).length >= 3 && !firstSentence.includes('?')) {
+        flag(1, 'e1_opener_splice', 'E1 first sentence is a comma-spliced list — one clear human sentence (or a question), not a pileup');
+      }
+      // the problem domain must be legible fast: a wellness word (or the RTO
+      // trigger for the rto opener) within the first two sentences.
+      const firstTwo = opener1.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
+      if (!/wellness|massage|facials?|nails?|mindfulness|spa|headshots?/i.test(firstTwo)
+          && !/office|commute|back in|return/i.test(firstTwo)) {
+        flag(1, 'e1_opener_unclear', 'E1 opener never names the problem domain — the reader cannot tell this is about wellness (or the RTO moment) within two sentences');
+      }
+    }
+
     // ---- STANDALONE (hard on E1 + E3; law-CLE E1 exempt — the CLE course IS its
     // offer). E4 gets a soft warn (a breakup can stay light).
     const standaloneExempt = bp.step === 1 && segment === 'law' && opener === 'cle';
