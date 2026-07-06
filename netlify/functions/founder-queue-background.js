@@ -236,10 +236,16 @@ function guardNote(n, audience, trigger = null) {
   if (/hope this (email |message |note )?finds you/i.test(all)) throw new Error('draft opened with a stock AI pleasantry');
   if (/\bnot (just|only) [^.!?\n]{0,60}, but\b/i.test(n.body)) throw new Error('draft used "not just X, but Y" parallelism (top AI tell)');
   if (/https?:\/\//.test(n.body.replace(/getshortcut\.co/g, ''))) throw new Error('draft included a link (first touch is link-free)');
-  // structure: short paragraphs, one idea each (Will 2026-07-02 — v5 shipped a 3-sentence chunk)
+  // structure: short paragraphs, one idea each (Will 2026-07-02 — v5 shipped a
+  // 3-sentence chunk). Enforce the ACTUAL rule (max two sentences per paragraph)
+  // rather than a word-count proxy: the 46-word cap false-killed four good
+  // two-sentence paragraphs on 2026-07-06. Word ceiling stays only as a backstop
+  // against runaway sentences.
   for (const para of n.body.split(/\n\s*\n/)) {
+    const sentences = (para.trim().match(/[.!?](\s|$)/g) || []).length;
     const words = para.trim().split(/\s+/).filter(Boolean).length;
-    if (words > 46) throw new Error(`paragraph too chunky (${words} words) — separate each idea with a BLANK line (\\n\\n between paragraphs) and keep every paragraph to at most two short sentences`);
+    if (sentences > 2 && words > 12) throw new Error(`paragraph has ${sentences} sentences — separate each idea with a BLANK line (\\n\\n between paragraphs), max two short sentences per paragraph`);
+    if (words > 60) throw new Error(`paragraph too long (${words} words) — split it; max two short sentences per paragraph`);
   }
   if (audience !== 'brokers' && RTO_FRAME_RE.test(n.body) && !(trigger && OFFICE_TRIGGER_RE.test(trigger))) {
     throw new Error('tech-exec note used RTO/commute framing — this cohort is in hypergrowth, not a return-to-office fight; write from the cohort thesis (destress during the sprint, culture forming now, first People leader choosing programs) unless the verified trigger itself is about the office');
