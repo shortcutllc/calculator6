@@ -193,13 +193,21 @@ async function runReport() {
       for (const e of landedBuyers) {
         const em = lc(e.buyer.email);
         if (hasDraft.has(em)) continue;
+        e.queue_attempts = (e.queue_attempts || 1) + 1;
+        // 3 strikes: a lead whose draft invocation keeps dying (Uniswap, Jul 6:
+        // three silent fn deaths) stops consuming queue slots; Will sees it here.
+        if (e.queue_attempts > 3) {
+          if (e.status !== 'buyer_landed_draft_failed') { e.status = 'buyer_landed_draft_failed'; log(`  self-heal: GIVING UP on ${em} (${e.company}) after ${e.queue_attempts - 1} attempts — draft invocations keep dying`); }
+          continue;
+        }
         healed += 1;
         const cta = healed % 2 === 1 ? 'help' : 'convo';
         const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: em, audience: 'tech-execs', cta, trigger: e.trigger }) });
-        log(`  self-heal: re-queued ${em} (${e.company}) → HTTP ${qr.status}`);
+        log(`  self-heal: re-queued ${em} (${e.company}) attempt ${e.queue_attempts} → HTTP ${qr.status}`);
         await sleep(500);
       }
-      if (!healed) log('  self-heal: all landed buyers have drafts.');
+      if (!healed) log('  self-heal: all landed buyers have drafts (or are capped).');
+      writeFileSync(LEDGER, JSON.stringify(ledger, null, 2));
     }
   }
 
