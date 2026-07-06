@@ -67,6 +67,12 @@ const wordCount = (t) => { const s = stripForCount(t); return s ? s.split(' ').l
 // Merge-tag links ({{landing_url}}/{{cle_url}}) render as URLs per lead — they
 // count toward the link budget so E1/E2 stay link-free and E3 keeps exactly one.
 const countLinks = (t) => (String(t || '').match(/https?:\/\/|\]\(|href=|\{\{\s*(?:landing_url|cle_url)\s*\}\}/gi) || []).length;
+// FABRICATION GUARDS (first proposal-lane run, 2026-07-06 — the composer invented
+// a "~24%" stat, a shortcut.live URL, and a "[Your name]" sign-off; none were laws):
+// numbers must come from the cleared proof set, URLs from our real domains, and
+// the sign-off must be the Smartlead sender token.
+const ALLOWED_NUMBERS = new Set(['90', '87', '500', '15', '20', '1', '2', '3', '4', '5', '10', '30', '60']); // proof points + small ordinals/durations
+const URL_WHITELIST_RE = /^https?:\/\/(www\.)?(proposals\.)?getshortcut\.co(\/|$)/i;
 // STANDALONE RULE (Will, 2026-07-02): every pitch-carrying touch (E1, E3 + every
 // E3 variant) must stand alone — a busy reader who never opens the earlier emails
 // (threading quotes them BELOW, previews show only the new text) must still learn
@@ -168,6 +174,16 @@ export function evaluateCopy(sequence, opts = {}) {
         flag(1, 'e1_opener_unclear', 'E1 opener never names the problem domain — the reader cannot tell this is about wellness (or the RTO moment) within two sentences');
       }
     }
+
+    // ---- FABRICATION GUARDS (all steps) ----
+    for (const url of String(body).match(/https?:\/\/[^\s)>"']+/gi) || []) {
+      if (!URL_WHITELIST_RE.test(url)) flag(bp.step, 'invented_url', `"${url}" — only getshortcut.co / proposals.getshortcut.co URLs (or {{landing_url}}/{{cle_url}}) may appear`);
+    }
+    for (const m of stripForCount(body).matchAll(/(\d+(?:\.\d+)?)\s*%|~\s*(\d+)/g)) {
+      const n = (m[1] || m[2] || '').replace(/\.0$/, '');
+      if (n && !ALLOWED_NUMBERS.has(n)) flag(bp.step, 'unlisted_statistic', `"${m[0]}" — not in the cleared proof set (90%+ booked, 87% rebook, 500+ companies); never invent numbers`);
+    }
+    if (/\[(your|sender|rep)[^\]]*\]/i.test(body)) flag(bp.step, 'placeholder_signoff', 'literal placeholder like "[Your name]" — sign-offs use %sender-firstname%');
 
     // ---- STANDALONE (hard on E1 + E3; law-CLE E1 exempt — the CLE course IS its
     // offer). E4 gets a soft warn (a breakup can stay light).
