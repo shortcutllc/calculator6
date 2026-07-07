@@ -46,8 +46,10 @@ const COMPARE = has('--compare');
 const OUT = val('--out', null);
 // GUARDRAILS (deterministic, enforced by this wrapper — not the agent):
 const MAX_TOKENS = parseInt(val('--max-tokens', '200000'), 10) || 200000;
-const MAX_ITERS = parseInt(val('--max-iterations', '10'), 10) || 10;
+const MAX_ITERS = parseInt(val('--max-iterations', '12'), 10) || 12;
 const TIMEOUT_MS = parseInt(val('--timeout-ms', '240000'), 10) || 240000;
+const MAX_REVISES = parseInt(val('--max-revises', '2'), 10); // gate-failure feedback rounds (a)
+const BATCH = val('--batch', null) ? parseInt(val('--batch', null), 10) : null; // (b) run N leads
 // Sonnet 4.5 list price (approx, for a $ estimate only): $3/M in, $15/M out.
 const PRICE_IN = 3 / 1e6; const PRICE_OUT = 15 / 1e6;
 
@@ -100,6 +102,21 @@ const summarizeToolUse = (b) => {
   return null;
 };
 
+// Deterministic + coherence gate on a submitted draft. Returns {pass, issues}.
+// Runs the LOCAL guard first (free); only spends on the coherence skeptic if the
+// local guard passes (no point critiquing a draft with a dash).
+async function gateDraft(anthropic, draft, { audience, cta, trigger, leadFacts }, counters) {
+  const issues = [];
+  try { guardNote({ subject: draft.subject || '', body: draft.body || '' }, audience, trigger); }
+  catch (e) { issues.push(`hard rule: ${e.message}`); }
+  if (!issues.length) {
+    const sk = await critiqueNote(anthropic, { subject: draft.subject, body: draft.body }, audience, cta, leadFacts);
+    counters.tokensIn += sk._usage?.input_tokens || 0; counters.tokensOut += sk._usage?.output_tokens || 0;
+    if (!sk.pass && (sk.issues || []).length) issues.push(...sk.issues.map((i) => `review: ${i}`));
+  }
+  return { pass: issues.length === 0, issues };
+}
+
 async function runAgent(leadFacts, { audience, cta, trigger }) {
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
   const tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }, ...CLIENT_TOOLS];
@@ -111,50 +128,107 @@ async function runAgent(leadFacts, { audience, cta, trigger }) {
   const messages = [{ role: 'user', content: seed }];
 
   const t0 = Date.now();
-  let tokensIn = 0, tokensOut = 0, iters = 0, draft = null, aborted = null;
+  const counters = { tokensIn: 0, tokensOut: 0 };
+  let iters = 0, draft = null, aborted = null, revises = 0, finalGate = null;
   const trace = [];
 
   while (iters < MAX_ITERS) {
     if (Date.now() - t0 > TIMEOUT_MS) { aborted = 'timeout'; break; }
-    if (tokensIn + tokensOut >= MAX_TOKENS) { aborted = 'token_budget'; break; }
+    if (counters.tokensIn + counters.tokensOut >= MAX_TOKENS) { aborted = 'token_budget'; break; }
     iters += 1;
     let resp;
-    try {
-      resp = await anthropic.messages.create({ model: MODEL, max_tokens: 4000, system, tools, messages });
-    } catch (e) { aborted = `api_error: ${e.message}`; break; }
-    tokensIn += resp.usage?.input_tokens || 0; tokensOut += resp.usage?.output_tokens || 0;
-    // trace: the agent's reasoning + tool actions this turn
+    try { resp = await anthropic.messages.create({ model: MODEL, max_tokens: 4000, system, tools, messages }); }
+    catch (e) { aborted = `api_error: ${e.message}`; break; }
+    counters.tokensIn += resp.usage?.input_tokens || 0; counters.tokensOut += resp.usage?.output_tokens || 0;
     for (const b of resp.content || []) {
-      if (b.type === 'text' && b.text.trim()) trace.push(`${c.gray(`[${iters}]`)} ${b.text.trim().slice(0, 180)}`);
+      if (b.type === 'text' && b.text.trim()) trace.push(`${c.gray(`[${iters}]`)} ${b.text.trim().slice(0, 160)}`);
       const s = summarizeToolUse(b); if (s) trace.push(`${c.gray(`[${iters}]`)} ${s}`);
     }
     messages.push({ role: 'assistant', content: resp.content });
 
     const clientCalls = (resp.content || []).filter((b) => b.type === 'tool_use' && ['get_lead_facts', 'submit_draft'].includes(b.name));
-    if (clientCalls.some((b) => b.name === 'submit_draft')) {
-      draft = clientCalls.find((b) => b.name === 'submit_draft').input; break;
-    }
-    if (resp.stop_reason === 'pause_turn') { continue; } // long server tool; resend context
-    if (!clientCalls.length) {
-      if (resp.stop_reason === 'end_turn') { // model finished without submitting — nudge once
-        messages.push({ role: 'user', content: 'Call submit_draft now with the finished note.' }); continue;
+    const submit = clientCalls.find((b) => b.name === 'submit_draft');
+    if (submit) {
+      // GATE (part a): run the same guards production uses; on failure, feed the
+      // exact issues back to the agent through the tool_result and let it revise.
+      const gate = await gateDraft(anthropic, submit.input, { audience, cta, trigger, leadFacts }, counters);
+      if (gate.pass || revises >= MAX_REVISES) {
+        draft = submit.input; finalGate = gate;
+        trace.push(`${c.gray(`[${iters}]`)} ${gate.pass ? c.green('gate PASS') : c.red('gate FAIL (revises exhausted): ' + gate.issues.join(' | '))}`);
+        break;
       }
+      revises += 1;
+      trace.push(`${c.gray(`[${iters}]`)} ${c.red('gate FAIL')} → revise ${revises}/${MAX_REVISES}: ${gate.issues.join(' | ').slice(0, 160)}`);
+      messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: submit.id, content: `REJECTED by the checks. Fix EVERY issue and call submit_draft again:\n- ${gate.issues.join('\n- ')}` }] });
+      continue;
+    }
+    if (resp.stop_reason === 'pause_turn') continue;
+    if (!clientCalls.length) {
+      if (resp.stop_reason === 'end_turn') { messages.push({ role: 'user', content: 'Call submit_draft now with the finished note.' }); continue; }
       continue;
     }
     const results = clientCalls.map((b) => ({ type: 'tool_result', tool_use_id: b.id, content: b.name === 'get_lead_facts' ? JSON.stringify(leadFacts) : 'received' }));
     messages.push({ role: 'user', content: results });
   }
-  return { draft, aborted, iters, tokensIn, tokensOut, seconds: (Date.now() - t0) / 1000, trace, tokenBudgetHit: aborted === 'token_budget' };
+  return { draft, aborted, iters, revises, finalGate, tokensIn: counters.tokensIn, tokensOut: counters.tokensOut, seconds: (Date.now() - t0) / 1000, trace };
+}
+
+async function sbClient() {
+  const { createClient } = await import('@supabase/supabase-js');
+  return createClient((process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim(), (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim(), { auth: { persistSession: false } });
+}
+
+// Run the scripted pipeline on a lead + gate its output, for apples-to-apples.
+async function runPipeline(leadFacts, { audience, cta, trigger, email }) {
+  const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
+  const p0 = Date.now();
+  const { note } = await composeNote(anthropic, { lead: { ...leadFacts, email: email || 'lab@example.com' }, firm: null, exemplars: [], audience, ctaVariant: cta, trigger, label: 'lab', log: () => {} });
+  let guardPass = true, guardMsg = null;
+  try { guardNote({ subject: note.subject || '', body: note.body }, audience, trigger); } catch (e) { guardPass = false; guardMsg = e.message; }
+  const sk = await critiqueNote(anthropic, { subject: note.subject, body: note.body }, audience, cta, leadFacts);
+  return { note, seconds: (Date.now() - p0) / 1000, gatePass: guardPass && sk.pass, gateIssues: [guardMsg, ...(sk.pass ? [] : sk.issues || [])].filter(Boolean) };
 }
 
 (async () => {
   if (!ANTHROPIC_KEY) { console.error('MISSING ANTHROPIC_API_KEY'); process.exit(2); }
 
-  // Resolve the lead (read-only). --email pulls the real record; else flags.
+  // ===================== BATCH EVAL (part b) =====================
+  if (BATCH) {
+    const sb = await sbClient();
+    const { data: pool } = await sb.from('outreach_contacts')
+      .select('email, name, title, company, location, linkedin_url')
+      .eq('source', 'founder-personal').not('location', 'is', null)
+      .or('mv_status.eq.ok,bounceban_status.eq.deliverable').limit(BATCH);
+    const leads = (pool || []).slice(0, BATCH);
+    console.log(c.bold(`\n╔══ AGENT LAB — BATCH EVAL: agent vs scripted pipeline on ${leads.length} real leads ══╗`));
+    console.log(c.gray(`  sandbox: nothing sends/writes · guardrails per lead (≤${MAX_TOKENS / 1000}k tok, ≤${MAX_REVISES} revises)\n`));
+    const rows = [];
+    for (const [i, lf] of leads.entries()) {
+      const leadFacts = { name: lf.name, title: lf.title, company: lf.company, location: lf.location, linkedin_url: lf.linkedin_url };
+      process.stdout.write(c.gray(`  [${i + 1}/${leads.length}] ${lf.company} … `));
+      const a = await runAgent(leadFacts, { audience: AUDIENCE, cta: CTA, trigger: null });
+      let p = null; try { p = await runPipeline(leadFacts, { audience: AUDIENCE, cta: CTA, trigger: null, email: lf.email }); } catch (e) { p = { error: e.message }; }
+      const usd = a.tokensIn * PRICE_IN + a.tokensOut * PRICE_OUT;
+      rows.push({ company: lf.company, location: lf.location, agent: { pass: a.finalGate?.pass ?? false, revises: a.revises, tokens: a.tokensIn + a.tokensOut, usd, seconds: a.seconds, aborted: a.aborted, subject: a.draft?.subject, body: a.draft?.body, coherence: a.draft?.coherence_check }, pipeline: p.error ? { error: p.error } : { pass: p.gatePass, seconds: p.seconds, subject: p.note.subject, body: p.note.body } });
+      console.log(`agent ${a.finalGate?.pass ? c.green('PASS') : c.red('FAIL')} (${a.revises} rev, ${usd.toFixed(3)}, ${a.seconds.toFixed(0)}s)  ·  pipeline ${p.error ? c.red('ERR') : (p.gatePass ? c.green('PASS') : c.red('FAIL'))}`);
+    }
+    // aggregate
+    const ok = rows.filter((r) => !r.agent.aborted);
+    const agPass = ok.filter((r) => r.agent.pass).length, pipePass = rows.filter((r) => r.pipeline.pass).length;
+    const avg = (xs) => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0;
+    console.log('\n' + c.bold('AGGREGATE:'));
+    console.log(`  AGENT     gate-pass ${agPass}/${rows.length}  ·  avg revises ${avg(rows.map((r) => r.agent.revises)).toFixed(1)}  ·  avg cost ${c.yellow('$' + avg(rows.map((r) => r.agent.usd)).toFixed(3))}/note  ·  avg ${avg(ok.map((r) => r.agent.seconds)).toFixed(0)}s`);
+    console.log(`  PIPELINE  gate-pass ${pipePass}/${rows.length}  ·  avg ${avg(rows.filter((r) => !r.pipeline.error).map((r) => r.pipeline.seconds)).toFixed(0)}s  ·  cost not itemized (~3-5 calls, ~\$0.02-0.05/note)`);
+    const outFile = OUT || 'agent_lab_batch.json';
+    writeFileSync(outFile, JSON.stringify({ audience: AUDIENCE, cta: CTA, model: MODEL, count: rows.length, agent_pass: agPass, pipeline_pass: pipePass, rows }, null, 2));
+    console.log(c.gray(`\n  full outputs (both drafts per lead) → ${outFile}. Nothing sent/written to Gmail/Slack/DB.`));
+    return;
+  }
+
+  // ===================== SINGLE LEAD =====================
   let leadFacts = { name: val('--name', 'Alex Founder'), title: val('--title', 'Head of People'), company: val('--company', 'Acme AI'), location: val('--location', 'New York, NY'), linkedin_url: null };
   if (EMAIL) {
-    const { createClient } = await import('@supabase/supabase-js');
-    const sb = createClient((process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim(), (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim(), { auth: { persistSession: false } });
+    const sb = await sbClient();
     const { data } = await sb.from('outreach_contacts').select('name, title, company, location, linkedin_url').eq('email', EMAIL.toLowerCase()).maybeSingle();
     if (!data) { console.error(`no outreach_contacts row for ${EMAIL}`); process.exit(2); }
     leadFacts = { ...data };
@@ -163,10 +237,9 @@ async function runAgent(leadFacts, { audience, cta, trigger }) {
   console.log(c.bold('\n╔══ FOUNDER AGENT LAB (sandbox — nothing sends, nothing is written) ══╗'));
   console.log(`  lead: ${leadFacts.name} · ${leadFacts.title} · ${leadFacts.company} (${leadFacts.location})`);
   console.log(`  audience ${AUDIENCE} · cta ${CTA} · model ${MODEL}`);
-  console.log(c.gray(`  guardrails: ≤${(MAX_TOKENS / 1000)}k tokens · ≤${MAX_ITERS} iters · ≤${TIMEOUT_MS / 1000}s · tools[web_search,get_lead_facts,submit_draft] · NO send/write`));
+  console.log(c.gray(`  guardrails: ≤${(MAX_TOKENS / 1000)}k tokens · ≤${MAX_ITERS} iters · ≤${TIMEOUT_MS / 1000}s · ≤${MAX_REVISES} revises · NO send/write`));
   console.log(c.bold('╚════════════════════════════════════════════════════════════════════╝\n'));
 
-  // ---- AGENT RUN
   console.log(c.bold('AGENT TRACE (what it decided to do):'));
   const r = await runAgent(leadFacts, { audience: AUDIENCE, cta: CTA, trigger: TRIGGER });
   r.trace.forEach((l) => console.log('  ' + l));
@@ -180,35 +253,23 @@ async function runAgent(leadFacts, { audience, cta, trigger }) {
     console.log(c.bold('  BODY:\n') + r.draft.body.split('\n').map((l) => '  ' + l).join('\n'));
     console.log(c.gray(`  research_note: ${r.draft.research_note}`));
     console.log(c.gray(`  coherence_check: ${r.draft.coherence_check}`));
-    // FINAL DETERMINISTIC GATE — same guards production uses, on the agent's output
-    let guard = c.green('PASS');
-    try { guardNote({ subject: r.draft.subject || '', body: r.draft.body }, AUDIENCE, TRIGGER); } catch (e) { guard = c.red(`FAIL: ${e.message}`); }
-    const skeptic = await critiqueNote(new Anthropic({ apiKey: ANTHROPIC_KEY }), { subject: r.draft.subject, body: r.draft.body }, AUDIENCE, CTA, leadFacts);
-    console.log(`  ${c.bold('DETERMINISTIC GUARD')}  ${guard}`);
-    console.log(`  ${c.bold('COHERENCE SKEPTIC')}  ${skeptic.pass ? c.green('clean') : c.red('flagged: ' + (skeptic.issues || []).join(' | '))}`);
+    console.log(`  ${c.bold('FINAL GATE')} (same guards as prod, after ${r.revises} revise round${r.revises === 1 ? '' : 's'})  ${r.finalGate?.pass ? c.green('PASS') : c.red('FAIL: ' + (r.finalGate?.issues || []).join(' | '))}`);
   }
   console.log('\n' + c.bold('COST / GUARDRAIL REPORT:'));
-  console.log(`  tokens: ${r.tokensIn} in + ${r.tokensOut} out = ${r.tokensIn + r.tokensOut}  ·  est ${c.yellow(usd(costUsd))}`);
-  console.log(`  iterations: ${r.iters}/${MAX_ITERS}  ·  wall: ${r.seconds.toFixed(1)}s/${TIMEOUT_MS / 1000}s  ·  ${r.aborted ? c.red('ABORTED: ' + r.aborted) : c.green('completed within all limits')}`);
+  console.log(`  tokens: ${r.tokensIn} in + ${r.tokensOut} out = ${r.tokensIn + r.tokensOut}  ·  est ${c.yellow(usd(costUsd))} ${c.gray('(coherence-skeptic calls add a small untracked amount)')}`);
+  console.log(`  iterations: ${r.iters}/${MAX_ITERS}  ·  revises: ${r.revises}/${MAX_REVISES}  ·  wall: ${r.seconds.toFixed(1)}s/${TIMEOUT_MS / 1000}s  ·  ${r.aborted ? c.red('ABORTED: ' + r.aborted) : c.green('within all limits')}`);
 
-  // ---- OPTIONAL: scripted-pipeline comparison on the same lead
   let compareOut = null;
   if (COMPARE) {
     console.log('\n' + c.bold('── COMPARISON: current SCRIPTED PIPELINE on the same lead ──'));
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
-    const p0 = Date.now();
     try {
-      const { note } = await composeNote(anthropic, { lead: { ...leadFacts, email: EMAIL || 'lab@example.com' }, firm: null, exemplars: [], audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER, label: 'lab', log: () => {} });
-      console.log(c.bold('  SUBJECT: ') + note.subject);
-      console.log(c.bold('  BODY:\n') + note.body.split('\n').map((l) => '  ' + l).join('\n'));
-      console.log(c.gray(`  (pipeline wall: ${((Date.now() - p0) / 1000).toFixed(1)}s — token cost not itemized by composeNote, ~3-5 calls)`));
-      compareOut = note;
+      const p = await runPipeline(leadFacts, { audience: AUDIENCE, cta: CTA, trigger: TRIGGER, email: EMAIL });
+      console.log(c.bold('  SUBJECT: ') + p.note.subject);
+      console.log(c.bold('  BODY:\n') + p.note.body.split('\n').map((l) => '  ' + l).join('\n'));
+      console.log(`  ${c.bold('GATE')} ${p.gatePass ? c.green('PASS') : c.red('FAIL: ' + p.gateIssues.join(' | '))}  ·  ${c.gray(p.seconds.toFixed(1) + 's, ~3-5 calls')}`);
+      compareOut = p.note;
     } catch (e) { console.log(c.red(`  pipeline error: ${e.message}`)); }
   }
-
-  if (OUT) {
-    writeFileSync(OUT, JSON.stringify({ lead: leadFacts, audience: AUDIENCE, cta: CTA, agent: { draft: r.draft, cost: { tokensIn: r.tokensIn, tokensOut: r.tokensOut, usd: costUsd, iters: r.iters, seconds: r.seconds, aborted: r.aborted }, trace: r.trace }, pipeline: compareOut }, null, 2));
-    console.log(c.gray(`\nwrote ${OUT}`));
-  }
+  if (OUT) writeFileSync(OUT, JSON.stringify({ lead: leadFacts, agent: { draft: r.draft, cost: { tokensIn: r.tokensIn, tokensOut: r.tokensOut, usd: costUsd, iters: r.iters, revises: r.revises, seconds: r.seconds, aborted: r.aborted }, finalGate: r.finalGate, trace: r.trace }, pipeline: compareOut }, null, 2));
   console.log(c.gray('\nSandbox run complete. Nothing was sent or written to Gmail/Slack/DB.'));
 })().catch((e) => { console.error('AGENT_LAB_ERROR:', e.message); process.exit(1); });
