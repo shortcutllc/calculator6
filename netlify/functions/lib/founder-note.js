@@ -82,6 +82,7 @@ RECENCY (part of the bar): an observation framed as news ("I saw you...", "congr
 If the firm context includes a CONTENT HOOK (a verified piece of the firm's own published content), referencing it naturally is the best possible observation. Only reference content named in the context or found in YOUR OWN searches this run.
 HONESTY RULE (hard): if the searches surface nothing specific about the PERSON, use the firm-level angle from the context instead, framed honestly. NEVER imply Will read/saw something that does not exist. NEVER invent posts, quotes, news, or mutuals. A slightly less personal true note beats a fake-personal one every time.
 CLIENT CLAIMS ARE CLOSED-WORLD (hard): the only facts about Shortcut's clients you may state are the ones IN THIS PROMPT (BCG and DraftKings, 500+ companies, 87% rebook, over 90% of slots get booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}). NEVER invent client categories or segments ("we work with a few gaming studios", "our law-firm clients tell us") — you do not know the roster. Tie the note to their world through THEIR context, not through made-up client overlap.
+COHERENCE CHECK (Will 2026-07-07 — true is not enough, it must FIT THIS person): before you use any research find, cross-check it against THE PERSON JSON (their location, title, company). A fact can be real yet wrong for this contact. HARD examples: do NOT congratulate someone on a CITY-specific award/office/event that is not their city (a "Best Workplaces in Chicago" award is meaningless to a New York contact — a different office earned it); do NOT reference a division/region/product they do not work in; do NOT frame something as "yours" that belongs to a different part of the company. If a find has a specific place/time/team attached and it does not match this person, either drop it or reframe it honestly as company-wide, never as a personal congratulations. When you DO name a specific recognition, name it COMPLETELY (say WHAT it is — "Fortune's Best Workplaces in Chicago", not the half-reference "the Fortune Chicago list", which reads unfinished). A generic true note beats a specific note aimed at the wrong context.
 
 ${audience === 'brokers'
     ? `AUDIENCE: employee-benefits broker (producer/consultant). This is CHANNEL COURTSHIP, not a pitch. THE CORE MESSAGE (get this exactly right): Will is offering to help the BROKER help their CLIENTS deploy carrier wellness funds they are otherwise forfeiting — making the broker the hero at renewal. The mechanics that make it credible (weave in ONE, naturally): most carriers allot these dollars per plan year and clients forfeit what they do not use (Cigna Health Improvement Fund, Aetna Wellness Allowance, Anthem wellness fund); deploying them means carrier pre-approval and receipt/invoice paperwork most HR teams never get around to; Shortcut removes that friction end to end.
@@ -330,7 +331,8 @@ export const REVIEW_SCHEMA = {
   },
   required: ['pass', 'issues'],
 };
-export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help') {
+export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null) {
+  const facts = leadFacts ? `\n\nWHAT WE KNOW ABOUT THE RECIPIENT (trusted facts — check the note against these):\n${JSON.stringify(leadFacts, null, 2)}` : '';
   const checklist = `You are the skeptical reviewer for Will's founder notes. Default to FAILING. Check every item:
 1. STRUCTURE: 4-5 short paragraphs, each ONE idea, max two sentences. No chunky paragraphs. ${audience === 'brokers' ? 'The Burberry receipt sentence stands alone as its own paragraph.' : ''}
 2. OBSERVATION (Will's bar, 2026-07-06): a personal research line is allowed ONLY if it connects to the note's thread ON ITS FACE (their wellbeing/benefits practice or role, their clients, their metro, something they wrote about wellness/benefits/budgets). A thematic bridge FAILS — e.g. "I saw you're a Health Rosetta advisor. That transparency focus is exactly what I keep running into on the fund side" is a bolted-on credential compliment, not a thread. Calibration GOOD: "Given EPIC's Wellbeing & Health Management practice, I'm curious whether you're seeing this with your New York clients." No personal line at all is a PASS; a forced one is a FAIL. Also FAIL any observation framed as fresh news ("I saw you...", "congrats on...") when the underlying fact is older than ~6 months; stale facts may only appear as standing facts.
@@ -340,6 +342,7 @@ export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help
 ${audience === 'brokers' ? '6. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.
 8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. A funding trigger must open congratulatory (genuine, brief). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
+9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context.${facts}
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0,
@@ -411,8 +414,11 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
       guardNote(note, audience, trigger);
     }
   }
-  // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator)
-  const review = await critiqueNote(anthropic, note, audience, ctaVariant);
+  // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator).
+  // Pass the lead's trusted facts so the skeptic can catch coherence failures (a
+  // true-but-wrong-context claim like a Chicago award aimed at a NYC contact).
+  const leadFacts = { name: lead?.name || null, title: lead?.title || null, company: lead?.company || null, location: lead?.location || null };
+  const review = await critiqueNote(anthropic, note, audience, ctaVariant, leadFacts);
   if (!review.pass && review.issues.length) {
     note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger });
     guardNote(note, audience, trigger);
