@@ -29,7 +29,7 @@
  */
 import { readFileSync, writeFileSync } from 'fs';
 import Anthropic from '@anthropic-ai/sdk';
-import { voiceSystem, guardNote, critiqueNote, composeNote } from '../netlify/functions/lib/founder-note.js';
+import { voiceSystem, guardNote, critiqueNote, composeNote, reviseNote, autoFixDashes, autoSplitParagraphs, normalizeParagraphs } from '../netlify/functions/lib/founder-note.js';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -55,122 +55,147 @@ const PRICE_IN = 3 / 1e6; const PRICE_OUT = 15 / 1e6;
 
 const c = { gray: (s) => `\x1b[90m${s}\x1b[0m`, bold: (s) => `\x1b[1m${s}\x1b[0m`, green: (s) => `\x1b[32m${s}\x1b[0m`, red: (s) => `\x1b[31m${s}\x1b[0m`, yellow: (s) => `\x1b[33m${s}\x1b[0m`, cyan: (s) => `\x1b[36m${s}\x1b[0m` };
 
-// ---- the three tools the agent is allowed (allowlist). web_search is a server
-// tool (Anthropic runs it); the other two are client tools we execute here.
-const CLIENT_TOOLS = [
-  {
-    name: 'get_lead_facts',
-    description: 'Return everything WE already know about this recipient (name, title, company, location, linkedin). Call this FIRST — it is the ground truth to check any research find against (a real fact about the wrong office/city is worse than no fact).',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'submit_draft',
-    description: 'Submit the finished founder note. Call this exactly once when you are done.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        subject: { type: 'string' },
-        body: { type: 'string', description: "plain text, blank line between paragraphs, ending 'Cheers!' or 'Thanks!' then 'Will'" },
-        research_note: { type: 'string', description: 'one line: what you found and used, or that nothing specific fit' },
-        coherence_check: { type: 'string', description: 'one line: how you confirmed every specific claim FITS this exact person (location/role), or that you used no specific claim' },
-      },
-      required: ['subject', 'body', 'research_note', 'coherence_check'],
-    },
-  },
-];
-
-function agentSystem(audience, cta) {
-  // reuse the CANONICAL brand voice + rules (same as production), then add the
-  // agentic operating instructions.
-  return `${voiceSystem([], audience, cta)}
-
-=== YOU ARE RUNNING AS AN AGENT (not a one-shot drafter) ===
-You have tools and you decide how to use them. Work like a sharp SDR who thinks before writing:
-1. Call get_lead_facts FIRST to see who this person actually is.
-2. Decide whether to research (web_search). Only search if a genuine, FITTING hook is plausible. A note with no specific hook is completely fine — better than a forced or wrong-context one.
-3. If you find a specific fact, CHECK IT against get_lead_facts before using it: does it match THEIR city/office/role? A "Best Workplaces in Chicago" award means nothing to a New York contact (a different office earned it) — drop it or reframe it company-wide, never as a personal congrats. Name any recognition completely.
-4. Draft in Will's voice (all the rules above apply exactly).
-5. Re-read your own draft once for coherence and voice, fix anything off, THEN call submit_draft with an honest coherence_check.
-Be efficient: you do not need many searches. Think, verify, submit.`;
-}
-
 const usd = (n) => `$${n.toFixed(4)}`;
 const summarizeToolUse = (b) => {
   if (b.type === 'server_tool_use' && b.name === 'web_search') return `${c.cyan('search')} "${(b.input?.query || '').slice(0, 70)}"`;
-  if (b.type === 'web_search_tool_result') return c.gray(`  ↳ ${Array.isArray(b.content) ? b.content.length : '?'} results`);
+  if (b.type === 'web_search_tool_result') return c.gray(`  ↳ ${Array.isArray(b.content) ? b.content.length : '?'} results (discarded after this phase)`);
   if (b.type === 'tool_use') return `${c.yellow('tool')} ${b.name}`;
   return null;
 };
 
-// Deterministic + coherence gate on a submitted draft. Returns {pass, issues}.
-// Runs the LOCAL guard first (free); only spends on the coherence skeptic if the
-// local guard passes (no point critiquing a draft with a dash).
-async function gateDraft(anthropic, draft, { audience, cta, trigger, leadFacts }, counters) {
-  const issues = [];
-  try { guardNote({ subject: draft.subject || '', body: draft.body || '' }, audience, trigger); }
-  catch (e) { issues.push(`hard rule: ${e.message}`); }
-  if (!issues.length) {
-    const sk = await critiqueNote(anthropic, { subject: draft.subject, body: draft.body }, audience, cta, leadFacts);
-    counters.tokensIn += sk._usage?.input_tokens || 0; counters.tokensOut += sk._usage?.output_tokens || 0;
-    if (!sk.pass && (sk.issues || []).length) issues.push(...sk.issues.map((i) => `review: ${i}`));
-  }
-  return { pass: issues.length === 0, issues };
+// =========================================================================
+// STEP 1 — SPLIT RESEARCH FROM WRITING (Anthropic "context quarantine").
+// PHASE 1 (this fn): an isolated research loop with web_search that returns a
+// COMPACT facts artifact (~a few hundred tokens). The bulky search-result blocks
+// live ONLY in this phase's messages and are THROWN AWAY when it returns — they
+// never travel into drafting/revising. That is the whole fix for the 119k blowup.
+// =========================================================================
+const GET_LEAD_FACTS = { name: 'get_lead_facts', description: 'Return everything WE already know about this recipient (name, title, company, location). Call FIRST — the ground truth any hook must fit.', input_schema: { type: 'object', properties: {}, required: [] } };
+const REPORT_FINDINGS = {
+  name: 'report_findings',
+  description: 'Report the compact research artifact. Call exactly once when done. Do NOT draft an email here.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      hook: { type: ['string', 'null'], description: 'ONE specific, verified, recent fact that clearly FITS THIS person (their city/office/role), phrased ready to reference — or null if nothing clearly fits (null is the common, correct answer).' },
+      hook_basis: { type: 'string', description: 'the evidence + one line on why it fits THIS exact person (location/role), or "none".' },
+      company_stage: { type: 'string', description: 'e.g. "high-growth, recently raised", "established 400+ employees", "unknown".' },
+      notes: { type: 'string', description: 'anything else genuinely useful, one line.' },
+    },
+    required: ['hook', 'hook_basis', 'company_stage'],
+  },
+};
+
+function researchSystem(audience) {
+  return `You are the RESEARCH step for a founder's 1:1 outreach note (audience: ${audience}). Your ONLY job is to gather facts and report a compact artifact. You do NOT write the email.
+
+Do this:
+1. Call get_lead_facts first to see exactly who this person is (name, title, company, LOCATION).
+2. Decide if research is worth it. 1-2 web searches max. Most prospects have no usable specific hook, and that is FINE.
+3. If you find a specific fact, VERIFY IT FITS THIS PERSON before reporting it as a hook: does it match their city/office/role? A "Best Workplaces in Chicago" award is meaningless to a New-York contact (a different office earned it) — that is NOT a valid hook, report hook=null. A fact must be real AND about THIS person's context to count.
+4. Call report_findings once: a single fitting hook (or null), why it fits, and the company stage. Keep it short. Do not draft anything.`;
 }
 
-async function runAgent(leadFacts, { audience, cta, trigger }) {
-  const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
-  const tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }, ...CLIENT_TOOLS];
-  const system = agentSystem(audience, cta);
-  const seed = [
-    'Draft a founder note for this recipient. Basic handle (call get_lead_facts for the full record):',
-    JSON.stringify({ company: leadFacts.company, audience, why_now_trigger: trigger || null }, null, 2),
-  ].join('\n');
-  const messages = [{ role: 'user', content: seed }];
-
-  const t0 = Date.now();
-  const counters = { tokensIn: 0, tokensOut: 0 };
-  let iters = 0, draft = null, aborted = null, revises = 0, finalGate = null;
-  const trace = [];
-
+async function runResearch(anthropic, leadFacts, { audience }, counters, trace, t0) {
+  const tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }, GET_LEAD_FACTS, REPORT_FINDINGS];
+  const messages = [{ role: 'user', content: `Research this prospect at ${leadFacts.company}, then call report_findings. Call get_lead_facts for the full record.` }];
+  let iters = 0, artifact = null, aborted = null;
   while (iters < MAX_ITERS) {
     if (Date.now() - t0 > TIMEOUT_MS) { aborted = 'timeout'; break; }
     if (counters.tokensIn + counters.tokensOut >= MAX_TOKENS) { aborted = 'token_budget'; break; }
     iters += 1;
     let resp;
-    try { resp = await anthropic.messages.create({ model: MODEL, max_tokens: 4000, system, tools, messages }); }
+    try { resp = await anthropic.messages.create({ model: MODEL, max_tokens: 1500, system: researchSystem(audience), tools, messages }); }
     catch (e) { aborted = `api_error: ${e.message}`; break; }
     counters.tokensIn += resp.usage?.input_tokens || 0; counters.tokensOut += resp.usage?.output_tokens || 0;
     for (const b of resp.content || []) {
-      if (b.type === 'text' && b.text.trim()) trace.push(`${c.gray(`[${iters}]`)} ${b.text.trim().slice(0, 160)}`);
-      const s = summarizeToolUse(b); if (s) trace.push(`${c.gray(`[${iters}]`)} ${s}`);
+      if (b.type === 'text' && b.text.trim()) trace.push(`${c.gray('  research')} ${b.text.trim().slice(0, 150)}`);
+      const s = summarizeToolUse(b); if (s) trace.push(`${c.gray('  research')} ${s}`);
     }
     messages.push({ role: 'assistant', content: resp.content });
-
-    const clientCalls = (resp.content || []).filter((b) => b.type === 'tool_use' && ['get_lead_facts', 'submit_draft'].includes(b.name));
-    const submit = clientCalls.find((b) => b.name === 'submit_draft');
-    if (submit) {
-      // GATE (part a): run the same guards production uses; on failure, feed the
-      // exact issues back to the agent through the tool_result and let it revise.
-      const gate = await gateDraft(anthropic, submit.input, { audience, cta, trigger, leadFacts }, counters);
-      if (gate.pass || revises >= MAX_REVISES) {
-        draft = submit.input; finalGate = gate;
-        trace.push(`${c.gray(`[${iters}]`)} ${gate.pass ? c.green('gate PASS') : c.red('gate FAIL (revises exhausted): ' + gate.issues.join(' | '))}`);
-        break;
-      }
-      revises += 1;
-      trace.push(`${c.gray(`[${iters}]`)} ${c.red('gate FAIL')} → revise ${revises}/${MAX_REVISES}: ${gate.issues.join(' | ').slice(0, 160)}`);
-      messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: submit.id, content: `REJECTED by the checks. Fix EVERY issue and call submit_draft again:\n- ${gate.issues.join('\n- ')}` }] });
-      continue;
-    }
+    const calls = (resp.content || []).filter((b) => b.type === 'tool_use' && ['get_lead_facts', 'report_findings'].includes(b.name));
+    const rf = calls.find((b) => b.name === 'report_findings');
+    if (rf) { artifact = rf.input; break; }
     if (resp.stop_reason === 'pause_turn') continue;
-    if (!clientCalls.length) {
-      if (resp.stop_reason === 'end_turn') { messages.push({ role: 'user', content: 'Call submit_draft now with the finished note.' }); continue; }
-      continue;
-    }
-    const results = clientCalls.map((b) => ({ type: 'tool_result', tool_use_id: b.id, content: b.name === 'get_lead_facts' ? JSON.stringify(leadFacts) : 'received' }));
-    messages.push({ role: 'user', content: results });
+    if (!calls.length) { if (resp.stop_reason === 'end_turn') { messages.push({ role: 'user', content: 'Call report_findings now.' }); continue; } continue; }
+    messages.push({ role: 'user', content: calls.map((b) => ({ type: 'tool_result', tool_use_id: b.id, content: b.name === 'get_lead_facts' ? JSON.stringify(leadFacts) : 'received' })) });
   }
-  return { draft, aborted, iters, revises, finalGate, tokensIn: counters.tokensIn, tokensOut: counters.tokensOut, seconds: (Date.now() - t0) / 1000, trace };
+  return { artifact: artifact || { hook: null, hook_basis: 'research incomplete', company_stage: 'unknown' }, iters, aborted };
+}
+
+// PHASE 2 — DRAFT FROM THE ARTIFACT (small context, NO search blocks). One call.
+const DRAFT_SCHEMA = { type: 'object', properties: { subject: { type: 'string' }, body: { type: 'string' }, research_note: { type: 'string' } }, required: ['subject', 'body', 'research_note'] };
+async function draftFromArtifact(anthropic, leadFacts, artifact, { audience, cta }, counters) {
+  const user = [
+    'Draft the founder note now. There is NO web research to do — everything you need is right here.',
+    'RECIPIENT (trusted facts):', JSON.stringify(leadFacts, null, 2),
+    'RESEARCH FINDINGS (already verified to fit this person):', JSON.stringify(artifact, null, 2),
+    artifact.hook
+      ? 'Use the hook above — it has been verified to fit THIS exact person. Reference it naturally, named completely.'
+      : 'No fitting hook exists, and that is the GOAL here, not a fallback. Write the clean generic founder-to-peer note: acknowledge they are a high-growth company, make no personal claim, do not invent a hook.',
+    'Call report_note once with subject, body, research_note.',
+  ].join('\n\n');
+  const resp = await anthropic.messages.create({
+    model: MODEL, max_tokens: 1500, system: voiceSystem([], audience, cta),
+    tools: [{ name: 'report_note', description: 'Report the founder note.', input_schema: DRAFT_SCHEMA }],
+    tool_choice: { type: 'tool', name: 'report_note' },
+    messages: [{ role: 'user', content: user }],
+  });
+  counters.tokensIn += resp.usage?.input_tokens || 0; counters.tokensOut += resp.usage?.output_tokens || 0;
+  const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
+  const raw = tu?.input || { subject: '', body: '', research_note: '' };
+  // STEP 2 — mechanical auto-fix in CODE before any gate (dashes/paragraphs are
+  // never worth an LLM re-loop).
+  return { subject: autoFixDashes(String(raw.subject || '')), body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(raw.body || ''))), research_note: raw.research_note };
+}
+
+// The gate: deterministic guard (free) first; coherence skeptic (judgment) only
+// if the guard passes. Mechanical issues never reach here — they were auto-fixed.
+async function gateDraft(anthropic, draft, { audience, cta, trigger, leadFacts }) {
+  const issues = [];
+  try { guardNote({ subject: draft.subject || '', body: draft.body || '' }, audience, trigger); }
+  catch (e) { issues.push(`hard rule: ${e.message}`); }
+  if (!issues.length) {
+    const sk = await critiqueNote(anthropic, { subject: draft.subject, body: draft.body }, audience, cta, leadFacts);
+    if (!sk.pass && (sk.issues || []).length) issues.push(...sk.issues.map((i) => `review: ${i}`));
+  }
+  return { pass: issues.length === 0, issues };
+}
+
+// =========================================================================
+// ORCHESTRATOR: research (once, fat) -> draft (small) -> gate -> bounded
+// small-context revise with SETTLE-TO-GENERIC (steps 1, 2, 3).
+// =========================================================================
+async function runAgent(leadFacts, { audience, cta, trigger }) {
+  const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
+  const t0 = Date.now();
+  const counters = { tokensIn: 0, tokensOut: 0 };
+  const trace = [];
+
+  // PHASE 1 (isolated; bulky search results discarded on return)
+  const research = await runResearch(anthropic, leadFacts, { audience }, counters, trace, t0);
+  if (research.aborted && !research.artifact.hook && research.artifact.company_stage === 'unknown') {
+    return { draft: null, aborted: research.aborted, artifact: research.artifact, revises: 0, researchIters: research.iters, tokensIn: counters.tokensIn, tokensOut: counters.tokensOut, seconds: (Date.now() - t0) / 1000, trace };
+  }
+  trace.push(`${c.bold('  ⇒ ARTIFACT')} hook=${research.artifact.hook ? c.green(JSON.stringify(research.artifact.hook).slice(0, 70)) : c.gray('null (generic note)')} · stage="${research.artifact.company_stage}"`);
+
+  // PHASE 2 (small context, no search dump)
+  let note = await draftFromArtifact(anthropic, leadFacts, research.artifact, { audience, cta }, counters);
+
+  // PHASE 3 (bounded, small-context revise; mechanical already fixed)
+  let gate = await gateDraft(anthropic, note, { audience, cta, trigger, leadFacts });
+  let revises = 0;
+  while (!gate.pass && revises < MAX_REVISES) {
+    revises += 1;
+    trace.push(`${c.gray('  gate')} ${c.red('FAIL')} → small-context revise ${revises}/${MAX_REVISES}: ${gate.issues.join(' | ').slice(0, 140)}`);
+    const settle = 'SETTLE: if any issue is that a specific claim does not fit this person, DROP the claim entirely and write the clean generic high-growth note with NO personal hook. Do not reach for another specific angle.';
+    // reviseNote is a SMALL call: previous draft + issues + lead facts only — no
+    // research transcript, no search blocks. It also auto-fixes mechanical issues.
+    note = await reviseNote(anthropic, { note, issues: [...gate.issues, settle], exemplars: [], audience, lead: leadFacts, firm: null, ctaVariant: cta, trigger });
+    gate = await gateDraft(anthropic, note, { audience, cta, trigger, leadFacts });
+  }
+  trace.push(`${c.gray('  gate')} ${gate.pass ? c.green('PASS') : c.red('FAIL (revises exhausted): ' + gate.issues.join(' | '))}`);
+  return { draft: note, artifact: research.artifact, finalGate: gate, revises, researchIters: research.iters, aborted: research.aborted, tokensIn: counters.tokensIn, tokensOut: counters.tokensOut, seconds: (Date.now() - t0) / 1000, trace };
 }
 
 async function sbClient() {
@@ -209,11 +234,11 @@ async function runPipeline(leadFacts, { audience, cta, trigger, email }) {
       const a = await runAgent(leadFacts, { audience: AUDIENCE, cta: CTA, trigger: null });
       let p = null; try { p = await runPipeline(leadFacts, { audience: AUDIENCE, cta: CTA, trigger: null, email: lf.email }); } catch (e) { p = { error: e.message }; }
       const usd = a.tokensIn * PRICE_IN + a.tokensOut * PRICE_OUT;
-      rows.push({ company: lf.company, location: lf.location, agent: { pass: a.finalGate?.pass ?? false, revises: a.revises, tokens: a.tokensIn + a.tokensOut, usd, seconds: a.seconds, aborted: a.aborted, subject: a.draft?.subject, body: a.draft?.body, coherence: a.draft?.coherence_check }, pipeline: p.error ? { error: p.error } : { pass: p.gatePass, seconds: p.seconds, subject: p.note.subject, body: p.note.body } });
+      rows.push({ company: lf.company, location: lf.location, agent: { pass: a.finalGate?.pass ?? false, revises: a.revises, tokens: a.tokensIn + a.tokensOut, usd, seconds: a.seconds, subject: a.draft?.subject, body: a.draft?.body, hook: a.artifact?.hook || null }, pipeline: p.error ? { error: p.error } : { pass: p.gatePass, seconds: p.seconds, subject: p.note.subject, body: p.note.body } });
       console.log(`agent ${a.finalGate?.pass ? c.green('PASS') : c.red('FAIL')} (${a.revises} rev, ${usd.toFixed(3)}, ${a.seconds.toFixed(0)}s)  ·  pipeline ${p.error ? c.red('ERR') : (p.gatePass ? c.green('PASS') : c.red('FAIL'))}`);
     }
     // aggregate
-    const ok = rows.filter((r) => !r.agent.aborted);
+    const ok = rows;
     const agPass = ok.filter((r) => r.agent.pass).length, pipePass = rows.filter((r) => r.pipeline.pass).length;
     const avg = (xs) => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0;
     console.log('\n' + c.bold('AGGREGATE:'));
@@ -252,12 +277,12 @@ async function runPipeline(leadFacts, { audience, cta, trigger, email }) {
     console.log(c.bold('  SUBJECT: ') + r.draft.subject);
     console.log(c.bold('  BODY:\n') + r.draft.body.split('\n').map((l) => '  ' + l).join('\n'));
     console.log(c.gray(`  research_note: ${r.draft.research_note}`));
-    console.log(c.gray(`  coherence_check: ${r.draft.coherence_check}`));
+    console.log(c.gray(`  artifact: hook=${r.artifact?.hook ? JSON.stringify(r.artifact.hook) : 'null'} · stage="${r.artifact?.company_stage}"`));
     console.log(`  ${c.bold('FINAL GATE')} (same guards as prod, after ${r.revises} revise round${r.revises === 1 ? '' : 's'})  ${r.finalGate?.pass ? c.green('PASS') : c.red('FAIL: ' + (r.finalGate?.issues || []).join(' | '))}`);
   }
   console.log('\n' + c.bold('COST / GUARDRAIL REPORT:'));
-  console.log(`  tokens: ${r.tokensIn} in + ${r.tokensOut} out = ${r.tokensIn + r.tokensOut}  ·  est ${c.yellow(usd(costUsd))} ${c.gray('(coherence-skeptic calls add a small untracked amount)')}`);
-  console.log(`  iterations: ${r.iters}/${MAX_ITERS}  ·  revises: ${r.revises}/${MAX_REVISES}  ·  wall: ${r.seconds.toFixed(1)}s/${TIMEOUT_MS / 1000}s  ·  ${r.aborted ? c.red('ABORTED: ' + r.aborted) : c.green('within all limits')}`);
+  console.log(`  tokens: ${r.tokensIn} in + ${r.tokensOut} out = ${r.tokensIn + r.tokensOut}  ·  est ${c.yellow(usd(costUsd))} ${c.gray('(coherence-skeptic + revise calls add a small untracked amount)')}`);
+  console.log(`  research iters: ${r.researchIters}/${MAX_ITERS}  ·  revises: ${r.revises}/${MAX_REVISES}  ·  wall: ${r.seconds.toFixed(1)}s/${TIMEOUT_MS / 1000}s  ·  ${r.aborted ? c.yellow('research note: ' + r.aborted) : c.green('within all limits')}`);
 
   let compareOut = null;
   if (COMPARE) {
@@ -270,6 +295,6 @@ async function runPipeline(leadFacts, { audience, cta, trigger, email }) {
       compareOut = p.note;
     } catch (e) { console.log(c.red(`  pipeline error: ${e.message}`)); }
   }
-  if (OUT) writeFileSync(OUT, JSON.stringify({ lead: leadFacts, agent: { draft: r.draft, cost: { tokensIn: r.tokensIn, tokensOut: r.tokensOut, usd: costUsd, iters: r.iters, revises: r.revises, seconds: r.seconds, aborted: r.aborted }, finalGate: r.finalGate, trace: r.trace }, pipeline: compareOut }, null, 2));
+  if (OUT) writeFileSync(OUT, JSON.stringify({ lead: leadFacts, agent: { draft: r.draft, artifact: r.artifact, cost: { tokensIn: r.tokensIn, tokensOut: r.tokensOut, usd: costUsd, researchIters: r.researchIters, revises: r.revises, seconds: r.seconds }, finalGate: r.finalGate, trace: r.trace }, pipeline: compareOut }, null, 2));
   console.log(c.gray('\nSandbox run complete. Nothing was sent or written to Gmail/Slack/DB.'));
 })().catch((e) => { console.error('AGENT_LAB_ERROR:', e.message); process.exit(1); });
