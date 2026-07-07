@@ -225,17 +225,24 @@ async function runPipeline(leadFacts, { audience, cta, trigger, email }) {
       .eq('source', 'founder-personal').not('location', 'is', null)
       .or('mv_status.eq.ok,bounceban_status.eq.deliverable').limit(BATCH);
     const leads = (pool || []).slice(0, BATCH);
-    console.log(c.bold(`\n╔══ AGENT LAB — BATCH EVAL: agent vs scripted pipeline on ${leads.length} real leads ══╗`));
+    console.log(c.bold(`\n╔══ AGENT LAB — BATCH EVAL: agent vs scripted pipeline on ${leads.length} real leads (parallel) ══╗`));
     console.log(c.gray(`  sandbox: nothing sends/writes · guardrails per lead (≤${MAX_TOKENS / 1000}k tok, ≤${MAX_REVISES} revises)\n`));
-    const rows = [];
-    for (const [i, lf] of leads.entries()) {
+    // PARALLEL (leads run concurrently — ~1 lead's wall time instead of N×).
+    const rows = await Promise.all(leads.map(async (lf) => {
       const leadFacts = { name: lf.name, title: lf.title, company: lf.company, location: lf.location, linkedin_url: lf.linkedin_url };
-      process.stdout.write(c.gray(`  [${i + 1}/${leads.length}] ${lf.company} … `));
       const a = await runAgent(leadFacts, { audience: AUDIENCE, cta: CTA, trigger: null });
       let p = null; try { p = await runPipeline(leadFacts, { audience: AUDIENCE, cta: CTA, trigger: null, email: lf.email }); } catch (e) { p = { error: e.message }; }
       const usd = a.tokensIn * PRICE_IN + a.tokensOut * PRICE_OUT;
-      rows.push({ company: lf.company, location: lf.location, agent: { pass: a.finalGate?.pass ?? false, revises: a.revises, tokens: a.tokensIn + a.tokensOut, usd, seconds: a.seconds, subject: a.draft?.subject, body: a.draft?.body, hook: a.artifact?.hook || null }, pipeline: p.error ? { error: p.error } : { pass: p.gatePass, seconds: p.seconds, subject: p.note.subject, body: p.note.body } });
-      console.log(`agent ${a.finalGate?.pass ? c.green('PASS') : c.red('FAIL')} (${a.revises} rev, ${usd.toFixed(3)}, ${a.seconds.toFixed(0)}s)  ·  pipeline ${p.error ? c.red('ERR') : (p.gatePass ? c.green('PASS') : c.red('FAIL'))}`);
+      return { company: lf.company, name: lf.name, title: lf.title, location: lf.location, agent: { pass: a.finalGate?.pass ?? false, gateIssues: a.finalGate?.issues || [], revises: a.revises, tokens: a.tokensIn + a.tokensOut, usd, seconds: a.seconds, subject: a.draft?.subject, body: a.draft?.body, hook: a.artifact?.hook || null }, pipeline: p.error ? { error: p.error } : { pass: p.gatePass, seconds: p.seconds, subject: p.note.subject, body: p.note.body } };
+    }));
+    // PRINT THE ACTUAL DRAFTS (agent + pipeline) per lead
+    for (const r of rows) {
+      console.log(c.bold(`\n════ ${r.name} · ${r.title} · ${r.company} (${r.location}) ════`));
+      console.log(`  ${c.bold('AGENT')}  ${r.agent.pass ? c.green('PASS') : c.red('FAIL')} · ${r.agent.revises} rev · ${c.yellow('$' + r.agent.usd.toFixed(3))} · ${r.agent.seconds.toFixed(0)}s · hook=${r.agent.hook ? c.green(JSON.stringify(r.agent.hook).slice(0, 50)) : c.gray('null')}`);
+      if (!r.agent.pass) console.log(c.red(`    gate: ${r.agent.gateIssues.join(' | ').slice(0, 200)}`));
+      console.log((r.agent.body || '(no draft)').split('\n').map((l) => c.cyan('  │ ') + l).join('\n'));
+      console.log(`  ${c.bold('PIPELINE')}  ${r.pipeline.error ? c.red('ERR ' + r.pipeline.error) : (r.pipeline.pass ? c.green('PASS') : c.red('FAIL')) + ' · ' + r.pipeline.seconds.toFixed(0) + 's'}`);
+      if (!r.pipeline.error) console.log((r.pipeline.body || '').split('\n').map((l) => c.gray('  │ ') + l).join('\n'));
     }
     // aggregate
     const ok = rows;
