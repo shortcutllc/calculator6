@@ -27,6 +27,7 @@
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
+import { verifyEmail } from './lib/bounceban.mjs';
 
 const ROOT = '/Users/willnewton/Documents/GitHub/calculator6';
 const LEDGER = `${ROOT}/prime_targets.json`;
@@ -46,6 +47,7 @@ const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
 const envKey = (n) => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').match(new RegExp(`^${n}=(.+)$`, 'm'))?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } };
 const APOLLO = process.env.APOLLO_API_KEY || envKey('APOLLO_API_KEY');
 const MV = process.env.MILLIONVERIFIER_API_KEY || envKey('MILLIONVERIFIER_API_KEY');
+const BB = process.env.BOUNCEBAN_API_KEY || envKey('BOUNCEBAN_API_KEY');
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || envKey('ANTHROPIC_API_KEY');
 const sb = createClient((process.env.SUPABASE_URL || '').trim(), (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim(), { auth: { persistSession: false } });
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
@@ -112,7 +114,7 @@ async function harvestCandidates() {
   const { default: Anthropic } = await import('@anthropic-ai/sdk');
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
   const today = new Date().toISOString().slice(0, 10);
-  const sys = `You are the daily signal-collection pass for a corporate-wellness founder's NYC outreach. Today is ${today}. Find CANDIDATE COMPANIES that plausibly just crossed (or are about to cross) ~100 employees in the New York area, each with a concrete recent WHY-NOW trigger. Work three feeds with web search: (1) RECENT NYC FUNDING — AlleyWatch daily/weekly funding reports and news from the last ~10 days; Series A/B ~$10-60M at companies plausibly 50-250 employees; skip seed-stage tiny companies and unicorns. (2) FIRST-PEOPLE-HIRE POSTINGS — currently-open Head of People / People Operations roles at NYC companies (site:boards.greenhouse.io / jobs.lever.co / jobs.ashbyhq.com searches). (3) GROWTH CHATTER — only companies with indicated size 50-250. RULES: real companies only, every entry needs a live source URL, prefer companies with a physical NYC office (skip stated fully-remote), no duplicates. Aim for 8-20 fresh entries; quality over quantity. Report via report_candidates exactly once when done.`;
+  const sys = `You are the daily signal-collection pass for a corporate-wellness founder's NYC outreach. Today is ${today}. Find CANDIDATE COMPANIES that plausibly just crossed (or are about to cross) ~100 employees in the New York area, each with a concrete recent WHY-NOW trigger. Work three feeds with web search: (1) RECENT NYC FUNDING — AlleyWatch daily/weekly funding reports and news from the last ~10 days; Series A/B ~$10-60M at companies plausibly 50-250 employees; skip seed-stage tiny companies and unicorns. (2) FIRST-PEOPLE-HIRE POSTINGS — currently-open Head of People / People Operations roles at NYC companies (site:boards.greenhouse.io / jobs.lever.co / jobs.ashbyhq.com searches). (3) GROWTH CHATTER — only companies with indicated size 50-250. RULES: real companies only, every entry needs a live source URL, prefer companies with a physical NYC office (skip stated fully-remote), no duplicates. Bias hard toward companies plainly in the 60-250 headcount band and plainly NEW-YORK-based — off-band (too small/too big) and wrong-city entries waste an Apollo enrich credit each (2026-07-07: Warp 51pp, Prosper 13pp, an Italian utility named Hera, and a Texas company named Crosby all got enriched and disqualified). When a company name is ambiguous, include the DOMAIN so it resolves to the right entity. Aim for 25-35 fresh, on-band entries so the pipeline can land 5 qualified buyers. Report via report_candidates exactly once when done.`;
   const resp = await anthropic.messages.create({
     model: 'claude-sonnet-4-5-20250929', max_tokens: 8000, temperature: 0.2,
     system: sys,
@@ -292,26 +294,49 @@ async function runReport() {
       if (!email) { entry.status = 'buyer_no_email'; results.push(entry); continue; }
       if (person.email_status && !['verified', 'likely to engage', 'likely_to_engage'].includes(lc(person.email_status))) { entry.status = 'buyer_email_unverified'; results.push(entry); continue; }
       if (knownEmails.has(email) || supp.has(email)) { entry.status = 'buyer_known_or_suppressed'; results.push(entry); continue; }
-      let mv = null;
+      let mv = null; let bb = null;
       if (MV) { mv = await mvVerify(email); if (mv === 'invalid' || mv === 'disposable') { entry.status = 'buyer_mv_invalid'; results.push(entry); continue; } }
+      // catch_all/unknown -> BounceBan INLINE (same waterfall as verify-leads), so
+      // the buyer is SENDABLE today instead of parked catch_all until Monday's
+      // cron. This is the 2026-07-07 fix: two catch_all buyers landed but the
+      // queue's sendable filter (mv=ok OR bounceban=deliverable) silently rejected
+      // them, so no draft + no warning. Now they're resolved before we queue.
+      if (BB && (mv === 'catch_all' || mv === 'unknown' || !mv)) {
+        const res = await verifyEmail(email, { apiKey: BB });
+        if (res.ok) {
+          bb = res.result;
+          if (bb === 'undeliverable') {
+            entry.status = 'buyer_bounceban_undeliverable';
+            await sb.from('crm_suppression').upsert([{ email, reason: 'bounceban_undeliverable', source: 'tech-scout' }], { onConflict: 'email' });
+            results.push(entry); continue;
+          }
+        }
+      }
+      const sendable = mv === 'ok' || bb === 'deliverable';
       const { error: insErr } = await sb.from('outreach_contacts').upsert([{
         email, email_domain: domain, name: entry.buyer.name, title: entry.buyer.title,
         company: entry.company, linkedin_url: entry.buyer.linkedin_url, location: city,
         source: 'founder-personal', channel: 'personal',
-        mv_status: mv, mv_checked_at: mv ? now : null, first_seen: now, ingested_at: now,
+        mv_status: mv, mv_checked_at: mv ? now : null,
+        bounceban_status: bb, bounceban_checked_at: bb ? now : null,
+        first_seen: now, ingested_at: now,
       }], { onConflict: 'email' });
-      entry.status = insErr ? `insert_failed: ${insErr.message}` : 'buyer_landed';
-      entry.buyer.mv_status = mv;
-      if (!insErr) {
-        buyersLanded += 1;
-        // --queue: feed the founder queue immediately with the VERIFIED trigger
-        // (help/convo CTA alternates per landed buyer, same A/B as brokers)
-        if (QUEUE) {
-          const cta = (buyersLanded % 2 === 1) ? 'help' : 'convo';
-          const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: email, audience: 'tech-execs', cta, trigger: cand.trigger }) });
-          entry.queued = qr.status === 202 || qr.status === 200;
-          log(`  queued ${email} (cta=${cta}) → HTTP ${qr.status}`);
-        }
+      if (insErr) { entry.status = `insert_failed: ${insErr.message}`; results.push(entry); continue; }
+      entry.buyer.mv_status = mv; entry.buyer.bounceban_status = bb;
+      // A parked (not-yet-sendable) buyer is landed but NOT queued and does NOT
+      // count toward MAX_BUYERS — otherwise an unsendable lead would eat a queue
+      // slot and produce no card (the silent-drop we just fixed). Monday's
+      // verify-leads pass can still resolve it later.
+      if (!sendable) { entry.status = 'buyer_parked_unverified'; log(`  parked (not sendable: mv=${mv} bb=${bb || 'n/a'}) ${email}`); results.push(entry); continue; }
+      entry.status = 'buyer_landed';
+      buyersLanded += 1;
+      // --queue: feed the founder queue immediately with the VERIFIED trigger
+      // (help/convo CTA alternates per landed buyer, same A/B as brokers)
+      if (QUEUE) {
+        const cta = (buyersLanded % 2 === 1) ? 'help' : 'convo';
+        const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: email, audience: 'tech-execs', cta, trigger: cand.trigger }) });
+        entry.queued = qr.status === 202 || qr.status === 200;
+        log(`  queued ${email} (cta=${cta}, mv=${mv} bb=${bb || 'n/a'}) → HTTP ${qr.status}`);
       }
       results.push(entry);
       await sleep(150);
