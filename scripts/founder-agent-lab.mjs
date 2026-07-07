@@ -50,6 +50,7 @@ const MAX_ITERS = parseInt(val('--max-iterations', '12'), 10) || 12;
 const TIMEOUT_MS = parseInt(val('--timeout-ms', '240000'), 10) || 240000;
 const MAX_REVISES = parseInt(val('--max-revises', '2'), 10); // gate-failure feedback rounds (a)
 const BATCH = val('--batch', null) ? parseInt(val('--batch', null), 10) : null; // (b) run N leads
+const CRAFT = has('--craft'); // craft-first drafting experiment (Will 2026-07-07): points as raw material, write coherent prose, vary phrasing, hook must earn its place — vs the compliance-gated pipeline.
 // Sonnet 4.5 list price (approx, for a $ estimate only): $3/M in, $15/M out.
 const PRICE_IN = 3 / 1e6; const PRICE_OUT = 15 / 1e6;
 
@@ -163,6 +164,83 @@ async function gateDraft(anthropic, draft, { audience, cta, trigger, leadFacts }
 }
 
 // =========================================================================
+// CRAFT-FIRST path (Will 2026-07-07): the fix for "it reads like stitched-together
+// approved lines." Points are RAW MATERIAL to say in the writer's own words, fresh
+// every email; complete sentences only; the hook must connect to the offer or be
+// cut; vary the phrasing. Judged on CRAFT, not compliance-checklist presence.
+// =========================================================================
+function craftDraftSystem(audience, cta) {
+  const closeHint = cta === 'convo' ? 'offer a quick call, in your own words (no calendar link, no "15 minutes")' : 'offer to send a bit more, in your own words';
+  return `You are Will Newton, founder of Shortcut, writing a short 1:1 email to ONE person you would genuinely like to know. Write ONE coherent, human email, the kind you'd actually type between meetings. This is WRITING, not assembling approved lines.
+
+WHAT SHORTCUT IS (raw material — put it in YOUR OWN words, phrased differently every time, never as a stock catchphrase):
+- You bring wellness days into offices: chair massage, nails, facials, mindfulness and more, all run by one team (one vendor, not a directory of contractors).
+- You run the whole thing end to end; the client just picks a date. It is genuinely no work for them.
+- Proof you MAY draw on, at most ONE, and only if it fits the sentence naturally: people actually use it (90%+ of slots get booked); 500+ companies including BCG and DraftKings; 87% come back for another.
+
+HOW TO WRITE (this is what has been missing):
+- COMPLETE SENTENCES ONLY. Never drop a bare noun phrase in as if it were a sentence. "The kind of wellness people actually make time for, and we handle everything" is a FRAGMENT and reads broken. Write "We run the kind of wellness people actually make time for," or rephrase the idea from scratch.
+- VARY IT. Say the key points in fresh words, in an order that fits THIS person and THIS email. If two of your emails could swap sentences without anyone noticing, you have failed. No two notes should reuse the same catchphrase.
+- SAY LESS. Cut every word not earning its place. You do NOT need to cram in every proof point or every selling point — pick the one or two that flow and drop the rest. Short and human beats complete and crammed.
+- One thought per short paragraph. It must read like one train of thought from one person, not a checklist.
+
+THE HOOK (optional, and it must EARN its place):
+- If the research gave you a hook, use it ONLY if it connects to the reason you're writing (taking care of their team). A real fact with nothing to do with wellness is a non-sequitur — e.g. "I saw your passwordless-security report, candidate fraud at #2" has zero to do with wellness. DROP it. Do not force a bridge.
+- A brief, genuine congrats on a real milestone (a raise, going public) is a fine warm opener. Keep it to one natural line, then move on. Do not stack it with the pitch in the same breath.
+- If nothing fits, just write a warm clean note with no hook. That is the common, good case.
+
+VOICE + HARD LINES:
+- Warm, calm, casual, peer to peer. Contractions. Zero sales energy. No buzzwords (elevate, leverage, unlock, transform, seamless, foster, streamline, navigate, holistic, curated). No dashes as punctuation (end the sentence). Vary sentence length; at least one short line.
+${audience === 'brokers' ? '- BROKER: this is about helping THEM help their clients deploy carrier wellness funds; name only fund-eligible services (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching); never "groups".' : '- Never assert their team is stressed or burned out (you have not met them); wonder about it only in a question or an "if". Never RTO / "worth the commute" framing.'}
+- Close naturally: ${closeHint}.
+- End with "Cheers!" or "Thanks!" then "Will". That is the ONLY exclamation mark, nothing after.
+
+Write the email so good that Will would send it without touching a word. Report it via report_note.`;
+}
+
+async function craftDraft(anthropic, leadFacts, artifact, { audience, cta }, counters, priorProblems) {
+  const user = [
+    'Write the founder note now. No research to do — use what is here.',
+    'RECIPIENT:', JSON.stringify(leadFacts, null, 2),
+    'RESEARCH (already verified to fit; hook may be null):', JSON.stringify(artifact, null, 2),
+    priorProblems ? `Your previous attempt had these problems — rewrite to fix them, do not just patch:\n- ${priorProblems.join('\n- ')}` : '',
+    'Call report_note once (subject, body, research_note).',
+  ].filter(Boolean).join('\n\n');
+  const resp = await anthropic.messages.create({
+    model: MODEL, max_tokens: 1500, system: craftDraftSystem(audience, cta),
+    tools: [{ name: 'report_note', description: 'Report the note.', input_schema: DRAFT_SCHEMA }],
+    tool_choice: { type: 'tool', name: 'report_note' },
+    messages: [{ role: 'user', content: user }],
+  });
+  counters.tokensIn += resp.usage?.input_tokens || 0; counters.tokensOut += resp.usage?.output_tokens || 0;
+  const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
+  const raw = tu?.input || { subject: '', body: '', research_note: '' };
+  return { subject: autoFixDashes(String(raw.subject || '')), body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(raw.body || ''))), research_note: raw.research_note };
+}
+
+// Craft critic: judges the WRITING (fragments, flow, hook relevance, wordiness,
+// sameness, coherence-to-this-person), not checklist presence. Returns {pass, issues}.
+async function craftCritique(anthropic, note, leadFacts, { audience }, counters) {
+  const system = `You are a ruthless copy editor for a founder's 1:1 email. The prose must read like a sharp human wrote ONE coherent note, not a system stitching approved lines. Default to FAILING. Flag, specifically:
+- FRAGMENTS or broken grammar: any "sentence" without a real subject+verb, any bare noun phrase dropped in as if it were a sentence.
+- STITCHED/TEMPLATED feel: reads like bolted-together stock phrases rather than one train of thought.
+- HOOK that does not connect to wellness / taking care of the team (a non-sequitur company fact), or a hook that is wordy/in-the-weeds.
+- WORDINESS: any sentence that could be half as long; filler that is not earning its place.
+- COHERENCE: any claim that does not fit THIS recipient (check the facts below: ${JSON.stringify(leadFacts)}).
+${audience === 'brokers' ? '' : '- Presumptuous stress claims stated as fact (allowed only as a question or "if").'}
+Report via report_review with one issue string per problem. If the prose genuinely reads like a great human email, pass=true.`;
+  const resp = await anthropic.messages.create({
+    model: MODEL, max_tokens: 800, temperature: 0, system,
+    tools: [{ name: 'report_review', description: 'Report the review.', input_schema: { type: 'object', properties: { pass: { type: 'boolean' }, issues: { type: 'array', items: { type: 'string' } } }, required: ['pass', 'issues'] } }],
+    tool_choice: { type: 'tool', name: 'report_review' },
+    messages: [{ role: 'user', content: `THE EMAIL:\nSubject: ${note.subject}\n\n${note.body}` }],
+  });
+  counters.tokensIn += resp.usage?.input_tokens || 0; counters.tokensOut += resp.usage?.output_tokens || 0;
+  const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_review');
+  return tu?.input || { pass: true, issues: [] };
+}
+
+// =========================================================================
 // ORCHESTRATOR: research (once, fat) -> draft (small) -> gate -> bounded
 // small-context revise with SETTLE-TO-GENERIC (steps 1, 2, 3).
 // =========================================================================
@@ -179,20 +257,36 @@ async function runAgent(leadFacts, { audience, cta, trigger }) {
   }
   trace.push(`${c.bold('  ⇒ ARTIFACT')} hook=${research.artifact.hook ? c.green(JSON.stringify(research.artifact.hook).slice(0, 70)) : c.gray('null (generic note)')} · stage="${research.artifact.company_stage}"`);
 
-  // PHASE 2 (small context, no search dump)
-  let note = await draftFromArtifact(anthropic, leadFacts, research.artifact, { audience, cta }, counters);
-
-  // PHASE 3 (bounded, small-context revise; mechanical already fixed)
-  let gate = await gateDraft(anthropic, note, { audience, cta, trigger, leadFacts });
-  let revises = 0;
-  while (!gate.pass && revises < MAX_REVISES) {
-    revises += 1;
-    trace.push(`${c.gray('  gate')} ${c.red('FAIL')} → small-context revise ${revises}/${MAX_REVISES}: ${gate.issues.join(' | ').slice(0, 140)}`);
-    const settle = 'SETTLE: if any issue is that a specific claim does not fit this person, DROP the claim entirely and write the clean generic high-growth note with NO personal hook. Do not reach for another specific angle.';
-    // reviseNote is a SMALL call: previous draft + issues + lead facts only — no
-    // research transcript, no search blocks. It also auto-fixes mechanical issues.
-    note = await reviseNote(anthropic, { note, issues: [...gate.issues, settle], exemplars: [], audience, lead: leadFacts, firm: null, ctaVariant: cta, trigger });
+  // PHASE 2 + 3. CRAFT path: write freely from raw material, judge on craft
+  // (guardNote hard rules + craftCritique), craft-rewrite on failure. Else the
+  // compliance path (draftFromArtifact + gateDraft).
+  let note, gate, revises = 0;
+  if (CRAFT) {
+    note = await craftDraft(anthropic, leadFacts, research.artifact, { audience, cta }, counters);
+    const runCraftGate = async () => {
+      const issues = [];
+      try { guardNote({ subject: note.subject || '', body: note.body || '' }, audience, trigger); } catch (e) { issues.push(`hard rule: ${e.message}`); }
+      const cc = await craftCritique(anthropic, note, leadFacts, { audience }, counters);
+      if (!cc.pass) issues.push(...(cc.issues || []));
+      return { pass: issues.length === 0, issues };
+    };
+    gate = await runCraftGate();
+    while (!gate.pass && revises < MAX_REVISES) {
+      revises += 1;
+      trace.push(`${c.gray('  craft-gate')} ${c.red('FAIL')} → rewrite ${revises}/${MAX_REVISES}: ${gate.issues.join(' | ').slice(0, 140)}`);
+      note = await craftDraft(anthropic, leadFacts, research.artifact, { audience, cta }, counters, gate.issues);
+      gate = await runCraftGate();
+    }
+  } else {
+    note = await draftFromArtifact(anthropic, leadFacts, research.artifact, { audience, cta }, counters);
     gate = await gateDraft(anthropic, note, { audience, cta, trigger, leadFacts });
+    while (!gate.pass && revises < MAX_REVISES) {
+      revises += 1;
+      trace.push(`${c.gray('  gate')} ${c.red('FAIL')} → small-context revise ${revises}/${MAX_REVISES}: ${gate.issues.join(' | ').slice(0, 140)}`);
+      const settle = 'SETTLE: if any issue is that a specific claim does not fit this person, DROP the claim entirely and write the clean generic high-growth note with NO personal hook. Do not reach for another specific angle.';
+      note = await reviseNote(anthropic, { note, issues: [...gate.issues, settle], exemplars: [], audience, lead: leadFacts, firm: null, ctaVariant: cta, trigger });
+      gate = await gateDraft(anthropic, note, { audience, cta, trigger, leadFacts });
+    }
   }
   trace.push(`${c.gray('  gate')} ${gate.pass ? c.green('PASS') : c.red('FAIL (revises exhausted): ' + gate.issues.join(' | '))}`);
   return { draft: note, artifact: research.artifact, finalGate: gate, revises, researchIters: research.iters, aborted: research.aborted, tokensIn: counters.tokensIn, tokensOut: counters.tokensOut, seconds: (Date.now() - t0) / 1000, trace };
