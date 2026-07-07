@@ -249,7 +249,11 @@ const STRESS_ASSERTION_RE = /\b(everyone|your (team|people|folks)|people( there)
 const CONSEQUENCE_FRAME_RE = /\b(becomes? how (things are|it's) done|before (it|the culture|things) (calcif|hardens|sets|is too late)|the window (is closing|closes)|now or never|pay (a|the) price|can't afford (not|to wait))\b/i;
 
 // Deterministic guardrails (brand-hard rules) — throw loudly; the run skips the lead.
-export function guardNote(n, audience, trigger = null) {
+// opts.allowLinks: array of exact URLs permitted in the body (follow-up touch 3
+// carries one first-party book-a-call link; the cold-lane callers pass nothing so
+// their link ban is unchanged). opts.followup: relaxes intro/greeting expectations
+// (an in-thread reply does not re-introduce Will).
+export function guardNote(n, audience, trigger = null, opts = {}) {
   const all = `${n.subject} ${n.body}`;
   if (/[—–]|\s-\s/.test(all)) throw new Error('draft used a dash as punctuation');
   // Exclamation marks: banned everywhere EXCEPT the sign-off line ("Cheers!" or
@@ -264,7 +268,17 @@ export function guardNote(n, audience, trigger = null) {
   }
   if (/hope this (email |message |note )?finds you/i.test(all)) throw new Error('draft opened with a stock AI pleasantry');
   if (/\bnot (just|only) [^.!?\n]{0,60}, but\b/i.test(n.body)) throw new Error('draft used "not just X, but Y" parallelism (top AI tell)');
-  if (/https?:\/\//.test(n.body.replace(/getshortcut\.co/g, ''))) throw new Error('draft included a link (first touch is link-free)');
+  {
+    // Strip any explicitly-allowed follow-up links FIRST (exact match on the raw
+    // body — must happen before the getshortcut.co strip, which would otherwise
+    // mangle a proposals.getshortcut.co URL so it no longer matches), then strip
+    // bare getshortcut.co mentions; any remaining https is a banned link. First
+    // touch is link-free; follow-up touch 3 may carry ONE first-party book link.
+    let linkTest = n.body;
+    for (const u of (opts.allowLinks || [])) linkTest = linkTest.split(u).join('');
+    linkTest = linkTest.replace(/getshortcut\.co/g, '');
+    if (/https?:\/\//.test(linkTest)) throw new Error('draft included a link (first touch is link-free)');
+  }
   // structure: short paragraphs, one idea each (Will 2026-07-02 — v5 shipped a
   // 3-sentence chunk). Enforce the ACTUAL rule (max two sentences per paragraph)
   // rather than a word-count proxy: the 46-word cap false-killed four good
@@ -402,3 +416,100 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   }
   return { note, review };
 }
+
+// ============================================================================
+// FOLLOW-UP TOUCHES (Will 2026-07-07): auto-sent in-thread nudges that mirror the
+// COLD ENGINE cadence + role structure — E2 value bump (day+3), E3 differentiation
+// + one first-party link (day+4), E4 graceful breakup (day+5). Same voice + hard
+// rules as the first touch, but SHORT and in-thread (no re-introduction). The
+// sender (founder-followup-background.js) hard-stops the whole sequence the moment
+// the prospect replies, so these only ever go to people who stayed silent.
+// ============================================================================
+
+const FOLLOWUP_SCHEMA = {
+  type: 'object',
+  properties: {
+    body: { type: 'string', description: "the in-thread follow-up, plain text, SHORT (2-4 sentences), paragraphs separated by a blank line, ending 'Cheers!' or 'Thanks!' then '\\nWill'. NO re-introduction (Will's first email is above in the thread) and NO stock 'just following up'." },
+    touch_summary: { type: 'string', description: 'one line for Will: what NEW thing this touch adds' },
+  },
+  required: ['body', 'touch_summary'],
+};
+
+function followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl) {
+  const roles = {
+    2: 'TOUCH 2 (value bump): add ONE new concrete thing they did not get in the first email — a single proof point (over 90% of slots get booked, 87% rebook, BCG/DraftKings) or one specific detail. Lead with the new thing. NEVER "just following up", "bumping this", or "did you see my note".',
+    3: `TOUCH 3 (differentiation${bookACallUrl ? ' + one link' : ''}): in a sentence, make clear Shortcut is one team for the whole crew, on-site${audience === 'brokers' ? '' : ' and remote'}, zero lift.${bookACallUrl ? ` Then offer the page once, softly: "I put together a quick overview if it helps: ${bookACallUrl}". Use that exact URL exactly once.` : ''} Keep it short.`,
+    4: 'TOUCH 4 (graceful breakup): one last note. Drop ONE final proof point, then a warm no-pressure out ("I will leave you be. Reach out anytime if it is ever useful."). NEVER guilt, NEVER "last chance" or "final attempt".',
+  };
+  return `You write a SHORT in-thread follow-up email AS Will Newton, founder and CEO of Shortcut (getshortcut.co) — premium on-site wellness (chair massage, nails, facials, mindfulness) for companies like BCG and DraftKings, 500+ companies, 87% rebook. Will's earlier note is ALREADY above in this thread, so do NOT reintroduce him or Shortcut and do NOT restate the full pitch.
+
+WILL'S VOICE: calm, warm, casual, human. Contractions. Short sentences, varied length. No buzzwords (elevate, leverage, unlock, transform, seamless, delve, foster, streamline, navigate — banned). No dashes as punctuation (end the sentence instead). No exclamation points except the sign-off. Reads like Will typed it between meetings, not a template.
+${exemplars.length ? `\nWILL'S REAL SENT EMAILS (match register/rhythm, do not copy):\n${exemplars.slice(0, 3).map((e, i) => `--- ${i + 1} ---\n${e}`).join('\n')}\n` : ''}
+IN-THREAD: this is a reply. Open naturally (a light "Hi {first name}," is fine, or dive straight in). 2 to 4 sentences total. One idea per short paragraph.
+
+${audience === 'brokers'
+    ? 'BROKER CONTEXT: still channel courtship — helping the broker help their CLIENTS deploy carrier wellness funds. Client-side credibility only (companies Will talks to, never claims about the broker\'s own book outside a question). Name only fund-eligible services (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Never say "groups".'
+    : `TECH-EXEC CONTEXT: celebrate-and-offer sentiment. NEVER assert their team is stressed/burned out/overstretched (only inside an if/as/when clause or a question). NEVER consequence or urgency framing. NEVER RTO / "worth the commute" framing${trigger ? '' : ''}. Offer to help their people take a beat.`}
+
+${roles[touchNumber] || roles[4]}
+
+CLOSE: ${ctaVariant === 'convo' ? 'offer a short call if it is a fit ("happy to hop on a quick call if useful"). No calendar link, no times.' : 'offer to send more or help ("happy to share more if it is useful"). Zero pressure.'} ${touchNumber === 4 ? '(For the breakup touch the out itself is the close.)' : ''}
+Sign off "Cheers!" or "Thanks!" on its own line, then "Will". That is the ONLY exclamation mark. Nothing after (his signature is appended).
+
+Report via report_followup exactly once.`;
+}
+
+async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies }) {
+  const userContent = [
+    'THE PERSON (JSON):',
+    JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, why_now_trigger: trigger || null }, null, 2),
+    '',
+    'PRIOR TOUCHES IN THIS THREAD (do NOT repeat their content or phrasing):',
+    ...(priorBodies || []).map((b, i) => `--- touch ${i + 1} ---\n${b}`),
+    '',
+    `Write follow-up touch ${touchNumber}, then call report_followup once.`,
+  ].join('\n');
+  const resp = await anthropic.messages.create({
+    model: ANTHROPIC_MODEL, max_tokens: 1500, temperature: 0.4,
+    system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl),
+    tools: [{ name: 'report_followup', description: 'Report the finished follow-up. Call exactly once.', input_schema: FOLLOWUP_SCHEMA }],
+    tool_choice: { type: 'tool', name: 'report_followup' },
+    messages: [{ role: 'user', content: userContent }],
+  });
+  const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_followup');
+  if (!tu) throw new Error('no report_followup from drafter');
+  return { ...tu.input, body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))) };
+}
+
+/**
+ * composeFollowup — draft an in-thread follow-up touch, gate it (allowing the one
+ * book-a-call link on touch 3), revise once on violation. Returns { body,
+ * touch_summary }. The subject is NOT generated here: the sender reuses the E1
+ * subject so Gmail keeps the thread grouped.
+ */
+export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 'help', trigger = null, touchNumber, exemplars = [], bookACallUrl = null, priorBodies = [], label = lead?.email || 'lead', log = console.error }) {
+  const allowLinks = (touchNumber === 3 && bookACallUrl) ? [bookACallUrl] : [];
+  const guardOpts = { allowLinks, followup: true };
+  let fu = await draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies });
+  const asNote = () => ({ subject: '', body: fu.body });
+  try { guardNote(asNote(), audience, trigger, guardOpts); } catch (ge) {
+    log(`followup guard hit for ${label} (touch ${touchNumber}): ${ge.message} — revising`);
+    // one revision with the failure fed back
+    const resp = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0.4,
+      system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl),
+      tools: [{ name: 'report_followup', description: 'Report the revised follow-up.', input_schema: FOLLOWUP_SCHEMA }],
+      tool_choice: { type: 'tool', name: 'report_followup' },
+      messages: [{ role: 'user', content: `Your previous follow-up FAILED a hard rule: ${ge.message}\n\nPREVIOUS:\n${fu.body}\n\nFix it and re-report. Keep it short and in-thread.` }],
+    });
+    const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_followup');
+    if (!tu) throw new Error('followup revision produced nothing');
+    fu = { ...tu.input, body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))) };
+    guardNote(asNote(), audience, trigger, guardOpts); // throws -> caller skips this touch
+  }
+  return fu;
+}
+
+// Cold-engine cadence, day-offsets from the E1 send (Will 2026-07-07: mirror the
+// cold sequence). E2 +3, E3 +4, E4 +5. Exported so the sender and tests agree.
+export const FOLLOWUP_CADENCE = { 2: 3, 3: 4, 4: 5 };

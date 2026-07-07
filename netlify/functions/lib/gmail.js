@@ -127,8 +127,11 @@ function renderMarkdownLinks(escapedBody) {
   );
 }
 
-/** RFC 2822 text/html message, base64url-encoded for messages.send. */
-function buildRaw({ from, to, subject, bodyHtml }) {
+/** RFC 2822 text/html message, base64url-encoded for messages.send.
+ *  inReplyTo/references (RFC Message-ID of the message being replied to) make the
+ *  send a TRUE reply on the recipient's side (Outlook/etc. thread on these
+ *  headers, not on Gmail's internal threadId). */
+function buildRaw({ from, to, subject, bodyHtml, inReplyTo, references }) {
   const headers = [
     `From: ${from}`,
     `To: ${to}`,
@@ -136,6 +139,8 @@ function buildRaw({ from, to, subject, bodyHtml }) {
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset="UTF-8"',
   ];
+  if (inReplyTo) headers.push(`In-Reply-To: ${inReplyTo}`);
+  if (references) headers.push(`References: ${references}`);
   const mime = `${headers.join('\r\n')}\r\n\r\n${bodyHtml}`;
   return Buffer.from(mime, 'utf-8').toString('base64')
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -144,16 +149,17 @@ function buildRaw({ from, to, subject, bodyHtml }) {
 /**
  * Send an email as the rep. `body` is the rep-approved plain text; it is
  * HTML-escaped and newline-converted. `signatureHtml` (already HTML, from
- * getSignature) is appended verbatim after a separator. Returns { id, threadId }.
+ * getSignature) is appended verbatim after a separator. `inReplyTo`/`references`
+ * (optional RFC Message-ID) make it a true threaded reply. Returns { id, threadId }.
  */
-export async function sendEmail(accessToken, { from, to, subject, body, signatureHtml, threadId }) {
+export async function sendEmail(accessToken, { from, to, subject, body, signatureHtml, threadId, inReplyTo, references }) {
   // Escape first (handles &, <, >, etc.), THEN reify any [Label](https://…)
   // markdown into anchor tags. Order matters: escapeHtml turns `&` in URLs
   // into `&amp;`, which is the correct in-anchor form.
   let bodyHtml = renderMarkdownLinks(escapeHtml(body)).replace(/\r?\n/g, '<br>');
   const sigBlock = signatureHtml ? `<br><br>${signatureHtml}` : '';
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${bodyHtml}${sigBlock}</div>`;
-  const raw = buildRaw({ from, to, subject, bodyHtml: html });
+  const raw = buildRaw({ from, to, subject, bodyHtml: html, inReplyTo, references });
   // threadId attaches the message to an existing Gmail thread (follow-ups).
   // Gmail also requires the subject to match the thread to keep it grouped.
   const payload = threadId ? { raw, threadId } : { raw };
