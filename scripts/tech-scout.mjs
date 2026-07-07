@@ -251,8 +251,11 @@ async function runReport() {
       const city = lc([o.city, o.state].filter(Boolean).join(', '));
       const growth12 = o.organization_headcount_twelve_month_growth ?? null;
 
-      // 3. qualify
-      const sizeOk = size != null && size >= 60 && size <= 280;
+      // 3. qualify — target companies that have CROSSED ~100 employees (Will
+      // 2026-07-07: the rule is at-least-100, not 60+). Floor is 90 not 100 as a
+      // buffer for Apollo's 1-3mo headcount lag/undercount (a co Apollo reports
+      // at 90 is often really 100+). Ceiling 280 keeps it to "emerging".
+      const sizeOk = size != null && size >= 90 && size <= 280;
       const techOk = TECH_INDUSTRY_RE.test(industry) || TECH_KEYWORD_RE.test(kw);
       const nycOk = /new york|brooklyn|nyc/.test(city || '') || /new york|nyc/i.test(`${cand.trigger} ${cand.evidence_url || ''}`);
       const crossedRecently = size != null && growth12 != null && growth12 > 0 && (size / (1 + growth12)) < 100 && size >= 95;
@@ -343,6 +346,21 @@ async function runReport() {
     } catch (err) {
       results.push({ company: name, domain, status: `error: ${err.message}` });
     }
+  }
+
+  // TOP-UP from standing inventory (Will 2026-07-07): the fresh web-harvest is
+  // trigger-first and thin some days, but we already hold ~95 enriched, sendable,
+  // undrafted founder-personal execs (the static Apollo pull). If the harvest
+  // didn't land the full MAX_BUYERS, draw the remainder from that pool so the
+  // daily band still hits target. The founder-queue's tech-exec path already
+  // selects source=founder-personal, one-per-company, excluding drafted/
+  // contacted/suppressed — so one POST with max=deficit tops us up (trigger-less,
+  // but the composer's research pass still finds a live hook when one exists).
+  if (QUEUE && CONFIRM && buyersLanded < MAX_BUYERS) {
+    const deficit = MAX_BUYERS - buyersLanded;
+    const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audience: 'tech-execs', max: deficit }) });
+    log(`TOP-UP: harvest landed ${buyersLanded}/${MAX_BUYERS} sendable buyers; requested ${deficit} more from the standing founder-personal pool → HTTP ${qr.status}`);
+    results.push({ company: `[top-up ${deficit} from standing pool]`, status: `topup_requested_${qr.status}` });
   }
 
   writeFileSync(LEDGER, JSON.stringify(ledger, null, 2));
