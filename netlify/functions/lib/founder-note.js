@@ -79,7 +79,8 @@ WILL'S VOICE (non-negotiable): calm, warm, casual, practical. He writes like a b
 HOW WILL'S EMAILS READ (brand voice guide — this is EMAIL, and email BREATHES): write like one human emailing another, warmth over compression. Sentences can run 20+ words when the rhythm calls for it. Do NOT compress the note into clipped telegraph fragments or a stack of tiny choppy lines — that reads cold and robotic, which is the opposite of Will. Contractions everywhere. Let sentence length vary naturally (a short line here and there is good; do not force choppiness, and never three same-shape sentences in a row). No "not just X, but Y". Read it in your head: if it sounds like a robot, LENGTHEN it; if a sentence could appear in a mass email, rewrite it.
 
 COMPOSE, DON'T ASSEMBLE (the whole point): say every idea fresh, phrased differently each email. If two of your notes could swap a sentence unnoticed, you have written a template. Two hard consequences of this:
-- COMPLETE SENTENCES, ALWAYS. Every sentence has a subject and a real verb. NEVER drop the service list in as a bare line ("Chair massage, nails, facials, mindfulness." standing alone is a broken fragment). The services live INSIDE a flowing sentence you compose from the menu above, fresh each time: lead with massage, signal the breadth (nails, facials and more, plus the virtual track for remote teams), and that one team runs all of it so they're not juggling vendors. Vary the verb, the order, where the "one team" idea lands. Never the same stock phrasing twice.
+- COMPLETE SENTENCES, ALWAYS. Every sentence has a subject and a real verb. NEVER drop the service list in as a bare line ("Chair massage, nails, facials, mindfulness." standing alone is a broken fragment). The services live INSIDE a flowing sentence you compose from the menu above, fresh each time: lead with massage, signal the breadth (nails, facials and more, and the virtual track for remote teams), and that one team runs all of it so they're not juggling vendors. Vary the verb, the order, where the "one team" idea lands. Never the same stock phrasing twice.
+- KEEP THE LIST CLEAN. The service enumeration itself is a simple, natural list: comma-separated, joined with "and" ("chair massage, nails, facials, and mindfulness"). NEVER join services with "plus", and NEVER wedge a delivery detail (like the spa-like conference room) into the middle of the list, that reads awkward ("chair massage in a conference room turned spa-like, plus nails, facials..." is exactly the clumsy phrasing to avoid). If the spa-like-room image earns its place, give it its OWN short sentence, separate from the list.
 - Describe who Shortcut helps as "companies" or "People teams", NEVER by grafting the recipient's exact title into a generic claim ("we work with VP People teams" is wrong; "we work with People teams" is right).
 ${exemplars.length ? `\nREAL EXAMPLES OF WILL'S SENT EMAILS (match this register, rhythm, and warmth — do NOT copy content):\n${exemplars.map((e, i) => `--- example ${i + 1} ---\n${e}`).join('\n')}\n` : ''}
 THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Open with a TRUE, SPECIFIC observation about THEM when one exists (see OBSERVATION BAR), one thought connecting it to Will's world, one low-pressure question. Keep it to a tight few short paragraphs; shorter is better when nothing is lost, but let each thought be a real sentence. NO links, NO attachments, NO calendar link ever, NO "15 minutes" phrasing. (Exception: convo CTA variants may invite a short call — see THE ASK.)
@@ -158,7 +159,7 @@ export function todayLong() {
 // the reason we reached out, never quoted at the prospect (Will 2026-07-08).
 const MILESTONE_TRIGGER_TYPES = new Set(['funding', 'ipo', 'launch', 'partnership', 'acquisition', 'award']);
 
-export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false }) {
+export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null }) {
   const isMilestone = MILESTONE_TRIGGER_TYPES.has(triggerType);
   const userContent = [
     `TODAY IS ${todayLong()}. Anchor every time reference to today. A month or date that has already passed is NOT "upcoming" — refer to a past event in the past ("the launch last month", "since going public in July"), and only call something upcoming if it is genuinely still ahead of today. If the timing is unclear, keep it timeless.`,
@@ -176,11 +177,13 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
     // HOW TO USE THE TRIGGER (Will 2026-07-08 — two-layer rule): a trigger is EITHER
     // an external milestone to open on, OR internal targeting context you must never
     // quote. Do NOT conflate them.
-    isMilestone
-      ? 'The why_now_trigger is a real EXTERNAL MILESTONE (funding / IPO / launch / partnership). Open with ONE brief, genuine congrats on it, then move to why you are writing.'
-      : trigger
-        ? 'The why_now_trigger is an INTERNAL TARGETING SIGNAL (an open job posting / hiring / growth-list hit). It is WHY we chose to reach out, NOT something to say to them. NEVER write "I saw you\'re hiring…", NEVER reference the open role, and NEVER frame a routine role as "a sign of growth" (for an established company it is just a job opening). Write the clean, warm note with NO reference to the posting. Use a genuine external hook only if your own research turns one up; otherwise no hook is the right call.'
-        : 'No verified trigger. Write the clean, warm note; use a hook only if your research turns up a genuine external milestone.',
+    personalHook
+      ? `PERSONAL OBSERVATION (verified, already researched and TRUE — THIS IS YOUR HOOK): ${personalHook}\nOpen the note warmly on this, in your own words (one or two genuine, kind sentences), then move into why you are writing. Do NOT invent a different hook, and you do NOT need to web-search for this note. If there is also an internal signal below (a hiring/posting), still NEVER quote it.`
+      : isMilestone
+        ? 'The why_now_trigger is a real EXTERNAL MILESTONE (funding / IPO / launch / partnership). Open with ONE brief, genuine congrats on it, then move to why you are writing.'
+        : trigger
+          ? 'The why_now_trigger is an INTERNAL TARGETING SIGNAL (an open job posting / hiring / growth-list hit). It is WHY we chose to reach out, NOT something to say to them. NEVER write "I saw you\'re hiring…", NEVER reference the open role, and NEVER frame a routine role as "a sign of growth" (for an established company it is just a job opening). Write the clean, warm note with NO reference to the posting. Use a genuine external hook only if your own research turns one up; otherwise no hook is the right call.'
+          : 'No verified trigger. Write the clean, warm note; use a hook only if your research turns up a genuine external milestone.',
     '',
     'Research them (person first, then firm), then call report_note once with the note in Will\'s voice.',
   ].join('\n');
@@ -277,8 +280,12 @@ export function autoFixDashes(body) {
 // A service ITEM = a service keyword, tolerant of common phrasings the model uses:
 // "chair and table massage", a trailing "sessions"/"session" ("mindfulness sessions"),
 // and simple plurals. Keeps the net matching when the model varies the wording.
-const SVC_RE = '(?:chair and table massage|chair massage|table massage|massage|nails|facials|hair and grooming|grooming|hair|headshots|mindfulness|meditation|sound baths?|nutrition coaching)(?:\\s+sessions?)?';
-const SVC_LIST3 = `${SVC_RE}(?:\\s*(?:,|and)\\s*(?:and\\s+)?${SVC_RE}){2,}`; // 3+ services = fragment signal
+// A service item, tolerant of the phrasings the model uses: a trailing "sessions",
+// and the delivery-fact descriptor on massage ("massage in a conference room turned
+// spa-like") so the first item doesn't break the list chain (Will 2026-07-08).
+const SVC_RE = '(?:chair and table massage|chair massage|table massage|massage|nails|facials|hair and grooming|grooming|hair|headshots|mindfulness|meditation|sound baths?|nutrition coaching)(?:\\s+(?:sessions?|in a conference room[^,.!?\\n]*))?';
+// Separator tolerates comma / and / plus / then and RUNS of them (", plus nails").
+const SVC_LIST3 = `${SVC_RE}(?:(?:\\s*(?:,|and|plus|then)\\s*)+${SVC_RE}){2,}`; // 3+ services = fragment signal
 const SVC_NL = '\n';
 const svcLc = (s) => s.charAt(0).toLowerCase() + s.slice(1);
 export function autoFixServiceFragment(body) {
@@ -413,13 +420,14 @@ export const REVIEW_SCHEMA = {
   },
   required: ['pass', 'issues'],
 };
-export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null, trigger = null, triggerType = null) {
+export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null, trigger = null, triggerType = null, personalHook = null) {
   const facts = leadFacts ? `\n\nWHAT WE KNOW ABOUT THE RECIPIENT (trusted facts — check the note against these):\n${JSON.stringify(leadFacts, null, 2)}` : '';
   // The trigger is VERIFIED (harvested with an evidence URL). Give it to the skeptic
   // so it does NOT flag a real milestone opener as "fabricated" and strip it (Will
   // 2026-07-07: a valid "congrats on the launch" got deleted). Plus today's date so
   // it catches stale timing ("as we head into June" in July).
   const verified = trigger ? `\n\nVERIFIED why-now trigger for this lead (harvested with evidence — treat as TRUE, do NOT flag it as fabricated): ${trigger}` : '';
+  const personalV = personalHook ? `\n\nVERIFIED personal observation used to open this note (already researched and TRUE — do NOT flag it as fabricated; it is about the RECIPIENT'S company and is meant to be the warm opener): ${personalHook}` : '';
   const dateLine = `\n\nTODAY IS ${todayLong()}. FAIL any note that calls a month/date that has already passed "upcoming" or frames a past event as still ahead (e.g. "as we head into June" when it is July).`;
   // Two-layer rule (Will 2026-07-08): an INTERNAL targeting signal (an open job
   // posting / hiring / growth-list hit) must NEVER be quoted at the prospect.
@@ -438,7 +446,7 @@ export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help
 ${audience === 'brokers' ? '6b. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.${audience === 'brokers' ? '' : '\n7b. ONE PROOF ONLY (Will 2026-07-07): the note may use EXACTLY ONE proof point. Naming BCG/DraftKings AND a stat (e.g. "90% of slots get booked") is TWO — FAIL it; pick the single one that best fits the moment.'}
 8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. A funding trigger must open congratulatory (genuine, brief). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
-9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context. NOTE: if a specific milestone matches the VERIFIED trigger below, it is REAL, do NOT flag it as fabricated (only flag it if it is framed for the wrong person/place/time).${facts}${verified}${dateLine}${signalLine}
+9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context. NOTE: if a specific milestone matches the VERIFIED trigger below, it is REAL, do NOT flag it as fabricated (only flag it if it is framed for the wrong person/place/time).${facts}${verified}${personalV}${dateLine}${signalLine}
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0,
@@ -477,7 +485,7 @@ export function proofOveruse(body, audience) {
 }
 
 // One revision attempt with the skeptic's issues fed back (retry-once, like the composer).
-export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType = null, remote = false }) {
+export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null }) {
   const internalSignal = trigger && !MILESTONE_TRIGGER_TYPES.has(triggerType);
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
@@ -490,6 +498,7 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
       '',
       'WHILE FIXING, DO NOT INTRODUCE NEW PROBLEMS. Every sentence must stay complete (subject + verb). The most common mistake here: when you de-stitch the intro, you drop the services onto their own line as a bare list ("Chair massage, nails, facials, mindfulness.") — that is a FRAGMENT. Keep the services INSIDE a real sentence with a verb ("We bring chair massage, nails, facials and mindfulness into the office, all run by one team.").',
       internalSignal ? 'ALSO: this lead\'s trigger is INTERNAL targeting context (an open role / hiring / growth-list hit). Do NOT reference the open role or frame a routine role as growth; write the clean note with no mention of the posting.' : '',
+      personalHook ? `KEEP the opening personal observation (verified and TRUE, do not drop it): ${personalHook}` : '',
       '',
       `PREVIOUS DRAFT:\nSubject: ${note.subject}\n\n${note.body}`,
       '',
@@ -511,17 +520,17 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
  * that into a skip). `log` defaults to console.error; pass a label for context.
  * Returns { note, review } so callers can surface the skeptic verdict.
  */
-export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, label = lead?.email || lead?.name || 'lead', log = console.error }) {
-  let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote });
+export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null, label = lead?.email || lead?.name || 'lead', log = console.error }) {
+  let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook });
   // GATE: deterministic guards -> up to TWO revisions on violation (one wasn't
   // enough in practice: Jul 6, a chunky paragraph survived the first revise
   // and the lead skipped; the second attempt gets both failure messages)
   try { guardNote(note, audience, trigger); } catch (ge) {
     log(`guard hit for ${label}: ${ge.message} — revising`);
-    note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote });
+    note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook });
     try { guardNote(note, audience, trigger); } catch (ge2) {
       log(`guard hit again for ${label}: ${ge2.message} — second revision`);
-      note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote });
+      note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook });
       guardNote(note, audience, trigger);
     }
   }
@@ -537,7 +546,7 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   // every item each pass), so enforce it DETERMINISTICALLY and fold it into the
   // review issues the revise loop must fix (Will 2026-07-07: exactly one proof).
   const critique = async (n) => {
-    const r = await critiqueNote(anthropic, n, audience, ctaVariant, leadFacts, trigger, triggerType);
+    const r = await critiqueNote(anthropic, n, audience, ctaVariant, leadFacts, trigger, triggerType, personalHook);
     if (proofOveruse(n.body, audience)) {
       return { pass: false, issues: [...(r.issues || []), 'You used TWO proofs (a named client like BCG/DraftKings AND a stat like "90% of slots book"). Keep EXACTLY ONE (not zero, not two): pick the single strongest for this moment and cut the other. Do NOT drop both, one credibility proof should stay in the note.'] };
     }
@@ -548,7 +557,7 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   const MAX_SKEPTIC_REVISES = 2;
   for (let r = 0; r < MAX_SKEPTIC_REVISES && !review.pass && review.issues.length; r += 1) {
     log(`skeptic flagged ${label} (round ${r + 1}): ${review.issues.join(' | ')} — revising`);
-    note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote });
+    note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook });
     guardNote(note, audience, trigger); // hard rules must always hold after a revise
     review = await critique(note);
   }
