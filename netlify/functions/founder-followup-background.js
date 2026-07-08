@@ -142,6 +142,14 @@ export const handler = async (event) => {
       const dueDay = FOLLOWUP_CADENCE[nextTouch];
       const age = daysBetween(e1send.sent_time, new Date().toISOString());
       if (!forceTouch && age < dueDay) { results.push({ email, skip: `touch ${nextTouch} due in ${(dueDay - age).toFixed(1)}d` }); continue; }
+      // ONE TOUCH PER LEAD PER DAY (Will 2026-07-08): the cron runs twice daily and
+      // multiple touches can come "due" at once after a weekend/backlog, which would
+      // send two follow-ups to the same person hours apart. Never touch a lead if the
+      // last touch went out today. Their next touch simply moves to tomorrow.
+      const lastTouch = seq.touches[seq.touches.length - 1];
+      if (!forceTouch && lastTouch?.sent_at && new Date(lastTouch.sent_at).toDateString() === new Date().toDateString()) {
+        results.push({ email, skip: 'already touched today (one per lead per day)' }); continue;
+      }
 
       // LIVE HALT CHECK — the load-bearing safety gate
       const silence = await threadIsSilent(token, e1send.thread_id);
