@@ -173,14 +173,31 @@ const PERSONAL_HOOK_SCHEMA = {
   properties: {
     personal_detail: { type: ['string', 'null'], description: 'the single most genuine, specific, VERIFIED fact you found, or null if nothing real exists' },
     category: { type: 'string', description: 'growth | milestone | office | product | leadership | award | how_they_treat_people | person' },
-    warm_line: { type: ['string', 'null'], description: "a first-person warm sentence Will could open with, in his calm human voice (no buzzwords, no dashes, no exclamation). null if no genuine detail." },
-    connects: { type: 'string', description: 'one honest line on how it connects to caring for their team (or "generic")' },
+    warm_line: { type: ['string', 'null'], description: "ONE crisp short sentence (about 12-22 words, one idea) Will could open with, in his calm human voice — no buzzwords, no dashes, no exclamation, do NOT pack multiple facts. null if no genuine detail." },
+    connects: { type: 'string', description: 'one honest line on how it connects (caring for their team, or for brokers helping their clients)' },
     confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
   },
   required: ['personal_detail', 'category', 'warm_line', 'connects', 'confidence'],
 };
 
-function personalHookSystem() {
+const WARM_LINE_CRAFT = `Write warm_line the way Will actually talks: calm, human, kind, a little understated. CRISP — ONE short sentence, about 12 to 22 words, ONE idea. Do NOT pack multiple facts or dates into it; pick the single most resonant detail and say it simply. RECENCY: if the detail is older than ~6 months, phrase it as a STANDING fact ("EPIC has a strong Northeast benefits practice") — never as fresh news ("I saw", "I know they just"); save fresh-news framing for genuinely recent events. No buzzwords, no dashes as punctuation, no exclamation points. Report via report_personal exactly once.`;
+
+function personalHookSystem(audience) {
+  if (audience === 'brokers') {
+    return `You help Will Newton, founder of Shortcut, write a GENUINELY personal 1:1 note to ONE employee-benefits broker or consultant. Shortcut helps brokers make their CLIENTS the hero: deploying carrier wellness funds (Cigna, Aetna, Anthem) on wellness employees actually use.
+
+YOUR JOB: research THIS person and their FIRM and find the SINGLE most genuine, specific detail a thoughtful person would warmly mention, that connects HONESTLY to the benefits/wellness thread. Good categories:
+- the firm's wellbeing / health-management / benefits practice or specialty
+- a firm milestone, acquisition, or growth
+- an award or recognition (Best Places to Work, a benefits-industry honor)
+- something the broker or firm published on benefits, wellness, or workplace health
+- their metro / the kinds of clients they serve
+Avoid anything that reads scraped or generic. Do NOT comment on how the FIRM treats its own staff (this note is about helping their CLIENTS), and never invent a book of business you cannot see.
+
+HARD RULES: it must be TRUE and specific — verify with 1 to 3 web searches and only report what you actually found. NEVER invent or embellish. If nothing genuine exists, return personal_detail=null and warm_line=null (that is fine).
+
+${WARM_LINE_CRAFT}`;
+  }
   return `You help Will Newton, founder of Shortcut, write a GENUINELY personal 1:1 note to ONE person. Shortcut brings wellness into companies: in-person (chair massage, nails, facials) and flexible services delivered in person or over Zoom (mindfulness, sound baths, nutrition coaching), one team, fully managed, and people actually use it.
 
 YOUR JOB: research THIS company and find the SINGLE most genuine, specific, HUMAN detail a thoughtful person would actually notice and warmly mention. It can come from ANY category:
@@ -196,10 +213,10 @@ HOW TO CHOOSE: prefer the detail that is (a) genuinely warm and kind to mention 
 
 HARD RULES: it must be TRUE and specific — verify with 1 to 3 web searches and only report what you actually found. NEVER invent or embellish. If nothing genuine exists, return personal_detail=null and warm_line=null (that is fine).
 
-Write warm_line the way Will actually talks: calm, human, kind, a little understated. No buzzwords, no dashes as punctuation, no exclamation points. Report via report_personal exactly once.`;
+${WARM_LINE_CRAFT}`;
 }
 
-export async function researchPersonalHook(anthropic, lead, { timeoutMs = 70000, maxIters = 5, log = () => {} } = {}) {
+export async function researchPersonalHook(anthropic, lead, { audience = 'tech-execs', timeoutMs = 70000, maxIters = 5, log = () => {} } = {}) {
   const tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }, { name: 'report_personal', description: 'Report the single personal detail. Call exactly once.', input_schema: PERSONAL_HOOK_SCHEMA }];
   const messages = [{ role: 'user', content: `The person: ${lead.name}, ${lead.title} at ${lead.company} (${lead.location || 'location unknown'}). Research ${lead.company} and report the single best genuine personal detail, then call report_personal.` }];
   const t0 = Date.now();
@@ -209,7 +226,7 @@ export async function researchPersonalHook(anthropic, lead, { timeoutMs = 70000,
       if (Date.now() - t0 > timeoutMs) { log(`personalize timeout for ${lead.company}`); return null; }
       iters += 1;
       const resp = await Promise.race([
-        anthropic.messages.create({ model: ANTHROPIC_MODEL, max_tokens: 1500, system: personalHookSystem(), tools, messages }),
+        anthropic.messages.create({ model: ANTHROPIC_MODEL, max_tokens: 1500, system: personalHookSystem(audience), tools, messages }),
         new Promise((_, rej) => setTimeout(() => rej(new Error('personalize_timeout')), timeoutMs)),
       ]);
       messages.push({ role: 'assistant', content: resp.content });

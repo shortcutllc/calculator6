@@ -108,7 +108,7 @@ const red = (s) => `\x1b[31m${s}\x1b[0m`;
       const t0 = Date.now();
       let personalHook = null;
       if (PERSONALIZE) {
-        const ph = await researchPersonalHook(anthropic, lead, { log: (m) => console.log(gray(`  · ${m}`)) });
+        const ph = await researchPersonalHook(anthropic, lead, { audience: AUDIENCE, log: (m) => console.log(gray(`  · ${m}`)) });
         if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; console.log(`${bold('PERSONAL')}  [${ph.category}/${ph.confidence}] ${green(ph.warm_line)}`); }
         else console.log(gray(`  · personalize: nothing genuine found (${ph?.confidence || 'none'}) — trigger fallback`));
       }

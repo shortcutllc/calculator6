@@ -170,18 +170,16 @@ export const handler = async (event) => {
       // body.cta overrides (used by --only redrafts to keep the A/B assignment).
       const ctaVariant = ['help', 'convo'].includes(body.cta) ? body.cta
         : (targets.indexOf(t) % 2 === 0) ? 'help' : 'convo';
-      // PERSONALIZE (Will 2026-07-08): research the company for ONE genuine, kind,
-      // specific human detail (from any category) and open the note on it, instead of
-      // a robotic trigger tag. Tech-execs only for now (brokers already do firm-level
-      // observation well). Null-safe: on timeout/nothing-found the note falls back to
-      // its normal trigger-based path.
+      // PERSONALIZE (Will 2026-07-08): research the person/company for ONE genuine,
+      // kind, specific detail and open the note on it, instead of a robotic trigger
+      // tag. Audience-aware (tech-execs = company/how-they-treat-people; brokers =
+      // their firm's benefits/wellbeing practice, connected to helping their clients).
+      // Null-safe: on timeout/nothing-found the note falls back to its normal path.
       let personalHook = null;
-      if (audience !== 'brokers') {
-        try {
-          const ph = await researchPersonalHook(anthropic, t, { log: (m) => log(`  ${m}`) });
-          if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; log(`  personalized ${t.email}: ${ph.category} — ${ph.warm_line.slice(0, 80)}`); }
-        } catch (e) { log(`  personalize failed for ${t.email} (${e.message}) — trigger fallback`); }
-      }
+      try {
+        const ph = await researchPersonalHook(anthropic, t, { audience, log: (m) => log(`  ${m}`) });
+        if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; log(`  personalized ${t.email}: ${ph.category} — ${ph.warm_line.slice(0, 80)}`); }
+      } catch (e) { log(`  personalize failed for ${t.email} (${e.message}) — trigger fallback`); }
       // Compose engine (lib/founder-note.js): draft -> guards (2 revises) ->
       // skeptic -> revise -> final guard. Throws if it still violates a hard
       // rule; the catch below turns that into a Slack skip.
