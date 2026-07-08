@@ -34,7 +34,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { leadPicture } from './lib/lead-picture.js';
 import { buildDraftPreviewBlocks } from './lib/slack-blocks.js';
 import { getAccessToken, createDraft, lc } from './lib/gmail.js';
-import { recentSentBodies, composeNote } from './lib/founder-note.js';
+import { recentSentBodies, composeNote, researchPersonalHook } from './lib/founder-note.js';
 
 const SLACK_API = 'https://slack.com/api';
 const WILL = 'will@getshortcut.co';
@@ -170,10 +170,22 @@ export const handler = async (event) => {
       // body.cta overrides (used by --only redrafts to keep the A/B assignment).
       const ctaVariant = ['help', 'convo'].includes(body.cta) ? body.cta
         : (targets.indexOf(t) % 2 === 0) ? 'help' : 'convo';
+      // PERSONALIZE (Will 2026-07-08): research the company for ONE genuine, kind,
+      // specific human detail (from any category) and open the note on it, instead of
+      // a robotic trigger tag. Tech-execs only for now (brokers already do firm-level
+      // observation well). Null-safe: on timeout/nothing-found the note falls back to
+      // its normal trigger-based path.
+      let personalHook = null;
+      if (audience !== 'brokers') {
+        try {
+          const ph = await researchPersonalHook(anthropic, t, { log: (m) => log(`  ${m}`) });
+          if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; log(`  personalized ${t.email}: ${ph.category} — ${ph.warm_line.slice(0, 80)}`); }
+        } catch (e) { log(`  personalize failed for ${t.email} (${e.message}) — trigger fallback`); }
+      }
       // Compose engine (lib/founder-note.js): draft -> guards (2 revises) ->
       // skeptic -> revise -> final guard. Throws if it still violates a hard
       // rule; the catch below turns that into a Slack skip.
-      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, label: t.email });
+      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook, label: t.email });
 
       // Gmail draft — founder-min signature embedded (Will 2026-07-06). Still no
       // logo/booking-link (first-touch rule); founder-min is the minimal block.
@@ -195,6 +207,7 @@ export const handler = async (event) => {
           trigger: trigger || null,
           trigger_type: triggerType || null,
           remote: remote || null,
+          personal_hook: personalHook || null,
           research_note: note.research_note, linkedin_step: note.linkedin_step,
           rep_email: WILL, thread_id: null, gmail_draft_id: gmailDraftId, gmail_message_id: gmailMessageId,
           all_directions: [{ label: 'founder', subject: note.subject, body: note.body }],

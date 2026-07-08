@@ -159,6 +159,69 @@ export function todayLong() {
 // the reason we reached out, never quoted at the prospect (Will 2026-07-08).
 const MILESTONE_TRIGGER_TYPES = new Set(['funding', 'ipo', 'launch', 'partnership', 'acquisition', 'award']);
 
+// ============================================================================
+// PERSONAL HOOK RESEARCH (Will 2026-07-08): be HUMAN, not robotic. Research the
+// company and extract ONE genuine, specific, kind detail from ANY category (recent
+// growth, a milestone, a new office, a product, a leadership moment, an award, or —
+// often warmest — how they treat their people), phrased as a warm line Will could
+// actually open with. Returns the artifact (or null). Fed to composeNote as
+// personalHook so live notes open human instead of on a trigger tag. Hard timeout +
+// null fallback so a hung search never blocks the send.
+// ============================================================================
+const PERSONAL_HOOK_SCHEMA = {
+  type: 'object',
+  properties: {
+    personal_detail: { type: ['string', 'null'], description: 'the single most genuine, specific, VERIFIED fact you found, or null if nothing real exists' },
+    category: { type: 'string', description: 'growth | milestone | office | product | leadership | award | how_they_treat_people | person' },
+    warm_line: { type: ['string', 'null'], description: "a first-person warm sentence Will could open with, in his calm human voice (no buzzwords, no dashes, no exclamation). null if no genuine detail." },
+    connects: { type: 'string', description: 'one honest line on how it connects to caring for their team (or "generic")' },
+    confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+  },
+  required: ['personal_detail', 'category', 'warm_line', 'connects', 'confidence'],
+};
+
+function personalHookSystem() {
+  return `You help Will Newton, founder of Shortcut, write a GENUINELY personal 1:1 note to ONE person. Shortcut brings wellness into companies: in-person (chair massage, nails, facials) and flexible services delivered in person or over Zoom (mindfulness, sound baths, nutrition coaching), one team, fully managed, and people actually use it.
+
+YOUR JOB: research THIS company and find the SINGLE most genuine, specific, HUMAN detail a thoughtful person would actually notice and warmly mention. It can come from ANY category:
+- a real milestone (funding, IPO, a revenue milestone, a big launch)
+- a new office / HQ / expansion
+- a notable product or something they are known for
+- a leadership moment (new CEO, a founder transition)
+- an award or recognition
+- HOW THEY TREAT THEIR PEOPLE (their culture, an internal wellness program, benefits, work-life values) — often the warmest and most relevant detail for Shortcut
+- something the person themselves is known for
+
+HOW TO CHOOSE: prefer the detail that is (a) genuinely warm and kind to mention and (b) connects HONESTLY to caring for a team. A company that already invests in its people's wellbeing is a GREAT fit to point out, not awkward. Avoid anything that reads like a scraped job posting ("I saw you're hiring...") — that is not human.
+
+HARD RULES: it must be TRUE and specific — verify with 1 to 3 web searches and only report what you actually found. NEVER invent or embellish. If nothing genuine exists, return personal_detail=null and warm_line=null (that is fine).
+
+Write warm_line the way Will actually talks: calm, human, kind, a little understated. No buzzwords, no dashes as punctuation, no exclamation points. Report via report_personal exactly once.`;
+}
+
+export async function researchPersonalHook(anthropic, lead, { timeoutMs = 70000, maxIters = 5, log = () => {} } = {}) {
+  const tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }, { name: 'report_personal', description: 'Report the single personal detail. Call exactly once.', input_schema: PERSONAL_HOOK_SCHEMA }];
+  const messages = [{ role: 'user', content: `The person: ${lead.name}, ${lead.title} at ${lead.company} (${lead.location || 'location unknown'}). Research ${lead.company} and report the single best genuine personal detail, then call report_personal.` }];
+  const t0 = Date.now();
+  let iters = 0;
+  try {
+    while (iters < maxIters) {
+      if (Date.now() - t0 > timeoutMs) { log(`personalize timeout for ${lead.company}`); return null; }
+      iters += 1;
+      const resp = await Promise.race([
+        anthropic.messages.create({ model: ANTHROPIC_MODEL, max_tokens: 1500, system: personalHookSystem(), tools, messages }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('personalize_timeout')), timeoutMs)),
+      ]);
+      messages.push({ role: 'assistant', content: resp.content });
+      const rp = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_personal');
+      if (rp) return rp.input;
+      if (resp.stop_reason === 'pause_turn') continue;
+      if (resp.stop_reason === 'end_turn') messages.push({ role: 'user', content: 'Call report_personal now.' });
+    }
+  } catch (e) { log(`personalize error for ${lead.company}: ${e.message}`); return null; }
+  return null;
+}
+
 export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null }) {
   const isMilestone = MILESTONE_TRIGGER_TYPES.has(triggerType);
   const userContent = [
@@ -194,30 +257,42 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
   // on timeout or error, draft from the verified trigger + firm context alone —
   // "we have plenty of actionable ways to frame things without the perfect
   // personalized anecdote."
-  const researchedDraft = anthropic.messages.create({
-    model: ANTHROPIC_MODEL, max_tokens: 4000, temperature: 0.4,
-    system: voiceSystem(exemplars, audience, ctaVariant, remote),
-    tools: [
-      { type: 'web_search_20250305', name: 'web_search', max_uses: 3 },
-      { name: 'report_note', description: 'Report the finished founder note. Call exactly once, after researching.', input_schema: NOTE_SCHEMA },
-    ],
-    messages: [{ role: 'user', content: userContent }],
-  });
   let resp;
-  try {
-    resp = await Promise.race([
-      researchedDraft,
-      new Promise((_, rej) => setTimeout(() => rej(new Error('research_timeout')), 150000)),
-    ]);
-  } catch (e) {
-    console.warn(`researched draft failed (${e.message}) — falling back to trigger-only draft (no web search)`);
+  if (personalHook) {
+    // The personal hook is ALREADY researched and verified — no web search needed.
+    // Draft directly (no second research pass, no 150s wait). (Will 2026-07-08)
     resp = await anthropic.messages.create({
       model: ANTHROPIC_MODEL, max_tokens: 3000, temperature: 0.4,
       system: voiceSystem(exemplars, audience, ctaVariant, remote),
       tools: [{ name: 'report_note', description: 'Report the finished founder note. Call exactly once.', input_schema: NOTE_SCHEMA }],
       tool_choice: { type: 'tool', name: 'report_note' },
-      messages: [{ role: 'user', content: `${userContent}\n\nNOTE: web research is unavailable for this lead. Draft from the verified why_now_trigger and the provided context alone; set research_note to "no research pass — drafted from the verified trigger".` }],
+      messages: [{ role: 'user', content: `${userContent}\n\nNOTE: no web research needed — open on the verified PERSONAL OBSERVATION above. Set research_note to the personal detail you used.` }],
     });
+  } else {
+    const researchedDraft = anthropic.messages.create({
+      model: ANTHROPIC_MODEL, max_tokens: 4000, temperature: 0.4,
+      system: voiceSystem(exemplars, audience, ctaVariant, remote),
+      tools: [
+        { type: 'web_search_20250305', name: 'web_search', max_uses: 3 },
+        { name: 'report_note', description: 'Report the finished founder note. Call exactly once, after researching.', input_schema: NOTE_SCHEMA },
+      ],
+      messages: [{ role: 'user', content: userContent }],
+    });
+    try {
+      resp = await Promise.race([
+        researchedDraft,
+        new Promise((_, rej) => setTimeout(() => rej(new Error('research_timeout')), 150000)),
+      ]);
+    } catch (e) {
+      console.warn(`researched draft failed (${e.message}) — falling back to trigger-only draft (no web search)`);
+      resp = await anthropic.messages.create({
+        model: ANTHROPIC_MODEL, max_tokens: 3000, temperature: 0.4,
+        system: voiceSystem(exemplars, audience, ctaVariant, remote),
+        tools: [{ name: 'report_note', description: 'Report the finished founder note. Call exactly once.', input_schema: NOTE_SCHEMA }],
+        tool_choice: { type: 'tool', name: 'report_note' },
+        messages: [{ role: 'user', content: `${userContent}\n\nNOTE: web research is unavailable for this lead. Draft from the verified why_now_trigger and the provided context alone; set research_note to "no research pass — drafted from the verified trigger".` }],
+      });
+    }
   }
   let tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   if (!tu) {

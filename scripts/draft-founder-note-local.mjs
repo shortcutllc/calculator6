@@ -31,7 +31,7 @@
  */
 import { readFileSync } from 'fs';
 import Anthropic from '@anthropic-ai/sdk';
-import { composeNote, guardNote } from '../netlify/functions/lib/founder-note.js';
+import { composeNote, guardNote, researchPersonalHook } from '../netlify/functions/lib/founder-note.js';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -46,6 +46,7 @@ const TRIGGER = val('--trigger', null);
 const TRIGGER_TYPE = val('--trigger-type', null); // funding|people_posting|growth_list — funding=milestone opener, others=internal-only
 const EMAIL = val('--email', null);
 const REMOTE = has('--remote'); // distributed company → lead the virtual track
+const PERSONALIZE = has('--personalize'); // research a genuine human hook (prod path)
 const WITH_EXEMPLARS = has('--exemplars');
 const N = Math.max(1, Math.min(5, parseInt(val('--n', '1'), 10) || 1));
 
@@ -105,8 +106,14 @@ const red = (s) => `\x1b[31m${s}\x1b[0m`;
     if (N > 1) console.log(gray(`\n### run ${i}/${N}`));
     try {
       const t0 = Date.now();
+      let personalHook = null;
+      if (PERSONALIZE) {
+        const ph = await researchPersonalHook(anthropic, lead, { log: (m) => console.log(gray(`  · ${m}`)) });
+        if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; console.log(`${bold('PERSONAL')}  [${ph.category}/${ph.confidence}] ${green(ph.warm_line)}`); }
+        else console.log(gray(`  · personalize: nothing genuine found (${ph?.confidence || 'none'}) — trigger fallback`));
+      }
       const { note, review } = await composeNote(anthropic, {
-        lead, firm, exemplars, audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER, triggerType: TRIGGER_TYPE, remote: REMOTE,
+        lead, firm, exemplars, audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER, triggerType: TRIGGER_TYPE, remote: REMOTE, personalHook,
         label: lead.email, log: (m) => console.log(gray(`  · ${m}`)),
       });
       const secs = ((Date.now() - t0) / 1000).toFixed(0);
