@@ -759,6 +759,10 @@ export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 
   return fu;
 }
 
-// Cold-engine cadence, day-offsets from the E1 send (Will 2026-07-07: mirror the
-// cold sequence). E2 +3, E3 +4, E4 +5. Exported so the sender and tests agree.
-export const FOLLOWUP_CADENCE = { 2: 3, 3: 4, 4: 5 };
+// Follow-up cadence — CUMULATIVE days from the E1 send. The cold engine's "+3/+4/+5"
+// means the gap BETWEEN steps (3 days after E1, then 4 after E2, then 5 after E3), i.e.
+// cumulative days 3 / 7 / 12 — the conventional 3-4 business-day spacing over ~2 weeks
+// (Smartlead + industry best practice). The founder lane originally mis-read those as
+// absolute offsets from E1 (3/4/5 = three touches on consecutive days), which was too
+// aggressive; corrected 2026-07-08. The sender compares this to age-from-E1.
+export const FOLLOWUP_CADENCE = { 2: 3, 3: 7, 4: 12 };
