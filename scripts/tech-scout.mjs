@@ -205,7 +205,7 @@ async function runReport() {
         }
         healed += 1;
         const cta = healed % 2 === 1 ? 'help' : 'convo';
-        const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: em, audience: 'tech-execs', cta, trigger: e.trigger, remote: e.remote === true }) });
+        const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: em, audience: 'tech-execs', cta, trigger: e.trigger, trigger_type: e.trigger_type, remote: e.remote === true }) });
         log(`  self-heal: re-queued ${em} (${e.company}) attempt ${e.queue_attempts} → HTTP ${qr.status}`);
         await sleep(500);
       }
@@ -339,7 +339,7 @@ async function runReport() {
       // (help/convo CTA alternates per landed buyer, same A/B as brokers)
       if (QUEUE) {
         const cta = (buyersLanded % 2 === 1) ? 'help' : 'convo';
-        const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: email, audience: 'tech-execs', cta, trigger: cand.trigger, remote: cand.remote === true }) });
+        const qr = await fetch(QUEUE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max: 1, only: email, audience: 'tech-execs', cta, trigger: cand.trigger, trigger_type: cand.trigger_type, remote: cand.remote === true }) });
         entry.queued = qr.status === 202 || qr.status === 200;
         log(`  queued ${email} (cta=${cta}, mv=${mv} bb=${bb || 'n/a'}) → HTTP ${qr.status}`);
       }

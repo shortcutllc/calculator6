@@ -86,6 +86,11 @@ export const handler = async (event) => {
   // leads the virtual/flexible track (mindfulness, sound baths, nutrition coaching)
   // instead of on-site. Saved on the draft so follow-ups stay consistent in-thread.
   const remote = body.remote === true;
+  // trigger_type distinguishes a real external MILESTONE (funding/IPO/launch — open
+  // on it) from an INTERNAL targeting signal (an open job posting / growth-list hit
+  // — why we picked them, NEVER quoted at the prospect). Prevents notes that open
+  // "I saw you're hiring…" or frame a routine role as growth (Will 2026-07-08).
+  const triggerType = typeof body.trigger_type === 'string' ? body.trigger_type : null;
 
   // Will's account (Slack + Gmail + user id).
   const { data: acct } = await sb.from('gmail_accounts')
@@ -168,7 +173,7 @@ export const handler = async (event) => {
       // Compose engine (lib/founder-note.js): draft -> guards (2 revises) ->
       // skeptic -> revise -> final guard. Throws if it still violates a hard
       // rule; the catch below turns that into a Slack skip.
-      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, remote, label: t.email });
+      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, label: t.email });
 
       // Gmail draft — founder-min signature embedded (Will 2026-07-06). Still no
       // logo/booking-link (first-touch rule); founder-min is the minimal block.
@@ -188,6 +193,7 @@ export const handler = async (event) => {
           audience, cta_variant: ctaVariant, firm: firm?.display_name || null, tier: firm?.tier || null,
           linkedin_url: t.linkedin_url || null,
           trigger: trigger || null,
+          trigger_type: triggerType || null,
           remote: remote || null,
           research_note: note.research_note, linkedin_step: note.linkedin_step,
           rep_email: WILL, thread_id: null, gmail_draft_id: gmailDraftId, gmail_message_id: gmailMessageId,

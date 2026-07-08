@@ -153,7 +153,13 @@ export function todayLong() {
   return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, remote = false }) {
+// Trigger types that are real EXTERNAL milestones worth opening a note on. Anything
+// else from the harvest (people_posting, growth_list) is INTERNAL targeting signal —
+// the reason we reached out, never quoted at the prospect (Will 2026-07-08).
+const MILESTONE_TRIGGER_TYPES = new Set(['funding', 'ipo', 'launch', 'partnership', 'acquisition', 'award']);
+
+export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false }) {
+  const isMilestone = MILESTONE_TRIGGER_TYPES.has(triggerType);
   const userContent = [
     `TODAY IS ${todayLong()}. Anchor every time reference to today. A month or date that has already passed is NOT "upcoming" — refer to a past event in the past ("the launch last month", "since going public in July"), and only call something upcoming if it is genuinely still ahead of today. If the timing is unclear, keep it timeless.`,
     '',
@@ -161,16 +167,20 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
     JSON.stringify({
       name: lead.name, title: lead.title, company: lead.company,
       location: lead.location || null,
-      // remote=true → this company is distributed; LEAD with the virtual track
-      // (mindfulness, sound baths, nutrition coaching), never treat as poor fit.
       remote_or_distributed: remote || null,
       firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null, nyc_presence: firm?.nyc_presence ?? null,
-      // why_now_trigger comes from the tech-scout signal harvest — it is VERIFIED
-      // (funding announcement / first-People-hire posting / growth signal with an
-      // evidence URL), so it satisfies the observation bar and should anchor the
-      // note's moment. Still phrase honestly; do not embellish beyond the fact.
       why_now_trigger: trigger || null,
+      why_now_trigger_type: triggerType || null,
     }, null, 2),
+    '',
+    // HOW TO USE THE TRIGGER (Will 2026-07-08 — two-layer rule): a trigger is EITHER
+    // an external milestone to open on, OR internal targeting context you must never
+    // quote. Do NOT conflate them.
+    isMilestone
+      ? 'The why_now_trigger is a real EXTERNAL MILESTONE (funding / IPO / launch / partnership). Open with ONE brief, genuine congrats on it, then move to why you are writing.'
+      : trigger
+        ? 'The why_now_trigger is an INTERNAL TARGETING SIGNAL (an open job posting / hiring / growth-list hit). It is WHY we chose to reach out, NOT something to say to them. NEVER write "I saw you\'re hiring…", NEVER reference the open role, and NEVER frame a routine role as "a sign of growth" (for an established company it is just a job opening). Write the clean, warm note with NO reference to the posting. Use a genuine external hook only if your own research turns one up; otherwise no hook is the right call.'
+        : 'No verified trigger. Write the clean, warm note; use a hook only if your research turns up a genuine external milestone.',
     '',
     'Research them (person first, then firm), then call report_note once with the note in Will\'s voice.',
   ].join('\n');
@@ -403,7 +413,7 @@ export const REVIEW_SCHEMA = {
   },
   required: ['pass', 'issues'],
 };
-export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null, trigger = null) {
+export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null, trigger = null, triggerType = null) {
   const facts = leadFacts ? `\n\nWHAT WE KNOW ABOUT THE RECIPIENT (trusted facts — check the note against these):\n${JSON.stringify(leadFacts, null, 2)}` : '';
   // The trigger is VERIFIED (harvested with an evidence URL). Give it to the skeptic
   // so it does NOT flag a real milestone opener as "fabricated" and strip it (Will
@@ -411,6 +421,10 @@ export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help
   // it catches stale timing ("as we head into June" in July).
   const verified = trigger ? `\n\nVERIFIED why-now trigger for this lead (harvested with evidence — treat as TRUE, do NOT flag it as fabricated): ${trigger}` : '';
   const dateLine = `\n\nTODAY IS ${todayLong()}. FAIL any note that calls a month/date that has already passed "upcoming" or frames a past event as still ahead (e.g. "as we head into June" when it is July).`;
+  // Two-layer rule (Will 2026-07-08): an INTERNAL targeting signal (an open job
+  // posting / hiring / growth-list hit) must NEVER be quoted at the prospect.
+  const internalSignal = trigger && !MILESTONE_TRIGGER_TYPES.has(triggerType);
+  const signalLine = internalSignal ? `\n\nTHIS LEAD'S TRIGGER IS INTERNAL TARGETING CONTEXT (type "${triggerType || 'signal'}"), NOT a milestone: it is WHY we reached out, never something to say to them. FAIL the note if it references an open role / hiring / a job posting ("I saw you're hiring…", "as you bring on…"), or frames a routine role as "a sign of growth". Those are hard fails.` : '';
   const checklist = `You are the skeptical copy editor for Will's founder notes. The prose must read like a sharp human wrote ONE coherent note, not a system stitching approved lines together. Be a demanding editor — but do NOT invent problems to justify failing; a clean, warm, complete-sentence note that fits this person should PASS. Check every item:
 1. FRAGMENTS / broken grammar. Apply ONE precise test to each sentence: does it have a subject and a finite (conjugated) verb? If YES it is complete — NOT a fragment — no matter how short or whether it contains a comma list. Only flag a line that truly has NO subject or NO verb. Before flagging, name the missing subject or verb; if you can't name what's missing, it is NOT a fragment.
    · A bare noun list with no verb IS a fragment: "Chair massage, nails, facials, mindfulness." → flag. But the SAME list is COMPLETE once a verb governs it: "We bring chair massage, nails, facials and mindfulness into the office." → subject "We", verb "bring" → do NOT flag.
@@ -424,7 +438,7 @@ export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help
 ${audience === 'brokers' ? '6b. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.${audience === 'brokers' ? '' : '\n7b. ONE PROOF ONLY (Will 2026-07-07): the note may use EXACTLY ONE proof point. Naming BCG/DraftKings AND a stat (e.g. "90% of slots get booked") is TWO — FAIL it; pick the single one that best fits the moment.'}
 8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. A funding trigger must open congratulatory (genuine, brief). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
-9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context. NOTE: if a specific milestone matches the VERIFIED trigger below, it is REAL, do NOT flag it as fabricated (only flag it if it is framed for the wrong person/place/time).${facts}${verified}${dateLine}
+9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context. NOTE: if a specific milestone matches the VERIFIED trigger below, it is REAL, do NOT flag it as fabricated (only flag it if it is framed for the wrong person/place/time).${facts}${verified}${dateLine}${signalLine}
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0,
@@ -463,7 +477,8 @@ export function proofOveruse(body, audience) {
 }
 
 // One revision attempt with the skeptic's issues fed back (retry-once, like the composer).
-export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger, remote = false }) {
+export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType = null, remote = false }) {
+  const internalSignal = trigger && !MILESTONE_TRIGGER_TYPES.has(triggerType);
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
     system: voiceSystem(exemplars, audience, ctaVariant, remote),
@@ -474,11 +489,12 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
       ...issues.map((i) => `  - ${i}`),
       '',
       'WHILE FIXING, DO NOT INTRODUCE NEW PROBLEMS. Every sentence must stay complete (subject + verb). The most common mistake here: when you de-stitch the intro, you drop the services onto their own line as a bare list ("Chair massage, nails, facials, mindfulness.") — that is a FRAGMENT. Keep the services INSIDE a real sentence with a verb ("We bring chair massage, nails, facials and mindfulness into the office, all run by one team.").',
+      internalSignal ? 'ALSO: this lead\'s trigger is INTERNAL targeting context (an open role / hiring / growth-list hit). Do NOT reference the open role or frame a routine role as growth; write the clean note with no mention of the posting.' : '',
       '',
       `PREVIOUS DRAFT:\nSubject: ${note.subject}\n\n${note.body}`,
       '',
       'THE PERSON (JSON):',
-      JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, location: lead.location || null, firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null, why_now_trigger: trigger || null }, null, 2),
+      JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, location: lead.location || null, firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null, why_now_trigger: trigger || null, why_now_trigger_type: triggerType || null }, null, 2),
     ].join('\n') }],
   });
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
@@ -495,17 +511,17 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
  * that into a skip). `log` defaults to console.error; pass a label for context.
  * Returns { note, review } so callers can surface the skeptic verdict.
  */
-export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, remote = false, label = lead?.email || lead?.name || 'lead', log = console.error }) {
-  let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, remote });
+export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, label = lead?.email || lead?.name || 'lead', log = console.error }) {
+  let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote });
   // GATE: deterministic guards -> up to TWO revisions on violation (one wasn't
   // enough in practice: Jul 6, a chunky paragraph survived the first revise
   // and the lead skipped; the second attempt gets both failure messages)
   try { guardNote(note, audience, trigger); } catch (ge) {
     log(`guard hit for ${label}: ${ge.message} — revising`);
-    note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead, firm, ctaVariant, trigger, remote });
+    note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote });
     try { guardNote(note, audience, trigger); } catch (ge2) {
       log(`guard hit again for ${label}: ${ge2.message} — second revision`);
-      note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead, firm, ctaVariant, trigger, remote });
+      note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote });
       guardNote(note, audience, trigger);
     }
   }
@@ -521,7 +537,7 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   // every item each pass), so enforce it DETERMINISTICALLY and fold it into the
   // review issues the revise loop must fix (Will 2026-07-07: exactly one proof).
   const critique = async (n) => {
-    const r = await critiqueNote(anthropic, n, audience, ctaVariant, leadFacts, trigger);
+    const r = await critiqueNote(anthropic, n, audience, ctaVariant, leadFacts, trigger, triggerType);
     if (proofOveruse(n.body, audience)) {
       return { pass: false, issues: [...(r.issues || []), 'You used TWO proofs (a named client like BCG/DraftKings AND a stat like "90% of slots book"). Keep EXACTLY ONE (not zero, not two): pick the single strongest for this moment and cut the other. Do NOT drop both, one credibility proof should stay in the note.'] };
     }
@@ -532,7 +548,7 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   const MAX_SKEPTIC_REVISES = 2;
   for (let r = 0; r < MAX_SKEPTIC_REVISES && !review.pass && review.issues.length; r += 1) {
     log(`skeptic flagged ${label} (round ${r + 1}): ${review.issues.join(' | ')} — revising`);
-    note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger, remote });
+    note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote });
     guardNote(note, audience, trigger); // hard rules must always hold after a revise
     review = await critique(note);
   }

@@ -157,7 +157,11 @@ export async function sendEmail(accessToken, { from, to, subject, body, signatur
   // markdown into anchor tags. Order matters: escapeHtml turns `&` in URLs
   // into `&amp;`, which is the correct in-anchor form.
   let bodyHtml = renderMarkdownLinks(escapeHtml(body)).replace(/\r?\n/g, '<br>');
-  const sigBlock = signatureHtml ? `<br><br>${signatureHtml}` : '';
+  // Tag the embedded signature with Gmail's own signature marker so the web
+  // client treats it as THE signature and does NOT append the account's default
+  // sendAs signature on top (Will 2026-07-08: hand-sent founder/broker drafts were
+  // getting his heavy default sig appended below the founder-min one).
+  const sigBlock = signatureHtml ? `<br><br><div class="gmail_signature" data-smartmail="gmail_signature">${signatureHtml}</div>` : '';
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${bodyHtml}${sigBlock}</div>`;
   const raw = buildRaw({ from, to, subject, bodyHtml: html, inReplyTo, references });
   // threadId attaches the message to an existing Gmail thread (follow-ups).
@@ -187,7 +191,10 @@ export async function sendEmail(accessToken, { from, to, subject, body, signatur
  */
 export async function createDraft(accessToken, { from, to, subject, body, signatureHtml, threadId }) {
   const bodyHtml = renderMarkdownLinks(escapeHtml(body)).replace(/\r?\n/g, '<br>');
-  const sigBlock = signatureHtml ? `<br><br>${signatureHtml}` : '';
+  // gmail_signature marker → Gmail web recognizes this as THE signature and does
+  // not append will@'s heavy default sendAs signature when he hand-sends the draft
+  // (Will 2026-07-08). Same fix as sendEmail above.
+  const sigBlock = signatureHtml ? `<br><br><div class="gmail_signature" data-smartmail="gmail_signature">${signatureHtml}</div>` : '';
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${bodyHtml}${sigBlock}</div>`;
   const raw = buildRaw({ from, to, subject, bodyHtml: html });
   const message = threadId ? { raw, threadId } : { raw };

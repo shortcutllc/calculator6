@@ -43,6 +43,7 @@ const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || envKey('ANTHROPIC_API_KEY
 const AUDIENCE = val('--audience', 'brokers');   // 'brokers' | 'tech-execs'
 const CTA = ['help', 'convo'].includes(val('--cta', '')) ? val('--cta', '') : 'help';
 const TRIGGER = val('--trigger', null);
+const TRIGGER_TYPE = val('--trigger-type', null); // funding|people_posting|growth_list — funding=milestone opener, others=internal-only
 const EMAIL = val('--email', null);
 const REMOTE = has('--remote'); // distributed company → lead the virtual track
 const WITH_EXEMPLARS = has('--exemplars');
@@ -105,7 +106,7 @@ const red = (s) => `\x1b[31m${s}\x1b[0m`;
     try {
       const t0 = Date.now();
       const { note, review } = await composeNote(anthropic, {
-        lead, firm, exemplars, audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER, remote: REMOTE,
+        lead, firm, exemplars, audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER, triggerType: TRIGGER_TYPE, remote: REMOTE,
         label: lead.email, log: (m) => console.log(gray(`  · ${m}`)),
       });
       const secs = ((Date.now() - t0) / 1000).toFixed(0);
