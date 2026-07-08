@@ -183,6 +183,16 @@ async function loadDraftForSend(sb, draftId, optionalLabel) {
   return { draft, subject, body, label };
 }
 
+// Founder-lane minimal signature (matches founder-queue-background / -followup).
+// Founder/broker first-touch etiquette bans the heavy default sig (Founder & CEO +
+// book-a-call link + logo). Used when a founder_note draft is sent from Slack.
+const FOUNDER_MIN_SIG_HTML = [
+  '<div dir="ltr" style="font-family:Outfit,sans-serif;font-size:11pt;color:rgb(0,0,0)">',
+  'Will Newton<br>', 'Founder, <b>Shortcut</b><br>',
+  '<a href="https://www.getshortcut.co" target="_blank">getshortcut.co</a><br>', '(215) 218-8088',
+  '</div>',
+].join('');
+
 async function handleSendDraft(sb, rep, draftId, optionalLabel) {
   const loaded = await loadDraftForSend(sb, draftId, optionalLabel);
   if (loaded.error) return { ok: false, error: loaded.error };
@@ -203,7 +213,11 @@ async function handleSendDraft(sb, rep, draftId, optionalLabel) {
   let sent;
   try {
     const token = await getAccessToken(sb, rep.email);
-    const signatureHtml = await getSignature(token, rep.email);
+    // Founder notes use the minimal founder-lane signature, not the rep's heavy
+    // default (Will 2026-07-08). Everything else keeps the configured signature.
+    const signatureHtml = draft.target_kind === 'founder_note'
+      ? FOUNDER_MIN_SIG_HTML
+      : await getSignature(token, rep.email);
     sent = await sendEmail(token, { from: rep.email, to: recipient, subject, body, signatureHtml, threadId });
   } catch (e) {
     return { ok: false, error: `Send failed: ${e.message}` };
@@ -243,7 +257,18 @@ async function handleSendDraft(sb, rep, draftId, optionalLabel) {
       await deleteDraft(tok, draft.target_ref.gmail_draft_id);
     } catch (e) { console.warn('gmail draft cleanup after send failed (non-fatal):', e.message); }
   }
-  await sb.from('saved_drafts').delete().eq('id', draftId);
+  // Founder notes must PERSIST after send — the auto-follow-up sender
+  // (founder-followup-background) scans saved_drafts rows and tracks the E2/E3/E4
+  // sequence on target_ref.sequence. Deleting the row here silently killed every
+  // follow-up for anything sent from Slack (Will 2026-07-08). Mark sent instead;
+  // only non-founder companion drafts get cleaned up.
+  if (draft.target_kind === 'founder_note') {
+    await sb.from('saved_drafts').update({
+      target_ref: { ...(draft.target_ref || {}), sent_at: now, sent_via: 'slack', thread_id: sent.threadId || threadId || null, gmail_message_id: sent.id || null },
+    }).eq('id', draftId);
+  } else {
+    await sb.from('saved_drafts').delete().eq('id', draftId);
+  }
 
   return { ok: true, sent: { subject, thread_id: sent.threadId || threadId } };
 }
