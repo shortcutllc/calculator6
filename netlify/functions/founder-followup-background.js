@@ -155,7 +155,7 @@ export const handler = async (event) => {
       const priorBodies = seq.touches.map((t) => t.body).filter(Boolean);
       const fu = await composeFollowup(anthropic, {
         lead: { email, name: e1.source_contact || null, title: e1.source_title || null, company: e1.source_company || ref.firm || null },
-        audience: ref.audience || 'brokers', ctaVariant: ref.cta_variant || 'help', trigger: ref.trigger || null,
+        audience: ref.audience || 'brokers', ctaVariant: ref.cta_variant || 'help', trigger: ref.trigger || null, remote: ref.remote === true,
         touchNumber: nextTouch, exemplars: [], bookACallUrl: BOOK_A_CALL_URL, priorBodies,
         label: email, log,
       });

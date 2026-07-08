@@ -559,21 +559,29 @@ const FOLLOWUP_SCHEMA = {
   required: ['body', 'touch_summary'],
 };
 
-function followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl) {
+function followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote = false) {
+  const channel = audience === 'brokers' ? 'broker' : 'direct';
+  const oneTeam = remote ? 'one team for your whole distributed crew, run over Zoom, zero lift' : `one team for the whole crew, on-site${audience === 'brokers' ? '' : ' and remote'}, zero lift`;
   const roles = {
-    2: 'TOUCH 2 (value bump): add ONE new concrete thing they did not get in the first email — a single proof point or one specific detail — but TIE IT to the benefit in the same sentence, never drop a bare stat on its own line (e.g. "the kind of thing people actually make time for, over 90% of slots book out"). Lead with the new thing. NEVER "just following up", "bumping this", or "did you see my note".',
-    3: `TOUCH 3 (differentiation${bookACallUrl ? ' + one link' : ''}): in a sentence, make clear Shortcut is one team for the whole crew, on-site${audience === 'brokers' ? '' : ' and remote'}, zero lift.${bookACallUrl ? ` Then offer the page once, softly: "I put together a quick overview if it helps: ${bookACallUrl}". Use that exact URL exactly once.` : ''} Keep it short.`,
-    4: 'TOUCH 4 (graceful breakup): one last note. Drop ONE final proof point, then a warm no-pressure out ("I will leave you be. Reach out anytime if it is ever useful."). NEVER guilt, NEVER "last chance" or "final attempt".',
+    2: 'TOUCH 2 (value bump): add ONE new concrete thing they did not get in the first email — a single REAL proof point (from the positioning above) or one specific detail — tied to the benefit in the same sentence, never a bare stat on its own line. Lead with the new thing. NEVER "just following up", "bumping this", or "did you see my note".',
+    3: `TOUCH 3 (differentiation${bookACallUrl ? ' + one link' : ''}): in a sentence, make clear Shortcut is ${oneTeam}.${bookACallUrl ? ` Then offer the page once, softly: "I put together a quick overview if it helps: ${bookACallUrl}". Use that exact URL exactly once.` : ''} Keep it short.`,
+    4: 'TOUCH 4 (graceful breakup): one last note. Drop ONE final REAL proof point, then a warm no-pressure out ("I will leave you be. Reach out anytime if it is ever useful."). NEVER guilt, NEVER "last chance" or "final attempt".',
   };
-  return `You write a SHORT in-thread follow-up email AS Will Newton, founder and CEO of Shortcut (getshortcut.co) — premium on-site wellness (chair massage, nails, facials, mindfulness) for companies like BCG and DraftKings, 500+ companies, 87% rebook. Will's earlier note is ALREADY above in this thread, so do NOT reintroduce him or Shortcut and do NOT restate the full pitch.
+  return `You write a SHORT in-thread follow-up email AS Will Newton, founder and CEO of Shortcut (getshortcut.co). Will's earlier note is ALREADY above in this thread, so do NOT reintroduce him or Shortcut and do NOT restate the full pitch.
 
-WILL'S VOICE: calm, warm, casual, human. Contractions. Short sentences, varied length. No buzzwords (elevate, leverage, unlock, transform, seamless, delve, foster, streamline, navigate — banned). No dashes as punctuation (end the sentence instead). No exclamation points except the sign-off. Reads like Will typed it between meetings, not a template.
+${buildPositioningBlock({ channel, remote })}
+
+Everything above is the SOURCE OF TRUTH for the facts, services, and proof you may use (say them in your own words, never invent a number or client). This is a SHORT reply, so do NOT dump the positioning; just pull the ONE thing this touch needs.
+
+TODAY IS ${todayLong()}. Never call a month/date that has already passed "upcoming".
+
+WILL'S VOICE (email breathes, warmth over compression): calm, warm, casual, human. Contractions. Complete sentences only, never a bare service list dropped in as its own line. Vary sentence length naturally; do not compress into clipped fragments. No buzzwords. No dashes as punctuation (end the sentence instead). No exclamation points except the sign-off.
 ${exemplars.length ? `\nWILL'S REAL SENT EMAILS (match register/rhythm, do not copy):\n${exemplars.slice(0, 3).map((e, i) => `--- ${i + 1} ---\n${e}`).join('\n')}\n` : ''}
-IN-THREAD: this is a reply. Open naturally (a light "Hi {first name}," is fine, or dive straight in). 2 to 4 sentences total. One idea per short paragraph.
+IN-THREAD: this is a reply. Open naturally (a light "Hi {first name}," is fine, or dive straight in). A few short sentences total. One idea per short paragraph.
 
 ${audience === 'brokers'
     ? 'BROKER CONTEXT: still channel courtship — helping the broker help their CLIENTS deploy carrier wellness funds. Client-side credibility only (companies Will talks to, never claims about the broker\'s own book outside a question). Name only fund-eligible services (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Never say "groups".'
-    : `TECH-EXEC CONTEXT: celebrate-and-offer sentiment. NEVER assert their team is stressed/burned out/overstretched (only inside an if/as/when clause or a question). NEVER consequence or urgency framing. NEVER RTO / "worth the commute" framing${trigger ? '' : ''}. Offer to help their people take a beat.`}
+    : `TECH-EXEC CONTEXT: celebrate-and-offer sentiment. NEVER assert their team is stressed/burned out/overstretched (only inside an if/as/when clause or a question). NEVER consequence or urgency framing. NEVER RTO / "worth the commute" framing.${remote ? ' This company is fully remote: keep to the flexible/virtual services (mindfulness, sound baths, nutrition coaching), never on-site massage/nails/facials.' : ''} Offer to help their people take a beat.`}
 
 ${roles[touchNumber] || roles[4]}
 
@@ -583,10 +591,10 @@ Sign off "Cheers!" or "Thanks!" on its own line, then "Will". That is the ONLY e
 Report via report_followup exactly once.`;
 }
 
-async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies }) {
+async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies, remote = false }) {
   const userContent = [
     'THE PERSON (JSON):',
-    JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, why_now_trigger: trigger || null }, null, 2),
+    JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, why_now_trigger: trigger || null, remote_or_distributed: remote || null }, null, 2),
     '',
     'PRIOR TOUCHES IN THIS THREAD (do NOT repeat their content or phrasing):',
     ...(priorBodies || []).map((b, i) => `--- touch ${i + 1} ---\n${b}`),
@@ -595,7 +603,7 @@ async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, t
   ].join('\n');
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 1500, temperature: 0.4,
-    system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl),
+    system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote),
     tools: [{ name: 'report_followup', description: 'Report the finished follow-up. Call exactly once.', input_schema: FOLLOWUP_SCHEMA }],
     tool_choice: { type: 'tool', name: 'report_followup' },
     messages: [{ role: 'user', content: userContent }],
@@ -611,17 +619,17 @@ async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, t
  * touch_summary }. The subject is NOT generated here: the sender reuses the E1
  * subject so Gmail keeps the thread grouped.
  */
-export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 'help', trigger = null, touchNumber, exemplars = [], bookACallUrl = null, priorBodies = [], label = lead?.email || 'lead', log = console.error }) {
+export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 'help', trigger = null, remote = false, touchNumber, exemplars = [], bookACallUrl = null, priorBodies = [], label = lead?.email || 'lead', log = console.error }) {
   const allowLinks = (touchNumber === 3 && bookACallUrl) ? [bookACallUrl] : [];
   const guardOpts = { allowLinks, followup: true };
-  let fu = await draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies });
+  let fu = await draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies, remote });
   const asNote = () => ({ subject: '', body: fu.body });
   try { guardNote(asNote(), audience, trigger, guardOpts); } catch (ge) {
     log(`followup guard hit for ${label} (touch ${touchNumber}): ${ge.message} — revising`);
     // one revision with the failure fed back
     const resp = await anthropic.messages.create({
       model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0.4,
-      system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl),
+      system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote),
       tools: [{ name: 'report_followup', description: 'Report the revised follow-up.', input_schema: FOLLOWUP_SCHEMA }],
       tool_choice: { type: 'tool', name: 'report_followup' },
       messages: [{ role: 'user', content: `Your previous follow-up FAILED a hard rule: ${ge.message}\n\nPREVIOUS:\n${fu.body}\n\nFix it and re-report. Keep it short and in-thread.` }],

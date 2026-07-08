@@ -82,6 +82,10 @@ export const handler = async (event) => {
   // verified why-now from the tech-scout harvest (only meaningful with `only`
   // since it describes one lead's company)
   const trigger = typeof body.trigger === 'string' && body.trigger.trim() ? body.trigger.trim().slice(0, 300) : null;
+  // remote=true (from tech-scout harvest) → this company is fully remote; the note
+  // leads the virtual/flexible track (mindfulness, sound baths, nutrition coaching)
+  // instead of on-site. Saved on the draft so follow-ups stay consistent in-thread.
+  const remote = body.remote === true;
 
   // Will's account (Slack + Gmail + user id).
   const { data: acct } = await sb.from('gmail_accounts')
@@ -164,7 +168,7 @@ export const handler = async (event) => {
       // Compose engine (lib/founder-note.js): draft -> guards (2 revises) ->
       // skeptic -> revise -> final guard. Throws if it still violates a hard
       // rule; the catch below turns that into a Slack skip.
-      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, label: t.email });
+      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, remote, label: t.email });
 
       // Gmail draft — founder-min signature embedded (Will 2026-07-06). Still no
       // logo/booking-link (first-touch rule); founder-min is the minimal block.
@@ -184,6 +188,7 @@ export const handler = async (event) => {
           audience, cta_variant: ctaVariant, firm: firm?.display_name || null, tier: firm?.tier || null,
           linkedin_url: t.linkedin_url || null,
           trigger: trigger || null,
+          remote: remote || null,
           research_note: note.research_note, linkedin_step: note.linkedin_step,
           rep_email: WILL, thread_id: null, gmail_draft_id: gmailDraftId, gmail_message_id: gmailMessageId,
           all_directions: [{ label: 'founder', subject: note.subject, body: note.body }],
