@@ -72,6 +72,34 @@ async function threadIsSilent(token, threadId) {
   return { silent: true, reason: null };
 }
 
+// Per-company book-a-call page for E3, mirroring the cold lane. Reuse an existing
+// page (generic_landing_pages matched by partnerName) before minting a new one via
+// create-book-a-call-page. Best-effort: any failure returns null so the caller falls
+// back to the generic page / env URL. (Will 2026-07-08.)
+const BOOK_A_CALL_ENDPOINT = 'https://proposals.getshortcut.co/.netlify/functions/create-book-a-call-page';
+const GENERIC_BOOK_A_CALL = 'https://proposals.getshortcut.co/book-a-call';
+async function bookACallPageFor(sb, company, domain, log = () => {}) {
+  const key = String(company || '').trim().toLowerCase();
+  if (!key) return null;
+  try {
+    const { data } = await sb.from('generic_landing_pages')
+      .select('unique_token, data').order('created_at', { ascending: false }).limit(2000);
+    const hit = (data || []).find((r) => String(r.data?.partnerName || '').trim().toLowerCase() === key);
+    if (hit) return `https://proposals.getshortcut.co/book-a-call/${hit.unique_token}`;
+  } catch (e) { log(`  book-a-call reuse-scan warn: ${e.message}`); }
+  try {
+    const r = await fetch(BOOK_A_CALL_ENDPOINT, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leads: [{ company, domain: domain || null }] }),
+    });
+    const j = await r.json().catch(() => ({}));
+    const res = (j.results || [])[0];
+    if (res?.url) return res.url;
+    log(`  book-a-call mint warn: ${res?.error || `HTTP ${r.status}`} for ${company}`);
+  } catch (e) { log(`  book-a-call mint warn: ${e.message}`); }
+  return GENERIC_BOOK_A_CALL;
+}
+
 export const handler = async (event) => {
   if (!process.env.PRO_SLACK_BOT_TOKEN) return { statusCode: 500, body: 'misconfigured (PRO_SLACK_BOT_TOKEN)' };
   if (!process.env.ANTHROPIC_API_KEY) return { statusCode: 500, body: 'misconfigured (ANTHROPIC_API_KEY)' };
@@ -161,10 +189,17 @@ export const handler = async (event) => {
 
       // compose the touch
       const priorBodies = seq.touches.map((t) => t.body).filter(Boolean);
+      // E3 carries ONE link — a per-company book-a-call page, same as the cold lane
+      // (Will 2026-07-08). Lazy-mint/reuse it only when touch 3 actually fires; best
+      // effort, falls back to the generic page then the env URL.
+      const company = e1.source_company || ref.firm || null;
+      const bookUrl = nextTouch === 3
+        ? (ref.landing_url || await bookACallPageFor(sb, company, email.split('@')[1], log) || BOOK_A_CALL_URL)
+        : null;
       const fu = await composeFollowup(anthropic, {
-        lead: { email, name: e1.source_contact || null, title: e1.source_title || null, company: e1.source_company || ref.firm || null },
+        lead: { email, name: e1.source_contact || null, title: e1.source_title || null, company },
         audience: ref.audience || 'brokers', ctaVariant: ref.cta_variant || 'help', trigger: ref.trigger || null, remote: ref.remote === true,
-        touchNumber: nextTouch, exemplars: [], bookACallUrl: BOOK_A_CALL_URL, priorBodies,
+        touchNumber: nextTouch, exemplars: [], bookACallUrl: bookUrl, priorBodies,
         label: email, log,
       });
 
