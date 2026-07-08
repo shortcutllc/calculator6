@@ -7,6 +7,8 @@ Shortcut is an all-in-one corporate wellness platform delivering in-person and v
 
 **Copywriting rule:** Before writing ANY marketing copy, proposal text, landing page content, email outreach, event signage, or social media content, read the full brand voice guide at `memory/brand_voice_copywriter.md`. Always produce 3 directions (safe/medium/brave) and flag which you'd fight for.
 
+**Copy surfaces MUST use the brain — no exceptions, no framing loopholes (2026-07-07).** If the output is words a prospect will read, it is COPY, even when the task is framed as engineering ("agent", "pipeline", "engine", "drafting quality", "gates"). Before touching any prompt that generates customer-facing text, (1) load the messaging spine (`memory/messaging_spine.md`) and its related brain docs, and (2) confirm the code IMPORTS `netlify/functions/lib/positioning.js` (the machine twin of the spine) and injects `buildPositioningBlock(...)` rather than hardcoding the service menu, proof points, or voice inline. The founder-note engine silently drifted from the brain for a whole project by skipping this — it treated a copy problem as plumbing, hardcoded a stale service list (causing sameness + fragments), and never learned Shortcut serves remote teams via the virtual track. Never hardcode what the brain owns; wire to it so surfaces can't drift. Run `node scripts/check-copy-surfaces.mjs` to verify.
+
 ---
 
 ## Proposal V2 refresh — SHIPPED to production (2026-06-23)

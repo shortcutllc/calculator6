@@ -44,6 +44,7 @@ const AUDIENCE = val('--audience', 'brokers');   // 'brokers' | 'tech-execs'
 const CTA = ['help', 'convo'].includes(val('--cta', '')) ? val('--cta', '') : 'help';
 const TRIGGER = val('--trigger', null);
 const EMAIL = val('--email', null);
+const REMOTE = has('--remote'); // distributed company → lead the virtual track
 const WITH_EXEMPLARS = has('--exemplars');
 const N = Math.max(1, Math.min(5, parseInt(val('--n', '1'), 10) || 1));
 
@@ -104,7 +105,7 @@ const red = (s) => `\x1b[31m${s}\x1b[0m`;
     try {
       const t0 = Date.now();
       const { note, review } = await composeNote(anthropic, {
-        lead, firm, exemplars, audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER,
+        lead, firm, exemplars, audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER, remote: REMOTE,
         label: lead.email, log: (m) => console.log(gray(`  · ${m}`)),
       });
       const secs = ((Date.now() - t0) / 1000).toFixed(0);

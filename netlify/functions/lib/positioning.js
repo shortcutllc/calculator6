@@ -26,7 +26,7 @@ export const PROBLEM_FIRST = {
 export const PILLARS = [
   { key: 'actually_used', claim: 'People actually use it, and love it', proof: 'Opt-out and comes to them, so participation approaches everyone vs ~24% for typical wellness programs (Gallup). The part of the budget that does not sit unused.' },
   { key: 'zero_lift', claim: 'Zero lift for managers', proof: 'Fully managed start to finish: booking, vetted pros, equipment, the day itself. You approve a date and do nothing else. (This is the real "turnkey" benefit. Lead with it in plain words. Never write the word "turnkey".)' },
-  { key: 'one_vendor_whole_team', claim: 'One vendor for your whole team, in office and remote', proof: 'On-site experiences plus virtual for remote and hybrid teams, all from one team. Breadth from one team is the differentiator, not any single service.' },
+  { key: 'one_vendor_whole_team', claim: 'One vendor for your whole team, in office and remote', proof: 'In-person experiences (massage, nails, facials and more) plus flexible sessions (mindfulness, sound baths, nutrition coaching) that run in person, over Zoom, or hybrid, all from one team. Breadth from one team is the differentiator, not any single service.' },
 ];
 
 // Supporting points — proof / objection handling, NOT headline pillars.
@@ -35,13 +35,18 @@ export const SUPPORTING = [
   { key: 'costs_less', point: 'Costs less than what is wasted: roughly 7% of what is already in the wellness budget.' },
 ];
 
-// Service menu — the breadth, delivered two ways from one team. Lead with
-// "your whole team, wherever they are", NOT a service checklist. Grooming +
-// headshots live HERE (menu breadth proof), never in the headline.
+// Service menu — grouped by DELIVERY CONSTRAINT, not by "on-site vs virtual"
+// (Will, 2026-07-07 — the old split wrongly implied mindfulness/sound-bath/
+// nutrition are remote-only; they are not). Lead with "your whole team, wherever
+// they are", NOT a service checklist. Grooming + headshots are menu breadth, never
+// the headline.
 export const SERVICE_MENU = {
-  on_site: ['massage (chair and table)', 'nails', 'facials', 'hair and grooming', 'headshots'],
-  virtual: ['mindfulness', 'sound baths', 'nutrition coaching'],
-  note: 'Virtual serves remote and hybrid teams. Some services run either way (e.g. mindfulness). Mention the virtual option when the prospect is distributed/remote-friendly.',
+  // PHYSICAL — must happen in person; cannot be delivered remotely.
+  in_person_only: ['massage (chair and table)', 'nails', 'facials', 'hair and grooming', 'headshots'],
+  // FLEXIBLE — we deliver these in person, over Zoom, OR hybrid (some in the room,
+  // others remote). Available to ANY company, in-office included.
+  flexible: ['mindfulness', 'sound baths', 'nutrition coaching'],
+  note: 'The ONLY delivery rule: in_person_only services (massage, nails, facials, hair, headshots) require a physical location, so NEVER offer them to a fully remote company. flexible services (mindfulness, sound baths, nutrition coaching) work in person, over Zoom, or hybrid, so they are fair game for EVERYONE, including in-office teams (an in-office company can do mindfulness in the room, all on Zoom, or a mix). Only a FULLY REMOTE company is limited to the flexible set. Do not call the flexible services "virtual" as if that were their only mode.',
 };
 
 // What ONLY Shortcut can say, in CLOSE-priority order (Will, 2026-06-25).
@@ -109,7 +114,9 @@ export function buildPositioningBlock({ channel = 'direct', seasonal = false, re
     ...PILLARS.map((p, i) => `    ${i + 1}. ${p.claim}: ${p.proof}`),
     `- Differentiation (the white space): ${DIFFERENTIATION.whitespace}`,
     `- One vendor, not a directory: ${DIFFERENTIATION.vs_aggregators}`,
-    `- Service breadth (menu, NOT the headline): on-site = ${SERVICE_MENU.on_site.join(', ')}; virtual (remote/hybrid) = ${SERVICE_MENU.virtual.join(', ')}.`,
+    `- Service breadth (menu, NOT the headline). ${SERVICE_MENU.note}`,
+    `    IN-PERSON ONLY (physical, never for a fully remote company): ${SERVICE_MENU.in_person_only.join(', ')}.`,
+    `    FLEXIBLE (in person, over Zoom, or hybrid — offer to anyone): ${SERVICE_MENU.flexible.join(', ')}.`,
     '- FACT (same class as never-fabricate): massage is delivered as chair or table in a conference room turned into a spa-like space. NEVER say massage "at their desks" / "at desk".',
     `- DEMOTED: ${DIFFERENTIATION.demoted_breadth}`,
     `- REAL proof (use these EXACT figures/names when proof helps): ${PROOF.booked} ${PROOF.rebook} ${PROOF.scale} ${PROOF.land_expand}`,
@@ -118,7 +125,7 @@ export function buildPositioningBlock({ channel = 'direct', seasonal = false, re
     '- AVOID: fear-mongering about a burnout/mental-health crisis, hype/buzzwords, guilt-tripping, perks-theater/pizza-party energy, inflated ROI or health-savings claims, urgency/scarcity/FOMO.',
   ];
   if (remote) {
-    lines.push('- This prospect may have remote/hybrid staff: surface the VIRTUAL option (mindfulness, sound baths, nutrition coaching) so they hear "your whole team, wherever they are".');
+    lines.push('- This prospect is FULLY REMOTE / distributed: do NOT offer the in-person-only services (massage, nails, facials, hair, headshots) here. Lead with the FLEXIBLE services (mindfulness, sound baths, nutrition coaching) delivered over Zoom, so they hear "your whole team, wherever they are". Remote is a segment we serve, never a poor fit.');
   }
   if (channel === 'broker') {
     lines.push(`- Broker angle: ${BROKER_HOOKS.carrier_funds} Frame value as: ${BROKER_HOOKS.wellness_consultant}, ${BROKER_HOOKS.producer_partner}.`);

@@ -15,6 +15,14 @@
  * exported for tests.
  */
 
+// The founder-note engine is a customer-facing COPY surface, so it draws from the
+// SAME single source of truth as every other drafting surface (cold, proposals):
+// positioning.js, the machine twin of memory/messaging_spine.md. Do NOT hardcode
+// the service menu, proof, or voice inline here — inject the block so this lane
+// cannot drift from the brain (it silently did until 2026-07-07). See CLAUDE.md
+// "Copy surfaces must import positioning.js".
+import { buildPositioningBlock } from './positioning.js';
+
 export const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
 
 // ---- Will's live voice exemplars: recent real sent mail (external, plain text).
@@ -58,24 +66,31 @@ export const NOTE_SCHEMA = {
   required: ['subject', 'body', 'research_note', 'linkedin_step'],
 };
 
-export function voiceSystem(exemplars, audience, ctaVariant = 'help') {
-  return `You draft 1:1 networking emails for Will Newton, founder and CEO of Shortcut (getshortcut.co) — premium on-site wellness (chair massage, nails, facials, mindfulness) for companies like BCG and DraftKings, 500+ companies served, 87% rebook. You write AS Will, in his voice.
+export function voiceSystem(exemplars, audience, ctaVariant = 'help', remote = false) {
+  const channel = audience === 'brokers' ? 'broker' : 'direct';
+  return `You draft 1:1 networking emails for Will Newton, founder and CEO of Shortcut (getshortcut.co). You write AS Will, in his voice.
 
-WILL'S VOICE (non-negotiable): calm, warm, casual, practical. He writes like a busy founder dashing off a note to a peer he'd like to know, not like a company. Soft energy, zero sales push, curious about THEM. No buzzwords ever (elevate, leverage, synergy, unlock, empower, transform, seamless, holistic, curated, delve, pivotal, foster, streamline, navigate, landscape are BANNED). No dashes as punctuation (end the sentence instead). Specifics over superlatives. Plain verbs: things ARE and HAVE, they never "serve as" or "boast".
+${buildPositioningBlock({ channel, remote })}
 
-RHYTHM (this is what makes it read human): vary sentence length a lot. At least one very short sentence. Never three sentences in a row with the same shape. No rule-of-three lists, no "not just X, but Y" constructions, no tidy parallel clauses. One small human aside is welcome (a parenthetical, a fragment, a sentence starting with And, But, or Honestly). If every sentence is the same medium length and perfectly balanced, it smells like AI. Read it aloud in your head: if Will wouldn't say the phrase to a friend, cut it.
+Everything above is the SOURCE OF TRUTH for what Shortcut is and the only facts/proof you may claim. Treat it as RAW MATERIAL to say in Will's own words, never lines to paste. This is a 1:1 founder-to-peer note; the rules below govern HOW Will writes it.
+
+WILL'S VOICE (non-negotiable): calm, warm, casual, practical. He writes like a busy founder dashing off a note to a peer he'd like to know, not like a company. Soft energy, zero sales push, curious about THEM. No buzzwords (elevate, leverage, unlock, empower, transform, seamless, holistic, curated, delve, foster, streamline, navigate are BANNED). No dashes as punctuation (end the sentence instead). Specifics over superlatives. Plain verbs: things ARE and HAVE, they never "serve as" or "boast".
+
+HOW WILL'S EMAILS READ (brand voice guide — this is EMAIL, and email BREATHES): write like one human emailing another, warmth over compression. Sentences can run 20+ words when the rhythm calls for it. Do NOT compress the note into clipped telegraph fragments or a stack of tiny choppy lines — that reads cold and robotic, which is the opposite of Will. Contractions everywhere. Let sentence length vary naturally (a short line here and there is good; do not force choppiness, and never three same-shape sentences in a row). No "not just X, but Y". Read it in your head: if it sounds like a robot, LENGTHEN it; if a sentence could appear in a mass email, rewrite it.
+
+COMPOSE, DON'T ASSEMBLE (the whole point): say every idea fresh, phrased differently each email. If two of your notes could swap a sentence unnoticed, you have written a template. Two hard consequences of this:
+- COMPLETE SENTENCES, ALWAYS. Every sentence has a subject and a real verb. NEVER drop the service list in as a bare line ("Chair massage, nails, facials, mindfulness." standing alone is a broken fragment). The services live INSIDE a flowing sentence you compose from the menu above, fresh each time: lead with massage, signal the breadth (nails, facials and more, plus the virtual track for remote teams), and that one team runs all of it so they're not juggling vendors. Vary the verb, the order, where the "one team" idea lands. Never the same stock phrasing twice.
+- Describe who Shortcut helps as "companies" or "People teams", NEVER by grafting the recipient's exact title into a generic claim ("we work with VP People teams" is wrong; "we work with People teams" is right).
 ${exemplars.length ? `\nREAL EXAMPLES OF WILL'S SENT EMAILS (match this register, rhythm, and warmth — do NOT copy content):\n${exemplars.map((e, i) => `--- example ${i + 1} ---\n${e}`).join('\n')}\n` : ''}
-THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Open with a TRUE, SPECIFIC observation about THEM when one exists (see OBSERVATION BAR), one thought connecting it to Will's world, one low-pressure question. 50-110 words, shorter is better when nothing is lost. NO links, NO attachments, NO calendar link ever, NO "15 minutes" phrasing. (Exception: convo CTA variants may invite a short call — see THE ASK.)
+THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goal is a conversation, not a meeting. Open with a TRUE, SPECIFIC observation about THEM when one exists (see OBSERVATION BAR), one thought connecting it to Will's world, one low-pressure question. Keep it to a tight few short paragraphs; shorter is better when nothing is lost, but let each thought be a real sentence. NO links, NO attachments, NO calendar link ever, NO "15 minutes" phrasing. (Exception: convo CTA variants may invite a short call — see THE ASK.)
 
 SIGN-OFF (Will 2026-07-06): end with "Cheers!" or "Thanks!" on its own line, then "Will" on the next line. Nothing after (his Gmail signature is appended automatically). That sign-off is the ONLY exclamation mark in the whole email, and it stays: it reads warm, and gratitude closes get the most replies.
 
-INTRODUCE WILL AND SHORTCUT CLEARLY (Will's requirement, 2026-07-02): early in the note, one plain human sentence that says who he is and what Shortcut does in concrete terms, e.g. "I'm Will, I run Shortcut. We bring wellness days into offices for companies like BCG and DraftKings, chair massage, nails, facials, mindfulness, all from one team." Never assume they can infer what Shortcut is. This intro sentence is exempt from the observation-first rule (observation first, intro second is the natural order).
-ALL FROM ONE TEAM (Will 2026-07-07 — the spine's differentiator, breadth-from-one-team): when the services are listed, close the list with a one-team phrase ("all from one team" / "all run by one team"). The point is that one team runs every service, not five stitched-together vendors. Never leave the service list as a flat menu with no unifying phrase (that reads like a marketplace). Lead with massage, then the breadth, then "all from one team" in a single beat.
-
-HUMAN TOUCH (fight the template feel): write like Will typed it between meetings. Small natural connectives are good ("honestly", "to be candid", "we keep running into this"). Contractions everywhere. It should read like a person who is curious about THEM, not a company introducing itself. Never open with "I hope this finds you well" or any stock pleasantry. If any sentence could appear in a mass email, rewrite it.
+INTRODUCE WILL AND SHORTCUT CLEARLY (Will's requirement, 2026-07-02): early in the note, one plain human sentence saying who he is ("I'm Will, I run Shortcut") and what Shortcut does, in concrete terms drawn from the positioning above. Compose it FRESH every time in your own words; do NOT paste a fixed template sentence. The single biggest machine tell is every note opening with the identical "We bring wellness days into offices for companies like BCG and DraftKings, chair massage, nails, facials, mindfulness, all from one team" sentence. Vary the wording, the order, which detail leads. Never assume they can infer what Shortcut is. This intro is exempt from the observation-first rule (observation first, intro second is the natural order).
 
 RESEARCH FIRST (you have web search, up to 3 searches): search the person and their firm for something real and recent — a post, a firm announcement, a niche they own, an award, a client win. The observation must be checkable and specific.
-OBSERVATION BAR (Will 2026-07-06, calibrate on these): a personal or firm find is usable ONLY if it connects to the note's actual thread ON ITS FACE — their wellbeing/benefits practice or role, their clients, their metro, something they wrote about wellness, benefits, or budgets. If connecting it takes a thematic bridge or a shared-value abstraction, it is FORCED: drop it and use the firm or metro angle instead.
+MILESTONE HOOKS — KEEP THE GOOD ONES (Will 2026-07-07, do NOT default to dropping): a genuine COMPANY MILESTONE (going public / an IPO, a funding round, a big product launch, a notable partnership, a company-wide award) is a valid hook for ANY senior leader at that company. Do NOT null it because it isn't specific to their exact role — congratulating a VP of People on their company going public is completely natural and warm. If a real milestone exists, OPEN on it with one brief genuine congrats, then move to why you're writing. Only DROP a real fact when it is a non-sequitur to caring for a team (a security or product report, a technical release, an industry stat) — those have nothing to do with wellness; do not force a bridge. Rule of thumb: if a peer founder would say "nice, congrats" on hearing it, keep it; if not and it isn't about their people, drop it.
+OBSERVATION BAR (Will 2026-07-06, for NON-milestone finds): a personal or firm find is usable ONLY if it connects to the note's actual thread ON ITS FACE — their wellbeing/benefits practice or role, their clients, their metro, something they wrote about wellness, benefits, or budgets. If connecting it takes a thematic bridge or a shared-value abstraction, it is FORCED: drop it and use the firm or metro angle instead.
   GOOD (flows with the sell): "Given EPIC's Wellbeing & Health Management practice, I'm curious whether you're seeing this with your New York clients on those carriers." The find IS the thread.
   FORCED (never do this): "I saw you're a Health Rosetta advisor. That transparency focus is exactly what I keep running into on the carrier wellness fund side." Credential → "transparency" → funds is a bolted-on bridge. A note with no personal line beats this every time.
 RECENCY (part of the bar): an observation framed as news ("I saw you...", "congrats on...") must be from the last ~6 months. Older facts are fine ONLY as standing facts ("you run People across 12 countries"), never with I-just-saw framing. A 2023 promotion presented as fresh news reads as lazy scraping the moment they notice the date.
@@ -96,7 +111,7 @@ ${ctaVariant === 'convo'
     ? `THE ASK (CONVO variant — under A/B test, Will 2026-07-02): invite a short conversation about how Will can help THE BROKER help their clients deploy these funds — e.g. "Open to a short call on how this could work for your clients?" or "Worth a quick conversation? I can walk you through how we make this easy for your clients." Soft and warm: no calendar link, no "15 minutes", no times proposed. The subtext (never stated as their incentive): their clients deploying these funds is a win the broker delivers at renewal.`
     : `THE ASK (HELP variant, Will 2026-07-02): close by asking whether this is something Will can HELP with — e.g. "Is this something I could help your Philly clients with?" or "Do any of your clients on Cigna or Aetna have fund dollars still sitting there this plan year? Happy to help them put those to use." The posture is offering help, never seeking validation. Offering to send the one-pager is a good soft close.`}
 LANGUAGE: never call employers "groups" (insurance jargon Will does not use) — say clients, companies, or partners.
-STRUCTURE (hard): 4 to 5 SHORT paragraphs separated by blank lines, each carrying ONE idea in at most two sentences. The Burberry receipt is ALWAYS its own one-sentence paragraph. If research produced a personal observation, it must connect to the fund thread within a sentence — an unconnected compliment reads as bolted-on research; if it cannot connect naturally, drop it and use the firm or metro angle instead.
+STRUCTURE: a few short paragraphs separated by blank lines, each carrying one idea (let a paragraph breathe to two or three sentences when the rhythm calls for it, this is email not a telegram). The Burberry receipt is ALWAYS its own paragraph. If research produced a personal observation, it must connect to the fund thread within a sentence — an unconnected compliment reads as bolted-on research; if it cannot connect naturally, drop it and use the firm or metro angle instead.
 NEVER: say "partnership", mention referral fees/revenue/compensation (first touch is comp-free, always), ask for referrals outright, or pitch Shortcut as the point — the point is making THEM look good to their clients.`
     : `AUDIENCE: the wellness owner at an emerging tech company (~100-250 people, usually just crossed 100) — could be a People leader, Workplace/Office manager, Chief of Staff, EA, COO, or the CEO. Founder-to-founder framing: Will also runs a company, he knows the stage they're at.
 COHORT THESIS — INTERNAL TARGETING CONTEXT, NEVER QUOTED AT THE PROSPECT (Will 2026-07-06): this company is in hypergrowth, their first People leader just landed or is being hired, and nothing is entrenched yet. That is why they are a fit. It is NOT what the note says.
@@ -106,10 +121,13 @@ HARD TONE RULES for this cohort:
 - NEVER warn about consequences or create urgency ("what you do now becomes how things are done", "before culture calcifies", "the window is closing"). We offer wellness, not threats. Zero fear framing.
 - BANNED (established-company angles): RTO framing, "make the office worth the commute"/"worth coming to", return-to-office language, perks-theater talk, enterprise-benefits vocabulary. EXCEPTION: office framing only when the verified trigger itself is about their office (a lease, an X-days-in-office posting).
 If the prospect JSON has a why_now_trigger, it is VERIFIED (harvested with an evidence URL) — anchor the note on it (for funding triggers that means congratulating it) and skip inventing a different angle; web searches just add color, and a note with no extra color is completely fine. Never claim they have wellness budget; a raise is a milestone to celebrate, not a budget claim.
-WHAT SHORTCUT IS FOR THEM: wellness days in the office people actually book, chair massage, mindfulness, that kind of thing (full menu includes nails, facials, headshots).
-PROOF (Will 2026-07-07 — use EXACTLY ONE, never two): pick the single proof that best fits the moment, then stop. The options: "over 90% of the slots get booked" (the usage/actually-used proof — strongest for a first People leader whose fear is a flop) · "500+ companies" · "87% rebook" · "companies like BCG and DraftKings". Naming BCG/DraftKings AND a stat is TWO proofs — choose one. The 90%-booked claim is about SLOTS, never "events book out".
-WEAVE THE PROOF, NEVER DANGLE IT (Will 2026-07-07 — the "Over 90% of the slots get booked." line was hanging as a bare standalone sentence with no connective tissue): the proof must be attached IN THE SAME SENTENCE to the benefit it proves — that the team actually shows up / actually loves it / it is effortless. It is EVIDENCE for the wellness-they-will-use message, not a fact dropped on its own line. GOOD: "the kind of wellness people actually make time for (over 90% of the slots book out), and it is zero lift for you." / "your team will actually use it, over 90% of slots get booked, and we handle the rest." BAD (never do this): a paragraph that is just "Over 90% of the slots get booked." with nothing before or after it. If the stat cannot be tied to a benefit in its sentence, cut it.
-ZERO LIFT (required, one sentence — the spine's pillar this cohort needs most): make clear Shortcut handles everything, e.g. "we handle everything, you just pick a date" or "zero lift for your team: we bring the pros and the gear and run the day". A stretched team with a brand-new (or no) People leader needs to hear the whole thing is effortless for them.
+WHAT SHORTCUT IS FOR THEM: the wellness days people actually book (drawn from the positioning above), led by massage with the breadth signalled in one beat. Lead with the in-office experience for a company with an office.
+REMOTE vs IN-OFFICE — GET THE SERVICES RIGHT (Will 2026-07-07): there are two kinds of service (see the menu above). IN-PERSON ONLY (massage, nails, facials, hair, headshots) need a physical location. FLEXIBLE (mindfulness, sound baths, nutrition coaching) run in person, over Zoom, or hybrid. Two rules:
+  - If the company is FULLY REMOTE / distributed: do NOT mention the in-person-only services, and do NOT write them off as a poor fit. Lead with the flexible services delivered over Zoom ("your whole team, wherever they are"). Remote is a segment we win, not an objection.
+  - If the company has an OFFICE: lead with the in-person experience (massage and the breadth). You MAY also mention a flexible service, but NEVER label massage/nails/facials/hair as "for remote" or "virtual" — that is factually wrong, they are in-person only. Do not staple "for remote folks" onto the in-person list.
+PROOF (Will 2026-07-07 — use EXACTLY ONE, never two): from the REAL proof in the positioning above, pick the single receipt that best fits the moment, then stop (the 90%+ slots-booked usage proof is strongest for a first People leader whose fear is a flop). Naming BCG/DraftKings AND a stat is TWO proofs — choose one. The 90%-booked claim is about SLOTS, never "events book out".
+WEAVE THE PROOF, NEVER DANGLE IT (Will 2026-07-07): whatever proof you use, attach it in the same breath to the benefit it proves (the team actually shows up, actually loves it, it's effortless) — it's evidence for the message, not a fact dropped on its own line. Never leave a bare stat as its own standalone sentence. Say it in your own words; if the stat can't be tied to a benefit naturally, cut it.
+ZERO LIFT (this cohort needs to hear it — say it your own way, don't skip it): make clear the whole thing is effortless for them, that Shortcut handles everything and they just pick a date. A stretched team with a brand-new or no People leader needs to know it's no work on their side. One natural sentence, phrased fresh, not a stock tag.
 THE ASK (Will 2026-07-06 — ALWAYS offer something concrete; a bare curiosity question is not a close):
 ${ctaVariant === 'convo'
     ? `CONVO variant: offer a call, human and unpushy — "Would love to hop on a call if you think this could be a fit for {{company}}" or "Happy to jump on a quick call if it's useful". No calendar link, no "15 minutes", no times proposed.`
@@ -127,12 +145,25 @@ const NON_FUND_SERVICES_RE = /\b(nails?|manicures?|facials?|headshots?|grooming|
 // truth is CLIENT conversations. Reject drafts that fabricate broker relationships.
 const FAKE_BROKER_EXPERIENCE_RE = /\b(keep )?(running into|talk(ing)? (to|with)|hear(ing)? from|work(ing)? with) (a lot of |many |other )?brokers\b|\bbrokers (tell|keep telling) me\b/i;
 
-export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger }) {
+// Today's date, so the model anchors timing correctly and never calls a month
+// that has already passed "upcoming" (Will 2026-07-07: a note said "as we head
+// into June" in July). Real Node runtime here (cron / function / local), so
+// new Date() is available and gives the current day.
+export function todayLong() {
+  return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, remote = false }) {
   const userContent = [
+    `TODAY IS ${todayLong()}. Anchor every time reference to today. A month or date that has already passed is NOT "upcoming" — refer to a past event in the past ("the launch last month", "since going public in July"), and only call something upcoming if it is genuinely still ahead of today. If the timing is unclear, keep it timeless.`,
+    '',
     'THE PERSON (JSON, trusted):',
     JSON.stringify({
       name: lead.name, title: lead.title, company: lead.company,
       location: lead.location || null,
+      // remote=true → this company is distributed; LEAD with the virtual track
+      // (mindfulness, sound baths, nutrition coaching), never treat as poor fit.
+      remote_or_distributed: remote || null,
       firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null, nyc_presence: firm?.nyc_presence ?? null,
       // why_now_trigger comes from the tech-scout signal harvest — it is VERIFIED
       // (funding announcement / first-People-hire posting / growth signal with an
@@ -152,7 +183,7 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
   // personalized anecdote."
   const researchedDraft = anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 4000, temperature: 0.4,
-    system: voiceSystem(exemplars, audience, ctaVariant),
+    system: voiceSystem(exemplars, audience, ctaVariant, remote),
     tools: [
       { type: 'web_search_20250305', name: 'web_search', max_uses: 3 },
       { name: 'report_note', description: 'Report the finished founder note. Call exactly once, after researching.', input_schema: NOTE_SCHEMA },
@@ -169,7 +200,7 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
     console.warn(`researched draft failed (${e.message}) — falling back to trigger-only draft (no web search)`);
     resp = await anthropic.messages.create({
       model: ANTHROPIC_MODEL, max_tokens: 3000, temperature: 0.4,
-      system: voiceSystem(exemplars, audience, ctaVariant),
+      system: voiceSystem(exemplars, audience, ctaVariant, remote),
       tools: [{ name: 'report_note', description: 'Report the finished founder note. Call exactly once.', input_schema: NOTE_SCHEMA }],
       tool_choice: { type: 'tool', name: 'report_note' },
       messages: [{ role: 'user', content: `${userContent}\n\nNOTE: web research is unavailable for this lead. Draft from the verified why_now_trigger and the provided context alone; set research_note to "no research pass — drafted from the verified trigger".` }],
@@ -180,7 +211,7 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
     const critique = (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
     resp = await anthropic.messages.create({
       model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
-      system: voiceSystem(exemplars, audience, ctaVariant),
+      system: voiceSystem(exemplars, audience, ctaVariant, remote),
       tools: [{ name: 'report_note', description: 'Report the finished founder note.', input_schema: NOTE_SCHEMA }],
       tool_choice: { type: 'tool', name: 'report_note' },
       messages: [
@@ -192,7 +223,7 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
     tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   }
   if (!tu) throw new Error('no report_note from drafter');
-  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))) };
+  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))) };
 }
 
 // The model sometimes separates paragraphs with SINGLE newlines; the chunky-
@@ -224,6 +255,39 @@ export function autoFixDashes(body) {
     .replace(/\s-\s/g, ', ');
 }
 
+// The service list dropped in as a bare, verb-less line is the ONE fragment the
+// model keeps re-emitting even when told not to (proven 3/3 across on-site AND
+// virtual service lists; the skeptic catches it but the revise fixes it only ~half
+// the time). So repair it MECHANICALLY, like autoFixDashes — but variety-PRESERVING:
+// MERGE the list into the model's OWN preceding lead-in sentence with a colon
+// (folding a trailing dependent clause with a comma), not a canned stamp. Falls back
+// to a light "We run" prepend only when there is no lead-in. Runs after every draft
+// AND every revise, so a revise can't re-introduce the fragment. (Will 2026-07-07 —
+// he rejected an identical-every-time patch; this keeps whatever the model wrote.)
+// A service ITEM = a service keyword, tolerant of common phrasings the model uses:
+// "chair and table massage", a trailing "sessions"/"session" ("mindfulness sessions"),
+// and simple plurals. Keeps the net matching when the model varies the wording.
+const SVC_RE = '(?:chair and table massage|chair massage|table massage|massage|nails|facials|hair and grooming|grooming|hair|headshots|mindfulness|meditation|sound baths?|nutrition coaching)(?:\\s+sessions?)?';
+const SVC_LIST3 = `${SVC_RE}(?:\\s*(?:,|and)\\s*(?:and\\s+)?${SVC_RE}){2,}`; // 3+ services = fragment signal
+const SVC_NL = '\n';
+const svcLc = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+export function autoFixServiceFragment(body) {
+  let s = body.replace(/\n\s*\n/g, SVC_NL);
+  const cue = '(?:bring|run|do|doing|handle|offer|cover|wellness|session|service|experience|menu)';
+  const mergeRe = new RegExp(
+    `([^.!?${SVC_NL}]*\\b${cue}\\b[^.!?${SVC_NL}]*)([.!?])[ ${SVC_NL}]+(${SVC_LIST3}[^.!?${SVC_NL}]*)\\.` +
+    `(?:[ ${SVC_NL}]+((?:That|Which|All|So|Where)\\b[^.!?${SVC_NL}]*)\\.)?`,
+    'i',
+  );
+  s = s.replace(mergeRe, (_m, prev, _p, list, dep) =>
+    `${prev.trim()}: ${svcLc(list.trim())}${dep ? ', ' + svcLc(dep.trim()) : ''}.`);
+  // fallback: a bare list still alone at a block start with no lead-in → light prepend
+  s = s.replace(new RegExp(`(^|${SVC_NL})[ ]*(${SVC_LIST3}[^.!?${SVC_NL}]*)\\.`, 'i'),
+    (_m, br, list) => `${br}We run ${svcLc(list.trim())}.`);
+  s = s.replace(new RegExp(SVC_NL, 'g'), '\n\n');
+  return s.replace(/([a-z0-9)])\.([A-Z])/g, '$1. $2'); // repair any boundary space the merge consumed
+}
+
 export function autoSplitParagraphs(body) {
   return body.split(/\n\s*\n/).map((para) => {
     const p = para.trim();
@@ -231,9 +295,12 @@ export function autoSplitParagraphs(body) {
     if (/^(Hi|Hey|Hello)\b/.test(p) && p.length < 40) return para;
     if (/(Cheers!|Thanks!)/.test(p)) return para;
     const sentences = p.match(/[^.!?]+[.!?]+(\s|$)/g) || [];
-    if (sentences.length <= 2) return para;
+    // Let a paragraph breathe up to three sentences (email voice); only split a
+    // genuinely chunky 4+ paragraph, and into halves so it still reads natural.
+    if (sentences.length <= 3) return para;
     const out = [];
-    for (let i = 0; i < sentences.length; i += 2) out.push(sentences.slice(i, i + 2).join('').trim());
+    const half = Math.ceil(sentences.length / 2);
+    out.push(sentences.slice(0, half).join('').trim(), sentences.slice(half).join('').trim());
     return out.join('\n\n');
   }).join('\n\n');
 }
@@ -288,11 +355,16 @@ export function guardNote(n, audience, trigger = null, opts = {}) {
   // rather than a word-count proxy: the 46-word cap false-killed four good
   // two-sentence paragraphs on 2026-07-06. Word ceiling stays only as a backstop
   // against runaway sentences.
+  // Email BREATHES (brand voice guide 2026-07-07 — "warmth over compression;
+  // compressing email into telegraph fragments makes it feel cold"). Allow up to
+  // THREE sentences per paragraph so the note can read like a human wrote it, not
+  // a stack of clipped lines. Only a genuinely chunky paragraph (4+ sentences or a
+  // runaway word count) gets split.
   for (const para of n.body.split(/\n\s*\n/)) {
     const sentences = (para.trim().match(/[.!?](\s|$)/g) || []).length;
     const words = para.trim().split(/\s+/).filter(Boolean).length;
-    if (sentences > 2 && words > 12) throw new Error(`paragraph has ${sentences} sentences — separate each idea with a BLANK line (\\n\\n between paragraphs), max two short sentences per paragraph`);
-    if (words > 60) throw new Error(`paragraph too long (${words} words) — split it; max two short sentences per paragraph`);
+    if (sentences > 3 && words > 18) throw new Error(`paragraph has ${sentences} sentences — separate distinct ideas with a BLANK line (\\n\\n between paragraphs); keep a paragraph to a few sentences`);
+    if (words > 75) throw new Error(`paragraph too long (${words} words) — split it into separate short paragraphs`);
   }
   if (audience !== 'brokers' && RTO_FRAME_RE.test(n.body) && !(trigger && OFFICE_TRIGGER_RE.test(trigger))) {
     throw new Error('tech-exec note used RTO/commute framing — this cohort is in hypergrowth, not a return-to-office fight; celebrate their growth and offer help unless the verified trigger itself is about the office');
@@ -331,18 +403,28 @@ export const REVIEW_SCHEMA = {
   },
   required: ['pass', 'issues'],
 };
-export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null) {
+export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null, trigger = null) {
   const facts = leadFacts ? `\n\nWHAT WE KNOW ABOUT THE RECIPIENT (trusted facts — check the note against these):\n${JSON.stringify(leadFacts, null, 2)}` : '';
-  const checklist = `You are the skeptical reviewer for Will's founder notes. Default to FAILING. Check every item:
-1. STRUCTURE: 4-5 short paragraphs, each ONE idea, max two sentences. No chunky paragraphs. ${audience === 'brokers' ? 'The Burberry receipt sentence stands alone as its own paragraph.' : ''}
-2. OBSERVATION (Will's bar, 2026-07-06): a personal research line is allowed ONLY if it connects to the note's thread ON ITS FACE (their wellbeing/benefits practice or role, their clients, their metro, something they wrote about wellness/benefits/budgets). A thematic bridge FAILS — e.g. "I saw you're a Health Rosetta advisor. That transparency focus is exactly what I keep running into on the fund side" is a bolted-on credential compliment, not a thread. Calibration GOOD: "Given EPIC's Wellbeing & Health Management practice, I'm curious whether you're seeing this with your New York clients." No personal line at all is a PASS; a forced one is a FAIL. Also FAIL any observation framed as fresh news ("I saw you...", "congrats on...") when the underlying fact is older than ~6 months; stale facts may only appear as standing facts.
-3. INTRO: one plain sentence saying who Will is and what Shortcut does, in concrete services.
-4. CLOSE: OFFERS something concrete — ${audience === 'brokers' ? 'help with their clients, the one-pager, or (convo variant) a short call' : 'more info ("I\'d love to send over some more info if you\'re interested") or (convo variant) a call ("Would love to hop on a call if you think this could be a fit")'}. A bare curiosity question with no offer FAILS. No calendar link, no times. Never validation-seeking. Ends "Cheers!" or "Thanks!" then "Will" (the one exclamation mark allowed, nothing after).${audience === 'brokers' ? '' : '\n4b. ZERO LIFT: the note must carry one sentence making clear Shortcut handles everything (zero lift for their team). Missing it FAILS.'}
-5. VOICE: reads like a busy founder typed it — contractions, warm, casual, zero sales energy, no template smell. Sentence lengths VARY (at least one short punchy sentence; no run of same-shape sentences); no "not just X, but Y"; avoid rule-of-three FLOURISHES. EXEMPTION: the canonical services enumeration ("chair massage, nails, facials, mindfulness, all from one team", or the fund-eligible list for brokers) is REQUIRED brand copy and is NOT a rule-of-three violation — never flag the service list. If the prose is uniformly smooth and balanced, FAIL it as AI-sounding.
-${audience === 'brokers' ? '6. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
-7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.
+  // The trigger is VERIFIED (harvested with an evidence URL). Give it to the skeptic
+  // so it does NOT flag a real milestone opener as "fabricated" and strip it (Will
+  // 2026-07-07: a valid "congrats on the launch" got deleted). Plus today's date so
+  // it catches stale timing ("as we head into June" in July).
+  const verified = trigger ? `\n\nVERIFIED why-now trigger for this lead (harvested with evidence — treat as TRUE, do NOT flag it as fabricated): ${trigger}` : '';
+  const dateLine = `\n\nTODAY IS ${todayLong()}. FAIL any note that calls a month/date that has already passed "upcoming" or frames a past event as still ahead (e.g. "as we head into June" when it is July).`;
+  const checklist = `You are the skeptical copy editor for Will's founder notes. The prose must read like a sharp human wrote ONE coherent note, not a system stitching approved lines together. Be a demanding editor — but do NOT invent problems to justify failing; a clean, warm, complete-sentence note that fits this person should PASS. Check every item:
+1. FRAGMENTS / broken grammar. Apply ONE precise test to each sentence: does it have a subject and a finite (conjugated) verb? If YES it is complete — NOT a fragment — no matter how short or whether it contains a comma list. Only flag a line that truly has NO subject or NO verb. Before flagging, name the missing subject or verb; if you can't name what's missing, it is NOT a fragment.
+   · A bare noun list with no verb IS a fragment: "Chair massage, nails, facials, mindfulness." → flag. But the SAME list is COMPLETE once a verb governs it: "We bring chair massage, nails, facials and mindfulness into the office." → subject "We", verb "bring" → do NOT flag.
+   · Short sentences are fine: "That's a lot of moving parts." / "It's genuinely no work." / "You pick a date, we handle the rest." → all complete.
+   · And/But/So/Honestly openers are Will's voice: "And we run it all as one team." is COMPLETE (subject "we", verb "run"). Never flag a sentence merely for starting with And/But/So.
+2. STITCHED/TEMPLATED + SAMENESS: FAIL if the note reads like bolted-together stock phrases rather than one train of thought. In particular FAIL the identical machine-open "We bring wellness days into offices for companies like BCG and DraftKings, chair massage, nails, facials, mindfulness, all from one team" (or any near-verbatim stock catchphrase) — the intro and the one-team idea must be said in fresh words. WORDINESS: flag any sentence that could be half as long, and filler not earning its place.
+3. OBSERVATION + HOOK (Will 2026-07-07): a genuine COMPANY MILESTONE (IPO/going public, funding round, big launch, notable partnership) SHOULD open the note with a brief warm congrats — FAIL a note that had such a milestone available and opened flat/generic instead (dropping a real milestone reads cold). Conversely FAIL a hook forced in that is a non-sequitur to caring for a team (a security/product report, a technical stat). For NON-milestone personal finds, Will's bar: usable only if it connects to the thread ON ITS FACE (their wellbeing/benefits role, their clients, their metro, something they wrote about wellness/benefits). A thematic bridge FAILS ("I saw you're a Health Rosetta advisor, that transparency focus is exactly what I keep running into" is bolted-on). No personal line at all is a PASS; a forced one FAILS. FAIL fresh-news framing ("I saw you...", "congrats on...") when the fact is older than ~6 months.
+4. INTRO: the note clearly says who Will is and what Shortcut does, in concrete services (said in his own words, not a pasted template). If a reader couldn't tell what Shortcut is, FAIL.
+5. CLOSE: OFFERS something concrete — ${audience === 'brokers' ? 'help with their clients, the one-pager, or (convo variant) a short call' : 'more info or (convo variant) a call'}. A bare curiosity question with no offer FAILS. No calendar link, no times. Never validation-seeking. Ends "Cheers!" or "Thanks!" then "Will" (the one exclamation mark allowed, nothing after).${audience === 'brokers' ? '' : '\n5b. ZERO LIFT: the note makes clear the whole thing is effortless for them (Shortcut handles everything, they just pick a date), said naturally somewhere. If that reassurance is entirely absent, FAIL — but do not demand a specific stock phrasing.'}
+6. VOICE: reads like a busy founder typed it — contractions, warm, casual, zero sales energy. Sentence lengths VARY (at least one short punchy line; no run of same-shape sentences); no "not just X, but Y". The service list folded into a real sentence is REQUIRED brand copy, NOT a rule-of-three violation — never flag it for that. If the prose is uniformly smooth and balanced with no human texture, FAIL it as AI-sounding.
+${audience === 'brokers' ? '6b. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
+7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.${audience === 'brokers' ? '' : '\n7b. ONE PROOF ONLY (Will 2026-07-07): the note may use EXACTLY ONE proof point. Naming BCG/DraftKings AND a stat (e.g. "90% of slots get booked") is TWO — FAIL it; pick the single one that best fits the moment.'}
 8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. A funding trigger must open congratulatory (genuine, brief). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
-9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context.${facts}
+9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context. NOTE: if a specific milestone matches the VERIFIED trigger below, it is REAL, do NOT flag it as fabricated (only flag it if it is framed for the wrong person/place/time).${facts}${verified}${dateLine}
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0,
@@ -369,16 +451,29 @@ Report via report_review, one issue string per failed item.`;
   return tu?.input || { pass: true, issues: [] };
 }
 
+// Two-proof detector (tech-execs only, Will 2026-07-07 — exactly one proof per
+// note). A named-client proof (BCG/DraftKings) AND a stat proof (90% booked / 87%
+// rebook / 500+ companies) in the same note is TWO. Deterministic because the LLM
+// skeptic misses it inconsistently; fed into the revise loop, never a hard skip.
+export function proofOveruse(body, audience) {
+  if (audience === 'brokers') return false;
+  const hasClient = /\b(bcg|draftkings)\b/i.test(body);
+  const hasStat = /\b(87%|500\+|500 companies)\b|90%|over 90|slots (get |book)|rebook|come back for another/i.test(body);
+  return hasClient && hasStat;
+}
+
 // One revision attempt with the skeptic's issues fed back (retry-once, like the composer).
-export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger }) {
+export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger, remote = false }) {
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
-    system: voiceSystem(exemplars, audience, ctaVariant),
+    system: voiceSystem(exemplars, audience, ctaVariant, remote),
     tools: [{ name: 'report_note', description: 'Report the revised founder note.', input_schema: NOTE_SCHEMA }],
     tool_choice: { type: 'tool', name: 'report_note' },
     messages: [{ role: 'user', content: [
       'Your previous draft FAILED review. Fix every issue and re-report the full note (keep the research observation only if it can connect naturally):',
       ...issues.map((i) => `  - ${i}`),
+      '',
+      'WHILE FIXING, DO NOT INTRODUCE NEW PROBLEMS. Every sentence must stay complete (subject + verb). The most common mistake here: when you de-stitch the intro, you drop the services onto their own line as a bare list ("Chair massage, nails, facials, mindfulness.") — that is a FRAGMENT. Keep the services INSIDE a real sentence with a verb ("We bring chair massage, nails, facials and mindfulness into the office, all run by one team.").',
       '',
       `PREVIOUS DRAFT:\nSubject: ${note.subject}\n\n${note.body}`,
       '',
@@ -389,7 +484,7 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   if (!tu) throw new Error('revision produced no note');
   // keep the original research trail; the revision only reworks copy
-  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))), research_note: tu.input.research_note || note.research_note };
+  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))), research_note: tu.input.research_note || note.research_note };
 }
 
 /**
@@ -400,30 +495,50 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
  * that into a skip). `log` defaults to console.error; pass a label for context.
  * Returns { note, review } so callers can surface the skeptic verdict.
  */
-export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, label = lead?.email || lead?.name || 'lead', log = console.error }) {
-  let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger });
+export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, remote = false, label = lead?.email || lead?.name || 'lead', log = console.error }) {
+  let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, remote });
   // GATE: deterministic guards -> up to TWO revisions on violation (one wasn't
   // enough in practice: Jul 6, a chunky paragraph survived the first revise
   // and the lead skipped; the second attempt gets both failure messages)
   try { guardNote(note, audience, trigger); } catch (ge) {
     log(`guard hit for ${label}: ${ge.message} — revising`);
-    note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead, firm, ctaVariant, trigger });
+    note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead, firm, ctaVariant, trigger, remote });
     try { guardNote(note, audience, trigger); } catch (ge2) {
       log(`guard hit again for ${label}: ${ge2.message} — second revision`);
-      note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead, firm, ctaVariant, trigger });
+      note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead, firm, ctaVariant, trigger, remote });
       guardNote(note, audience, trigger);
     }
   }
-  // the brain's review tier: skeptic pass + one revision (generator ≠ evaluator).
+  // the brain's review tier: skeptic pass + revision (generator ≠ evaluator).
   // Pass the lead's trusted facts so the skeptic can catch coherence failures (a
   // true-but-wrong-context claim like a Chicago award aimed at a NYC contact).
+  // LOOP, don't revise-once-and-ship (Will 2026-07-07): a revision that fixes one
+  // issue can INTRODUCE another the same pass never re-checks — most often a
+  // de-stitched service list that lands as a bare-noun FRAGMENT. Re-critique after
+  // every revise (up to 2 rounds) so a revise-introduced defect can't ship silently.
   const leadFacts = { name: lead?.name || null, title: lead?.title || null, company: lead?.company || null, location: lead?.location || null };
-  const review = await critiqueNote(anthropic, note, audience, ctaVariant, leadFacts);
-  if (!review.pass && review.issues.length) {
-    note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger });
-    guardNote(note, audience, trigger);
+  // The skeptic misses the two-proof rule ~half the time (LLM doesn't re-check
+  // every item each pass), so enforce it DETERMINISTICALLY and fold it into the
+  // review issues the revise loop must fix (Will 2026-07-07: exactly one proof).
+  const critique = async (n) => {
+    const r = await critiqueNote(anthropic, n, audience, ctaVariant, leadFacts, trigger);
+    if (proofOveruse(n.body, audience)) {
+      return { pass: false, issues: [...(r.issues || []), 'You used TWO proofs (a named client like BCG/DraftKings AND a stat like "90% of slots book"). Keep EXACTLY ONE (not zero, not two): pick the single strongest for this moment and cut the other. Do NOT drop both, one credibility proof should stay in the note.'] };
+    }
+    return r;
+  };
+  const firstReview = await critique(note);
+  let review = firstReview;
+  const MAX_SKEPTIC_REVISES = 2;
+  for (let r = 0; r < MAX_SKEPTIC_REVISES && !review.pass && review.issues.length; r += 1) {
+    log(`skeptic flagged ${label} (round ${r + 1}): ${review.issues.join(' | ')} — revising`);
+    note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger, remote });
+    guardNote(note, audience, trigger); // hard rules must always hold after a revise
+    review = await critique(note);
   }
-  return { note, review };
+  // Return the FIRST review for caller display parity (it shows what the drafter
+  // produced), plus the final verdict so callers/tests can see if it settled clean.
+  return { note, review: firstReview, finalReview: review };
 }
 
 // ============================================================================
@@ -487,7 +602,7 @@ async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, t
   });
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_followup');
   if (!tu) throw new Error('no report_followup from drafter');
-  return { ...tu.input, body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))) };
+  return { ...tu.input, body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))) };
 }
 
 /**
@@ -513,7 +628,7 @@ export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 
     });
     const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_followup');
     if (!tu) throw new Error('followup revision produced nothing');
-    fu = { ...tu.input, body: autoSplitParagraphs(autoFixDashes(normalizeParagraphs(tu.input.body || ''))) };
+    fu = { ...tu.input, body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))) };
     guardNote(asNote(), audience, trigger, guardOpts); // throws -> caller skips this touch
   }
   return fu;
