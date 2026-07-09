@@ -53,6 +53,17 @@ const FOUNDER_MIN_SIG_HTML = [
   '</div>',
 ].join('');
 
+// A broker CONTACT must be a plausible benefits decision-maker (producer, consultant,
+// advisor, AE, principal, partner, benefits/wellbeing leader). The Apollo firm-pull
+// tags EVERYONE at a brokerage with a verified email as a broker, so non-broker
+// FUNCTIONS (content, marketing, creative, engineering, recruiting, legal) get
+// mis-tagged and can leak into the queue (Will 2026-07-09: a "Senior Content Producer"
+// at NFP made it into the morning batch). This is a denylist: block the clear
+// wrong-function titles, trust the broker tag for everything else. Note "producer" is
+// an insurance term for a broker, so we only block it when qualified (content/video).
+const NON_BROKER_TITLE = /\b(?:content|marketing|communications?|creative|copywriter|editor|journalist|videographer|photographer|podcast|graphic|designer|illustrator|social media|public relations|engineer|engineering|developer|software|devops|data scientist|data engineer|data analyst|recruit(?:er|ing)|talent acquisition|sourcer|paralegal|receptionist|intern|apprentice|facilities|product manager|ux|ui)\b/i;
+const isNonBrokerTitle = (title) => NON_BROKER_TITLE.test(String(title || ''));
+
 async function slackPost(method, body) {
   const r = await fetch(`${SLACK_API}/${method}`, {
     method: 'POST',
@@ -112,6 +123,12 @@ export const handler = async (event) => {
     rows.push(...(data || [])); if (!data || data.length < 1000) break;
   }
   rows = rows.filter((r) => r.email && (r.mv_status === 'ok' || r.bounceban_status === 'deliverable'));
+  // Broker title guard: never email a mis-tagged non-broker (content/marketing/eng/etc.).
+  if (audience === 'brokers') {
+    const before = rows.length;
+    rows = rows.filter((r) => !isNonBrokerTitle(r.title));
+    if (before - rows.length) console.log(`broker title guard: skipped ${before - rows.length} non-broker title(s)`);
+  }
   if (only) rows = rows.filter((r) => lc(r.email) === only);
   // exclusions: suppression, already queued (founder_note draft exists), already personally emailed by Will
   const supp = new Set(); const queued = new Set(); const contacted = new Set();
