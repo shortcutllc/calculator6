@@ -15,6 +15,9 @@
 [functions."gmail-sent-crawl"]
   schedule = "15 * * * *"   # hourly at :15 — pulls each opted-in rep's recent Sent folder
 
+[functions."smartlead-pull"]
+  schedule = "25 * * * *"   # hourly at :25 — Smartlead reply/send presence (machine-independent; needs SMARTLEAD_API_KEY in Netlify env)
+
 [functions."gmail-watch-renew"]
   schedule = "0 12 * * *"   # daily noon UTC — re-arms Gmail push notifications before the 7d expiry
 

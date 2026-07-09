@@ -33,11 +33,23 @@ export function classify(text) {
 // "On … wrote:" / "From: …" boundary) so we classify only the new reply.
 export function cleanReply(html) {
   let t = String(html || '')
+    // drop non-content blocks ENTIRELY (tags + inner content)
+    .replace(/<(style|script|head)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<\s*br\s*\/?>/gi, '\n').replace(/<\/(div|p)>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>').replace(/&#39;|&rsquo;/gi, "'").replace(/&quot;/gi, '"');
-  const cut = t.search(/\n?\s*(From:\s|On .+? wrote:|-{2,} ?Original Message|Sent from my )/i);
+    .replace(/&gt;/gi, '>').replace(/&#39;|&rsquo;/gi, "'").replace(/&quot;/gi, '"')
+    // strip CSS/VML rules that leaked as plain text (Will 2026-07-09: Outlook VML
+    // like "v\:* {behavior:url(#default#VML);}" + ".shape {…}" buried the real
+    // message and scored a clear positive as neutral). Also @font-face etc.
+    .replace(/(?:^|\n)\s*(?:@[\w-]+[^{}\n]*|[.#]?[\w\\:*-]+)\s*\{[^}]*\}/g, ' ');
+  // cut everything past the actual message: quoted thread + legal/confidentiality footer.
+  const cut = t.search(
+    /\n?\s*(?:From:\s|On .+? wrote:|-{2,} ?Original Message|Sent from my |This (?:message|email|e-mail|communication|transmission)\b|CONFIDENTIAL|The information (?:contained )?in this)/i,
+  );
   if (cut > 0) t = t.slice(0, cut);
+  // cut a trailing sign-off + signature block ("Best,\nEric Sternberg | Office Manager\n<address>")
+  const sig = t.search(/\n\s*(?:Best|Best regards|Kind regards|Regards|Warm regards|Warmly|Thanks|Thank you|Sincerely|Cheers)[,.!]?\s*(?:\n|$)/i);
+  if (sig > 20) t = t.slice(0, sig);
   return t.replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim();
 }
