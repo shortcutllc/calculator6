@@ -22,6 +22,10 @@
 
 import { preflight } from './preflight.js';
 import { contactHistory } from './contact-history.js';
+// Next-best-action reasoning lives in its own module now (rules + LLM judgment).
+// Re-exported here for back-compat: existing callers keep importing
+// `suggestNextActions` from lead-picture; it is the rules-only, synchronous path.
+export { suggestNextActions, rulesActions, nextActions } from './next-actions.js';
 
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 const PERSONAL_NOTE_RE = /\[([^\[\]·]+?)·([^\[\]]*?)\]/;
@@ -367,61 +371,39 @@ export async function leadPicture(sb, input) {
     signups = [...byId.values()].sort((x, y) => new Date(y.created_at) - new Date(x.created_at)).slice(0, 10);
   } catch { /* table or perms missing — skip */ }
 
-  return { identity, workhuman, company, preflight: gate, history, proposals, signups, resolution };
-}
-
-/**
- * Reason over a lead picture and surface next-best actions (ranked).
- * Returned as a list, each with { action, priority, why, [params] }.
- * UI/Slack-formatted text rendering belongs to the consumer; this is data.
- */
-export function suggestNextActions(p) {
-  const out = [];
-  if (!p) return out;
-  const h = p.history || {};
-  const wh = p.workhuman;
-  const gate = p.preflight || {};
-  const hasProposal = (p.proposals || []).length > 0;
-  const hasLandingPage = !!wh?.landing_page_url;
-  const hasSignup = (p.signups || []).length > 0;
-  const repliedRecently = h.replied && h.replies?.length;
-  const latestReplySentiment = h.replies?.[h.replies.length - 1]?.sentiment || null;
-
-  // suppressed / client → don't push outreach
-  if (gate.suppressed) {
-    out.push({ action: 'do_not_contact', priority: 'critical', why: `Suppressed (${gate.suppression_reason || 'on DNC list'}). Do not contact under any circumstance.` });
-    return out;
+  // ----- 7. Graduation state + any on-spine reply draft -----
+  // Positive COLD replies are auto-graduated (graduated_reason='positive_cold_reply')
+  // and the graduation drafter writes an ON-SPINE 1:1 reply into saved_drafts
+  // (target_kind='graduation_reply'). Surface both so next-actions points the rep
+  // at the existing draft instead of proposing a duplicate. See the memory doc
+  // graduation_reply_system.md — this is THE cold-reply path.
+  let graduation = null;
+  if (email) {
+    try {
+      const { data: g } = await sb.from('outreach_contacts')
+        .select('graduated_reason, graduated_owner, graduated_at, graduation_notified_at')
+        .eq('email', email).maybeSingle();
+      const { data: gd } = await sb.from('saved_drafts')
+        .select('id, subject, body, created_at, direction_label')
+        .eq('recipient_email', email).eq('target_kind', 'graduation_reply')
+        .order('created_at', { ascending: false }).limit(1);
+      const draft = gd && gd[0] ? gd[0] : null;
+      if ((g && g.graduated_reason) || draft) {
+        graduation = {
+          graduated: !!(g && g.graduated_reason),
+          reason: g?.graduated_reason || null,
+          owner: g?.graduated_owner || null,
+          graduated_at: g?.graduated_at || null,
+          notified_at: g?.graduation_notified_at || null,
+          draft: draft ? {
+            id: draft.id, subject: draft.subject,
+            body_preview: draft.body ? String(draft.body).slice(0, 240) : null,
+            created_at: draft.created_at, label: draft.direction_label || null,
+          } : null,
+        };
+      }
+    } catch { /* tables/perms missing — skip */ }
   }
 
-  // Positive reply, no proposal yet → strongest signal to create one
-  if (repliedRecently && latestReplySentiment === 'positive' && !hasProposal) {
-    out.push({ action: 'create_proposal', priority: 'high', why: 'They replied positively and there is no proposal yet. Create one based on the conversation.' });
-  }
-
-  // Replied (any sentiment), no proposal → still create
-  if (repliedRecently && !hasProposal && latestReplySentiment !== 'negative') {
-    out.push({ action: 'create_proposal', priority: 'high', why: 'They engaged in conversation but no proposal exists yet.' });
-  }
-
-  // Replied → ensure a personalized landing page exists as a leave-behind
-  if (repliedRecently && !hasLandingPage && wh) {
-    out.push({ action: 'create_landing_page', priority: 'med', why: 'Personalized landing page can serve as a leave-behind / asset for the wellness team meeting.' });
-  }
-
-  // Has proposal but no sign-up link → create one for the event
-  if (hasProposal && !hasSignup) {
-    out.push({ action: 'create_signup_link', priority: 'med', why: 'Proposal exists but no employee sign-up link yet — needed before the event.' });
-  }
-
-  // Never emailed + has personal note → cold open grounded in the note
-  if (!h.emailed_count && wh?.personal_note) {
-    out.push({ action: 'draft_first_outreach', priority: 'high', why: 'Personal-note lead never emailed. Draft a cold open grounded in the in-person note.' });
-  }
-
-  // Emailed, no reply, within cap → follow-up
-  if (h.emailed_count > 0 && !h.replied && gate.recommendation === 'ok_to_proceed') {
-    out.push({ action: 'draft_followup', priority: 'med', why: 'Prior outreach, no reply yet. Draft a short threaded follow-up.' });
-  }
-
-  return out;
+  return { identity, workhuman, company, preflight: gate, history, proposals, signups, graduation, resolution };
 }

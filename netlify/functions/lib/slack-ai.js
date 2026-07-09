@@ -716,13 +716,14 @@ const TOOLS = [
   },
   {
     name: 'next_actions_for_lead',
-    description: 'Return ranked next-best actions for a lead given the current picture (replied → create proposal, never emailed → draft cold open, has proposal but no sign-up link → create one, etc.). Use this when the user asks "what should I do with X" or "what is next for X." Note: lookup_lead ALREADY includes these, so prefer lookup_lead for richer context.',
+    description: 'Return RANKED, human-approved next-best actions for a lead. Runs the deterministic rules (replied → create proposal, never emailed + personal note → warm cold open, follow-up cadence due → draft follow-up, client last event >6mo → re-engage, negative/suppressed → stop) AND a positioning-grounded LLM judgment pass that adds nuance the rules cannot (e.g. "her reply named massage + mindfulness → scaffold the proposal with exactly those"). Each action carries a `verb` (the gated tool to run it — draft_email / create_proposal / create_landing_page / suppress_lead, or null for a manual step), a one-line `why`, and a `confidence`. It PROPOSES only — every send still needs the rep to approve. Use when the rep asks "what should I do with X" / "what is next for X." This is RICHER than the quick actions embedded in lookup_lead (which are rules-only) — use it when the rep wants the actual recommendation, not just the picture. Resolves by email (preferred) or name+company.',
     input_schema: {
       type: 'object',
       properties: {
-        email: { type: 'string', description: 'Contact email' }
-      },
-      required: ['email']
+        email: { type: 'string', description: 'Contact email (preferred — most precise)' },
+        name: { type: 'string', description: 'Contact name — used to resolve when email is unknown. Pair with company.' },
+        company: { type: 'string', description: 'Company name — fallback when email is unknown. Pair with name.' }
+      }
     }
   },
   {

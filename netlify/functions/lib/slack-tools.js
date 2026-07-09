@@ -13,7 +13,7 @@ import { recalculateProposalSummary } from './pricing-engine.js';
 import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption } from './proposal-linker.js';
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
-import { leadPicture, suggestNextActions } from './lead-picture.js';
+import { leadPicture, suggestNextActions, nextActions } from './lead-picture.js';
 import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
 
 const PROPOSAL_BASE_URL = 'https://proposals.getshortcut.co/proposal';
@@ -686,6 +686,16 @@ async function handleLookupLead(params, supabase /* userId unused for read */) {
       created_at: p.created_at, url: `${PROPOSAL_BASE_URL}/${p.id}?shared=true`,
     })),
     signups: pic.signups || [],
+    graduation: pic.graduation ? {
+      graduated: pic.graduation.graduated,
+      reason: pic.graduation.reason,
+      owner: pic.graduation.owner,
+      onspine_draft: pic.graduation.draft ? {
+        subject: pic.graduation.draft.subject,
+        preview: pic.graduation.draft.body_preview,
+        created_at: pic.graduation.draft.created_at,
+      } : null,
+    } : null,
   };
   // Always include actionable suggestions so Pro doesn't need a second call
   const actions = suggestNextActions(pic);
@@ -694,9 +704,16 @@ async function handleLookupLead(params, supabase /* userId unused for read */) {
 
 async function handleNextActionsForLead(params, supabase) {
   const email = (params.email || '').toString().trim().toLowerCase();
-  if (!email) return { error: 'next_actions_for_lead requires email' };
-  const pic = await leadPicture(supabase, { email });
-  return { success: true, next_actions: suggestNextActions(pic) };
+  const name = (params.name || '').toString().trim() || null;
+  const company = (params.company || '').toString().trim() || null;
+  if (!email && !name && !company) {
+    return { error: 'next_actions_for_lead requires email, name, or company' };
+  }
+  const pic = await leadPicture(supabase, { email, name, company });
+  // Full path: deterministic rules + a positioning-grounded LLM judgment pass.
+  // (lookup_lead stays on the fast rules-only path to avoid an LLM call per lookup.)
+  const { actions, used_llm } = await nextActions(pic, { useLLM: true });
+  return { success: true, used_llm, next_actions: actions };
 }
 
 // --- Create Proposal ---

@@ -30,6 +30,10 @@ export async function contactHistory(sb, email) {
         sentiment: x.reply_sentiment || x.manual_category || null,
         is_ooo: !!x.is_ooo,
         source: x.sentiment_source,
+        campaign_id: x.campaign_id || null,
+        // A reply is "cold" if it came via a Smartlead campaign (numeric id).
+        // gmail-sent-crawl* ids are warm 1:1 threads, not cold-sequence replies.
+        cold: /^[0-9]+$/.test(String(x.campaign_id || '')),
         content: x.reply_content ? String(x.reply_content).slice(0, 1500) : null,
       })),
     };
