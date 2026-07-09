@@ -380,14 +380,14 @@ export function autoFixDashes(body) {
 // A service item, tolerant of the phrasings the model uses: a trailing "sessions",
 // and the delivery-fact descriptor on massage ("massage in a conference room turned
 // spa-like") so the first item doesn't break the list chain (Will 2026-07-08).
-const SVC_RE = '(?:chair and table massage|chair massage|table massage|massage|nails|facials|hair and grooming|grooming|hair|headshots|mindfulness|meditation|sound baths?|nutrition coaching)(?:\\s+(?:sessions?|in a conference room[^,.!?\\n]*))?';
+const SVC_RE = '(?:chair and table massage|chair massage|table massage|massage|assisted stretch(?:ing)?|nails|facials|hair and grooming|grooming|hair|headshots|mindfulness|meditation|sound baths?|nutrition coaching)(?:\\s+(?:sessions?|in a conference room[^,.!?\\n]*))?';
 // Separator tolerates comma / and / plus / then and RUNS of them (", plus nails").
 const SVC_LIST3 = `${SVC_RE}(?:(?:\\s*(?:,|and|plus|then)\\s*)+${SVC_RE}){2,}`; // 3+ services = fragment signal
 const SVC_NL = '\n';
 const svcLc = (s) => s.charAt(0).toLowerCase() + s.slice(1);
 export function autoFixServiceFragment(body) {
   let s = body.replace(/\n\s*\n/g, SVC_NL);
-  const cue = '(?:bring|run|do|doing|handle|offer|cover|wellness|session|service|experience|menu)';
+  const cue = '(?:bring|run|do|doing|handle|offer|cover|deploy|use|using|wellness|sessions?|services?|experiences?|menu)';
   const mergeRe = new RegExp(
     `([^.!?${SVC_NL}]*\\b${cue}\\b[^.!?${SVC_NL}]*)([.!?])[ ${SVC_NL}]+(${SVC_LIST3}[^.!?${SVC_NL}]*)\\.` +
     `(?:[ ${SVC_NL}]+((?:That|Which|All|So|Where)\\b[^.!?${SVC_NL}]*)\\.)?`,
@@ -409,12 +409,13 @@ export function autoSplitParagraphs(body) {
     if (/^(Hi|Hey|Hello)\b/.test(p) && p.length < 40) return para;
     if (/(Cheers!|Thanks!)/.test(p)) return para;
     const sentences = p.match(/[^.!?]+[.!?]+(\s|$)/g) || [];
-    // Let a paragraph breathe up to three sentences (email voice); only split a
-    // genuinely chunky 4+ paragraph, and into halves so it still reads natural.
-    if (sentences.length <= 3) return para;
+    // One idea per short paragraph (Will 2026-07-09): keep paragraphs to at most TWO
+    // sentences so the note reads airy, not a wall. Sentence LENGTH is left free (the
+    // email-breathes rule is about sentences, not paragraphs); this only splits at
+    // sentence boundaries, so it never changes wording. 3 sentences -> [2][1], etc.
+    if (sentences.length <= 2) return para;
     const out = [];
-    const half = Math.ceil(sentences.length / 2);
-    out.push(sentences.slice(0, half).join('').trim(), sentences.slice(half).join('').trim());
+    for (let i = 0; i < sentences.length; i += 2) out.push(sentences.slice(i, i + 2).join('').trim());
     return out.join('\n\n');
   }).join('\n\n');
 }
@@ -582,6 +583,28 @@ export function proofOveruse(body, audience) {
   return hasClient && hasStat;
 }
 
+// Body word count EXCLUDING the greeting line and the sign-off block, so the length
+// check measures the actual message (Will 2026-07-09: a 1:1 note makes ONE point;
+// over-long is the #1 box-checking tell). Target ~90-120 words; ceiling ~130.
+export function noteWordCount(body) {
+  const core = String(body || '')
+    .replace(/^\s*(Hi|Hey|Hello)[^\n]*\n/, '')
+    .replace(/\n+\s*(Cheers!|Thanks!)\s*\n+\s*Will\s*$/i, '');
+  return core.split(/\s+/).filter(Boolean).length;
+}
+export const NOTE_WORD_CEILING = 130;
+
+// How many of the broker "supporting beats" the note stacked (Will's rule: pick ONE).
+// Burberry receipt, a usage stat, and the unused-funds observation are the three; two
+// or more together is box-checking.
+export function brokerBeatCount(body) {
+  let n = 0;
+  if (/burberry/i.test(body)) n += 1;
+  if (/90%|over 90|slots (get |book)|87%|rebook/i.test(body)) n += 1;
+  if (/(unused|sitting on|still sitting|don't even know|do not even know|forfeit).{0,40}(fund|dollars|cigna|aetna|anthem)|(fund|dollars).{0,40}(unused|sitting|forfeit)/i.test(body)) n += 1;
+  return n;
+}
+
 // One revision attempt with the skeptic's issues fed back (retry-once, like the composer).
 export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null }) {
   const internalSignal = trigger && !MILESTONE_TRIGGER_TYPES.has(triggerType);
@@ -645,9 +668,20 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   // review issues the revise loop must fix (Will 2026-07-07: exactly one proof).
   const critique = async (n) => {
     const r = await critiqueNote(anthropic, n, audience, ctaVariant, leadFacts, trigger, triggerType, personalHook);
-    if (proofOveruse(n.body, audience)) {
-      return { pass: false, issues: [...(r.issues || []), 'You used TWO proofs (a named client like BCG/DraftKings AND a stat like "90% of slots book"). Keep EXACTLY ONE (not zero, not two): pick the single strongest for this moment and cut the other. Do NOT drop both, one credibility proof should stay in the note.'] };
+    const extra = [];
+    // Deterministic enforcement of the "SHORT, one point" rule (the LLM skeptic drifts
+    // on length + beat-stacking): these are code-checked, never left to the model.
+    const words = noteWordCount(n.body);
+    if (words > NOTE_WORD_CEILING) {
+      extra.push(`The note is too long (${words} words; a 1:1 note makes ONE point). CUT a whole supporting beat or a paragraph to get under ${NOTE_WORD_CEILING} words. Do NOT just reword or trim adjectives, remove an idea.`);
     }
+    if (audience === 'brokers' && brokerBeatCount(n.body) > 1) {
+      extra.push('You stacked more than one supporting beat (the Burberry receipt, a usage stat, and the unused-funds observation). Keep EXACTLY ONE, the strongest for this broker, and cut the others.');
+    }
+    if (proofOveruse(n.body, audience)) {
+      extra.push('You used TWO proofs (a named client like BCG/DraftKings AND a stat like "90% of slots book"). Keep EXACTLY ONE (not zero, not two): pick the single strongest for this moment and cut the other. Do NOT drop both, one credibility proof should stay in the note.');
+    }
+    if (extra.length) return { pass: false, issues: [...(r.issues || []), ...extra] };
     return r;
   };
   const firstReview = await critique(note);
