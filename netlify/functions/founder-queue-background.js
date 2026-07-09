@@ -177,9 +177,9 @@ export const handler = async (event) => {
       // Null-safe: on timeout/nothing-found the note falls back to its normal path.
       let personalHook = null;
       try {
-        const ph = await researchPersonalHook(anthropic, t, { audience, log: (m) => log(`  ${m}`) });
-        if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; log(`  personalized ${t.email}: ${ph.category} — ${ph.warm_line.slice(0, 80)}`); }
-      } catch (e) { log(`  personalize failed for ${t.email} (${e.message}) — trigger fallback`); }
+        const ph = await researchPersonalHook(anthropic, t, { audience, log: (m) => console.log(`  ${m}`) });
+        if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; console.log(`  personalized ${t.email}: ${ph.category} — ${ph.warm_line.slice(0, 80)}`); }
+      } catch (e) { console.log(`  personalize failed for ${t.email} (${e.message}) — trigger fallback`); }
       // Compose engine (lib/founder-note.js): draft -> guards (2 revises) ->
       // skeptic -> revise -> final guard. Throws if it still violates a hard
       // rule; the catch below turns that into a Slack skip.
