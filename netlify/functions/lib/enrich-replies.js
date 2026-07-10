@@ -71,7 +71,9 @@ export async function enrichReplies({ sb, smartleadKey, reclassifyAll = false, d
     const changes = { unchanged: 0, updated: 0, by_to: {} };
     const reSuppress = [];
     for (const r of all) {
-      const c = classify(r.reply_content);
+      // Clean FIRST: stored content can still carry quoted thread history +
+      // signatures (times/days inside "On … wrote:" would false-match SCHED).
+      const c = classify(cleanReply(r.reply_content));
       if (c.sentiment === r.reply_sentiment) { changes.unchanged += 1; continue; }
       changes.updated += 1;
       const k = `${r.reply_sentiment || 'null'}->${c.sentiment || 'null'}`;
