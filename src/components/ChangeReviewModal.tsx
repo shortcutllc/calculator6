@@ -6,6 +6,9 @@ import { trackProposalChanges, getChangeDisplayInfo } from '../utils/changeTrack
 import { Button } from './Button';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
 import CreateEventModal from './CreateEventModal';
+import { buildQuestionPromptMap } from '../utils/serviceSurveyQuestions';
+
+const surveyQuestionPrompts = buildQuestionPromptMap();
 
 interface ChangeReviewModalProps {
   isOpen: boolean;
@@ -334,6 +337,22 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
                     <p className="text-sm text-text-dark">{surveyResponse.coi_required ? 'Yes' : 'No'}</p>
                   </div>
                 )}
+
+                {/* Per-service answers (hair / nails / headshot / facial) from the
+                    responses JSONB. Absent on rows saved before the migration. */}
+                {surveyResponse.responses && Object.entries(surveyResponse.responses).map(([serviceType, answers]: [string, any]) => (
+                  <div key={serviceType} className="bg-white rounded p-3">
+                    <p className="text-sm font-bold text-shortcut-blue mb-2 capitalize">{serviceType}</p>
+                    <div className="space-y-2">
+                      {Object.entries(answers || {}).map(([qid, answer]: [string, any]) => (
+                        <div key={qid}>
+                          <p className="text-xs font-semibold text-shortcut-navy-blue">{surveyQuestionPrompts[qid] || qid}</p>
+                          <p className="text-sm text-text-dark whitespace-pre-wrap">{Array.isArray(answer) ? answer.join(', ') : String(answer ?? '')}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

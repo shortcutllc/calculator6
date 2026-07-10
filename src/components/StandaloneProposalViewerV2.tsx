@@ -1223,19 +1223,23 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
           {/* Post-approval pre-event survey — prominent, auto-scrolled to on
               approval. Shares #proposal-survey-form so the scroll effect works. */}
-          {isApproved && !hasSurveyResponse && id && (
+          {isApproved && id && (
             <>
               <hr className="pvm-divider" />
               <div
                 id="proposal-survey-form"
                 style={{
-                  border: '2px solid var(--sc-coral)',
+                  border: hasSurveyResponse ? 'none' : '2px solid var(--sc-coral)',
                   borderRadius: 18,
-                  padding: 16,
-                  boxShadow: '0 8px 24px rgba(255,80,80,0.14)',
+                  padding: hasSurveyResponse ? 0 : 16,
+                  boxShadow: hasSurveyResponse
+                    ? 'none'
+                    : '0 8px 24px rgba(255,80,80,0.14)',
                   scrollMarginTop: 16,
                 }}
               >
+                {!hasSurveyResponse && (
+                  <>
                 <span
                   style={{
                     display: 'inline-flex',
@@ -1269,6 +1273,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   You're approved. Now help us prep the day. It takes about 3
                   minutes, and our team can't finalize logistics without it.
                 </p>
+                  </>
+                )}
                 <ProposalSurveyForm
                   proposalId={id}
                   includesMassage={massageFormats.length > 0}
@@ -3268,18 +3274,22 @@ const StandaloneProposalViewerV2: React.FC = () => {
           {/* Post-approval event-details survey — anchor target for the
               "Fill the event-day form" link above. Only renders for approved
               proposals that haven't been surveyed yet. */}
-          {isApproved && !hasSurveyResponse && id && (
+          {isApproved && id && (
             <div
               id="proposal-survey-form"
               style={{
-                background: '#fff',
-                border: `2px solid ${T.coral}`,
+                background: hasSurveyResponse ? 'transparent' : '#fff',
+                border: hasSurveyResponse ? 'none' : `2px solid ${T.coral}`,
                 borderRadius: 20,
-                padding: '28px 32px',
-                boxShadow: '0 8px 28px rgba(255,80,80,0.14)',
+                padding: hasSurveyResponse ? 0 : '28px 32px',
+                boxShadow: hasSurveyResponse
+                  ? 'none'
+                  : '0 8px 28px rgba(255,80,80,0.14)',
                 scrollMarginTop: 96,
               }}
             >
+              {!hasSurveyResponse && (
+                <>
               <span
                 style={{
                   display: 'inline-flex',
@@ -3314,6 +3324,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 You're approved. Now help us prep the day. It takes about 3
                 minutes, and our team can't finalize logistics without it.
               </p>
+                </>
+              )}
               <ProposalSurveyForm
                 proposalId={id}
                 includesMassage={massageFormats.length > 0}

@@ -7,6 +7,82 @@ import { useProposal } from '../contexts/ProposalContext';
 import { Button } from './Button';
 import { getProposalUrl } from '../utils/url';
 import { supabase } from '../lib/supabaseClient';
+import { buildQuestionPromptMap } from '../utils/serviceSurveyQuestions';
+
+// Read-only modal that surfaces a completed pre-event survey (fixed columns +
+// per-service `responses` JSONB). History's old "View Survey" button navigated
+// to the client viewer, where the survey is hidden once completed — so nothing
+// showed. This renders the actual answers instead.
+const SurveyDetailModal: React.FC<{
+  response: any;
+  clientName: string;
+  onClose: () => void;
+}> = ({ response, clientName, onClose }) => {
+  if (!response) return null;
+
+  const promptMap = buildQuestionPromptMap();
+  const perService: Record<string, Record<string, any>> = response.responses || {};
+
+  const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <div>
+      <p className="text-xs font-extrabold text-shortcut-navy-blue uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-sm text-text-dark whitespace-pre-wrap">{value}</p>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+          <div className="flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <div>
+              <h3 className="text-lg font-extrabold text-shortcut-blue">Event Details Survey</h3>
+              <p className="text-xs text-text-dark-60">
+                {clientName}
+                {response.submitted_at && ` · Submitted ${format(parseISO(response.submitted_at), 'MMM d, yyyy h:mm a')}`}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {response.table_or_chair_preference && (
+            <Row label="Table or Chair" value={response.table_or_chair_preference} />
+          )}
+          {response.preferred_gender && <Row label="Preferred Gender" value={response.preferred_gender} />}
+          {response.office_address && <Row label="Office Address" value={response.office_address} />}
+          {response.massage_space_name && <Row label="Space Name" value={response.massage_space_name} />}
+          {response.point_of_contact && <Row label="Point of Contact" value={response.point_of_contact} />}
+          {response.billing_contact && <Row label="Billing Contact" value={response.billing_contact} />}
+          {response.coi_required !== null && response.coi_required !== undefined && (
+            <Row label="COI Required" value={response.coi_required ? 'Yes' : 'No'} />
+          )}
+
+          {Object.keys(perService).length > 0 && (
+            <div className="pt-2 border-t border-neutral-200 space-y-3">
+              {Object.entries(perService).map(([serviceType, answers]) => (
+                <div key={serviceType} className="space-y-2">
+                  <p className="text-sm font-extrabold text-shortcut-blue capitalize">{serviceType}</p>
+                  {Object.entries(answers || {}).map(([qid, answer]) => (
+                    <Row
+                      key={qid}
+                      label={promptMap[qid] || qid}
+                      value={Array.isArray(answer) ? (answer as any[]).join(', ') : String(answer ?? '')}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Duplicate Proposal Modal Component
 interface DuplicateModalProps {
@@ -117,6 +193,7 @@ const History: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [surveyResponses, setSurveyResponses] = useState<Record<string, any>>({});
+  const [surveyModal, setSurveyModal] = useState<{ response: any; clientName: string } | null>(null);
   const [proposalGroupCounts, setProposalGroupCounts] = useState<Record<string, number>>({});
   const [showTestProposals, setShowTestProposals] = useState(false);
   const [invoiceStatuses, setInvoiceStatuses] = useState<Record<string, string>>({});
@@ -807,7 +884,10 @@ const History: React.FC = () => {
                           )}
                         </div>
                         <Button
-                          onClick={() => navigate(`/proposal/${proposal.id}?shared=true`)}
+                          onClick={() => setSurveyModal({
+                            response: surveyResponses[proposal.id],
+                            clientName: proposal.data.clientName,
+                          })}
                           variant="secondary"
                           size="sm"
                           className="text-xs"
@@ -842,6 +922,15 @@ const History: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Completed pre-event survey detail */}
+      {surveyModal && (
+        <SurveyDetailModal
+          response={surveyModal.response}
+          clientName={surveyModal.clientName}
+          onClose={() => setSurveyModal(null)}
+        />
+      )}
 
       {/* Duplicate Proposal Modal */}
       <DuplicateProposalModal
