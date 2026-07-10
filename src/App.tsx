@@ -77,6 +77,8 @@ const WorkhumanLeads = lazy(() => import('./components/WorkhumanLeads'));
 const WorkhumanPersonalNoteQueue = lazy(() => import('./components/WorkhumanPersonalNoteQueue'));
 const WorkhumanBooth = lazy(() => import('./components/WorkhumanBooth'));
 const BookACallLanding = lazy(() => import('./components/BookACallLanding'));
+const BookACallLandingRefresh = lazy(() => import('./components/BookACallLandingRefresh'));
+const WellnessFundsOnePager = lazy(() => import('./components/WellnessFundsOnePager'));
 const SurveyManager = lazy(() => import('./components/SurveyManager'));
 const SurveyDisplay = lazy(() => import('./components/SurveyDisplay'));
 const SurveyResultsPublic = lazy(() => import('./components/SurveyResultsPublic'));
@@ -119,6 +121,7 @@ function App() {
     location.pathname.startsWith('/sign/') ||
     location.pathname === '/workhuman-tv' ||
     location.pathname.startsWith('/book-a-call') ||
+    location.pathname.startsWith('/wellness-funds') ||
     location.pathname.startsWith('/info') ||
     location.pathname.startsWith('/workhuman/recharge') ||
     location.pathname.startsWith('/survey/') ||
@@ -595,6 +598,19 @@ function App() {
                   </Suspense>
                 }
               />
+              {/* Carrier Wellness Funds one-pager — public marketing page, shareable link */}
+              <Route
+                path="/wellness-funds"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <WellnessFundsOnePager />
+                  </Suspense>
+                }
+              />
               {/* Info-only variant of the same page — no booking, montage hero */}
               <Route
                 path="/info"
@@ -617,6 +633,45 @@ function App() {
                     </div>
                   }>
                     <BookACallLanding infoMode={true} />
+                  </Suspense>
+                }
+              />
+              {/* SANDBOX — spine-driven copy refresh of the book-a-call page.
+                  Isolated routes so /book-a-call stays untouched while we
+                  test and iterate on the new copy. */}
+              <Route
+                path="/book-a-call-refresh"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BookACallLandingRefresh />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/book-a-call-refresh/:id"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BookACallLandingRefresh />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/info-refresh"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BookACallLandingRefresh infoMode={true} />
                   </Suspense>
                 }
               />

@@ -4,7 +4,7 @@ import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, ChevronLeft, ChevronRight,
   Clock, Plus, Users, Handshake, Gift, Smartphone,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench, GitMerge, Image as ImageIcon
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench, GitMerge, Image as ImageIcon, HeartPulse
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -57,6 +57,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Landing Pages', path: '/generic-landing-pages', icon: <Handshake size={18} /> },
       { label: 'Holiday Pages', path: '/holiday-pages', icon: <Gift size={18} /> },
       { label: 'Social Media', path: '/social-media-pages', icon: <Smartphone size={18} /> },
+      { label: 'Wellness Funds', path: '/wellness-funds', icon: <HeartPulse size={18} /> },
     ],
   },
   {
