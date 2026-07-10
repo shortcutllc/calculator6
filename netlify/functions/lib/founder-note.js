@@ -164,6 +164,11 @@ export function todayLong() {
 // the reason we reached out, never quoted at the prospect (Will 2026-07-08).
 const MILESTONE_TRIGGER_TYPES = new Set(['funding', 'ipo', 'launch', 'partnership', 'acquisition', 'award']);
 
+// People/HR buyer titles (the wellness owner). For these the recipient is NOT the
+// founder/CEO — never write as if the company's growth or raise is their personal
+// win ("congrats on your Series C", "as you scale <Company>"). Will 2026-07-10.
+const PEOPLE_TITLE_RE = /\b(chief people|cpo|chro|head of people|vp,? (of )?people|people operations|people ops|(senior |sr\.? )?director,? (of )?people|head of hr|vp,? (of )?hr|human resources|head of talent|people (&|and) culture|employee experience|workplace experience|total rewards|benefits (lead|manager|director))\b/i;
+
 // ============================================================================
 // PERSONAL HOOK RESEARCH (Will 2026-07-08): be HUMAN, not robotic. Research the
 // company and extract ONE genuine, specific, kind detail from ANY category (recent
@@ -185,7 +190,7 @@ const PERSONAL_HOOK_SCHEMA = {
   required: ['personal_detail', 'category', 'warm_line', 'connects', 'confidence'],
 };
 
-const WARM_LINE_CRAFT = `Write warm_line the way Will actually talks: calm, human, kind, a little understated. CRISP — ONE short sentence, about 12 to 22 words, ONE idea. Do NOT pack multiple facts or dates into it; pick the single most resonant detail and say it simply. RECENCY: if the detail is older than ~6 months, phrase it as a STANDING fact ("EPIC has a strong Northeast benefits practice") — never as fresh news ("I saw", "I know they just"); save fresh-news framing for genuinely recent events. No buzzwords, no dashes as punctuation, no exclamation points. Report via report_personal exactly once.`;
+const WARM_LINE_CRAFT = `Write warm_line the way Will actually talks: calm, human, kind, a little understated. CRISP — ONE short sentence, about 12 to 22 words, ONE idea. Do NOT pack multiple facts or dates into it; pick the single most resonant detail and say it simply. Do NOT append an interpretive clause ("which speaks to how you care", "which shows…", "a testament to…"); state the one detail plainly and stop. RECENCY: if the detail is older than ~6 months, phrase it as a STANDING fact ("EPIC has a strong Northeast benefits practice") — never as fresh news ("I saw", "I know they just"); save fresh-news framing for genuinely recent events. No buzzwords, no dashes as punctuation, no exclamation points. Report via report_personal exactly once.`;
 
 function personalHookSystem(audience) {
   if (audience === 'brokers') {
@@ -246,6 +251,17 @@ export async function researchPersonalHook(anthropic, lead, { audience = 'tech-e
 
 export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null }) {
   const isMilestone = MILESTONE_TRIGGER_TYPES.has(triggerType);
+  const isPeopleBuyer = PEOPLE_TITLE_RE.test(lead.title || '');
+  // SINGLE-OPENER RULE (Will 2026-07-10): a personalHook and a milestone trigger are
+  // MUTUALLY EXCLUSIVE openers. If we already researched a personalHook, it IS the
+  // opener and the trigger is dropped entirely (it was only ever the reason we reached
+  // out). Otherwise the note crams TWO congrats (a Series C + a benefits observation)
+  // and stops flowing. So when a personalHook exists, do not even show the trigger to
+  // the drafter — there is exactly one thing to open on.
+  const showTrigger = !personalHook;
+  const personaLine = isPeopleBuyer
+    ? 'PERSONA (important): this person leads People/HR. They are NOT the founder or CEO. Do NOT write as if the company\'s growth, raise, or milestone is their personal achievement (no "congrats on your Series C", no "as you scale <Company>"). Speak to them as the person who looks after the team; if a company milestone comes up at all, frame it as the company\'s or team\'s, and lead with the people angle.'
+    : '';
   const userContent = [
     `TODAY IS ${todayLong()}. Anchor every time reference to today. A month or date that has already passed is NOT "upcoming" — refer to a past event in the past ("the launch last month", "since going public in July"), and only call something upcoming if it is genuinely still ahead of today. If the timing is unclear, keep it timeless.`,
     '',
@@ -255,23 +271,25 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
       location: lead.location || null,
       remote_or_distributed: remote || null,
       firm_tier: firm?.tier || null, firm_priority_why: firm?.why || null, nyc_presence: firm?.nyc_presence ?? null,
-      why_now_trigger: trigger || null,
-      why_now_trigger_type: triggerType || null,
+      why_now_trigger: showTrigger ? (trigger || null) : null,
+      why_now_trigger_type: showTrigger ? (triggerType || null) : null,
     }, null, 2),
     '',
+    personaLine,
+    personaLine ? '' : null,
     // HOW TO USE THE TRIGGER (Will 2026-07-08 — two-layer rule): a trigger is EITHER
     // an external milestone to open on, OR internal targeting context you must never
-    // quote. Do NOT conflate them.
+    // quote. Do NOT conflate them. And a personalHook is EXCLUSIVE — never a second beat.
     personalHook
-      ? `PERSONAL OBSERVATION (verified, already researched and TRUE — THIS IS YOUR HOOK): ${personalHook}\nOpen the note warmly on this, in your own words (one or two genuine, kind sentences), then move into why you are writing. Do NOT invent a different hook, and you do NOT need to web-search for this note. If there is also an internal signal below (a hiring/posting), still NEVER quote it.`
+      ? `PERSONAL OBSERVATION (verified, already researched and TRUE — THIS IS YOUR ONE AND ONLY OPENER): ${personalHook}\nOpen the note warmly on this in your own words (ONE genuine, kind sentence — compress to a single clean idea; drop any "which speaks to…/which shows…/a testament to…" interpretive tail), then move into why you are writing. Do NOT add a SECOND congratulations or a second observation of ANY kind (not a funding round, not an award, not a growth stat) — exactly ONE opener. Do NOT invent a different hook, and you do NOT need to web-search for this note. If there is an internal signal, still NEVER quote it.`
       : isMilestone
-        ? 'The why_now_trigger is a real EXTERNAL MILESTONE (funding / IPO / launch / partnership). Open with ONE brief, genuine congrats on it, then move to why you are writing.'
+        ? `The why_now_trigger is a real EXTERNAL MILESTONE (funding / IPO / launch / partnership). Open with ONE brief, genuine congrats on it, then move to why you are writing.${isPeopleBuyer ? ' Frame it as the company or team milestone, not their personal achievement.' : ''}`
         : trigger
           ? 'The why_now_trigger is an INTERNAL TARGETING SIGNAL (an open job posting / hiring / growth-list hit). It is WHY we chose to reach out, NOT something to say to them. NEVER write "I saw you\'re hiring…", NEVER reference the open role, and NEVER frame a routine role as "a sign of growth" (for an established company it is just a job opening). Write the clean, warm note with NO reference to the posting. Use a genuine external hook only if your own research turns one up; otherwise no hook is the right call.'
           : 'No verified trigger. Write the clean, warm note; use a hook only if your research turns up a genuine external milestone.',
     '',
     'Research them (person first, then firm), then call report_note once with the note in Will\'s voice.',
-  ].join('\n');
+  ].filter((l) => l !== null).join('\n');
 
   // Research is OPTIONAL color, never load-bearing (Will 2026-07-06: Uniswap's
   // invocation died three times, almost certainly hung in web search on a
@@ -402,13 +420,23 @@ export function autoFixServiceFragment(body) {
   return s.replace(/([a-z0-9)])\.([A-Z])/g, '$1. $2'); // repair any boundary space the merge consumed
 }
 
+// Abbreviations whose trailing period is NOT a sentence boundary. Without this the
+// naive sentence regex splits "earned Inc. Best Workplaces" into two sentences and
+// autoSplitParagraphs breaks the line mid-phrase (Will caught this on EvolutionIQ,
+// 2026-07-10). We mask their dots before counting/splitting, then restore them.
+const ABBR_RE = /\b(Inc|Corp|Co|Ltd|LLC|L\.?L\.?C|LLP|PLC|Pvt|Dr|Mr|Mrs|Ms|Sr|Jr|St|Ave|vs|etc|approx|dept|Fig|No|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec|e\.g|i\.e|U\.S|U\.K)\./g;
+const ABBR_DOT = '@@DOT@@'; // ASCII placeholder for an abbreviation dot while splitting
+const maskAbbr = (s) => s.replace(ABBR_RE, (m) => m.replace(/\./g, ABBR_DOT));
+const unmaskAbbr = (s) => s.split(ABBR_DOT).join('.');
+
 export function autoSplitParagraphs(body) {
   return body.split(/\n\s*\n/).map((para) => {
     const p = para.trim();
     // never touch the greeting or the sign-off block
     if (/^(Hi|Hey|Hello)\b/.test(p) && p.length < 40) return para;
     if (/(Cheers!|Thanks!)/.test(p)) return para;
-    const sentences = p.match(/[^.!?]+[.!?]+(\s|$)/g) || [];
+    // Mask abbreviation dots so "Inc.", "Corp." etc. are not read as sentence ends.
+    const sentences = (maskAbbr(p).match(/[^.!?]+[.!?]+(\s|$)/g) || []).map(unmaskAbbr);
     // One idea per short paragraph (Will 2026-07-09): keep paragraphs to at most TWO
     // sentences so the note reads airy, not a wall. Sentence LENGTH is left free (the
     // email-breathes rule is about sentences, not paragraphs); this only splits at
@@ -520,6 +548,12 @@ export const REVIEW_SCHEMA = {
 };
 export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null, trigger = null, triggerType = null, personalHook = null) {
   const facts = leadFacts ? `\n\nWHAT WE KNOW ABOUT THE RECIPIENT (trusted facts — check the note against these):\n${JSON.stringify(leadFacts, null, 2)}` : '';
+  // People/HR recipients are NOT the founder — the milestone-congrats mandate (rules 3
+  // and 8) is OFF for them, and a "congrats on your raise" opener is a hard FAIL.
+  const isPeople = PEOPLE_TITLE_RE.test((leadFacts?.title) || '');
+  const personaNote = isPeople
+    ? '\n\nRECIPIENT PERSONA: this person is PEOPLE / HR (not the founder or CEO). The "you must congratulate an available milestone" expectation in items 3 and 8 does NOT apply here. A company raise/growth is NOT theirs to be congratulated on: FAIL any "congrats on your Series C / your raise / as you scale <Company>" opener. Lead with the people angle; a company milestone, if mentioned at all, is framed as the company\'s or team\'s.'
+    : '';
   // The trigger is VERIFIED (harvested with an evidence URL). Give it to the skeptic
   // so it does NOT flag a real milestone opener as "fabricated" and strip it (Will
   // 2026-07-07: a valid "congrats on the launch" got deleted). Plus today's date so
@@ -538,14 +572,14 @@ export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help
    · And/But/So/Honestly openers are Will's voice: "And we run it all as one team." is COMPLETE (subject "we", verb "run"). Never flag a sentence merely for starting with And/But/So.
 2. STITCHED/TEMPLATED + SAMENESS: FAIL if the note reads like bolted-together stock phrases rather than one train of thought. In particular FAIL the identical machine-open "We bring wellness days into offices for companies like BCG and DraftKings, chair massage, nails, facials, mindfulness, all from one team" (or any near-verbatim stock catchphrase) — the intro and the one-team idea must be said in fresh words. WORDINESS: flag any sentence that could be half as long, and filler not earning its place.
 2b. TOO MANY BEATS / BOX-CHECKING (Will 2026-07-08 — a top reason to FAIL): the note may carry only ONE supporting beat beyond the opener + who-we-are line + ask. FAIL a note that STACKS beats — for brokers that means the unused-funds observation AND the Burberry receipt AND a stat in the same email (pick one); for tech-execs it means two observations or two proofs. Also FAIL a note that is noticeably long (well over ~120 words) or that packs multiple distinct ideas into one chunky paragraph. Shorter and one-pointed beats complete-and-crammed every time.
-3. OBSERVATION + HOOK (Will 2026-07-07): a genuine COMPANY MILESTONE (IPO/going public, funding round, big launch, notable partnership) SHOULD open the note with a brief warm congrats — FAIL a note that had such a milestone available and opened flat/generic instead (dropping a real milestone reads cold). Conversely FAIL a hook forced in that is a non-sequitur to caring for a team (a security/product report, a technical stat). For NON-milestone personal finds, Will's bar: usable only if it connects to the thread ON ITS FACE (their wellbeing/benefits role, their clients, their metro, something they wrote about wellness/benefits). A thematic bridge FAILS ("I saw you're a Health Rosetta advisor, that transparency focus is exactly what I keep running into" is bolted-on). No personal line at all is a PASS; a forced one FAILS. FAIL fresh-news framing ("I saw you...", "congrats on...") when the fact is older than ~6 months.
+3. OBSERVATION + HOOK (Will 2026-07-07): a genuine COMPANY MILESTONE (IPO/going public, funding round, big launch, notable partnership) SHOULD open the note with a brief warm congrats — FAIL a note that had such a milestone available and opened flat/generic instead (dropping a real milestone reads cold). IMPORTANT CARVE-OUT: this "you must congratulate the milestone" expectation applies ONLY to a founder/CEO/exec recipient AND only when no verified personal observation was used to open. It is OFF when a personal observation opens the note, and OFF for any People/HR recipient (see RECIPIENT PERSONA) — do NOT fail those notes for "dropping the milestone". Conversely FAIL a hook forced in that is a non-sequitur to caring for a team (a security/product report, a technical stat). For NON-milestone personal finds, Will's bar: usable only if it connects to the thread ON ITS FACE (their wellbeing/benefits role, their clients, their metro, something they wrote about wellness/benefits). A thematic bridge FAILS ("I saw you're a Health Rosetta advisor, that transparency focus is exactly what I keep running into" is bolted-on). No personal line at all is a PASS; a forced one FAILS. FAIL fresh-news framing ("I saw you...", "congrats on...") when the fact is older than ~6 months. SINGLE OPENER: the note must open on exactly ONE observation or congrats. FAIL a note that stacks TWO (e.g. congratulating a funding round AND separately praising their benefits/mental-health program) — one clean opener, cut the other. PEOPLE/HR RECIPIENT: if the recipient's title is People/HR (Head/VP/Director of People or HR, CHRO, People Ops, Total Rewards, benefits), they are NOT the founder — FAIL a note that congratulates them on the company's raise or growth as their personal win ("congrats on your Series C", "as you scale <Company>"); a company milestone must be framed as the company's/team's, and the people angle should lead.
 4. INTRO: the note clearly says who Will is and what Shortcut does, in concrete services (said in his own words, not a pasted template). If a reader couldn't tell what Shortcut is, FAIL.
 5. CLOSE: OFFERS something concrete — ${audience === 'brokers' ? 'help with their clients, the one-pager, or (convo variant) a short call' : 'more info or (convo variant) a call'}. A bare curiosity question with no offer FAILS. No calendar link, no times. Never validation-seeking. Ends "Cheers!" or "Thanks!" then "Will" (the one exclamation mark allowed, nothing after).${audience === 'brokers' ? '' : '\n5b. ZERO LIFT: the note makes clear the whole thing is effortless for them (Shortcut handles everything, they just pick a date), said naturally somewhere. If that reassurance is entirely absent, FAIL — but do not demand a specific stock phrasing.'}
 6. VOICE: reads like a busy founder typed it — contractions, warm, casual, zero sales energy. Sentence lengths VARY (at least one short punchy line; no run of same-shape sentences); no "not just X, but Y". The service list folded into a real sentence is REQUIRED brand copy, NOT a rule-of-three violation — never flag it for that. If the prose is uniformly smooth and balanced with no human texture, FAIL it as AI-sounding.
 ${audience === 'brokers' ? '6b. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.${audience === 'brokers' ? '' : '\n7b. ONE PROOF ONLY (Will 2026-07-07): the note may use EXACTLY ONE proof point. Naming BCG/DraftKings AND a stat (e.g. "90% of slots get booked") is TWO — FAIL it; pick the single one that best fits the moment.'}
-8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. A funding trigger must open congratulatory (genuine, brief). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
-9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context. NOTE: if a specific milestone matches the VERIFIED trigger below, it is REAL, do NOT flag it as fabricated (only flag it if it is framed for the wrong person/place/time).${facts}${verified}${personalV}${dateLine}${signalLine}
+8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. For a founder/CEO/exec recipient a funding trigger opens congratulatory (genuine, brief); for a People/HR recipient it does NOT (see RECIPIENT PERSONA — lead with the people angle, never "congrats on your raise"). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
+9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context. NOTE: if a specific milestone matches the VERIFIED trigger below, it is REAL, do NOT flag it as fabricated (only flag it if it is framed for the wrong person/place/time).${facts}${verified}${personalV}${dateLine}${signalLine}${personaNote}
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
     model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0,
@@ -581,6 +615,29 @@ export function proofOveruse(body, audience) {
   const hasClient = /\b(bcg|draftkings)\b/i.test(body);
   const hasStat = /\b(87%|500\+|500 companies)\b|90%|over 90|slots (get |book)|rebook|come back for another/i.test(body);
   return hasClient && hasStat;
+}
+
+// Deterministic LAST-RESORT for the two-proof rule (Will 2026-07-10): the LLM revise
+// only sometimes obeys "keep ONE proof", so after the revise loop we cut the weaker
+// proof in code. We drop the CLIENT-NAMES sentence (BCG/DraftKings) and keep the STAT
+// (the 90%-booked usage receipt — the prompt calls it the strongest for a People
+// leader). Never strips down to ZERO proofs: if removing the client line would also
+// remove the stat (same sentence), it aborts and leaves the note unchanged.
+const STAT_RE = /\b(87%|500\+|500 companies)\b|90%|over 90|slots (get |book)|rebook|come back for another/i;
+const CLIENT_RE = /\b(bcg|draftkings)\b/i;
+export function stripSecondProof(body, audience) {
+  if (!proofOveruse(body, audience)) return body;
+  const kept = [];
+  for (const para of String(body).split(/\n\s*\n/)) {
+    const t = para.trim();
+    if (!CLIENT_RE.test(para) || /^(Hi|Hey|Hello)\b/.test(t) || /(Cheers!|Thanks!)/.test(para)) { kept.push(para); continue; }
+    const sentences = (maskAbbr(para).match(/[^.!?]+[.!?]+(\s|$)/g) || []).map(unmaskAbbr);
+    if (!sentences.length) { kept.push(para); continue; }
+    const rejoined = sentences.filter((s) => !CLIENT_RE.test(s)).join('').trim();
+    if (rejoined) kept.push(rejoined); // drop the paragraph entirely if it was only the client line
+  }
+  const out = kept.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();
+  return STAT_RE.test(out) ? out : body; // never leave zero proofs
 }
 
 // Body word count EXCLUDING the greeting line and the sign-off block, so the length
@@ -633,6 +690,21 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
   return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))), research_note: tu.input.research_note || note.research_note };
 }
 
+// Strip a trailing INTERPRETIVE clause from a warm_line so the opener stays ONE idea
+// (Will 2026-07-10). The research model keeps appending "…, which speaks volumes about
+// how they built the culture" / "…, a testament to their values" — a soft prompt ban
+// doesn't hold, so we cut it deterministically. Only removes a comma-led interpretive
+// tail; a plain factual clause is left alone.
+const INTERP_TAIL_RE = /,\s+(which|that)\s+(speaks?|shows?|reflects?|says?|demonstrates?|signals?|tells?|underscores?|highlights?|proves?|suggests?|is\b|really\b)[^.!?]*(?=[.!?]?\s*$)/i;
+const INTERP_NOUN_RE = /,\s+(a\s+|an\s+)?(testament|reflection|sign|nod|signal|hallmark|mark)\s+(to|of)\b[^.!?]*(?=[.!?]?\s*$)/i;
+export function stripInterpretiveTail(s) {
+  if (!s) return s;
+  let out = String(s).replace(INTERP_TAIL_RE, '').replace(INTERP_NOUN_RE, '').trim();
+  out = out.replace(/[,;:\s]+$/, '');
+  if (out && !/[.!?]$/.test(out)) out += '.';
+  return out;
+}
+
 /**
  * composeNote — the WHOLE pipeline, extracted verbatim from the handler loop so
  * the local runner and production share one code path: draft → guard (2 revise
@@ -642,6 +714,13 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
  * Returns { note, review } so callers can surface the skeptic verdict.
  */
 export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null, label = lead?.email || lead?.name || 'lead', log = console.error }) {
+  // SINGLE-OPENER RULE (Will 2026-07-10): a researched personalHook is the EXCLUSIVE
+  // opener. When one exists, drop the milestone trigger for EVERY downstream step —
+  // drafter, guards, skeptic, revise — otherwise the skeptic's "always congratulate an
+  // available milestone" rule resurrects a SECOND opener (how Catherine/Pearl got both a
+  // Series C congrats AND a benefits line). The personalHook already captured the best
+  // signal, so the trigger is redundant here.
+  if (personalHook) { trigger = null; triggerType = null; personalHook = stripInterpretiveTail(personalHook); }
   let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook });
   // GATE: deterministic guards -> up to TWO revisions on violation (one wasn't
   // enough in practice: Jul 6, a chunky paragraph survived the first revise
@@ -692,6 +771,12 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
     note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook });
     guardNote(note, audience, trigger); // hard rules must always hold after a revise
     review = await critique(note);
+  }
+  // DETERMINISTIC LAST-RESORT: if the revise loop still left two proofs, cut the
+  // weaker one in code so a two-proof note can never ship (Will 2026-07-10).
+  if (proofOveruse(note.body, audience)) {
+    const stripped = stripSecondProof(note.body, audience);
+    if (stripped !== note.body) { log(`two-proof survived revise for ${label} — stripped client-names proof deterministically`); note = { ...note, body: stripped }; }
   }
   // Return the FIRST review for caller display parity (it shows what the drafter
   // produced), plus the final verdict so callers/tests can see if it settled clean.

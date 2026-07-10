@@ -47,6 +47,7 @@ const TRIGGER_TYPE = val('--trigger-type', null); // funding|people_posting|grow
 const EMAIL = val('--email', null);
 const REMOTE = has('--remote'); // distributed company → lead the virtual track
 const PERSONALIZE = has('--personalize'); // research a genuine human hook (prod path)
+const PERSONAL_HOOK = val('--personal-hook', null); // inject an EXACT hook (skip research) — reproduces a stored draft
 const WITH_EXEMPLARS = has('--exemplars');
 const N = Math.max(1, Math.min(5, parseInt(val('--n', '1'), 10) || 1));
 
@@ -107,7 +108,10 @@ const red = (s) => `\x1b[31m${s}\x1b[0m`;
     try {
       const t0 = Date.now();
       let personalHook = null;
-      if (PERSONALIZE) {
+      if (PERSONAL_HOOK) {
+        personalHook = PERSONAL_HOOK;
+        console.log(`${bold('PERSONAL')}  [override] ${green(PERSONAL_HOOK)}`);
+      } else if (PERSONALIZE) {
         const ph = await researchPersonalHook(anthropic, lead, { audience: AUDIENCE, log: (m) => console.log(gray(`  · ${m}`)) });
         if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; console.log(`${bold('PERSONAL')}  [${ph.category}/${ph.confidence}] ${green(ph.warm_line)}`); }
         else console.log(gray(`  · personalize: nothing genuine found (${ph?.confidence || 'none'}) — trigger fallback`));
