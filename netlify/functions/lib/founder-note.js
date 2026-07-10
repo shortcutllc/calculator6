@@ -189,7 +189,10 @@ function pickSignoff(seed, touch = 1) {
 // Swap whatever sign-off the model used for the chosen one AND collapse any blank line
 // between the sign-off and "Will" (Will 2026-07-10: no space before my name).
 export function applySignoff(body, signoff) {
-  return String(body || '').replace(SIGNOFF_BLOCK_RE, `\n${signoff}\nWill`);
+  // Blank line BEFORE the sign-off (body → blank → sign-off), tight AFTER (sign-off
+  // → name). "...chat?\n\nWarmly,\nWill". (Will 2026-07-10: the first pass dropped
+  // the blank before the sign-off and it shipped cramped.)
+  return String(body || '').replace(SIGNOFF_BLOCK_RE, `\n\n${signoff}\nWill`);
 }
 
 // ============================================================================
