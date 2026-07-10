@@ -28,8 +28,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
-import { getAccessToken, sendEmail, getThread, getMessageHeaders, lc } from './lib/gmail.js';
+import { getAccessToken, sendEmail, getThread, getMessageHeaders, bodyFromPayload, lc } from './lib/gmail.js';
 import { composeFollowup, FOLLOWUP_CADENCE } from './lib/founder-note.js';
+import { classify, cleanReply } from './lib/sentiment.js';
 
 const SLACK_API = 'https://slack.com/api';
 const WILL = 'will@getshortcut.co';
@@ -62,14 +63,44 @@ const daysBetween = (a, b) => (new Date(b).getTime() - new Date(a).getTime()) / 
 // LIVE reply/halt check: read the Gmail thread; any message From someone other
 // than will@ means the prospect (or anyone) engaged -> halt. Fail CLOSED: if the
 // thread can't be read, treat as "cannot confirm silence" and DO NOT send.
-async function threadIsSilent(token, threadId) {
+// Mail-server bounce/NDR senders (a delivery notification, NOT the prospect).
+const BOUNCE_FROM_RE = /(postmaster@|mailer-daemon|microsoftexchange\w*@|mail delivery (subsystem|system)|delivery status notification)/i;
+
+// Parse a return date out of an OOO ("...back on July 14th"). ISO or null (caller
+// then defaults to +4 days). Capped 30 days out so a weird parse can't pause forever.
+function parseReturnDate(text) {
+  const M = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dec: 11 };
+  const m = String(text || '').toLowerCase().match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/);
+  if (!m) return null;
+  const mon = M[m[1]]; const day = parseInt(m[2], 10);
+  if (mon == null || day < 1 || day > 31) return null;
+  const now = new Date();
+  let d = new Date(Date.UTC(now.getUTCFullYear(), mon, day, 13, 0, 0)); // ~9am ET
+  if (d < now) d = new Date(Date.UTC(now.getUTCFullYear() + 1, mon, day, 13, 0, 0));
+  if (d - now > 30 * DAY_MS) return null;
+  return d.toISOString();
+}
+
+// Read the thread and say WHAT the inbound is, considering only messages AFTER
+// `sinceMs` (so a resumed OOO pause ignores the stale OOO message that persists in
+// history). Statuses: silent | bounce | ooo | unsub | reply | unreadable.
+async function classifyThread(token, threadId, sinceMs) {
   const t = await getThread(token, threadId).catch(() => null);
-  if (!t || !Array.isArray(t.messages)) return { silent: false, reason: 'thread_unreadable' };
+  if (!t || !Array.isArray(t.messages)) return { status: 'unreadable' };
+  const others = [];
   for (const m of t.messages) {
     const from = lc((m.payload?.headers || []).find((h) => h.name?.toLowerCase() === 'from')?.value || '');
-    if (from && !from.includes(WILL)) return { silent: false, reason: `inbound from ${from.slice(0, 40)}` };
+    const ms = m.internalDate ? Number(m.internalDate) : 0;
+    if (from && !from.includes(WILL) && ms > (sinceMs || 0)) others.push({ from, ms, m });
   }
-  return { silent: true, reason: null };
+  if (!others.length) return { status: 'silent' };
+  if (others.some((o) => BOUNCE_FROM_RE.test(o.from))) return { status: 'bounce', reason: 'mail-server bounce/NDR', msgMs: others[others.length - 1].ms };
+  const last = others[others.length - 1];
+  const body = cleanReply(bodyFromPayload(last.m.payload));
+  const c = classify(body);
+  if (c.sentiment === 'ooo') return { status: 'ooo', reason: 'out-of-office', msgMs: last.ms, returnDate: parseReturnDate(body) };
+  if (c.suppress) return { status: 'unsub', reason: c.reason || 'unsubscribe/negative', msgMs: last.ms };
+  return { status: 'reply', reason: `inbound from ${last.from.slice(0, 40)}`, msgMs: last.ms };
 }
 
 // Per-company book-a-call page for E3, mirroring the cold lane. Reuse an existing
@@ -148,7 +179,11 @@ export const handler = async (event) => {
     try {
       if (supp.has(email)) { results.push({ email, skip: 'suppressed' }); continue; }
       const seqStatus = ref.sequence?.status;
-      if (seqStatus && seqStatus !== 'active') { results.push({ email, skip: `sequence ${seqStatus}` }); continue; }
+      if (seqStatus === 'paused') {
+        const until = ref.sequence?.paused_until;
+        if (until && new Date(until) > new Date()) { results.push({ email, skip: `paused (OOO) until ${String(until).slice(0, 10)}` }); continue; }
+        // past the pause window → resume: fall through and re-read the thread below.
+      } else if (seqStatus && seqStatus !== 'active') { results.push({ email, skip: `sequence ${seqStatus}` }); continue; }
 
       // E1 send facts from outreach_sends (gmail-sent-crawl). Earliest will@ row = E1.
       const { data: sends } = await sb.from('outreach_sends')
@@ -157,7 +192,8 @@ export const handler = async (event) => {
       const e1send = (sends || [])[0];
       if (!e1send || !e1send.sent_time) { results.push({ email, skip: 'E1 not sent yet (Will has not sent the first note)' }); continue; }
       if ((sends || []).some((s) => s.is_bounced)) { results.push({ email, skip: 'bounced' }); await markSequence(sb, e1, 'bounced'); continue; }
-      if ((sends || []).some((s) => s.reply_time)) { results.push({ email, skip: 'replied (crawl)' }); await markSequence(sb, e1, 'replied'); continue; }
+      // NOTE: reply_time alone is NOT a halt anymore — it is set for OOO/auto-replies too.
+      // The live classifyThread below decides bounce vs OOO vs unsub vs real reply.
 
       // sequence state (initialise from E1 if first run)
       const seq = ref.sequence || { touches: [{ n: 1, sent_at: e1send.sent_time, body: e1.body || '' }], status: 'active' };
@@ -179,13 +215,23 @@ export const handler = async (event) => {
         results.push({ email, skip: 'already touched today (one per lead per day)' }); continue;
       }
 
-      // LIVE HALT CHECK — the load-bearing safety gate
-      const silence = await threadIsSilent(token, e1send.thread_id);
-      if (!silence.silent) {
-        results.push({ email, skip: `HALT: ${silence.reason}` });
-        if (silence.reason?.startsWith('inbound')) await markSequence(sb, e1, 'replied');
-        continue;
+      // LIVE HALT CHECK — the load-bearing safety gate, now branch-aware (Will 2026-07-10):
+      // bounce → suppress; OOO → pause and resume after they return; unsub → suppress;
+      // real reply → halt (the founder reply-brain graduates + drafts it separately).
+      const sinceMs = ref.sequence?.paused_since_ms || new Date(e1send.sent_time).getTime();
+      const verdict = await classifyThread(token, e1send.thread_id, sinceMs);
+      if (verdict.status === 'unreadable') { results.push({ email, skip: 'thread unreadable (fail-closed, no send)' }); continue; }
+      if (verdict.status === 'bounce') { results.push({ email, skip: `HALT: ${verdict.reason} → suppressed` }); await suppressLead(sb, email, 'bounce'); await markSequence(sb, e1, 'bounced'); continue; }
+      if (verdict.status === 'unsub') { results.push({ email, skip: `HALT: ${verdict.reason} → suppressed` }); await suppressLead(sb, email, 'unsubscribe'); await markSequence(sb, e1, 'unsubscribed'); continue; }
+      if (verdict.status === 'ooo') {
+        const count = (ref.sequence?.pause_count || 0) + 1;
+        if (count > 3) { results.push({ email, skip: 'OOO x3 — marking dormant' }); await markSequence(sb, e1, 'dormant'); continue; }
+        const until = verdict.returnDate || new Date(Date.now() + 4 * DAY_MS).toISOString();
+        await setSequencePaused(sb, e1, until, count, verdict.msgMs || 0);
+        results.push({ email, skip: `OOO — paused until ${until.slice(0, 10)}` }); continue;
       }
+      if (verdict.status === 'reply') { results.push({ email, skip: `HALT: ${verdict.reason}` }); await markSequence(sb, e1, 'replied'); continue; }
+      // status === 'silent' → clear to send
 
       // compose the touch
       const priorBodies = seq.touches.map((t) => t.body).filter(Boolean);
@@ -220,6 +266,7 @@ export const handler = async (event) => {
       sent += 1;
       seq.touches.push({ n: nextTouch, sent_at: new Date().toISOString(), body: fu.body, message_id: res.id });
       seq.status = nextTouch >= 4 ? 'completed' : 'active';
+      delete seq.paused_until; delete seq.paused_since_ms; delete seq.pause_count; // resumed → clear pause
       await sb.from('saved_drafts').update({ target_ref: { ...ref, sequence: seq } }).eq('id', e1.id);
       results.push({ email, touch: nextTouch, sent: true });
       log(`SENT touch ${nextTouch} to ${email} (thread ${e1send.thread_id})`);
@@ -251,4 +298,16 @@ async function markSequence(sb, e1, status) {
   const seq = ref.sequence || { touches: [{ n: 1 }] };
   if (seq.status === status) return;
   await sb.from('saved_drafts').update({ target_ref: { ...ref, sequence: { ...seq, status } } }).eq('id', e1.id);
+}
+
+// Pause the sequence on an OOO: resume after `until`, ignoring inbound at/<= sinceMs
+// (the OOO message itself) on resume so a persistent OOO doesn't re-pause forever.
+async function setSequencePaused(sb, e1, until, count, sinceMs) {
+  const ref = e1.target_ref || {};
+  const seq = ref.sequence || { touches: [{ n: 1 }] };
+  await sb.from('saved_drafts').update({ target_ref: { ...ref, sequence: { ...seq, status: 'paused', paused_until: until, pause_count: count, paused_since_ms: sinceMs } } }).eq('id', e1.id);
+}
+
+async function suppressLead(sb, email, kind) {
+  await sb.from('crm_suppression').upsert({ email, reason: 'do_not_contact', source: 'founder-followup', detail: { kind, via: 'founder-followup-halt' } }, { onConflict: 'email' });
 }
