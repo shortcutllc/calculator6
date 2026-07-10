@@ -16,6 +16,13 @@ const NEG   = /\bnot interested\b|\bno,? thank|\bwe('| a)re all set\b|\ball set 
 // POS broadened after the first live positive ("I would love to meet, can we set
 // sometime?") fell through to neutral — graduate-replies only graduates positives.
 const POS   = /\binterested\b|\b(would |i'?d )?love to (chat|connect|talk|meet|hear|learn)|\blet'?s (chat|connect|talk|set up|meet|find)|\bhappy to (chat|connect|hop|meet|talk)\b|\bwould like to (chat|connect|talk|meet|learn|hear)\b|\b(can|could|shall) we (chat|connect|talk|meet|set ?up|schedule|find a time)|\bsounds (good|great|interesting)\b|\bschedule a\b|\bset ?(up)? ?(a )?(call|time|meeting|something|sometime)\b|\bbook a\b|\btell me more\b|\bsend (me )?(more|info|the|a)\b|\bopen to (chat|connect|talk|meet|a call|learning)\b|\bwho'?s the right (person|contact)\b|\byes,? (let|i|we|please|happy)\b/i;
+// SCHED — a prospect PROPOSING or ACCEPTING a time is the strongest positive
+// signal, but it rarely uses a POS keyword ("How about Tuesday at 10?", "2pm
+// works", "I'm free Thursday"). Missing one hides a ready-to-book reply from the
+// rep's hot list, so this is tuned for recall. Safe because DNC/OOO/NEG are
+// tested BEFORE this (an out-of-office "back Monday at 9am" is caught as OOO
+// first), and cleanReply strips signatures/quoted history before we classify.
+const SCHED = /\bhow about\b|\b(that|this|these|it|which|either) works?\b|\bworks? (for me|great|well|fine|for us)\b|\bi'?m (free|available|around|open|good)\b|\bi can do\b|\blet'?s do\b|\b(send|shoot|fire)\b[^.\n]{0,15}\binvite\b|\bcalendar (invite|link)\b|\b\d{1,2}:\d{2}\s?(a\.?m\.?|p\.?m\.?)?\b|\b\d{1,2}\s?(a\.?m\.?|p\.?m\.?)\b|\b(mon|tues|wednes|thurs|fri|satur|sun)day\b[^.\n]{0,18}\b(at|works?|morning|afternoon|good|free|before|after|\d|am|pm)\b|\bat\s\d{1,2}(:\d{2})?\s?(am|pm)?\b|\bnext week\b[^.\n]{0,18}\b(works?|good|free|morning|afternoon|before|after|\d)\b/i;
 const LATER = /\b(circle back|reach back out|follow up|next (quarter|year)|in \d+ (weeks|months)|revisit)\b|\bnot right now\b|\bmaybe (later|in)\b|\bdown the (road|line)\b/i;
 
 export function classify(text) {
@@ -24,7 +31,7 @@ export function classify(text) {
   if (DNC.test(s))   return { sentiment: 'negative',    suppress: true, reason: 'unsubscribe' };
   if (OOO.test(s))   return { sentiment: 'ooo',         suppress: false };
   if (NEG.test(s))   return { sentiment: 'negative',    suppress: true, reason: 'not_interested' };
-  if (POS.test(s))   return { sentiment: 'positive',    suppress: false };
+  if (POS.test(s) || SCHED.test(s)) return { sentiment: 'positive', suppress: false };
   if (LATER.test(s)) return { sentiment: 'maybe_later', suppress: false };
   return { sentiment: 'neutral', suppress: false };
 }
