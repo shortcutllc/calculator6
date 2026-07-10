@@ -342,6 +342,32 @@ export async function getMessageHeaders(accessToken, msgId) {
   };
 }
 
+/** Search the whole mailbox INCLUDING Trash/Spam for a Gmail query. Returns message ids.
+ *  Used by the founder daily reconcile to catch off-thread / auto-filed replies. */
+export async function searchMessages(accessToken, query, max = 100) {
+  const ids = []; let pageToken = '';
+  while (ids.length < max) {
+    const p = new URLSearchParams({ q: query, includeSpamTrash: 'true', maxResults: String(Math.min(100, max - ids.length)) });
+    if (pageToken) p.set('pageToken', pageToken);
+    const r = await fetch(`${GMAIL}/messages?${p.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const j = await r.json();
+    if (!r.ok) throw new Error(`gmail search failed: ${j.error?.message || r.status}`);
+    for (const m of j.messages || []) ids.push(m.id);
+    pageToken = j.nextPageToken || '';
+    if (!pageToken) break;
+  }
+  return ids;
+}
+
+/** Full message (payload for body extraction) + key fields (from / internalDate / labels). */
+export async function getMessageFull(accessToken, msgId) {
+  const r = await fetch(`${GMAIL}/messages/${msgId}?format=full`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r.ok) return null;
+  const j = await r.json();
+  const fromRaw = (j.payload?.headers || []).find((x) => x.name?.toLowerCase() === 'from')?.value || '';
+  return { id: j.id, threadId: j.threadId, internalDate: j.internalDate ? Number(j.internalDate) : 0, from: lc(fromRaw.match(/<([^>]+)>/)?.[1] || fromRaw), payload: j.payload, labelIds: j.labelIds || [] };
+}
+
 /** Fetch a thread (messages array w/ snippet + headers); used to find inbound replies on a sent thread. */
 export async function getThread(accessToken, threadId) {
   const r = await fetch(`${GMAIL}/threads/${threadId}?format=full`, {
