@@ -27,6 +27,9 @@
 [functions."cron-heartbeat-monitor"]
   schedule = "0 16 * * *"   # daily noon ET — dead-man's-switch: Slack-alerts Will if any outreach cron went stale
 
+[functions."graduate-replies-scheduled"]
+  schedule = "5 11 * * *"   # daily 7:05am ET — graduate positive cold replies (machine-independent; retires the Mac cron)
+
 [[redirects]]
   from = "/shared/*"
   to = "/index.html"
