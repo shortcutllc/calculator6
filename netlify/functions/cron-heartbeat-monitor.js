@@ -40,7 +40,13 @@ async function slack(method, body) {
 }
 
 async function dmWill(text) {
-  const u = await slack('users.lookupByEmail', { email: RECIPIENT });
+  // users.lookupByEmail does NOT accept a JSON body — it needs a GET query param.
+  // Sending it as JSON (like the other calls) returns invalid_arguments, which is
+  // why heartbeat DMs silently never delivered (Will 2026-07-10). GET it directly.
+  const lr = await fetch(`${SLACK_API}/users.lookupByEmail?email=${encodeURIComponent(RECIPIENT)}`, {
+    headers: { Authorization: `Bearer ${process.env.PRO_SLACK_BOT_TOKEN}` },
+  });
+  const u = await lr.json();
   if (!u.ok) { console.error('[heartbeat-monitor] slack lookup failed:', u.error); return; }
   const c = await slack('conversations.open', { users: u.user.id });
   if (!c.ok) { console.error('[heartbeat-monitor] conversations.open failed:', c.error); return; }
