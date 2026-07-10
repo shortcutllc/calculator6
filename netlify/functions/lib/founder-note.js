@@ -169,6 +169,29 @@ const MILESTONE_TRIGGER_TYPES = new Set(['funding', 'ipo', 'launch', 'partnershi
 // win ("congrats on your Series C", "as you scale <Company>"). Will 2026-07-10.
 const PEOPLE_TITLE_RE = /\b(chief people|cpo|chro|head of people|vp,? (of )?people|people operations|people ops|(senior |sr\.? )?director,? (of )?people|head of hr|vp,? (of )?hr|human resources|head of talent|people (&|and) culture|employee experience|workplace experience|total rewards|benefits (lead|manager|director))\b/i;
 
+// Sign-off variety (Will 2026-07-10): stop defaulting to "Cheers!" on every note.
+// Deterministic rotation per lead + touch, so a recipient's sequence varies and it is
+// STABLE per recipient (not random each run). EDIT THIS LIST to change the closes.
+// Items ending "!" carry the single allowed exclamation; comma closes carry none.
+export const FOUNDER_SIGNOFFS = ['Cheers!', 'Thanks!', 'Warmly,', 'Talk soon,'];
+const SIGNOFF_ESC = FOUNDER_SIGNOFFS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+// The final sign-off block a drafter produces (approved closes + a few variants the
+// model sometimes emits) so we can swap in the chosen close AND tighten the blank line.
+const SIGNOFF_BLOCK_RE = new RegExp(`\\n+\\s*(?:${SIGNOFF_ESC.join('|')}|Cheers,|Thanks,|Best,|Best!|Talk soon!)\\s*\\n+\\s*Will\\s*$`, 'i');
+// A single sign-off LINE (for the exclamation guard's strip) and the required END shape.
+const SIGNOFF_LINE_RE = new RegExp(`^(?:${SIGNOFF_ESC.join('|')})$`, 'gm');
+const SIGNOFF_END_RE = new RegExp(`\\n(?:${SIGNOFF_ESC.join('|')})\\n+Will\\s*$`);
+function pickSignoff(seed, touch = 1) {
+  let h = 2166136261; const s = `${String(seed || 'x').toLowerCase()}|${touch}`;
+  for (let i = 0; i < s.length; i += 1) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return FOUNDER_SIGNOFFS[h % FOUNDER_SIGNOFFS.length];
+}
+// Swap whatever sign-off the model used for the chosen one AND collapse any blank line
+// between the sign-off and "Will" (Will 2026-07-10: no space before my name).
+export function applySignoff(body, signoff) {
+  return String(body || '').replace(SIGNOFF_BLOCK_RE, `\n${signoff}\nWill`);
+}
+
 // ============================================================================
 // PERSONAL HOOK RESEARCH (Will 2026-07-08): be HUMAN, not robotic. Research the
 // company and extract ONE genuine, specific, kind detail from ANY category (recent
@@ -472,9 +495,9 @@ export function guardNote(n, audience, trigger = null, opts = {}) {
   if (/[—–]|\s-\s/.test(all)) throw new Error('draft used a dash as punctuation');
   // Exclamation marks: banned everywhere EXCEPT the sign-off line ("Cheers!" or
   // "Thanks!"), which Will explicitly wants (2026-07-06) — warm, human close.
-  const withoutSignoff = all.replace(/^(Cheers!|Thanks!)$/gm, '');
-  if (/!/.test(withoutSignoff)) throw new Error('draft used an exclamation point outside the Cheers!/Thanks! sign-off');
-  if (!/\n(Cheers!|Thanks!)\n+Will\s*$/.test(n.body)) throw new Error("draft must end with 'Cheers!' or 'Thanks!' then 'Will' (no company block — the signature is appended)");
+  const withoutSignoff = all.replace(SIGNOFF_LINE_RE, '');
+  if (/!/.test(withoutSignoff)) throw new Error('draft used an exclamation point outside the sign-off line');
+  if (!SIGNOFF_END_RE.test(n.body)) throw new Error(`draft must end with one of [${FOUNDER_SIGNOFFS.join(', ')}] then 'Will' (no company block — the signature is appended)`);
   for (const w of ['elevate', 'leverage', 'synergy', 'unlock', 'empower', 'transform', 'reimagine', 'seamless', 'holistic', 'curated',
     // AI-lexicon additions (voice research 2026-07-06): statistically overrepresented LLM words
     'delve', 'pivotal', 'underscore', 'showcase', 'foster', 'landscape', 'navigate', 'realm', 'testament', 'tapestry', 'meticulous', 'streamline', 'additionally']) {
@@ -778,6 +801,9 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
     const stripped = stripSecondProof(note.body, audience);
     if (stripped !== note.body) { log(`two-proof survived revise for ${label} — stripped client-names proof deterministically`); note = { ...note, body: stripped }; }
   }
+  // Vary the sign-off (not always "Cheers!") + tighten the blank line before "Will"
+  // (Will 2026-07-10). Deterministic per recipient so it is stable, not random.
+  note = { ...note, body: applySignoff(note.body, pickSignoff(lead?.email || lead?.name, 1)) };
   // Return the FIRST review for caller display parity (it shows what the drafter
   // produced), plus the final verdict so callers/tests can see if it settled clean.
   return { note, review: firstReview, finalReview: review };
@@ -785,8 +811,9 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
 
 // ============================================================================
 // FOLLOW-UP TOUCHES (Will 2026-07-07): auto-sent in-thread nudges that mirror the
-// COLD ENGINE cadence + role structure — E2 value bump (day+3), E3 differentiation
-// + one first-party link (day+4), E4 graceful breakup (day+5). Same voice + hard
+// COLD ENGINE cadence + role structure — E2 SHORT BUMP (day+3, models the cold-engine
+// E2: 1-2 sentence nudge, no new pitch), E3 differentiation + one first-party link
+// (day+4), E4 graceful breakup (day+5). Same voice + hard
 // rules as the first touch, but SHORT and in-thread (no re-introduction). The
 // sender (founder-followup-background.js) hard-stops the whole sequence the moment
 // the prospect replies, so these only ever go to people who stayed silent.
@@ -795,7 +822,7 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
 const FOLLOWUP_SCHEMA = {
   type: 'object',
   properties: {
-    body: { type: 'string', description: "the in-thread follow-up, plain text, SHORT (2-4 sentences), paragraphs separated by a blank line, ending 'Cheers!' or 'Thanks!' then '\\nWill'. NO re-introduction (Will's first email is above in the thread) and NO stock 'just following up'." },
+    body: { type: 'string', description: "the in-thread follow-up, plain text, SHORT (touch 2 is 1-2 sentences; others 2-4), paragraphs separated by a blank line, ending 'Cheers!' or 'Thanks!' then '\\nWill'. NO re-introduction (Will's first email is above in the thread). A short 'following up on my note' is fine; a contentless bump with no ask is not." },
     touch_summary: { type: 'string', description: 'one line for Will: what NEW thing this touch adds' },
   },
   required: ['body', 'touch_summary'],
@@ -805,7 +832,7 @@ function followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, b
   const channel = audience === 'brokers' ? 'broker' : 'direct';
   const oneTeam = remote ? 'one team for your whole distributed crew, run over Zoom, zero lift' : `one team for the whole crew, on-site${audience === 'brokers' ? '' : ' and remote'}, zero lift`;
   const roles = {
-    2: 'TOUCH 2 (value bump): add ONE new concrete thing they did not get in the first email — a single REAL proof point (from the positioning above) or one specific detail — tied to the benefit in the same sentence, never a bare stat on its own line. Lead with the new thing. NEVER "just following up", "bumping this", or "did you see my note".',
+    2: 'TOUCH 2 (SHORT BUMP — model the COLD-ENGINE E2, the short-form follow-up we use): a tiny nudge on the note above, NOT a new pitch. Reference the earlier note in one line, add a soft one-line ask, and STOP. NO new proof point, NO stat, NO new services, NO new value beat. 1 to 2 short sentences TOTAL. Reference shape (say it in Will\'s own words, do NOT paste verbatim): "Following up on my note below. Worth a quick chat about {company}?" That soft ask IS the whole email and the close. (A short "following up on my note" IS wanted here; only a contentless bump with no ask is wrong.)',
     3: `TOUCH 3 (differentiation${bookACallUrl ? ' + one link' : ''}): in a sentence, make clear Shortcut is ${oneTeam}.${bookACallUrl ? ` Then offer the page once, softly: "I put together a quick overview if it helps: ${bookACallUrl}". Use that exact URL exactly once.` : ''} Keep it short.`,
     4: 'TOUCH 4 (graceful breakup): one last note. Drop ONE final REAL proof point, then a warm no-pressure out ("I will leave you be. Reach out anytime if it is ever useful."). NEVER guilt, NEVER "last chance" or "final attempt".',
   };
@@ -827,7 +854,7 @@ ${audience === 'brokers'
 
 ${roles[touchNumber] || roles[4]}
 
-CLOSE: ${ctaVariant === 'convo' ? 'offer a short call if it is a fit ("happy to hop on a quick call if useful"). No calendar link, no times.' : 'offer to send more or help ("happy to share more if it is useful"). Zero pressure.'} ${touchNumber === 4 ? '(For the breakup touch the out itself is the close.)' : ''}
+CLOSE: ${touchNumber === 2 ? 'the soft one-line ask in the bump IS the close. Do NOT add a separate "happy to share more" or "happy to hop on a call" line.' : (ctaVariant === 'convo' ? 'offer a short call if it is a fit ("happy to hop on a quick call if useful"). No calendar link, no times.' : 'offer to send more or help ("happy to share more if it is useful"). Zero pressure.')} ${touchNumber === 4 ? '(For the breakup touch the out itself is the close.)' : ''}
 Sign off "Cheers!" or "Thanks!" on its own line, then "Will". That is the ONLY exclamation mark. Nothing after (his signature is appended).
 
 Report via report_followup exactly once.`;
@@ -881,6 +908,8 @@ export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 
     fu = { ...tu.input, body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))) };
     guardNote(asNote(), audience, trigger, guardOpts); // throws -> caller skips this touch
   }
+  // Vary the sign-off per touch + tighten the blank line before "Will" (Will 2026-07-10).
+  fu = { ...fu, body: applySignoff(fu.body, pickSignoff(lead?.email || lead?.name, touchNumber)) };
   return fu;
 }
 
