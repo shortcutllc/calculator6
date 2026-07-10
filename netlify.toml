@@ -30,6 +30,12 @@
 [functions."enrich-replies-scheduled"]
   schedule = "30 10 * * *"  # daily 6:30am ET — classify + suppress replies (machine-independent; runs BEFORE graduate; Sundays also reclassify-all)
 
+[functions."generate-plays-scheduled"]
+  schedule = "45 10 * * *"  # daily 6:45am ET — rebuild Play A/B/reconciliation boards (after enrich; machine-independent)
+
+[functions."sync-bounces-scheduled"]
+  schedule = "50 10 * * *"  # daily 6:50am ET — suppress Smartlead-blocked/bounced leads (machine-independent)
+
 [functions."graduate-replies-scheduled"]
   schedule = "5 11 * * *"   # daily 7:05am ET — graduate positive cold replies (machine-independent; retires the Mac cron)
 
