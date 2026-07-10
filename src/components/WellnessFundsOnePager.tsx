@@ -16,10 +16,10 @@ const MAP_DOTS: [number, number][] = [
 ];
 
 const A = '/wellness-funds';
-// Gallery uses only massage + mindfulness assets (Will 2026-07-11): the same videos the
-// book-a-call page uses — self-hosted massage clip + Courtney's mindfulness (Sanity CDN) —
-// plus real massage photos for the rest. No text baked into any of them.
-const MASSAGE_VIDEO = '/landing-videos/massage.mp4';
+// Gallery = real event media (Will 2026-07-11): Cencora massage photo (from the proposal
+// gallery, Supabase storage), Courtney's mindfulness video (Sanity CDN, same as book-a-call),
+// plus the DraftKings/BCG/Wix event tiles. All tagged "Service @ Company".
+const CENCORA_PHOTO = 'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v1/object/public/proposal-gallery/massage/1778730425338-dhy6o2.jpg';
 const MINDFULNESS_VIDEO = 'https://cdn.sanity.io/files/7qf1r87p/production/e94281566161c5674ab843b72e54b5ea39364609.mp4';
 // Will's Google Calendar appointment schedule (SENDER_TO_CALENDAR in workhumanOutreachTemplates).
 const WILL_CALENDAR = 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ32vKfzSRhuWGXuzgv0w3x21bOQnmWva5xVuPtCsMF3iq25Oh_vInOsmmHr13npkewS-GnsQRqu';
@@ -56,6 +56,7 @@ const CSS = `
 .wfop .op-gallery{ display:grid; grid-template-columns:1.5fr 1fr 1fr; grid-template-rows:1fr 1fr; gap:8px; height:512px; border-radius:20px; overflow:hidden; margin:26px 0 34px; box-shadow:var(--shadow); }
 .wfop .op-gtile{ position:relative; overflow:hidden; background:var(--tint); }
 .wfop .op-gtile img, .wfop .op-gtile video{ width:100%; height:100%; object-fit:cover; object-position:66% center; display:block; transition:transform 600ms ease; }
+.wfop .op-gtile.mind video{ object-position:center 22%; }
 .wfop .op-gtile:hover img, .wfop .op-gtile:hover video{ transform:scale(1.04); }
 .wfop .op-gtile.main{ grid-row:1 / 3; grid-column:1; }
 .wfop .op-gtag{ position:absolute; left:12px; bottom:12px; background:#fff; color:var(--brand); font-weight:700; font-size:12px; border-radius:999px; padding:6px 13px; box-shadow:0 2px 8px rgba(9,54,79,.18); }
@@ -204,8 +205,8 @@ export default function WellnessFundsOnePager() {
         <h1>There is wellness money in your health plan. Most companies leave it on the table.</h1>
 
         <div className="op-gallery">
-          <div className="op-gtile main"><video src={MASSAGE_VIDEO} autoPlay muted loop playsInline /><span className="op-gtag">Massage @ PwC</span></div>
-          <div className="op-gtile"><video src={MINDFULNESS_VIDEO} autoPlay muted loop playsInline /><span className="op-gtag">Mindfulness @ Betterment</span></div>
+          <div className="op-gtile main"><img src={CENCORA_PHOTO} alt="Onsite chair massage at Cencora" /><span className="op-gtag">Massage @ Cencora</span></div>
+          <div className="op-gtile mind"><video src={MINDFULNESS_VIDEO} autoPlay muted loop playsInline /><span className="op-gtag">Mindfulness @ Betterment</span></div>
           <div className="op-gtile"><img src="/wellness-funds/gallery/draftkings.jpg" alt="Onsite chair massage at DraftKings" /><span className="op-gtag">Massage @ DraftKings</span></div>
           <div className="op-gtile"><video src="/wellness-funds/gallery/bcg.mp4" autoPlay muted loop playsInline /><span className="op-gtag">Massage @ BCG</span></div>
           <div className="op-gtile"><img src="/wellness-funds/gallery/wix.png" alt="Onsite chair massage at Wix" /><span className="op-gtag">Massage @ Wix.com</span></div>
@@ -220,7 +221,7 @@ export default function WellnessFundsOnePager() {
             <div className="fund"><p className="carrier">Aetna</p><p className="prog">Wellness Allowance</p></div>
             <div className="fund"><p className="carrier">Anthem</p><p className="prog">Wellness Fund</p></div>
           </div>
-          <p className="note">This is not your budget. It is money your carrier already set aside for wellness, and it resets every plan year, so <b>whatever you do not use, you lose.</b> Most companies never use it. They do not know it is there, or they cannot find an easy partner to run it. That is the part we handle.</p>
+          <p className="note">Here&rsquo;s the good news: <b>this is not coming out of your budget.</b> Your carrier has already set the money aside for wellness, and it renews every plan year. A lot of teams never get to use it, simply because they do not know it is there or have not found an easy partner to run it. That is the part we take care of for you.</p>
         </section>
 
         <section>
