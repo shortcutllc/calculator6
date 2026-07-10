@@ -32,7 +32,7 @@ const CSS = `
   background:var(--ground); color:var(--ink); font-family:var(--font); line-height:1.55;
   -webkit-font-smoothing:antialiased; min-height:100vh; }
 .wfop *{ box-sizing:border-box; }
-.wfop .sheet{ max-width:1200px; margin:0 auto; padding:52px 48px 40px; }
+.wfop .sheet{ max-width:1140px; margin:0 auto; padding:52px 48px 40px; }
 .wfop .top{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:44px; }
 .wfop .top .logo, .wfop .top .logo svg{ height:30px; width:auto; display:block; }
 .wfop .top .tag{ font-size:12.5px; color:var(--ink-soft); letter-spacing:.02em; text-align:right; }
@@ -206,9 +206,9 @@ export default function WellnessFundsOnePager() {
         <div className="op-gallery">
           <div className="op-gtile main"><video src={MASSAGE_VIDEO} autoPlay muted loop playsInline /><span className="op-gtag">Massage @ PwC</span></div>
           <div className="op-gtile"><video src={MINDFULNESS_VIDEO} autoPlay muted loop playsInline /><span className="op-gtag">Mindfulness @ Betterment</span></div>
-          <div className="op-gtile"><img src="/proposal-refresh/massage-office.png" alt="Onsite chair massage" /></div>
-          <div className="op-gtile"><img src="/proposal-refresh/massage.png" alt="Onsite chair massage" /></div>
-          <div className="op-gtile"><img src="/proposal-refresh/massage-2.png" alt="Onsite chair massage" /></div>
+          <div className="op-gtile"><img src="/wellness-funds/gallery/draftkings.jpg" alt="Onsite chair massage at DraftKings" /><span className="op-gtag">Massage @ DraftKings</span></div>
+          <div className="op-gtile"><video src="/wellness-funds/gallery/bcg.mp4" autoPlay muted loop playsInline /><span className="op-gtag">Massage @ BCG</span></div>
+          <div className="op-gtile"><img src="/wellness-funds/gallery/wix.png" alt="Onsite chair massage at Wix" /><span className="op-gtag">Massage @ Wix.com</span></div>
         </div>
 
         <p className="lede">If your medical carrier is Cigna, Aetna, or Anthem, your plan most likely includes an <strong>employer wellness fund</strong>. It resets every year. We help you spend it on a day your team actually shows up for.</p>
