@@ -13,6 +13,7 @@
 import { writeFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { preflight } from './preflight.mjs';
+import { stampHeartbeat } from '../netlify/functions/lib/heartbeat.js';
 import { assigneeForGmail, repFromCampaignName } from '../netlify/functions/lib/assignee.js';
 import { cleanCompany } from './lib/clean-company.mjs';
 
@@ -358,4 +359,5 @@ async function replaceAll(table, rows) {
   }
   log(`\nCSVs written: play_a.csv (${playA.length}), play_b.csv (${playB.length}), reconciliation.csv`);
   log('DONE');
+  await stampHeartbeat(sb, 'generate-plays', { host: 'local-mac' });
 })().catch((e) => { console.error('PLAYS_ERROR:', e.message); process.exit(1); });

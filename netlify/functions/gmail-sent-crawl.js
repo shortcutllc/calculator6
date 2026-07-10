@@ -18,6 +18,7 @@ import {
   getAccessToken, listSentSince, getMessageHeaders, getThread, bodyFromPayload, lc,
 } from './lib/gmail.js';
 import { classify, cleanReply } from './lib/sentiment.js';
+import { stampHeartbeat } from './lib/heartbeat.js';
 
 export const config = { schedule: '15 * * * *' }; // hourly at :15
 
@@ -200,5 +201,6 @@ export const handler = async () => {
     try { results.push(await processAccount(sb, a)); }
     catch (e) { results.push({ account: a.email, error: e.message }); }
   }
+  await stampHeartbeat(sb, 'gmail-sent-crawl', { host: 'netlify', note: `${(accounts || []).length} accounts` });
   return { statusCode: 200, body: JSON.stringify({ ok: true, accounts: results }) };
 };

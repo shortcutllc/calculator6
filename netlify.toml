@@ -24,6 +24,9 @@
 [functions."slack-rep-digest"]
   schedule = "0 * * * *"    # hourly — function checks each rep's local tz and only fires at 8am LOCAL
 
+[functions."cron-heartbeat-monitor"]
+  schedule = "0 16 * * *"   # daily noon ET — dead-man's-switch: Slack-alerts Will if any outreach cron went stale
+
 [[redirects]]
   from = "/shared/*"
   to = "/index.html"

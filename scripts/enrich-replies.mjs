@@ -22,6 +22,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { classify, cleanReply } from '../netlify/functions/lib/sentiment.js';
+import { stampHeartbeat } from '../netlify/functions/lib/heartbeat.js';
 
 const DRY = process.argv.includes('--dry');
 // Re-evaluate sentiment on every row that has reply_content using the current
@@ -185,4 +186,5 @@ async function leadIdByEmail(email) {
     log(`crm_suppression upserted: ${suppress.length}`);
   }
   log(DRY ? 'DRY — nothing written. Re-run without --dry to apply.' : 'DONE — re-run generate-plays to reclassify Play B.');
+  if (!DRY) await stampHeartbeat(sb, 'enrich-replies', { host: 'local-mac' });
 })().catch((e) => { console.error('ENRICH_REPLIES_ERROR:', e.message); process.exit(1); });

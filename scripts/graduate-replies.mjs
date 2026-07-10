@@ -23,6 +23,7 @@
 import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { assigneeForGmail, repFromCampaignName } from '../netlify/functions/lib/assignee.js';
+import { stampHeartbeat } from '../netlify/functions/lib/heartbeat.js';
 
 const CONFIRM = process.argv.includes('--confirm');
 const RESEARCH = process.argv.includes('--research');   // corroborate owners via Smartlead campaign inboxes
@@ -217,4 +218,5 @@ async function readAll(t, cols, mod) {
     log('  (add --notify to auto-draft a suggested reply + ping each owner in Slack)');
   }
   log('DONE');
+  if (CONFIRM) await stampHeartbeat(sb, 'graduate-replies', { host: 'local-mac' });
 })().catch((e) => { console.error('GRADUATE_ERROR:', e.message); process.exit(1); });

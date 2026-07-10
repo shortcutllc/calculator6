@@ -18,6 +18,7 @@
 
 import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
+import { stampHeartbeat } from '../netlify/functions/lib/heartbeat.js';
 
 const OPENCLAW = '/Users/willnewton/.openclaw/workspace';
 const CONFIRM = process.argv.includes('--confirm');
@@ -96,4 +97,5 @@ const api = (path) => `https://server.smartlead.ai/api/v1${path}${path.includes(
     log(`deleted ${deleted} leads from their Smartlead campaigns.`);
   }
   log('\nDONE — bounced/blocked leads will never re-enter the cold pool.');
+  if (CONFIRM) await stampHeartbeat(sb, 'sync-bounces', { host: 'local-mac' });
 })().catch((e) => { console.error('SYNC_BOUNCES_ERROR:', e.message); process.exit(1); });

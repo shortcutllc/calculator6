@@ -15,6 +15,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { pullSmartlead } from './lib/smartlead-pull.js';
+import { stampHeartbeat } from './lib/heartbeat.js';
 
 export const config = { schedule: '25 * * * *' };
 
@@ -28,6 +29,7 @@ export const handler = async () => {
   try {
     const r = await pullSmartlead({ sb, apiKey, full: false, days: 30, campaignMonths: 3, log: (...a) => console.log('[smartlead-pull]', ...a) });
     console.log('[smartlead-pull] done', JSON.stringify(r));
+    await stampHeartbeat(sb, 'smartlead-pull', { host: 'netlify' });
     return { statusCode: 200, body: JSON.stringify(r) };
   } catch (e) {
     console.error('[smartlead-pull] ERROR:', e.message);
