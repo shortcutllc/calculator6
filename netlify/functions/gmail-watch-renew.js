@@ -13,7 +13,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getAccessToken, startWatch } from './lib/gmail.js';
 
-export const config = { schedule: '0 7 * * *' }; // 07:00 UTC daily
+export const config = { schedule: '0 12 * * *' }; // 12:00 UTC daily — MUST match netlify.toml [functions."gmail-watch-renew"]
 
 export const handler = async () => {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
