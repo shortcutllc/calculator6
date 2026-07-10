@@ -464,7 +464,9 @@ export const handler = async (event) => {
   let q = sb.from('outreach_contacts')
     .select('email, name, company, graduated_owner, graduated_at, graduation_notified_at')
     .eq('channel', 'personal')
-    .eq('graduated_reason', 'positive_cold_reply')
+    // Cold-sequence positives AND founder-lane positives (a reply to Will's personal
+    // note) both draft an on-spine reply here — one drafter, not a parallel brain.
+    .in('graduated_reason', ['positive_cold_reply', 'positive_founder_reply'])
     .not('graduated_owner', 'is', null);
   if (!force) q = q.is('graduation_notified_at', null);
   if (onlyList) q = q.in('email', onlyList);
