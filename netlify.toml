@@ -24,6 +24,9 @@
 [functions."slack-rep-digest"]
   schedule = "0 * * * *"    # hourly — function checks each rep's local tz and only fires at 8am LOCAL
 
+[functions."founder-followup-scheduled"]
+  schedule = "0 13,15,17,19 * * 1-5"  # 9am/11am/1pm/3pm ET weekdays — auto-send founder E2/E3/E4 (replaces the Mac cron; E2 now day+2)
+
 [functions."cron-heartbeat-monitor"]
   schedule = "0 16 * * *"   # daily noon ET — dead-man's-switch: Slack-alerts Will if any outreach cron went stale
 

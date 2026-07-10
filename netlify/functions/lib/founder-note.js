@@ -919,4 +919,7 @@ export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 
 // (Smartlead + industry best practice). The founder lane originally mis-read those as
 // absolute offsets from E1 (3/4/5 = three touches on consecutive days), which was too
 // aggressive; corrected 2026-07-08. The sender compares this to age-from-E1.
-export const FOLLOWUP_CADENCE = { 2: 3, 3: 7, 4: 12 };
+// E2 on DAY 2 (Will 2026-07-10): send the short bump 2 days after E1 (was 3) so
+// it lands while the first note is still warm. E3/E4 unchanged. Weekend-due touches
+// wait for the next weekday run (the scheduler is weekdays-only).
+export const FOLLOWUP_CADENCE = { 2: 2, 3: 7, 4: 12 };
