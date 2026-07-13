@@ -40,6 +40,12 @@ const argVal = (name, def) => { const i = process.argv.indexOf(`--${name}`); ret
 const CHANNEL = argVal('channel', 'all');        // cold | personal | all
 const MIN_N = parseInt(argVal('min-n', '15'), 10); // console display floor (JSON keeps everything)
 const MIN_CROSS = 25;                              // sample floor for a cross-cell to display
+// LOOKBACK WINDOW (Will 2026-07-13): only learn from sends/replies in the last
+// WINDOW_DAYS. Stops the model from re-learning years of stale + warm-nurture
+// history (2023 campaigns were dominating "who replies"). Named + configurable so
+// it can never silently drift back to all-history. 0/negative = no window.
+const WINDOW_DAYS = parseInt(argVal('window-days', '360'), 10);
+const WINDOW_CUTOFF = WINDOW_DAYS > 0 ? new Date(Date.now() - WINDOW_DAYS * 864e5).toISOString() : null;
 
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 const sizeNum = (n) => parseInt(String(n || '').replace(/[^\d]/g, ''), 10) || 0;
@@ -120,8 +126,10 @@ const bump = (map, key, replied, positive) => {
   cur.sent += 1; if (replied) cur.replied += 1; if (positive) cur.positive += 1;
   map.set(k, cur);
 };
-// Turn a tally map into ranked rows: reply rate, positive rate, Wilson lower
-// bound (the honest floor), confidence. Sorted by lb95 so noise sinks.
+// Turn a tally map into ranked rows: reply rate, positive rate, and a Wilson 95%
+// lower bound (the honest floor) on EACH. Ranked by positive_lb95 (Will 2026-07-13):
+// POSITIVE reply rate is the real signal; raw reply rate is mostly OOO/auto-reply
+// noise. reply_lb95 is kept for back-compat (cold-engine goodBands reads it).
 const summarize = (map) => [...map.entries()].map(([value, c]) => ({
   value,
   sent: c.sent,
@@ -130,15 +138,20 @@ const summarize = (map) => [...map.entries()].map(([value, c]) => ({
   reply_rate: +(c.replied / c.sent).toFixed(4),
   positive_rate: +(c.positive / c.sent).toFixed(4),
   reply_lb95: +wilsonLower(c.replied, c.sent).toFixed(4),
+  positive_lb95: +wilsonLower(c.positive, c.sent).toFixed(4),
   confidence: confidence(c.sent),
-})).sort((a, b) => b.reply_lb95 - a.reply_lb95 || b.sent - a.sent);
+})).sort((a, b) => b.positive_lb95 - a.positive_lb95 || b.reply_lb95 - a.reply_lb95 || b.sent - a.sent);
 
 (async () => {
   log(`Building belief model — channel=${CHANNEL}, display floor n>=${MIN_N}`);
 
-  // ---- load the joinable corpus ----
-  const sends = await readAll('outreach_sends', 'email, sent_time, reply_time, sender_email, campaign_id');
-  const replies = await readAll('outreach_replies', 'email, reply_sentiment');
+  // ---- load the joinable corpus (windowed to the last WINDOW_DAYS) ----
+  // Window sends by sent_time AND replies by reply_date to the same cutoff, so a
+  // lead's ancient reply can't mark a recent send as "replied" and inflate a cell.
+  const sends = await readAll('outreach_sends', 'email, sent_time, reply_time, sender_email, campaign_id',
+    WINDOW_CUTOFF ? (q) => q.gte('sent_time', WINDOW_CUTOFF) : undefined);
+  const replies = await readAll('outreach_replies', 'email, reply_sentiment, reply_date',
+    WINDOW_CUTOFF ? (q) => q.gte('reply_date', WINDOW_CUTOFF) : undefined);
   const contacts = await readAll('outreach_contacts', 'email, title, email_domain, location, source, crm_company_id');
   const persons = await readAll('apollo_person_cache', 'email_domain, company_headcount, industry');
   const companies = await readAll('crm_companies', 'id, ext_industry, ext_employee_size, contact_domains');
@@ -235,9 +248,10 @@ const summarize = (map) => [...map.entries()].map(([value, c]) => ({
     channel_filter: CHANNEL,
     observations: { total_sends: total, sends_without_contact_record: noContact, skipped_other_channel: skippedChannel },
     method: {
-      win_definition: 'replied = send.reply_time present OR email has a reply row',
-      positive_definition: 'email-level reply_sentiment === positive (sparse; treat positive_rate as a lower bound)',
-      ranking: 'Wilson 95% lower bound on reply rate (reply_lb95) — discounts small samples',
+      window: WINDOW_CUTOFF ? { days: WINDOW_DAYS, since: WINDOW_CUTOFF } : 'all-history (no window)',
+      win_definition: 'replied = send.reply_time present OR email has a reply row (both windowed to WINDOW_DAYS)',
+      positive_definition: 'email-level reply_sentiment === positive',
+      ranking: 'Wilson 95% lower bound on the POSITIVE reply rate (positive_lb95) — discounts small samples; reply_lb95 kept for back-compat',
       confidence: 'high n>=200, medium n>=50, low n>=15, else insufficient',
     },
     who: {
@@ -266,15 +280,16 @@ const summarize = (map) => [...map.entries()].map(([value, c]) => ({
   const fmtRows = (rows, label) => {
     const shown = rows.filter((r) => r.sent >= MIN_N);
     if (!shown.length) return `### ${label}\n_(no buckets with n>=${MIN_N})_\n`;
-    const head = '| value | sent | reply % | reply floor (lb95) | positive % | confidence |\n|---|---:|---:|---:|---:|---|';
-    const body = shown.map((r) => `| ${r.value} | ${r.sent} | ${(r.reply_rate * 100).toFixed(1)} | ${(r.reply_lb95 * 100).toFixed(1)} | ${(r.positive_rate * 100).toFixed(1)} | ${r.confidence} |`).join('\n');
+    const head = '| value | sent | positive % | positive floor (lb95) | reply % | reply floor (lb95) | confidence |\n|---|---:|---:|---:|---:|---:|---|';
+    const body = shown.map((r) => `| ${r.value} | ${r.sent} | ${(r.positive_rate * 100).toFixed(1)} | ${(r.positive_lb95 * 100).toFixed(1)} | ${(r.reply_rate * 100).toFixed(1)} | ${(r.reply_lb95 * 100).toFixed(1)} | ${r.confidence} |`).join('\n');
     return `### ${label}\n${head}\n${body}\n`;
   };
+  const windowNote = WINDOW_CUTOFF ? `last ${WINDOW_DAYS} days (since ${WINDOW_CUTOFF.slice(0, 10)})` : 'ALL history (no window)';
   const md = [
     `# Cold-campaign belief model`,
-    `Generated ${model.generated_at} · channel=${CHANNEL} · ${total} sends observed (${noContact} without a contact record)`,
+    `Generated ${model.generated_at} · channel=${CHANNEL} · window=${windowNote} · ${total} sends observed (${noContact} without a contact record)`,
     ``,
-    `Ranked by **reply floor (Wilson 95% lower bound)** — the honest worst-case reply rate given the sample. A high headline rate on a tiny sample has a low floor and sinks. This is the skeptic's math: nothing is "proven" until the floor itself is high.`,
+    `Ranked by **positive floor (Wilson 95% lower bound on the POSITIVE reply rate)** — the honest worst-case rate of genuinely interested replies given the sample. Positive rate is the real signal; raw reply rate is mostly OOO/auto-replies. A high headline rate on a tiny sample has a low floor and sinks. Learning window: **${windowNote}**.`,
     ``,
     `## WHO`,
     fmtRows(model.who.title_category, 'Title category'),
@@ -296,9 +311,9 @@ const summarize = (map) => [...map.entries()].map(([value, c]) => ({
 
   // ---- console summary ----
   const top = (rows, label, n = 8) => {
-    log(`\n=== ${label} (ranked by reply floor lb95, n>=${MIN_N}) ===`);
+    log(`\n=== ${label} (ranked by POSITIVE floor lb95, n>=${MIN_N}) ===`);
     for (const r of rows.filter((x) => x.sent >= MIN_N).slice(0, n)) {
-      log(`  floor ${(r.reply_lb95 * 100).toFixed(1).padStart(5)}%  rate ${(r.reply_rate * 100).toFixed(1).padStart(5)}%  n=${String(r.sent).padStart(5)}  [${r.confidence.padEnd(12)}]  ${r.value}`);
+      log(`  pos-floor ${(r.positive_lb95 * 100).toFixed(1).padStart(5)}%  pos ${(r.positive_rate * 100).toFixed(1).padStart(5)}%  reply ${(r.reply_rate * 100).toFixed(1).padStart(5)}%  n=${String(r.sent).padStart(5)}  [${r.confidence.padEnd(12)}]  ${r.value}`);
     }
   };
   log(`\nObserved ${total} sends · ${noContact} had no contact record (title/firmo unknown) · skipped ${skippedChannel} off-channel`);
