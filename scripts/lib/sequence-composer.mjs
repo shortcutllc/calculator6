@@ -114,23 +114,44 @@ export async function composeSequence({ anthropic, segment, belief, winningTempl
 const htmlBody = (text) => String(text || '').split('\n')
   .map((l) => (l.trim() ? `<div>${l}</div>` : '<div><br></div>')).join('');
 
-/** Map composed steps → the shape create_campaign.js apiAddSequences expects. */
+const spinSubject = (subjects) => { const subs = (subjects || []).filter(Boolean); return subs.length > 1 ? `{${subs.join('|')}}` : (subs[0] || ''); };
+
+/**
+ * Map composed steps → Smartlead's POST /sequences shape.
+ *
+ * REAL A/B VARIANTS (fixed 2026-07-13, Will): Smartlead's WRITE field is
+ * `seq_variants` (its READ field is `sequence_variants` — the name mismatch is why
+ * a prior session thought variants were impossible and fell back to manual paste).
+ * If a step carries `abVariants` (>=2 entries, each {subjects?, body, variantLabel?}),
+ * we emit real per-variant A/B split MANUAL_EQUAL, judged on POSITIVE_REPLY_RATE.
+ * Otherwise the step ships a single subject+body (spintax rotation as before).
+ *
+ * NOTE: POST /sequences is a FULL REPLACE, so this definition is the source of
+ * truth — variants added by hand in the Smartlead UI are overwritten. Keep all
+ * intended variants here.
+ */
 export function toSmartleadSequences(steps) {
-  // Smartlead's POST /sequences wants subject + email_body directly on the step
-  // (NOT a sequence_variants wrapper — that's the GET shape and the POST rejects
-  // it). A/B happens via spintax in the single subject line. Matches the working
-  // create_post_event_campaigns.js format.
   return (steps || []).map((s) => {
-    // Multiple subjects ROTATE via SPINTAX in the single subject field (Smartlead's
-    // POST rejects the sequence_variants A/B wrapper). 2-3 phrasings → {a|b|c} and
-    // Smartlead picks one per send. One subject → as-is. Blank → threaded follow-up.
-    const subs = (s.subjects || []).filter(Boolean);
-    return {
-      seq_number: s.step,
-      seq_delay_details: { delay_in_days: s.delayDays ?? 0 },
-      subject: subs.length > 1 ? `{${subs.join('|')}}` : (subs[0] || ''),
-      email_body: htmlBody(s.body),
-    };
+    const base = { seq_number: s.step, seq_delay_details: { delay_in_days: s.delayDays ?? 0 } };
+    const variants = Array.isArray(s.abVariants) && s.abVariants.length >= 2 ? s.abVariants : null;
+    if (variants) {
+      const pct = Math.floor(100 / variants.length);
+      return {
+        ...base,
+        subject: '', email_body: '',
+        variant_distribution_type: 'MANUAL_EQUAL',
+        winning_metric_property: 'POSITIVE_REPLY_RATE',
+        seq_variants: variants.map((v, i) => ({
+          id: null,
+          variant_label: v.variantLabel || String.fromCharCode(65 + i),
+          // last variant absorbs the rounding remainder so the split sums to 100
+          variant_distribution_percentage: i === variants.length - 1 ? 100 - pct * (variants.length - 1) : pct,
+          subject: spinSubject(v.subjects || s.subjects),
+          email_body: htmlBody(v.body),
+        })),
+      };
+    }
+    return { ...base, subject: spinSubject(s.subjects), email_body: htmlBody(s.body) };
   });
 }
 
