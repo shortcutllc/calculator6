@@ -303,11 +303,15 @@ async function mvVerify(email, mvKey) {
     if (dom && clientDomains.has(dom)) continue;
     const hc = hcByEmail.get(e) || (dom ? hcByDom.get(dom) : 0) || 0;
     // Segment: brokers (broker_track / target firm), then law + real estate
-    // (their own messaging, never in direct cold), else direct.
+    // (their own cohorts with their own messaging — NEVER in direct cold), else
+    // direct. Match the vertical anywhere in `source`, not just the '-law'/
+    // '-realestate' suffix: sheet-imported RE/law (e.g. 'sheet:Real Estate',
+    // 'sheet:New York - Law') was leaking into direct (Will 2026-07-13).
     let segment = 'direct';
+    const srcl = (o.source || '').toLowerCase();
     if (o.broker_track || (dom && brokerDomains.has(dom))) segment = 'broker';
-    else if ((o.source || '').endsWith('-law')) segment = 'law';
-    else if ((o.source || '').endsWith('-realestate')) segment = 'realestate';
+    else if (/real[\s_-]?estate/.test(srcl)) segment = 'realestate';
+    else if (/\blaw\b/.test(srcl)) segment = 'law';
     candidates.push({ email: e, email_domain: dom, name: o.name || null, company: o.company || null, title_cat: titleCat(o.title), size_band: sizeBand(hc), mv_status: o.mv_status || null, bounceban_status: o.bounceban_status || null, source: o.source || null, segment, hub: hubOf(o.location), cle_url: cleUrlFor(o.location) });
   }
   const bySeg = candidates.reduce((m, c) => { m[c.segment] = (m[c.segment] || 0) + 1; return m; }, {});
