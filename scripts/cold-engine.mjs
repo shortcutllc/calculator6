@@ -92,6 +92,34 @@ const EASTERN = ['New York', 'Miami', 'Boston', 'Philadelphia', 'Washington DC']
 const CITIES = (val('--cities', REGION === 'eastern' ? EASTERN.join('|') : '') || '').split('|').map((s) => s.trim()).filter(Boolean);
 const DO_PULL = has('--pull'); const DO_VERIFY = has('--verify'); const DO_LAUNCH = has('--launch');
 const CONFIRM = has('--confirm');
+// --notify: DM Will the advisory copy-judge verdict + the E3 A/B variant (both
+// were log-only, buried in /tmp — nobody read them). A real launch/edit ALWAYS
+// notifies (a deliberate act deserves a receipt + the E3 paste reminder); on a
+// dry preview, --notify forces it. Fire-and-forget: a Slack failure never fails
+// the run. Mirrors improve-loop --notify → improve-loop-digest-background.
+const NOTIFY = has('--notify');
+const COLD_NOTIFY_URL = (process.env.COLD_ENGINE_NOTIFY_URL || 'https://proposals.getshortcut.co/.netlify/functions/cold-engine-notify-background').trim();
+let judgeResult = null;   // captured in the --judge block, surfaced by maybeNotify
+function variantBPayload(seq) {
+  const e3 = (seq?.steps || []).find((s) => s.step === 3);
+  const vb = e3?.abVariants?.[1];
+  return vb?.body ? { label: vb.variantLabel || 'B-long', body: vb.body } : null;
+}
+async function maybeNotifyCold({ launched = false, campaign = null } = {}) {
+  // Notify on a real launch/edit unconditionally; otherwise only with --notify.
+  if (!launched && !NOTIFY) { if (!launched) log('  (add --notify to DM the judge verdict + E3 variant to Slack)'); return; }
+  const payload = {
+    segment: SEGMENT, senders: SENDERS, week: new Date().toISOString().slice(0, 10),
+    launched, campaign, judge: judgeResult, variantB: variantBPayload(SEQ),
+  };
+  if (!payload.judge && !payload.variantB && !launched) return; // nothing to say
+  try {
+    const r = await fetch(COLD_NOTIFY_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    log(`  notify: DM'd cold-engine feedback to Slack (HTTP ${r.status}).`);
+  } catch (e) {
+    log(`  notify warn: could not reach cold-engine-notify (${e.message}). Feedback still in this log.`);
+  }
+}
 
 const URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
 const KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
@@ -196,6 +224,7 @@ async function mvVerify(email, mvKey) {
     const res = await updateCampaignSequence({ apiKey: SL, campaignId: EDIT, sequence: SEQ });
     log(`EDIT done: campaign ${res.campaign_id} — replaced sequence, wrote ${res.wrote_steps} steps. ${res.url}`);
     printVariantB(SEQ);
+    await maybeNotifyCold({ launched: true, campaign: { id: res.campaign_id, url: res.url } });
     return;
   }
 
@@ -410,6 +439,7 @@ async function mvVerify(email, mvKey) {
       try {
         const [{ default: Anthropic }, { judgeCopy }] = await Promise.all([import('@anthropic-ai/sdk'), import('./lib/copy-judge.mjs')]);
         const j = await judgeCopy({ anthropic: new Anthropic({ apiKey: ak }), sequence: SEQ, segment: SEGMENT });
+        judgeResult = j;   // surfaced to Slack by maybeNotifyCold
         log(`JUDGE (advisory): ${j.verdict.toUpperCase()} · ${j.score}/100 — ${j.would_reply_read}`);
         if (j.issues.length) log('  issues: ' + j.issues.map((i) => `[${i.severity}] E${i.step} ${i.issue}`).join(' · '));
         if (j.suggestions.length) log('  fixes: ' + j.suggestions.slice(0, 4).join(' · '));
@@ -451,6 +481,7 @@ async function mvVerify(email, mvKey) {
       log('=================================================================');
     } catch (e) { log(`plan preview failed: ${e.message}`); }
     log('Launch with: --launch --confirm   (uses the approved v3 copy; add --clone <id> to clone a template instead)');
+    await maybeNotifyCold({ launched: false, campaign: null });
     return;
   }
   if (!SMARTLEAD) { log('LAUNCH refused: MISSING SMARTLEAD_API_KEY (openclaw .env).'); return; }
@@ -471,6 +502,7 @@ async function mvVerify(email, mvKey) {
     log(`  ${res.url}`);
     log('Track replies via pull-smartlead; positive replies graduate to the personal lane.');
     printVariantB(SEQ);
+    await maybeNotifyCold({ launched: true, campaign: { id: res.campaign_id, url: res.url, leads: res.uploaded } });
   } catch (e) { log(`LAUNCH failed: ${e.message}`); process.exit(1); }
   log('DONE');
 })().catch((e) => { console.error('COLD_ENGINE_ERROR:', e.message); process.exit(1); });
