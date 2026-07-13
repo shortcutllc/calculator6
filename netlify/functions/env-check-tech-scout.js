@@ -12,7 +12,7 @@
 const withTimeout = (ms) => { const c = new AbortController(); const t = setTimeout(() => c.abort(), ms); return { signal: c.signal, done: () => clearTimeout(t) }; };
 
 async function check(name, fn) {
-  const to = withTimeout(12000);
+  const to = withTimeout(8000);   // stay under Netlify's 10s sync-function limit
   try {
     const { status, ok, note } = await fn(to.signal);
     return { key: name, status, ok, note };
@@ -54,10 +54,15 @@ export const handler = async () => {
 
   results.push(await check('BOUNCEBAN_API_KEY', async (signal) => {
     if (!BB) return { status: null, ok: false, note: 'MISSING from Netlify env' };
-    const r = await fetch('https://api-waterfall.bounceban.com/v1/credits', { headers: { Authorization: BB }, signal });
+    // Real verify endpoint (reserved domain resolves fast, ~1 credit). A 200 with a
+    // result field = auth + key valid. (A bad key returns 401/403, not this.)
+    const r = await fetch('https://api-waterfall.bounceban.com/v1/verify/single?email=verify-test@example.com', {
+      method: 'GET', headers: { Authorization: BB, Accept: 'application/json' }, signal,
+    });
     const j = await r.json().catch(() => ({}));
-    const ok = r.status === 200 && !j.error;
-    return { status: r.status, ok, note: ok ? `credits ok: ${JSON.stringify(j).slice(0, 120)}` : `bad key or error (${j.error || 'HTTP ' + r.status})` };
+    const result = j.result ?? j.status ?? j.state ?? j.data?.result;
+    const ok = r.status === 200 && result != null;
+    return { status: r.status, ok, note: ok ? `auth ok (result: ${result})` : `HTTP ${r.status} (${j.message || j.error || 'no result field'})` };
   }));
 
   const allOk = results.every((x) => x.ok);
