@@ -7,12 +7,10 @@
  * Fires 7:35am ET weekdays. 35 11 = 7:35 EDT (matches the codebase's EDT-fixed
  * cron convention; fires 6:35 during EST — immaterial, drafts wait for Will).
  *
- * DORMANT until cutover: this inline schedule does NOT fire until a matching entry
- * is added to netlify.toml (per the toml comment: "Without this block the cron
- * silently didn't fire"). CUTOVER = add the netlify.toml [functions."tech-scout-
- * scheduled"] entry AND retire the local Mac tech-scout harvest cron, together.
- * Kept out of netlify.toml on purpose so the local cron stays the sole trigger
- * until Will greenlights the flip.
+ * ACTIVE (cutover 2026-07-13): the netlify.toml [functions."tech-scout-scheduled"]
+ * entry is in place, so this fires. The local Mac tech-scout harvest cron was
+ * retired at the same time — Netlify is now the sole trigger. (The local --report
+ * cron stays; it reads the shared Supabase ledger.)
  */
 
 const BACKGROUND_URL_PATH = '/.netlify/functions/tech-scout-background';
