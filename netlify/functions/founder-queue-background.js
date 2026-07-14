@@ -162,6 +162,21 @@ export const handler = async (event) => {
   // (Anthropic multishot guidance; voice research 2026-07-06).
   const exemplars = await recentSentBodies(tok, 5);
 
+  // ANTI-SAMENESS (2026-07-14): the drafter sees ONE note and cannot know what it wrote
+  // yesterday, so "vary your phrasing" cannot hold on its own — on 2026-07-14 three
+  // broker notes drafted four minutes apart shared a verbatim paragraph. Feed the recent
+  // notes back in (composeNote injects them into the prompt AND checks n-gram overlap in
+  // code). Notes drafted in THIS run are appended as we go, because the worst duplicates
+  // were within a single run.
+  const RECENT_NOTES_N = 20;
+  const { data: priorNotes } = await sb.from('saved_drafts')
+    .select('body')
+    .eq('target_kind', 'founder_note')
+    .order('created_at', { ascending: false })
+    .limit(RECENT_NOTES_N);
+  const recentNotes = (priorNotes || []).map((r) => r.body).filter(Boolean);
+  console.log(`anti-sameness: ${recentNotes.length} recent notes loaded`);
+
   // Digest header DM.
   const open = await slackPost('conversations.open', { users: acct.slack_user_id });
   const channel = open.channel?.id;
@@ -192,15 +207,28 @@ export const handler = async (event) => {
       // tag. Audience-aware (tech-execs = company/how-they-treat-people; brokers =
       // their firm's benefits/wellbeing practice, connected to helping their clients).
       // Null-safe: on timeout/nothing-found the note falls back to its normal path.
-      let personalHook = null;
+      let personalHook = null; let hookCategory = null; let hookDetail = null; let hookConnects = null;
       try {
         const ph = await researchPersonalHook(anthropic, t, { audience, log: (m) => console.log(`  ${m}`) });
-        if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; console.log(`  personalized ${t.email}: ${ph.category} — ${ph.warm_line.slice(0, 80)}`); }
+        if (ph?.warm_line && ph.confidence !== 'low') {
+          personalHook = ph.warm_line;
+          // category/detail/connects feed the gates (2026-07-14): category==='office'
+          // unlocks office framing, and the detail + claimed connection let the skeptic
+          // actually judge the "connects on its face" bar instead of guessing at it.
+          hookCategory = ph.category || null; hookDetail = ph.personal_detail || null; hookConnects = ph.connects || null;
+          console.log(`  personalized ${t.email}: ${ph.category} — ${ph.warm_line.slice(0, 80)}`);
+        }
       } catch (e) { console.log(`  personalize failed for ${t.email} (${e.message}) — trigger fallback`); }
       // Compose engine (lib/founder-note.js): draft -> guards (2 revises) ->
       // skeptic -> revise -> final guard. Throws if it still violates a hard
       // rule; the catch below turns that into a Slack skip.
-      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook, label: t.email });
+      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook, hookCategory, hookDetail, hookConnects, recentNotes, label: t.email });
+
+      // Feed this note back into the anti-sameness pool so the NEXT lead in this same
+      // run cannot reuse its phrasing (the Krista/Rob/Julie duplicates on 2026-07-14
+      // were all drafted within four minutes of each other).
+      recentNotes.unshift(note.body);
+      if (recentNotes.length > RECENT_NOTES_N) recentNotes.pop();
 
       // Gmail draft — founder-min signature embedded (Will 2026-07-06). Still no
       // logo/booking-link (first-touch rule); founder-min is the minimal block.

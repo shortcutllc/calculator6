@@ -25,6 +25,14 @@ import { buildPositioningBlock } from './positioning.js';
 
 export const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
 
+// Drafting temperature (raised 0.4 → 0.85, 2026-07-14). For this task VARIANCE IS THE
+// PRODUCT: a 1:1 note that shares sentences with the note Will sent an hour ago is a
+// mail merge, and three broker notes drafted minutes apart on 2026-07-14 shared a
+// verbatim paragraph. 0.4 was actively suppressing the thing we most need. The gates
+// (guards + skeptic + sameness check) are what keep quality; temperature is what keeps
+// it human. The skeptic stays at temperature 0 — evaluation should be deterministic.
+export const DRAFT_TEMPERATURE = 0.85;
+
 // ---- Will's live voice exemplars: recent real sent mail (external, plain text).
 export async function recentSentBodies(accessToken, n = 3) {
   try {
@@ -58,7 +66,15 @@ export async function recentSentBodies(accessToken, n = 3) {
 export const NOTE_SCHEMA = {
   type: 'object',
   properties: {
-    subject: { type: 'string', description: '1-4 words, lowercase internal-note style, no sell words' },
+    // SUBJECT = A REFERENT, NOT A TOPIC LABEL (research 2026-07-14). The 1-4-word
+    // lowercase convention stays, but what goes INSIDE it matters more than the
+    // format: name a real, specific thing from THEIR world that they would
+    // recognise instantly ("one soho square"), not an abstract topic label
+    // ("employee ownership") and never a teaser. The only subject line in the
+    // researched corpus with any standing is Ferriss's "Moore '06 Update" — a
+    // shared referent. Subject A/B is low-leverage (see memory/cold_email_subjects.md);
+    // the hook is the lever, and a good hook hands you the subject for free.
+    subject: { type: 'string', description: "1-4 words, lowercase, internal-note style, no sell words. A REFERENT: the concrete thing from their world the note is about (a place, a name, a thing they did), not a topic label and not a teaser." },
     body: { type: 'string', description: "the founder note, 50-100 words, plain text; separate paragraphs with a BLANK line (\\n\\n), ending with the sign-off: 'Cheers!' or 'Thanks!' then '\\nWill'. No company block after (his Gmail signature is appended separately)." },
     research_note: { type: 'string', description: 'one line for Will: the specific thing you found and used (or "nothing specific found — used firm-level angle")' },
     linkedin_step: { type: 'string', description: "today's LinkedIn action for Will for this person, one line (e.g. 'comment on her post about X, then blank connect')" },
@@ -66,8 +82,42 @@ export const NOTE_SCHEMA = {
   required: ['subject', 'body', 'research_note', 'linkedin_step'],
 };
 
-export function voiceSystem(exemplars, audience, ctaVariant = 'help', remote = false) {
+// ============================================================================
+// NOTE ARCHITECTURES (research 2026-07-14 — the anti-sameness lever that actually
+// works). Telling a model to "vary the wording" produces variance INSIDE a fixed
+// shape, and readers detect SHAPE, not vocabulary. Three real broker notes drafted
+// on 2026-07-14 shared a near-verbatim middle paragraph despite the prompt already
+// saying "if two notes could swap a sentence you have written a template" — proof
+// that prompt exhortation alone does not hold. So the SKELETON itself rotates,
+// deterministically per lead (same idea as pickSignoff: stable per recipient, not
+// random per run). Each architecture is drawn from an operator with real standing.
+// ============================================================================
+export const NOTE_ARCHITECTURES = [
+  {
+    key: 'braun',
+    brief: `ARCHITECTURE — OBSERVATION → QUESTION → RECEIPT → ASK (Josh Braun's structure).
+Open on the observation. Then ask the ONE question, about THEIR world. Then give the receipt AS THE REASON YOU ASKED ("Asking because…"), never as a boast standing on its own. Then the ask. The proof must arrive as evidence for the question, not as a stat dropped on the reader.`,
+  },
+  {
+    key: 'short',
+    brief: `ARCHITECTURE — THE SHORT ONE (Paul Graham: "I respond faster to emails that are short. Two-liners I often reply to immediately. Long emails I leave in my inbox to deal with later, and never do.").
+Radically compressed: the observation and who-Will-is in a couple of lines, then the ONE question, then the sign-off. You may drop the proof point entirely — the note's job is to start a conversation, not win it. Target 45-70 words. Do NOT pad this back to a standard note.`,
+  },
+  {
+    key: 'ferriss',
+    brief: `ARCHITECTURE — THE ASK WITH A DOOR OUT (Tim Ferriss: "He makes it clear that it's OK if I can't help. This, paradoxically, makes it much more likely he'll get a response.").
+Observation, who Will is, the ONE question, and then an explicit, genuine permission to decline or to point him elsewhere ("If this isn't yours, no problem at all, happy to be pointed to whoever owns it" / "Completely fine if it's already handled"). The easy out is the point of this shape: write it like you mean it, never as a throwaway tag.`,
+  },
+];
+export function pickArchitecture(seed) {
+  let h = 2166136261; const s = String(seed || 'x').toLowerCase();
+  for (let i = 0; i < s.length; i += 1) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return NOTE_ARCHITECTURES[h % NOTE_ARCHITECTURES.length];
+}
+
+export function voiceSystem(exemplars, audience, ctaVariant = 'help', remote = false, opts = {}) {
   const channel = audience === 'brokers' ? 'broker' : 'direct';
+  const { architecture = null, recentNotes = [], officeContext = false } = opts;
   return `You draft 1:1 networking emails for Will Newton, founder and CEO of Shortcut (getshortcut.co). You write AS Will, in his voice.
 
 ${buildPositioningBlock({ channel, remote })}
@@ -87,6 +137,16 @@ THE MOTION: founder-to-peer networking, NOT sales outreach. First touch. The goa
 
 LENGTH & SELECTION (Will 2026-07-08 — SHORT beats complete; this is the most important rule): a great 1:1 note makes ONE point, it does not include everything. A finished note is just: (1) the opener (a genuine hook, or a warm plain open), (2) one plain line on who Will is and what Shortcut does, (3) ONE supporting beat that best fits THIS person, (4) one concrete ask, (5) the sign-off. Everything else the positioning offers — a second proof, another observation, a receipt stacked on a stat, extra services detail — is OPTIONAL raw material. Pick the SINGLE strongest beat for this person and DROP the rest. Stacking beats is the #1 reason a note reads like a machine checking boxes, and it is the thing to avoid above all. Aim for roughly 4 short paragraphs, about 90 to 120 words. If it runs longer, you are including too much: cut a beat, do not just reword.
 
+${architecture ? `\n${architecture.brief}\nThis is the SHAPE of this particular note. Follow it. Will does not write the same email twice, and the surest tell of a machine is that every note has the identical skeleton.\n` : ''}
+ASK EXACTLY ONE QUESTION (research 2026-07-14 — the single biggest miss in the notes we have been sending). Every operator with standing converges here: Derek Sivers, "Only ask one question." Josh Braun's whole method is built on the one question that makes the reader notice something in their own world. A note that asks NOTHING gives the reader nothing easy to do, so they do nothing.
+- The body must contain EXACTLY ONE question mark. Not zero. Not two. This is checked in code.
+- It is a REAL question about THEIR world, and it must be answerable in one line. "What's actually pulling people in so far?" / "How are you handling that today?" / "Is this yours, or should I be talking to someone else?"
+- Put it where it genuinely belongs for this note's architecture. It may open the note when the question IS the hook. It may be the close. It is usually strongest right after the observation.
+- It is NOT a rhetorical question and NOT a pitch wearing a question mark ("Wouldn't it be great if your team actually used their wellness benefit?" is a pitch — reject that instinct).
+- Do NOT then add a SECOND question anywhere, including in the close. If the close is a question, that IS your one question.
+
+ONE LINE ONLY WILL COULD HAVE WRITTEN (the brand voice guide's own rule: "If a sentence works for any wellness company, rewrite it until it only works for Shortcut"). Somewhere in the note there must be at least one sentence that could not appear in any other note you write — because it is about THIS person, THIS company, THIS specific thing. Not a stat, not a service line, not a value claim: those are transferable by definition. This is the sentence that proves a human wrote it. Compression is not humanity: a maximally terse note is indistinguishable from an automated one.
+${recentNotes.length ? `\nALREADY USED — DO NOT REUSE (these are notes you have recently sent; a recipient comparing notes with a peer must not find the same sentences):\n${recentNotes.map((b, i) => `--- recent ${i + 1} ---\n${b}`).join('\n')}\nDo NOT reuse any phrasing, sentence shape, or turn of phrase from the notes above. Not the intro sentence, not the way the services are listed, not the observation frame, not the ask. If a sentence you are about to write appears in substance above, write a different one. This is checked in code against recent sends.\n` : ''}
 SIGN-OFF (Will 2026-07-06): end with "Cheers!" or "Thanks!" on its own line, then "Will" on the next line. Nothing after (his Gmail signature is appended automatically). That sign-off is the ONLY exclamation mark in the whole email, and it stays: it reads warm, and gratitude closes get the most replies.
 
 INTRODUCE WILL AND SHORTCUT CLEARLY (Will's requirement, 2026-07-02): early in the note, one plain human sentence saying who he is ("I'm Will, I run Shortcut") and what Shortcut does, in concrete terms drawn from the positioning above. Compose it FRESH every time in your own words; do NOT paste a fixed template sentence. The single biggest machine tell is every note opening with the identical "We bring wellness days into offices for companies like BCG and DraftKings, chair massage, nails, facials, mindfulness, all from one team" sentence. Vary the wording, the order, which detail leads. Never assume they can infer what Shortcut is. This intro is exempt from the observation-first rule (observation first, intro second is the natural order).
@@ -96,7 +156,7 @@ MILESTONE HOOKS — KEEP THE GOOD ONES (Will 2026-07-07, do NOT default to dropp
 OBSERVATION BAR (Will 2026-07-06, for NON-milestone finds): a personal or firm find is usable ONLY if it connects to the note's actual thread ON ITS FACE — their wellbeing/benefits practice or role, their clients, their metro, something they wrote about wellness, benefits, or budgets. If connecting it takes a thematic bridge or a shared-value abstraction, it is FORCED: drop it and use the firm or metro angle instead.
   GOOD (flows with the sell): "Given EPIC's Wellbeing & Health Management practice, I'm curious whether you're seeing this with your New York clients on those carriers." The find IS the thread.
   FORCED (never do this): "I saw you're a Health Rosetta advisor. That transparency focus is exactly what I keep running into on the carrier wellness fund side." Credential → "transparency" → funds is a bolted-on bridge. A note with no personal line beats this every time.
-RECENCY (part of the bar): an observation framed as news ("I saw you...", "congrats on...") must be from the last ~6 months. Older facts are fine ONLY as standing facts ("you run People across 12 countries"), never with I-just-saw framing. A 2023 promotion presented as fresh news reads as lazy scraping the moment they notice the date.
+RECENCY (part of the bar) — THIS IS ABOUT FRAMING, NOT ABOUT DISCARDING THE FACT: an observation framed as news ("I saw you...", "congrats on...", "you just...") must be from the last ~6 months. An OLDER fact is still a great opener, you simply write it as a STANDING CONDITION about their world: "you have 60% more space at One Soho Square" (true today, no news claim), never "I saw you just moved". A 2023 promotion presented as fresh news reads as lazy scraping the moment they notice the date. Do NOT respond to an older fact by DROPPING it and writing a generic note — a generic note is worse than a well-framed standing fact. Reframe, do not delete.
 If the firm context includes a CONTENT HOOK (a verified piece of the firm's own published content), referencing it naturally is the best possible observation. Only reference content named in the context or found in YOUR OWN searches this run.
 HONESTY RULE (hard): if the searches surface nothing specific about the PERSON, use the firm-level angle from the context instead, framed honestly. NEVER imply Will read/saw something that does not exist. NEVER invent posts, quotes, news, or mutuals. A slightly less personal true note beats a fake-personal one every time.
 CLIENT CLAIMS ARE CLOSED-WORLD (hard): the only facts about Shortcut's clients you may state are the ones IN THIS PROMPT (BCG and DraftKings, 500+ companies, 87% rebook, over 90% of slots get booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}). NEVER invent client categories or segments ("we work with a few gaming studios", "our law-firm clients tell us") — you do not know the roster. Tie the note to their world through THEIR context, not through made-up client overlap.
@@ -125,7 +185,8 @@ WHAT THE NOTE SAYS (Will 2026-07-06, sentiment is everything): Shortcut CELEBRAT
 HARD TONE RULES for this cohort:
 - NEVER assert facts about THEIR team's state ("everyone is stretched", "your people are burned out", "you're probably overwhelmed"). Will has not met their team. Stress may appear only inside an "if"/"as"/"when" clause or a question.
 - NEVER warn about consequences or create urgency ("what you do now becomes how things are done", "before culture calcifies", "the window is closing"). We offer wellness, not threats. Zero fear framing.
-- BANNED (established-company angles): RTO framing, "make the office worth the commute"/"worth coming to", return-to-office language, perks-theater talk, enterprise-benefits vocabulary. EXCEPTION: office framing only when the verified trigger itself is about their office (a lease, an X-days-in-office posting).
+- BANNED (established-company angles): RTO framing, "make the office worth the commute"/"worth coming to", return-to-office language, perks-theater talk, enterprise-benefits vocabulary. EXCEPTION: office framing only when the verified trigger OR the verified personal observation is itself about their office (a lease, a move, a space expansion, an X-days-in-office posting).${officeContext ? `
+  >> THIS LEAD IS THE EXCEPTION. The verified observation for this note IS about their office (a lease, a move, or a space expansion). Office framing is EXPLICITLY PERMITTED here and it is the right angle: a company that just committed to more space wants people in it, and that is exactly Shortcut's moment. Write it warmly and without fear-framing — celebrate the room they built, do not lecture them about return-to-office. Note the RECENCY rule still applies: if the move is older than ~6 months, it is a STANDING fact about their office ("you have 60% more space at X"), never fresh news ("I saw you just moved").` : ''}
 If the prospect JSON has a why_now_trigger, it is VERIFIED (harvested with an evidence URL) — anchor the note on it (for funding triggers that means congratulating it) and skip inventing a different angle; web searches just add color, and a note with no extra color is completely fine. Never claim they have wellness budget; a raise is a milestone to celebrate, not a budget claim.
 WHAT SHORTCUT IS FOR THEM: the wellness days people actually book (drawn from the positioning above), led by massage with the breadth signalled in one beat. Lead with the in-office experience for a company with an office.
 REMOTE vs IN-OFFICE — GET THE SERVICES RIGHT (Will 2026-07-07): there are two kinds of service (see the menu above). IN-PERSON ONLY (massage, nails, facials, hair, headshots) need a physical location. FLEXIBLE (mindfulness, sound baths, nutrition coaching) run in person, over Zoom, or hybrid. Two rules:
@@ -210,13 +271,53 @@ const PERSONAL_HOOK_SCHEMA = {
     personal_detail: { type: ['string', 'null'], description: 'the single most genuine, specific, VERIFIED fact you found, or null if nothing real exists' },
     category: { type: 'string', description: 'growth | milestone | office | product | leadership | award | how_they_treat_people | person' },
     warm_line: { type: ['string', 'null'], description: "ONE crisp short sentence (about 12-22 words, one idea) Will could open with, in his calm human voice — no buzzwords, no dashes, no exclamation, do NOT pack multiple facts. null if no genuine detail." },
+    // The researcher was violating its own recency rule because it had no idea what
+    // today's date was (2026-07-14: it returned "I saw Evergreen nearly doubled its
+    // office footprint" for a Q1-2025 fact — 16 months stale, framed as news). Forcing
+    // an explicit classification makes the judgement legible AND lets us fix the framing
+    // deterministically downstream, instead of hoping a prompt rule holds.
+    recency: { type: 'string', enum: ['recent', 'standing'], description: "'recent' ONLY if the fact happened within the last ~6 months of TODAY (news framing like 'I saw' / 'congrats on' is then allowed). 'standing' for anything older, or undated — the warm_line must then read as a fact that is simply TRUE OF THEM TODAY, with no news framing at all." },
     connects: { type: 'string', description: 'one honest line on how it connects (caring for their team, or for brokers helping their clients)' },
     confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
   },
-  required: ['personal_detail', 'category', 'warm_line', 'connects', 'confidence'],
+  required: ['personal_detail', 'category', 'warm_line', 'recency', 'connects', 'confidence'],
 };
 
-const WARM_LINE_CRAFT = `Write warm_line the way Will actually talks: calm, human, kind, a little understated. CRISP — ONE short sentence, about 12 to 22 words, ONE idea. Do NOT pack multiple facts or dates into it; pick the single most resonant detail and say it simply. Do NOT append an interpretive clause ("which speaks to how you care", "which shows…", "a testament to…"); state the one detail plainly and stop. RECENCY: if the detail is older than ~6 months, phrase it as a STANDING fact ("EPIC has a strong Northeast benefits practice") — never as fresh news ("I saw", "I know they just"); save fresh-news framing for genuinely recent events. No buzzwords, no dashes as punctuation, no exclamation points. Report via report_personal exactly once.`;
+// News framing that is ONLY valid on a genuinely recent fact. When the researcher
+// classifies a fact as 'standing', we strip these leads deterministically rather than
+// trusting the prompt — same philosophy as stripInterpretiveTail and the two-proof
+// stripper: if it is countable, count it in code. "I saw you doubled your office" on a
+// 16-month-old lease is the tell that nobody actually looked at the date.
+const NEWS_LEAD_RE = /^\s*(i\s+(just\s+)?saw|i\s+(just\s+)?noticed|i\s+(just\s+)?read|i\s+see|congrats\s+on|congratulations\s+on|i\s+know\s+(you|they)\s+just|just\s+saw)\b[\s,]*/i;
+// CONSERVATIVE BY DESIGN: a mechanical strip can easily leave a fragment
+// ("Congrats on the Series B." → "The Series B."), which would be worse than the
+// problem. So we only accept the rewrite when the remainder still stands on its own
+// as a sentence with a real subject. When it doesn't, we leave the line alone and let
+// the (now explicit) prompt rule + the skeptic's recency item handle it — layered
+// defense, not a single brittle regex.
+const WEAK_LEAD_RE = /^(the|a|an|on|of|in|for|to|and|but|that|which)\b/i;
+export function stripNewsFraming(line) {
+  if (!line) return line;
+  const original = String(line).trim();
+  let out = original.replace(NEWS_LEAD_RE, '').trim();
+  if (!out || out === original) return original;
+  out = out.replace(/^that\s+/i, '').replace(/\bjust\s+(moved|signed|opened|doubled|expanded|relocated)\b/i, '$1').trim();
+  const words = out.split(/\s+/).filter(Boolean);
+  // Needs a real subject and enough body to be a sentence, or the strip made it worse.
+  if (words.length < 5 || WEAK_LEAD_RE.test(words[0])) return original;
+  return out.charAt(0).toUpperCase() + out.slice(1);
+}
+
+const WARM_LINE_CRAFT = `TODAY IS ${todayLong()}. Use it to judge recency — you MUST know how old a fact is before you frame it.
+
+Write warm_line the way Will actually talks: calm, human, kind, a little understated. CRISP — ONE short sentence, about 12 to 22 words, ONE idea. Do NOT pack multiple facts or dates into it; pick the single most resonant detail and say it simply. Do NOT append an interpretive clause ("which speaks to how you care", "which shows…", "a testament to…"); state the one detail plainly and stop.
+
+RECENCY (set the \`recency\` field, and make warm_line MATCH it):
+- 'recent' = the fact happened within ~6 months of TODAY. News framing is allowed ("I saw you just closed the Series B").
+- 'standing' = anything older, or undated. The warm_line must then state a fact that is simply TRUE OF THEM TODAY, with NO news framing at all. Do NOT write "I saw", "I noticed", "congrats on", or "you just".
+  · An office lease signed 16 months ago is STANDING. WRONG: "I saw Evergreen nearly doubled its office footprint with the move to One Soho Square." RIGHT: "Evergreen has close to double the space at One Soho Square now." Same fact, no stale-news tell.
+  · A standing fact is NOT a weaker hook. It is often the best one. Never discard a good fact for being old, just frame it as a present-tense truth about their world.
+No buzzwords, no dashes as punctuation, no exclamation points. Report via report_personal exactly once.`;
 
 function personalHookSystem(audience) {
   if (audience === 'brokers') {
@@ -236,25 +337,32 @@ ${WARM_LINE_CRAFT}`;
   }
   return `You help Will Newton, founder of Shortcut, write a GENUINELY personal 1:1 note to ONE person. Shortcut brings wellness into companies: in-person (chair massage, nails, facials) and flexible services delivered in person or over Zoom (mindfulness, sound baths, nutrition coaching), one team, fully managed, and people actually use it.
 
-YOUR JOB: research THIS company and find the SINGLE most genuine, specific, HUMAN detail a thoughtful person would actually notice and warmly mention. It can come from ANY category:
-- a real milestone (funding, IPO, a revenue milestone, a big launch)
-- a new office / HQ / expansion
-- a notable product or something they are known for
-- a leadership moment (new CEO, a founder transition)
-- an award or recognition
-- HOW THEY TREAT THEIR PEOPLE (their culture, an internal wellness program, benefits, work-life values) — often the warmest and most relevant detail for Shortcut
-- something the person themselves is known for
+YOUR JOB: research THIS company and find the SINGLE most genuine, specific, HUMAN detail a thoughtful person would actually notice and warmly mention.
 
-HOW TO CHOOSE: prefer the detail that is (a) genuinely warm and kind to mention and (b) connects HONESTLY to caring for a team. A company that already invests in its people's wellbeing is a GREAT fit to point out, not awkward. Avoid anything that reads like a scraped job posting ("I saw you're hiring...") — that is not human.
+SEARCH STRATEGY — SEARCH FOR THE RIGHT THINGS, IN THIS ORDER (added 2026-07-14 after a real miss: for a 150-person NYC firm the researcher returned "they are 100% employee owned" — scraped off their About page — and completely missed that they had subleased 20,000 sq ft at One Soho Square and nearly DOUBLED their office. The office was the best fact about them and nobody looked for it. An unguided "research the company" search finds the About page every time. Do not do that.)
+You have up to 3 searches. Spend them deliberately, highest-value class first:
+1. THE OFFICE / SPACE. Query patterns: "<company>" office lease OR sublease OR relocate OR "square feet" · "<company>" new office <city> · "<company>" return to office OR "days in office". This news lives in the commercial real-estate trade press (Commercial Observer, Bisnow, The Real Deal, citybiz), NOT on the company's own site. A company that just signed for more space, moved, or set an in-office policy has ALREADY DECIDED it wants people in the building, which is precisely Shortcut's moment. This is the single most actionable class of fact for us. Look here FIRST.
+2. A REAL MILESTONE: funding round, IPO, acquisition, a big launch, a notable partnership.
+3. HOW THEY TREAT THEIR PEOPLE: their culture, an internal wellness program, benefits, work-life values, a Best-Places-to-Work recognition.
+4. THE PERSON: something this specific person is known for, wrote, or said.
+5. The company's product or what they are known for (weakest — usually a non-sequitur to caring for a team).
 
-HARD RULES: it must be TRUE and specific — verify with 1 to 3 web searches and only report what you actually found. NEVER invent or embellish. If nothing genuine exists, return personal_detail=null and warm_line=null (that is fine).
+HOW TO CHOOSE: prefer the detail that is (a) genuinely warm and kind to mention and (b) connects HONESTLY to caring for a team, ON ITS FACE. "They have a big new office" connects on its face (they want people in it). "They are employee owned" does NOT connect on its face to wellness — reaching from an ownership structure to caring-for-people takes a thematic bridge, and a bridge means it is FORCED. A company that already invests in its people's wellbeing is a GREAT fit to point out, not awkward. Avoid anything that reads like a scraped job posting ("I saw you're hiring...") — that is not human. Prefer the fact a thoughtful peer would actually have NOTICED, over the fact that is merely findable.
+
+CATEGORY: set category='office' whenever the detail is about their office, a lease, a move, a space expansion, or an in-office policy. That flag unlocks office framing downstream, so it matters that you set it correctly.
+
+HARD RULES: it must be TRUE and specific — verify with your searches and only report what you actually found. NEVER invent or embellish. If nothing genuine exists, return personal_detail=null and warm_line=null (that is fine, and far better than a forced hook).
 
 ${WARM_LINE_CRAFT}`;
 }
 
 export async function researchPersonalHook(anthropic, lead, { audience = 'tech-execs', timeoutMs = 70000, maxIters = 5, log = () => {} } = {}) {
   const tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }, { name: 'report_personal', description: 'Report the single personal detail. Call exactly once.', input_schema: PERSONAL_HOOK_SCHEMA }];
-  const messages = [{ role: 'user', content: `The person: ${lead.name}, ${lead.title} at ${lead.company} (${lead.location || 'location unknown'}). Research ${lead.company} and report the single best genuine personal detail, then call report_personal.` }];
+  const messages = [{ role: 'user', content: `The person: ${lead.name}, ${lead.title} at ${lead.company} (${lead.location || 'location unknown'}).
+
+Work the SEARCH STRATEGY in order. Do NOT burn your searches on a generic "${lead.company}" lookup — that lands on their About page and returns a fact nobody would have noticed.${audience === 'brokers' ? '' : ` Start with the office/space class: search for a lease, a move, a new office, a space expansion, or an in-office policy at ${lead.company}${lead.location ? ` in ${lead.location}` : ''}. That is the highest-value fact we can find, and it is the one we have been missing.`}
+
+Then report the single best genuine detail via report_personal.` }];
   const t0 = Date.now();
   let iters = 0;
   try {
@@ -267,7 +375,22 @@ export async function researchPersonalHook(anthropic, lead, { audience = 'tech-e
       ]);
       messages.push({ role: 'assistant', content: resp.content });
       const rp = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_personal');
-      if (rp) return rp.input;
+      if (rp) {
+        const out = rp.input;
+        // DETERMINISTIC RECENCY FIX (2026-07-14): if the researcher itself classified the
+        // fact as 'standing' (older than ~6 months) but still wrote news framing into the
+        // warm_line, strip the framing here. The prompt rule alone did not hold — it
+        // shipped "I saw Evergreen nearly doubled its office footprint" for a Q1-2025
+        // lease. Countable → code, the same lesson the two-proof rule already learned.
+        if (out?.warm_line && out.recency === 'standing') {
+          const fixed = stripNewsFraming(out.warm_line);
+          if (fixed !== out.warm_line) {
+            log(`recency: stripped news framing from a standing fact — "${out.warm_line}" → "${fixed}"`);
+            out.warm_line = fixed;
+          }
+        }
+        return out;
+      }
       if (resp.stop_reason === 'pause_turn') continue;
       if (resp.stop_reason === 'end_turn') messages.push({ role: 'user', content: 'Call report_personal now.' });
     }
@@ -275,9 +398,10 @@ export async function researchPersonalHook(anthropic, lead, { audience = 'tech-e
   return null;
 }
 
-export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null }) {
+export async function draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null, architecture = null, recentNotes = [], officeContext = false }) {
   const isMilestone = MILESTONE_TRIGGER_TYPES.has(triggerType);
   const isPeopleBuyer = PEOPLE_TITLE_RE.test(lead.title || '');
+  const vopts = { architecture, recentNotes, officeContext };
   // SINGLE-OPENER RULE (Will 2026-07-10): a personalHook and a milestone trigger are
   // MUTUALLY EXCLUSIVE openers. If we already researched a personalHook, it IS the
   // opener and the trigger is dropped entirely (it was only ever the reason we reached
@@ -328,16 +452,16 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
     // The personal hook is ALREADY researched and verified — no web search needed.
     // Draft directly (no second research pass, no 150s wait). (Will 2026-07-08)
     resp = await anthropic.messages.create({
-      model: ANTHROPIC_MODEL, max_tokens: 3000, temperature: 0.4,
-      system: voiceSystem(exemplars, audience, ctaVariant, remote),
+      model: ANTHROPIC_MODEL, max_tokens: 3000, temperature: DRAFT_TEMPERATURE,
+      system: voiceSystem(exemplars, audience, ctaVariant, remote, vopts),
       tools: [{ name: 'report_note', description: 'Report the finished founder note. Call exactly once.', input_schema: NOTE_SCHEMA }],
       tool_choice: { type: 'tool', name: 'report_note' },
       messages: [{ role: 'user', content: `${userContent}\n\nNOTE: no web research needed — open on the verified PERSONAL OBSERVATION above. Set research_note to the personal detail you used.` }],
     });
   } else {
     const researchedDraft = anthropic.messages.create({
-      model: ANTHROPIC_MODEL, max_tokens: 4000, temperature: 0.4,
-      system: voiceSystem(exemplars, audience, ctaVariant, remote),
+      model: ANTHROPIC_MODEL, max_tokens: 4000, temperature: DRAFT_TEMPERATURE,
+      system: voiceSystem(exemplars, audience, ctaVariant, remote, vopts),
       tools: [
         { type: 'web_search_20250305', name: 'web_search', max_uses: 3 },
         { name: 'report_note', description: 'Report the finished founder note. Call exactly once, after researching.', input_schema: NOTE_SCHEMA },
@@ -352,8 +476,8 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
     } catch (e) {
       console.warn(`researched draft failed (${e.message}) — falling back to trigger-only draft (no web search)`);
       resp = await anthropic.messages.create({
-        model: ANTHROPIC_MODEL, max_tokens: 3000, temperature: 0.4,
-        system: voiceSystem(exemplars, audience, ctaVariant, remote),
+        model: ANTHROPIC_MODEL, max_tokens: 3000, temperature: DRAFT_TEMPERATURE,
+        system: voiceSystem(exemplars, audience, ctaVariant, remote, vopts),
         tools: [{ name: 'report_note', description: 'Report the finished founder note. Call exactly once.', input_schema: NOTE_SCHEMA }],
         tool_choice: { type: 'tool', name: 'report_note' },
         messages: [{ role: 'user', content: `${userContent}\n\nNOTE: web research is unavailable for this lead. Draft from the verified why_now_trigger and the provided context alone; set research_note to "no research pass — drafted from the verified trigger".` }],
@@ -364,8 +488,8 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
   if (!tu) {
     const critique = (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
     resp = await anthropic.messages.create({
-      model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
-      system: voiceSystem(exemplars, audience, ctaVariant, remote),
+      model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: DRAFT_TEMPERATURE,
+      system: voiceSystem(exemplars, audience, ctaVariant, remote, vopts),
       tools: [{ name: 'report_note', description: 'Report the finished founder note.', input_schema: NOTE_SCHEMA }],
       tool_choice: { type: 'tool', name: 'report_note' },
       messages: [
@@ -496,6 +620,19 @@ const CONSEQUENCE_FRAME_RE = /\b(becomes? how (things are|it's) done|before (it|
 export function guardNote(n, audience, trigger = null, opts = {}) {
   const all = `${n.subject} ${n.body}`;
   if (/[—–]|\s-\s/.test(all)) throw new Error('draft used a dash as punctuation');
+  // EXACTLY ONE QUESTION (research 2026-07-14). Sivers: "Only ask one question."
+  // Braun's method is built on it. A note that asks nothing gives the reader nothing
+  // easy to do — the Melanie Riker draft (2026-07-14) had ZERO question marks and is
+  // exactly what this catches. Two questions is the other failure (burden). Countable,
+  // so it is enforced in code rather than left to the skeptic, which demonstrably
+  // drifts on soft rules. Both approved CTA closes are question-free, so the one
+  // question is always the real one about THEIR world. Follow-ups are exempt: touch 2
+  // is a one-line bump whose soft ask IS the note, and touch 4 is a graceful out.
+  if (!opts.followup) {
+    const questions = (String(n.body || '').match(/\?/g) || []).length;
+    if (questions === 0) throw new Error('note asks NO question — every 1:1 note must ask exactly one real question about THEIR world, answerable in one line (Sivers: "only ask one question"; a note that asks nothing gives the reader nothing easy to do)');
+    if (questions > 1) throw new Error(`note asks ${questions} questions — ask EXACTLY ONE (pick the single strongest and cut the rest; if the close is a question, that IS your one question)`);
+  }
   // Exclamation marks: banned everywhere EXCEPT the sign-off line ("Cheers!" or
   // "Thanks!"), which Will explicitly wants (2026-07-06) — warm, human close.
   const withoutSignoff = all.replace(SIGNOFF_LINE_RE, '');
@@ -535,8 +672,14 @@ export function guardNote(n, audience, trigger = null, opts = {}) {
     if (sentences > 3 && words > 18) throw new Error(`paragraph has ${sentences} sentences — separate distinct ideas with a BLANK line (\\n\\n between paragraphs); keep a paragraph to a few sentences`);
     if (words > 75) throw new Error(`paragraph too long (${words} words) — split it into separate short paragraphs`);
   }
-  if (audience !== 'brokers' && RTO_FRAME_RE.test(n.body) && !(trigger && OFFICE_TRIGGER_RE.test(trigger))) {
-    throw new Error('tech-exec note used RTO/commute framing — this cohort is in hypergrowth, not a return-to-office fight; celebrate their growth and offer help unless the verified trigger itself is about the office');
+  // OFFICE FRAMING (fixed 2026-07-14): the exception used to be reachable ONLY via
+  // `trigger` — but composeNote sets trigger=null whenever a personalHook exists
+  // (the SINGLE-OPENER RULE), so a hook ABOUT their office (a lease, a move, a space
+  // expansion) could never unlock it, and the guard would kill the very note the
+  // office research is meant to produce. opts.officeContext carries that signal.
+  if (audience !== 'brokers' && RTO_FRAME_RE.test(n.body)
+      && !(trigger && OFFICE_TRIGGER_RE.test(trigger)) && !opts.officeContext) {
+    throw new Error('tech-exec note used RTO/commute framing — this cohort is in hypergrowth, not a return-to-office fight; celebrate their growth and offer help unless the verified trigger or observation is itself about the office');
   }
   if (audience !== 'brokers') {
     // strip if/as/when/question clauses first — conditional stress framing is allowed
@@ -572,7 +715,8 @@ export const REVIEW_SCHEMA = {
   },
   required: ['pass', 'issues'],
 };
-export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null, trigger = null, triggerType = null, personalHook = null) {
+export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help', leadFacts = null, trigger = null, triggerType = null, personalHook = null, opts = {}) {
+  const { officeContext = false, hookDetail = null, hookConnects = null } = opts;
   const facts = leadFacts ? `\n\nWHAT WE KNOW ABOUT THE RECIPIENT (trusted facts — check the note against these):\n${JSON.stringify(leadFacts, null, 2)}` : '';
   // People/HR recipients are NOT the founder — the milestone-congrats mandate (rules 3
   // and 8) is OFF for them, and a "congrats on your raise" opener is a hard FAIL.
@@ -585,7 +729,19 @@ export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help
   // 2026-07-07: a valid "congrats on the launch" got deleted). Plus today's date so
   // it catches stale timing ("as we head into June" in July).
   const verified = trigger ? `\n\nVERIFIED why-now trigger for this lead (harvested with evidence — treat as TRUE, do NOT flag it as fabricated): ${trigger}` : '';
-  const personalV = personalHook ? `\n\nVERIFIED personal observation used to open this note (already researched and TRUE — do NOT flag it as fabricated; it is about the RECIPIENT'S company and is meant to be the warm opener): ${personalHook}` : '';
+  // The skeptic is asked to judge whether the observation "connects on its face", but
+  // it used to be given ONLY {name,title,company,location} — no facts about the company
+  // at all. It was enforcing a semantic bar with no information, which is how "Evergreen
+  // is 100% employee owned, a really meaningful structure for a team" slid through on
+  // 2026-07-14 (an ownership structure does not connect to wellness without a bridge).
+  // Hand it the underlying fact and the researcher's own stated connection so it can
+  // actually check the claim. (Will 2026-07-14)
+  const personalV = personalHook
+    ? `\n\nVERIFIED personal observation used to open this note (already researched and TRUE — do NOT flag it as fabricated; it is about the RECIPIENT'S company and is meant to be the warm opener): ${personalHook}`
+      + (hookDetail ? `\nThe underlying researched fact: ${hookDetail}` : '')
+      + (hookConnects ? `\nHow the researcher claimed it connects to caring for a team: ${hookConnects}` : '')
+      + `\nJUDGE THE CONNECTION YOURSELF (do not take the researcher's word for it): does this observation connect to wellness/caring-for-a-team ON ITS FACE, or does it need a thematic bridge? "They just doubled their office space" connects on its face (they want people in the building). "They are employee owned" does NOT (ownership structure → caring for people is a bridge). If it needs a bridge, FAIL the note: a warm note with NO personal line beats a forced one every time.`
+    : '';
   const dateLine = `\n\nTODAY IS ${todayLong()}. FAIL any note that calls a month/date that has already passed "upcoming" or frames a past event as still ahead (e.g. "as we head into June" when it is July).`;
   // Two-layer rule (Will 2026-07-08): an INTERNAL targeting signal (an open job
   // posting / hiring / growth-list hit) must NEVER be quoted at the prospect.
@@ -598,13 +754,17 @@ export async function critiqueNote(anthropic, note, audience, ctaVariant = 'help
    · And/But/So/Honestly openers are Will's voice: "And we run it all as one team." is COMPLETE (subject "we", verb "run"). Never flag a sentence merely for starting with And/But/So.
 2. STITCHED/TEMPLATED + SAMENESS: FAIL if the note reads like bolted-together stock phrases rather than one train of thought. In particular FAIL the identical machine-open "We bring wellness days into offices for companies like BCG and DraftKings, chair massage, nails, facials, mindfulness, all from one team" (or any near-verbatim stock catchphrase) — the intro and the one-team idea must be said in fresh words. WORDINESS: flag any sentence that could be half as long, and filler not earning its place.
 2b. TOO MANY BEATS / BOX-CHECKING (Will 2026-07-08 — a top reason to FAIL): the note may carry only ONE supporting beat beyond the opener + who-we-are line + ask. FAIL a note that STACKS beats — for brokers that means the unused-funds observation AND the Burberry receipt AND a stat in the same email (pick one); for tech-execs it means two observations or two proofs. Also FAIL a note that is noticeably long (well over ~120 words) or that packs multiple distinct ideas into one chunky paragraph. Shorter and one-pointed beats complete-and-crammed every time.
-3. OBSERVATION + HOOK (Will 2026-07-07): a genuine COMPANY MILESTONE (IPO/going public, funding round, big launch, notable partnership) SHOULD open the note with a brief warm congrats — FAIL a note that had such a milestone available and opened flat/generic instead (dropping a real milestone reads cold). IMPORTANT CARVE-OUT: this "you must congratulate the milestone" expectation applies ONLY to a founder/CEO/exec recipient AND only when no verified personal observation was used to open. It is OFF when a personal observation opens the note, and OFF for any People/HR recipient (see RECIPIENT PERSONA) — do NOT fail those notes for "dropping the milestone". Conversely FAIL a hook forced in that is a non-sequitur to caring for a team (a security/product report, a technical stat). For NON-milestone personal finds, Will's bar: usable only if it connects to the thread ON ITS FACE (their wellbeing/benefits role, their clients, their metro, something they wrote about wellness/benefits). A thematic bridge FAILS ("I saw you're a Health Rosetta advisor, that transparency focus is exactly what I keep running into" is bolted-on). No personal line at all is a PASS; a forced one FAILS. FAIL fresh-news framing ("I saw you...", "congrats on...") when the fact is older than ~6 months. SINGLE OPENER: the note must open on exactly ONE observation or congrats. FAIL a note that stacks TWO (e.g. congratulating a funding round AND separately praising their benefits/mental-health program) — one clean opener, cut the other. PEOPLE/HR RECIPIENT: if the recipient's title is People/HR (Head/VP/Director of People or HR, CHRO, People Ops, Total Rewards, benefits), they are NOT the founder — FAIL a note that congratulates them on the company's raise or growth as their personal win ("congrats on your Series C", "as you scale <Company>"); a company milestone must be framed as the company's/team's, and the people angle should lead.
+3. OBSERVATION + HOOK (Will 2026-07-07): a genuine COMPANY MILESTONE (IPO/going public, funding round, big launch, notable partnership) SHOULD open the note with a brief warm congrats — FAIL a note that had such a milestone available and opened flat/generic instead (dropping a real milestone reads cold). IMPORTANT CARVE-OUT: this "you must congratulate the milestone" expectation applies ONLY to a founder/CEO/exec recipient AND only when no verified personal observation was used to open. It is OFF when a personal observation opens the note, and OFF for any People/HR recipient (see RECIPIENT PERSONA) — do NOT fail those notes for "dropping the milestone". Conversely FAIL a hook forced in that is a non-sequitur to caring for a team (a security/product report, a technical stat). For NON-milestone personal finds, Will's bar: usable only if it connects to the thread ON ITS FACE (their wellbeing/benefits role, their clients, their metro, something they wrote about wellness/benefits). A thematic bridge FAILS ("I saw you're a Health Rosetta advisor, that transparency focus is exactly what I keep running into" is bolted-on). No personal line at all is a PASS; a forced one FAILS. RECENCY IS ABOUT FRAMING, NOT ABOUT THE FACT (clarified 2026-07-14 — the skeptic got this exactly backwards and deleted a good hook): FAIL fresh-news FRAMING ("I saw you...", "congrats on...", "you just...") when the fact is older than ~6 months. Do NOT fail the note for USING an older fact. An older fact is a perfectly good, often the BEST, opener when written as a STANDING CONDITION about their world ("you have 60% more space at One Soho Square" — true today, no news framing, no date claim). The correct fix for a stale-framed observation is to REFRAME it as a standing fact, never to strip the observation out and leave a generic note. A note with no observation at all is the worst outcome on this list: it is the blandness that item 10 fails. SINGLE OPENER: the note must open on exactly ONE observation or congrats. FAIL a note that stacks TWO (e.g. congratulating a funding round AND separately praising their benefits/mental-health program) — one clean opener, cut the other. PEOPLE/HR RECIPIENT: if the recipient's title is People/HR (Head/VP/Director of People or HR, CHRO, People Ops, Total Rewards, benefits), they are NOT the founder — FAIL a note that congratulates them on the company's raise or growth as their personal win ("congrats on your Series C", "as you scale <Company>"); a company milestone must be framed as the company's/team's, and the people angle should lead.
 4. INTRO: the note clearly says who Will is and what Shortcut does, in concrete services (said in his own words, not a pasted template). If a reader couldn't tell what Shortcut is, FAIL.
-5. CLOSE: OFFERS something concrete — ${audience === 'brokers' ? 'help with their clients, the one-pager, or (convo variant) a short call' : 'more info or (convo variant) a call'}. A bare curiosity question with no offer FAILS. No calendar link, no times. Never validation-seeking. Ends "Cheers!" or "Thanks!" then "Will" (the one exclamation mark allowed, nothing after).${audience === 'brokers' ? '' : '\n5b. ZERO LIFT: the note makes clear the whole thing is effortless for them (Shortcut handles everything, they just pick a date), said naturally somewhere. If that reassurance is entirely absent, FAIL — but do not demand a specific stock phrasing.'}
+5. CLOSE: OFFERS something concrete — ${audience === 'brokers' ? 'help with their clients, the one-pager, or (convo variant) a short call' : 'more info or (convo variant) a call'}. No calendar link, no times. Never validation-seeking. Ends "Cheers!" or "Thanks!" then "Will" (the one exclamation mark allowed, nothing after). NOTE (revised 2026-07-14): a low-friction interest question is a LEGITIMATE close and must NOT be failed for "not offering enough" — Josh Braun's finding is that "Worth exploring?" outperforms asking for a meeting precisely because it asks for so little. What still FAILS is a close that offers nothing AND asks nothing, i.e. a note that simply trails off.
+5a. EXACTLY ONE QUESTION (research 2026-07-14 — hard rule, also checked in code): the body must contain exactly one question mark. FAIL a note that asks NOTHING (it gives the reader nothing easy to do — this is the single most common defect in the notes we have been sending). FAIL a note that asks TWO or more (that is a burden, and Sivers' rule is "only ask one question"). The question must be a REAL question about THEIR world, answerable in one line — FAIL a rhetorical question or a pitch wearing a question mark ("Wouldn't it be great if your team actually used their benefits?").
+5c. THE NON-TRANSFERABLE LINE (the brand voice guide's own rule: "If a sentence works for any wellness company, rewrite it until it only works for Shortcut"): name, in your issues, the ONE sentence in this note that could not appear in any other note Will sends — a sentence that is about THIS person or THIS company specifically. A stat, a service list, or a value claim does NOT count: those are transferable by definition. If you cannot name such a sentence, FAIL the note as machine-written. Compression is not humanity: a maximally terse note is indistinguishable from an automated one.${audience === 'brokers' ? '' : '\n5b. ZERO LIFT: the note makes clear the whole thing is effortless for them (Shortcut handles everything, they just pick a date), said naturally somewhere. If that reassurance is entirely absent, FAIL — but do not demand a specific stock phrasing.'}
 6. VOICE: reads like a busy founder typed it — contractions, warm, casual, zero sales energy. Sentence lengths VARY (at least one short punchy line; no run of same-shape sentences); no "not just X, but Y". The service list folded into a real sentence is REQUIRED brand copy, NOT a rule-of-three violation — never flag it for that. If the prose is uniformly smooth and balanced with no human texture, FAIL it as AI-sounding.
 ${audience === 'brokers' ? '6b. LANGUAGE: no insurance jargon ("groups"); employers are clients/companies/partners. Only fund-eligible services named (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Client-side credibility only.' : ''}
 7. CLIENT CLAIMS: the only permitted client facts are BCG/DraftKings, 500+ companies, 87% rebook, 90%+ slots booked${audience === 'brokers' ? ', the Burberry/Aetna receipt' : ''}. FAIL any other claim about who Shortcut works with ("a few gaming studios", "our fintech clients") — invented roster overlap is fabrication.${audience === 'brokers' ? '' : '\n7b. ONE PROOF ONLY (Will 2026-07-07): the note may use EXACTLY ONE proof point. Naming BCG/DraftKings AND a stat (e.g. "90% of slots get booked") is TWO — FAIL it; pick the single one that best fits the moment.'}
-8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. For a founder/CEO/exec recipient a funding trigger opens congratulatory (genuine, brief); for a People/HR recipient it does NOT (see RECIPIENT PERSONA — lead with the people angle, never "congrats on your raise"). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.
+8. COHORT FIT + SENTIMENT (Will 2026-07-06): ${audience === 'brokers' ? 'Brokers: channel courtship about their clients deploying carrier funds, never a direct pitch.' : 'Emerging-tech: the note CELEBRATES their growth and OFFERS help. For a founder/CEO/exec recipient a funding trigger opens congratulatory (genuine, brief); for a People/HR recipient it does NOT (see RECIPIENT PERSONA — lead with the people angle, never "congrats on your raise"). FAIL if the note ASSERTS their team is stressed/burned out/overstretched (allowed only inside an if/as/when clause or a question). FAIL any consequence or urgency framing ("what you do now becomes how things are done", culture-calcifying warnings) — wellness, not threats. FAIL any RTO / "worth the commute" framing unless the verified trigger OR the verified observation is explicitly about their office.'} An angle borrowed from a different cohort's playbook FAILS even if well-written.${officeContext ? `
+8b. OFFICE CONTEXT IS ACTIVE FOR THIS LEAD: the verified observation for this note IS about their office (a lease, a move, a space expansion, or an in-office policy). Office framing is PERMITTED and correct here — do NOT flag it as banned RTO framing. Still FAIL fear/consequence framing or a lecture about return-to-office; the note should celebrate the room they built and offer to help fill it, warmly.` : ''}
+10. WOULD THIS EARN A REPLY? (added 2026-07-14 — the only generative item on this list; every other item is a defect check, and a note can pass all of them and still be inert.) Read the note as the recipient: a busy person who gets pitched constantly. Is there a real reason to reply, beyond politeness? If the ONLY reason to reply is that it would be rude not to, FAIL it and say so. Notes die of blandness far more often than they die of a rule violation.
 9. COHERENCE — the claim must FIT THIS person, not just be true (Will 2026-07-07): cross-check every specific observation against WHAT WE KNOW ABOUT THE RECIPIENT below. FAIL a note that congratulates the person on a city/office/region-specific thing that is not THEIR city (e.g. "congrats on the Best Workplaces in CHICAGO" to a recipient whose location is New York — that award belongs to a different office, congratulating them on it is a tell that no one actually looked). FAIL any claim that contradicts a known fact, or that assumes a division/product/region the recipient is not in. FAIL a half-named recognition ("the Fortune Chicago list" without saying what it is) — it reads unfinished. When in doubt, a generic true note beats a specific one aimed at the wrong context. NOTE: if a specific milestone matches the VERIFIED trigger below, it is REAL, do NOT flag it as fabricated (only flag it if it is framed for the wrong person/place/time).${facts}${verified}${personalV}${dateLine}${signalLine}${personaNote}
 Report via report_review, one issue string per failed item.`;
   const resp = await anthropic.messages.create({
@@ -666,6 +826,69 @@ export function stripSecondProof(body, audience) {
   return STAT_RE.test(out) ? out : body; // never leave zero proofs
 }
 
+// ============================================================================
+// CROSS-NOTE SAMENESS (research 2026-07-14). The prompt has said "if two of your
+// notes could swap a sentence unnoticed, you have written a template" since day one,
+// and on 2026-07-14 three broker notes drafted four minutes apart shared this
+// sentence VERBATIM: "A striking number of the companies I talk to are sitting on
+// unused Cigna or Aetna wellness dollars." The exhortation does not hold, because the
+// drafter sees ONE note and cannot know what it wrote yesterday. So: give it the
+// recent notes (voiceSystem) AND check the overlap in code (here). Countable → code,
+// the same lesson the two-proof and word-ceiling rules already learned.
+//
+// Shingle = a run of SHINGLE_N content words. We ignore the greeting, the sign-off,
+// and pure service enumerations (the service list is required brand copy and WILL
+// legitimately recur; the composer varies the sentence around it, not the list).
+export const SHINGLE_N = 6;
+const SAMENESS_STOP_RE = /^(hi|hey|hello|cheers|thanks|warmly|talk|soon|will)\b/i;
+// APPROVED RECURRING COPY — exempt from the sameness check. Two elements are REQUIRED
+// to recur and must not be churned by the revise loop:
+//   1. the self-intro. Will's own rule mandates "I'm Will, I run Shortcut" (voiceSystem
+//      gives it as the example phrasing), so flagging it as a duplicate would fight the
+//      brand and spin revisions forever. Variance belongs in what comes AFTER it.
+//   2. the service menu — it is the product; the composer varies the sentence AROUND it.
+// Everything else (the observation, the supporting beat, the ask) is Will's prose and
+// MUST be fresh every time. That prose is what this guard is actually for.
+const ALLOWED_RECURRING = [
+  /\b(i'?m|i am) will,?\s*(and )?i (run|lead) shortcut\b/gi,
+  /\bmy name is will\b/gi,
+];
+const SEG_BREAK = ' '; // hard segment break: shingles never span it
+function shingles(text, n = SHINGLE_N) {
+  let cleaned = String(text || '');
+  for (const re of ALLOWED_RECURRING) cleaned = cleaned.replace(re, SEG_BREAK);
+  const out = new Set();
+  // Greeting/sign-off lines and the approved-recurring spans are hard boundaries, so a
+  // shingle can never straddle them and stitch two unrelated fragments into a false hit.
+  const segments = cleaned
+    .split(/\n/)
+    .filter((line) => !SAMENESS_STOP_RE.test(line.trim()))
+    .join(SEG_BREAK)
+    .split(SEG_BREAK);
+  for (const seg of segments) {
+    const words = seg.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+    for (let i = 0; i + n <= words.length; i += 1) out.add(words.slice(i, i + n).join(' '));
+  }
+  return out;
+}
+// The service menu itself is allowed to repeat (it is the product). Drop any shingle
+// made only of service words + connectives, so the guard fires on Will's PROSE, not
+// on "chair massage nails facials and mindfulness".
+const SVC_WORD_RE = /^(chair|table|massage|nails|facials|hair|grooming|headshots|mindfulness|meditation|sound|baths?|bath|nutrition|coaching|assisted|stretch|stretching|and|or|plus|the|a|an|of|in|into|for|with|all|one|team|sessions?|services?)$/i;
+const isServiceOnly = (sh) => sh.split(' ').every((w) => SVC_WORD_RE.test(w));
+/** Returns the first phrase this note shares with any recent note, or null. */
+export function sharedPhrase(body, recentNotes = [], n = SHINGLE_N) {
+  if (!recentNotes.length) return null;
+  const mine = shingles(body, n);
+  for (const prior of recentNotes) {
+    const theirs = shingles(prior, n);
+    for (const sh of mine) {
+      if (theirs.has(sh) && !isServiceOnly(sh)) return sh;
+    }
+  }
+  return null;
+}
+
 // Body word count EXCLUDING the greeting line and the sign-off block, so the length
 // check measures the actual message (Will 2026-07-09: a 1:1 note makes ONE point;
 // over-long is the #1 box-checking tell). Target ~90-120 words; ceiling ~130.
@@ -689,11 +912,12 @@ export function brokerBeatCount(body) {
 }
 
 // One revision attempt with the skeptic's issues fed back (retry-once, like the composer).
-export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null }) {
+export async function reviseNote(anthropic, { note, issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null, architecture = null, recentNotes = [], officeContext = false }) {
   const internalSignal = trigger && !MILESTONE_TRIGGER_TYPES.has(triggerType);
+  const vopts = { architecture, recentNotes, officeContext };
   const resp = await anthropic.messages.create({
-    model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: 0.4,
-    system: voiceSystem(exemplars, audience, ctaVariant, remote),
+    model: ANTHROPIC_MODEL, max_tokens: 2000, temperature: DRAFT_TEMPERATURE,
+    system: voiceSystem(exemplars, audience, ctaVariant, remote, vopts),
     tools: [{ name: 'report_note', description: 'Report the revised founder note.', input_schema: NOTE_SCHEMA }],
     tool_choice: { type: 'tool', name: 'report_note' },
     messages: [{ role: 'user', content: [
@@ -701,6 +925,10 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
       ...issues.map((i) => `  - ${i}`),
       '',
       'WHILE FIXING, DO NOT INTRODUCE NEW PROBLEMS. Every sentence must stay complete (subject + verb). The most common mistake here: when you de-stitch the intro, you drop the services onto their own line as a bare list ("Chair massage, nails, facials, mindfulness.") — that is a FRAGMENT. Keep the services INSIDE a real sentence with a verb ("We bring chair massage, nails, facials and mindfulness into the office, all run by one team.").',
+      'ALSO KEEP: exactly ONE question mark in the body (not zero, not two), and the sign-off shape. Rewriting to fix sameness or length must not silently drop the question or add a second one.',
+      audience === 'brokers'
+        ? 'BROKER HARD RULES STILL APPLY WHILE YOU REWRITE (a rewrite that breaks one of these loses the lead entirely): never assert facts about THIS broker\'s own book ("your clients are sitting on…") — observations are about companies WILL talks to; only a QUESTION may reference their clients. Never name a non-fund-eligible service (nails, facials, headshots, hair). Never say "groups". Never claim broker-side experience.'
+        : '',
       internalSignal ? 'ALSO: this lead\'s trigger is INTERNAL targeting context (an open role / hiring / growth-list hit). Do NOT reference the open role or frame a routine role as growth; write the clean note with no mention of the posting.' : '',
       personalHook ? `KEEP the opening personal observation (verified and TRUE, do not drop it): ${personalHook}` : '',
       '',
@@ -739,7 +967,20 @@ export function stripInterpretiveTail(s) {
  * that into a skip). `log` defaults to console.error; pass a label for context.
  * Returns { note, review } so callers can surface the skeptic verdict.
  */
-export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null, label = lead?.email || lead?.name || 'lead', log = console.error }) {
+export async function composeNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType = null, remote = false, personalHook = null, hookCategory = null, hookDetail = null, hookConnects = null, recentNotes = [], label = lead?.email || lead?.name || 'lead', log = console.error }) {
+  // OFFICE CONTEXT (2026-07-14): unlocks the office-framing exception in BOTH gates.
+  // Reachable from the researched hook (category==='office', or the hook text itself
+  // naming a lease/office/HQ), not just from a harvested trigger — because when a hook
+  // exists the SINGLE-OPENER RULE below nulls the trigger, which used to make the
+  // exception unreachable exactly when the office IS the story.
+  const officeContext = hookCategory === 'office'
+    || Boolean(trigger && OFFICE_TRIGGER_RE.test(trigger))
+    || Boolean(personalHook && OFFICE_TRIGGER_RE.test(personalHook));
+  // Rotate the SKELETON, not just the words (see NOTE_ARCHITECTURES). Deterministic per
+  // recipient so a lead's note is stable across re-runs, the way pickSignoff is.
+  const architecture = pickArchitecture(lead?.email || lead?.name);
+  const vopts = { architecture, recentNotes, officeContext };
+  if (architecture) log(`architecture for ${label}: ${architecture.key}${officeContext ? ' (office context ON)' : ''}`);
   // SINGLE-OPENER RULE (Will 2026-07-10): a researched personalHook is the EXCLUSIVE
   // opener. When one exists, drop the milestone trigger for EVERY downstream step —
   // drafter, guards, skeptic, revise — otherwise the skeptic's "always congratulate an
@@ -747,17 +988,18 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   // Series C congrats AND a benefits line). The personalHook already captured the best
   // signal, so the trigger is redundant here.
   if (personalHook) { trigger = null; triggerType = null; personalHook = stripInterpretiveTail(personalHook); }
-  let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook });
+  const guardOpts = { officeContext };
+  let note = await draftNote(anthropic, { lead, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook, ...vopts });
   // GATE: deterministic guards -> up to TWO revisions on violation (one wasn't
   // enough in practice: Jul 6, a chunky paragraph survived the first revise
   // and the lead skipped; the second attempt gets both failure messages)
-  try { guardNote(note, audience, trigger); } catch (ge) {
+  try { guardNote(note, audience, trigger, guardOpts); } catch (ge) {
     log(`guard hit for ${label}: ${ge.message} — revising`);
-    note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook });
-    try { guardNote(note, audience, trigger); } catch (ge2) {
+    note = await reviseNote(anthropic, { note, issues: [ge.message], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook, ...vopts });
+    try { guardNote(note, audience, trigger, guardOpts); } catch (ge2) {
       log(`guard hit again for ${label}: ${ge2.message} — second revision`);
-      note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook });
-      guardNote(note, audience, trigger);
+      note = await reviseNote(anthropic, { note, issues: [ge.message, ge2.message, 'This is the FINAL attempt: fix both without introducing new violations.'], exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook, ...vopts });
+      guardNote(note, audience, trigger, guardOpts);
     }
   }
   // the brain's review tier: skeptic pass + revision (generator ≠ evaluator).
@@ -772,10 +1014,18 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   // every item each pass), so enforce it DETERMINISTICALLY and fold it into the
   // review issues the revise loop must fix (Will 2026-07-07: exactly one proof).
   const critique = async (n) => {
-    const r = await critiqueNote(anthropic, n, audience, ctaVariant, leadFacts, trigger, triggerType, personalHook);
+    const r = await critiqueNote(anthropic, n, audience, ctaVariant, leadFacts, trigger, triggerType, personalHook, { officeContext, hookDetail, hookConnects });
     const extra = [];
+    // CROSS-NOTE SAMENESS (2026-07-14) — countable, so it lives in code. The drafter
+    // cannot see what it wrote yesterday, so "vary your phrasing" cannot hold on its
+    // own; this is what actually stops three brokers getting the same paragraph.
+    const dup = sharedPhrase(n.body, recentNotes);
+    if (dup) {
+      extra.push(`SAMENESS: this note reuses a phrase from a note you recently sent — "${dup}". Rewrite that sentence completely, in different words with a different shape. A recipient who compares notes with a peer must not find the same sentences. (The service list itself may recur; the prose around it may not.)`);
+    }
     // Deterministic enforcement of the "SHORT, one point" rule (the LLM skeptic drifts
     // on length + beat-stacking): these are code-checked, never left to the model.
+    // The SHORT architecture is deliberately terser — do not force it back up to 90-120.
     const words = noteWordCount(n.body);
     if (words > NOTE_WORD_CEILING) {
       extra.push(`The note is too long (${words} words; a 1:1 note makes ONE point). CUT a whole supporting beat or a paragraph to get under ${NOTE_WORD_CEILING} words. Do NOT just reword or trim adjectives, remove an idea.`);
@@ -792,10 +1042,28 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   const firstReview = await critique(note);
   let review = firstReview;
   const MAX_SKEPTIC_REVISES = 2;
+  // LAST KNOWN GOOD (2026-07-14): `note` has already cleared the deterministic guards at
+  // this point. The skeptic loop only chases QUALITY, so a quality revise must never be
+  // able to destroy a brand-safe note and lose the lead. It can: a sameness/length revise
+  // pushes the model into rewriting a sentence and it drifts into a hard violation (seen
+  // live — a broker revise started asserting facts about the broker's own book and the
+  // lead SKIPPED). Losing a good lead to a cosmetic nudge is strictly worse than shipping
+  // the slightly-samey note, so on a post-revise guard failure we revert and ship the last
+  // note that passed. Guards still gate what SENDS; they just no longer punish a retry.
+  let lastGood = note;
   for (let r = 0; r < MAX_SKEPTIC_REVISES && !review.pass && review.issues.length; r += 1) {
     log(`skeptic flagged ${label} (round ${r + 1}): ${review.issues.join(' | ')} — revising`);
-    note = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook });
-    guardNote(note, audience, trigger); // hard rules must always hold after a revise
+    const candidate = await reviseNote(anthropic, { note, issues: review.issues, exemplars, audience, lead, firm, ctaVariant, trigger, triggerType, remote, personalHook, ...vopts });
+    try {
+      guardNote(candidate, audience, trigger, guardOpts); // hard rules must hold after a revise
+    } catch (ge) {
+      log(`skeptic revise for ${label} broke a hard rule (${ge.message}) — reverting to the last note that passed the guards and shipping that`);
+      note = lastGood;
+      review = await critique(note);
+      break;
+    }
+    note = candidate;
+    lastGood = candidate;
     review = await critique(note);
   }
   // DETERMINISTIC LAST-RESORT: if the revise loop still left two proofs, cut the
@@ -809,7 +1077,9 @@ export async function composeNote(anthropic, { lead, firm, exemplars, audience, 
   note = { ...note, body: applySignoff(note.body, pickSignoff(lead?.email || lead?.name, 1)) };
   // Return the FIRST review for caller display parity (it shows what the drafter
   // produced), plus the final verdict so callers/tests can see if it settled clean.
-  return { note, review: firstReview, finalReview: review };
+  // architecture + officeContext come back too so a caller re-running guardNote for
+  // display passes the same opts and does not false-FAIL a legitimate office note.
+  return { note, review: firstReview, finalReview: review, architecture, officeContext };
 }
 
 // ============================================================================

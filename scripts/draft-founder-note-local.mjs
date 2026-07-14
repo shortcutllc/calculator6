@@ -46,7 +46,11 @@ const TRIGGER = val('--trigger', null);
 const TRIGGER_TYPE = val('--trigger-type', null); // funding|people_posting|growth_list — funding=milestone opener, others=internal-only
 const EMAIL = val('--email', null);
 const REMOTE = has('--remote'); // distributed company → lead the virtual track
-const PERSONALIZE = has('--personalize'); // research a genuine human hook (prod path)
+// PARITY FIX (2026-07-14): production (founder-queue-background.js) ALWAYS runs
+// researchPersonalHook, so a local run that skipped it was not testing the real path —
+// the whole point of this runner is that what you tune locally is what ships. Personalize
+// is now the DEFAULT; --no-personalize opts out (fast iteration on voice/gates only).
+const PERSONALIZE = !has('--no-personalize');
 const PERSONAL_HOOK = val('--personal-hook', null); // inject an EXACT hook (skip research) — reproduces a stored draft
 const WITH_EXEMPLARS = has('--exemplars');
 const N = Math.max(1, Math.min(5, parseInt(val('--n', '1'), 10) || 1));
@@ -103,28 +107,41 @@ const red = (s) => `\x1b[31m${s}\x1b[0m`;
   if (firm.why) console.log(`${bold('FIRM WHY')}  ${String(firm.why).slice(0, 120)}`);
   console.log(gray('─'.repeat(72)));
 
+  const priorBodies = []; // anti-sameness pool across --n runs
   for (let i = 1; i <= N; i += 1) {
     if (N > 1) console.log(gray(`\n### run ${i}/${N}`));
     try {
       const t0 = Date.now();
-      let personalHook = null;
+      let personalHook = null; let hookCategory = null; let hookDetail = null; let hookConnects = null;
       if (PERSONAL_HOOK) {
         personalHook = PERSONAL_HOOK;
         console.log(`${bold('PERSONAL')}  [override] ${green(PERSONAL_HOOK)}`);
       } else if (PERSONALIZE) {
         const ph = await researchPersonalHook(anthropic, lead, { audience: AUDIENCE, log: (m) => console.log(gray(`  · ${m}`)) });
-        if (ph?.warm_line && ph.confidence !== 'low') { personalHook = ph.warm_line; console.log(`${bold('PERSONAL')}  [${ph.category}/${ph.confidence}] ${green(ph.warm_line)}`); }
-        else console.log(gray(`  · personalize: nothing genuine found (${ph?.confidence || 'none'}) — trigger fallback`));
+        if (ph?.warm_line && ph.confidence !== 'low') {
+          personalHook = ph.warm_line;
+          hookCategory = ph.category || null; hookDetail = ph.personal_detail || null; hookConnects = ph.connects || null;
+          console.log(`${bold('PERSONAL')}  [${ph.category}/${ph.confidence}] ${green(ph.warm_line)}`);
+          if (ph.personal_detail) console.log(gray(`  · fact: ${ph.personal_detail}`));
+        } else console.log(gray(`  · personalize: nothing genuine found (${ph?.confidence || 'none'}) — trigger fallback`));
       }
-      const { note, review } = await composeNote(anthropic, {
-        lead, firm, exemplars, audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER, triggerType: TRIGGER_TYPE, remote: REMOTE, personalHook,
+      const { note, review, architecture, officeContext } = await composeNote(anthropic, {
+        lead, firm, exemplars, audience: AUDIENCE, ctaVariant: CTA, trigger: TRIGGER, triggerType: TRIGGER_TYPE, remote: REMOTE,
+        personalHook, hookCategory, hookDetail, hookConnects,
+        // In-run anti-sameness: with --n > 1 each run sees the prior runs' notes, so the
+        // variance you eyeball is the variance production will produce.
+        recentNotes: priorBodies,
         label: lead.email, log: (m) => console.log(gray(`  · ${m}`)),
       });
+      priorBodies.unshift(note.body);
       const secs = ((Date.now() - t0) / 1000).toFixed(0);
-      // re-run the deterministic guard so the reader sees the exact pass/fail
+      // re-run the deterministic guard so the reader sees the exact pass/fail. Pass the
+      // SAME opts composeNote used, or an office note would false-FAIL the RTO guard.
       let guardVerdict = green('PASS');
-      try { guardNote(note, AUDIENCE, TRIGGER); } catch (ge) { guardVerdict = red(`FAIL: ${ge.message}`); }
-      console.log(`\n${bold('SUBJECT')}  ${note.subject}`);
+      try { guardNote(note, AUDIENCE, TRIGGER, { officeContext }); } catch (ge) { guardVerdict = red(`FAIL: ${ge.message}`); }
+      const questions = (note.body.match(/\?/g) || []).length;
+      console.log(`\n${bold('SHAPE')}    ${architecture?.key || 'none'}${officeContext ? green('  · office-context ON') : ''}   ${bold('QUESTIONS')} ${questions === 1 ? green('1') : red(String(questions))}`);
+      console.log(`${bold('SUBJECT')}  ${note.subject}`);
       console.log(`${bold('BODY')}\n${note.body}`);
       console.log(gray(`\nresearch_note: ${note.research_note}`));
       console.log(gray(`linkedin_step: ${note.linkedin_step}`));
