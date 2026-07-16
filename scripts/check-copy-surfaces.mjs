@@ -16,6 +16,7 @@ import { readFileSync } from 'fs';
 // Files that generate customer-facing copy and MUST import positioning.js.
 const COPY_SURFACES = [
   'netlify/functions/lib/founder-note.js',
+  'netlify/functions/lib/founder-note-v2.js', // the generate-N-then-select writing loop
   'netlify/functions/draft-outreach.js',
 ];
 

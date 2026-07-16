@@ -222,7 +222,7 @@ export const handler = async (event) => {
       // Compose engine (lib/founder-note.js): draft -> guards (2 revises) ->
       // skeptic -> revise -> final guard. Throws if it still violates a hard
       // rule; the catch below turns that into a Slack skip.
-      const { note } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook, hookCategory, hookDetail, hookConnects, recentNotes, label: t.email });
+      const { note, architecture } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook, hookCategory, hookDetail, hookConnects, recentNotes, label: t.email });
 
       // Feed this note back into the anti-sameness pool so the NEXT lead in this same
       // run cannot reuse its phrasing (the Krista/Rob/Julie duplicates on 2026-07-14
@@ -251,6 +251,15 @@ export const handler = async (event) => {
           trigger_type: triggerType || null,
           remote: remote || null,
           personal_hook: personalHook || null,
+          // MEASUREMENT (Will 2026-07-14): the CTA A/B (help vs convo) is unmeasurable —
+          // 71 drafts produced 27 sends and ONE reply, and it tests the wrong variable
+          // anyway. The research says the OBSERVATION is the lever, so record what kind
+          // of hook we found and which skeleton we used, and measure send-rate and
+          // reply-rate by those instead. Every note contributes a data point, so this
+          // accumulates far faster than the CTA split ever could.
+          // Read with scripts/debug/founder-lane-metrics.mjs.
+          hook_category: hookCategory || 'none',
+          architecture: architecture?.key || null,
           research_note: note.research_note, linkedin_step: note.linkedin_step,
           rep_email: WILL, thread_id: null, gmail_draft_id: gmailDraftId, gmail_message_id: gmailMessageId,
           all_directions: [{ label: 'founder', subject: note.subject, body: note.body }],

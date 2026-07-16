@@ -242,7 +242,7 @@ const SIGNOFF_BLOCK_RE = new RegExp(`\\n+\\s*(?:${SIGNOFF_ESC.join('|')}|Cheers,
 // A single sign-off LINE (for the exclamation guard's strip) and the required END shape.
 const SIGNOFF_LINE_RE = new RegExp(`^(?:${SIGNOFF_ESC.join('|')})$`, 'gm');
 const SIGNOFF_END_RE = new RegExp(`\\n(?:${SIGNOFF_ESC.join('|')})\\n+Will\\s*$`);
-function pickSignoff(seed, touch = 1) {
+export function pickSignoff(seed, touch = 1) {
   let h = 2166136261; const s = `${String(seed || 'x').toLowerCase()}|${touch}`;
   for (let i = 0; i < s.length; i += 1) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
   return FOUNDER_SIGNOFFS[h % FOUNDER_SIGNOFFS.length];
@@ -501,7 +501,7 @@ export async function draftNote(anthropic, { lead, firm, exemplars, audience, ct
     tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   }
   if (!tu) throw new Error('no report_note from drafter');
-  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))) };
+  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: isolateQuestion(autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || ''))))) };
 }
 
 // The model sometimes separates paragraphs with SINGLE newlines; the chunky-
@@ -578,6 +578,37 @@ const ABBR_RE = /\b(Inc|Corp|Co|Ltd|LLC|L\.?L\.?C|LLP|PLC|Pvt|Dr|Mr|Mrs|Ms|Sr|Jr
 const ABBR_DOT = '@@DOT@@'; // ASCII placeholder for an abbreviation dot while splitting
 const maskAbbr = (s) => s.replace(ABBR_RE, (m) => m.replace(/\./g, ABBR_DOT));
 const unmaskAbbr = (s) => s.split(ABBR_DOT).join('.');
+
+// THE QUESTION GETS ITS OWN LINE (Will, 2026-07-14): "the question... gets shoved in the
+// same paragraph as the [proof] and the email loses its flow."  The question is the whole
+// point of a 1:1 note (Sivers: "only ask one question") and it must land with air around
+// it, not buried mid-paragraph next to a stat or the self-intro.
+// This is an AUTO-FIX, not a rule: it only moves an existing sentence to its own paragraph,
+// changing zero words. Same category as autoFixDashes — mechanical repair, never a
+// lead-killer, and it does NOT narrow what the writer may say (which is what turned v1
+// into a compliance engine).
+export function isolateQuestion(body) {
+  const paras = String(body || '').split(/\n\s*\n/);
+  const out = [];
+  for (const para of paras) {
+    const p = para.trim();
+    if (/^(Hi|Hey|Hello)\b/.test(p) && p.length < 40) { out.push(para); continue; }
+    if (/(Cheers!|Thanks!|Warmly,|Talk soon,)/.test(p)) { out.push(para); continue; }
+    const sentences = (maskAbbr(p).match(/[^.!?]+[.!?]+(\s|$)/g) || []).map(unmaskAbbr);
+    // Only act when a question SHARES a paragraph with something else.
+    if (sentences.length < 2 || !sentences.some((s) => /\?\s*$/.test(s.trim()))) { out.push(para); continue; }
+    // Split into runs: everything before the question, the question alone, everything after.
+    let buf = [];
+    for (const s of sentences) {
+      if (/\?\s*$/.test(s.trim())) {
+        if (buf.length) { out.push(buf.join('').trim()); buf = []; }
+        out.push(s.trim());
+      } else buf.push(s);
+    }
+    if (buf.length) out.push(buf.join('').trim());
+  }
+  return out.filter(Boolean).join('\n\n');
+}
 
 export function autoSplitParagraphs(body) {
   return body.split(/\n\s*\n/).map((para) => {
@@ -849,9 +880,16 @@ const SAMENESS_STOP_RE = /^(hi|hey|hello|cheers|thanks|warmly|talk|soon|will)\b/
 //   2. the service menu — it is the product; the composer varies the sentence AROUND it.
 // Everything else (the observation, the supporting beat, the ask) is Will's prose and
 // MUST be fresh every time. That prose is what this guard is actually for.
+// Widened 2026-07-14: the SERVICE-LIST LEAD-IN was tripping the guard. "we bring chair
+// massage" is the menu — the product — and it is MANDATED to recur; isServiceOnly() below
+// only exempts shingles made ENTIRELY of service words, so the verb phrase that introduces
+// the list ("we bring…", "we help companies deploy…") was being flagged as sameness. In v2
+// this rejected 5/5 candidates in one run. Exempt the lead-in verb phrase too; the prose
+// AROUND the list is still fair game, which is where real sameness lives.
 const ALLOWED_RECURRING = [
   /\b(i'?m|i am) will,?\s*(and )?i (run|lead) shortcut\b/gi,
   /\bmy name is will\b/gi,
+  /\bwe (bring|run|do|offer|handle|help companies (deploy|put|use)|help companies)\b/gi,
 ];
 const SEG_BREAK = ' '; // hard segment break: shingles never span it
 function shingles(text, n = SHINGLE_N) {
@@ -941,7 +979,7 @@ export async function reviseNote(anthropic, { note, issues, exemplars, audience,
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_note');
   if (!tu) throw new Error('revision produced no note');
   // keep the original research trail; the revision only reworks copy
-  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))), research_note: tu.input.research_note || note.research_note };
+  return { ...tu.input, subject: autoFixDashes(String(tu.input.subject || '')), body: isolateQuestion(autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || ''))))), research_note: tu.input.research_note || note.research_note };
 }
 
 // Strip a trailing INTERPRETIVE clause from a warm_line so the opener stays ONE idea
@@ -1101,13 +1139,20 @@ const FOLLOWUP_SCHEMA = {
   required: ['body', 'touch_summary'],
 };
 
-function followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote = false) {
+function followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote = false, recentFollowups = []) {
   const channel = audience === 'brokers' ? 'broker' : 'direct';
   const oneTeam = remote ? 'one team for your whole distributed crew, run over Zoom, zero lift' : `one team for the whole crew, on-site${audience === 'brokers' ? '' : ' and remote'}, zero lift`;
   const roles = {
     2: 'TOUCH 2 (SHORT BUMP — model the COLD-ENGINE E2, the short-form follow-up we use): a tiny nudge on the note above, NOT a new pitch. Reference the earlier note in one line, add a soft one-line ask, and STOP. NO new proof point, NO stat, NO new services, NO new value beat. 1 to 2 short sentences TOTAL. Reference shape (say it in Will\'s own words, do NOT paste verbatim): "Following up on my note below. Worth a quick chat about {company}?" That soft ask IS the whole email and the close. (A short "following up on my note" IS wanted here; only a contentless bump with no ask is wrong.)',
-    3: `TOUCH 3 (differentiation${bookACallUrl ? ' + one link' : ''}): in a sentence, make clear Shortcut is ${oneTeam}.${bookACallUrl ? ` Then offer the page once, softly: "I put together a quick overview if it helps: ${bookACallUrl}". Use that exact URL exactly once.` : ''} Keep it short.`,
-    4: 'TOUCH 4 (graceful breakup): one last note. Drop ONE final REAL proof point, then a warm no-pressure out ("I will leave you be. Reach out anytime if it is ever useful."). NEVER guilt, NEVER "last chance" or "final attempt".',
+    // TOUCH 3 IS NOW THE LAST TOUCH (Will 2026-07-14 — cadence cut from 4 to 3). It
+    // carries what used to be split across E3 (differentiation) and E4 (breakup): one
+    // genuinely new angle AND the graceful out, in one short note. Rationale in the
+    // cadence block at the bottom of this file — the 5-to-12-touch "law" everyone builds
+    // on is a 1942 survey of under 40 people, and a 4th automated touch from Will's real
+    // inbox risks the relationship for a marginal reply we have no evidence exists.
+    3: `TOUCH 3 (LAST TOUCH — one new angle + a graceful out, in one short note${bookACallUrl ? ' + one link' : ''}): This is the final email in the sequence, so it does two jobs and then lets go.
+FIRST, give them something genuinely NEW they have not heard in touches 1 or 2 — the differentiation: in a sentence, make clear Shortcut is ${oneTeam}. Say it fresh, do not restate the first note.${bookACallUrl ? ` You may offer the page once, softly: "I put together a quick overview if it helps: ${bookACallUrl}". Use that exact URL exactly once.` : ''}
+THEN close with a warm, genuine, no-pressure out and MEAN it: "I'll leave you be. Reach out any time if it's ever useful." This is the Ferriss move (an explicit permission to not reply is what makes people reply), so write it like a human who is genuinely fine either way. NEVER guilt, NEVER "last chance", NEVER "final attempt", NEVER a needy sign-off. Short.`,
   };
   return `You write a SHORT in-thread follow-up email AS Will Newton, founder and CEO of Shortcut (getshortcut.co). Will's earlier note is ALREADY above in this thread, so do NOT reintroduce him or Shortcut and do NOT restate the full pitch.
 
@@ -1120,6 +1165,11 @@ TODAY IS ${todayLong()}. Never call a month/date that has already passed "upcomi
 WILL'S VOICE (email breathes, warmth over compression): calm, warm, casual, human. Contractions. Complete sentences only, never a bare service list dropped in as its own line. Vary sentence length naturally; do not compress into clipped fragments. No buzzwords. No dashes as punctuation (end the sentence instead). No exclamation points except the sign-off.
 ${exemplars.length ? `\nWILL'S REAL SENT EMAILS (match register/rhythm, do not copy):\n${exemplars.slice(0, 3).map((e, i) => `--- ${i + 1} ---\n${e}`).join('\n')}\n` : ''}
 IN-THREAD: this is a reply. Open naturally (a light "Hi {first name}," is fine, or dive straight in). A few short sentences total. One idea per short paragraph.
+${recentFollowups.length ? `
+ALREADY USED — DO NOT REUSE (recent follow-ups you have sent to OTHER people; a bump is a tiny email and its phrasing collapses into a template faster than anything else in this system):
+${recentFollowups.map((b, i) => `--- recent ${i + 1} ---\n${b}`).join('\n')}
+Do NOT reuse any phrasing or sentence shape from the above. "Following up on my note below" is the obvious trap: if you have already used that exact opener, find another true way to say it ("Circling back on this", "Wanted to put this back in front of you", "Still curious about the below", or something better that sounds like Will). Checked in code against recent sends.
+` : ''}
 
 ${audience === 'brokers'
     ? 'BROKER CONTEXT: still channel courtship — helping the broker help their CLIENTS deploy carrier wellness funds. Client-side credibility only (companies Will talks to, never claims about the broker\'s own book outside a question). Name only fund-eligible services (chair massage, assisted stretch, sound baths, mindfulness, nutrition coaching). Never say "groups".'
@@ -1133,7 +1183,7 @@ Sign off "Cheers!" or "Thanks!" on its own line, then "Will". That is the ONLY e
 Report via report_followup exactly once.`;
 }
 
-async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies, remote = false }) {
+async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies, remote = false, recentFollowups = [] }) {
   const userContent = [
     'THE PERSON (JSON):',
     JSON.stringify({ name: lead.name, title: lead.title, company: lead.company, why_now_trigger: trigger || null, remote_or_distributed: remote || null }, null, 2),
@@ -1144,15 +1194,15 @@ async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, t
     `Write follow-up touch ${touchNumber}, then call report_followup once.`,
   ].join('\n');
   const resp = await anthropic.messages.create({
-    model: ANTHROPIC_MODEL, max_tokens: 1500, temperature: 0.4,
-    system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote),
+    model: ANTHROPIC_MODEL, max_tokens: 1500, temperature: DRAFT_TEMPERATURE,
+    system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote, recentFollowups),
     tools: [{ name: 'report_followup', description: 'Report the finished follow-up. Call exactly once.', input_schema: FOLLOWUP_SCHEMA }],
     tool_choice: { type: 'tool', name: 'report_followup' },
     messages: [{ role: 'user', content: userContent }],
   });
   const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_followup');
   if (!tu) throw new Error('no report_followup from drafter');
-  return { ...tu.input, body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))) };
+  return { ...tu.input, body: isolateQuestion(autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || ''))))) };
 }
 
 /**
@@ -1161,24 +1211,49 @@ async function draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, t
  * touch_summary }. The subject is NOT generated here: the sender reuses the E1
  * subject so Gmail keeps the thread grouped.
  */
-export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 'help', trigger = null, remote = false, touchNumber, exemplars = [], bookACallUrl = null, priorBodies = [], label = lead?.email || 'lead', log = console.error }) {
+export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 'help', trigger = null, remote = false, touchNumber, exemplars = [], bookACallUrl = null, priorBodies = [], recentFollowups = [], label = lead?.email || 'lead', log = console.error }) {
   const allowLinks = (touchNumber === 3 && bookACallUrl) ? [bookACallUrl] : [];
   const guardOpts = { allowLinks, followup: true };
-  let fu = await draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies, remote });
+  let fu = await draftFollowup(anthropic, { lead, audience, ctaVariant, trigger, touchNumber, exemplars, bookACallUrl, priorBodies, remote, recentFollowups });
+  // SAMENESS ON FOLLOW-UPS (Will 2026-07-14): a bump is a tiny email, so its phrasing
+  // collapses into a template faster than anything else in the system ("Following up on
+  // my note below" every single time). The E1 anti-sameness work did not cover this path;
+  // it does now. One rewrite attempt — never a hard fail, because a slightly samey bump
+  // beats a skipped touch.
+  const dup = sharedPhrase(fu.body, recentFollowups);
+  if (dup) {
+    log(`followup sameness for ${label} (touch ${touchNumber}): reused "${dup}" — rewriting once`);
+    try {
+      const rw = await anthropic.messages.create({
+        model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: DRAFT_TEMPERATURE,
+        system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote, recentFollowups),
+        tools: [{ name: 'report_followup', description: 'Report the rewritten follow-up.', input_schema: FOLLOWUP_SCHEMA }],
+        tool_choice: { type: 'tool', name: 'report_followup' },
+        messages: [{ role: 'user', content: `Your follow-up reuses a phrase from a recent follow-up you sent someone else: "${dup}". Rewrite it so it shares NO phrasing with the recent follow-ups above, in different words with a different shape. Keep it the same length and the same job.\n\nPREVIOUS:\n${fu.body}` }],
+      });
+      const t = (rw.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_followup');
+      if (t) {
+        const candidate = { ...t.input, body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(t.input.body || '')))) };
+        // Only take the rewrite if it still passes the hard rules (same last-known-good
+        // discipline as composeNote — a cosmetic fix must never lose a touch).
+        try { guardNote({ subject: '', body: candidate.body }, audience, trigger, guardOpts); fu = candidate; } catch { /* keep the original */ }
+      }
+    } catch (e) { log(`followup sameness rewrite failed for ${label} (${e.message}) — keeping original`); }
+  }
   const asNote = () => ({ subject: '', body: fu.body });
   try { guardNote(asNote(), audience, trigger, guardOpts); } catch (ge) {
     log(`followup guard hit for ${label} (touch ${touchNumber}): ${ge.message} — revising`);
     // one revision with the failure fed back
     const resp = await anthropic.messages.create({
-      model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: 0.4,
-      system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote),
+      model: ANTHROPIC_MODEL, max_tokens: 1200, temperature: DRAFT_TEMPERATURE,
+      system: followupSystem(exemplars, audience, ctaVariant, touchNumber, trigger, bookACallUrl, remote, recentFollowups),
       tools: [{ name: 'report_followup', description: 'Report the revised follow-up.', input_schema: FOLLOWUP_SCHEMA }],
       tool_choice: { type: 'tool', name: 'report_followup' },
       messages: [{ role: 'user', content: `Your previous follow-up FAILED a hard rule: ${ge.message}\n\nPREVIOUS:\n${fu.body}\n\nFix it and re-report. Keep it short and in-thread.` }],
     });
     const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_followup');
     if (!tu) throw new Error('followup revision produced nothing');
-    fu = { ...tu.input, body: autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || '')))) };
+    fu = { ...tu.input, body: isolateQuestion(autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(tu.input.body || ''))))) };
     guardNote(asNote(), audience, trigger, guardOpts); // throws -> caller skips this touch
   }
   // Vary the sign-off per touch + tighten the blank line before "Will" (Will 2026-07-10).
@@ -1186,13 +1261,22 @@ export async function composeFollowup(anthropic, { lead, audience, ctaVariant = 
   return fu;
 }
 
-// Follow-up cadence — CUMULATIVE days from the E1 send. The cold engine's "+3/+4/+5"
-// means the gap BETWEEN steps (3 days after E1, then 4 after E2, then 5 after E3), i.e.
-// cumulative days 3 / 7 / 12 — the conventional 3-4 business-day spacing over ~2 weeks
-// (Smartlead + industry best practice). The founder lane originally mis-read those as
-// absolute offsets from E1 (3/4/5 = three touches on consecutive days), which was too
-// aggressive; corrected 2026-07-08. The sender compares this to age-from-E1.
-// E2 on DAY 2 (Will 2026-07-10): send the short bump 2 days after E1 (was 3) so
-// it lands while the first note is still warm. E3/E4 unchanged. Weekend-due touches
-// wait for the next weekday run (the scheduler is weekdays-only).
-export const FOLLOWUP_CADENCE = { 2: 2, 3: 7, 4: 12 };
+// Follow-up cadence — CUMULATIVE days from the E1 send. The sender compares this to
+// age-from-E1; weekend-due touches wait for the next weekday run (weekdays-only cron).
+//
+// THREE TOUCHES, NOT FOUR (Will 2026-07-14). The 4th touch is GONE and touch 3 is now
+// the last (one new angle + a graceful out, merged from the old E3 + E4).
+//
+// WHY: the "80% of sales need 5-12 follow-ups" ladder that every multi-touch cadence is
+// built on traces to a 1942 survey of the Long Island chapter of the NSEA, n < 40 — the
+// successor org (SMEI) says so itself and concedes it was copied and pasted ever since.
+// There is NO evidence base for importing a long cadence into a 1:1 personal lane. Josh
+// Braun's own rule is "don't follow up 5 times when you get ghosted", and Ferriss's
+// finding is that an explicit permission to NOT reply is what earns the reply.
+// The asymmetry decides it: will@'s reputation and the relationship ARE the moat
+// (personal converts ~25x cold), and a 4th automated touch from a founder's real inbox
+// risks that for a marginal reply nobody has evidence exists. Quarterly nurture carries
+// the rest. See memory/cold_networking_research.md.
+//
+// (E2 on DAY 2 = Will 2026-07-10: the short bump lands while the first note is warm.)
+export const FOLLOWUP_CADENCE = { 2: 2, 3: 7 };

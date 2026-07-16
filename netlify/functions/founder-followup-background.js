@@ -145,7 +145,14 @@ export const handler = async (event) => {
   const confirm = !!body.confirm;
   const max = Number.isFinite(body.max) ? Math.max(1, Math.min(30, body.max)) : DEFAULT_MAX;
   const only = lc(body.only) || null;
-  const forceTouch = [2, 3, 4].includes(body.touch) ? body.touch : null;
+  // Touch bounds are DERIVED from FOLLOWUP_CADENCE, never hardcoded (Will 2026-07-14:
+  // the cadence was cut from 4 touches to 3, and four separate hardcoded `4`s here would
+  // otherwise have tried to send a touch whose role no longer exists — rendering the
+  // literal string "undefined" into a real email from will@). Change the cadence in
+  // lib/founder-note.js and this follows.
+  const TOUCH_NUMBERS = Object.keys(FOLLOWUP_CADENCE).map(Number).sort((a, b) => a - b); // [2, 3]
+  const LAST_TOUCH = TOUCH_NUMBERS[TOUCH_NUMBERS.length - 1]; // 3 = the final touch
+  const forceTouch = TOUCH_NUMBERS.includes(body.touch) ? body.touch : null;
   const log = (...a) => console.log(`[followup]`, ...a);
   log(`start · ${confirm ? 'LIVE (will auto-send)' : 'DRY (no sends)'} · max ${max}${only ? ` · only ${only}` : ''}${forceTouch ? ` · force touch ${forceTouch}` : ''}`);
 
@@ -161,6 +168,23 @@ export const handler = async (event) => {
       .eq('target_kind', 'founder_note').range(f, f + 999);
     e1rows.push(...(data || [])); if (!data || data.length < 1000) break;
   }
+  // ANTI-SAMENESS POOL for follow-ups (Will 2026-07-14). A bump is a tiny email, so its
+  // phrasing collapses into a template faster than anything else here — every touch 2
+  // wants to be "Following up on my note below." The drafter cannot see what it sent
+  // yesterday, so we hand it the recent follow-up BODIES (composeFollowup injects them
+  // into the prompt AND checks n-gram overlap in code). Derived in memory from the
+  // sequences we already loaded — no extra query. Note this is built from ALL rows, not
+  // the `only`-filtered set, so a single-lead test run still sees the real history.
+  const RECENT_FOLLOWUPS_N = 15;
+  const recentFollowups = e1rows
+    .flatMap((r) => (r.target_ref?.sequence?.touches || [])
+      .filter((t) => t.n >= 2 && t.body)
+      .map((t) => ({ at: t.sent_at || '', body: t.body })))
+    .sort((a, b) => String(b.at).localeCompare(String(a.at)))
+    .slice(0, RECENT_FOLLOWUPS_N)
+    .map((t) => t.body);
+  log(`anti-sameness: ${recentFollowups.length} recent follow-up bodies loaded`);
+
   if (only) e1rows = e1rows.filter((r) => lc(r.recipient_email) === only);
 
   // suppression set
@@ -198,9 +222,12 @@ export const handler = async (event) => {
       // sequence state (initialise from E1 if first run)
       const seq = ref.sequence || { touches: [{ n: 1, sent_at: e1send.sent_time, body: e1.body || '' }], status: 'active' };
       const touchesSent = seq.touches.length;
-      if (touchesSent >= 4) { results.push({ email, skip: 'sequence complete (4 touches)' }); await markSequence(sb, e1, 'completed'); continue; }
+      // Sequence is complete once the LAST touch has gone out. With the 3-touch cadence
+      // that is E1 + E2 + E3; any lead already carrying 3+ touches (incl. leads mid-flight
+      // from the old 4-touch cadence) is marked completed and never gets a 4th.
+      if (touchesSent >= LAST_TOUCH) { results.push({ email, skip: `sequence complete (${touchesSent} touches)` }); await markSequence(sb, e1, 'completed'); continue; }
       const nextTouch = forceTouch || (touchesSent + 1);
-      if (nextTouch < 2 || nextTouch > 4) { results.push({ email, skip: `no touch ${nextTouch}` }); continue; }
+      if (!TOUCH_NUMBERS.includes(nextTouch)) { results.push({ email, skip: `no touch ${nextTouch}` }); continue; }
 
       // cadence: due if now >= E1 + offset days (skipped when forcing a touch)
       const dueDay = FOLLOWUP_CADENCE[nextTouch];
@@ -245,7 +272,7 @@ export const handler = async (event) => {
       const fu = await composeFollowup(anthropic, {
         lead: { email, name: e1.source_contact || null, title: e1.source_title || null, company },
         audience: ref.audience || 'brokers', ctaVariant: ref.cta_variant || 'help', trigger: ref.trigger || null, remote: ref.remote === true,
-        touchNumber: nextTouch, exemplars: [], bookACallUrl: bookUrl, priorBodies,
+        touchNumber: nextTouch, exemplars: [], bookACallUrl: bookUrl, priorBodies, recentFollowups,
         label: email, log,
       });
 
