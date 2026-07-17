@@ -198,13 +198,12 @@ export const SERVICE_IMAGE_PATH: Record<string, string> = {
   'sound-bath': '/Sound Bath Slider.png',
   yoga: '/Yoga Slider.png',
   stretch: '/Stretch Slider.png',
-  // 2026 movement & sound services. Dedicated Kirsten photos for five of them;
-  // Stretch/Mobility reuses the existing Stretch photo as a stopgap (no
-  // dedicated art yet) and falls back to the gradient if that's ever missing.
+  // 2026 movement & sound services — dedicated Kirsten photos. Stretch/Mobility
+  // uses the group-class photo (Movement.webp).
   reiki: '/reiki-reset.png',
   'crystal-sound-bath': '/crystal-sound-bath.png',
   'somatic-sound-bath': '/somatic-movement.png',
-  'stretch-mobility': '/Stretch Slider.png',
+  'stretch-mobility': '/stretch-mobility.webp',
   'dance-cardio': '/dance-cardio.png',
   'strength-sculpt': '/strength-sculpt.png',
 };
@@ -227,6 +226,25 @@ export const SERVICE_GALLERY: Record<string, string[]> = {
     '/Landing Page Hero Images/Nails Hero.png',
     '/QR Code Sign/Service Images/Nails.png',
     '/Holiday Proposal/Hero Images/Nails 2x.png',
+  ],
+  // 2026 movement & sound services. First entry is the cover (matches
+  // SERVICE_IMAGE_PATH), followed by additional Kirsten photos so the card
+  // shows a multi-photo gallery when the service is on a proposal.
+  'crystal-sound-bath': [
+    '/crystal-sound-bath.png',
+    '/crystal-sound-bath-rooftop.webp',
+  ],
+  reiki: [
+    '/reiki-reset.png',
+    '/reiki-reset-session.webp',
+  ],
+  'somatic-sound-bath': [
+    '/somatic-movement.png',
+    '/somatic-movement-2.webp',
+  ],
+  'stretch-mobility': [
+    '/stretch-mobility.webp',
+    '/Stretch Slider.png',
   ],
 };
 
