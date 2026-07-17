@@ -16,17 +16,17 @@
  *   node scripts/draft-founder-note-v2.mjs ... --audience brokers --n 6 --show-all
  *
  * Flags:
- *   --n <int>        candidates to generate (default 5)
+ *   --n <int>        candidates to generate (default 4)
  *   --show-all       print every candidate + why it lost, not just the winner
  *   --no-research    skip the research pass (fast iteration on voice/generation only)
- *   --exemplars      pull Will's real sent mail as voice examples (needs the cron env)
- *   --floor <0-1>    notability bar (default 0.5)
+ *   --raw-sent       use UNCURATED sent mail instead of the curated voice corpus (comparison only)
+ *   --floor <0-1>    notability bar (default 0.6)
  */
 import { readFileSync } from 'fs';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import {
-  researchObservations, composeNoteV2, anthropicJudge, LENSES, NOTABILITY_FLOOR,
+  researchObservations, composeNoteV2, NOTABILITY_FLOOR,
 } from '../netlify/functions/lib/founder-note-v2.js';
 import { recentSentBodies, noteWordCount } from '../netlify/functions/lib/founder-note.js';
 import { voiceExemplars } from '../netlify/functions/lib/voice-corpus.js';
@@ -39,9 +39,10 @@ const OPENCLAW = `${process.env.HOME}/.openclaw/workspace`;
 const envKey = (n) => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').match(new RegExp(`^${n}=(.+)$`, 'm'))?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } };
 const repoEnv = (n) => { try { return (readFileSync('.env', 'utf8').match(new RegExp(`^${n}=(.+)$`, 'm'))?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } };
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || envKey('ANTHROPIC_API_KEY');
+const GEMINI_KEY = process.env.GEMINI_API_KEY || envKey('GEMINI_API_KEY');
 
 const AUDIENCE = val('--audience', 'tech-execs');
-const N = parseInt(val('--n', '5'), 10);
+const N = parseInt(val('--n', '4'), 10);
 const FLOOR = parseFloat(val('--floor', String(NOTABILITY_FLOOR)));
 const EMAIL = val('--email');
 const SHOW_ALL = has('--show-all');
@@ -113,7 +114,7 @@ const bold = c(1); const gray = c(90); const green = c(32); const red = c(31); c
 
   console.log(gray('─'.repeat(76)));
   console.log(`${bold('LEAD')}      ${lead.name} · ${lead.title} · ${lead.company} (${lead.location || 'no location'})`);
-  console.log(`${bold('AUDIENCE')}  ${AUDIENCE}   ${bold('N')} ${N}   ${bold('FLOOR')} ${FLOOR}   ${bold('EXEMPLARS')} ${exemplars.length}   ${bold('RECENT')} ${recentNotes.length}`);
+  console.log(`${bold('AUDIENCE')}  ${AUDIENCE}   ${bold('N')} ${N}   ${bold('FLOOR')} ${FLOOR}   ${bold('EXEMPLARS')} ${exemplars.length}   ${bold('RECENT')} ${recentNotes.length}   ${bold('PANEL')} ${GEMINI_KEY ? green('claude+gemini') : yellow('claude only')}`);
   console.log(gray('─'.repeat(76)));
 
   const t0 = Date.now();
@@ -139,9 +140,7 @@ const bold = c(1); const gray = c(90); const green = c(32); const red = c(31); c
   const officeContext = observations.some((o) => o.category === 'office');
   const { note, ranked, rejected, refused, reason } = await composeNoteV2(anthropic, {
     lead, firm, audience: AUDIENCE, remote: REMOTE, exemplars, recentNotes,
-    observations, officeContext, n: N,
-    judges: [anthropicJudge(anthropic)],
-    lenses: Object.values(LENSES),
+    observations, officeContext, n: N, geminiKey: GEMINI_KEY || null,
     label: lead.email, log,
   });
   const secs = ((Date.now() - t0) / 1000).toFixed(0);

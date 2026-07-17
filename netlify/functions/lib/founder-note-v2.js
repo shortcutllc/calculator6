@@ -90,7 +90,7 @@ const OBSERVATIONS_SCHEMA = {
   required: ['observations', 'nothing_worth_saying'],
 };
 
-export const NOTABILITY_FLOOR = 0.5;
+export const NOTABILITY_FLOOR = 0.6;
 
 function researchSystem(audience) {
   const lane = audience === 'brokers'
@@ -449,17 +449,45 @@ const VERDICT_SCHEMA = {
  * BLIND: no provenance labels ever (labeling identical prose "human" vs "AI" swings LLM
  * judge preference by +34.3pp — Haverals & Martin).
  */
-async function pairwiseDualOrder(judge, lens, a, b, ctx) {
+/** Run `fn` over items with at most `limit` in flight. Rate-limited judges need this. */
+async function mapLimit(items, limit, fn) {
+  if (!Number.isFinite(limit) || limit >= items.length) return Promise.all(items.map(fn));
+  const out = new Array(items.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: limit }, async () => {
+    while (i < items.length) { const k = i; i += 1; out[k] = await fn(items[k], k); }
+  }));
+  return out;
+}
+
+/** Retry a judge call on transient/rate-limit errors with exponential backoff. */
+async function callWithRetry(judge, args, log) {
+  const tries = judge.retries || 1;
+  for (let t = 0; t < tries; t += 1) {
+    try { return await judge.call(args); } catch (e) {
+      const rateLimited = /quota|rate|429|exhaust/i.test(e.message || '');
+      if (!rateLimited || t === tries - 1) throw e;
+      const wait = 2000 * (2 ** t); // 2s, 4s, 8s
+      log(`${judge.name} rate-limited, backing off ${wait / 1000}s`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
+  return null;
+}
+
+async function pairwiseDualOrder(judge, lens, a, b, ctx, log = () => {}) {
   const ask = async (first, second) => {
-    const r = await judge.call({
+    const r = await callWithRetry(judge, {
       system: `${lens.prompt(ctx)}\n\nAnswer on THIS LENS ONLY. Report via report_verdict exactly once.`,
       user: `### CANDIDATE A\nSubject: ${first.subject}\n\n${first.body}\n\n### CANDIDATE B\nSubject: ${second.subject}\n\n${second.body}`,
       schema: VERDICT_SCHEMA,
       toolName: 'report_verdict',
-    });
+    }, log);
     return r?.winner || 'tie';
   };
-  const [fwd, rev] = await Promise.all([ask(a, b), ask(b, a)]);
+  // Sequential, not parallel: a rate-limited judge must not burst its own two orderings.
+  const fwd = await ask(a, b);
+  const rev = await ask(b, a);
   // fwd: A=a wins means a. rev: A=b wins means b. Only an order-invariant verdict counts.
   if (fwd === 'A' && rev === 'B') return { winner: a.id, consistent: true };
   if (fwd === 'B' && rev === 'A') return { winner: b.id, consistent: true };
@@ -471,28 +499,31 @@ async function pairwiseDualOrder(judge, lens, a, b, ctx) {
  * Cost: lenses x judges x C(N,2) x 2 calls. With 4 lenses, 1 judge, 4 survivors that is 48
  * calls — real money and real latency, so callers should cap N (see composeNoteV2).
  */
-export async function judgePanel(candidates, { judges, lenses = Object.values(LENSES), ctx = {}, log = () => {} }) {
+export async function judgePanel(candidates, { assignments, ctx = {}, log = () => {} }) {
   if (candidates.length === 1) return [{ ...candidates[0], score: 0, wins: {}, note: 'only survivor, unjudged' }];
-  const singleFamily = new Set(judges.map((j) => j.family)).size < 2;
-  if (singleFamily) {
-    log('⚠️ PANEL IS SINGLE-FAMILY — the research requires disjoint families (self-preference/typicality bias). Degrading to lens-diversity only. Add a second provider key to satisfy the validated design.');
-  }
   const score = Object.fromEntries(candidates.map((c) => [c.id, 0]));
   const wins = Object.fromEntries(candidates.map((c) => [c.id, {}]));
   const pairs = [];
   for (let i = 0; i < candidates.length; i += 1) {
     for (let j = i + 1; j < candidates.length; j += 1) pairs.push([candidates[i], candidates[j]]);
   }
-  for (const lens of lenses) {
-    for (const judge of judges) {
-      const results = await Promise.all(pairs.map(([a, b]) => pairwiseDualOrder(judge, lens, a, b, ctx)));
+  log(`panel: ${assignments.map((a) => `${a.lens.key}→${a.judge.name}`).join(' ')} · ${assignments.length * pairs.length * 2} calls`);
+  // Each lens is judged by ONE model, and lenses run concurrently. A judge that errors
+  // (bad key, quota, transient) must never take the whole lead down — its lens simply
+  // abstains and the rest still rank. Silent degradation is worse than a loud one, so it
+  // logs; but a lost lens is strictly better than a lost lead.
+  await Promise.all(assignments.map(async ({ lens, judge }) => {
+    try {
+      const results = await mapLimit(pairs, judge.concurrency ?? Infinity, ([a, b]) => pairwiseDualOrder(judge, lens, a, b, ctx, log));
       for (const r of results) {
         if (!r.winner) continue;
         score[r.winner] += lens.weight;
         wins[r.winner][lens.key] = (wins[r.winner][lens.key] || 0) + 1;
       }
+    } catch (e) {
+      log(`⚠️ lens ${lens.key} (${judge.name}) failed and ABSTAINED: ${e.message.slice(0, 80)}`);
     }
-  }
+  }));
   const ranked = [...candidates].map((c) => ({ ...c, score: score[c.id], wins: wins[c.id] }))
     .sort((a, b) => b.score - a.score
       // TIE-BREAK POLICY (required, or the selector stalls — ties are EXPECTED because
@@ -508,7 +539,7 @@ export async function judgePanel(candidates, { judges, lenses = Object.values(LE
   return ranked;
 }
 
-/** Anthropic adapter. Add {family:'openai'|'google'} adapters here to get a real panel. */
+/** Anthropic adapter. */
 export function anthropicJudge(anthropic, { model = ANTHROPIC_MODEL, name = 'claude' } = {}) {
   return {
     name, family: 'anthropic',
@@ -522,6 +553,87 @@ export function anthropicJudge(anthropic, { model = ANTHROPIC_MODEL, name = 'cla
       return (r.content || []).find((b) => b.type === 'tool_use' && b.name === toolName)?.input || null;
     },
   };
+}
+
+/**
+ * Gemini adapter — the SECOND FAMILY, which is what makes this a real panel rather than
+ * Anthropic marking its own homework (Verga et al.: a 3-model panel of disjoint families
+ * beat a single GPT-4 judge at ~7x lower cost, and self-preference bias is measured —
+ * Panickssery et al.; Wataoka et al. locate the mechanism in perplexity, i.e. judges
+ * over-reward text that is FAMILIAR to them).
+ * NOTE (2026-07-17): gemini-2.0/2.5-* are closed to new API keys ("no longer available to
+ * new users"), and gemini-2.0-flash returns a hard quota error on a fresh free key.
+ * gemini-3.5-flash and gemini-flash-latest work. Responses may carry a `thoughtSignature`
+ * part alongside the text part — pick the part that actually has `.text`, do not assume
+ * parts[0].
+ */
+export function geminiJudge(apiKey, { model = 'gemini-3.5-flash', name = 'gemini', concurrency = 2, retries = 4 } = {}) {
+  return {
+    name, family: 'google',
+    // The free tier is RATE-limited (~10-15 req/min), not volume-limited, so firing the
+    // pairwise comparisons concurrently returns "exceeded your current quota" even though
+    // single calls succeed (verified 2026-07-17: identical requests return HTTP 200 when
+    // spaced out, 429 when bursted). judgePanel honours this, and `call` retries with
+    // backoff on top. If Will ever enables billing, raise concurrency and this disappears.
+    concurrency, retries,
+    async call({ system, user, schema }) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ parts: [{ text: user }] }],
+          generationConfig: {
+            temperature: 0,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'OBJECT',
+              properties: Object.fromEntries(Object.entries(schema.properties).map(([k, v]) => [k, v.enum ? { type: 'STRING', enum: v.enum } : { type: 'STRING' }])),
+              required: schema.required,
+            },
+          },
+        }),
+      }).then((x) => x.json());
+      if (r.error) throw new Error(`gemini: ${r.error.message?.slice(0, 90)}`);
+      const parts = r.candidates?.[0]?.content?.parts || [];
+      const text = parts.find((p) => typeof p.text === 'string' && p.text.trim())?.text;
+      if (!text) return null;
+      try { return JSON.parse(text); } catch { return null; }
+    },
+  };
+}
+
+/**
+ * Build the panel from whatever keys exist, and ASSIGN ONE LENS PER JUDGE.
+ *
+ * WHY one-lens-per-judge (2026-07-17): running every lens through every judge costs
+ * lenses x judges x C(N,2) x 2 calls — with 4 lenses, 3 judges and N=5 that is 240 calls
+ * and ~5 minutes PER LEAD, which is absurd. Assigning each lens to a different family is
+ * both ~5x cheaper AND more family-diverse per lens, which is the property the research
+ * actually cares about. The noteworthiness lens (the bet aimed at our worst defect) goes
+ * to a NON-Anthropic judge on purpose: the generator is Anthropic, so scoring its own
+ * observations is precisely the self-preference case.
+ * Falls back to single-family (and says so loudly) when only one key exists.
+ */
+export function buildPanel({ anthropic, geminiKey = null, log = () => {} }) {
+  const claude = anthropicJudge(anthropic);
+  if (!geminiKey) {
+    log('⚠️ SINGLE-FAMILY PANEL — no GEMINI_API_KEY. Anthropic is judging Anthropic, which is the exact self-preference case the research warns about. Add a key to fix.');
+    return Object.values(LENSES).map((lens) => ({ lens, judge: claude }));
+  }
+  const gemini = geminiJudge(geminiKey);
+  return [
+    // NOTEWORTHINESS is the one lens that MUST be cross-family: it scores the generator's
+    // own observations, which is exactly the self-preference case (a judge over-rewards
+    // text that is familiar to it). It is also our worst defect, so it gets the
+    // independent opinion. The other three stay on Claude — the Gemini free tier is
+    // ~10-15 req/min and each lens costs 2 x C(N,2) calls, so a second Gemini lens would
+    // roughly double wall-clock for the lowest-weight bet. Move `fresh` here if billing
+    // is ever enabled.
+    { lens: LENSES.noteworthy, judge: gemini },
+    { lens: LENSES.fresh, judge: claude },
+    { lens: LENSES.voice, judge: claude },
+    { lens: LENSES.reply, judge: claude },
+  ];
 }
 
 // ============================================================================
@@ -538,10 +650,10 @@ export function anthropicJudge(anthropic, { model = ANTHROPIC_MODEL, name = 'cla
 export async function composeNoteV2(anthropic, {
   lead, firm, audience, remote = false, exemplars = [], recentNotes = [],
   observations = [], trigger = null, officeContext = false,
-  n = 5, judges = null, lenses = Object.values(LENSES),
+  n = 4, geminiKey = null, assignments = null,
   label = lead?.email || lead?.name || 'lead', log = console.error,
 }) {
-  const panel = judges || [anthropicJudge(anthropic)];
+  const panel = assignments || buildPanel({ anthropic, geminiKey, log });
   const { candidates, research_note, linkedin_step } = await generateCandidates(anthropic, {
     lead, firm, audience, remote, exemplars, recentNotes, observations, trigger, n, log,
   });
@@ -555,7 +667,7 @@ export async function composeNoteV2(anthropic, {
   }
 
   const ranked = await judgePanel(survivors, {
-    judges: panel, lenses,
+    assignments: panel,
     ctx: { title: lead?.title, company: lead?.company, exemplars, recentNotes },
     log,
   });
