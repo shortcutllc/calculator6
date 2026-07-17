@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -15,13 +15,8 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from './LoadingSpinner';
-import {
-  CardHeading,
-  Eyebrow,
-  SectionLabel,
-  T,
-} from './proposal/shared/primitives';
-import { SERVICE_DISPLAY, SERVICE_EVENT_PHOTOS } from './proposal/data';
+import { CardHeading, Eyebrow, T } from './proposal/shared/primitives';
+import { SERVICE_DISPLAY } from './proposal/data';
 
 // ProposalGalleryAdmin — staff-only library manager for the `proposal_gallery`
 // table that V2 GalleryCard reads from. Lives at /proposal-gallery-admin.
@@ -83,29 +78,6 @@ const SERVICE_OPTIONS: { value: string; label: string }[] = [
   { value: 'hero', label: 'Hero gallery (overrides top of proposal)' },
   ...ALL_SERVICE_TYPES.map((v) => ({ value: v, label: SERVICE_DISPLAY[v] || v })),
 ];
-
-// The app's built-in REAL event photos, grouped so the admin can add them to a
-// service's gallery with one click. Deliberately excludes the studio/slider
-// cover images (flat color background) — those are the service card's main
-// image, not gallery photos. Deduped per (service, src).
-interface LibraryPhoto {
-  src: string;
-  serviceType: string;
-  label: string;
-}
-const STANDARD_LIBRARY: LibraryPhoto[] = (() => {
-  const out: LibraryPhoto[] = [];
-  const seen = new Set<string>();
-  ALL_SERVICE_TYPES.forEach((t) => {
-    (SERVICE_EVENT_PHOTOS[t] || []).forEach((src) => {
-      const key = `${t}|${src}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      out.push({ src, serviceType: t, label: SERVICE_DISPLAY[t] || t });
-    });
-  });
-  return out;
-})();
 
 const ProposalGalleryAdmin: React.FC = () => {
   const navigate = useNavigate();
@@ -314,14 +286,17 @@ const ProposalGalleryAdmin: React.FC = () => {
 
   const uploadOne = async (
     f: File,
-    opts: { applyFormMeta?: boolean } = {}
+    opts: { applyFormMeta?: boolean; serviceType?: string } = {}
   ): Promise<void> => {
+    // Target service: an explicit override (per-section "Add photo") wins over
+    // the form's dropdown selection.
+    const svcType = opts.serviceType || serviceType;
     const detectedMediaType: 'image' | 'video' = f.type.startsWith('video/')
       ? 'video'
       : 'image';
     const ext = f.name.split('.').pop() || 'bin';
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const path = `${serviceType}/${stamp}.${ext}`;
+    const path = `${svcType}/${stamp}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from('proposal-gallery')
       .upload(path, f, {
@@ -370,7 +345,7 @@ const ProposalGalleryAdmin: React.FC = () => {
       }
       const posterResult = await generateVideoPoster(f);
       if ('blob' in posterResult) {
-        const posterPath = `${serviceType}/${stamp}-poster.jpg`;
+        const posterPath = `${svcType}/${stamp}-poster.jpg`;
         const { error: posterErr } = await supabase.storage
           .from('proposal-gallery')
           .upload(posterPath, posterResult.blob, {
@@ -394,7 +369,7 @@ const ProposalGalleryAdmin: React.FC = () => {
     }
 
     const { error: insErr } = await supabase.from('proposal_gallery').insert({
-      service_type: serviceType,
+      service_type: svcType,
       media_url: pub.publicUrl,
       media_type: opts.applyFormMeta ? mediaType : detectedMediaType,
       poster_url: posterUrl,
@@ -509,33 +484,39 @@ const ProposalGalleryAdmin: React.FC = () => {
     }
   };
 
-  // ---- Standard library: add a built-in photo to a service's gallery -------
-  const [addingSrc, setAddingSrc] = useState<string | null>(null);
-  const addLibraryPhoto = async (photo: LibraryPhoto) => {
+  // ---- Per-section quick add: upload straight into one service's gallery ----
+  const sectionFileRef = useRef<HTMLInputElement>(null);
+  const [pendingSvc, setPendingSvc] = useState<string | null>(null);
+  const [sectionBusy, setSectionBusy] = useState<string | null>(null);
+  const onSectionAddClick = (key: string) => {
+    setPendingSvc(key);
+    sectionFileRef.current?.click();
+  };
+  const onSectionFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    const svc = pendingSvc;
+    setPendingSvc(null);
+    if (!files.length || !svc) return;
     if (!user) {
-      setUploadMsg('Sign in required.');
+      setUploadMsg('Sign in required to upload.');
       return;
     }
-    setAddingSrc(photo.src + '|' + photo.serviceType);
-    try {
-      const { error: insErr } = await supabase.from('proposal_gallery').insert({
-        service_type: photo.serviceType,
-        media_url: photo.src,
-        media_type: 'image',
-        caption: null,
-        poster_url: null,
-        is_published: true,
-        is_featured: false,
-        sort_order: 0,
-      });
-      if (insErr) throw insErr;
-      await fetchRows();
-    } catch (err) {
-      console.error('Add library photo failed:', err);
-      setUploadMsg(err instanceof Error ? err.message : 'Add failed. Check console.');
+    setSectionBusy(svc);
+    let failed = 0;
+    for (const f of files) {
+      try {
+        await uploadOne(f, { serviceType: svc });
+      } catch (err) {
+        failed += 1;
+        console.error('Section upload failed:', f.name, err);
+      }
+    }
+    setSectionBusy(null);
+    await fetchRows();
+    if (failed) {
+      setUploadMsg(`${failed} file${failed === 1 ? '' : 's'} failed — see console.`);
       setTimeout(() => setUploadMsg(null), 3500);
-    } finally {
-      setAddingSrc(null);
     }
   };
 
@@ -650,8 +631,13 @@ const ProposalGalleryAdmin: React.FC = () => {
   const groupKeys = Object.keys(grouped).sort((a, b) =>
     a === 'hero' ? -1 : b === 'hero' ? 1 : a.localeCompare(b)
   );
-  // Which standard-library photos are already in the gallery (per service).
-  const existingKeys = new Set(rows.map((r) => `${r.media_url}|${r.service_type}`));
+  // Render a section for EVERY service so you can add photos to any of them.
+  // Order: hero, then services that already have photos, then the rest.
+  const withPhotos = ALL_SERVICE_TYPES.filter((t) => (grouped[t] || []).length > 0);
+  const withoutPhotos = ALL_SERVICE_TYPES.filter(
+    (t) => (grouped[t] || []).length === 0
+  );
+  const orderedKeys = ['hero', ...withPhotos, ...withoutPhotos];
 
   if (loading) {
     return (
@@ -762,159 +748,44 @@ const ProposalGalleryAdmin: React.FC = () => {
         </div>
       </header>
 
-      {/* ---- Standard photo library ---- */}
-      <section style={{ maxWidth: 1120, margin: '0 auto', padding: '28px 24px 0' }}>
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid rgba(0,0,0,0.06)',
-            borderRadius: 16,
-            padding: '20px 22px',
-          }}
-        >
-          <div
-            style={{
-              fontFamily: T.fontUi,
-              fontWeight: 700,
-              fontSize: 11,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: T.fgMuted,
-              marginBottom: 4,
-            }}
-          >
-            Standard photo library
-          </div>
-          <div
-            style={{
-              fontFamily: T.fontD,
-              fontWeight: 800,
-              fontSize: 18,
-              color: T.navy,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            Add a built-in service photo
-          </div>
-          <div
-            style={{
-              fontFamily: T.fontD,
-              fontSize: 13,
-              color: T.fgMuted,
-              marginTop: 4,
-              marginBottom: 16,
-            }}
-          >
-            These are the app's standard service photos. Adding one tags it to
-            that service, so it shows in the top-of-proposal gallery for any
-            proposal that uses the service. No upload needed.
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-              gap: 14,
-            }}
-          >
-            {STANDARD_LIBRARY.map((p) => {
-              const key = `${p.src}|${p.serviceType}`;
-              const added = existingKeys.has(key);
-              const busy = addingSrc === key;
-              return (
-                <div
-                  key={p.serviceType + p.src}
-                  style={{
-                    border: '1px solid rgba(0,0,0,0.08)',
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                    background: '#fff',
-                  }}
-                >
-                  <div
-                    style={{
-                      aspectRatio: '4 / 3',
-                      background: T.lightGray,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <img
-                      src={p.src}
-                      alt={p.label}
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.opacity = '0.15';
-                      }}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
-                  </div>
-                  <div style={{ padding: '8px 10px' }}>
-                    <div
-                      style={{
-                        fontFamily: T.fontD,
-                        fontWeight: 700,
-                        fontSize: 12,
-                        color: T.navy,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                      title={p.label}
-                    >
-                      {p.label}
-                    </div>
-                    <button
-                      type="button"
-                      disabled={added || busy}
-                      onClick={() => addLibraryPhoto(p)}
-                      style={{
-                        marginTop: 6,
-                        width: '100%',
-                        padding: '6px 8px',
-                        borderRadius: 8,
-                        border: 'none',
-                        cursor: added || busy ? 'default' : 'pointer',
-                        fontFamily: T.fontUi,
-                        fontWeight: 700,
-                        fontSize: 12,
-                        background: added ? 'rgba(30,158,106,.14)' : T.navy,
-                        color: added ? T.success : '#fff',
-                        opacity: busy ? 0.6 : 1,
-                      }}
-                    >
-                      {added ? 'Added' : busy ? 'Adding…' : 'Add to gallery'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       <section
         style={{
-          maxWidth: 1120,
+          maxWidth: 980,
           margin: '0 auto',
           padding: '32px 24px 80px',
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 360px',
-          gap: 28,
-          alignItems: 'flex-start',
         }}
       >
-        {/* ---- Main column: grouped media list ---- */}
+        {/* ---- Per-service media list ---- */}
         <main>
-          <SectionLabel
-            eyebrow="Library"
-            title="What clients see in GalleryCard"
-            size="section"
-            mb={20}
+          {/* Hidden input driven by each section's "Add photo" button. */}
+          <input
+            ref={sectionFileRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            onChange={onSectionFilePick}
+            style={{ display: 'none' }}
           />
+          <div style={{ marginBottom: 22 }}>
+            <Eyebrow style={{ marginBottom: 4 }}>Gallery</Eyebrow>
+            <CardHeading size="section">Proposal photos, by service</CardHeading>
+            <p
+              style={{
+                fontFamily: T.fontD,
+                fontSize: 13.5,
+                color: T.fgMuted,
+                lineHeight: 1.6,
+                margin: '8px 0 0',
+                maxWidth: 640,
+              }}
+            >
+              These photos appear in the gallery at the top of a proposal. Each
+              proposal shows the photos for the services it includes. Add real
+              event photos per service below. <strong>Featured</strong> shows
+              that photo first; <strong>Hidden</strong> keeps it off the client
+              view. Services with no photos fall back to curated stock.
+            </p>
+          </div>
 
           {error && (
             <div
@@ -934,32 +805,17 @@ const ProposalGalleryAdmin: React.FC = () => {
             </div>
           )}
 
-          {rows.length === 0 && !error ? (
-            <div
-              style={{
-                background: '#fff',
-                border: '1px dashed rgba(0,0,0,0.18)',
-                borderRadius: 16,
-                padding: 32,
-                textAlign: 'center',
-                fontFamily: T.fontD,
-                color: T.fgMuted,
-              }}
-            >
-              No media yet. Upload the first clip or photo from the panel to
-              the right — it'll surface in every V2 proposal that includes that
-              service type.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              {groupKeys.map((key) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {orderedKeys.map((key) => {
+              const items = grouped[key] || [];
+              return (
                 <div
                   key={key}
                   style={{
                     background: '#fff',
                     border: '1px solid rgba(0,0,0,0.06)',
                     borderRadius: 18,
-                    padding: 20,
+                    padding: items.length ? 20 : '12px 20px',
                   }}
                 >
                   <div
@@ -967,7 +823,8 @@ const ProposalGalleryAdmin: React.FC = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      marginBottom: 14,
+                      marginBottom: items.length ? 14 : 0,
+                      gap: 12,
                     }}
                   >
                     <CardHeading size="card">
@@ -975,19 +832,47 @@ const ProposalGalleryAdmin: React.FC = () => {
                         ? 'Hero gallery · top of proposal'
                         : SERVICE_DISPLAY[key] || key}
                     </CardHeading>
-                    <Eyebrow>
-                      {grouped[key].length} item
-                      {grouped[key].length === 1 ? '' : 's'}
-                    </Eyebrow>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                    >
+                      <Eyebrow>
+                        {items.length} item{items.length === 1 ? '' : 's'}
+                      </Eyebrow>
+                      <button
+                        type="button"
+                        onClick={() => onSectionAddClick(key)}
+                        disabled={sectionBusy === key}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '7px 12px',
+                          background: T.navy,
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 9,
+                          cursor: sectionBusy === key ? 'wait' : 'pointer',
+                          fontFamily: T.fontUi,
+                          fontWeight: 700,
+                          fontSize: 12,
+                          opacity: sectionBusy === key ? 0.7 : 1,
+                        }}
+                      >
+                        <Upload size={12} />
+                        {sectionBusy === key ? 'Uploading…' : 'Add photo'}
+                      </button>
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                      gap: 12,
-                    }}
-                  >
-                    {grouped[key].map((row) => (
+                  {items.length === 0 ? null : (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          'repeat(auto-fill, minmax(220px, 1fr))',
+                        gap: 12,
+                      }}
+                    >
+                    {items.map((row) => (
                       <div
                         key={row.id}
                         style={{
@@ -1212,269 +1097,13 @@ const ProposalGalleryAdmin: React.FC = () => {
                         </div>
                       </div>
                     ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
-          )}
         </main>
-
-        {/* ---- Sidebar: upload form + migration help ---- */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div
-            style={{
-              background: isDragOver ? 'rgba(158,250,255,.22)' : '#fff',
-              border: isDragOver
-                ? `2px dashed ${T.aqua}`
-                : '1px solid rgba(0,0,0,0.06)',
-              borderRadius: 16,
-              padding: '22px 24px',
-              position: 'sticky',
-              top: 80,
-              transition: 'background .15s, border-color .15s',
-            }}
-            onDragOver={onDragOver}
-            onDragEnter={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-          >
-            <Eyebrow style={{ marginBottom: 4 }}>Add to library</Eyebrow>
-            <CardHeading size="card" style={{ marginBottom: 14 }}>
-              Upload an image or clip
-            </CardHeading>
-            <p
-              style={{
-                fontFamily: T.fontD,
-                fontSize: 12,
-                color: T.fgMuted,
-                lineHeight: 1.5,
-                margin: '0 0 14px',
-              }}
-            >
-              Drag and drop files anywhere on this panel — multi-file drops
-              upload in bulk, single drops attach to the form so you can add a
-              caption + featured pin before saving.
-            </p>
-            {isDragOver && (
-              <div
-                style={{
-                  padding: '10px 12px',
-                  background: T.aqua,
-                  color: T.navy,
-                  borderRadius: 10,
-                  fontFamily: T.fontUi,
-                  fontWeight: 700,
-                  fontSize: 12,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  marginBottom: 14,
-                  textAlign: 'center',
-                }}
-              >
-                Drop to upload
-              </div>
-            )}
-            {bulkProgress && (
-              <div
-                style={{
-                  padding: '10px 12px',
-                  background: T.beige,
-                  borderRadius: 10,
-                  fontFamily: T.fontD,
-                  fontSize: 12,
-                  color: T.navy,
-                  marginBottom: 14,
-                }}
-              >
-                Uploading {bulkProgress.done} of {bulkProgress.total}…
-              </div>
-            )}
-
-            <Field label="Service type">
-              <select
-                value={serviceType}
-                onChange={(e) => setServiceType(e.target.value)}
-                style={inputStyle}
-              >
-                {SERVICE_OPTIONS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Media type">
-              <div style={{ display: 'flex', gap: 8 }}>
-                {(['image', 'video'] as const).map((t) => (
-                  <button
-                    type="button"
-                    key={t}
-                    onClick={() => setMediaType(t)}
-                    style={{
-                      flex: 1,
-                      padding: '8px 10px',
-                      background: mediaType === t ? T.navy : '#fff',
-                      color: mediaType === t ? '#fff' : T.navy,
-                      border: '1.5px solid rgba(0,0,0,0.1)',
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      fontFamily: T.fontUi,
-                      fontWeight: 700,
-                      fontSize: 12,
-                      textTransform: 'capitalize',
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="File">
-              <input
-                type="file"
-                accept="image/*,video/*"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] || null;
-                  setFile(f);
-                  // Auto-switch the media-type pill to whatever was picked so
-                  // the row gets tagged correctly without the user having to
-                  // toggle first.
-                  if (f) {
-                    if (f.type.startsWith('video/')) setMediaType('video');
-                    else if (f.type.startsWith('image/')) setMediaType('image');
-                  }
-                }}
-                style={inputStyle}
-              />
-              {file && (
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontFamily: T.fontD,
-                    fontSize: 12,
-                    color: T.fgMuted,
-                  }}
-                >
-                  {file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB
-                </div>
-              )}
-            </Field>
-
-            <Field label="Caption (optional)">
-              <input
-                type="text"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="e.g. Headshot session at DraftKings HQ"
-                style={inputStyle}
-              />
-            </Field>
-
-            <Field label="Featured?">
-              <label
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontFamily: T.fontD,
-                  fontSize: 13,
-                  color: T.navy,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isFeatured}
-                  onChange={(e) => setIsFeatured(e.target.checked)}
-                />
-                Pin to the top of this service
-              </label>
-            </Field>
-
-            <button
-              type="button"
-              onClick={handleUpload}
-              disabled={uploadBusy || !file}
-              style={{
-                width: '100%',
-                padding: '11px 16px',
-                background: T.coral,
-                color: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                cursor: uploadBusy || !file ? 'not-allowed' : 'pointer',
-                fontFamily: T.fontUi,
-                fontWeight: 700,
-                fontSize: 13,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                marginTop: 6,
-                opacity: uploadBusy || !file ? 0.6 : 1,
-                boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
-              }}
-            >
-              <Upload size={13} />
-              {uploadBusy ? 'Uploading…' : 'Upload'}
-            </button>
-            {uploadMsg && (
-              <div
-                style={{
-                  marginTop: 8,
-                  fontFamily: T.fontD,
-                  fontSize: 12,
-                  color: uploadMsg === 'Uploaded.' ? T.success : T.coral,
-                }}
-              >
-                {uploadMsg}
-              </div>
-            )}
-          </div>
-
-          {/* Migration hint card — only show when the table seems missing. */}
-          {error && (
-            <div
-              style={{
-                background: '#fff',
-                border: '1px solid rgba(0,0,0,0.06)',
-                borderRadius: 16,
-                padding: '18px 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-              }}
-            >
-              <Eyebrow>First-time setup</Eyebrow>
-              <p
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 13,
-                  color: T.fgMuted,
-                  lineHeight: 1.55,
-                  margin: 0,
-                }}
-              >
-                Open the Supabase dashboard → SQL Editor and run
-                <code
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    background: T.lightGray,
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                    margin: '0 4px',
-                    color: T.navy,
-                  }}
-                >
-                  supabase/migrations/20260513000001_create_proposal_gallery.sql
-                </code>
-                . It creates the table + storage bucket with the right RLS.
-              </p>
-            </div>
-          )}
-        </aside>
       </section>
     </div>
   );

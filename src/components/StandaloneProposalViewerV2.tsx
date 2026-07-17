@@ -30,11 +30,7 @@ import {
 } from './proposal/useServiceSelections';
 import { useProposalGallery, type GalleryItem } from './proposal/useProposalGallery';
 import ProposalGallery, { type GalleryPhoto } from './proposal/ProposalGallery';
-import {
-  formatCurrency,
-  SERVICE_DISPLAY,
-  SERVICE_EVENT_PHOTOS,
-} from './proposal/data';
+import { formatCurrency, SERVICE_DISPLAY } from './proposal/data';
 import { isMovementServiceType } from '../utils/movementCatalog';
 import AccountTeamCard from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
@@ -1075,22 +1071,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 cap: SERVICE_DISPLAY[t] || t,
               }))
             );
-    // Real-event-photo fallback for services with no DB media (mirrors the
-    // desktop mosaic) — never the flat-background studio/slider cover.
-    const mEventPhotos =
-      heroTagged.length > 0
-        ? []
-        : serviceTypes.flatMap((st) => {
-            const hasDb = Object.keys(galleryByService).some(
-              (t) => t !== 'hero' && baseType(t) === baseType(st)
-            );
-            if (hasDb) return [];
-            return (SERVICE_EVENT_PHOTOS[st] || []).map((src) => ({
-              src,
-              cap: SERVICE_DISPLAY[st] || st,
-            }));
-          });
-    const mPhotos = [...dbPerService, ...mEventPhotos];
+    // DB-driven gallery (managed in the gallery admin) — single source.
+    const mPhotos = dbPerService;
     // Real event photo first; never the flat-background cover — fall straight
     // to curated office stock when there's no event photo.
     const heroSrc = mPhotos[0]?.src || '/proposal-refresh/massage-office.png';
@@ -2159,21 +2141,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   cap: it.caption || type.charAt(0).toUpperCase() + type.slice(1),
                 }))
               );
-            // Fall back to each service's REAL event photos (never the
-            // studio/slider cover, which has a flat color background) for
-            // service types with no DB media. Services with no event photo
-            // contribute nothing and the mosaic pads with curated office stock.
-            const eventPhotos = serviceTypes.flatMap((st): GalleryPhoto[] => {
-              const hasDb = Object.keys(galleryByService).some(
-                (t) => t !== 'hero' && base(t) === base(st)
-              );
-              if (hasDb) return [];
-              return (SERVICE_EVENT_PHOTOS[st] || []).map((src) => ({
-                src,
-                cap: SERVICE_DISPLAY[st] || st,
-              }));
-            });
-            return [...dbPhotos, ...eventPhotos];
+            // The gallery is DB-driven (single source of truth managed in the
+            // gallery admin). Services with no photos contribute nothing and the
+            // mosaic pads with curated office stock.
+            return dbPhotos;
           })()}
         />
       </section>
