@@ -21,7 +21,7 @@ import {
   SectionLabel,
   T,
 } from './proposal/shared/primitives';
-import { SERVICE_DISPLAY } from './proposal/data';
+import { SERVICE_DISPLAY, SERVICE_IMAGE_PATH, SERVICE_GALLERY } from './proposal/data';
 
 // ProposalGalleryAdmin — staff-only library manager for the `proposal_gallery`
 // table that V2 GalleryCard reads from. Lives at /proposal-gallery-admin.
@@ -52,21 +52,62 @@ interface GalleryRow {
   created_at: string;
 }
 
-const SERVICE_OPTIONS: { value: string; label: string }[] = [
-  // 'hero' = the top-of-proposal mosaic (not a service). The viewer prefers
-  // these for the hero gallery; the rest are per-service galleries.
-  { value: 'hero', label: 'Hero gallery (top of proposal)' },
-  ...[
-    'massage',
-    'headshot',
-    'facial',
-    'nails',
-    'hair',
-    'hair-makeup',
-    'headshot-hair-makeup',
-    'mindfulness',
-  ].map((v) => ({ value: v, label: SERVICE_DISPLAY[v] || v })),
+// Every service type a proposal can use. The top-of-proposal mosaic assembles
+// itself from the photos tagged to the services actually on a proposal, so
+// each of these needs to be selectable here.
+const ALL_SERVICE_TYPES = [
+  'massage',
+  'facial',
+  'hair',
+  'nails',
+  'makeup',
+  'headshot',
+  'hair-makeup',
+  'headshot-hair-makeup',
+  'mindfulness',
+  'sound-bath',
+  'yoga',
+  'stretch',
+  'reiki',
+  'crystal-sound-bath',
+  'somatic-sound-bath',
+  'stretch-mobility',
+  'dance-cardio',
+  'strength-sculpt',
 ];
+
+const SERVICE_OPTIONS: { value: string; label: string }[] = [
+  // 'hero' = the top-of-proposal mosaic override (not a service). When any
+  // hero photos exist they replace the per-service assembly; otherwise the
+  // mosaic uses each proposal's own service photos.
+  { value: 'hero', label: 'Hero gallery (overrides top of proposal)' },
+  ...ALL_SERVICE_TYPES.map((v) => ({ value: v, label: SERVICE_DISPLAY[v] || v })),
+];
+
+// The app's built-in service photos (covers + gallery extras), grouped so the
+// admin can add them to a service's gallery with one click instead of
+// re-uploading. Deduped per (service, src).
+interface LibraryPhoto {
+  src: string;
+  serviceType: string;
+  label: string;
+}
+const STANDARD_LIBRARY: LibraryPhoto[] = (() => {
+  const out: LibraryPhoto[] = [];
+  const seen = new Set<string>();
+  ALL_SERVICE_TYPES.forEach((t) => {
+    const photos: string[] = [];
+    if (SERVICE_IMAGE_PATH[t]) photos.push(SERVICE_IMAGE_PATH[t]);
+    (SERVICE_GALLERY[t] || []).forEach((p) => photos.push(p));
+    photos.forEach((src) => {
+      const key = `${t}|${src}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ src, serviceType: t, label: SERVICE_DISPLAY[t] || t });
+    });
+  });
+  return out;
+})();
 
 const ProposalGalleryAdmin: React.FC = () => {
   const navigate = useNavigate();
@@ -470,6 +511,36 @@ const ProposalGalleryAdmin: React.FC = () => {
     }
   };
 
+  // ---- Standard library: add a built-in photo to a service's gallery -------
+  const [addingSrc, setAddingSrc] = useState<string | null>(null);
+  const addLibraryPhoto = async (photo: LibraryPhoto) => {
+    if (!user) {
+      setUploadMsg('Sign in required.');
+      return;
+    }
+    setAddingSrc(photo.src + '|' + photo.serviceType);
+    try {
+      const { error: insErr } = await supabase.from('proposal_gallery').insert({
+        service_type: photo.serviceType,
+        media_url: photo.src,
+        media_type: 'image',
+        caption: null,
+        poster_url: null,
+        is_published: true,
+        is_featured: false,
+        sort_order: 0,
+      });
+      if (insErr) throw insErr;
+      await fetchRows();
+    } catch (err) {
+      console.error('Add library photo failed:', err);
+      setUploadMsg(err instanceof Error ? err.message : 'Add failed. Check console.');
+      setTimeout(() => setUploadMsg(null), 3500);
+    } finally {
+      setAddingSrc(null);
+    }
+  };
+
   // ---- Row actions ---------------------------------------------------------
   const updateRow = async (id: string, patch: Partial<GalleryRow>) => {
     const prev = rows;
@@ -581,6 +652,8 @@ const ProposalGalleryAdmin: React.FC = () => {
   const groupKeys = Object.keys(grouped).sort((a, b) =>
     a === 'hero' ? -1 : b === 'hero' ? 1 : a.localeCompare(b)
   );
+  // Which standard-library photos are already in the gallery (per service).
+  const existingKeys = new Set(rows.map((r) => `${r.media_url}|${r.service_type}`));
 
   if (loading) {
     return (
@@ -690,6 +763,140 @@ const ProposalGalleryAdmin: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* ---- Standard photo library ---- */}
+      <section style={{ maxWidth: 1120, margin: '0 auto', padding: '28px 24px 0' }}>
+        <div
+          style={{
+            background: '#fff',
+            border: '1px solid rgba(0,0,0,0.06)',
+            borderRadius: 16,
+            padding: '20px 22px',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: T.fontUi,
+              fontWeight: 700,
+              fontSize: 11,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: T.fgMuted,
+              marginBottom: 4,
+            }}
+          >
+            Standard photo library
+          </div>
+          <div
+            style={{
+              fontFamily: T.fontD,
+              fontWeight: 800,
+              fontSize: 18,
+              color: T.navy,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Add a built-in service photo
+          </div>
+          <div
+            style={{
+              fontFamily: T.fontD,
+              fontSize: 13,
+              color: T.fgMuted,
+              marginTop: 4,
+              marginBottom: 16,
+            }}
+          >
+            These are the app's standard service photos. Adding one tags it to
+            that service, so it shows in the top-of-proposal gallery for any
+            proposal that uses the service. No upload needed.
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gap: 14,
+            }}
+          >
+            {STANDARD_LIBRARY.map((p) => {
+              const key = `${p.src}|${p.serviceType}`;
+              const added = existingKeys.has(key);
+              const busy = addingSrc === key;
+              return (
+                <div
+                  key={p.serviceType + p.src}
+                  style={{
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    background: '#fff',
+                  }}
+                >
+                  <div
+                    style={{
+                      aspectRatio: '4 / 3',
+                      background: T.lightGray,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={p.src}
+                      alt={p.label}
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.opacity = '0.15';
+                      }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                  </div>
+                  <div style={{ padding: '8px 10px' }}>
+                    <div
+                      style={{
+                        fontFamily: T.fontD,
+                        fontWeight: 700,
+                        fontSize: 12,
+                        color: T.navy,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={p.label}
+                    >
+                      {p.label}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={added || busy}
+                      onClick={() => addLibraryPhoto(p)}
+                      style={{
+                        marginTop: 6,
+                        width: '100%',
+                        padding: '6px 8px',
+                        borderRadius: 8,
+                        border: 'none',
+                        cursor: added || busy ? 'default' : 'pointer',
+                        fontFamily: T.fontUi,
+                        fontWeight: 700,
+                        fontSize: 12,
+                        background: added ? 'rgba(30,158,106,.14)' : T.navy,
+                        color: added ? T.success : '#fff',
+                        opacity: busy ? 0.6 : 1,
+                      }}
+                    >
+                      {added ? 'Added' : busy ? 'Adding…' : 'Add to gallery'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       <section
         style={{
