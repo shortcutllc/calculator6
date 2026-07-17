@@ -272,8 +272,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     service.pricingOptions && service.pricingOptions.length > 0
       ? service.pricingOptions[service.selectedOption || 0]
       : null;
+  const selectedOptIdx = service.selectedOption || 0;
   const displayHours = selectedOpt?.totalHours ?? service.totalHours;
   const displayPros = selectedOpt?.numPros ?? service.numPros;
+  // hourlyRate resolves the same way as hours/pros (recalcOption merges
+  // `option.hourlyRate ?? base.hourlyRate`), so the summary has to read the
+  // option too. Reading the base here would show a stale rate whenever the
+  // selected option overrides it.
+  const displayRate = selectedOpt?.hourlyRate ?? service.hourlyRate;
 
   // Auto-recurring discount applied — set by recalculateServiceTotals on
   // service.originalServiceCost. We surface a strike-through + chip so the
@@ -282,12 +288,36 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     typeof service.originalServiceCost === 'number' &&
     service.originalServiceCost > service.serviceCost;
 
+  // Fields a pricing option can override. recalcOption resolves each as
+  // `option[field] ?? base[field]`, so once an option defines one, the option
+  // wins and the base value stops having any effect on the selected variant.
+  const OPTION_OWNED_FIELDS = new Set<keyof ServiceCardService>([
+    'totalHours',
+    'numPros',
+    'hourlyRate',
+  ]);
+
   const handleEdit = (field: keyof ServiceCardService) => (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
+    const raw = e.target.value;
+    const value = raw === '' ? '' : isNaN(Number(raw)) ? raw : Number(raw);
+    // When pricing options exist, the selected option is the source of truth for
+    // hours / pros / rate — the summary cells above read it, so they must write
+    // it too. Routing these to the base service instead makes the edit vanish:
+    // the display keeps rendering the option's value and recalcOption ignores
+    // the base. Only the selected option is touched, so sibling variants keep
+    // their own numbers.
+    if (selectedOpt && OPTION_OWNED_FIELDS.has(field) && onEditPricingOption) {
+      onEditPricingOption(
+        selectedOptIdx,
+        field as keyof PricingOptionVariant,
+        value
+      );
+      return;
+    }
     if (!onFieldChange) return;
-    const v = e.target.value;
-    onFieldChange(field, v === '' ? '' : isNaN(Number(v)) ? v : Number(v));
+    onFieldChange(field, value);
   };
 
   return (
@@ -889,7 +919,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                               hint="charged to client"
                               value={
                                 <Editable
-                                  value={service.hourlyRate}
+                                  value={displayRate}
                                   editing={editing}
                                   prefix="$"
                                   width={64}

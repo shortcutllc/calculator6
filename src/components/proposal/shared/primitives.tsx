@@ -277,6 +277,20 @@ export const Editable: React.FC<EditableProps> = ({
   prefix,
   align = 'left',
 }) => {
+  // Hold what the user is actively typing as a raw string. Without this, a
+  // parent that coerces each keystroke to a Number (e.g. handleEdit → Number())
+  // feeds the coerced value straight back as the controlled value, which
+  // strips a trailing decimal point the instant it's typed — making fractional
+  // entries like "1.5" impossible (you'd be stuck on whole numbers). While the
+  // field is focused we show the buffer verbatim; when it isn't, we mirror the
+  // canonical value from props (so recalcs / option selects stay authoritative).
+  const [focused, setFocused] = useState(false);
+  const [buffer, setBuffer] = useState<string>(value == null ? '' : String(value));
+
+  useEffect(() => {
+    if (!focused) setBuffer(value == null ? '' : String(value));
+  }, [value, focused]);
+
   if (!editing) {
     return (
       <span style={{ fontFamily: T.fontD, fontWeight: 600, color: T.navy }}>
@@ -293,8 +307,16 @@ export const Editable: React.FC<EditableProps> = ({
       )}
       <input
         type={type}
-        value={value ?? ''}
-        onChange={onChange}
+        value={focused ? buffer : value ?? ''}
+        onFocus={() => setFocused(true)}
+        onBlur={(e) => {
+          setFocused(false);
+          onChange?.(e);
+        }}
+        onChange={(e) => {
+          setBuffer(e.target.value);
+          onChange?.(e);
+        }}
         style={{
           width: width || 80,
           padding: '4px 8px',
