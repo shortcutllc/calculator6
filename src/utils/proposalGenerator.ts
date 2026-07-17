@@ -4,6 +4,7 @@ import { getProposalUrl } from './url';
 import { MINDFULNESS_CATALOG_BY_ID } from './mindfulnessCatalog';
 import { SOUND_BATH_CATALOG_BY_ID } from './soundBathCatalog';
 import { YOGA_CATALOG_BY_ID } from './yogaCatalog';
+import { MOVEMENT_CATALOG_BY_ID, resolveMovementEntry, isMovementServiceType } from './movementCatalog';
 
 // Helper function to calculate recurring discount based on occurrences
 export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
@@ -50,8 +51,9 @@ export const calculateOriginalPrice = (service: any): number => {
 };
 
 export const calculateServiceResults = (service: any) => {
-  // Flat-price (group-session) services: mindfulness + the new sound-bath and
-  // yoga. They all price off `fixedPrice` with unlimited appointments.
+  // Flat-price (group-session) services: mindfulness + sound-bath, yoga, and
+  // the 2026 movement & sound services. They all price off `fixedPrice` with
+  // unlimited appointments.
   const isMindfulness = service.serviceType === 'mindfulness' ||
                         service.serviceType === 'mindfulness-soles' ||
                         service.serviceType === 'mindfulness-movement' ||
@@ -59,7 +61,8 @@ export const calculateServiceResults = (service: any) => {
                         service.serviceType === 'mindfulness-cle' ||
                         service.serviceType === 'mindfulness-pro-reactivity' ||
                         service.serviceType === 'sound-bath' ||
-                        service.serviceType === 'yoga';
+                        service.serviceType === 'yoga' ||
+                        isMovementServiceType(service.serviceType);
 
   if (!isMindfulness && (!service.appTime || !service.numPros || !service.totalHours)) {
     return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0, recurringDiscount: 0, recurringSavings: 0 };
@@ -581,6 +584,19 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
                 ? YOGA_CATALOG_BY_ID[mappedService.yogaServiceId]
                 : undefined;
               if (entry) {
+                if (mappedService.classLength == null) mappedService.classLength = entry.classLength;
+                if (mappedService.fixedPrice == null) mappedService.fixedPrice = entry.fixedPrice;
+              }
+            } else if (isMovementServiceType(mappedService.serviceType)) {
+              // 2026 movement & sound flat-class services — same ADMIN-EDIT-WINS
+              // fill from movementCatalog (scoped by serviceType + id).
+              const entry = resolveMovementEntry({
+                serviceType: mappedService.serviceType,
+                movementServiceId: mappedService.movementServiceId,
+                classLength: mappedService.classLength,
+              });
+              if (entry) {
+                if (mappedService.movementServiceId == null) mappedService.movementServiceId = entry.id;
                 if (mappedService.classLength == null) mappedService.classLength = entry.classLength;
                 if (mappedService.fixedPrice == null) mappedService.fixedPrice = entry.fixedPrice;
               }

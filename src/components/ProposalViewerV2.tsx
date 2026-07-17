@@ -59,6 +59,14 @@ import {
   applyYogaEntry,
   resolveYogaEntry,
 } from '../utils/yogaCatalog';
+import {
+  MOVEMENT_CATALOG_BY_ID,
+  DEFAULT_MOVEMENT_ID_BY_TYPE,
+  movementSelectOptions,
+  applyMovementEntry,
+  resolveMovementEntry,
+  isMovementServiceType,
+} from '../utils/movementCatalog';
 import { parseLocalDate } from '../utils/dateHelpers';
 import { trackProposalChanges } from '../utils/changeTracker';
 import { ProposalChangeSet } from '../types/proposal';
@@ -115,6 +123,26 @@ import InvoiceConfirmationModalV2 from './proposal/InvoiceConfirmationModalV2';
 // Constants — service defaults (copied from V1 ProposalViewer.tsx so the V2
 // shell can stand on its own; we keep them in sync if V1 ever changes).
 // ---------------------------------------------------------------------------
+// Build a flat-class default for a movement/sound serviceType from its catalog
+// default entry. Mirrors the sound-bath/yoga default shape.
+const movementDefault = (serviceType: string) => {
+  const entry = MOVEMENT_CATALOG_BY_ID[DEFAULT_MOVEMENT_ID_BY_TYPE[serviceType]];
+  return {
+    appTime: entry.classLength,
+    totalHours: entry.classLength / 60,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: entry.classLength,
+    participants: 'unlimited',
+    fixedPrice: entry.fixedPrice,
+    movementServiceId: entry.id,
+    mindfulnessFormat: 'in-person',
+  };
+};
+
 const SERVICE_DEFAULTS: Record<string, any> = {
   massage: {
     appTime: 20,
@@ -248,6 +276,24 @@ const SERVICE_DEFAULTS: Record<string, any> = {
     retouchingCost: 0,
     stretchType: 'chair',
   },
+  // Reiki Reset — individual appointment service modeled on massage (hourly ×
+  // pros). Client rate $200/hr; sessions run 15 or 60 min (admin sets appTime).
+  reiki: {
+    appTime: 60,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 200,
+    earlyArrival: 25,
+    retouchingCost: 0,
+  },
+  // 2026 movement & sound flat-class services (catalog-derived, priced like
+  // sound-bath/yoga).
+  'crystal-sound-bath': movementDefault('crystal-sound-bath'),
+  'somatic-sound-bath': movementDefault('somatic-sound-bath'),
+  'stretch-mobility': movementDefault('stretch-mobility'),
+  'dance-cardio': movementDefault('dance-cardio'),
+  'strength-sculpt': movementDefault('strength-sculpt'),
 };
 
 const SERVICE_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -261,6 +307,12 @@ const SERVICE_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'sound-bath', label: 'Sound Bath' },
   { value: 'yoga', label: 'Yoga' },
   { value: 'stretch', label: 'Assisted Stretch' },
+  { value: 'reiki', label: 'Reiki Reset' },
+  { value: 'crystal-sound-bath', label: 'Crystal Sound Bath' },
+  { value: 'somatic-sound-bath', label: 'Somatic Movement + Crystal Sound Bath' },
+  { value: 'stretch-mobility', label: 'Stretch, Mobility & Somatic Recovery' },
+  { value: 'dance-cardio', label: 'Dance Cardio' },
+  { value: 'strength-sculpt', label: 'Strength & Sculpt' },
   { value: 'hair-makeup', label: 'Hair + Makeup' },
   { value: 'headshot-hair-makeup', label: 'Hair + Makeup for Headshots' },
 ];
@@ -835,13 +887,29 @@ const ProposalViewerV2: React.FC = () => {
         classLength: current.classLength,
       });
       applyMindfulnessEntry(next, entry);
-    } else {
-      // Leaving mindfulness — clear all mindfulness-only fields so the
-      // service doesn't carry stale catalog metadata.
+    } else if (isMovementServiceType(newType)) {
+      // Movement/sound flat-class: apply the catalog entry for the new type,
+      // preserving the prior duration (30/60) when switching between movement
+      // services. classLength/fixedPrice define the flat price, so keep them;
+      // only clear the mindfulness-only metadata below.
+      const priorEntry = current.movementServiceId
+        ? MOVEMENT_CATALOG_BY_ID[current.movementServiceId]
+        : undefined;
+      const keepLen = priorEntry?.classLength ?? current.classLength;
+      const entry = resolveMovementEntry({ serviceType: newType, classLength: keepLen });
+      if (entry) applyMovementEntry(next, entry);
       next.mindfulnessServiceId = undefined;
       next.mindfulnessServiceName = undefined;
       next.mindfulnessDescription = undefined;
       next.mindfulnessType = undefined;
+    } else {
+      // Leaving mindfulness / flat-class — clear all catalog-only fields so the
+      // service doesn't carry stale metadata into an appointment service.
+      next.mindfulnessServiceId = undefined;
+      next.mindfulnessServiceName = undefined;
+      next.mindfulnessDescription = undefined;
+      next.mindfulnessType = undefined;
+      next.movementServiceId = undefined;
       next.classLength = undefined;
       next.fixedPrice = undefined;
     }
@@ -895,6 +963,21 @@ const ProposalViewerV2: React.FC = () => {
     if (!entry) return;
     const next: any = { ...editedData.services[loc][date].services[idx] };
     applyYogaEntry(next, entry);
+    const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
+    next.totalAppointments = totalAppointments;
+    next.serviceCost = serviceCost;
+    next.proRevenue = proRevenue;
+    handleFieldChange(['services', loc, date, 'services', idx], next);
+  };
+
+  // `serviceId` is a movement catalog id (e.g. 'dance-cardio-60'). Applies the
+  // duration entry for the current movement/sound serviceType.
+  const handleMovementTypeChange = (loc: string, date: string, idx: number, serviceId: string) => {
+    if (!editedData || !isEditing) return;
+    const entry = MOVEMENT_CATALOG_BY_ID[serviceId];
+    if (!entry) return;
+    const next: any = { ...editedData.services[loc][date].services[idx] };
+    applyMovementEntry(next, entry);
     const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(next);
     next.totalAppointments = totalAppointments;
     next.serviceCost = serviceCost;
@@ -3944,6 +4027,9 @@ const ProposalViewerV2: React.FC = () => {
                                       onChangeYogaType={(t) =>
                                         handleYogaTypeChange(loc, date, idx, t)
                                       }
+                                      onChangeMovementType={(t) =>
+                                        handleMovementTypeChange(loc, date, idx, t)
+                                      }
                                       onRemoveService={() =>
                                         handleRemoveService(loc, date, idx)
                                       }
@@ -5557,6 +5643,7 @@ interface ServiceBlockProps {
   onChangeStretchType: (t: string) => void;
   onChangeSoundBathType: (t: string) => void;
   onChangeYogaType: (t: string) => void;
+  onChangeMovementType: (t: string) => void;
   onRemoveService: () => void;
   /** Reorder controls — disabled when at the first/last position. */
   onMoveUp?: () => void;
@@ -5588,6 +5675,7 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
   onChangeStretchType,
   onChangeSoundBathType,
   onChangeYogaType,
+  onChangeMovementType,
   onRemoveService,
   onMoveUp,
   onMoveDown,
@@ -5718,6 +5806,32 @@ const ServiceBlock: React.FC<ServiceBlockProps> = ({
                 }).id}
                 onChange={onChangeYogaType}
                 options={YOGA_TYPE_OPTIONS}
+              />
+              <SelectField
+                label="Format"
+                value={service.mindfulnessFormat || 'in-person'}
+                onChange={onChangeMindfulnessFormat}
+                options={[
+                  { value: 'in-person', label: 'In-person' },
+                  { value: 'virtual', label: 'Virtual' },
+                ]}
+              />
+            </>
+          )}
+
+          {isMovementServiceType(service.serviceType) && (
+            <>
+              <SelectField
+                label="Duration"
+                value={
+                  resolveMovementEntry({
+                    serviceType: service.serviceType,
+                    movementServiceId: (service as any).movementServiceId,
+                    classLength: service.classLength,
+                  })?.id || ''
+                }
+                onChange={onChangeMovementType}
+                options={movementSelectOptions(service.serviceType)}
               />
               <SelectField
                 label="Format"

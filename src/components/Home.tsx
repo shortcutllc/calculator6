@@ -20,6 +20,7 @@ import {
   YOGA_SELECT_OPTIONS,
   resolveYogaEntry,
 } from '../utils/yogaCatalog';
+import { isMovementServiceType } from '../utils/movementCatalog';
 
 interface Service {
   serviceType: string;
@@ -320,6 +321,44 @@ const SERVICE_DEFAULTS = {
     earlyArrival: 25,
     retouchingCost: 0,
     stretchType: 'chair'
+  },
+  // Reiki Reset — individual appointment service modeled on massage. Client
+  // rate $200/hr; 15 or 60-min sessions (admin sets appTime per proposal).
+  reiki: {
+    appTime: 60,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 200,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  // 2026 movement & sound flat-class services (60-min flagship defaults —
+  // mirrors movementCatalog.ts DEFAULT_MOVEMENT_ID_BY_TYPE).
+  'crystal-sound-bath': {
+    appTime: 60, totalHours: 1, numPros: 1, proHourly: 0, hourlyRate: 0,
+    earlyArrival: 0, retouchingCost: 0, classLength: 60, participants: 'unlimited',
+    fixedPrice: 1500, movementServiceId: 'crystal-sound-bath-60', mindfulnessFormat: 'in-person'
+  },
+  'somatic-sound-bath': {
+    appTime: 60, totalHours: 1, numPros: 1, proHourly: 0, hourlyRate: 0,
+    earlyArrival: 0, retouchingCost: 0, classLength: 60, participants: 'unlimited',
+    fixedPrice: 1750, movementServiceId: 'somatic-sound-bath-60', mindfulnessFormat: 'in-person'
+  },
+  'stretch-mobility': {
+    appTime: 60, totalHours: 1, numPros: 1, proHourly: 0, hourlyRate: 0,
+    earlyArrival: 0, retouchingCost: 0, classLength: 60, participants: 'unlimited',
+    fixedPrice: 1250, movementServiceId: 'stretch-mobility-60', mindfulnessFormat: 'in-person'
+  },
+  'dance-cardio': {
+    appTime: 60, totalHours: 1, numPros: 1, proHourly: 0, hourlyRate: 0,
+    earlyArrival: 0, retouchingCost: 0, classLength: 60, participants: 'unlimited',
+    fixedPrice: 1250, movementServiceId: 'dance-cardio-60', mindfulnessFormat: 'in-person'
+  },
+  'strength-sculpt': {
+    appTime: 60, totalHours: 1, numPros: 1, proHourly: 0, hourlyRate: 0,
+    earlyArrival: 0, retouchingCost: 0, classLength: 60, participants: 'unlimited',
+    fixedPrice: 1250, movementServiceId: 'strength-sculpt-60', mindfulnessFormat: 'in-person'
   }
 };
 
@@ -478,7 +517,8 @@ const Home: React.FC = () => {
                           service.serviceType === 'mindfulness-cle' ||
                           service.serviceType === 'mindfulness-pro-reactivity' ||
                           service.serviceType === 'sound-bath' ||
-                          service.serviceType === 'yoga';
+                          service.serviceType === 'yoga' ||
+                          isMovementServiceType(service.serviceType);
 
     const apptsPerHourPerPro = 60 / service.appTime;
     const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
@@ -1600,6 +1640,12 @@ const Home: React.FC = () => {
                         <option value="sound-bath">Sound Bath</option>
                         <option value="yoga">Yoga</option>
                         <option value="stretch">Assisted Stretch</option>
+                        <option value="reiki">Reiki Reset</option>
+                        <option value="crystal-sound-bath">Crystal Sound Bath</option>
+                        <option value="somatic-sound-bath">Somatic Movement + Crystal Sound Bath</option>
+                        <option value="stretch-mobility">Stretch, Mobility & Somatic Recovery</option>
+                        <option value="dance-cardio">Dance Cardio</option>
+                        <option value="strength-sculpt">Strength & Sculpt</option>
                         <option value="hair-makeup">Hair + Makeup</option>
                         <option value="headshot-hair-makeup">Hair + Makeup for Headshots</option>
                       </select>

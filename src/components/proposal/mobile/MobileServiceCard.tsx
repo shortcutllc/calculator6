@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, ChevronDown, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { ServiceCardProps } from '../ServiceCard';
 import { FrequencyPicker } from '../shared/primitives';
+import { isMovementServiceType } from '../../../utils/movementCatalog';
 import { SERVICE_CONTENT } from '../sections/serviceContent';
 import {
   MASSAGE_TYPE_DESC,
@@ -29,6 +30,13 @@ const DOT: Record<string, string> = {
   facials: 'var(--sc-pink)',
   nails: 'var(--sc-pink)',
   hair: 'var(--sc-yellow)',
+  // 2026 movement & sound services.
+  reiki: 'var(--sc-pink)',
+  'crystal-sound-bath': 'var(--sc-aqua)',
+  'somatic-sound-bath': 'var(--sc-aqua)',
+  'stretch-mobility': 'var(--sc-aqua)',
+  'dance-cardio': 'var(--sc-pink)',
+  'strength-sculpt': 'var(--sc-aqua)',
 };
 
 interface MobileServiceCardProps extends ServiceCardProps {
@@ -56,7 +64,11 @@ const MobileServiceCard: React.FC<MobileServiceCardProps> = (props) => {
 
   const type = service.serviceType;
   const isMindful = type === 'mindfulness' || type.startsWith('mindfulness-');
-  const isFlatClass = isMindful || type === 'sound-bath' || type === 'yoga';
+  const isFlatClass =
+    isMindful ||
+    type === 'sound-bath' ||
+    type === 'yoga' ||
+    isMovementServiceType(type);
   const isMassage = type === 'massage';
 
   const displayName = isMindful

@@ -90,6 +90,10 @@ export interface Service {
   // `mindfulnessFormat` is reused as the shared in-person/virtual/hybrid field.
   soundBathServiceId?: string;
   yogaServiceId?: string;
+  // Catalog id for the 2026 movement & sound flat-class services (Crystal Sound
+  // Bath, Somatic Movement + Sound Bath, Stretch/Mobility, Dance Cardio,
+  // Strength & Sculpt). Resolved against movementCatalog.ts by serviceType + id.
+  movementServiceId?: string;
   // Recurring event fields
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;

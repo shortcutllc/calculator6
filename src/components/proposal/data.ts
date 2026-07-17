@@ -27,6 +27,13 @@ export const SERVICE_DISPLAY: Record<string, string> = {
   'sound-bath': 'Sound Bath',
   yoga: 'Yoga',
   stretch: 'Assisted Stretch',
+  // 2026 movement & sound services.
+  reiki: 'Reiki Reset',
+  'crystal-sound-bath': 'Crystal Sound Bath',
+  'somatic-sound-bath': 'Somatic Movement + Crystal Sound Bath',
+  'stretch-mobility': 'Stretch, Mobility & Somatic Recovery',
+  'dance-cardio': 'Dance Cardio',
+  'strength-sculpt': 'Strength & Sculpt',
 };
 
 export const SERVICE_DESC: Record<string, string> = {
@@ -54,6 +61,19 @@ export const SERVICE_DESC: Record<string, string> = {
     'Live yoga classes for your team at the office or over video. Chair classes need no mats or floor clearance; mat classes run from gentle flow to restorative. Same certified instructors every time, so the team builds a rhythm.',
   stretch:
     'One-on-one assisted stretching with a certified specialist. Ten to twenty-minute appointments, rotating through your team like a massage day. Targeted release for desk-related tightness in the neck, shoulders, hips, and lower back. Fully clothed, no oils.',
+  // 2026 movement & sound services (approved copy, gated via brand voice guide).
+  reiki:
+    'One-on-one Reiki sessions, right in the office. A trained practitioner guides each person through fifteen or sixty minutes of grounding and deep rest that calms the nervous system, fully clothed, seated or lying down. A real reset, no talking or performing required.',
+  'crystal-sound-bath':
+    'A group sound bath built around crystal singing bowls. Your team settles in, eyes closed, and lets the tones do the work while a facilitator holds the room. Thirty or sixty minutes of stillness, no experience or gear required.',
+  'somatic-sound-bath':
+    'Gentle somatic movement first, crystal sound bath second. The team loosens up with slow, guided movement that releases tension, then lies back and lets the bowls carry it out. Thirty or sixty minutes, in-person.',
+  'stretch-mobility':
+    'A guided group class for bodies that sit all day, and a reset after conferences, travel, or long stretches at a desk. A specialist leads stretching, mobility, and somatic movement that undoes tightness in the neck, shoulders, hips, and back. In-person at the office or live over video.',
+  'dance-cardio':
+    'An upbeat, music-driven cardio class that reads more like a good playlist than a workout. Simple moves anyone can follow, adaptable from full-out to low-impact. In-person or live over video.',
+  'strength-sculpt':
+    'A full-body strength class that meets every fitness level. Bodyweight, light dumbbells, or bands build strength, posture, and stability, scaled up or down on the spot. In-person or live over video.',
 };
 
 // Variant-specific copy for service sub-types. Lookups are keyed by the
@@ -103,6 +123,13 @@ export const SERVICE_CHIP_COLORS: Record<string, { bg: string; color: string }> 
   'sound-bath': { bg: 'rgba(124,131,253,.20)', color: '#3B3E9E' },
   yoga: { bg: 'rgba(146,241,246,.35)', color: '#0B6B73' },
   stretch: { bg: 'rgba(120,180,255,.22)', color: '#1A4F8A' },
+  // 2026 movement & sound services.
+  reiki: { bg: 'rgba(214,188,250,.30)', color: '#5B3B8C' },
+  'crystal-sound-bath': { bg: 'rgba(124,131,253,.20)', color: '#3B3E9E' },
+  'somatic-sound-bath': { bg: 'rgba(129,170,255,.22)', color: '#2E4E9E' },
+  'stretch-mobility': { bg: 'rgba(120,180,255,.22)', color: '#1A4F8A' },
+  'dance-cardio': { bg: 'rgba(255,120,150,.18)', color: '#B03A5B' },
+  'strength-sculpt': { bg: 'rgba(120,210,190,.25)', color: '#0B6B5A' },
 };
 
 // Service image gradient placeholders + which lucide glyph to overlay.
@@ -135,6 +162,13 @@ export const SERVICE_GRAPHIC: Record<
   'sound-bath': { bg: 'linear-gradient(135deg,#A5A8FF,#5B5FCB)', glyph: 'Sparkles', accent: '#fff' },
   yoga: { bg: 'linear-gradient(135deg,#9EF5DF,#3DAE8E)', glyph: 'Heart', accent: '#0B3B30' },
   stretch: { bg: 'linear-gradient(135deg,#BCD8FF,#5A91C2)', glyph: 'Heart', accent: '#fff' },
+  // 2026 movement & sound services.
+  reiki: { bg: 'linear-gradient(135deg,#E6D6FF,#9F7BD1)', glyph: 'Sparkles', accent: '#fff' },
+  'crystal-sound-bath': { bg: 'linear-gradient(135deg,#A5A8FF,#5B5FCB)', glyph: 'Sparkles', accent: '#fff' },
+  'somatic-sound-bath': { bg: 'linear-gradient(135deg,#9FB6FF,#4E5FCB)', glyph: 'Sparkles', accent: '#fff' },
+  'stretch-mobility': { bg: 'linear-gradient(135deg,#BCD8FF,#5A91C2)', glyph: 'Heart', accent: '#fff' },
+  'dance-cardio': { bg: 'linear-gradient(135deg,#FFC2D1,#E0607F)', glyph: 'Heart', accent: '#fff' },
+  'strength-sculpt': { bg: 'linear-gradient(135deg,#9EF5DF,#2E9E8E)', glyph: 'Heart', accent: '#0B3B30' },
 };
 
 // Production photo asset paths (when present). Falls back to gradient if
@@ -164,6 +198,16 @@ export const SERVICE_IMAGE_PATH: Record<string, string> = {
   'sound-bath': '/Sound Bath Slider.png',
   yoga: '/Yoga Slider.png',
   stretch: '/Stretch Slider.png',
+  // 2026 movement & sound services. Crystal/Somatic reuse the Sound Bath photo
+  // and Stretch/Mobility reuses the Stretch photo as a stopgap (same visual
+  // category); reiki/dance/strength point at dedicated filenames and render the
+  // gradient fallback until Will drops the art in public/.
+  reiki: '/Reiki Slider.png',
+  'crystal-sound-bath': '/Sound Bath Slider.png',
+  'somatic-sound-bath': '/Sound Bath Slider.png',
+  'stretch-mobility': '/Stretch Slider.png',
+  'dance-cardio': '/Dance Cardio Slider.png',
+  'strength-sculpt': '/Strength Slider.png',
 };
 
 // SERVICE_GALLERY — multiple photos per service type for the per-card image

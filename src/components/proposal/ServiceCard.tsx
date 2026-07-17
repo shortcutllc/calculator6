@@ -11,6 +11,7 @@ import {
   T,
 } from './shared/primitives';
 import { useIsCompact, useIsMobile } from './shared/useIsMobile';
+import { isMovementServiceType } from '../../utils/movementCatalog';
 import PricingOptionsSelector, { PricingOptionVariant } from './PricingOptionsSelector';
 import {
   MASSAGE_TYPE_DESC,
@@ -177,9 +178,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     service.serviceType === 'mindfulness' ||
     service.serviceType.startsWith('mindfulness-');
   // Flat-price class services share mindfulness's display: per-session price,
-  // class length, format, unlimited participants. Sound bath + yoga join it.
+  // class length, format, unlimited participants. Sound bath, yoga, and the
+  // 2026 movement & sound services join it. (Reiki is NOT flat — it's an
+  // appointment service modeled on massage.)
   const isFlatClass =
-    isMindful || service.serviceType === 'sound-bath' || service.serviceType === 'yoga';
+    isMindful ||
+    service.serviceType === 'sound-bath' ||
+    service.serviceType === 'yoga' ||
+    isMovementServiceType(service.serviceType);
   const isHeadshot = service.serviceType === 'headshot' || service.serviceType === 'headshots';
   const isMassage = service.serviceType === 'massage';
 
