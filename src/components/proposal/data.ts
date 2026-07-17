@@ -246,6 +246,21 @@ export const SERVICE_GALLERY: Record<string, string[]> = {
   // gallery — the old Assisted Stretch slider is a different service.
 };
 
+// SERVICE_EVENT_PHOTOS — REAL event/session photos only (people at actual
+// events), NOT the studio/slider cover images that have a flat color
+// background. These are what the top-of-proposal gallery mosaic assembles
+// from, and what the gallery admin offers in its standard library. Covers are
+// deliberately excluded — they're the service card's main image, not gallery
+// photos.
+export const SERVICE_EVENT_PHOTOS: Record<string, string[]> = {
+  massage: ['/massage-guy-shortcut.jpg'],
+  'sound-bath': ['/crystal-sound-bath-rooftop.webp'],
+  'crystal-sound-bath': ['/crystal-sound-bath-rooftop.webp'],
+  'somatic-sound-bath': ['/somatic-movement-2.webp'],
+  reiki: ['/reiki-reset-session.webp'],
+  'stretch-mobility': ['/stretch-mobility.webp'],
+};
+
 // Frequency presets used by the FrequencyPicker. README question 2: user
 // confirmed "Add a custom entry too." Custom isn't a preset value — it's a
 // sentinel handled in the picker UI.

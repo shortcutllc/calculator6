@@ -21,7 +21,7 @@ import {
   SectionLabel,
   T,
 } from './proposal/shared/primitives';
-import { SERVICE_DISPLAY, SERVICE_IMAGE_PATH, SERVICE_GALLERY } from './proposal/data';
+import { SERVICE_DISPLAY, SERVICE_EVENT_PHOTOS } from './proposal/data';
 
 // ProposalGalleryAdmin — staff-only library manager for the `proposal_gallery`
 // table that V2 GalleryCard reads from. Lives at /proposal-gallery-admin.
@@ -84,9 +84,10 @@ const SERVICE_OPTIONS: { value: string; label: string }[] = [
   ...ALL_SERVICE_TYPES.map((v) => ({ value: v, label: SERVICE_DISPLAY[v] || v })),
 ];
 
-// The app's built-in service photos (covers + gallery extras), grouped so the
-// admin can add them to a service's gallery with one click instead of
-// re-uploading. Deduped per (service, src).
+// The app's built-in REAL event photos, grouped so the admin can add them to a
+// service's gallery with one click. Deliberately excludes the studio/slider
+// cover images (flat color background) — those are the service card's main
+// image, not gallery photos. Deduped per (service, src).
 interface LibraryPhoto {
   src: string;
   serviceType: string;
@@ -96,10 +97,7 @@ const STANDARD_LIBRARY: LibraryPhoto[] = (() => {
   const out: LibraryPhoto[] = [];
   const seen = new Set<string>();
   ALL_SERVICE_TYPES.forEach((t) => {
-    const photos: string[] = [];
-    if (SERVICE_IMAGE_PATH[t]) photos.push(SERVICE_IMAGE_PATH[t]);
-    (SERVICE_GALLERY[t] || []).forEach((p) => photos.push(p));
-    photos.forEach((src) => {
+    (SERVICE_EVENT_PHOTOS[t] || []).forEach((src) => {
       const key = `${t}|${src}`;
       if (seen.has(key)) return;
       seen.add(key);

@@ -30,7 +30,11 @@ import {
 } from './proposal/useServiceSelections';
 import { useProposalGallery, type GalleryItem } from './proposal/useProposalGallery';
 import ProposalGallery, { type GalleryPhoto } from './proposal/ProposalGallery';
-import { formatCurrency, SERVICE_DISPLAY, SERVICE_IMAGE_PATH } from './proposal/data';
+import {
+  formatCurrency,
+  SERVICE_DISPLAY,
+  SERVICE_EVENT_PHOTOS,
+} from './proposal/data';
 import { isMovementServiceType } from '../utils/movementCatalog';
 import AccountTeamCard from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
@@ -1071,9 +1075,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 cap: SERVICE_DISPLAY[t] || t,
               }))
             );
-    // Cover-photo fallback for services with no DB media (mirrors the desktop
-    // mosaic), so newly-added services still show their service image.
-    const mStaticPhotos =
+    // Real-event-photo fallback for services with no DB media (mirrors the
+    // desktop mosaic) — never the flat-background studio/slider cover.
+    const mEventPhotos =
       heroTagged.length > 0
         ? []
         : serviceTypes.flatMap((st) => {
@@ -1081,14 +1085,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
               (t) => t !== 'hero' && baseType(t) === baseType(st)
             );
             if (hasDb) return [];
-            const cover = SERVICE_IMAGE_PATH[st];
-            return cover ? [{ src: cover, cap: SERVICE_DISPLAY[st] || st }] : [];
+            return (SERVICE_EVENT_PHOTOS[st] || []).map((src) => ({
+              src,
+              cap: SERVICE_DISPLAY[st] || st,
+            }));
           });
-    const mPhotos = [...dbPerService, ...mStaticPhotos];
-    const heroSrc =
-      mPhotos[0]?.src ||
-      SERVICE_IMAGE_PATH[serviceTypes[0]] ||
-      '/proposal-refresh/massage-office.png';
+    const mPhotos = [...dbPerService, ...mEventPhotos];
+    // Real event photo first; never the flat-background cover — fall straight
+    // to curated office stock when there's no event photo.
+    const heroSrc = mPhotos[0]?.src || '/proposal-refresh/massage-office.png';
     const openLightbox = (images: string[], start = 0, caps?: string[]) =>
       setMLightbox(images.length ? { images, caps, index: start } : null);
     const lbStep = (d: number) =>
@@ -2154,20 +2159,21 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   cap: it.caption || type.charAt(0).toUpperCase() + type.slice(1),
                 }))
               );
-            // Fall back to each service's cover photo (one clean image per
-            // service) for service types with no DB media, so newly-added
-            // services still populate the mosaic instead of showing only
-            // curated stock. Uses the cover, not the full gallery, so the
-            // mosaic features the actual service images.
-            const staticPhotos = serviceTypes.flatMap((st): GalleryPhoto[] => {
+            // Fall back to each service's REAL event photos (never the
+            // studio/slider cover, which has a flat color background) for
+            // service types with no DB media. Services with no event photo
+            // contribute nothing and the mosaic pads with curated office stock.
+            const eventPhotos = serviceTypes.flatMap((st): GalleryPhoto[] => {
               const hasDb = Object.keys(galleryByService).some(
                 (t) => t !== 'hero' && base(t) === base(st)
               );
               if (hasDb) return [];
-              const cover = SERVICE_IMAGE_PATH[st];
-              return cover ? [{ src: cover, cap: SERVICE_DISPLAY[st] || st }] : [];
+              return (SERVICE_EVENT_PHOTOS[st] || []).map((src) => ({
+                src,
+                cap: SERVICE_DISPLAY[st] || st,
+              }));
             });
-            return [...dbPhotos, ...staticPhotos];
+            return [...dbPhotos, ...eventPhotos];
           })()}
         />
       </section>
