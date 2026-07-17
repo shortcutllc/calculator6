@@ -198,16 +198,15 @@ export const SERVICE_IMAGE_PATH: Record<string, string> = {
   'sound-bath': '/Sound Bath Slider.png',
   yoga: '/Yoga Slider.png',
   stretch: '/Stretch Slider.png',
-  // 2026 movement & sound services. Crystal/Somatic reuse the Sound Bath photo
-  // and Stretch/Mobility reuses the Stretch photo as a stopgap (same visual
-  // category); reiki/dance/strength point at dedicated filenames and render the
-  // gradient fallback until Will drops the art in public/.
-  reiki: '/Reiki Slider.png',
-  'crystal-sound-bath': '/Sound Bath Slider.png',
-  'somatic-sound-bath': '/Sound Bath Slider.png',
+  // 2026 movement & sound services. Dedicated Kirsten photos for five of them;
+  // Stretch/Mobility reuses the existing Stretch photo as a stopgap (no
+  // dedicated art yet) and falls back to the gradient if that's ever missing.
+  reiki: '/reiki-reset.png',
+  'crystal-sound-bath': '/crystal-sound-bath.png',
+  'somatic-sound-bath': '/somatic-movement.png',
   'stretch-mobility': '/Stretch Slider.png',
-  'dance-cardio': '/Dance Cardio Slider.png',
-  'strength-sculpt': '/Strength Slider.png',
+  'dance-cardio': '/dance-cardio.png',
+  'strength-sculpt': '/strength-sculpt.png',
 };
 
 // SERVICE_GALLERY — multiple photos per service type for the per-card image
