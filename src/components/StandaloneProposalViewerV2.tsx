@@ -1252,6 +1252,20 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </span>
           </div>
 
+          {/* Linked-proposal options — the comparison picker also needs to
+              render on mobile (desktop shows it above the service list). */}
+          {proposalOptions.length > 1 && (
+            <>
+              <hr className="pvm-divider" />
+              <OptionsTabs
+                options={proposalOptions}
+                currentId={id}
+                queryString={queryString}
+                currentTotal={summary.total}
+              />
+            </>
+          )}
+
           {/* Post-approval pre-event survey — prominent, auto-scrolled to on
               approval. Shares #proposal-survey-form so the scroll effect works. */}
           {isApproved && id && (
