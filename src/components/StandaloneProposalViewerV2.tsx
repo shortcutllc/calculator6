@@ -310,6 +310,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
       setLoading(false);
       return;
     }
+    // Reset per-proposal state on id change so navigating between linked
+    // options doesn't briefly show the previous proposal's data (pricing
+    // summary, selections, siblings) while the new one loads.
+    setLoading(true);
+    setError(null);
+    setProposal(null);
+    setProposalOptions([]);
     let cancelled = false;
     (async () => {
       try {
@@ -2180,6 +2187,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 options={proposalOptions}
                 currentId={id}
                 queryString={queryString}
+                currentTotal={summary.total}
               />
             </div>
           )}

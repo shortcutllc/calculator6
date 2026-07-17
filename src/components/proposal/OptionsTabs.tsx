@@ -3,6 +3,37 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Eyebrow, T } from './shared/primitives';
 import { formatCurrency } from './data';
+import { selectionKey } from './useServiceSelections';
+
+// Whether a service counts toward the option's price, mirroring
+// useServiceSelections: persisted client pick wins, then per-service
+// `optionsSelectedDefault === false`, then the proposal-wide "let the client
+// build it" flag (`startUnselected`), else on by default.
+const serviceIncluded = (option: ProposalOption, service: any, key: string): boolean => {
+  const persisted = option.data?.optionsState?.[key];
+  if (persisted && typeof persisted.included === 'boolean') return persisted.included;
+  if (service?.optionsSelectedDefault === false) return false;
+  if (option.data?.startUnselected === true) return false;
+  return true;
+};
+
+const serviceFrequency = (option: ProposalOption, service: any, key: string): number => {
+  const persisted = option.data?.optionsState?.[key];
+  if (persisted && typeof persisted.frequency === 'number' && persisted.frequency > 0) {
+    return persisted.frequency;
+  }
+  if (typeof service?.optionsFrequency === 'number' && service.optionsFrequency > 0) {
+    return service.optionsFrequency;
+  }
+  if (
+    service?.isRecurring &&
+    typeof service?.recurringFrequency?.occurrences === 'number' &&
+    service.recurringFrequency.occurrences > 0
+  ) {
+    return service.recurringFrequency.occurrences;
+  }
+  return 1;
+};
 
 // OptionsTabs — large comparison grid for multi-option proposals.
 // When a proposal belongs to a `proposal_group_id`, sibling proposals (one
@@ -24,27 +55,47 @@ interface OptionsTabsProps {
   currentId: string;
   /** Append-to-current-query-string preserver: we need to keep ?shared=true&redesign=1 */
   queryString: string;
+  /** Live selection-aware total for the currently-viewed option, so its card
+   *  reflects the client's picks in real time (the other cards fall back to
+   *  each option's persisted selection state). */
+  currentTotal?: number;
 }
 
+// Selection-aware metrics: only services the client has (or would by default)
+// select count toward the price + appointments. So a "let the client build it"
+// option with nothing selected reads $0, not the full menu price.
 const optionMetrics = (option: ProposalOption) => {
   const services = option.data?.services || {};
   let dateCount = 0;
   let appointmentCount = 0;
-  let cost = option.data?.summary?.totalEventCost || 0;
-  Object.values(services).forEach((byDate: any) => {
-    Object.values(byDate || {}).forEach((dd: any) => {
+  let subtotal = 0;
+  let totalEvents = 0;
+  Object.entries(services).forEach(([loc, byDate]: [string, any]) => {
+    Object.entries(byDate || {}).forEach(([date, dd]: [string, any]) => {
       dateCount += 1;
-      (dd?.services || []).forEach((s: any) => {
-        const apt = Number(s?.totalAppointments) || 0;
-        appointmentCount += apt;
+      (dd?.services || []).forEach((s: any, idx: number) => {
+        const key = selectionKey(loc, date, idx);
+        if (!serviceIncluded(option, s, key)) return;
+        const freq = Math.max(1, serviceFrequency(option, s, key));
+        subtotal += (Number(s?.serviceCost) || 0) * freq;
+        totalEvents += freq;
+        appointmentCount += Number(s?.totalAppointments) || 0;
       });
     });
   });
+  // Volume discount mirrors the hook: 15% at 4+ events, 20% at 9+.
+  const discountPercent = totalEvents >= 9 ? 20 : totalEvents >= 4 ? 15 : 0;
+  const cost = subtotal - (subtotal * discountPercent) / 100;
   const locationCount = Object.keys(services).length;
   return { locationCount, dateCount, appointmentCount, cost };
 };
 
-const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryString }) => {
+const OptionsTabs: React.FC<OptionsTabsProps> = ({
+  options,
+  currentId,
+  queryString,
+  currentTotal,
+}) => {
   const navigate = useNavigate();
   if (!options || options.length < 2) return null;
 
@@ -77,6 +128,10 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
           const active = opt.id === currentId;
           const approved = opt.status === 'approved';
           const m = optionMetrics(opt);
+          // The viewed option uses the live selection-aware total so its card
+          // tracks the client's picks; others use their persisted-state total.
+          const displayCost =
+            active && typeof currentTotal === 'number' ? currentTotal : m.cost;
           return (
             <button
               type="button"
@@ -172,7 +227,7 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({ options, currentId, queryStri
                     lineHeight: 1,
                   }}
                 >
-                  {formatCurrency(m.cost)}
+                  {formatCurrency(displayCost)}
                 </div>
                 <div
                   style={{
