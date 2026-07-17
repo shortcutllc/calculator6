@@ -25,7 +25,11 @@
   schedule = "0 * * * *"    # hourly — function checks each rep's local tz and only fires at 8am LOCAL
 
 [functions."founder-queue-scheduled"]
-  schedule = "45 11 * * 1-5"  # 7:45am ET weekdays — morning broker queue (drafts+Slack cards; Will sends). Replaces the Mac cron; background fn already on Netlify (ANTHROPIC in env).
+  # PAUSED 2026-07-17 (Will) while the v2 writing loop is A/B'd. The v1 queue was
+  # producing 10 drafts/day into a backlog nobody was reading (34 unsent, 1 sent) —
+  # a throughput mismatch, not a copy problem, and every draft written by an engine
+  # we are replacing is waste. Re-enable by uncommenting the schedule line.
+  # schedule = "45 11 * * 1-5"  # 7:45am ET weekdays — morning broker queue (drafts+Slack cards; Will sends). Replaces the Mac cron; background fn already on Netlify (ANTHROPIC in env).
 
 [functions."tech-scout-scheduled"]
   schedule = "35 11 * * 1-5"  # 7:35am ET weekdays — tech-exec daily scout (harvest→enrich→verify→queue). Replaces the Mac cron; needs APOLLO/MV/BOUNCEBAN/ANTHROPIC in Netlify env (verified 2026-07-13).
