@@ -29,6 +29,7 @@ import {
   researchObservations, composeNoteV2, anthropicJudge, LENSES, NOTABILITY_FLOOR,
 } from '../netlify/functions/lib/founder-note-v2.js';
 import { recentSentBodies, noteWordCount } from '../netlify/functions/lib/founder-note.js';
+import { voiceExemplars } from '../netlify/functions/lib/voice-corpus.js';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -85,15 +86,19 @@ const bold = c(1); const gray = c(90); const green = c(32); const red = c(31); c
     }
   }
 
-  let exemplars = [];
-  if (has('--exemplars')) {
+  // VOICE: the CURATED corpus is the default (lib/voice-corpus.js). --raw-sent falls back
+  // to scraping recent sent mail, which is what v1 does and is a TRAP: most of Will's sent
+  // mail is merge templates (the Workhuman follow-ups are one skeleton with the name
+  // swapped), so scraping it teaches the model the robot. Kept only for comparison.
+  let exemplars = voiceExemplars({ audience: AUDIENCE, max: 6 });
+  if (has('--raw-sent')) {
     try {
       const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
       const { getAccessToken } = await import('../netlify/functions/lib/gmail.js');
       const tok = await getAccessToken(sb, 'will@getshortcut.co');
       exemplars = await recentSentBodies(tok, 6);
-      console.log(gray(`  · ${exemplars.length} voice exemplars pulled`));
-    } catch (e) { console.log(yellow(`  · exemplars unavailable (${e.message})`)); }
+      console.log(yellow(`  · --raw-sent: ${exemplars.length} UNCURATED sent emails (likely templates)`));
+    } catch (e) { console.log(yellow(`  · raw sent unavailable (${e.message})`)); }
   }
 
   // Recent notes for the freshness lens + sameness screen.

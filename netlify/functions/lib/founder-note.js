@@ -675,6 +675,16 @@ export function guardNote(n, audience, trigger = null, opts = {}) {
     if (new RegExp(`\\b${w}\\b`, 'i').test(all)) throw new Error(`draft used banned word: ${w}`);
   }
   if (/hope this (email |message |note )?finds you/i.test(all)) throw new Error('draft opened with a stock AI pleasantry');
+  // SELF-INTRO (Will 2026-07-02; re-enforced as a GATE 2026-07-16). A cold email from an
+  // unidentified sender is functionally broken — "We bring chair massage into New York
+  // offices" from a stranger tells the reader nothing about who is writing. This is not a
+  // taste rule: it is pre-hoc specifiable and mechanically checkable, so per Huang et al.
+  // it belongs in the prompt AND as a terminal reject (never as a rewrite trigger).
+  // Caught v2 shipping an intro-less note the moment the mandatory beats were softened.
+  // Follow-ups are EXEMPT — they are in-thread replies and must NOT re-introduce Will.
+  if (!opts.followup && !/\b(i'?m|i am) will\b|\bmy name is will\b|\bi run shortcut\b|\bi'?m the founder\b/i.test(n.body)) {
+    throw new Error('note never says who Will is — a cold email must introduce the sender in one plain human sentence ("I\'m Will, I run Shortcut"); the reader cannot infer it');
+  }
   if (/\bnot (just|only) [^.!?\n]{0,60}, but\b/i.test(n.body)) throw new Error('draft used "not just X, but Y" parallelism (top AI tell)');
   {
     // Strip any explicitly-allowed follow-up links FIRST (exact match on the raw

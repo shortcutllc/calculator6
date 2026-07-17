@@ -242,6 +242,7 @@ This is one human writing to one human, hoping for a reply. It is NOT marketing 
 Calm, warm, casual, practical. A busy founder dashing off a note to a peer he'd like to know. Zero sales push, genuinely curious about them. Contractions everywhere. Sentence length VARIES — a short line, then a longer one that breathes. Plain verbs: things ARE and HAVE, they never "serve as" or "boast".
 ${exemplars.length ? `\n### WILL'S REAL EMAILS — match this register, rhythm and warmth. Do NOT copy their content.\n${exemplars.map((e, i) => `--- example ${i + 1} ---\n${e}`).join('\n\n')}\n` : ''}
 ## HARD RULES (breaking one voids the whole candidate)
+- SAY WHO YOU ARE. One plain human sentence, early: "I'm Will, I run Shortcut" and what Shortcut does, in concrete terms. Compose it FRESH each time — never paste a fixed sentence. They have never heard of you and cannot infer it. (This is the ONE beat that is mandatory: an unidentified sender is a broken cold email. Everything else — the proof point, the zero-lift line — is OPTIONAL raw material, use it only where it genuinely helps.)
 - NEVER fabricate. Only the facts in the positioning block above, and only what your research actually found.
 - Client claims are CLOSED-WORLD: the only clients you may name are the ones in the positioning block. Never invent a roster or a segment.
 - No dashes as punctuation. End the sentence instead.
