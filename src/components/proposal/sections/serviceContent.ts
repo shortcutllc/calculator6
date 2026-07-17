@@ -1405,11 +1405,32 @@ export const CLE_ACCREDITATION_BULLETS: string[] = [
 
 // Courtney Schulnick facilitator profile — used in the right-rail sidebar for
 // mindfulness proposals.
-export const FACILITATOR = {
+export interface Facilitator {
+  name: string;
+  title: string;
+  photoSrc: string;
+  photoFallbackSrc?: string;
+  /** CSS object-position for the square crop. Defaults to 'center'. */
+  photoPosition?: string;
+  bio: string;
+}
+
+export const FACILITATOR: Facilitator = {
   name: 'Courtney Schulnick',
   title: "Shortcut's Mindfulness Meditation Leader",
   photoSrc: '/Holiday Proposal/Our Services/Mindfulness/Courtney Frame 2x.webp',
   photoFallbackSrc: '/Holiday Proposal/Our Services/Mindfulness/Courtney Frame 2x.png',
   bio:
     'Courtney Schulnick, an attorney with two decades of experience, now leads mindfulness programs at Shortcut. With extensive training from the Myrna Brind Center for Mindfulness, she brings a unique perspective to corporate wellness. Her workshops give employees real tools for handling stress, sharpening focus, and getting through the harder parts of work.',
-} as const;
+};
+
+// Kirsten Smits — facilitator for the 2026 movement & sound services (Reiki,
+// sound bath, somatic movement, stretch/mobility, dance cardio, strength).
+export const FACILITATOR_KIRSTEN: Facilitator = {
+  name: 'Kirsten Smits',
+  title: 'Movement, Sound & Reiki Specialist',
+  photoSrc: '/kirsten-profile.jpg',
+  photoPosition: 'top center',
+  bio:
+    'Kirsten Smits is a New York based wellness facilitator, movement specialist, sound healing practitioner, and Reiki Master who designs engaging wellness experiences for luxury hospitality, corporate organizations, healthcare institutions, and private clients. Drawing from a career in professional dance and years of experience in the wellness industry, she creates experiences that support physical well-being, nervous system health, and meaningful human connection. She has collaborated with leading brands and institutions including Burberry, Samsung, Manolo Blahnik, NYU Langone, Columbia University, Casa Cipriani, and more.',
+};

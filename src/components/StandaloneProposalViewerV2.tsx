@@ -56,6 +56,7 @@ import {
   UNIFIED_WHY_SHORTCUT,
   CLE_WHY_SHORTCUT,
   SERVICE_CONTENT as SERVICE_CONTENT_MAP,
+  FACILITATOR_KIRSTEN,
 } from './proposal/sections/serviceContent';
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
@@ -479,6 +480,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
   };
   const isMindfulnessOnly =
     serviceTypes.length > 0 && serviceTypes.every(isMindfulnessLike);
+  // Kirsten leads the 2026 movement & sound services (reiki + group classes).
+  const isKirstenService = (s: string) => s === 'reiki' || isMovementServiceType(s);
+  const isKirstenOnly =
+    serviceTypes.length > 0 && serviceTypes.every(isKirstenService);
 
   // ---- Derived stats ------------------------------------------------------
   const stats = useMemo(() => {
@@ -1048,7 +1053,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
       cap: clientName,
     }));
     const wantedTypes = new Set(serviceTypes.map(baseType));
-    const perService =
+    const dbPerService =
       heroTagged.length > 0
         ? heroTagged
         : Object.entries(galleryByService)
@@ -1059,7 +1064,20 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 cap: SERVICE_DISPLAY[t] || t,
               }))
             );
-    const mPhotos = perService;
+    // Cover-photo fallback for services with no DB media (mirrors the desktop
+    // mosaic), so newly-added services still show their service image.
+    const mStaticPhotos =
+      heroTagged.length > 0
+        ? []
+        : serviceTypes.flatMap((st) => {
+            const hasDb = Object.keys(galleryByService).some(
+              (t) => t !== 'hero' && baseType(t) === baseType(st)
+            );
+            if (hasDb) return [];
+            const cover = SERVICE_IMAGE_PATH[st];
+            return cover ? [{ src: cover, cap: SERVICE_DISPLAY[st] || st }] : [];
+          });
+    const mPhotos = [...dbPerService, ...mStaticPhotos];
     const heroSrc =
       mPhotos[0]?.src ||
       SERVICE_IMAGE_PATH[serviceTypes[0]] ||
@@ -2107,7 +2125,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             if (hero.length) return hero;
             const base = (s: string) => s.replace(/s$/, '').split('-')[0];
             const wanted = new Set(serviceTypes.map(base));
-            return Object.entries(galleryByService)
+            const dbPhotos = Object.entries(galleryByService)
               .filter(([type]) => type !== 'hero' && wanted.has(base(type)))
               .flatMap(([type, items]): GalleryPhoto[] =>
                 (items || []).map((it) => ({
@@ -2115,6 +2133,20 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   cap: it.caption || type.charAt(0).toUpperCase() + type.slice(1),
                 }))
               );
+            // Fall back to each service's cover photo (one clean image per
+            // service) for service types with no DB media, so newly-added
+            // services still populate the mosaic instead of showing only
+            // curated stock. Uses the cover, not the full gallery, so the
+            // mosaic features the actual service images.
+            const staticPhotos = serviceTypes.flatMap((st): GalleryPhoto[] => {
+              const hasDb = Object.keys(galleryByService).some(
+                (t) => t !== 'hero' && base(t) === base(st)
+              );
+              if (hasDb) return [];
+              const cover = SERVICE_IMAGE_PATH[st];
+              return cover ? [{ src: cover, cap: SERVICE_DISPLAY[st] || st }] : [];
+            });
+            return [...dbPhotos, ...staticPhotos];
           })()}
         />
       </section>
@@ -3773,9 +3805,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
             />
           </div>
 
-          {/* Facilitator — only for mindfulness-only proposals. Courtney
-              photo + bio mirroring V1 StandaloneProposalViewer (right rail). */}
+          {/* Facilitator — Courtney for mindfulness-only proposals, Kirsten for
+              the movement & sound services. Right-rail photo + bio. */}
           {isMindfulnessOnly && <FacilitatorCard />}
+          {isKirstenOnly && <FacilitatorCard facilitator={FACILITATOR_KIRSTEN} />}
 
           {/* Account team — driven by data.accountTeamMemberEmail, defaults to Jaimie */}
           <AccountTeamCard

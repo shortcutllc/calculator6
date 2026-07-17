@@ -242,10 +242,8 @@ export const SERVICE_GALLERY: Record<string, string[]> = {
     '/somatic-movement.png',
     '/somatic-movement-2.webp',
   ],
-  'stretch-mobility': [
-    '/stretch-mobility.webp',
-    '/Stretch Slider.png',
-  ],
+  // Stretch/Mobility has one dedicated photo (its cover), so no separate
+  // gallery — the old Assisted Stretch slider is a different service.
 };
 
 // Frequency presets used by the FrequencyPicker. README question 2: user

@@ -94,6 +94,7 @@ import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
+import { FACILITATOR_KIRSTEN } from './proposal/sections/serviceContent';
 import { generateLineItems } from './StripeInvoiceButton';
 import type { InvoiceLineItem } from './InvoiceConfirmationModal';
 import InvoiceConfirmationModalV2 from './proposal/InvoiceConfirmationModalV2';
@@ -2251,12 +2252,23 @@ const ProposalViewerV2: React.FC = () => {
     }
   };
 
-  const handleReorderOption = async (optId: string, newOrder: number) => {
+  // Move a linked option up/down. Swaps with its neighbor in the current
+  // display order, then renumbers ALL options sequentially (0,1,2,…) so the
+  // order is stable and the client viewer (which sorts by option_order asc)
+  // reflects it exactly. The old ±1 logic drifted and broke on tie values.
+  const handleReorderOption = async (optId: string, direction: 'up' | 'down') => {
+    const arr = [...proposalOptions];
+    const i = arr.findIndex((o) => o.id === optId);
+    if (i < 0) return;
+    const j = direction === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
     try {
-      await supabase
-        .from('proposals')
-        .update({ option_order: newOrder })
-        .eq('id', optId);
+      await Promise.all(
+        arr.map((o, idx) =>
+          supabase.from('proposals').update({ option_order: idx }).eq('id', o.id)
+        )
+      );
       await fetchProposalOptions();
     } catch (err) {
       console.error('Reorder failed:', err);
@@ -2432,6 +2444,11 @@ const ProposalViewerV2: React.FC = () => {
     s === 'mindfulness' || s.startsWith('mindfulness-');
   const isMindfulnessOnly =
     serviceTypes.length > 0 && serviceTypes.every(isMindfulnessLike);
+  // Kirsten leads the 2026 movement & sound services (reiki + the group
+  // classes). Show her bio when every service is one of hers.
+  const isKirstenService = (s: string) => s === 'reiki' || isMovementServiceType(s);
+  const isKirstenOnly =
+    serviceTypes.length > 0 && serviceTypes.every(isKirstenService);
 
   const pricingRows = useMemo(() => {
     const rows: Array<{
@@ -4819,8 +4836,9 @@ const ProposalViewerV2: React.FC = () => {
           />
 
           {/* Facilitator — mindfulness-only proposals get Courtney's bio in
-              the right rail just like the client view does. */}
+              the right rail; movement & sound proposals get Kirsten's. */}
           {isMindfulnessOnly && <FacilitatorCard />}
+          {isKirstenOnly && <FacilitatorCard facilitator={FACILITATOR_KIRSTEN} />}
 
           {/* Account team — shows the current owner + admin dropdown to override */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -6104,7 +6122,7 @@ interface ProposalOptionsBarProps {
   isCreating: boolean;
   onCreate: () => void;
   onOpenLinkModal: () => void;
-  onReorder: (optId: string, newOrder: number) => void;
+  onReorder: (optId: string, direction: 'up' | 'down') => void;
   onUpdateName: (optId: string, newName: string) => void;
   onRemove: (optId: string, optName: string) => void;
   editingName: string | null;
@@ -6410,18 +6428,12 @@ const ProposalOptionsBar: React.FC<ProposalOptionsBarProps> = ({
                   </button>
                 )}
                 {idx > 0 && (
-                  <IconBtn
-                    onClick={() => onReorder(opt.id, (opt.option_order ?? idx + 1) - 1)}
-                    title="Move up"
-                  >
+                  <IconBtn onClick={() => onReorder(opt.id, 'up')} title="Move up">
                     <ChevronUp size={14} />
                   </IconBtn>
                 )}
                 {idx < options.length - 1 && (
-                  <IconBtn
-                    onClick={() => onReorder(opt.id, (opt.option_order ?? idx + 1) + 1)}
-                    title="Move down"
-                  >
+                  <IconBtn onClick={() => onReorder(opt.id, 'down')} title="Move down">
                     <ChevronDown size={14} />
                   </IconBtn>
                 )}

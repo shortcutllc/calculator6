@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { Eyebrow, T } from '../shared/primitives';
-import { FACILITATOR } from '../sections/serviceContent';
+import { FACILITATOR, type Facilitator } from '../sections/serviceContent';
 
-// FacilitatorCard — Courtney Schulnick bio for the right-rail sidebar on
-// mindfulness proposals. Mirrors V1 StandaloneProposalViewer (lines ~2340+)
-// but rebuilt with the V2 design tokens. Includes graceful fallback if the
-// webp asset 404s.
+// FacilitatorCard — facilitator bio for the right-rail sidebar. Defaults to
+// Courtney Schulnick (mindfulness); pass `facilitator` to show another (e.g.
+// Kirsten Smits for the movement & sound services). Rebuilt with the V2 design
+// tokens. Includes graceful fallback if the photo asset 404s.
 
-const FacilitatorCard: React.FC = () => {
-  const [src, setSrc] = useState<string>(FACILITATOR.photoSrc);
+const FacilitatorCard: React.FC<{ facilitator?: Facilitator }> = ({
+  facilitator = FACILITATOR,
+}) => {
+  const [src, setSrc] = useState<string>(facilitator.photoSrc);
   const [hidePhoto, setHidePhoto] = useState(false);
 
   const onErr = () => {
-    // Try the PNG fallback once, then hide the photo block entirely.
-    if (src === FACILITATOR.photoSrc && FACILITATOR.photoFallbackSrc) {
-      setSrc(FACILITATOR.photoFallbackSrc);
+    // Try the fallback once, then hide the photo block entirely.
+    if (src === facilitator.photoSrc && facilitator.photoFallbackSrc) {
+      setSrc(facilitator.photoFallbackSrc);
     } else {
       setHidePhoto(true);
     }
@@ -45,12 +47,13 @@ const FacilitatorCard: React.FC = () => {
         >
           <img
             src={src}
-            alt={`${FACILITATOR.name} — ${FACILITATOR.title}`}
+            alt={`${facilitator.name} — ${facilitator.title}`}
             onError={onErr}
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
+              objectPosition: facilitator.photoPosition || 'center',
               display: 'block',
             }}
           />
@@ -72,7 +75,7 @@ const FacilitatorCard: React.FC = () => {
             lineHeight: 1.1,
           }}
         >
-          {FACILITATOR.name}
+          {facilitator.name}
         </div>
         <div
           style={{
@@ -85,7 +88,7 @@ const FacilitatorCard: React.FC = () => {
             marginTop: 6,
           }}
         >
-          {FACILITATOR.title}
+          {facilitator.title}
         </div>
         <p
           style={{
@@ -97,7 +100,7 @@ const FacilitatorCard: React.FC = () => {
             marginBottom: 0,
           }}
         >
-          {FACILITATOR.bio}
+          {facilitator.bio}
         </p>
       </div>
     </div>
