@@ -153,7 +153,7 @@ const ProposalGallery: React.FC<ProposalGalleryProps> = ({ photos, topUp = true 
             ) : (
               <img src={p.src} alt={p.cap || ''} />
             )}
-            {i === 0 && p.cap && <span className="pv-gtag">{p.cap}</span>}
+            {p.cap && <span className="pv-gtag">{p.cap}</span>}
           </button>
         ))}
 
