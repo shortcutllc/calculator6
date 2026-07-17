@@ -3,6 +3,7 @@ import { MapPin } from 'lucide-react';
 import { Eyebrow, CardHeading, T } from './shared/primitives';
 import { formatCurrency, SERVICE_DISPLAY } from './data';
 import { ServiceSelectionRow } from './useServiceSelections';
+import { parseLocalDate } from '../../utils/dateHelpers';
 
 // EventDaySummaryCard — at-a-glance card per location. Design refresh: three
 // teal-tinted stat tiles (Dates / Services / Appointments) over a list of
@@ -17,8 +18,10 @@ interface EventDaySummaryCardProps {
 }
 
 // "2026-05-13" → "Wed, May 13"; passes through non-date keys like "Date TBD".
+// Must parse as a LOCAL date — `new Date("2026-05-13")` is UTC midnight, which
+// renders as the previous day west of UTC and would label this card "Tue, May 12".
 function formatDayLabel(key: string): string {
-  const d = new Date(key);
+  const d = parseLocalDate(key);
   if (!isNaN(d.getTime()) && /\d{4}|\d{1,2}[/-]/.test(key)) {
     return d.toLocaleDateString('en-US', {
       weekday: 'short',

@@ -1,5 +1,6 @@
 import React from 'react';
 import { SERVICE_DISPLAY, SERVICE_IMAGE_PATH, formatCurrency } from '../data';
+import { parseLocalDate } from '../../../utils/dateHelpers';
 
 // MobileDayByDay — the `.pvm-day` rendering of the day-by-day breakdown: one
 // stacked card per event day with service thumbnails + Services / Appointments
@@ -12,8 +13,10 @@ interface MobileDayByDayProps {
   isIncluded?: (location: string, date: string, serviceIndex: number) => boolean;
 }
 
+// Date keys are date-only ("2026-05-13"), so parse them as local — `new Date(key)`
+// is UTC midnight and would render the previous day west of UTC.
 function formatDayLabel(key: string): string {
-  const d = new Date(key);
+  const d = parseLocalDate(key);
   if (!isNaN(d.getTime()) && /\d{4}|\d{1,2}[/-]/.test(key)) {
     return d.toLocaleDateString('en-US', {
       weekday: 'short',

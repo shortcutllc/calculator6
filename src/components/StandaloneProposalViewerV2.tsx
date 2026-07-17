@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, ChevronLeft, ArrowLeft, X, Download, History
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { generatePDF } from '../utils/pdf';
+import { parseLocalDate } from '../utils/dateHelpers';
 import {
   calculateServiceResults,
   recalculateServiceTotals,
@@ -91,11 +92,14 @@ const toStripImages = (items?: GalleryItem[]): string[] =>
     .filter((it) => it.type === 'image' || it.poster)
     .map((it) => (it.type === 'video' ? (it.poster as string) : it.url));
 
+// Event dates are date-only keys ("2026-07-24"). Parsing those with `new Date`
+// treats them as UTC midnight, which renders as the previous day for any client
+// west of UTC — a Jul 24 event would read "Jul 23" to the prospect. parseLocalDate
+// builds the date in the local zone so the label matches the booked day.
 const formatDateLabel = (raw: string): string => {
   if (!raw || raw === 'TBD') return 'Date TBD';
-  // Try ISO first, then fall back to the raw string if parsing fails
   try {
-    const parsed = new Date(raw);
+    const parsed = parseLocalDate(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
     return format(parsed, 'EEE, MMM d, yyyy');
   } catch {

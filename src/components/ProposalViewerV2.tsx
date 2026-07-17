@@ -59,6 +59,7 @@ import {
   applyYogaEntry,
   resolveYogaEntry,
 } from '../utils/yogaCatalog';
+import { parseLocalDate } from '../utils/dateHelpers';
 import { trackProposalChanges } from '../utils/changeTracker';
 import { ProposalChangeSet } from '../types/proposal';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -299,10 +300,15 @@ const MINDFULNESS_FORMAT_OPTIONS: Array<{ value: string; label: string }> = [
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+// Event dates are stored as date-only keys ("2026-07-24"). `new Date(key)` would
+// parse those as UTC midnight and then render them in the viewer's local zone,
+// landing on the previous day for anyone west of UTC (EDT shows Jul 23 for a
+// Jul 24 event). parseLocalDate splits the parts and builds a local date, so the
+// day the user picked is the day everyone sees.
 const formatDateLabel = (raw: string): string => {
   if (!raw || raw === 'TBD' || raw.startsWith('TBD')) return 'Date TBD';
   try {
-    const parsed = new Date(raw);
+    const parsed = parseLocalDate(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
     return format(parsed, 'EEE, MMM d, yyyy');
   } catch {
@@ -313,7 +319,7 @@ const formatDateLabel = (raw: string): string => {
 const formatDateForInput = (raw: string): string => {
   if (!raw || raw === 'TBD' || raw.startsWith('TBD')) return '';
   try {
-    const parsed = new Date(raw);
+    const parsed = parseLocalDate(raw);
     if (Number.isNaN(parsed.getTime())) return '';
     const y = parsed.getFullYear();
     const m = String(parsed.getMonth() + 1).padStart(2, '0');
