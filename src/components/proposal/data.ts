@@ -199,11 +199,11 @@ export const SERVICE_IMAGE_PATH: Record<string, string> = {
   yoga: '/Yoga Slider.png',
   stretch: '/Stretch Slider.png',
   // 2026 movement & sound services — dedicated Kirsten photos. Stretch/Mobility
-  // uses the group-class photo (Movement.webp).
+  // uses the Assisted Stretch slider as its main image (not the group-class photo).
   reiki: '/reiki-reset.png',
   'crystal-sound-bath': '/crystal-sound-bath.png',
   'somatic-sound-bath': '/somatic-movement.png',
-  'stretch-mobility': '/stretch-mobility.webp',
+  'stretch-mobility': '/Stretch Slider.png',
   'dance-cardio': '/dance-cardio.png',
   'strength-sculpt': '/strength-sculpt.png',
 };
