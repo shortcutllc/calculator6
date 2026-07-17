@@ -868,6 +868,396 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
       'Premium table stretch: private or curtained space, deeper work',
     ],
   },
+  // 2026 movement & sound services (approved copy, gated via brand voice guide;
+  // drawn from the provider's own descriptions and practitioner background).
+  reiki: {
+    label: 'Reiki Reset',
+    whyShortcut: [
+      {
+        title: 'Certified Reiki Master',
+        description:
+          'Sessions are led by a certified Reiki Master trained in energy work, acupressure, and meridian theory. A real practitioner, not a marketplace booking.',
+      },
+      {
+        title: 'Everything Handled',
+        description:
+          'We bring the table, the quiet, and the setup. Your team just signs up and shows up.',
+      },
+      {
+        title: 'One Point of Contact',
+        description:
+          'Booking, scheduling, and day-of coordination handled for you, with a planning call before the event.',
+      },
+    ],
+    benefitsHeading: 'What your team takes home',
+    benefits: [
+      {
+        iconName: 'Brain',
+        title: 'A Calmer Nervous System',
+        description:
+          'Fifteen or sixty minutes of deep rest that settles stress and quiets a busy mind.',
+      },
+      {
+        iconName: 'Heart',
+        title: 'Real Relaxation',
+        description:
+          'No talking, no effort, nothing to perform. Just dedicated time to slow down.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'An Easy Entry',
+        description:
+          'A gentle way in for people who would never book a wellness session on their own.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'Award',
+        title: 'Certified Practitioner',
+        description: 'A certified Reiki Master to guide every one-on-one session.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'Full Setup',
+        description:
+          'Table or chair, a calming setup, and everything a private session needs. Optional incense on request.',
+      },
+      {
+        iconName: 'FileText',
+        title: 'RSVP Blurb',
+        description: 'A Slack or email blurb you can drop in to drive sign-ups.',
+      },
+    ],
+    featuresHeading: 'Session options',
+    features: [
+      'Fifteen or sixty-minute private sessions',
+      'Seated or lying down, fully clothed',
+      'In-person at your office',
+    ],
+  },
+  'crystal-sound-bath': {
+    label: 'Crystal Sound Bath',
+    whyShortcut: [
+      {
+        title: 'Trained Facilitator',
+        description:
+          'Every sound bath is led by a trained practitioner working live with crystal singing bowls. A vetted professional, not a recording.',
+      },
+      {
+        title: 'Full Kit Included',
+        description:
+          'Crystal singing bowls and supporting instruments. We bring everything, no client setup.',
+      },
+      {
+        title: 'One Point of Contact',
+        description:
+          'Booking, prep, and day-of coordination handled for you, with a planning call to set the intention.',
+      },
+    ],
+    benefitsHeading: 'What your team takes home',
+    benefits: [
+      {
+        iconName: 'Brain',
+        title: 'Nervous-System Reset',
+        description: 'Lower stress and reactivity that lasts well past the session.',
+      },
+      {
+        iconName: 'Heart',
+        title: 'Shared Stillness',
+        description:
+          'A shared experience that asks nothing and gives a lot. No small talk required.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'An Easy Entry to Stillness',
+        description: 'A way in for people who would never sign up for meditation.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'Award',
+        title: 'Trained Facilitator',
+        description: 'A practitioner trained in sound healing to hold the room.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'Crystal Bowl Kit',
+        description:
+          'Crystal singing bowls and supporting instruments, plus setup and breakdown. Optional incense on request.',
+      },
+      {
+        iconName: 'FileText',
+        title: 'RSVP Blurb',
+        description: 'A Slack or email blurb you can drop in to drive sign-ups.',
+      },
+    ],
+    featuresHeading: 'Format options',
+    features: [
+      'Thirty or sixty-minute sessions',
+      'In-person at your office',
+      'The group sits or lies down, no experience needed',
+    ],
+  },
+  'somatic-sound-bath': {
+    label: 'Somatic Movement + Crystal Sound Bath',
+    whyShortcut: [
+      {
+        title: 'Trained Facilitator',
+        description:
+          'Led by a practitioner trained in both somatic movement and sound healing. One person, two modalities, fully vetted.',
+      },
+      {
+        title: 'Full Kit Included',
+        description:
+          'Crystal singing bowls and everything for the movement portion. We bring it all, no client setup.',
+      },
+      {
+        title: 'One Point of Contact',
+        description:
+          'Booking, prep, and day-of coordination handled for you, with a planning call before the event.',
+      },
+    ],
+    benefitsHeading: 'What your team takes home',
+    benefits: [
+      {
+        iconName: 'Brain',
+        title: 'Released Tension',
+        description:
+          'Slow, guided movement that unwinds what the body has been holding all day.',
+      },
+      {
+        iconName: 'Heart',
+        title: 'Wired to Rested',
+        description:
+          'The movement settles the body so the sound bath can carry it the rest of the way.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'Deeper Body Awareness',
+        description: 'A felt sense of being back in the body, grounded and connected.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'Award',
+        title: 'Trained Facilitator',
+        description: 'A practitioner trained in somatic movement and sound healing.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'Movement + Sound Kit',
+        description:
+          'Crystal singing bowls, supporting instruments, and everything for the movement portion, plus setup and breakdown.',
+      },
+      {
+        iconName: 'FileText',
+        title: 'RSVP Blurb',
+        description: 'A Slack or email blurb you can drop in to drive sign-ups.',
+      },
+    ],
+    featuresHeading: 'Format options',
+    features: [
+      'Thirty or sixty-minute sessions',
+      'In-person at your office',
+      'Standing, seated, or on the floor, no experience needed',
+    ],
+  },
+  'stretch-mobility': {
+    label: 'Stretch, Mobility & Somatic Recovery',
+    whyShortcut: [
+      {
+        title: 'Trained Specialist',
+        description:
+          'Classes are led by a specialist in mobility and somatic movement, not a generic instructor off a marketplace.',
+      },
+      {
+        title: 'Nothing to Set Up',
+        description:
+          'No mats or equipment required. We bring the class to your space or your screen.',
+      },
+      {
+        title: 'One Point of Contact',
+        description:
+          'Booking, prep, and day-of coordination handled for you, with a planning call before the event.',
+      },
+    ],
+    benefitsHeading: 'What your team takes home',
+    benefits: [
+      {
+        iconName: 'Brain',
+        title: 'Undone Desk Tightness',
+        description:
+          'Targeted release for the neck, shoulders, hips, and back that sitting all day creates.',
+      },
+      {
+        iconName: 'Heart',
+        title: 'Better Mobility',
+        description:
+          'Improved flexibility, posture, and range of motion that carries into the workday.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'A Reset After Long Days',
+        description: 'Especially good after conferences, travel, or stretches of high stress.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'Award',
+        title: 'Trained Specialist',
+        description: 'A specialist in stretching, mobility, and somatic movement.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'A Ready-to-Go Class',
+        description:
+          'A full guided session with no setup, mats, or equipment on your end.',
+      },
+      {
+        iconName: 'FileText',
+        title: 'RSVP Blurb',
+        description: 'A Slack or email blurb you can drop in to drive sign-ups.',
+      },
+    ],
+    featuresHeading: 'Format options',
+    features: [
+      'Thirty or sixty-minute classes',
+      'In-person at your office or live over video',
+      'Standing or seated, no mats required',
+    ],
+  },
+  'dance-cardio': {
+    label: 'Dance Cardio',
+    whyShortcut: [
+      {
+        title: 'Trained Instructor',
+        description:
+          'Classes are led by a trained dancer and instructor who keeps every level moving. Fun, not intimidating.',
+      },
+      {
+        title: 'Nothing to Set Up',
+        description:
+          'Just a playlist and some open space. We bring the energy, you bring the team.',
+      },
+      {
+        title: 'One Point of Contact',
+        description:
+          'Booking, prep, and day-of coordination handled for you, with a planning call before the event.',
+      },
+    ],
+    benefitsHeading: 'What your team takes home',
+    benefits: [
+      {
+        iconName: 'Heart',
+        title: 'A Real Energy Lift',
+        description:
+          'Music-driven cardio that gets a desk-bound team moving and laughing together.',
+      },
+      {
+        iconName: 'Users',
+        title: 'Team Connection',
+        description:
+          'Nothing bonds a team like being a little out of their comfort zone together.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'Accessible to Everyone',
+        description: 'Simple moves anyone can follow, adaptable from full-out to low-impact.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'Award',
+        title: 'Trained Instructor',
+        description: 'A dancer and instructor who leads the whole room.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'Music + Class',
+        description:
+          'A built-out playlist and a full guided class, no setup on your end.',
+      },
+      {
+        iconName: 'FileText',
+        title: 'RSVP Blurb',
+        description: 'A Slack or email blurb you can drop in to drive sign-ups.',
+      },
+    ],
+    featuresHeading: 'Format options',
+    features: [
+      'Thirty or sixty-minute classes',
+      'In-person at your office or live over video',
+      'Comfortable clothing, no experience needed',
+    ],
+  },
+  'strength-sculpt': {
+    label: 'Strength & Sculpt',
+    whyShortcut: [
+      {
+        title: 'Trained Instructor',
+        description:
+          'Classes are led by a trained instructor who scales every move to the room. Vetted, not a marketplace booking.',
+      },
+      {
+        title: 'Equipment Optional',
+        description:
+          'Bodyweight works on its own. Light dumbbells or bands are a nice-to-have, not a requirement.',
+      },
+      {
+        title: 'One Point of Contact',
+        description:
+          'Booking, prep, and day-of coordination handled for you, with a planning call before the event.',
+      },
+    ],
+    benefitsHeading: 'What your team takes home',
+    benefits: [
+      {
+        iconName: 'Heart',
+        title: 'Full-Body Strength',
+        description: 'Functional movement that builds strength, posture, and stability.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'Every Fitness Level',
+        description: 'Scaled up or down on the spot, so nobody feels behind.',
+      },
+      {
+        iconName: 'Users',
+        title: 'A Team That Moves Together',
+        description: 'A shared push that leaves a sedentary team stronger and looser.',
+      },
+    ],
+    whatsIncludedHeading: 'What we bring',
+    whatsIncluded: [
+      {
+        iconName: 'Award',
+        title: 'Trained Instructor',
+        description: 'An instructor who leads and scales the whole class.',
+      },
+      {
+        iconName: 'CheckCircle',
+        title: 'A Ready-to-Go Class',
+        description:
+          'A full guided session using bodyweight, with light dumbbells or bands optional.',
+      },
+      {
+        iconName: 'FileText',
+        title: 'RSVP Blurb',
+        description: 'A Slack or email blurb you can drop in to drive sign-ups.',
+      },
+    ],
+    featuresHeading: 'Format options',
+    features: [
+      'Thirty or sixty-minute classes',
+      'In-person at your office or live over video',
+      'Bodyweight, dumbbells, or bands, all levels welcome',
+    ],
+  },
 };
 
 // CLE Why Shortcut variant. Reuses the mindfulness base but adds the CLE

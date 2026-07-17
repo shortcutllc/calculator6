@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import ServiceCard, { ServiceCardProps } from './ServiceCard';
 import { FrequencyPicker } from './shared/primitives';
+import { isMovementServiceType } from '../../utils/movementCatalog';
 import { GalleryStrip } from './ServiceGallery';
 import { ServiceDayDetails } from './sections/ServiceDetailsSection';
 import { SERVICE_CONTENT } from './sections/serviceContent';
@@ -60,8 +61,13 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
   const type = service.serviceType;
   const isMindful = type === 'mindfulness' || type.startsWith('mindfulness-');
   // Flat-rate classes lead with class length + per-session price (mirrors
-  // ServiceCard). Stretch is appointment-based, so it is NOT a flat class.
-  const isFlatClass = isMindful || type === 'sound-bath' || type === 'yoga';
+  // ServiceCard). Assisted Stretch and Reiki are appointment-based, so they are
+  // NOT flat classes; the 2026 movement & sound group classes are.
+  const isFlatClass =
+    isMindful ||
+    type === 'sound-bath' ||
+    type === 'yoga' ||
+    isMovementServiceType(type);
   const isMassage = type === 'massage';
 
   // Edit mode keeps the proven card (inline editable fields). Every read-only
@@ -314,7 +320,9 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
                 transition: 'transform 200ms',
               }}
             />
-            <span>What a {displayName.toLowerCase()} day looks like</span>
+            <span>
+              What a {displayName.toLowerCase()} {isFlatClass ? 'session' : 'day'} looks like
+            </span>
           </div>
           {dayOpen && (
             <div style={{ padding: '0 24px 22px' }}>

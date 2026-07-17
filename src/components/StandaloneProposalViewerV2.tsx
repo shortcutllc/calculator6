@@ -31,6 +31,7 @@ import {
 import { useProposalGallery, type GalleryItem } from './proposal/useProposalGallery';
 import ProposalGallery, { type GalleryPhoto } from './proposal/ProposalGallery';
 import { formatCurrency, SERVICE_DISPLAY, SERVICE_IMAGE_PATH } from './proposal/data';
+import { isMovementServiceType } from '../utils/movementCatalog';
 import AccountTeamCard from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
 import TrustCard from './proposal/sidebar/TrustCard';
@@ -472,7 +473,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
   // yoga, sound bath) use "session" instead of "event".
   const serviceLineLabel = (s: string) => {
     const name = SERVICE_DISPLAY[s] || s;
-    const isSession = isMindfulnessLike(s) || s === 'yoga' || s === 'sound-bath';
+    const isSession =
+      isMindfulnessLike(s) || s === 'yoga' || s === 'sound-bath' || isMovementServiceType(s);
     return `${name} ${isSession ? 'session' : 'event'}`;
   };
   const isMindfulnessOnly =
