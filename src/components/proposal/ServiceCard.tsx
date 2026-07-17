@@ -984,7 +984,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           )}
 
           {/* Frequency picker row */}
-          {showSelectionControls && (
+          {showSelectionControls && !service.hideRepeats && (
             <div
               style={{
                 marginTop: 16,

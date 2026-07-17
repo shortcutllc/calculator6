@@ -214,7 +214,7 @@ const MobileServiceCard: React.FC<MobileServiceCardProps> = (props) => {
         {/* Repeats — recurring-frequency picker (drives the volume discount).
             Same FrequencyPicker as desktop (portaled menu, shows the discount
             per level + Custom) so mobile and desktop are fully consistent. */}
-        {showSelectionControls && onChangeFrequency && (
+        {showSelectionControls && onChangeFrequency && !service.hideRepeats && (
           <div className="pvm-repeats">
             <span className="rl">
               <RefreshCw /> Repeats

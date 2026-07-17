@@ -94,6 +94,9 @@ export interface Service {
   // Bath, Somatic Movement + Sound Bath, Stretch/Mobility, Dance Cardio,
   // Strength & Sculpt). Resolved against movementCatalog.ts by serviceType + id.
   movementServiceId?: string;
+  // When true, the "Repeats" (frequency) picker is hidden on the client view
+  // for this service. Admin-controlled per service. Absent/false → shown.
+  hideRepeats?: boolean;
   // Recurring event fields
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;

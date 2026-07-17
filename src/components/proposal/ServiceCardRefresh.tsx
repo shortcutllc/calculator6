@@ -239,7 +239,7 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
           </div>
 
           {/* Repeats */}
-          {showSelectionControls && onChangeFrequency && (
+          {showSelectionControls && onChangeFrequency && !service.hideRepeats && (
             <div className="pv-repeats">
               <span className="rl">
                 <RefreshCw className="ic-line" /> Repeats
