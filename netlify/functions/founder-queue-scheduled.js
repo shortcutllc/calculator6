@@ -21,31 +21,32 @@
 
 const BACKGROUND_URL_PATH = '/.netlify/functions/founder-queue-background';
 
-// PAUSED 2026-07-20 (Will) while the v2 writing loop is evaluated.
+// ACTIVE 2026-07-20 — 5 broker notes/day at 7:45am ET, drafted by the v2 WRITING loop
+// (research wide + rate for noteworthiness, generate N across model families, terminal
+// brand-safety screen, blind 3-family judge panel; no patch loop). Will still sends by hand.
 //
 // ⚠️ THE SCHEDULE IS DECLARED IN TWO PLACES AND BOTH MUST BE PAUSED. On 2026-07-17
 // the netlify.toml schedule was commented out and deployed (22:10Z) — and the cron
 // STILL fired on 2026-07-20 at 11:39Z, producing 5 more unread v1 drafts. Cause: this
 // in-file `export const config = { schedule }` re-registers the function on every
 // deploy regardless of netlify.toml. Commenting out only the toml is a no-op.
-// export const config = { schedule: '45 11 * * 1-5' };
+export const config = { schedule: '45 11 * * 1-5' };
 
-// Belt-and-braces: even if Netlify holds a stale registration from a previous deploy,
-// the handler itself refuses to dispatch unless explicitly re-enabled. Set
-// FOUNDER_QUEUE_ENABLED=true in the site env to turn the morning queue back on.
-const ENABLED = process.env.FOUNDER_QUEUE_ENABLED === 'true';
+// Belt-and-braces kill switch: flip FOUNDER_QUEUE_ENABLED=false in the site env to pause
+// the morning queue WITHOUT a deploy. Default is on.
+const ENABLED = process.env.FOUNDER_QUEUE_ENABLED !== 'false';
 
 export const handler = async () => {
   if (!ENABLED) {
-    console.log('[founder-queue-scheduled] PAUSED — set FOUNDER_QUEUE_ENABLED=true to re-enable. No dispatch.');
-    return { statusCode: 200, body: 'paused (FOUNDER_QUEUE_ENABLED is not true)' };
+    console.log('[founder-queue-scheduled] PAUSED via FOUNDER_QUEUE_ENABLED=false. No dispatch.');
+    return { statusCode: 200, body: 'paused (FOUNDER_QUEUE_ENABLED=false)' };
   }
   const base = (process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://proposals.getshortcut.co').replace(/\/$/, '');
   try {
     const r = await fetch(`${base}${BACKGROUND_URL_PATH}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ max: 5, audience: 'brokers' }),
+      body: JSON.stringify({ max: 5, audience: 'brokers', engine: 'v2' }),
     });
     console.log(`[founder-queue-scheduled] dispatched → HTTP ${r.status}`);
     return { statusCode: 200, body: `dispatched founder-queue-background (HTTP ${r.status})` };

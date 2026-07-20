@@ -62,6 +62,7 @@ const pct = (n, d) => (d ? `${((100 * n) / d).toFixed(0)}%` : '—');
     const send = sentMap.get(String(d.recipient_email || '').toLowerCase());
     return {
       audience: r.audience || '?',
+      engine: r.engine || 'v1',
       hook: r.hook_category || (r.personal_hook ? 'unrecorded(had hook)' : 'unrecorded(no hook)'),
       arch: r.architecture || 'unrecorded',
       cta: r.cta_variant || '-',
@@ -94,6 +95,7 @@ const pct = (n, d) => (d ? `${((100 * n) / d).toFixed(0)}%` : '—');
   console.log(`  drafted ${T}   sent ${S} (${pct(S, T)} of drafts)   replied ${R} (${pct(R, S)} of sends)`);
   console.log(`  >> SEND RATE IS THE METRIC. A draft Will won't send is worth zero.`);
 
+  tally((r) => r.engine, 'BY ENGINE       (v1 checking loop vs v2 writing loop — THE comparison)');
   tally((r) => r.hook, 'BY HOOK CATEGORY  (the real A/B — the observation is the lever)');
   tally((r) => r.arch, 'BY ARCHITECTURE   (braun / short / ferriss)');
   tally((r) => r.audience, 'BY AUDIENCE');

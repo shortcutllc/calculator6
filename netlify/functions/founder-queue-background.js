@@ -35,10 +35,18 @@ import { leadPicture } from './lib/lead-picture.js';
 import { buildDraftPreviewBlocks } from './lib/slack-blocks.js';
 import { getAccessToken, createDraft, lc } from './lib/gmail.js';
 import { recentSentBodies, composeNote, researchPersonalHook } from './lib/founder-note.js';
+import { researchObservations, composeNoteV2 } from './lib/founder-note-v2.js';
+import { voiceExemplars } from './lib/voice-corpus.js';
 
 const SLACK_API = 'https://slack.com/api';
 const WILL = 'will@getshortcut.co';
 const DEFAULT_MAX = 5;   // ramp: wk1 ~5/day, wk2 ~10, ceiling 15 (founder_outreach_lane.md)
+
+// ENGINE SELECTION (2026-07-20). 'v2' = the writing loop (generate-N + judge panel,
+// no patch loop); 'v1' = the original checking loop, kept as the A/B control and the
+// instant fallback. POST engine:'v1'|'v2' overrides; FOUNDER_ENGINE env sets the default.
+const V2_CANDIDATES = 4;   // 4 beats 5 on cost/latency; selection value of the 5th is low
+const GROQ_KEY = process.env.GROQ_API_KEY || null;
 
 // Will's "founder-min" Gmail signature, embedded verbatim (Will 2026-07-06).
 // Gmail's API only exposes the DEFAULT sendAs signature, which for will@ is the
@@ -90,6 +98,7 @@ export const handler = async (event) => {
   const dryRun = !!body.dryRun;
   const only = lc(body.only) || null;
   const audience = body.audience || 'brokers';
+  const ENGINE = ['v1', 'v2'].includes(body.engine) ? body.engine : (process.env.FOUNDER_ENGINE === 'v1' ? 'v1' : 'v2');
   // verified why-now from the tech-scout harvest (only meaningful with `only`
   // since it describes one lead's company)
   const trigger = typeof body.trigger === 'string' && body.trigger.trim() ? body.trigger.trim().slice(0, 300) : null;
@@ -160,7 +169,11 @@ export const handler = async (event) => {
   const tok = await getAccessToken(sb, WILL);
   // 5 exemplars, not 3 — few-shot voice samples are the strongest tone lever
   // (Anthropic multishot guidance; voice research 2026-07-06).
-  const exemplars = await recentSentBodies(tok, 5);
+  // VOICE. v2 uses the CURATED cold-lane corpus (lib/voice-corpus.js): most of Will's
+  // sent mail is merge templates, so scraping it teaches the model the robot we are trying
+  // to escape, and the warm-lane exemplars carry pleasantries the cold guards reject.
+  // v1 keeps its original behaviour so the A/B control arm is unchanged.
+  const exemplars = ENGINE === 'v2' ? voiceExemplars({ audience, lane: 'cold', max: 6 }) : await recentSentBodies(tok, 5);
 
   // ANTI-SAMENESS (2026-07-14): the drafter sees ONE note and cannot know what it wrote
   // yesterday, so "vary your phrasing" cannot hold on its own — on 2026-07-14 three
@@ -208,7 +221,10 @@ export const handler = async (event) => {
       // their firm's benefits/wellbeing practice, connected to helping their clients).
       // Null-safe: on timeout/nothing-found the note falls back to its normal path.
       let personalHook = null; let hookCategory = null; let hookDetail = null; let hookConnects = null;
+      // v2 runs its OWN wide research (researchObservations, rated for noteworthiness), so
+      // running v1's single-hook researcher here would be a wasted web-search call.
       try {
+        if (ENGINE === 'v2') throw new Error('skip: v2 researches its own observations');
         const ph = await researchPersonalHook(anthropic, t, { audience, log: (m) => console.log(`  ${m}`) });
         if (ph?.warm_line && ph.confidence !== 'low') {
           personalHook = ph.warm_line;
@@ -218,11 +234,41 @@ export const handler = async (event) => {
           hookCategory = ph.category || null; hookDetail = ph.personal_detail || null; hookConnects = ph.connects || null;
           console.log(`  personalized ${t.email}: ${ph.category} — ${ph.warm_line.slice(0, 80)}`);
         }
-      } catch (e) { console.log(`  personalize failed for ${t.email} (${e.message}) — trigger fallback`); }
+      } catch (e) {
+        // Do not cry wolf: on v2 this path is a deliberate skip, not a failure. A log line
+        // that says "personalize failed" every single run would train us to ignore it, and
+        // then a real failure would look identical to the normal case.
+        if (String(e.message).startsWith('skip:')) console.log(`  ${t.email}: v2 researches its own observations (v1 hook researcher not run)`);
+        else console.log(`  personalize failed for ${t.email} (${e.message}) — trigger fallback`);
+      }
       // Compose engine (lib/founder-note.js): draft -> guards (2 revises) ->
       // skeptic -> revise -> final guard. Throws if it still violates a hard
       // rule; the catch below turns that into a Slack skip.
-      const { note, architecture } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook, hookCategory, hookDetail, hookConnects, recentNotes, label: t.email });
+      // ENGINE SWITCH (2026-07-20). v2 is the WRITING loop: research wide and rate every
+      // fact for noteworthiness (allowed to REFUSE), generate N structurally-different
+      // candidates across model families, screen with a terminal brand-safety gate, and
+      // SELECT with a blind dual-ordered 3-family judge panel. No patch loop anywhere.
+      // See memory/llm_writing_loop_architecture.md. v1 stays intact and reachable so we
+      // can fall back instantly, and so the A/B has a real control arm.
+      let note; let architecture = null; let engineUsed = ENGINE;
+      if (ENGINE === 'v2') {
+        const { observations, refused: noAngle } = await researchObservations(anthropic, t, { audience, log: (m) => console.log(`  ${m}`) });
+        // REFUSING IS A FEATURE, NOT A FAILURE (Will approved 2026-07-14). Being forced to
+        // write about a lead with no real angle is what produced "your title mentions
+        // employee experience". Five strong notes beat ten inert ones.
+        if (noAngle) { results.push({ email: t.email, skipped: 'no angle worth writing' }); console.log(`  REFUSED ${t.email} — nothing worth saying`); continue; }
+        const officeContext = observations.some((o) => o.category === 'office');
+        const v2 = await composeNoteV2(anthropic, {
+          lead: t, firm, audience, remote, exemplars, recentNotes, observations,
+          trigger, officeContext, n: V2_CANDIDATES, groqKey: GROQ_KEY, label: t.email,
+          log: (m) => console.log(`  ${m}`),
+        });
+        if (v2.refused) { results.push({ email: t.email, skipped: v2.reason }); console.log(`  REFUSED ${t.email} — ${v2.reason}`); continue; }
+        note = v2.note;
+      } else {
+        // v1: draft -> guards (2 revises) -> skeptic -> revise -> final guard.
+        ({ note, architecture } = await composeNote(anthropic, { lead: t, firm, exemplars, audience, ctaVariant, trigger, triggerType, remote, personalHook, hookCategory, hookDetail, hookConnects, recentNotes, label: t.email }));
+      }
 
       // Feed this note back into the anti-sameness pool so the NEXT lead in this same
       // run cannot reuse its phrasing (the Krista/Rob/Julie duplicates on 2026-07-14
@@ -258,6 +304,7 @@ export const handler = async (event) => {
           // reply-rate by those instead. Every note contributes a data point, so this
           // accumulates far faster than the CTA split ever could.
           // Read with scripts/debug/founder-lane-metrics.mjs.
+          engine: engineUsed,
           hook_category: hookCategory || 'none',
           architecture: architecture?.key || null,
           research_note: note.research_note, linkedin_step: note.linkedin_step,
