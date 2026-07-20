@@ -256,7 +256,7 @@ ${audience === 'brokers' ? `- BROKER LANE: this is channel courtship, helping th
 Not ${n} rewordings of one email. ${n} different emails. Each must differ in at least one of:
 - ANGLE: which true thing you lead on. (If the research gave you several facts, different candidates should use different ones. If it gave you one, then differ on what you SAY about it.)
 - SHAPE: question-first vs observation-first vs a bare two-liner vs observation-then-easy-out. Some should carry a proof point; at least one should carry NONE and just be a human note with a question.
-- LENGTH: at least one under 70 words, at least one around 100-120.
+- LENGTH: at least one under 70 words, at least one around 100-120. HARD CEILING ${V2_WORD_CEILING} words for the message body (greeting and sign-off do not count) — anything longer is discarded unread, so a long candidate is a wasted slot.
 Vary the opening move. Vary where the question lands. Vary whether the receipt appears at all.
 If two of your versions could swap a sentence unnoticed, you have written one email ${n} times and failed the task.
 ${recentNotes.length ? `\n### ALREADY SENT TO OTHER PEOPLE — do not reuse ANY of this phrasing or shape\n${recentNotes.slice(0, 12).map((b, i) => `--- ${i + 1} ---\n${b}`).join('\n\n')}\nA recipient who compares notes with a peer must not find the same email. Your self-intro ("I'm Will, I run Shortcut") and the service menu are ALLOWED to recur — they are the product. Everything else must be fresh.\n` : ''}
@@ -325,10 +325,21 @@ export async function generateCandidates(anthropic, {
  * failures are DISCARDED, and we select among the survivors. Nothing is ever patched.
  * Returns { survivors, rejected } so callers can see WHY a candidate died.
  */
+// Total-length ceiling. v1 enforced ~130 words inside the skeptic/revise loop; deleting
+// that loop silently deleted the ceiling too, and a 143-word note shipped on 2026-07-20.
+// Length is pre-hoc specifiable and mechanically checkable, so by Huang et al. §4 it
+// belongs in the PROMPT (stated once, see generatorSystem) and in the TERMINAL gate as a
+// reject — never in a revision loop. Rejecting is safe here precisely because candidates
+// are plural: the generator is told to vary length and to produce at least one short one,
+// so a long candidate loses its slot rather than costing us the lead.
+export const V2_WORD_CEILING = 130;
+
 export function screenCandidates(candidates, { audience, trigger = null, officeContext = false }) {
   const survivors = []; const rejected = [];
   for (const c of candidates) {
     try {
+      const words = noteWordCount(c.body);
+      if (words > V2_WORD_CEILING) throw new Error(`${words} words — over the ${V2_WORD_CEILING} ceiling (a 1:1 note makes ONE point)`);
       // BRAND-SAFETY ONLY. Fabrication, banned words, dashes, bangs, the sign-off shape,
       // one question, fund-eligible services, no-links. Things that are catastrophic to
       // ship and cheap to check. Nothing here is a taste judgement.
@@ -545,19 +556,34 @@ async function listwiseDualOrder(judge, lens, candidates, ctx, log = () => {}) {
   };
   const fwd = await ask(candidates);
   const rev = await ask([...candidates].reverse());
-  if (!fwd || !rev) return null;
-  // Keep only the agreement: a candidate's score is its AVERAGE rank across both passes,
-  // and we drop the lens entirely if the two orders disagree on the winner (that is the
-  // position-bias signal — the judge is ranking by slot, not by content).
-  if (fwd[0] !== rev[0]) {
-    log(`   ${lens.key} (${judge.name}): orders disagree on the winner (${fwd[0]} vs ${rev[0]}) — position bias, lens abstains`);
-    return null;
-  }
+  if (!fwd || !rev) return null; // garbled/partial ranking is the only true abstention
+
+  // AVERAGE THE TWO RANKINGS — the averaging IS the debiasing, so do not throw the lens
+  // away when the two orders disagree on #1.
+  //
+  // (Corrected 2026-07-20. The first version abstained whenever fwd[0] !== rev[0], and on
+  // a live lead THREE of four lenses abstained and the "winner" scored 0.0 — i.e. the
+  // tie-break picked the note and the panel contributed nothing. That rule was far too
+  // strict: disagreement on the top slot is EXPECTED, because position bias is worst
+  // exactly when candidates are close in quality, which N siblings from one prompt always
+  // are. Discarding a full preference order because its head disagreed threw away the
+  // signal we paid for.)
+  //
+  // Why averaging is sufficient: each pass reflects (real signal + position preference).
+  // Reversing the list flips the position component while leaving the signal, so the mean
+  // cancels the former and keeps the latter — the same argument as pairwise dual-ordering.
+  // A PURELY positional judge (one that always answers "A,B,C,D" regardless of content)
+  // self-neutralises: fwd and rev are exact reverses, every candidate averages to
+  // (n-1)/2, and the lens contributes zero discrimination without any special-casing. A
+  // partially-biased judge is partially discounted, which is the behaviour we want.
   const rank = {};
   for (const c of candidates) {
     const a = fwd.indexOf(c.id); const b = rev.indexOf(c.id);
     rank[c.id] = (a + b) / 2;
   }
+  // Log when the head disagrees — it is not fatal, but a lens that does it every time is
+  // telling you the judge is weak on this task (that is how Qwen was caught).
+  if (fwd[0] !== rev[0]) log(`   ${lens.key} (${judge.name}): orders disagree on #1 (${fwd[0]} vs ${rev[0]}) — averaged, position component cancels`);
   return rank;
 }
 
