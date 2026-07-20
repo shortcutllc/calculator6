@@ -260,6 +260,22 @@ Not ${n} rewordings of one email. ${n} different emails. Each must differ in at 
 Vary the opening move. Vary where the question lands. Vary whether the receipt appears at all.
 If two of your versions could swap a sentence unnoticed, you have written one email ${n} times and failed the task.
 ${recentNotes.length ? `\n### ALREADY SENT TO OTHER PEOPLE — do not reuse ANY of this phrasing or shape\n${recentNotes.slice(0, 12).map((b, i) => `--- ${i + 1} ---\n${b}`).join('\n\n')}\nA recipient who compares notes with a peer must not find the same email. Your self-intro ("I'm Will, I run Shortcut") and the service menu are ALLOWED to recur — they are the product. Everything else must be fresh.\n` : ''}
+## THE BOILERPLATE TRAP — THIS IS WHERE SAMENESS ACTUALLY LIVES
+Measured on a real batch (2026-07-20): the openings were all genuinely different and well
+researched, and the notes STILL read as one template, because the MIDDLE and the CLOSE were
+identical. Five of five notes contained "you just approve a date and do nothing else" word
+for word. Two contained "Happy to share more if it's useful, or totally fine if the timing
+isn't right" word for word. A varied opening bolted onto identical boilerplate is still a
+form letter, and it is worse than obvious sameness because it looks personalised at a glance.
+Selection cannot rescue this: if all ${n} of your candidates carry the same zero-lift
+sentence, the freshest of them is still that sentence. It has to be fixed HERE, in
+generation.
+So: the zero-lift idea (it is effortless for them, Shortcut handles everything, they pick a
+date), the proof, and the sign-off ask are IDEAS TO EXPRESS, never phrases to reuse. Say each
+one differently in every candidate AND differently from the recent notes above. If you cannot
+think of a fresh way to say the zero-lift idea, LEAVE IT OUT of that candidate entirely —
+it is a supporting beat, not a requirement, and a note without it beats five notes with the
+same sentence. Same for the proof and the close.
 For each version give an honest reply_odds (0-1): would a busy person actually reply to THIS one? Spread them out. If a version is only there to fill the count, score it low and say so in the angle.
 
 Report all ${n} via report_candidates in ONE call.`;

@@ -54,6 +54,9 @@ Looking forward to hearing from you,
 Will`,
   },
   {
+    // Re-tagged warm 2026-07-20: carries "please don't hesitate to reach out", a stock
+    // pleasantry the cold guards reject. Great warm exemplar, wrong teacher for a cold open.
+    lane: 'warm',
     tags: ['short', 'warm'],
     why: 'The shortest thing he sends. Proof that a Will email can be three lines and still land. Note the rhythm: thanks, a warm line, an open door, out.',
     text: `Thanks, Jaimie! It's a pleasure to connect, Christian and we're excited to help with anything you need.
@@ -185,6 +188,126 @@ Does a time this week or next work for a quick call?
 Talk soon,
 Will`,
   },
+
+  // ==========================================================================
+  // WARM LANE — supplied by Will 2026-07-20, hand-written, not scraped.
+  // These are the reply/proposal/post-call register. They are lane:'warm' ON PURPOSE:
+  // several contain "I hope you're having a great week", "please don't hesitate to reach
+  // out", and exclamation points mid-body, all of which the COLD guards reject. Excellent
+  // for the graduation + reply drafters; poison for a cold first touch.
+  // ==========================================================================
+  {
+    lane: 'warm', tags: ['post-call', 'warm'],
+    why: 'Post-discovery-call recap. The move to learn: he names what HE heard ("your plans for Employee Appreciation Week") before proposing anything, then commits to a specific next step with a deadline.',
+    text: `Hi Sarah,
+
+It was wonderful speaking with you today! I really enjoyed learning more about your plans for Employee Appreciation Week and the experience you're hoping to create for your team.
+
+Based on our conversation, I think onsite chair massage and mini facials would be a great fit for your goals. I'll put together a proposal outlining a few options and send it over by tomorrow afternoon.
+
+In the meantime, please don't hesitate to reach out if any additional questions come up. We would love the opportunity to partner with you and help create a memorable experience for your employees.
+
+Looking forward to staying in touch!
+Thank you,
+Will`,
+  },
+  {
+    lane: 'warm', tags: ['proposal', 'warm'],
+    why: 'Proposal send. Note the flexibility offer ("happy to tailor the services, timing, and format") — he hands control back rather than pushing.',
+    text: `Hi Sarah,
+
+Thank you again for taking the time to speak with me this week. It was great learning more about your team and your vision for the event.
+
+I've attached a proposal for your review that outlines several options based on our discussion. We're happy to tailor the services, timing, and format to best align with your goals and budget.
+
+Please let me know if you have any questions or if you'd like to schedule a time to walk through the proposal together. We'd be happy to make any adjustments needed.
+
+I look forward to hearing your thoughts!
+Thank you,
+Will`,
+  },
+  {
+    lane: 'warm', tags: ['nudge', 'warm'],
+    why: 'The polite nudge. Gives an explicit face-saving reason ("I know things can get busy") instead of implying they ignored him. NOTE: "I hope you\'re having a great week!" is exactly the stock pleasantry the cold guards ban — which is why this is warm-only.',
+    text: `Hi Sarah,
+
+I hope you're having a great week!
+
+I wanted to check in and see if you've had a chance to review the proposal I sent over. I know things can get busy, so I just wanted to make sure it didn't get buried in your inbox.
+
+Please let me know if any questions have come up or if there is any additional information I can provide. We'd love the opportunity to work with you and support your team.
+
+Looking forward to hearing from you.
+Thank you,
+Will`,
+  },
+  {
+    lane: 'warm', tags: ['loss', 'warm', 'short'],
+    why: 'The loss reply, and the best-written thing in the set. No pressure, no guilt, no last-ditch pitch — he grants the reason ("budgets and priorities can shift"), wishes them well, and leaves the door open. This is the register the graduation drafter should steal.',
+    text: `Hi Sarah,
+
+Thank you for letting me know, and I truly appreciate the opportunity to connect with you and learn more about your team.
+
+While I'm disappointed we won't be able to partner on this event, I completely understand that budgets and priorities can shift throughout the year.
+
+I hope the event is a great success, and I'd love to stay in touch for any future wellness initiatives or employee appreciation programs that may arise down the road.
+
+Thank you again for considering Shortcut.
+Warmly,
+Will`,
+  },
+  {
+    lane: 'warm', tags: ['operational', 'short'],
+    why: 'Event confirmation. Pure logistics done well: the facts in a scannable block, what Shortcut will do, then one open question. No selling once the deal is won.',
+    text: `Hi Sarah,
+
+We're excited to partner with you for your upcoming wellness event!
+
+Here are the details we have confirmed:
+Date: October 15
+Time: 10:00 AM to 3:00 PM
+Service: Chair Massage
+Providers: 4
+Location: Boston Office
+
+Our team will arrive approximately 30 minutes prior to the event to set up and ensure everything is ready to go.
+
+If there are any last-minute updates, parking instructions, or building access details you'd like to share, please let me know.
+
+We're looking forward to a great event!
+Thank you,
+Will`,
+  },
+  {
+    lane: 'warm', tags: ['re-engagement', 'warm'],
+    why: 'Re-engaging a past client. Leads with a genuine open question about THEIR plans, then offers the menu as options rather than a pitch. Closest of the warm set to a cold opener, but still assumes prior relationship.',
+    text: `Hi Sarah,
+
+I hope you've been doing well!
+
+I wanted to reach out and see if your team is planning any wellness, appreciation, or engagement initiatives in the coming months.
+
+We've recently been helping clients with chair massage events, mindfulness workshops, headshot days, fitness classes, and seasonal wellness activations, and I'd be happy to brainstorm ideas if you're looking for something new.
+
+If you'd like to connect, feel free to grab a time on my calendar.
+
+I hope to hear from you soon!
+Will`,
+  },
+  {
+    lane: 'warm', tags: ['discovery', 'warm', 'short'],
+    why: 'Asking for the discovery call. The reason for the call is THEIR benefit ("so I can put together the most accurate recommendation and quote"), not his pipeline.',
+    text: `Hi Sarah,
+
+I'd love to learn a bit more about what you're envisioning so I can put together the most accurate recommendation and quote possible.
+
+Would you be available for a quick call sometime next week? Here's a link to my calendar to make scheduling easy.
+
+I'm looking forward to learning more about your goals and exploring how we can support your team.
+
+Thanks!
+Will`,
+  },
 ];
 
 /**
@@ -210,9 +333,35 @@ Will`,
  */
 
 /** Pick exemplars for a lane. Conference/peer notes are the most human, so they lead. */
-export function voiceExemplars({ audience = 'tech-execs', max = 6 } = {}) {
+/**
+ * LANE SPLIT (Will, 2026-07-20) — the cold lane must NOT be taught the warm register.
+ *
+ * Will supplied seven hand-written notes: a post-call follow-up, a proposal send, a nudge,
+ * a loss reply, an event confirmation, a re-engagement, and a discovery-call ask. They are
+ * genuinely his and genuinely good AT WHAT THEY ARE — but every one is a WARM-lane email to
+ * someone who already knows him, and several carry constructions the COLD guards actively
+ * reject: "I hope you're having a great week!", "please don't hesitate to reach out",
+ * "We'd love the opportunity to", and exclamation points outside the sign-off.
+ *
+ * Feeding those to the cold generator would teach it patterns the terminal gate then kills:
+ * candidates die on the guard, and the loop gets WORSE, not better. So each exemplar
+ * declares a lane:
+ *   'cold' — safe to condition a first-touch cold note on
+ *   'warm' — reply//proposal/post-call register; for the graduation + reply drafters
+ *   'both' — plain enough for either (most of the short, declarative ones)
+ * Default is 'both' so an untagged legacy entry keeps its existing behaviour.
+ *
+ * The warm set is NOT dead weight: the graduation reply drafter (a positive cold reply ->
+ * on-spine draft) is a WARM surface and is currently off-brain. These are exactly right for
+ * it. See memory/graduation_reply_system.md.
+ */
+export function voiceExemplars({ audience = 'tech-execs', lane = 'cold', max = 6 } = {}) {
+  const pool = VOICE_EXEMPLARS.filter((e) => {
+    const l = e.lane || 'both';
+    return l === 'both' || l === lane;
+  });
   const want = audience === 'brokers' ? ['peer', 'warm', 'conference'] : ['conference', 'peer', 'short', 'warm'];
-  const scored = VOICE_EXEMPLARS.map((e) => ({
+  const scored = pool.map((e) => ({
     e, score: e.tags.reduce((s, t) => s + (want.includes(t) ? want.length - want.indexOf(t) : 0), 0),
   })).sort((a, b) => b.score - a.score);
   return scored.slice(0, max).map((s) => s.e.text);
