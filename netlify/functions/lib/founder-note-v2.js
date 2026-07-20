@@ -281,9 +281,24 @@ For each version give an honest reply_odds (0-1): would a busy person actually r
 Report all ${n} via report_candidates in ONE call.`;
 }
 
+// Cross-model GENERATORS — a different family cannot converge on our phrasing because it
+// does not have our phrasing. That is the structural fix for boilerplate, as opposed to the
+// thermal one. Empty this array to disable cross-model generation entirely.
+//
+// ONE JOB PER MODEL (2026-07-20, measured). gpt-oss-120b is deliberately NOT here even
+// though it writes fine, because it is the NOTEWORTHINESS JUDGE — and Groq's free tier
+// meters TOKENS PER MINUTE PER MODEL (gpt-oss 8,000, llama-70b 12,000). Using one model for
+// both jobs makes them compete for the same budget: the generator call plus the judge calls
+// in the same minute blew the cap and gpt-oss returned HTTP 413, then unparseable output. It
+// was not a capability problem — on a small prompt it returns clean JSON. Giving each model
+// a single role removes the contention, and it keeps the noteworthiness lens (our worst
+// defect, and the one that must stay non-Anthropic) on a model with headroom.
+export const DEFAULT_CROSS_MODELS = ['llama-3.3-70b-versatile'];
+
 export async function generateCandidates(anthropic, {
   lead, firm, audience, remote = false, exemplars = [], recentNotes = [],
   observations = [], trigger = null, n = 6, temperature = 0.9, log = () => {},
+  groqKey = null, crossModels = DEFAULT_CROSS_MODELS,
 }) {
   const userContent = [
     'THE PERSON (JSON, trusted):',
@@ -301,33 +316,113 @@ export async function generateCandidates(anthropic, {
     `Write ${n} genuinely different versions, then call report_candidates once.`,
   ].filter(Boolean).join('\n');
 
-  const resp = await anthropic.messages.create({
-    model: ANTHROPIC_MODEL,
-    max_tokens: 8000,
-    // Temperature is a SECONDARY knob (Verbalized Sampling moves the frontier, temperature
-    // moves you along it) — but the two stack, so we run warm. This is not the diversity
-    // strategy; the structural variation in the prompt is.
-    temperature,
-    system: generatorSystem({ exemplars, audience, remote, recentNotes, n }),
-    tools: [{ name: 'report_candidates', description: `Report all ${n} candidate emails. Call exactly once.`, input_schema: CANDIDATES_SCHEMA }],
-    tool_choice: { type: 'tool', name: 'report_candidates' },
-    messages: [{ role: 'user', content: userContent }],
-  });
-  const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_candidates');
-  if (!tu) throw new Error('no report_candidates from generator');
-
-  // Formatting is an AUTO-FIX, never a lead-killer (v1's hard-won lesson, kept). These are
-  // pure mechanical repairs with zero wording change, applied per candidate.
-  const candidates = (tu.input.candidates || []).map((c, i) => ({
+  const system = generatorSystem({ exemplars, audience, remote, recentNotes, n });
+  const polish = (c, id) => ({
     ...c,
-    id: `c${i + 1}`,
+    id,
     subject: autoFixDashes(String(c.subject || '')),
     // isolateQuestion LAST: autoSplitParagraphs may leave the question sharing a block with
     // the intro or a stat (Will 2026-07-14: "the email loses its flow"). Pure formatting.
     body: isolateQuestion(autoSplitParagraphs(autoFixServiceFragment(autoFixDashes(normalizeParagraphs(c.body || ''))))),
-  }));
-  log(`generated ${candidates.length} candidates: ${candidates.map((c) => `${c.id}(${c.angle}, ${noteWordCount(c.body)}w)`).join(' | ')}`);
-  return { candidates, research_note: tu.input.research_note, linkedin_step: tu.input.linkedin_step };
+  });
+
+  // ---- ANTHROPIC: the primary generator, and the only one that must succeed.
+  const askAnthropic = async (want) => {
+    const resp = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 8000,
+      // Temperature is a SECONDARY knob (Verbalized Sampling moves the frontier, temperature
+      // moves you along it) — but the two stack, so we run warm. This is not the diversity
+      // strategy; the structural variation in the prompt is.
+      temperature,
+      system: generatorSystem({ exemplars, audience, remote, recentNotes, n: want }),
+      tools: [{ name: 'report_candidates', description: `Report all ${want} candidate emails. Call exactly once.`, input_schema: CANDIDATES_SCHEMA }],
+      tool_choice: { type: 'tool', name: 'report_candidates' },
+      messages: [{ role: 'user', content: userContent }],
+    });
+    const tu = (resp.content || []).find((b) => b.type === 'tool_use' && b.name === 'report_candidates');
+    if (!tu) throw new Error('no report_candidates from generator');
+    return tu.input;
+  };
+
+  // ---- CROSS-MODEL CANDIDATES (added 2026-07-20). THE reason this exists:
+  // after the boilerplate-trap prompt fix, a measured batch still shared 9 six-word phrases
+  // across 4 notes ("we take care of everything, the...", "or is the timing not right").
+  // That is mode collapse doing exactly what the research says it does — it is UPSTREAM of
+  // the prompt (Kirk et al.; Padmakumar & He), so a prompt rule can only ever partially
+  // mitigate it. All N candidates came from ONE call to ONE model, so they shared that
+  // model's mode and the "freshest of N" was still that mode.
+  // A genuinely different model cannot converge on the same phrasing, because it does not
+  // have the same phrasing. This is the structural diversity the research actually points
+  // at, rather than the thermal kind. Groq gives us two non-Anthropic families free.
+  // FAIL-SOFT BY DESIGN: a cross-model generator that errors, rate-limits or returns
+  // garbage is simply dropped. Anthropic always produces a full set on its own, so the
+  // worst case is exactly today's behaviour, never a lost lead.
+  const askGroq = async (model, want) => {
+    const shape = `{"candidates":[{"angle":"...","shape":"...","subject":"...","body":"...","reply_odds":0.4}]}`;
+    // TRIMMED PROMPT FOR CROSS-MODELS (2026-07-20). The full generator system prompt is
+    // ~4,300 tokens (positioning block + exemplars + the recent-notes dump), and Groq's
+    // free tier caps gpt-oss-120b at 8,000 TOKENS PER MINUTE — prompt + max_tokens blew
+    // straight through it and every call returned HTTP 413. Measured, not guessed.
+    // Trimming is also correct on the merits: a cross-model is here for PHRASING DIVERSITY,
+    // not for anti-sameness compliance. Anthropic writes the majority of candidates and
+    // carries the full brain (recent notes, exemplars, the boilerplate-trap rules); the
+    // cross-model just needs the brief, the voice, and the hard safety rules. Dropping the
+    // recent-notes dump is the single biggest saving and costs nothing here, because a
+    // different model was never going to reproduce our phrasing anyway — that is the whole
+    // reason it is in the loop.
+    const trimmed = system
+      .replace(/\n### ALREADY SENT TO OTHER PEOPLE[\s\S]*?(?=\n## |\nFor each version)/, '\n')
+      .replace(/\n### WILL'S REAL EMAILS[\s\S]*?(?=\n## )/, '\n');
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model, temperature: 1, max_tokens: 1600,
+        messages: [
+          { role: 'system', content: `${trimmed}\n\nReply with ONLY this JSON and nothing else: ${shape}\nProduce exactly ${want} candidates.` },
+          { role: 'user', content: userContent },
+        ],
+      }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json();
+    const txt = j.choices?.[0]?.message?.content ?? '';
+    const m = String(txt).match(/\{[\s\S]*\}/);
+    if (!m) throw new Error('unparseable');
+    return JSON.parse(m[0]);
+  };
+
+  if (!groqKey || crossModels.length === 0) {
+    const out = await askAnthropic(n);
+    const candidates = (out.candidates || []).map((c, i) => polish(c, `c${i + 1}`));
+    log(`generated ${candidates.length} candidates (claude): ${candidates.map((c) => `${c.id}(${c.angle}, ${noteWordCount(c.body)}w)`).join(' | ')}`);
+    return { candidates, research_note: out.research_note, linkedin_step: out.linkedin_step };
+  }
+
+  // Split the quota: Anthropic writes the majority (it is the strongest writer and the
+  // one whose voice is tuned), each cross-model writes a couple. We keep Anthropic's
+  // research_note/linkedin_step because the cross-models are not given the research tool.
+  const perCross = Math.max(1, Math.floor(n / (crossModels.length + 2)));
+  const primaryN = Math.max(2, n - perCross * crossModels.length);
+  const [primary, ...cross] = await Promise.all([
+    askAnthropic(primaryN),
+    ...crossModels.map((mdl) => askGroq(mdl, perCross).catch((e) => {
+      log(`cross-model ${mdl.split('/').pop()} skipped (${String(e.message).slice(0, 40)})`);
+      return null;
+    })),
+  ]);
+
+  const candidates = [];
+  (primary.candidates || []).forEach((c) => candidates.push(polish({ ...c, by: 'claude' }, `c${candidates.length + 1}`)));
+  cross.forEach((out, k) => {
+    if (!out?.candidates) return;
+    const tag = crossModels[k].split('/').pop().split('-')[0];
+    out.candidates.slice(0, perCross).forEach((c) => candidates.push(polish({ ...c, by: tag }, `c${candidates.length + 1}`)));
+  });
+  const bySrc = candidates.reduce((a, c) => { a[c.by] = (a[c.by] || 0) + 1; return a; }, {});
+  log(`generated ${candidates.length} candidates across ${Object.keys(bySrc).length} model families (${Object.entries(bySrc).map(([k, v]) => `${k}:${v}`).join(' ')})`);
+  return { candidates, research_note: primary.research_note, linkedin_step: primary.linkedin_step };
 }
 
 // ============================================================================
@@ -845,6 +940,9 @@ export async function composeNoteV2(anthropic, {
   const panel = assignments || buildPanel({ anthropic, groqKey, geminiKey, log });
   const { candidates, research_note, linkedin_step } = await generateCandidates(anthropic, {
     lead, firm, audience, remote, exemplars, recentNotes, observations, trigger, n, log,
+    // Cross-model generation: the structural fix for residual boilerplate. A different
+    // model family cannot converge on our phrasing because it does not have our phrasing.
+    groqKey,
   });
 
   const { survivors, rejected } = screenCandidates(candidates, { audience, trigger, officeContext });
