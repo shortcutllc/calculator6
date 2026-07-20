@@ -21,9 +21,25 @@
 
 const BACKGROUND_URL_PATH = '/.netlify/functions/founder-queue-background';
 
-export const config = { schedule: '45 11 * * 1-5' };
+// PAUSED 2026-07-20 (Will) while the v2 writing loop is evaluated.
+//
+// ⚠️ THE SCHEDULE IS DECLARED IN TWO PLACES AND BOTH MUST BE PAUSED. On 2026-07-17
+// the netlify.toml schedule was commented out and deployed (22:10Z) — and the cron
+// STILL fired on 2026-07-20 at 11:39Z, producing 5 more unread v1 drafts. Cause: this
+// in-file `export const config = { schedule }` re-registers the function on every
+// deploy regardless of netlify.toml. Commenting out only the toml is a no-op.
+// export const config = { schedule: '45 11 * * 1-5' };
+
+// Belt-and-braces: even if Netlify holds a stale registration from a previous deploy,
+// the handler itself refuses to dispatch unless explicitly re-enabled. Set
+// FOUNDER_QUEUE_ENABLED=true in the site env to turn the morning queue back on.
+const ENABLED = process.env.FOUNDER_QUEUE_ENABLED === 'true';
 
 export const handler = async () => {
+  if (!ENABLED) {
+    console.log('[founder-queue-scheduled] PAUSED — set FOUNDER_QUEUE_ENABLED=true to re-enable. No dispatch.');
+    return { statusCode: 200, body: 'paused (FOUNDER_QUEUE_ENABLED is not true)' };
+  }
   const base = (process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://proposals.getshortcut.co').replace(/\/$/, '');
   try {
     const r = await fetch(`${base}${BACKGROUND_URL_PATH}`, {
