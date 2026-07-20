@@ -2298,14 +2298,49 @@ const ProposalViewerV2: React.FC = () => {
     )
       return;
     try {
-      await supabase
+      // The group is keyed off one member's id (the "anchor"), and the options
+      // lookup also matches `id = groupId` to catch legacy anchors that never
+      // self-referenced. That means simply nulling the anchor's group fields
+      // isn't enough — it gets pulled straight back into the list. So when the
+      // anchor is the one being removed, re-anchor the group to a remaining
+      // member first, then unlink.
+      const { data: cp } = await supabase
+        .from('proposals')
+        .select('proposal_group_id')
+        .eq('id', id)
+        .single();
+      const groupId = cp?.proposal_group_id || id;
+      const remaining = proposalOptions.filter((o: any) => o.id !== optId);
+
+      if (optId === groupId && remaining.length > 0) {
+        const newAnchor = remaining[0].id;
+        const results = await Promise.all(
+          remaining.map((o: any) =>
+            supabase
+              .from('proposals')
+              .update({ proposal_group_id: newAnchor })
+              .eq('id', o.id)
+          )
+        );
+        const reErr = results.find((r) => r.error);
+        if (reErr?.error) throw reErr.error;
+      }
+
+      const { error: unlinkErr } = await supabase
         .from('proposals')
         .update({ proposal_group_id: null, option_name: null, option_order: null })
         .eq('id', optId);
+      if (unlinkErr) throw unlinkErr;
+
       await fetchProposalOptions();
       setShowDeleteOptionConfirm(null);
     } catch (err) {
       console.error('Remove option failed:', err);
+      alert(
+        err instanceof Error
+          ? `Could not remove that option: ${err.message}`
+          : 'Could not remove that option. Check the console.'
+      );
     }
   };
 
