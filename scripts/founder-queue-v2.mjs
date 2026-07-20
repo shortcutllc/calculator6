@@ -40,6 +40,7 @@ const OPENCLAW = `${process.env.HOME}/.openclaw/workspace`;
 const envKey = (n) => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').match(new RegExp(`^${n}=(.+)$`, 'm'))?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } };
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || envKey('ANTHROPIC_API_KEY');
 const GEMINI_KEY = process.env.GEMINI_API_KEY || envKey('GEMINI_API_KEY');
+const GROQ_KEY = process.env.GROQ_API_KEY || envKey('GROQ_API_KEY');
 const WILL = 'will@getshortcut.co';
 
 // The founder-min signature (name / Founder, Shortcut / bare domain / phone). No logo,
@@ -127,7 +128,7 @@ const bold = c(1); const gray = c(90); const green = c(32); const red = c(31); c
       const officeContext = observations.some((o) => o.category === 'office');
       const { note, refused, reason, winner, ranked } = await composeNoteV2(anthropic, {
         lead: t, firm: firmById.get(t.broker_firm_id) || null, audience: AUDIENCE, exemplars, recentNotes, observations,
-        officeContext, n: N, geminiKey: GEMINI_KEY || null, label, log,
+        officeContext, n: N, groqKey: GROQ_KEY || null, geminiKey: GEMINI_KEY || null, label, log,
       });
       if (refused) { console.log(yellow(`    REFUSED — ${reason}`)); results.refused += 1; continue; }
 

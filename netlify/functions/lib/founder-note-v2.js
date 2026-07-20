@@ -494,32 +494,98 @@ async function pairwiseDualOrder(judge, lens, a, b, ctx, log = () => {}) {
   return { winner: null, consistent: false }; // inconsistent OR genuine tie -> no points
 }
 
+const RANKING_SCHEMA = {
+  type: 'object',
+  properties: {
+    order: { type: 'string', description: 'the candidate labels from BEST to WORST on this lens, comma-separated, e.g. "C,A,D,B". Every label exactly once.' },
+    why: { type: 'string', description: 'one sentence on why the top one won' },
+  },
+  required: ['order', 'why'],
+};
+
+/**
+ * LISTWISE ranking with order reversal — show the judge all N at once and ask it to rank,
+ * then repeat with the list REVERSED and keep only what both passes agree on.
+ *
+ * WHY NOT PAIRWISE (changed 2026-07-20): pairwise is what the research tested, but it costs
+ * C(N,2) x 2 calls per lens — 12 calls at N=4 — and Groq's free tier caps TOKENS per minute
+ * (measured: gpt-oss-120b 8,000 TPM, llama-3.3-70b 12,000 TPM). Each pairwise call carries a
+ * lens prompt plus two full emails, ~700 tokens, so one lens alone is ~8,400 tokens and blows
+ * the cap. That is exactly why the NOTEWORTHINESS lens — our most important one — abstained
+ * with HTTP 429 on the first real 3-family run. Listwise is 2 calls and ~3,200 tokens for the
+ * same N: 6x fewer requests, ~60% fewer tokens, and the lens actually returns a verdict.
+ *
+ * WHAT WE KEEP vs WHAT WE GIVE UP (be honest about the deviation):
+ *   KEEP  — comparison. The research's core finding is COMPARATIVE beats POINTWISE scoring;
+ *           a listwise ranking is still comparative, not "grade each one 1-10 in isolation".
+ *   KEEP  — position-bias mitigation. Running the list forward AND reversed, then keeping
+ *           only the agreement, is the same instrument as pairwise dual-ordering. On the
+ *           first live test this immediately caught Qwen ranking purely by slot position.
+ *   GIVE UP — the exact tested protocol. Pairwise is what Zheng et al. and Verga et al.
+ *           measured; listwise is an adaptation forced by rate limits. If we ever pay for
+ *           inference, switch back: set `mode: 'pairwise'` on the judge.
+ * A candidate scores on RANK, not just first place, so a lens expresses a full preference
+ * order rather than a single winner-take-all vote.
+ */
+async function listwiseDualOrder(judge, lens, candidates, ctx, log = () => {}) {
+  const label = (i) => String.fromCharCode(65 + i); // A, B, C...
+  const render = (list) => list.map((c, i) => `### CANDIDATE ${label(i)}\nSubject: ${c.subject}\n\n${c.body}`).join('\n\n');
+  const ask = async (list) => {
+    const r = await callWithRetry(judge, {
+      system: `${lens.prompt(ctx)}\n\nRank ALL candidates on THIS LENS ONLY, best first. Report via report_ranking exactly once.`,
+      user: render(list),
+      schema: RANKING_SCHEMA,
+      toolName: 'report_ranking',
+    }, log);
+    if (!r?.order) return null;
+    // Map the returned labels back to candidate ids, in rank order.
+    const ids = String(r.order).split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean)
+      .map((l) => list[l.charCodeAt(0) - 65]?.id).filter(Boolean);
+    return ids.length === list.length ? ids : null; // a partial/garbled ranking is unusable
+  };
+  const fwd = await ask(candidates);
+  const rev = await ask([...candidates].reverse());
+  if (!fwd || !rev) return null;
+  // Keep only the agreement: a candidate's score is its AVERAGE rank across both passes,
+  // and we drop the lens entirely if the two orders disagree on the winner (that is the
+  // position-bias signal — the judge is ranking by slot, not by content).
+  if (fwd[0] !== rev[0]) {
+    log(`   ${lens.key} (${judge.name}): orders disagree on the winner (${fwd[0]} vs ${rev[0]}) — position bias, lens abstains`);
+    return null;
+  }
+  const rank = {};
+  for (const c of candidates) {
+    const a = fwd.indexOf(c.id); const b = rev.indexOf(c.id);
+    rank[c.id] = (a + b) / 2;
+  }
+  return rank;
+}
+
 /**
  * Run the panel over the survivors and return them ranked.
- * Cost: lenses x judges x C(N,2) x 2 calls. With 4 lenses, 1 judge, 4 survivors that is 48
- * calls — real money and real latency, so callers should cap N (see composeNoteV2).
+ * Cost: lenses x 2 calls (listwise). With 4 lenses that is 8 calls per lead, vs 48 pairwise.
  */
 export async function judgePanel(candidates, { assignments, ctx = {}, log = () => {} }) {
   if (candidates.length === 1) return [{ ...candidates[0], score: 0, wins: {}, note: 'only survivor, unjudged' }];
   const score = Object.fromEntries(candidates.map((c) => [c.id, 0]));
   const wins = Object.fromEntries(candidates.map((c) => [c.id, {}]));
-  const pairs = [];
-  for (let i = 0; i < candidates.length; i += 1) {
-    for (let j = i + 1; j < candidates.length; j += 1) pairs.push([candidates[i], candidates[j]]);
-  }
-  log(`panel: ${assignments.map((a) => `${a.lens.key}→${a.judge.name}`).join(' ')} · ${assignments.length * pairs.length * 2} calls`);
+  const n = candidates.length;
+  log(`panel: ${assignments.map((a) => `${a.lens.key}→${a.judge.name}`).join(' ')} · ${assignments.length * 2} calls (listwise)`);
   // Each lens is judged by ONE model, and lenses run concurrently. A judge that errors
   // (bad key, quota, transient) must never take the whole lead down — its lens simply
   // abstains and the rest still rank. Silent degradation is worse than a loud one, so it
   // logs; but a lost lens is strictly better than a lost lead.
   await Promise.all(assignments.map(async ({ lens, judge }) => {
     try {
-      const results = await mapLimit(pairs, judge.concurrency ?? Infinity, ([a, b]) => pairwiseDualOrder(judge, lens, a, b, ctx, log));
-      for (const r of results) {
-        if (!r.winner) continue;
-        score[r.winner] += lens.weight;
-        wins[r.winner][lens.key] = (wins[r.winner][lens.key] || 0) + 1;
+      const rank = await listwiseDualOrder(judge, lens, candidates, ctx, log);
+      if (!rank) return; // abstained (garbled ranking, or position bias caught)
+      // Convert rank -> points so a lens expresses a full preference order: best gets
+      // (n-1) x weight, worst gets 0. Averaged ranks give halves, which is intended.
+      for (const c of candidates) {
+        score[c.id] += (n - 1 - rank[c.id]) * lens.weight;
       }
+      const best = candidates.reduce((x, y) => (rank[x.id] <= rank[y.id] ? x : y));
+      wins[best.id][lens.key] = 1;
     } catch (e) {
       log(`⚠️ lens ${lens.key} (${judge.name}) failed and ABSTAINED: ${e.message.slice(0, 80)}`);
     }
@@ -603,6 +669,62 @@ export function geminiJudge(apiKey, { model = 'gemini-3.5-flash', name = 'gemini
 }
 
 /**
+ * Groq adapter — OpenAI-compatible, and the reason we have a REAL panel at zero cost.
+ * One key serves several open-weight families, none of them Anthropic (the generator's).
+ *
+ * MEASURED 2026-07-20 (blind pairwise, both orderings, on the actual defect: Evan's
+ * job-title opener vs Melanie's One Soho Square find — correct answer is Melanie):
+ *   openai/gpt-oss-120b     order-invariant, CORRECT   ~1.0s   -> USE
+ *   llama-3.3-70b-versatile order-invariant, CORRECT   ~1.0s   -> USE
+ *   qwen/qwen3.6-27b        FLIPPED (said "A" in both orders), empty reasoning -> DROP
+ * Qwen was the model Will specifically asked about and it turned out to be the worst
+ * judge of the three: pure position bias, which a single-order comparison would have
+ * reported as a confident verdict. The dual-ordering caught it on the first real test.
+ * Kimi (also asked about) is NOT in Groq's catalog at all — do not re-propose it.
+ *
+ * TWO API QUIRKS, both cost real debugging time:
+ *  1. `response_format: {type:'json_object'}` makes Groq HARD-FAIL with HTTP 400
+ *     "Failed to validate JSON" on gpt-oss and qwen (the models emit reasoning before
+ *     the object). Do NOT set it. Ask for JSON in the prompt and extract the first
+ *     {...} block instead — that works on all of them.
+ *  2. The free tier rate-limits on BURST: 12 concurrent pairwise calls returned 4 OK
+ *     and 8 x HTTP 429. Hence concurrency 2 + backoff, same as Gemini.
+ */
+export function groqJudge(apiKey, { model = 'openai/gpt-oss-120b', name = null, family = null, concurrency = 2, retries = 4 } = {}) {
+  const FAMILY_BY_MODEL = { 'openai/gpt-oss': 'openai', 'llama-': 'meta', 'qwen/': 'alibaba' };
+  const inferred = Object.entries(FAMILY_BY_MODEL).find(([p]) => model.startsWith(p) || model.includes(p))?.[1] || 'groq';
+  return {
+    name: name || model.split('/').pop().split('-')[0],
+    family: family || inferred,
+    concurrency, retries,
+    async call({ system, user, schema }) {
+      const shape = `{${Object.keys(schema.properties).map((k) => {
+        const v = schema.properties[k];
+        return `"${k}":${v.enum ? v.enum.map((e) => `"${e}"`).join('|') : '"..."'}`;
+      }).join(',')}}`;
+      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model, temperature: 0, max_tokens: 800,
+          // NO response_format — see quirk 1 above.
+          messages: [
+            { role: 'system', content: `${system}\n\nReply with ONLY this JSON object and nothing else: ${shape}` },
+            { role: 'user', content: user },
+          ],
+        }),
+      });
+      if (!r.ok) throw new Error(`groq ${model}: HTTP ${r.status} ${(await r.text()).slice(0, 80)}`);
+      const j = await r.json();
+      const txt = j.choices?.[0]?.message?.content ?? '';
+      const m = String(txt).match(/\{[\s\S]*?\}/); // first object; models prepend reasoning
+      if (!m) return null;
+      try { return JSON.parse(m[0]); } catch { return null; }
+    },
+  };
+}
+
+/**
  * Build the panel from whatever keys exist, and ASSIGN ONE LENS PER JUDGE.
  *
  * WHY one-lens-per-judge (2026-07-17): running every lens through every judge costs
@@ -614,26 +736,51 @@ export function geminiJudge(apiKey, { model = 'gemini-3.5-flash', name = 'gemini
  * observations is precisely the self-preference case.
  * Falls back to single-family (and says so loudly) when only one key exists.
  */
-export function buildPanel({ anthropic, geminiKey = null, log = () => {} }) {
+export function buildPanel({ anthropic, groqKey = null, geminiKey = null, log = () => {} }) {
   const claude = anthropicJudge(anthropic);
-  if (!geminiKey) {
-    log('⚠️ SINGLE-FAMILY PANEL — no GEMINI_API_KEY. Anthropic is judging Anthropic, which is the exact self-preference case the research warns about. Add a key to fix.');
-    return Object.values(LENSES).map((lens) => ({ lens, judge: claude }));
+
+  // PREFERRED: Groq gives two NON-Anthropic families from one free key, both verified as
+  // order-invariant and CORRECT on our actual defect (see groqJudge). That makes a genuine
+  // 3-family panel — OpenAI + Meta + Anthropic — which is what Verga et al. actually tested.
+  // Claude staying as ONE of three is fine; the research's concern is a panel made ONLY of
+  // the generator's family, and here it is outvoted 2-to-1.
+  if (groqKey) {
+    const gptoss = groqJudge(groqKey, { model: 'openai/gpt-oss-120b' });
+    const llama = groqJudge(groqKey, { model: 'llama-3.3-70b-versatile' });
+    log(`panel: 3 families (${gptoss.family}/${gptoss.name}, ${llama.family}/${llama.name}, anthropic/claude)`);
+    return [
+      // NOTEWORTHINESS scores the generator's OWN observations, so it must never run on the
+      // generator's family — that is the textbook self-preference case, and it is also our
+      // worst defect. gpt-oss got this exact comparison right in testing.
+      { lens: LENSES.noteworthy, judge: gptoss },
+      // REPLY ("would a busy person actually reply") is the other high-weight judgement;
+      // second non-Anthropic family so the two lenses that decide most of the score are
+      // both independent of the writer.
+      { lens: LENSES.reply, judge: llama },
+      // VOICE compares against Will's own exemplars. Kept on Claude deliberately: it is
+      // a nuanced style-matching call, and Claude is not scoring its own observation here,
+      // it is scoring similarity to a fixed human reference.
+      { lens: LENSES.voice, judge: claude },
+      // FRESH is the lowest-weight bet (0.5) — Claude is fine and it saves Groq quota.
+      { lens: LENSES.fresh, judge: claude },
+    ];
   }
-  const gemini = geminiJudge(geminiKey);
-  return [
-    // NOTEWORTHINESS is the one lens that MUST be cross-family: it scores the generator's
-    // own observations, which is exactly the self-preference case (a judge over-rewards
-    // text that is familiar to it). It is also our worst defect, so it gets the
-    // independent opinion. The other three stay on Claude — the Gemini free tier is
-    // ~10-15 req/min and each lens costs 2 x C(N,2) calls, so a second Gemini lens would
-    // roughly double wall-clock for the lowest-weight bet. Move `fresh` here if billing
-    // is ever enabled.
-    { lens: LENSES.noteworthy, judge: gemini },
-    { lens: LENSES.fresh, judge: claude },
-    { lens: LENSES.voice, judge: claude },
-    { lens: LENSES.reply, judge: claude },
-  ];
+
+  // FALLBACK: Gemini. Kept only because the key already exists; the free tier is 20
+  // requests/DAY (~1.5 leads), so this is a stopgap, not a design. See the memory doc.
+  if (geminiKey) {
+    const gemini = geminiJudge(geminiKey);
+    log('panel: 2 families (google/gemini + anthropic/claude) — Gemini free tier is ~20 req/day, expect abstentions.');
+    return [
+      { lens: LENSES.noteworthy, judge: gemini },
+      { lens: LENSES.fresh, judge: claude },
+      { lens: LENSES.voice, judge: claude },
+      { lens: LENSES.reply, judge: claude },
+    ];
+  }
+
+  log('⚠️ SINGLE-FAMILY PANEL — no GROQ_API_KEY or GEMINI_API_KEY. Anthropic is judging Anthropic, which is the exact self-preference case the research warns about. Add a free Groq key to fix.');
+  return Object.values(LENSES).map((lens) => ({ lens, judge: claude }));
 }
 
 // ============================================================================
@@ -650,10 +797,10 @@ export function buildPanel({ anthropic, geminiKey = null, log = () => {} }) {
 export async function composeNoteV2(anthropic, {
   lead, firm, audience, remote = false, exemplars = [], recentNotes = [],
   observations = [], trigger = null, officeContext = false,
-  n = 4, geminiKey = null, assignments = null,
+  n = 4, groqKey = null, geminiKey = null, assignments = null,
   label = lead?.email || lead?.name || 'lead', log = console.error,
 }) {
-  const panel = assignments || buildPanel({ anthropic, geminiKey, log });
+  const panel = assignments || buildPanel({ anthropic, groqKey, geminiKey, log });
   const { candidates, research_note, linkedin_step } = await generateCandidates(anthropic, {
     lead, firm, audience, remote, exemplars, recentNotes, observations, trigger, n, log,
   });

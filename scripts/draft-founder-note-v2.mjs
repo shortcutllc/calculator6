@@ -40,6 +40,7 @@ const envKey = (n) => { try { return (readFileSync(`${OPENCLAW}/.env`, 'utf8').m
 const repoEnv = (n) => { try { return (readFileSync('.env', 'utf8').match(new RegExp(`^${n}=(.+)$`, 'm'))?.[1] || '').trim().replace(/^["']|["']$/g, ''); } catch { return ''; } };
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || envKey('ANTHROPIC_API_KEY');
 const GEMINI_KEY = process.env.GEMINI_API_KEY || envKey('GEMINI_API_KEY');
+const GROQ_KEY = process.env.GROQ_API_KEY || envKey('GROQ_API_KEY');
 
 const AUDIENCE = val('--audience', 'tech-execs');
 const N = parseInt(val('--n', '4'), 10);
@@ -140,7 +141,7 @@ const bold = c(1); const gray = c(90); const green = c(32); const red = c(31); c
   const officeContext = observations.some((o) => o.category === 'office');
   const { note, ranked, rejected, refused, reason } = await composeNoteV2(anthropic, {
     lead, firm, audience: AUDIENCE, remote: REMOTE, exemplars, recentNotes,
-    observations, officeContext, n: N, geminiKey: GEMINI_KEY || null,
+    observations, officeContext, n: N, groqKey: GROQ_KEY || null, geminiKey: GEMINI_KEY || null,
     label: lead.email, log,
   });
   const secs = ((Date.now() - t0) / 1000).toFixed(0);
