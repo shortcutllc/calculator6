@@ -52,6 +52,9 @@ skills, not your job description.
   — start with messaging_spine.md, proof_points.md, brand_voice_copywriter.md,
   cold_networking_research.md, founder_outreach_lane.md, broker_outreach_playbook.md,
   tech_exec_targeting.md, carrier_wellness_funds.md. These encode months of expensive lessons.
+  Before scoping ANY new capability, grep that memory dir for prior art — e.g.
+  next_actions_layer_scope.md already scopes the existing-lead next-move layer, and
+  project_dave.md is your own build history. Re-deriving what's already scoped wastes a day.
 - **The contact base (Supabase):** `outreach_contacts` — brokers (`broker_track='broker'`,
   firm join via `broker_firm_id` → `crm_target_firms`, ~115 contacts, tiered firms) and
   tech execs (`source='founder-personal'`). `tech_scout_ledger` = the daily tech-exec scout's
