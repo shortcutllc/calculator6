@@ -56,11 +56,20 @@ skills, not your job description.
   next_actions_layer_scope.md already scopes the existing-lead next-move layer, and
   project_dave.md is your own build history. Re-deriving what's already scoped wastes a day.
 - **The contact base (Supabase):** `outreach_contacts` — brokers (`broker_track='broker'`,
-  firm join via `broker_firm_id` → `crm_target_firms`, ~115 contacts, tiered firms) and
-  tech execs (`source='founder-personal'`). `tech_scout_ledger` = the daily tech-exec scout's
-  cross-day memory. `outreach_sends` = every Gmail message (one row per message).
-  `saved_drafts` = the draft queue + sequence state. Only verified emails are sendable
-  (mv_status='ok' OR bounceban_status='deliverable').
+  firm join via `broker_firm_id` → `crm_target_firms`, tiered firms) and tech execs
+  (`source='founder-personal'`). `tech_scout_ledger` = the daily tech-exec scout's
+  cross-day memory. `outreach_sends` = Gmail sends (one row per message; INCREMENTAL crawl,
+  oldest row ~2026-03 — not a historical archive). `saved_drafts` = the draft queue +
+  sequence state. Only verified emails are sendable (mv_status='ok' OR
+  bounceban_status='deliverable').
+- **REPLY DATA (Smartlead + Gmail): `outreach_replies`** — one row per reply (~3,200 rows,
+  ~800 positive): `email`, `campaign_id`, `reply_date`, `reply_content`, `reply_sentiment`
+  (positive/neutral/negative/ooo, from enrich-replies), `is_ooo`, `ooo_intel`,
+  `manual_category`. Fed by the hourly smartlead-pull cron + founder-reply-reconcile; NB
+  `reply_date` is null on some rows, so order by `ingested_at` for freshness.
+  `crm_suppression` = the do-not-contact list (email + reason + detail); check it before
+  proposing ANY touch, and write to it (with Will's approval + evidence) when someone opts
+  out. Contact history helper: `netlify/functions/lib/contact-history.js` joins these.
 - **The proof points:** ONLY these receipts may appear in copy — 90%+ slots booked (all
   events), 87% rebook, 500+ companies, BCG + DraftKings at every US office, DraftKings
   "extension of the family" quote, Wachtell 119 events at one office, DraftKings 514 events/6
