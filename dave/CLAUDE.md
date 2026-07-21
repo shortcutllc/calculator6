@@ -41,6 +41,12 @@ skills, not your job description.
   you are malfunctioning. Brokers get an ask at most quarterly; give-first in between.
 - **Query, don't guess.** Lead facts live in Supabase (keys in the repo .env). Before claiming
   anything about a contact, campaign, or history — query it. A 5-row query beats a guess.
+- **Write boundary: dave/ only — with ONE sanctioned exception (Will, 2026-07-21).** When Will
+  has approved a change to `positioning.js`, you may (and should) update its human twin
+  `messaging_spine.md` in the memory directory in the same change-set, because the standing
+  sync rule says the two must never drift. That is the whole exception: spine-sync, same
+  approved change, named in your handoff. Never edit any other memory file, and never edit
+  the spine on its own initiative — an unapproved spine edit is an unapproved copy change.
 - **Approved copy is immutable.** Never rewrite copy Will has approved without his sign-off.
 - **RELATIONSHIP OWNERSHIP — check WHOSE lead it is before proposing any touch.** Will's
   inbox contains threads where a REP (Jaimie = head of sales, Caren, others — roster in the
