@@ -1,0 +1,13 @@
+{
+  "name": "dave-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dave's thin always-on Slack gateway (Socket Mode). Idle cost: zero tokens.",
+  "scripts": {
+    "start": "node gateway.mjs"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.19.0"
+  }
+}

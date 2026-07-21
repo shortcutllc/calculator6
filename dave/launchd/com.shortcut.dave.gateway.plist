@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.shortcut.dave.gateway</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-c</string>
+    <string>export NVM_DIR="$HOME/.nvm"; source "$NVM_DIR/nvm.sh"; set -a; source "$HOME/.shortcut-cron.env" 2>/dev/null; source /Users/willnewton/Documents/GitHub/calculator6/dave/.env 2>/dev/null; set +a; cd /Users/willnewton/Documents/GitHub/calculator6/dave/gateway &amp;&amp; node gateway.mjs</string>
+  </array>
+  <key>KeepAlive</key><true/>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/willnewton/Documents/GitHub/calculator6/dave/state/logs/gateway.out</string>
+  <key>StandardErrorPath</key><string>/Users/willnewton/Documents/GitHub/calculator6/dave/state/logs/gateway.err</string>
+</dict>
+</plist>
