@@ -12,9 +12,12 @@ const FILE = path.join(STATE_DIR, 'budget.json');
 
 // Caps per calendar day (local time). Conversations Will initiates always get priority;
 // scheduled jobs are refused first when the cap nears.
+// RAISED 2026-07-21 (Will's call, with receipts): a full build week + Dave's heaviest
+// session used 16% of the weekly Max pool, so the caps were rationing nothing. They stay
+// because their real job is catching a runaway loop, not metering normal work.
 export const CAPS = {
-  frontier_calls: 25,   // opus-class invocations/day (jobs + chat)
-  job_calls: 12,        // scheduled-job invocations/day (subset of the above)
+  frontier_calls: 50,   // opus-class invocations/day (jobs + chat)
+  job_calls: 25,        // scheduled-job invocations/day (subset of the above)
 };
 
 function load() {

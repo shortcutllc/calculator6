@@ -48,8 +48,10 @@ dave/
 
 - The gateway idles at **zero tokens**; Claude only wakes on your message or a due job.
 - Watermarks + day guards skip jobs that aren't due — extra launchd fires cost $0.
-- Hard daily caps in `gateway/budget.mjs` (25 frontier calls, 12 job calls); past the cap
-  Dave refuses and tells you. "status" DM shows today's spend anytime.
+- Hard daily caps in `gateway/budget.mjs` (50 frontier calls, 25 job calls — raised
+  2026-07-21 after a full build week used only 16% of the weekly Max pool); past the cap
+  Dave refuses and tells you. "status" DM shows today's spend anytime. The caps' real job
+  is catching a runaway loop, not metering normal work.
 - Designed to fit ~$6-7/day at API rates even though Max makes it ~free today (Anthropic has
   signaled the agent-workload subsidy may end — Dave survives either way).
 

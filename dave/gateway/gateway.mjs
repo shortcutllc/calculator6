@@ -17,7 +17,7 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { canSpend, record, recordRefusal, status } from './budget.mjs';
+import { CAPS, canSpend, record, recordRefusal, status } from './budget.mjs';
 
 const { App } = pkg;
 const DAVE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -102,7 +102,7 @@ app.event('message', async ({ event, client }) => {
     // Built-in, zero-token commands.
     if (/^(dave )?status$/i.test(text)) {
       const s = status();
-      await client.chat.postMessage({ channel: event.channel, thread_ts: event.thread_ts || event.ts, text: `Today: ${s.frontier_calls} calls (${s.job_calls} jobs), ~$${s.cost_usd.toFixed(2)} at API rates, ${s.refused} refused. Caps: 25 calls / 12 jobs.` });
+      await client.chat.postMessage({ channel: event.channel, thread_ts: event.thread_ts || event.ts, text: `Today: ${s.frontier_calls} calls (${s.job_calls} jobs), ~$${s.cost_usd.toFixed(2)} at API rates, ${s.refused} refused. Caps: ${CAPS.frontier_calls} calls / ${CAPS.job_calls} jobs.` });
       return;
     }
 
