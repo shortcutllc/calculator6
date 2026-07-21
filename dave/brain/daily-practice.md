@@ -100,7 +100,18 @@ Will act on. Captured as accepted / accepted-with-edits / skipped-and-why. The s
 are the training data — they are the error analysis. Ladder underneath it: moves made →
 replies → conversations → the Goal 1 meetings.
 
-## Open questions for Will
+## Answers from Will (2026-07-20)
+
+1. **LinkedIn:** (c) daily + (a) in batches, as recommended. Will checks connection degree by
+   hand on the day's shortlist; Sales Nav exports when volume is needed. **No automation that
+   touches LinkedIn.** Open want: Will asked Dave to research how sophisticated operators use
+   *ethical* automation around Sales Navigator — a research task, not a build, and the answer
+   must respect the ToS line.
+2. **Time budget: 60 minutes a day.** Size the daily worklist to fit sixty minutes of Will's
+   attention, not to fill a quota. Five people with real moves beats fifteen thin ones.
+3. **Mailbox mine goes FIRST.** Confirmed.
+
+## Open questions (original)
 
 1. **LinkedIn access.** Three options: (a) Will runs Sales Nav searches and pastes/exports the
    results, Dave does everything downstream — zero account risk, recommended; (b) a browser
@@ -118,13 +129,34 @@ replies → conversations → the Goal 1 meetings.
 1. Mailbox dormant-tie mine (one-time sweep → a ranked list of people Will already knows).
    **START WITH `outreach_sends`, not raw Gmail** — the sent-mail crawl already holds one row
    per Gmail message Will ever sent (who, when, thread). Query that for the candidate list in
-   seconds; touch the 306k raw threads only for the shortlist's content. Mining rules from the
+   seconds; touch the 306k raw threads only for the shortlist's content.
+
+   > **VERIFIED 2026-07-20 (Dave) — outreach_sends CANNOT be the candidate source for this
+   > job.** `gmail-sent-crawl` is an INCREMENTAL crawl with a watermark (`listSentSince`), and
+   > its oldest row is **2026-03-03**. Filtered to will@ it holds 437 rows / 160 people, every
+   > one active within the last year → a 3y+ dormant query against it returns exactly ZERO.
+   > Dormant ties are 3+ years old BY DEFINITION, so they are not in the table at all.
+   > **The correct split:** `outreach_sends` is the **exclusion list** (who is already active —
+   > answer it in seconds, exactly as the annotation intends), and Gmail's sent folder is the
+   > only possible **candidate source**. Probe: Q1-2022 alone = 366 sent messages; a 120-message
+   > sample yielded 99 distinct recipients, 97 external, on domains like White & Case, Liberty
+   > Mutual, Alvarez & Marsal, Kearney, OC&C, Altman Solon, Compass Lexecon, Kyndryl — heavily
+   > ICP. Use `format=metadata&metadataHeaders=To&metadataHeaders=Date` (cheap, no bodies),
+   > chunk by quarter (~22 quarters 2018-2023, ~6 min each, fits the 15-min job ceiling).
+
+   Mining rules from the
    research (cold_networking_research.md): pick by VALUE (status, relevance) not comfort —
    people instinctively pick who they like, which is the wrong list; ~3+ years silent is the
    sweet spot; the play is weaker for brokers (relationship-dense industry) than tech. And
    respect the runtime: scheduled jobs have a 15-min timeout + daily budget caps, so the mine
    is a CHUNKED multi-day job, never one heroic run.
-2. Existing-lead next-move layer (the thing that's entirely missing today).
+2. Existing-lead next-move layer. **CORRECTION (Dave 2026-07-20): this is NOT missing — the
+   earlier claim above that it is was wrong.** `netlify/functions/lib/next-actions.js` (394
+   lines: `rulesActions` + `nextActions`, gated verbs, graduation-aware) and
+   `lib/lead-picture.js` (409 lines) are SHIPPED and live. P1 is done. What is missing is only
+   the WIRING: it serves Pro Slack + the CRM card, not Will's personal founder lane or Dave's
+   daily brief. This is an inherit-and-wire job, and P2 (the daily digest) is the exact phase
+   Dave's morning brief should BE, not a parallel build.
    **A prior scope for exactly this already exists — READ IT FIRST, inherit don't rebuild:**
    `next_actions_layer_scope.md` in the memory dir (the "agentify the RECOMMEND layer, not
    the SEND layer" plan: turn the lead-picture into ranked, human-approved next-best-actions).
