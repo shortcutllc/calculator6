@@ -33,7 +33,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { leadPicture } from './lib/lead-picture.js';
 import { buildDraftPreviewBlocks } from './lib/slack-blocks.js';
-import { getAccessToken, createDraft, lc } from './lib/gmail.js';
+import { getAccessToken, createDraft, lc, FOUNDER_MIN_SIG_HTML } from './lib/gmail.js';
 import { recentSentBodies, composeNote, researchPersonalHook } from './lib/founder-note.js';
 import { researchObservations, composeNoteV2 } from './lib/founder-note-v2.js';
 import { voiceExemplars } from './lib/voice-corpus.js';
@@ -52,14 +52,7 @@ const GROQ_KEY = process.env.GROQ_API_KEY || null;
 // Gmail's API only exposes the DEFAULT sendAs signature, which for will@ is the
 // heavy one (Founder & CEO + Book-a-call link + logo image) — exactly what the
 // founder-lane first-touch rules ban. So the minimal signature lives here.
-const FOUNDER_MIN_SIG_HTML = [
-  '<div dir="ltr" style="font-family:Outfit,sans-serif;font-size:11pt;color:rgb(0,0,0)">',
-  'Will Newton<br>',
-  'Founder, <b>Shortcut</b><br>',
-  '<a href="https://www.getshortcut.co" target="_blank">getshortcut.co</a><br>',
-  '(215) 218-8088',
-  '</div>',
-].join('');
+// FOUNDER_MIN_SIG_HTML now imported from ./lib/gmail.js — the single source of truth.
 
 // A broker CONTACT must be a plausible benefits decision-maker (producer, consultant,
 // advisor, AE, principal, partner, benefits/wellbeing leader). The Apollo firm-pull

@@ -88,6 +88,25 @@ const escapeHtml = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /**
+ * Will's minimal founder signature — the SINGLE source of truth, mirroring his saved
+ * Gmail signature named "founder-min" (Will Newton / Founder, Shortcut / getshortcut.co /
+ * (215) 218-8088 — number confirmed by Will 2026-07-21).
+ * WHY hardcoded: the Gmail API exposes only the DEFAULT sendAs signature (the heavy
+ * Book-a-call one); named secondary signatures like founder-min are not fetchable. Before
+ * 2026-07-21 this block was copy-pasted in three files and one copy grew an invented phone
+ * number — every surface must import THIS constant, never re-declare it. If Will edits
+ * founder-min in Gmail, update it here.
+ */
+export const FOUNDER_MIN_SIG_HTML = [
+  '<div dir="ltr" style="font-family:Outfit,sans-serif;font-size:11pt;color:rgb(0,0,0)">',
+  'Will Newton<br>',
+  'Founder, <b>Shortcut</b><br>',
+  '<a href="https://www.getshortcut.co" target="_blank">getshortcut.co</a><br>',
+  '(215) 218-8088',
+  '</div>',
+].join('');
+
+/**
  * The rep's Gmail signature for `fromEmail`. The Gmail API send endpoint does
  * NOT auto-append the web client's signature, so we fetch and add it. Returns
  * HTML string or null. Degrades silently (e.g. if the token lacks settings

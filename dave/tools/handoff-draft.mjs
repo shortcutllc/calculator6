@@ -36,18 +36,13 @@ for (const f of [path.join(DAVE_DIR, '.env'), path.join(process.env.HOME || '', 
 }
 
 const { createClient } = await import(path.join(REPO, 'node_modules', '@supabase/supabase-js', 'dist', 'main', 'index.js')).catch(() => import('@supabase/supabase-js'));
-const { getAccessToken, createDraft, lc } = await import(path.join(REPO, 'netlify', 'functions', 'lib', 'gmail.js'));
+// FOUNDER_MIN_SIG_HTML: the single source of truth in lib/gmail.js. The first version of
+// this file re-declared it locally WITH AN INVENTED PHONE NUMBER (2026-07-21) — the exact
+// fabricated-specific failure this whole system polices. Never re-declare the signature.
+const { getAccessToken, createDraft, lc, FOUNDER_MIN_SIG_HTML } = await import(path.join(REPO, 'netlify', 'functions', 'lib', 'gmail.js'));
 const { buildDraftPreviewBlocks } = await import(path.join(REPO, 'netlify', 'functions', 'lib', 'slack-blocks.js'));
 
 const WILL = 'will@getshortcut.co';
-// Founder-min signature — same block founder-queue-background.js embeds (kept minimal
-// deliberately: no logo, no booking link on first touch).
-const FOUNDER_MIN_SIG_HTML = [
-  '<div dir="ltr" data-smartmail="gmail_signature">Will Newton<br>',
-  'Founder, Shortcut<br>',
-  '<a href="https://getshortcut.co" target="_blank">getshortcut.co</a><br>',
-  '917-540-7724</div>',
-].join('');
 
 const fail = (why, extra = {}) => { console.log(JSON.stringify({ ok: false, why, ...extra })); process.exit(1); };
 

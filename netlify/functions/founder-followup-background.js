@@ -28,7 +28,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
-import { getAccessToken, sendEmail, getThread, getMessageHeaders, bodyFromPayload, lc } from './lib/gmail.js';
+import { getAccessToken, sendEmail, getThread, getMessageHeaders, bodyFromPayload, lc, FOUNDER_MIN_SIG_HTML } from './lib/gmail.js';
 import { composeFollowup, FOLLOWUP_CADENCE } from './lib/founder-note.js';
 import { classify, cleanReply } from './lib/sentiment.js';
 
@@ -37,14 +37,7 @@ const WILL = 'will@getshortcut.co';
 const DEFAULT_MAX = 15;   // per-run cap on auto-sends (founder-lane daily ceiling)
 const BOOK_A_CALL_URL = process.env.FOUNDER_BOOK_A_CALL_URL || null; // E3 link; off by default
 
-const FOUNDER_MIN_SIG_HTML = [
-  '<div dir="ltr" style="font-family:Outfit,sans-serif;font-size:11pt;color:rgb(0,0,0)">',
-  'Will Newton<br>',
-  'Founder, <b>Shortcut</b><br>',
-  '<a href="https://www.getshortcut.co" target="_blank">getshortcut.co</a><br>',
-  '(215) 218-8088',
-  '</div>',
-].join('');
+// FOUNDER_MIN_SIG_HTML now imported from ./lib/gmail.js — the single source of truth.
 
 async function slackPost(method, body) {
   const r = await fetch(`${SLACK_API}/${method}`, {
