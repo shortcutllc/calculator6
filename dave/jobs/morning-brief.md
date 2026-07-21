@@ -56,6 +56,17 @@ Each entry, roughly 70 words, same shape every day so his eye learns it:
   to fix it, it was not ready.
 - **Reply odds**, honest and short. "Low, but worth it because X" is a legitimate answer.
 
+**HAND OFF every ready draft so Will can send it in one tap.** For each entry whose move is a
+written touch, call:
+`node tools/handoff-draft.mjs '<json>'` with
+`{to, name, title, company, subject, body, why_now, reply_odds, research_note, linkedin_step}`.
+That stages the Gmail draft and posts a card with Send / Edit / Cancel buttons to Will's Pro
+DM through the existing send path (suppression is re-checked fail-closed; auto-follow-ups are
+disabled on these rows — a warm note must never enter the cold cadence). The BRIEF DM then
+lists each person as ONE line (who · why now · odds) and says the cards are below. Do NOT
+paste full draft bodies into the brief — the card carries the draft. If handoff fails for
+someone (e.g. suppressed), say so in the brief and drop the entry; never work around it.
+
 Then, and only after the five:
 
 - **Skips: a number and one line.** "Looked at 40, skipped 35, mostly rep-owned or already
