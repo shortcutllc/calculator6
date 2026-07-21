@@ -50,7 +50,15 @@ const budget = await import(path.join(DAVE_DIR, 'gateway', 'budget.mjs'));
 if (!budget.canSpend('job').ok) { log('budget-refusals.log', `${new Date().toISOString()} ${job} refused: budget`); process.exit(0); }
 
 // --- 4. Run the job (ephemeral session, fresh context) ---
-const r = spawnSync('claude', [
+// launchd PATH lacks /opt/homebrew/bin (where claude lives) — same fix as the gateway.
+if (!(process.env.PATH || '').includes('/opt/homebrew/bin')) {
+  process.env.PATH = `/opt/homebrew/bin:${process.env.PATH || '/usr/bin:/bin'}`;
+}
+const CLAUDE_BIN = process.env.DAVE_CLAUDE_BIN
+  || (fs.existsSync('/opt/homebrew/bin/claude') ? '/opt/homebrew/bin/claude' : 'claude');
+// Max-plan login only — a stale launchctl-env API key 401'd the gateway (2026-07-20).
+for (const k of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN']) delete process.env[k];
+const r = spawnSync(CLAUDE_BIN, [
   '-p', fs.readFileSync(promptFile, 'utf8'),
   '--output-format', 'json',
   '--model', process.env.DAVE_MODEL || 'claude-opus-4-8',

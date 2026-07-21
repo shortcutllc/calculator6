@@ -37,6 +37,22 @@ const SESSIONS_FILE = path.join(STATE_DIR, 'sessions.json');
 const MODEL = process.env.DAVE_MODEL || 'claude-opus-4-8';
 const ALLOWED_USER = process.env.DAVE_ALLOWED_USER; // Will's Slack user id (U...)
 
+// launchd's default PATH is /usr/bin:/bin:/usr/sbin:/sbin — no /opt/homebrew/bin, which is
+// where the claude CLI lives (spawn ENOENT crashed the gateway on the first live message,
+// 2026-07-20). Extend PATH for children (claude's own subshells want homebrew too) and
+// resolve the binary to an absolute path.
+if (!(process.env.PATH || '').includes('/opt/homebrew/bin')) {
+  process.env.PATH = `/opt/homebrew/bin:${process.env.PATH || '/usr/bin:/bin'}`;
+}
+const CLAUDE_BIN = process.env.DAVE_CLAUDE_BIN
+  || (fs.existsSync('/opt/homebrew/bin/claude') ? '/opt/homebrew/bin/claude' : 'claude');
+
+// Dave authenticates via Will's Max-plan login, NEVER an API key. A stale key lurking in
+// launchd's global env (`launchctl setenv ANTHROPIC_API_KEY ...`) 401'd the first live
+// reply (2026-07-20) because the CLI prefers env keys over the stored login. Strip every
+// key-auth path so the Max login always wins, whatever the parent env carries.
+for (const k of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN']) delete process.env[k];
+
 // Tools Dave gets in chat sessions. Read/search freely, write only inside dave/, run the
 // repo's read-only scripts via Bash. No git push, no deploys, no Gmail — those are Will's.
 const ALLOWED_TOOLS = 'Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash';
@@ -49,9 +65,12 @@ function runClaude(prompt, resumeId) {
   return new Promise((resolve, reject) => {
     const args = ['-p', prompt, '--output-format', 'json', '--model', MODEL, '--allowedTools', ALLOWED_TOOLS, '--max-turns', '25'];
     if (resumeId) args.push('--resume', resumeId);
-    const child = spawn('claude', args, { cwd: DAVE_DIR, env: process.env });
+    const child = spawn(CLAUDE_BIN, args, { cwd: DAVE_DIR, env: process.env });
     let out = '', err = '';
     const killer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('claude timeout (10m)')); }, 10 * 60 * 1000);
+    // An unhandled 'error' event on a child process crashes node — this exact miss killed
+    // the gateway on its first live message (spawn ENOENT). Always reject instead.
+    child.on('error', (e) => { clearTimeout(killer); reject(new Error(`claude spawn failed: ${e.message}`)); });
     child.stdout.on('data', (d) => { out += d; });
     child.stderr.on('data', (d) => { err += d; });
     child.on('close', (code) => {
