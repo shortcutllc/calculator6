@@ -62,7 +62,9 @@ const r = spawnSync(CLAUDE_BIN, [
   '-p', fs.readFileSync(promptFile, 'utf8'),
   '--output-format', 'json',
   '--model', process.env.DAVE_MODEL || 'claude-opus-4-8',
-  '--allowedTools', 'Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash',
+  // Task = subagent fan-out (granted 2026-07-21): parallel research sweeps, each angle its
+  // own agent. Subagent cost rolls up into total_cost_usd, so the budget still sees it.
+  '--allowedTools', 'Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash,Task',
   '--max-turns', '40',
 ], { cwd: DAVE_DIR, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 15 * 60 * 1000 });
 const out = r.stdout || '';

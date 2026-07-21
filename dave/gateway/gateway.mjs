@@ -55,7 +55,8 @@ for (const k of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN']) delete process.en
 
 // Tools Dave gets in chat sessions. Read/search freely, write only inside dave/, run the
 // repo's read-only scripts via Bash. No git push, no deploys, no Gmail — those are Will's.
-const ALLOWED_TOOLS = 'Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash';
+// Task = subagent fan-out (granted 2026-07-21) so Dave can parallelize research sweeps.
+const ALLOWED_TOOLS = 'Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash,Task';
 
 function loadSessions() { try { return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch { return {}; } }
 function saveSessions(s) { fs.mkdirSync(STATE_DIR, { recursive: true }); fs.writeFileSync(SESSIONS_FILE, JSON.stringify(s, null, 2)); }
@@ -96,7 +97,29 @@ app.event('message', async ({ event, client }) => {
     if (event.bot_id || event.subtype) return;                 // ignore bots/edits
     if (ALLOWED_USER && event.user !== ALLOWED_USER) return;   // Will only
     if (event.channel_type !== 'im') return;                   // DMs only in Phase 1
-    const text = (event.text || '').trim();
+    let text = (event.text || '').trim();
+
+    // ATTACHMENTS (2026-07-21): download image files Will attaches and hand Dave the local
+    // paths — his Read tool renders images natively. Needs the files:read bot scope.
+    // Saved under state/inbox/ (gitignored). Non-image files are named but not fetched.
+    const attached = [];
+    for (const f of event.files || []) {
+      try {
+        if (!/^image\//.test(f.mimetype || '')) { attached.push(`(non-image attachment "${f.name}" — not downloaded)`); continue; }
+        const r = await fetch(f.url_private_download, { headers: { Authorization: `Bearer ${process.env.DAVE_SLACK_BOT_TOKEN}` } });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const buf = Buffer.from(await r.arrayBuffer());
+        // Slack returns an HTML login page instead of bytes when the files:read scope is
+        // missing — never save that as an "image".
+        if (buf.slice(0, 15).toString().toLowerCase().includes('<!doctype')) throw new Error('got HTML — files:read scope missing?');
+        const dir = path.join(STATE_DIR, 'inbox');
+        fs.mkdirSync(dir, { recursive: true });
+        const dest = path.join(dir, `${event.ts.replace('.', '-')}-${(f.name || f.id).replace(/[^\w.-]/g, '_')}`);
+        fs.writeFileSync(dest, buf);
+        attached.push(dest);
+      } catch (e) { attached.push(`(attachment "${f.name || f.id}" failed to download: ${e.message})`); }
+    }
+    if (attached.length) text += `\n\n[Will attached ${attached.length} file(s). Image paths — use Read to view them:\n${attached.join('\n')}]`;
     if (!text) return;
 
     // Built-in, zero-token commands.
