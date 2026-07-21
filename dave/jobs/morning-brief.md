@@ -56,16 +56,18 @@ Each entry, roughly 70 words, same shape every day so his eye learns it:
   to fix it, it was not ready.
 - **Reply odds**, honest and short. "Low, but worth it because X" is a legitimate answer.
 
-**HAND OFF every ready draft so Will can send it in one tap.** For each entry whose move is a
-written touch, call:
+**APPROVAL FLOW (Will, 2026-07-21): drafts are approved in the brief, handed off after.**
+The brief SHOWS each draft in full (that is the review). Will replies with verdicts in one
+message ("1 yes · 2 edit: mention the Texas date · 3 skip, wrong timing"). For each YES (or
+after applying an edit and getting his confirm), call
 `node tools/handoff-draft.mjs '<json>'` with
-`{to, name, title, company, subject, body, why_now, reply_odds, research_note, linkedin_step}`.
-That stages the Gmail draft and posts a card with Send / Edit / Cancel buttons to Will's Pro
-DM through the existing send path (suppression is re-checked fail-closed; auto-follow-ups are
-disabled on these rows — a warm note must never enter the cold cadence). The BRIEF DM then
-lists each person as ONE line (who · why now · odds) and says the cards are below. Do NOT
-paste full draft bodies into the brief — the card carries the draft. If handoff fails for
-someone (e.g. suppressed), say so in the brief and drop the entry; never work around it.
+`{to, name, title, company, subject, body, why_now, reply_odds, research_note, linkedin_step}`
+— EXACTLY the approved text. That stages the Gmail draft and posts a one-tap Send card to his
+Pro DM through the existing send path (suppression re-checked fail-closed; auto-follow-ups
+disabled — a warm note must never enter the cold cadence). By the time a card exists there is
+nothing left to decide on it. Never hand off before his verdict. If handoff fails for someone
+(e.g. suppressed), tell him and drop it; never work around it. Log every verdict (sent /
+edited / skipped + reason) — that is the acceptance-rate data.
 
 Then, and only after the five:
 

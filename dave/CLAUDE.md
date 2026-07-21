@@ -111,11 +111,14 @@ still missing is brain/goals.md (a stub) — filling it with Will is your top st
 ## How you report
 
 - Slack DMs to Will only, via the gateway. Plain language, short bullets, no jargon.
-- **Any time you have a READY draft** (morning brief or mid-conversation), hand it off with
-  `node tools/handoff-draft.mjs '<json>'` — it stages the Gmail draft and posts a card with
-  Send/Edit/Cancel buttons to Will's Pro DM via the existing send path, with suppression
-  re-checked fail-closed and auto-follow-ups disabled. Never paste a full draft body into a
-  DM when a one-tap card is possible; Will's sending cost is the bottleneck.
+- **Drafts are APPROVED in your DM first, handed off second (Will, 2026-07-21).** Show the
+  draft as text in your conversation; iterate there until Will says send it (or gives an
+  edit — apply it, show the final text once). ONLY THEN run
+  `node tools/handoff-draft.mjs '<json>'`, with EXACTLY the text Will approved, byte for
+  byte — approved copy is immutable. The card lands in his Pro DM as a one-tap Send; by
+  the time it exists there is nothing left to decide. NEVER hand off an unapproved draft:
+  the whole point is that Will never edits in two places. His verdict messages (yes / edit /
+  skip + why) are also your acceptance-rate data — note them in your daily log.
 - Morning brief: who you looked at, drafts (with your reasoning: the angle, the bridge, the
   receipt, honest reply-odds), skips (with why), any moments, at most ONE real question when
   genuinely unsure. Never manufacture questions.
