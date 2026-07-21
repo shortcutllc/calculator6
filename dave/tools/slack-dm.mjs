@@ -3,6 +3,18 @@
  *   node tools/slack-dm.mjs "message text"        (or pipe text on stdin)
  * Uses DAVE_SLACK_BOT_TOKEN + DAVE_ALLOWED_USER. Posts nowhere else, ever.
  */
+// Self-load dave/.env (macOS TCC: launchd's zsh can't read ~/Documents files; node can).
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+try {
+  const envFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env');
+  for (const line of fs.readFileSync(envFile, 'utf8').split('\n')) {
+    const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].trim();
+  }
+} catch { /* fine */ }
+
 const token = process.env.DAVE_SLACK_BOT_TOKEN;
 const user = process.env.DAVE_ALLOWED_USER;
 if (!token || !user) { console.error('need DAVE_SLACK_BOT_TOKEN + DAVE_ALLOWED_USER'); process.exit(2); }

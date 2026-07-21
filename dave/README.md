@@ -11,7 +11,7 @@ dave/
 ├── CLAUDE.md            Dave's identity, objectives, hard rules (auto-loads every session)
 ├── brain/               goals.md · playbook.md · lessons.md · influence-map.md
 ├── gateway/             always-on Slack listener (Socket Mode) + budget guard
-├── jobs/                run-job.sh + one .md prompt per scheduled job
+├── jobs/                run-job.mjs + one .md prompt per scheduled job
 ├── tools/               slack-dm.mjs — Dave's ONLY outbound channel (DM to Will)
 ├── launchd/             plists for the gateway + jobs
 └── state/               sessions, budget, watermarks, logs (gitignored)
@@ -57,6 +57,10 @@ dave/
 
 - launchd (not cron): jobs missed while the Mac sleeps fire on wake; every job is
   catch-up-safe ("everything due since last run").
+- **macOS TCC gotcha (verified 2026-07-20):** launchd's zsh gets "operation not permitted"
+  reading ANY file under ~/Documents — while node reads them fine. So plists never
+  `source`/`cat` repo files; gateway.mjs, run-job.mjs and tools/slack-dm.mjs each load
+  dave/.env themselves, and jobs run via `node run-job.mjs`, never a shell script.
 - Gateway auto-restarts on crash (`KeepAlive`).
 - Dead-man's switch: successful jobs ping healthchecks.io; if pings stop, IT alerts you.
 - Nightly one-line status DM — silence is a bug, never calm.

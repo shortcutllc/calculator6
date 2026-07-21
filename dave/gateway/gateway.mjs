@@ -21,6 +21,17 @@ import { canSpend, record, recordRefusal, status } from './budget.mjs';
 
 const { App } = pkg;
 const DAVE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// macOS TCC (verified 2026-07-20): launchd's zsh gets "operation not permitted" reading
+// files under ~/Documents, so the plist CANNOT `source` dave/.env — but node CAN read
+// Documents. So the env file is loaded HERE, before anything touches process.env.
+try {
+  for (const line of fs.readFileSync(path.join(DAVE_DIR, '.env'), 'utf8').split('\n')) {
+    const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].trim();
+  }
+} catch { /* no .env — env must come from the caller */ }
+
 const STATE_DIR = path.join(DAVE_DIR, 'state');
 const SESSIONS_FILE = path.join(STATE_DIR, 'sessions.json');
 const MODEL = process.env.DAVE_MODEL || 'claude-opus-4-8';

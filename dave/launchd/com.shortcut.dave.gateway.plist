@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- NOTE (macOS TCC, verified 2026-07-20): launchd's zsh CANNOT read files under
+     ~/Documents ("operation not permitted"), so this plist must never `source` or `cat`
+     anything in the repo. gateway.mjs loads dave/.env itself (node CAN read Documents).
+     Only $HOME-level files (nvm, ~/.shortcut-cron.env) may be sourced here. -->
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.shortcut.dave.gateway</string>
@@ -7,7 +11,7 @@
   <array>
     <string>/bin/zsh</string>
     <string>-c</string>
-    <string>export NVM_DIR="$HOME/.nvm"; source "$NVM_DIR/nvm.sh"; set -a; source "$HOME/.shortcut-cron.env" 2>/dev/null; source /Users/willnewton/Documents/GitHub/calculator6/dave/.env 2>/dev/null; set +a; cd /Users/willnewton/Documents/GitHub/calculator6/dave/gateway &amp;&amp; node gateway.mjs</string>
+    <string>export NVM_DIR="$HOME/.nvm"; source "$NVM_DIR/nvm.sh"; set -a; source "$HOME/.shortcut-cron.env" 2>/dev/null; set +a; cd /Users/willnewton/Documents/GitHub/calculator6/dave/gateway &amp;&amp; node gateway.mjs</string>
   </array>
   <key>KeepAlive</key><true/>
   <key>RunAtLoad</key><true/>

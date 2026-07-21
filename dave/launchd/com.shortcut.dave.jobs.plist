@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Dave's scheduled jobs. launchd (not cron): StartCalendarInterval jobs missed during
+     sleep FIRE ON WAKE, so a sleeping Mac delays work instead of losing it. Each fire
+     runs every job; run-job.mjs's day guards + watermarks make extra fires cost $0.
+     macOS TCC (verified 2026-07-20): launchd's zsh cannot READ files under ~/Documents,
+     so jobs run via `node run-job.mjs` (node can) — never via a shell script in the repo. -->
 <plist version="1.0">
-<!-- Dave's scheduled jobs. launchd (not cron) because StartCalendarInterval jobs missed
-     during sleep FIRE ON WAKE — a sleeping Mac delays Dave's work instead of losing it.
-     Each fire runs every job; run-job.sh's watermarks + prechecks make extra fires free,
-     so overlapping schedules cost $0. -->
 <dict>
   <key>Label</key><string>com.shortcut.dave.jobs</string>
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
     <string>-c</string>
-    <string>D=/Users/willnewton/Documents/GitHub/calculator6/dave/jobs; "$D/run-job.sh" monday-strategy; "$D/run-job.sh" morning-brief; "$D/run-job.sh" influence-scan; "$D/run-job.sh" nightly-status</string>
+    <string>export NVM_DIR="$HOME/.nvm"; source "$NVM_DIR/nvm.sh"; set -a; source "$HOME/.shortcut-cron.env" 2>/dev/null; set +a; J=/Users/willnewton/Documents/GitHub/calculator6/dave/jobs/run-job.mjs; node "$J" monday-strategy; node "$J" morning-brief; node "$J" influence-scan; node "$J" nightly-status</string>
   </array>
   <key>StartCalendarInterval</key>
   <array>
