@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Users, DollarSign, MapPin, Calendar, Scissors, Heart, Hand, Flower2, AlertTriangle, Mail, Smartphone, Package } from 'lucide-react';
+import { SpendByMonthTable } from './DraftKingsSpendReport';
 
 /* ─────────────────────────────────────────────
    DraftKings — Perks Program Report
@@ -445,6 +446,7 @@ export default function DraftKingsReport() {
 
   const tocItems = [
     { id: 'headline', label: 'Headline' },
+    { id: 'monthly-spend', label: 'Spend per Month' },
     { id: 'requested', label: 'Your Requested Data' },
     { id: 'sites', label: 'Site Comparison' },
     { id: 'trader', label: 'Trader Perks Detail' },
@@ -699,6 +701,26 @@ export default function DraftKingsReport() {
                   </div>
                 </div>
               </div>
+            </div>
+          </Section>
+
+          {/* ══════════════════════════════════════════
+              SPEND PER MONTH PER LOCATION — matrix
+              ══════════════════════════════════════════ */}
+          <Section id="monthly-spend">
+            <div data-toc id="monthly-spend" />
+            <div className="card-large">
+              <div className="mb-6 md:mb-7">
+                <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">Month by month</div>
+                <h2 className="text-[1.75rem] md:text-[2.25rem] font-extrabold text-shortcut-blue leading-tight">
+                  Spend per month,
+                  <span className="text-shortcut-teal-blue"> per location.</span>
+                </h2>
+                <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[640px]">
+                  What was paid to Shortcut each month, broken out by program, through July 2026. July is shown as expected spend, combining events already delivered with those scheduled through month end. The Total column sums all four programs; All-in adds DraftKings' 20% gratuity.
+                </p>
+              </div>
+              <SpendByMonthTable />
             </div>
           </Section>
 
