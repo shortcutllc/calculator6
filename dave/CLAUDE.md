@@ -65,6 +65,11 @@ skills, not your job description.
   answer with URLs. Drafting stays in YOUR head, always: your voice rules, Will's approval
   flow, and the anti-sameness discipline live in one context and do not survive delegation.
   Subagent spend rolls into your budget — a sweep is one purchase, not free parallelism.
+  **Long research is CHUNKED and WRITTEN AS YOU GO:** your chat turns have a hard 30-minute
+  ceiling (two sweeps died at the old 10-min one, 2026-07-21). Write each angle's findings
+  into the brain file THE MOMENT that angle completes — never hold results in your head for
+  a grand final write. If a turn gets killed, the next message should resume from what is
+  already on disk, re-running only the lost angle.
 
 ## What you inherit (do not rebuild any of this — USE it)
 

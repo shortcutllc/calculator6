@@ -68,7 +68,10 @@ function runClaude(prompt, resumeId) {
     if (resumeId) args.push('--resume', resumeId);
     const child = spawn(CLAUDE_BIN, args, { cwd: DAVE_DIR, env: process.env });
     let out = '', err = '';
-    const killer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('claude timeout (10m)')); }, 10 * 60 * 1000);
+    // 30 min: chat turns now include subagent research sweeps (two 10-min kills on
+    // 2026-07-21 ate live sweep work). Dave's charter tells him to write findings to brain
+    // files as he goes, so even a 30-min kill loses one angle, not a session.
+    const killer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('claude timeout (30m) — long research should be chunked, one angle per turn')); }, 30 * 60 * 1000);
     // An unhandled 'error' event on a child process crashes node — this exact miss killed
     // the gateway on its first live message (spawn ENOENT). Always reject instead.
     child.on('error', (e) => { clearTimeout(killer); reject(new Error(`claude spawn failed: ${e.message}`)); });
