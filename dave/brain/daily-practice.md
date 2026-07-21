@@ -124,6 +124,37 @@ replies → conversations → the Goal 1 meetings.
    306k threads for dormant ties. It needs no LinkedIn, no new data, and no permission beyond
    what Dave already has. It is the cheapest high-EV thing on this page.
 
+## LinkedIn: the sanctioned stack (research answer, 2026-07-21 — closes the open want)
+
+Deep research on how sophisticated operators automate around LinkedIn/Sales Nav. Verdict:
+**the smart money keeps the account pristine and moves ALL machine work off-platform** —
+enforcement escalated hard in 2025-26 (Proxycurl sued into shutdown; Apollo/Seamless pages
+deleted; HeyReach banned incl. founders' personal profiles while claiming "completely safe";
+LinkedIn scans browsers for ~6,000 known extensions and flags login cookies on datacenter
+IPs). Will's no-automation rule IS the meta, not a compromise. The account-safe stack:
+
+1. **Sales Nav alerts = Dave's inbox.** Will saves champions/brokers/warm contacts as leads;
+   LinkedIn emails job-change/posted/news alerts; Dave parses that feed from Gmail into
+   next-best-actions. Sanctioned, push-based, already paid for.
+2. **Monthly Connections.csv diff.** LinkedIn's data export = the ONLY sanctioned
+   programmatic feed of Will's 1st-degree graph. Dave diffs monthly (job changes, dormant
+   ties) and cross-references every target list for warm-path inference.
+3. **Bounce = job-change signal.** Monthly MV/BounceBan re-verify of known contacts; a new
+   hard bounce on a previously-valid address = they left = a top outreach window. DIY
+   UserGems at ~zero cost.
+4. **Mutuals/degree: no sanctioned programmatic path exists.** Infer likely-2nd-degree from
+   Connections.csv + Apollo employment overlap (~70% of the value); the final introducer
+   check stays Will's 10-second manual glance (the daily five). The "Connections of
+   [person]" Sales Nav filter is the underused mutuals tool — use it DURING conversations
+   with well-networked contacts, then ask for the intro in the same conversation.
+5. **Batch research 25 at a time, dossiers pre-built** (Apollo + web) BEFORE Will opens
+   LinkedIn — his on-platform time is human-speed verification, never a grind. Never bulk-
+   open pasted profile URLs (flags even manual users).
+6. **Hard bans stay banned:** no tool that sees Will's cookie/login, no Sales Nav export
+   extensions on his real account, no auto-anything, no burner accounts, no vendor
+   "safe limits" claims. Optional later (Will's call, paid infra): Clay Starter ~$134/mo
+   for push-based champion job-change monitoring.
+
 ## Build order (proposed)
 
 1. Mailbox dormant-tie mine (one-time sweep → a ranked list of people Will already knows).
