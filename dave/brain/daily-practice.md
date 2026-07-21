@@ -144,6 +144,35 @@ replies → conversations → the Goal 1 meetings.
    > ICP. Use `format=metadata&metadataHeaders=To&metadataHeaders=Date` (cheap, no bodies),
    > chunk by quarter (~22 quarters 2018-2023, ~6 min each, fits the 15-min job ceiling).
 
+   > **CHUNK 1 RUN 2026-07-20 (2022-Q1) — the yield rule.** 366 sent messages → 171 raw
+   > recipients → 156 after excluding internal/vendor/noise/active → **only 38 ever wrote
+   > back** → and reading those 38, roughly **5 or 6 are real dormant BUSINESS ties.** The
+   > other 118 were recipients of a 2022 mail-merge ("Hey <Name> Quick Question", "Return to
+   > office plan?" to 30 people on one day) — those are not dormant ties, they are cold leads
+   > with extra steps, and re-touching them is not the play. **Scoring rule for every later
+   > chunk: outbound message count is NOT relationship depth (it measures sequence length).
+   > The discriminator is DID THEY REPLY, then is it a business thread, at an ICP-shaped
+   > employer, not a vendor/personal/competitor thread.** Real yield ≈ 4% of raw recipients,
+   > so ~5 per quarter, ~110 across the 2018-2023 archive. Small, but every one is a person
+   > who actually talked to Will.
+
+   > **THE ACTUAL ANSWER (2026-07-20, after Will flagged the Smartlead history).** The richest
+   > dormant vein is NOT in Gmail, it is already in the DB and takes seconds: `outreach_replies`
+   > holds 3,215 scored replies. Filter `reply_sentiment='positive'` + not OOO → **327 distinct
+   > people who said yes at least once**. Drop anyone contacted in the last 6 months → 236.
+   > Drop suppressed → 230. Keep those we already hold a title for → **211 enriched people who
+   > replied POSITIVELY and were then never followed up.** Titles are dead-on ICP (Office
+   > Manager, Head of People, CPO, Workplace Experience) at Charles Schwab, Mastercard,
+   > SeatGeek, OpenTable, Vita Coco, GGV Capital, Jenner & Block, Duane Morris, Nickelodeon,
+   > Bond Vet, Forter, Mark43, NotCo. Stored:
+   > `state/dormant-mine/positive-repliers-gone-quiet.json`.
+   > **Therefore: the Gmail mine is DEMOTED to optional.** It yields ~5 real ties per quarter
+   > (~2 hrs for the pre-2023 archive) versus 211 in one query. Only mine Gmail for the
+   > pre-2023-03 era once the 211 are worked, since campaign data starts 2023-03-06.
+   > *Data-quality notes:* two rows show absurd silence (56.5y) from bad `reply_date` values,
+   > and many rows have a null `name` despite a good title/company — fix both before drafting.
+   > Also the 3.3y cluster is bounded by the data's start date, not a real event.
+
    Mining rules from the
    research (cold_networking_research.md): pick by VALUE (status, relevance) not comfort —
    people instinctively pick who they like, which is the wrong list; ~3+ years silent is the
@@ -163,6 +192,11 @@ replies → conversations → the Goal 1 meetings.
    Also read `sales_companion_architecture.md` (the shared lead-picture lib this should sit on).
 3. Dossier store, so research accumulates instead of being thrown away.
 4. Daily worklist + Slack brief format, with accept/edit/skip capture.
+4b. **Drafts handoff (added 2026-07-21):** when a move is a written touch, Dave writes the
+   draft into `saved_drafts` + Will's Gmail drafts via the EXISTING `lib/gmail.js` path, so
+   the EXISTING Slack card system renders its Send/Edit buttons for it. One send path, a
+   human finger on it, always. Dave never grows his own send button — that is the
+   never-build-a-parallel-sender rule.
 5. Snowball → influence-map.md wiring.
 6. LinkedIn enrichment, in whatever form Will picks in Q1 above.
 
