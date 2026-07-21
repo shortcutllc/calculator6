@@ -50,9 +50,95 @@ means the learning loop is broken.
   would have read as scraped. Crude string comparison also over-calls moves ("icwgroup" vs
   "ICW Group"); read the pair before believing the flag. · Apollo shortlist verification · high
 
+## Appended 2026-07-21 (first Monday strategy pass)
+
+- 2026-07-21 · **`workhuman_leads.email_sent_at` is null on leads that `outreach_sends` proves
+  Will emailed.** 19 of his 22 Workhuman leads show a null flag; only **2** have genuinely zero
+  send rows (Marissa Reyes, Kendyll/Pivotal). The "13 never touched since April" baseline in
+  goals.md came from that field and is **wrong**. The real shape of the pool is not "untouched"
+  but "touched once around May 5, silent for 11 weeks" — which changes the play from first-touch
+  to re-open, on almost every one of them. Second time the never-trust-a-derived-flag rule has
+  bitten; this time it had reached my own goals file. **Reconcile any status flag against
+  `outreach_sends` before it becomes a baseline.** · workhuman/outreach_sends join · high
+
+- 2026-07-21 · **Send-rate is bimodal by week, not by draft.** Drafts created Jul 7-13: 27 of 51
+  sent (**53%**, well above the 36% baseline). Drafts created Jul 14-21: **1 of 23 (4%)**, and
+  Will has sent no new outreach at all since Jul 17 (crawl is fresh through Jul 20, so this is
+  real, not lag). The engine and the guards did not change between the two batches. The week he
+  sent was the week he was live in the EPIC thread. Reading, and it is only a hypothesis worth
+  one question: **sends follow Will's attention being already in the lane, not draft quality.**
+  If true, the lever is a smaller daily worklist he can clear, not better copy. · cohort
+  send-rate query · medium, needs Will's read
+
+- 2026-07-21 · **We aim at consultants and the only replies came from principals.** Both broker
+  replies on record (Craig Hasday, President of EPIC's National EB Practice; Marshall
+  Feigenbaum, VP EB, Risk Strategies) are practice-leader level, and Craig's converted by being
+  **forwarded down** to the person who actually books. Every one of the 7 unsent broker drafts
+  targets an individual contributor (Health & Benefits Consultant, Population Health Consultant,
+  Wellness Program Manager). n=2, so this is a lead not a law, but it points the same way as the
+  existing expect-the-forward lesson: **seniority buys you a forward; a consultant has nobody to
+  forward to.** · broker reply history vs Jul-14 draft batch · medium
+
+- 2026-07-21 · **The broker queue does not check geography, and the carrier-fund pitch is
+  US-only.** The 7:45 cron drafted Fidelia Andrean (WTW), whose `outreach_contacts.location`
+  reads *"jakarta, special capital region of jakarta"*, a note asking whether her clients are
+  deploying **Cigna or Aetna wellness funds**. Those are US carrier constructs and our in-person
+  delivery is US. Every premise in the note was wrong for her, and `preflight_reco` still said
+  `ok_to_proceed` — the gates check verification and banned words, not whether the pitch is
+  physically possible. **Add a geography gate before drafting any carrier-fund note; `location`
+  is already on the row, so this is free.** · Fidelia Andrean draft · high
+
+- 2026-07-21 · **A firm's published article is not the contact's article.** The same draft
+  opened *"You published on Indonesia's draft law..."* when `target_ref.research_note` said only
+  *"WTW insight article June 2024"*. The generator promoted a firm-level publication to a
+  personal one, which is the exact move that makes a note read as scraped, and the source was
+  25 months old besides. **When the research note names an organisation, the draft may not say
+  "you".** · same draft · high
+
 - 2026-07-20 · **Reply detection is blind to a forward.** Will's one real broker win came from
   Craig Hasday (President, EPIC) forwarding the note internally to Kristin Sanders, who replied
   from her own address. The system watches the address it mailed, so it recorded Craig's
   sequence as "replied" while the actual reply, the person, and the booked meeting were
   invisible to every query. **Aim high at big firms and expect the forward.** · EPIC thread ·
   high
+
+- 2026-07-21 · **Hyper-personal leads get a WARM register, not a tight one. Terseness is not
+  warmth.** Dave's first Marissa Reyes draft was 95 words and jumped straight from the
+  observation to the bridge. Will rejected it and dictated the human version: acknowledge the
+  time gap ("it's been a few months, this is well overdue"), say you enjoyed meeting them, ask
+  how the rest of their thing went, reference the specific shared moment (she booked a massage
+  at our own booth four minutes after Will's note), THEN the ask, THEN an easy out. **For
+  someone Will physically met, the note should read like a person picking up a conversation,
+  not an operator executing a follow-up.** This is Sivers' "don't be too succinct" from
+  [[cold_networking_research]] — compression reads as automated. Cold notes stay tight; warm
+  notes breathe. · Will's direct rewrite · high
+
+- 2026-07-21 · **"I'd love to" may be over-banned.** Will used it twice in his own dictated
+  warm note. The phrase is filler in a cold note to a stranger and ordinary human speech in a
+  warm note to someone you met. Proposed: scope the ban to cold/first-touch copy. AWAITING
+  WILL'S RULING before applying anywhere else. · Marissa draft v2 · medium
+
+- 2026-07-21 · **Name-matching is a lead-selection hazard: `ilike '%Marissa%'` returned two
+  people and Dave gated the wrong one.** The preflight ran clean against Marissa WALKER at
+  Miebach while the draft was for Marissa REYES at Friends of the High Line. Would have
+  reported "already emailed via campaign" about the wrong human. **Always gate on the exact
+  email address, never a name pattern, and never take `[0]` from a fuzzy match.** · caught
+  in-flight · high
+
+- 2026-07-21 · **"Fully remote" kills the OFFICE, not the OFFSITE — the spine's delivery rule
+  is blind to events.** The spine says a fully remote company is limited to the flexible set
+  (mindfulness, sound baths, nutrition coaching), no massage/nails/facials/hair/headshots. Dave
+  applied that literally to OpenSesame and called it a mindfulness-only lead. Will's own live
+  proposals to them include monthly chair massage, a chair massage at the January kickoff, a
+  September event in Texas, and a Portland conference breakout with hair, nails and headshots.
+  **A distributed company still gathers — kickoffs, offsites, conferences, team weeks — and
+  those are full-menu in-person moments.** Ask "where does this team physically gather?" before
+  narrowing anyone to the flexible set. · OpenSesame thread · high
+
+- 2026-07-21 · **Never call a thread cold from send-counts alone; READ IT.** Dave saw 7 sends
+  to Beverly Marsters with no recorded reply and told Will it was a dead sequence to stop
+  working. The thread was actually a booth meeting, a 14-minute positive reply, a booked call,
+  a proposal, a nudge and a second proposal — Shortcut's warmest live deal. Her May 5 reply is
+  missing from `outreach_replies`, the same forward/off-thread blind spot that hid the EPIC
+  win. **Send-count plus "no reply on file" is not evidence of a cold lead; it is evidence the
+  reply pipeline has holes. Open the thread before judging it.** · OpenSesame thread · high

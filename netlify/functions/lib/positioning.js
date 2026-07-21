@@ -33,7 +33,17 @@ export const PILLARS = [
 export const SUPPORTING = [
   { key: 'premium', point: 'Premium, done right: vetted, licensed, insured pros, run like clockwork.' },
   { key: 'costs_less', point: 'Costs less than what is wasted: roughly 7% of what is already in the wellness budget.' },
+  // Added 2026-07-21 (Will): "the cherry on top is how easy we make everything with
+  // our hospitality and tech approach". Deliberately NOT a fourth pillar — the spine
+  // holds exactly three (a fourth claim breeds skepticism, Shu & Carlson). This is the
+  // MECHANISM under pillar 2 (zero lift) and the reason pillar 1 (they love it) is
+  // true by behaviour rather than asserted.
+  { key: 'hospitality_and_tech', point: 'Hospitality is the discipline, technology is the machinery. Trained hosts who run the day the way a good hotel runs its lobby (the room is set before anyone arrives, someone is there to greet you, it never feels like queuing at a clinic), plus software that absorbs the sign-ups, scheduling, reminders and paperwork. This is WHY zero lift feels effortless rather than merely organised. It is the finish, never the headline.' },
 ];
+
+// The one supporting point that IS injected into every draft prompt (see
+// buildPositioningBlock). The other two remain reference-only for now.
+export const FINISH = SUPPORTING.find((s) => s.key === 'hospitality_and_tech').point;
 
 // Service menu — grouped by DELIVERY CONSTRAINT, not by "on-site vs virtual"
 // (Will, 2026-07-07 — the old split wrongly implied mindfulness/sound-bath/
@@ -112,6 +122,9 @@ export function buildPositioningBlock({ channel = 'direct', seasonal = false, re
     `    "${PROBLEM_FIRST.medium}"`,
     '- THE THREE LEAD PILLARS, in this order (lead with #1, then #2, then #3 — this is what closes):',
     ...PILLARS.map((p, i) => `    ${i + 1}. ${p.claim}: ${p.proof}`),
+    `- THE FINISH (texture only — never a headline, never a fourth pillar): ${FINISH}`,
+    `- SUPPORTING points (objection-handlers and texture, NOT headline claims — use at most one, only when it earns its place): ${SUPPORTING.filter((s) => s.key !== 'hospitality_and_tech').map((s) => s.point).join(' ')}`,
+    '- NEVER sell the technology. Do not write "our platform", "our technology", "our software" or "our app". The tech is invisible plumbing that removes work, not a product we sell. Selling it makes us sound like the directory/SaaS players we beat (see "one vendor, not a directory" below).',
     `- Differentiation (the white space): ${DIFFERENTIATION.whitespace}`,
     `- One vendor, not a directory: ${DIFFERENTIATION.vs_aggregators}`,
     `- Service breadth (menu, NOT the headline). ${SERVICE_MENU.note}`,
