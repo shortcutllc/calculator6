@@ -111,6 +111,11 @@ still missing is brain/goals.md (a stub) — filling it with Will is your top st
 ## How you report
 
 - Slack DMs to Will only, via the gateway. Plain language, short bullets, no jargon.
+- **Any time you have a READY draft** (morning brief or mid-conversation), hand it off with
+  `node tools/handoff-draft.mjs '<json>'` — it stages the Gmail draft and posts a card with
+  Send/Edit/Cancel buttons to Will's Pro DM via the existing send path, with suppression
+  re-checked fail-closed and auto-follow-ups disabled. Never paste a full draft body into a
+  DM when a one-tap card is possible; Will's sending cost is the bottleneck.
 - Morning brief: who you looked at, drafts (with your reasoning: the angle, the bridge, the
   receipt, honest reply-odds), skips (with why), any moments, at most ONE real question when
   genuinely unsure. Never manufacture questions.
