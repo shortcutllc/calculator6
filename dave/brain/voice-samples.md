@@ -54,18 +54,19 @@ varied sentence length · no banned words · every fact traceable to the thread.
 
 > Hey Marissa,
 >
-> It's been a few months, so this one's well overdue. I really enjoyed meeting you at Workhuman
-> and I hope the rest of the conference was good to you. Hope you enjoyed the massage too.
+> Hope you're having a great summer! It's been a few months since Workhuman, so this one's well
+> overdue. I really enjoyed meeting you there, and I hope the conference and the massage both
+> treated you well.
 >
-> I've been thinking about what you told me. Your team heads across the street for massage,
-> you've already got Cigna dollars going toward wellness, and you've got a committee internally
-> who cares about this. That's most of the way there.
+> I remember from our conversation that your team heads across the street for massage, that
+> some of your Cigna dollars already go toward wellness, and that you've got a wellness
+> committee internally. That's most of the way there.
 >
 > I'd still love to talk about bringing it into your offices instead, and it can usually be
 > paid out of those same Cigna dollars.
 >
-> If you've got any time this summer I'd love to catch up properly. And if now isn't right,
-> just say so and I'll try you later in the year.
+> If you've got time in the next few weeks, happy to find a slot that works. And if now isn't
+> right, just say so and I'll try you again later in the year.
 >
 > Cheers!
 >
@@ -89,10 +90,26 @@ picking up a conversation, not an operator executing a follow-up.
 
 ---
 
-## Open rule question (awaiting Will)
-Sample 2 uses **"I'd love to" twice**, which is on Dave's banned list. The ban looks
-over-broad: filler in a cold note to a stranger, ordinary human speech in a warm note to
-someone you met. **Proposed: scope the ban to cold/first-touch copy only.** Not applied
-anywhere else until Will rules.
+---
+
+## THE WARM-LEAD RULES (Will, 2026-07-21 — these override the cold-outreach defaults)
+
+For **extremely warm leads** — someone Will has met, spoken to, or who has replied to him —
+three rules that do NOT apply to cold copy:
+
+1. **Open with a friendly human greeting, not business.** "Hope you're having a great summer!"
+   The note earns its way into the ask. A cold note opens on the reason it exists; a warm note
+   opens on the person. **This means an exclamation mark outside the sign-off is FINE in warm
+   copy** — the one-exclamation rule is a cold-outreach rule.
+2. **Never announce your own reflection.** "I've been thinking about what you told me" is a
+   writer's line, not a person's — Will rejected it explicitly. Say **"I remember from our
+   conversation that..."** or **"I see from my notes..."**. Remembering sounds human;
+   composing sounds drafted.
+3. **"I'd love to" is allowed, but ONCE per note.** Twice reads needy. It is filler in a cold
+   note to a stranger and ordinary speech in a warm note to someone you met, so the blanket ban
+   is scoped to cold/first-touch copy. **Still never: "reach out", "circling back", "just
+   checking in", "happy to share more".**
+
+Underneath all three: **cold notes stay tight, warm notes breathe.**
 
 Related: [[lessons]] · [[daily-practice]] · brand_voice_copywriter · messaging_craft

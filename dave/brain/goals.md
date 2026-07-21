@@ -128,29 +128,66 @@ argument.
 **And it is on-lane with the positioning** (Will, 2026-07-20): we deliver happiness, a good day
 at work, not phony productivity stats. The thesis IS the positioning, said in public.
 
-#### Three routes, and where each stands
+#### CHANNEL PRIORITY — reset by Will 2026-07-21
 
-- **The stage** — proven. Workhuman produced 407 signups at ~73% show against the 2026 plan's
-  own forecast of 15-25 leads. Will can run this format.
-- **The page** — nothing. `getshortcut.co` has **zero blog posts** against Zeel's 200+ and
-  Soothe's 100+. The Nuxt/Sanity infrastructure, schema and sitemap are all live. The pipes
-  exist and nothing flows through them. The SEO work independently confirmed the white space:
-  mindfulness and headshots have **zero national competitor coverage**, and pricing guides are
-  open because almost nobody publishes pricing.
-- **The room** — opening now, via Goal 1 and the EPIC conversation.
+Conferences were the first draft of this goal. Will corrected it: **the priority is an owned,
+organic voice, not booths.** In his words — establish a voice on LinkedIn, write blog posts for
+the site, find the online groups, forums, podcasts and Instagram pages where our leads
+congregate, fashion outreach inside those spaces, and build weekly strategies for standing out.
 
-#### Repeatable, weekly — the short-term actions
+Priority order, highest first:
 
-Sized for a bootstrapped operator whose scarcest asset is time. None of these need budget.
+1. **LinkedIn — Will's own voice.** The buyer (People Ops, HR, office managers, workplace
+   experience) lives there. Cheapest, fastest, most compounding. This is the lead.
+2. **The blog on getshortcut.co.** Currently **zero posts** against Zeel's 200+ and Soothe's
+   100+. Nuxt/Sanity, schema and sitemap are all live — the pipes exist and nothing flows
+   through them. SEO work independently confirmed the white space: **mindfulness and headshots
+   have zero national competitor coverage**, and pricing/cost guides are wide open because
+   almost nobody publishes pricing.
+3. **The places they already gather.** Online communities, forums, Slack/Discord groups,
+   podcasts, newsletters, Instagram accounts. Find them, learn the room's norms, then
+   contribute. **Mapping these is `influence-map.md`'s job and it is now the critical path for
+   this entire goal.**
+4. **Conferences — supporting, not leading.** Still real (see the dated items below), but they
+   are expensive and episodic. The organic work runs every week and costs nothing.
 
-1. **One observation a week, published, drawn from real Shortcut data.** Not a take. "We ran
-   514 events at DraftKings across six sites. Here is what the sign-up curve looks like."
-2. **Three substantive comments a week** on people who matter. Requires `influence-map.md`
-   populated with real names and URLs — that is Dave's job and it is currently an empty
-   scaffold.
-3. **One pitch a week** to a podcast or newsletter Shortcut's buyers actually read.
-4. **Every booth and broker conversation produces one artifact** that can be given away. That
-   is the give-first shelf and it doubles as content.
+#### The content engine — what we publish and where it comes from
+
+The advantage is that Will is not sourcing opinions, he is reporting from inside 500+ companies'
+events. Four repeatable formats, all drawn from work that is already happening:
+
+- **Event recaps, posted consistently.** We run real events every week. What happened, what
+  people actually signed up for, what surprised us. This is the show-up-rate thesis in
+  practice rather than in the abstract.
+- **New service announcements.** Concrete, easy, and a natural reason to post.
+- **The data observations.** Sign-up curves, rebooking behaviour, what fills and what doesn't.
+- **The uncontested explainers** — carrier wellness funds, what things actually cost,
+  mindfulness and headshots for teams. Nobody else is writing these and the SEO gap is proven.
+
+#### The weekly rhythm
+
+Sized for a bootstrapped operator whose scarcest asset is time. None of this needs budget.
+
+1. **Post on LinkedIn on a fixed cadence.** Start at 2 a week and hold it. Consistency beats
+   brilliance; an irregular voice is not a voice.
+2. **One blog post a week** on the site, targeting the confirmed white space.
+3. **Three substantive contributions** inside the groups/forums/comment sections mapped in
+   `influence-map.md`. Contribute, do not pitch. This is the give-first work.
+4. **One pitch a week** to a podcast, newsletter or community host.
+5. **Every event we run is a potential recap.** Capture it while it is happening; do not try to
+   reconstruct it later.
+
+#### Messaging discipline — non-negotiable
+
+Everything published here is **COPY**, so the standing rules apply in full. It ladders to
+[[messaging_spine]] and is drafted against `positioning.js`, never invented fresh. The lead
+trio stays: people actually use it and love it, zero lift, one vendor for the whole team in
+office and remote — with the hospitality-and-tech finish as texture. Proof points only from
+[[proof_points]]; never a productivity or ROI number. **And per the no-ungated-copy directive,
+if Dave builds a content-drafting surface, its evaluator ships in the same build.**
+
+Consistency is the point Will named explicitly: the same solution, said the same way, every
+week, in every room.
 
 #### What to build toward
 
@@ -159,7 +196,7 @@ data, published, methodology shown. That is the asset that gets a broker citing 
 meeting he is not in, and gets a conference inviting him to the programme rather than the expo
 floor. Everything above is a step toward being able to publish it credibly.
 
-#### Near-term, with clocks on them
+#### Conferences — supporting, but with real clocks
 
 - **Benefits Forum & Expo, Las Vegas, Sep 14-17, ~$7K** (from the 2026 plan, `Plan2026ML.tsx`).
   Benefits buyers AND brokers in one room, seven weeks before Goal 1's deadline. **Goal 1 and
@@ -171,16 +208,31 @@ floor. Everything above is a step toward being able to publish it credibly.
   slot is worth more than the $18K Bronze sponsorship and costs less. **Marc's to run; Will
   clears it with him first.**
 
-#### Scoreboard — PROPOSED, pending Will
+#### Scoreboard — PROPOSED, pending Will (revised for the organic-first priority)
 
-- One published observation a week, from real data, starting the week of Aug 4.
+Cadence metrics, because at this stage consistency is the thing being built and reach follows
+it. Reach metrics get set once there is a quarter of posting to measure.
+
+- **LinkedIn: 2 posts a week, held for 8 straight weeks** from the week of Aug 4. Streak is the
+  metric, not impressions.
+- **Blog: 8 posts live by Sep 30**, aimed at the confirmed white space (mindfulness, headshots,
+  carrier funds, what it actually costs). From a standing start of zero.
+- **`influence-map.md`: 20+ real entries with URLs by Aug 15**, covering groups, forums,
+  podcasts, newsletters and Instagram accounts where the buyer actually gathers.
+- **Event recaps: every event we run is captured**, whether or not it gets published.
 - One speaking or podcast slot **confirmed** (not pitched) by Oct 31.
-- `influence-map.md` populated with 20+ real entries, each with a URL, by Aug 15.
 
-#### What Dave owes here
+#### What Dave owes here — in order
 
-`influence-map.md` is an empty scaffold and every action above is blocked on it. Populating it
-with real, sourced entries is Dave's first Goal 3 task. No entry without a URL.
+1. **Populate `influence-map.md`.** It is an empty scaffold and it is the critical path: the
+   groups, forums, podcasts and Instagram accounts cannot be worked until they are found. Real
+   entries only, each with a URL and a suggested move. **No entry without a URL.**
+2. **Build the weekly content plan** — which format, which room, which angle, every week, so
+   Will is never staring at a blank page.
+3. **Draft against the spine, never freehand.** Any content-drafting surface Dave builds ships
+   with its evaluator in the same build (no-ungated-copy).
+4. **Watch the rooms.** The influence scan (Thu/Fri) should surface live conversations Will has
+   standing to enter, with an expiry date on each.
 
 ## Standing context (true regardless of quarter)
 
