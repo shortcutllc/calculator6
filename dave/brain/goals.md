@@ -24,6 +24,43 @@ clients on carrier wellness funds → hopefully an in as a referred vendor.
 - **Posture:** Will is asking to learn, not offering to sell. The learning ask is both truer
   and easier to say yes to than the help-your-clients offer the current drafts lead with.
 
+**⚠️ WHAT A BROKER IS AND IS NOT (Will, 2026-07-21 — clarified because Dave drifted):**
+Healthcare brokers direct their CLIENTS' healthcare dollars. **They are a CHANNEL, never a
+customer.** The outcomes are a referral, a preferred/approved vendor slot, or another way of
+working together. **They will never be an event partner we deliver services to.** The paying
+client is always the employer. Never let a note, deck or conversation drift into offering a
+broker a wellness day for the broker's own staff.
+
+**The full strategy already exists — READ IT, do not rebuild it:**
+`src/components/BrokerPlan.tsx`, the "broker plan" presentation on the proposals site. It holds
+the two tracks, the compensation menu, the fiduciary constraints, the Apollo strings and the
+tested subject lines. Highlights Dave had been missing:
+- **TRACK B IS UNWORKED.** Beyond benefits brokers there are **carrier HECs** — Cigna Health
+  Engagement Consultants, Aetna Designated Consultants, Anthem Wellness Consultants. They
+  **manage the wellness fund directly and sit alongside the broker in client meetings**, roughly
+  50 per carrier in the tri-state, and the plan calls them **"virtually unprospected by
+  vendors."** Goal 1 has spent all its effort on Track A. This is the cheaper lane.
+- **Compensation is a three-option menu and the broker elects** — pass-through (broker takes 0%,
+  client gets 7% off, most choose this), or a disclosed referral at a flat 7% of Year 1.
+- **Hard fiduciary rules** driven by CAA 202(a) and the live Schlichter suits against Gallagher,
+  WTW, Mercer and Lockton: never tiered bonuses, volume overrides, renewal tails past Year 1,
+  off-invoice payments, differential rates, or "passive income" language. The plan's own framing:
+  *the fiduciary doctrine is behaviour-based, not contract-based.*
+
+**⭐ THE CLE WEDGE — our only un-copyable asset in the legal vertical (learned 2026-07-21):**
+**Shortcut IS an accredited CLE provider.** A 60-minute session worth **1.0 Ethics &
+Professionalism credit**, accredited in **NY, PA and FL ONLY**, with Shortcut handling material
+submission, attendance tracking and credit reporting. Live at `/cle`, `/cle/pa`, `/cle/fl`
+(`src/components/CLELandingPage.tsx`). CA and TX were removed from the app because we are not
+accredited there — **never imply accreditation outside those three states.**
+- **It is immune to the wellness-efficacy critique** in [[wellness-evidence]]: a credit is a
+  regulator-recognised deliverable, not a health claim. In rooms full of skeptics, lead with it.
+- **No competitor can grant it.** Not Zeel, Soothe, exhale, Wellable or Strive.
+- Sold bundled: "CLE + massage, catering & more", flat rate by team size.
+- Our three deepest legal accounts sit inside the footprint: WLRK/Wachtell (119 events, NY),
+  White & Case (NY), Ballard Spahr (Philadelphia).
+- **Live application: Bench-Bar, 17-18 Sept 2026 — see [[bench-bar-2026]].**
+
 **Baseline at the time of setting (2026-07-20, queried, not guessed):**
 - 222 broker contacts, 215 verified sendable, all linked to a firm. 36 target firms
   (15 tier 1, 13 tier 2, 7 tier 3, 1 carrier).
@@ -103,30 +140,52 @@ that need thought. A brief Will stops clearing is a broken brief, not a broken W
 
 ### GOAL 3 — Will's standing in the corporate wellness conversation (SET 2026-07-21)
 
-#### The thesis
+#### The thesis — REWRITTEN 2026-07-21 after the evidence check
 
-Will's standing does not come from having opinions about workplace wellness. Everyone has
-those, and the category is loud with them. It comes from being **the only operator who can say
-what actually happens when the wellness thing arrives.**
+The first version said *stop measuring by ROI, measure whether anyone shows up.* **That died on
+contact with the literature.** William Fleming's Oxford study compared people who PARTICIPATED
+in workplace wellbeing interventions against non-participants at the same employers, n=46,336,
+and found participants no better off. Showing up was the exposure variable. So attendance
+cannot carry an efficacy claim, and pretending otherwise in front of the people we most want to
+impress is how we get dismissed. Full evidence base: [[wellness-evidence]].
 
-The position, stated plainly:
+The honest position, and the one the spine already held:
 
-> **Stop measuring wellness by productivity ROI. Measure whether anyone shows up.**
+> **This is a WASTE problem, not a health problem. You are already paying for wellness your
+> team doesn't use. We're the part they actually show up for.**
 
-That is genuinely contrarian in a category built on invented ROI numbers, and Will is one of
-the very few people who can back it. Zeel and Soothe are marketplaces, so they know bookings,
-not outcomes. Wellable and Goomi are software pointing at other people's vendors. Brokers are
-guessing. Will runs the events across 500+ companies and watches who returns.
+**The verified numbers (Gallup, checked against the primary source 2026-07-21):**
+**60% of employees are aware their employer offers a wellness programme, and 40% of those
+participate — so roughly 24% overall.** An onsite event reaches close to everyone present,
+because it is opt-out and it comes to them.
+Source: https://news.gallup.com/businessjournal/172106/workplace-wellness-programs-missing.aspx
+⚠️ **The "85% of employers offer" figure is NOT in that source** — Gallup says only "the
+majority of large employers." Drop the 85% everywhere. The spine still cites it and should be
+corrected when Will next touches the spine; Dave does not edit the spine unilaterally.
 
-**This is the spine's own logic, not a new idea.** The spine's voice-of-customer check found
-that pillar 1 ("people actually use it and love it") has zero testimonial support and must be
-proven with **repeat receipts, never a manufactured "employees love it" line.** Behaviour is
-the only honest evidence of delight. 90%+ of slots booked, 87% rebook, Wachtell 119 times at
-one office — those are not productivity claims, they are attendance, and attendance is the
-argument.
+**Why this claim is unattackable:** it is about budget, not biology. We are not claiming a
+massage makes anyone healthier. We are claiming the money got spent on something people wanted.
+And the skeptics' own research is what proves the waste exists — the same literature that kills
+the efficacy claim establishes the participation gap. **Their critique is our argument.**
 
-**And it is on-lane with the positioning** (Will, 2026-07-20): we deliver happiness, a good day
-at work, not phony productivity stats. The thesis IS the positioning, said in public.
+**The human half (Will, 2026-07-21).** Every study in the evidence file measures wellbeing
+indices, healthcare spend, absenteeism, turnover. **Not one measures whether someone had a good
+hour on a Tuesday.** The whole industry agreed to fight on the axis where its evidence is
+weakest. We do not have to. *We don't sell a health outcome. We sell a good hour in someone's
+week, and a manager who looks like they give a damn.* The 87% rebook figure is honest evidence
+of exactly that — not employee health, but a buyer who felt good about the decision.
+
+#### Who this is aimed at — resolved 2026-07-21, see [[who-actually-buys]]
+
+**HR signs. Ops delivers.** Proposals go to HR/People 82% of the time (zero to ops). The people
+who coordinate the events are 32% events-and-office-ops and only 8% HR. Two roles, one deal.
+
+- **Targeting and the rooms stay pointed at HR.** The influence map's HR-first ranking stands.
+- **The office-manager and events rooms are RETENTION and expansion**, not acquisition.
+- **Design every note for the forward.** The EPIC thread is the template: Will emailed a
+  President, who never replied and forwarded it to the practitioner who owned the problem. Write
+  it so the second reader — the person who will actually have to run the day — still finds it
+  useful. Two audiences, one email, and the second one is never addressed directly.
 
 #### CHANNEL PRIORITY — reset by Will 2026-07-21
 
@@ -245,3 +304,78 @@ it. Reach metrics get set once there is a quarter of posting to measure.
 
 Every Monday strategy pass starts here: goal → the named people who unlock it → the play each
 person needs this week. If a suggestion doesn't ladder to a goal in this file, it doesn't ship.
+
+---
+
+## GOAL 3 NAMED ASSET #1 — the post-event feel survey (PROPOSAL ONLY, nothing built)
+
+**The gap Will named 2026-07-21:** the human element is our lane, and *we have no post-event
+feel-data at all.* We can prove people showed up. We cannot show how it felt, for either the
+employee or the person who booked it — and per [[wellness-evidence]] that feeling is the only
+thing in this category nobody measures.
+
+**Ride the existing rails.** The proposals app already has a service-aware pre-event survey
+(one form, `responses` JSONB, migration 20260622000000 — see `proposal_pre_event_survey.md`).
+A post-event version is the same pattern pointed the other way. **Do not build a new system.**
+
+**Two questions each. Two audiences. Never more.**
+
+*The employee, asked on the day, one tap:*
+1. **"How do you feel right now?"** — a simple scale, tapped not typed. This is the entire
+   human claim, measured, and it takes three seconds.
+2. **"Anything you'd want us to know?"** — optional free text. Most skip it; the ones who don't
+   give us the sentence a testimonial is made of, which the spine's voice-of-customer check
+   found we completely lack.
+
+*The booker, asked a day later:*
+1. **"How much work was this for you?"** — a scale. This measures **zero lift**, which is
+   pillar 2 and is currently asserted rather than evidenced.
+2. **"Would you do it again?"** — the rebook intent, captured before the renewal conversation
+   rather than inferred from it afterwards.
+
+**Why these four and no others.** Each maps to a claim we are ALLOWED to make. Question 1
+evidences the good hour. Question 3 evidences zero lift. Question 4 evidences the 87% from the
+buyer's own mouth. **None of them claims a health outcome**, so nothing here can be attacked by
+the literature in [[wellness-evidence]]. And a two-question survey actually gets answered, which
+is the whole point given we sell participation.
+
+**What it would unlock:** the first real voice-of-customer data Shortcut has ever held, the
+"employees love it" line stops being manufactured, and the content engine in Goal 3 gets
+material nobody else in the category can publish.
+
+**Open questions for Will:** whether the employee question goes on the existing sign-up flow or
+a QR at the station; whether the booker prompt piggybacks on the existing post-event email or
+needs its own; and who owns shipping it, since Dave proposes and does not build.
+
+## GOAL 3 NAMED ASSET #2 — the stepped-wedge study. **The thing that would make Will the only
+vendor in this category with real evidence.**
+
+Parked here deliberately so it does not rot inside [[wellness-evidence]], where it was buried
+at the bottom of the skeptics' critique.
+
+**The one paragraph.** Every null result in the literature — Illinois, BJ's Wholesale, Fleming —
+lands because participants self-select: the people who show up were already healthier, already
+motivated, already cheaper. **A stepped-wedge or waitlist design defeats that**, because the
+rollout order supplies the control group. The right client is one we already serve across
+multiple sites, where sites not yet started are a legitimate comparison: **DraftKings (514
+events, 6 sites), Schrödinger (196, 5 sites), or BCG (60, 7 sites)** — and BCG is the most
+research-literate of the three, which cuts both ways. The design: stagger the rollout across
+sites over two or three quarters, pre-register what we are measuring before we start, and
+measure it on **everyone eligible at each site, not just the people who attended** — that single
+choice is what separates this from every vendor case study ever written. Measure the things the
+client already tracks in their own HRIS rather than anything from our booking system: voluntary
+turnover, sickness absence, and one internal engagement item they already survey. We would need
+the client's HR analytics team to run the numbers, not us, and we would have to publish the
+result **whether or not it favours us** — that is the entire source of its credibility, and the
+reason no vendor has done it.
+
+**What it would make Will:** the only operator in corporate wellness holding evidence that
+survives a methodologist. Not a case study, not a testimonial, not a Deloitte-style literature
+review — a pre-registered comparison with a real counterfactual. That is what gets a conference
+to invite him to the programme rather than the expo floor, what gets a broker to cite him in a
+client meeting he is not in, and what makes Jen Fisher and Jennifer Moss quote him instead of
+dismissing him. It is a 2027 asset and it starts with one conversation with one multi-site
+client.
+
+**Status:** parked, unstarted, no owner. Revisit when Goal 1's meetings are done and there is a
+client relationship strong enough to ask.

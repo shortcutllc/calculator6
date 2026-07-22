@@ -177,3 +177,42 @@ means the learning loop is broken.
   re-verify what a previous sweep settled, and always give an explicit "stop at N fetches and
   report what you have" budget.** An agent told to "find everything" with no reporting trigger
   spends its whole budget searching and none reporting. · three failed runs · high
+
+- 2026-07-21 · **Ownership can be ADJUDICATED, not judged — but the rule has one known hole.**
+  Will rejected a "confirmed / review" split as handing him homework and asked for a
+  deterministic run instead: for each of 491 people, search will@'s FULL mailbox history for
+  whether he ever sent to them, and whether the address was in To or only Cc. Never sent + any
+  rep signal = the rep's. Result: 472 Jaimie, 14 existing-client accounts (both sides
+  legitimately correspond, not a boundary question), 3 supplier, 2 Will, **zero left to guess
+  at**. Only 10 needed a human ruling and Will cleared them in one message.
+  **⚠️ THE HOLE: a marketing blast sent from will@ is indistinguishable from personal
+  correspondence via the Gmail API.** Frida showed 5 "direct sends" that were all campaign
+  emails ("Exciting New Wellness Offerings", "A Moment of Calm Awaits"). Across 491 people it
+  surfaced once; on a bigger set it would matter. Fix before reusing: exclude sends whose body
+  is HTML-templated or whose subject matches a known campaign. · ownership adjudication run ·
+  high
+
+- 2026-07-21 · **Two categories that are NOT prospects kept polluting the lead data: existing
+  CLIENT accounts and our own SUPPLIERS.** Fourteen "conflicts" were just BCG, DraftKings and
+  Schrödinger contacts where Will and Jaimie both correspond, which is normal account coverage.
+  Three more were vendors we PAY — Coverdash (our business insurance broker) and Miriam Meza (a
+  headshot photographer we hire, who was still chasing an unpaid invoice). **Check for
+  client-domain and supplier status BEFORE flagging an ownership conflict, and never surface a
+  supplier as a lead.** · same run · high
+
+- 2026-07-21 · **CHECK WHAT WE ALREADY SELL BEFORE RESEARCHING HOW TO BUY OUR WAY IN.** Dave ran
+  a legal-vertical sweep that concluded "Shortcut cannot accredit CLE itself; the realistic move
+  is to co-present with a credentialed partner" and started planning ALA sponsorships around it.
+  **Shortcut IS an accredited CLE provider** — 60 minutes, 1.0 Ethics & Professionalism credit,
+  NY/PA/FL, with Shortcut handling submission, attendance and credit reporting. It has a live
+  landing page at `/cle`, `/cle/pa`, `/cle/fl` and Dave never looked. The agent researched the
+  outside world thoroughly and nobody checked the product. **Before any go-to-market research,
+  inventory what the company already has: read the routes in `src/App.tsx` and the components
+  they point at.** · Will's correction · high
+
+- 2026-07-21 · **The CLE credit is the one thing we sell that the wellness-efficacy critique
+  cannot touch**, because it is a regulator-recognised deliverable rather than a health claim —
+  the attorney either earned the credit or did not. In rooms full of sophisticated skeptics
+  (bar associations, benefits consultants, the tastemakers in [[influence-map]]), **lead with
+  the CLE, not with participation stats.** No wellness competitor can grant it. See
+  [[bench-bar-2026]]. · derived from [[wellness-evidence]] + the CLE page · high

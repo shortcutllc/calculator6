@@ -863,6 +863,19 @@ massage at trade shows and reference the national SHRM conference — but neithe
 any target list. If a competitor is quietly working this circuit, it is one of these.
 
 
+## ⚠️ CORRECTION — the CLE research was wrong (2026-07-21)
+
+The legal-vertical sweep concluded "Shortcut cannot accredit CLE itself... the realistic move is
+to co-present with a credentialed partner." **FALSE. Shortcut IS an accredited CLE provider** —
+a 60-minute session worth **1.0 Ethics & Professionalism credit**, accredited in **NY, PA and FL
+only**, with Shortcut handling material submission, attendance tracking and credit reporting.
+Live at `/cle`, `/cle/pa`, `/cle/fl` (`src/components/CLELandingPage.tsx`). CA and TX were
+removed from the app because we are NOT accredited there.
+
+Rewrite any bar-association or ALA plan on that basis: we are not seeking a credentialed
+partner, we are one. And no wellness competitor can grant CLE credit — it is structurally
+un-copyable. See [[bench-bar-2026]].
+
 ## Tastemakers & voices
 (HR/benefits/workplace-experience writers, LinkedIn voices, analysts whose take moves buyers)
 
