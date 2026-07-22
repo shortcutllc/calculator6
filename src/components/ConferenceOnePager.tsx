@@ -401,15 +401,16 @@ const RotatingWord: React.FC = () => {
   };
   return (
     <span
-      className="relative inline-block h-[1em] text-left align-baseline text-shortcut-coral [perspective:800px] transition-[width] duration-[550ms]"
+      className="relative inline-block text-left align-baseline text-shortcut-coral [perspective:800px] transition-[width] duration-[550ms]"
       style={{ width: w }}
     >
       <span
         onTransitionEnd={onEnd}
-        className={`relative block h-full [transform-style:preserve-3d] ${noAnim ? '' : 'transition-transform duration-[550ms] ease-[cubic-bezier(.45,.05,.18,1)]'} ${going ? '[transform:rotateX(-90deg)]' : ''}`}
+        className={`relative block [transform-style:preserve-3d] ${noAnim ? '' : 'transition-transform duration-[550ms] ease-[cubic-bezier(.45,.05,.18,1)]'} ${going ? '[transform:rotateX(-90deg)]' : ''}`}
       >
-        <span className="absolute left-0 top-0 whitespace-pre [backface-visibility:hidden] [transform:rotateX(0)_translateZ(.515em)]">{ROT_WORDS[idx]}</span>
-        <span className="absolute left-0 top-0 whitespace-pre [backface-visibility:hidden] [transform:rotateX(90deg)_translateZ(.515em)]">{ROT_WORDS[next]}</span>
+        {/* current word stays in flow so the h1 baseline comes from real text */}
+        <span className="inline-block whitespace-pre [backface-visibility:hidden] [transform:translateZ(.515em)]">{ROT_WORDS[idx]}</span>
+        <span aria-hidden className="absolute left-0 top-0 inline-block whitespace-pre [backface-visibility:hidden] [transform:rotateX(90deg)_translateZ(.515em)]">{ROT_WORDS[next]}</span>
       </span>
       <span ref={measRef} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-pre" />
     </span>
@@ -474,7 +475,7 @@ const HeroStage: React.FC = () => {
     <div className="text-center">
       <p className="mb-[14px] text-[12px] font-bold uppercase tracking-[.14em] text-shortcut-coral">Retreats · Offsites · Conferences</p>
       <h1 className="mb-4 text-[34px] font-extrabold leading-[1.03] tracking-[-.035em] text-shortcut-blue md:whitespace-nowrap md:text-[46px]">
-        Bring wellness to life at your next <RotatingWord />
+        Bring wellness to life at your next <RotatingWord />.
       </h1>
       <p className={`mx-auto max-w-[62ch] text-[18px] leading-[1.5] ${SOFT}`}>The break your attendees will thank you for.</p>
       <div className="relative mt-[34px] h-[320px] overflow-hidden rounded-[24px] bg-white text-left shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)] md:h-[480px]">
