@@ -405,8 +405,8 @@ const FeaturedEvent: React.FC = () => {
         <img src={FEATURED_EVENT.band} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="pointer-events-none absolute inset-0 bg-[rgba(3,34,50,.38)]" />
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-[18px] px-6 text-center text-white">
-          <p className="text-[12px] font-extrabold uppercase tracking-[.16em] opacity-85">Featured event</p>
-          <h3 className="text-[clamp(38px,4.6vw,56px)] font-extrabold leading-[1.04] tracking-[-.02em] [text-shadow:0_2px_24px_rgba(3,34,50,.35)]">{FEATURED_EVENT.label}</h3>
+          <p className="text-[12px] font-extrabold uppercase tracking-[.16em] text-white opacity-85">Featured event</p>
+          <h3 className="text-[clamp(38px,4.6vw,56px)] font-extrabold leading-[1.04] tracking-[-.02em] text-white [text-shadow:0_2px_24px_rgba(3,34,50,.35)]">{FEATURED_EVENT.label}</h3>
           <button
             onClick={() => { setIdx(0); setOpen(true); }}
             className="pointer-events-auto mt-1.5 rounded-full bg-white px-[26px] py-[13px] text-[14px] font-bold text-[#003756] shadow-[0_4px_14px_rgba(3,34,50,.3)]"
