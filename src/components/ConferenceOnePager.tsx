@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { GenericLandingPage, ConferencePackageOverride } from '../types/genericLandingPage';
 import { CONFERENCE_PACKAGES, CONFERENCE_BUNDLES, ConferencePkgBar } from '../utils/conferencePackages';
 import { SENDER_TO_CALENDAR } from '../utils/workhumanOutreachTemplates';
+import { useIsCompact } from './proposal/shared/useIsMobile';
 
 // ---------------------------------------------------------------------------
 // Retreats & Conferences one-pager. Faithful recreation of the design handoff
@@ -408,7 +409,7 @@ const FeaturedEvent: React.FC = () => {
   }, [open]);
   return (
     <section>
-      <div className="relative mt-[30px] h-[560px] w-screen overflow-hidden ml-[calc(50%-50vw)] min-[1100px]:w-[80vw] min-[1100px]:ml-[calc(50%-40vw)]">
+      <div className="relative mt-[30px] h-[380px] w-screen overflow-hidden ml-[calc(50%-50vw)] md:h-[560px] min-[1100px]:w-[80vw] min-[1100px]:ml-[calc(50%-40vw)]">
         <img src={FEATURED_EVENT.band} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="pointer-events-none absolute inset-0 bg-[rgba(3,34,50,.38)]" />
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-[18px] px-6 text-center text-white">
@@ -969,6 +970,9 @@ const ConferenceOnePager: React.FC = () => {
   const [page, setPage] = useState<GenericLandingPage | null>(null);
   const [loaded, setLoaded] = useState(!token);
   const [bookingOpen, setBookingOpen] = useState(false);
+  // Phones (≤767px) get the "Airbnb-model" treatment from the proposal viewer:
+  // full-bleed photo hero + brand pill, no desktop nav, sticky bottom CTA.
+  const isCompact = useIsCompact();
 
   // Desktop density: 100% zoom reads like 125% (design spec). Applied to body
   // (not a wrapper div) because compositors mis-capture zoomed subtrees, and
@@ -1066,7 +1070,8 @@ const ConferenceOnePager: React.FC = () => {
 
   return (
     <div className={`min-h-screen overflow-x-clip bg-white font-sans leading-[1.55] ${INK}`}>
-      {/* Sticky partner nav (.pn) */}
+      {/* Sticky partner nav (.pn) — desktop/tablet only; phones get the hero brand pill */}
+      {!isCompact && (
       <nav className="sticky top-0 z-40 h-16 border-b border-black/[.08] bg-white">
         <div className="flex h-full items-center justify-between px-5 md:px-7">
           <div className="flex items-center gap-3.5">
@@ -1100,12 +1105,63 @@ const ConferenceOnePager: React.FC = () => {
           </button>
         </div>
       </nav>
+      )}
 
       {bookingOpen && <BookingModal rep={cz?.bookingRep} onClose={() => setBookingOpen(false)} />}
-      <div className="mx-auto max-w-[1020px] px-[22px] py-[34px] md:px-14 md:pb-12 md:pt-16">
-        {/* Hero (variant-driven: editorial / cover / stage) */}
+
+      {/* Mobile sticky bottom CTA (pvm practice) */}
+      {isCompact && !bookingOpen && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/[.06] bg-white/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+          <button
+            onClick={() => setBookingOpen(true)}
+            className="w-full rounded-full bg-shortcut-coral py-3.5 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)]"
+          >
+            Book a call
+          </button>
+        </div>
+      )}
+      <div className={`mx-auto max-w-[1020px] px-[22px] py-[34px] md:px-14 md:pb-12 md:pt-16 ${isCompact ? 'pb-[86px] pt-0' : ''}`}>
+        {/* Hero (variant-driven: editorial / cover / stage; phones get the full-bleed pvm hero) */}
         <Reveal>
-          {heroVariant === 'stage' ? (
+          {isCompact ? (
+            <div className="-mx-[22px]">
+              <div className="relative h-[300px]">
+                <img
+                  src={`${A}/onepager/gallery/massage-event.jpg`}
+                  alt="Chair massage at a Shortcut conference event"
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/95 px-3.5 py-2 shadow-[0_3px_12px_rgba(3,34,50,.22)]">
+                  {clientName ? (
+                    <>
+                      {clientLogo ? (
+                        <img src={clientLogo} alt={clientName} className="h-5 w-auto object-contain" />
+                      ) : (
+                        <b className="text-[13px] font-extrabold text-shortcut-blue">{clientName}</b>
+                      )}
+                      <span className="h-4 w-px bg-black/10" />
+                      <span className="text-[10.5px] font-bold text-[rgba(3,34,50,.55)]">with</span>
+                      <img src={`${A}/shortcut-logo-rgb.svg`} alt="Shortcut" className="h-3.5 w-auto" />
+                    </>
+                  ) : (
+                    <img src={`${A}/shortcut-logo-rgb.svg`} alt="Shortcut" className="h-[18px] w-auto" />
+                  )}
+                </div>
+              </div>
+              <div className="relative -mt-[18px] rounded-t-[22px] bg-white px-[22px] pt-6">
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-[.14em] text-shortcut-coral">
+                  {clientName ? `Prepared for ${clientName}` : 'Retreats · Offsites · Conferences'}
+                </p>
+                <h1 className="mb-3 text-[30px] font-extrabold leading-[1.06] tracking-[-.03em] text-shortcut-blue [text-wrap:balance]">
+                  Bring wellness to life at your next event.
+                </h1>
+                <p className={`text-[16px] leading-[1.55] ${SOFT}`}>
+                  The touch on the agenda attendees love, <strong className={`${INK} font-semibold`}>and actually show up for.</strong>{' '}
+                  Massage, glow and mindfulness, fully managed by one team: you approve a date and do nothing else.
+                </p>
+              </div>
+            </div>
+          ) : heroVariant === 'stage' ? (
             <HeroStage />
           ) : heroVariant === 'cover' ? (
             <HeroCover />
@@ -1388,14 +1444,14 @@ const ConferenceOnePager: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <div className="flex flex-col bg-[linear-gradient(160deg,#0A3E5C,#06293D)] px-[38px] pb-8 pt-9 text-white">
+              <div className="flex flex-col bg-[linear-gradient(160deg,#0A3E5C,#06293D)] px-6 pb-8 pt-9 text-white md:px-[38px]">
                 <p className="mb-4 text-[11px] font-bold uppercase tracking-[.14em] text-[#9EFAFF]">Workhuman Live 2026 · The Gratitude Garden</p>
-                <h3 className="mb-3 text-[31px] font-extrabold leading-[1.04] tracking-[-.02em] text-white">The best session on the agenda had no slides.</h3>
+                <h3 className="mb-3 text-[31px] font-extrabold leading-[1.04] tracking-[-.02em] text-white">Every slot filled, doors to close.</h3>
                 <p className="max-w-[46ch] text-[14.5px] leading-[1.6] text-white/[.78]">
-                  We ran the wellness zone at Workhuman Live 2026. <b className="font-semibold text-white">Five chairs, doors to close, 400 massages.</b>{' '}
+                  We ran the wellness zone at Workhuman Live 2026. <b className="font-semibold text-white">Five chairs, three days, 400 massages.</b>{' '}
                   The waitlist never dropped below 200.
                 </p>
-                <div className="mt-auto flex gap-[34px] border-t border-white/[.18] pt-6">
+                <div className="mt-auto flex flex-wrap gap-x-[34px] gap-y-4 border-t border-white/[.18] pt-6">
                   <CsStat end={400} label="fifteen-minute massages" />
                   <CsStat end={200} suffix="+" label="on the waitlist" />
                   <CsStat end={5} label="chairs running, all three days" />
@@ -1415,7 +1471,7 @@ const ConferenceOnePager: React.FC = () => {
           </Reveal>
           <div className="mt-[30px] grid grid-cols-1 gap-[14px] md:grid-cols-[1.15fr_1fr]">
             <Reveal className="flex">
-              <div className="w-full rounded-[20px] bg-[linear-gradient(160deg,#0A3E5C,#06293D)] px-8 py-[30px] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]">
+              <div className="w-full rounded-[20px] bg-[linear-gradient(160deg,#0A3E5C,#06293D)] px-6 py-[30px] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)] md:px-8">
                 <img src={`${A}/onepager/draftkings.svg`} alt="DraftKings" className="mb-4 block h-[22px] w-auto opacity-[.92] brightness-0 invert" />
                 <p className="text-[21px] font-bold leading-[1.32] tracking-[-.02em] text-white [text-wrap:balance]">
                   Shortcut has become an extension of the DraftKings family.
@@ -1430,7 +1486,7 @@ const ConferenceOnePager: React.FC = () => {
               </div>
             </Reveal>
             <Reveal className="flex">
-              <div className="flex w-full flex-col rounded-[20px] bg-[#9EFAFF] px-8 py-[30px] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]">
+              <div className="flex w-full flex-col rounded-[20px] bg-[#9EFAFF] px-6 py-[30px] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)] md:px-8">
                 <img src={`${A}/onepager/logos/teads.svg`} alt="Teads" className="mb-[14px] block h-[30px] w-auto self-start" />
                 <p className="text-[17px] font-bold leading-[1.42] tracking-[-.01em] text-[#003756]">
                   They go above and beyond to make each event tailored to our team. An atmosphere that's both relaxing and enjoyable.
@@ -1482,7 +1538,7 @@ const ConferenceOnePager: React.FC = () => {
           </Reveal>
           <Reveal>
             <div className="mt-[30px] grid grid-cols-1 overflow-hidden rounded-[22px] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)] md:grid-cols-2">
-              <div className="flex flex-col bg-[#FEDC64] px-[34px] pb-5 pt-[30px] text-[#003756]">
+              <div className="flex flex-col bg-[#FEDC64] px-6 pb-5 pt-[30px] text-[#003756] md:px-[34px]">
                 <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[.14em]">For your sponsor prospectus</p>
                 <h3 className="mb-[22px] max-w-[16ch] text-[26px] font-extrabold leading-[1.12] tracking-[-.02em]">
                   10x the conversations. Every sign-up a lead.
@@ -1522,7 +1578,7 @@ const ConferenceOnePager: React.FC = () => {
         {/* CTA band */}
         <section className="my-[60px]">
           <Reveal>
-            <div className="rounded-[24px] bg-[linear-gradient(160deg,#FF6A5A,#FF5050)] px-10 py-[38px] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]">
+            <div className="rounded-[24px] bg-[linear-gradient(160deg,#FF6A5A,#FF5050)] px-6 py-7 shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)] md:px-10 md:py-[38px]">
               <h2 className="mb-3 text-[24px] font-extrabold tracking-[-.02em] text-white">The best thing on the agenda</h2>
               <p className="max-w-[54ch] text-[15.5px] text-white/[.92]">
                 Tell us your dates, headcount and city. We'll send a package shaped to your event <b className="font-semibold text-white">within one business day.</b>
