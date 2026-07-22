@@ -142,12 +142,29 @@ app.event('message', async ({ event, client }) => {
     await client.reactions.add({ channel: event.channel, name: 'thinking_face', timestamp: event.ts }).catch(() => {});
     const threadKey = event.thread_ts || event.ts;
     const sessions = loadSessions();
-    const { text: reply, sessionId, costUsd } = await runClaude(text, sessions[threadKey]);
-    if (sessionId) { sessions[threadKey] = sessionId; saveSessions(sessions); }
+    // Per-thread meter: {id, turns, cost}. Older entries were bare sessionId strings.
+    const prev = sessions[threadKey];
+    const meter = (prev && typeof prev === 'object') ? prev : { id: (typeof prev === 'string' ? prev : null), turns: 0, cost: 0 };
+    const { text: reply, sessionId, costUsd } = await runClaude(text, meter.id);
+    meter.id = sessionId || meter.id;
+    meter.turns += 1;
+    const prevCost = meter.cost;
+    meter.cost += costUsd || 0;
+    sessions[threadKey] = meter;
+    saveSessions(sessions);
     record('chat', costUsd);
+    // THREAD-LENGTH WARNING (Will, 2026-07-21): every reply reloads the whole thread, so
+    // cost per message grows with thread length (the 4.6MB mega-thread problem). Warn when
+    // the thread crosses each $10 (API-rate) boundary or every 15 turns.
+    const crossedCost = Math.floor(meter.cost / 10) > Math.floor(prevCost / 10);
+    const crossedTurns = meter.turns > 0 && meter.turns % 15 === 0;
+    const threadWarning = (crossedCost || crossedTurns)
+      ? `\n\n_⚠️ Thread meter: ${meter.turns} turns, ~$${meter.cost.toFixed(0)} at API rates. Each reply reloads this whole thread — a fresh DM resets the meter, and my brain files carry everything forward._`
+      : '';
     // Slack hard-caps message length; chunk long replies.
-    for (let i = 0; i < reply.length; i += 3800) {
-      await client.chat.postMessage({ channel: event.channel, thread_ts: threadKey, text: reply.slice(i, i + 3800) });
+    const outText = reply + threadWarning;
+    for (let i = 0; i < outText.length; i += 3800) {
+      await client.chat.postMessage({ channel: event.channel, thread_ts: threadKey, text: outText.slice(i, i + 3800) });
     }
     await client.reactions.remove({ channel: event.channel, name: 'thinking_face', timestamp: event.ts }).catch(() => {});
     await client.reactions.add({ channel: event.channel, name: 'white_check_mark', timestamp: event.ts }).catch(() => {});
