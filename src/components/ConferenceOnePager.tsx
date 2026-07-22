@@ -353,14 +353,90 @@ const COVER_CARD_COLORS: Record<string, { bg: string; cap: string }> = {
 
 // Hero Stage (variant C) slides: real event photos; 'fit' slides letterbox the
 // photo over a blurred copy.
+const GAL = 'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v1/object/public/proposal-gallery';
 const STAGE_SLIDES: { src: string; tag: string; pos: string; fit?: boolean }[] = [
   { src: `${A}/onepager/gallery/massage-event.jpg`, tag: 'Massage', pos: '' },
+  { src: `${GAL}/hair/1784325543659-edz1yh.jpg`, tag: 'Hair & beauty', pos: '', fit: true },
+  { src: `${GAL}/nails/1784325589704-cw5v3l.jpg`, tag: 'Nails', pos: '' },
   { src: `${A}/onepager/gallery/dance-cardio-gallery.jpg`, tag: 'Dance cardio', pos: '' },
   { src: `${A}/onepager/gallery/reiki-gallery.jpg`, tag: 'Reiki', pos: '', fit: true },
   { src: `${A}/onepager/gallery/movement-gallery.jpg`, tag: 'Movement', pos: '', fit: true },
   { src: `${A}/onepager/svc/crystal-sound-bath-rooftop.webp`, tag: 'Sound bath', pos: 'object-[center_45%]' },
   { src: `${A}/onepager/svc/stretch-mobility.webp`, tag: 'Assisted stretch', pos: 'object-[center_40%]' },
 ];
+
+// Featured event band + fullscreen gallery modal (Shortcut × TradeStation).
+// Swap images here; the counter and arrows follow the array length.
+const FEATURED_EVENT = {
+  label: 'Shortcut × TradeStation',
+  band: `${A}/tradestation/ts-hair-1.jpg`,
+  images: [
+    `${A}/tradestation/ts-hair-1.jpg`,
+    `${A}/tradestation/ts-hair-2.jpg`,
+    `${A}/tradestation/ts-hair-3.jpg`,
+    `${A}/tradestation/ts-pedro.jpg`,
+  ],
+};
+
+const FeaturedEvent: React.FC = () => {
+  const [open, setOpen] = useState(false);
+  const [idx, setIdx] = useState(0);
+  const n = FEATURED_EVENT.images.length;
+  const step = (d: number) => setIdx(i => (i + d + n) % n);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+      else if (e.key === 'ArrowLeft') step(-1);
+      else if (e.key === 'ArrowRight') step(1);
+    };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+  return (
+    <section>
+      <div className="relative mt-[30px] h-[560px] w-screen overflow-hidden ml-[calc(50%-50vw)] min-[1100px]:w-[80vw] min-[1100px]:ml-[calc(50%-40vw)]">
+        <img src={FEATURED_EVENT.band} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="pointer-events-none absolute inset-0 bg-[rgba(3,34,50,.38)]" />
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-[18px] px-6 text-center text-white">
+          <p className="text-[12px] font-extrabold uppercase tracking-[.16em] opacity-85">Featured event</p>
+          <h3 className="text-[clamp(38px,4.6vw,56px)] font-extrabold leading-[1.04] tracking-[-.02em] [text-shadow:0_2px_24px_rgba(3,34,50,.35)]">{FEATURED_EVENT.label}</h3>
+          <button
+            onClick={() => { setIdx(0); setOpen(true); }}
+            className="pointer-events-auto mt-1.5 rounded-full bg-white px-[26px] py-[13px] text-[14px] font-bold text-[#003756] shadow-[0_4px_14px_rgba(3,34,50,.3)]"
+          >
+            View gallery
+          </button>
+        </div>
+      </div>
+      {open && (
+        <div role="dialog" aria-label={`${FEATURED_EVENT.label} gallery`} className="fixed inset-0 z-[200] flex flex-col bg-[rgba(4,16,24,.97)] print:hidden">
+          <div className="flex items-center justify-between px-7 py-5 text-white">
+            <span className="text-[13px] font-bold uppercase tracking-[.1em] text-white/70">{FEATURED_EVENT.label}</span>
+            <button onClick={() => setOpen(false)} aria-label="Close" className="px-2.5 py-1 text-[30px] leading-none">×</button>
+          </div>
+          <div className="relative mx-auto min-h-0 w-[min(1100px,92vw)] flex-1">
+            {FEATURED_EVENT.images.map((src, i) => (
+              <div key={src} className={`absolute inset-0 ${i === idx ? 'block' : 'hidden'}`}>
+                <img src={src} alt={`${FEATURED_EVENT.label} photo ${i + 1}`} className="h-full w-full rounded-[14px] object-contain" />
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-center gap-[22px] pb-6 pt-[18px]">
+            <button onClick={() => step(-1)} aria-label="Previous" className="h-11 w-11 rounded-full border border-white/40 text-[17px] text-white hover:bg-white/[.12]">←</button>
+            <span className="min-w-[52px] text-center text-[14px] font-semibold text-white/80">{idx + 1} / {n}</span>
+            <button onClick={() => step(1)} aria-label="Next" className="h-11 w-11 rounded-full border border-white/40 text-[17px] text-white hover:bg-white/[.12]">→</button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
 
 const ROT_WORDS = ['conference', 'retreat', 'offsite'];
 
@@ -834,6 +910,25 @@ const ConferenceOnePager: React.FC = () => {
   const { getGenericLandingPage } = useGenericLandingPage();
   const [page, setPage] = useState<GenericLandingPage | null>(null);
   const [loaded, setLoaded] = useState(!token);
+
+  // Desktop density: 100% zoom reads like 125% (design spec). Applied to body
+  // (not a wrapper div) because compositors mis-capture zoomed subtrees, and
+  // reset for print so the sheet stays 1:1. Scoped to this route via cleanup.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1100px)');
+    const apply = () => document.body.style.setProperty('zoom', mq.matches ? '1.25' : '');
+    const clear = () => document.body.style.setProperty('zoom', '');
+    apply();
+    mq.addEventListener('change', apply);
+    window.addEventListener('beforeprint', clear);
+    window.addEventListener('afterprint', apply);
+    return () => {
+      clear();
+      mq.removeEventListener('change', apply);
+      window.removeEventListener('beforeprint', clear);
+      window.removeEventListener('afterprint', apply);
+    };
+  }, []);
   const [modalIdx, setModalIdx] = useState<number | null>(null);
   const serviceGallery = useServiceGallery();
   const [caseIdx, setCaseIdx] = useState(0);
@@ -911,7 +1006,7 @@ const ConferenceOnePager: React.FC = () => {
   const divider = <hr className="my-14 h-px border-0 bg-[#E2E9E8]" />;
 
   return (
-    <div className={`min-h-screen bg-white font-sans leading-[1.55] ${INK}`}>
+    <div className={`min-h-screen overflow-x-clip bg-white font-sans leading-[1.55] ${INK}`}>
       {/* Sticky partner nav (.pn) */}
       <nav className="sticky top-0 z-40 h-16 border-b border-black/[.08] bg-white">
         <div className="mx-auto flex h-full max-w-[1020px] items-center justify-between px-5 md:px-8">
@@ -1154,6 +1249,9 @@ const ConferenceOnePager: React.FC = () => {
             </section>
           </>
         )}
+
+        {/* Featured event band (.tsx) + fullscreen gallery modal (.tsg) */}
+        <FeaturedEvent />
 
         {divider}
 
