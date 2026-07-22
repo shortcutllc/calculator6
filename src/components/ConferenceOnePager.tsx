@@ -155,7 +155,7 @@ const SERVICES: ServiceDef[] = [
       { t: '40 or 60-min intro courses' },
       { t: 'Onstage, in breakouts, or on Zoom' },
     ],
-    meta: 'Guided sessions · in person or virtual',
+    meta: 'Guided sessions · any group size',
   },
   {
     id: 'sound-bath', title: 'Sound bath', sub: 'Crystal bowls, 30 or 60 min',
@@ -174,7 +174,7 @@ const SERVICES: ServiceDef[] = [
       { t: 'In-person, virtual or hybrid' },
       { t: 'Sit or lie down. No experience needed' },
     ],
-    meta: 'Group session · 30 or 60 min',
+    meta: 'Group session · any group size',
   },
   {
     id: 'yoga', title: 'Yoga', sub: 'Chair or mat, in person or virtual',
@@ -193,7 +193,7 @@ const SERVICES: ServiceDef[] = [
       { t: 'Vinyasa or restorative + yin (60 min)' },
       { t: 'Virtual livestream for remote teams' },
     ],
-    meta: 'Group class · chair or mat',
+    meta: 'Group class · any group size',
   },
   {
     id: 'strength-sculpt', title: 'Strength & sculpt', sub: 'Bodyweight, bands or light weights',
@@ -212,7 +212,7 @@ const SERVICES: ServiceDef[] = [
       { t: 'In-person or live over video' },
       { t: 'Bodyweight, dumbbells or bands' },
     ],
-    meta: 'Group class · 30 or 60 min',
+    meta: 'Group class · any group size',
   },
   {
     id: 'dance-cardio', title: 'Dance cardio', sub: 'Simple moves, full-out to low-impact',
@@ -231,7 +231,7 @@ const SERVICES: ServiceDef[] = [
       { t: 'In-person or live over video' },
       { t: 'Comfortable clothes, no experience' },
     ],
-    meta: 'Group class · 30 or 60 min',
+    meta: 'Group class · any group size',
   },
   {
     id: 'somatic-movement', title: 'Somatic movement', sub: 'Guided movement + crystal sound bath',
@@ -250,7 +250,7 @@ const SERVICES: ServiceDef[] = [
       { t: 'In-person at your venue' },
       { t: 'Standing, seated or on the floor' },
     ],
-    meta: 'Movement + bowls · 30 or 60 min',
+    meta: 'Movement + bowls · any group size',
   },
   {
     id: 'assisted-stretch', title: 'Assisted stretch', sub: 'One-on-one, fully clothed, 10–20 min',
@@ -1170,7 +1170,7 @@ const ConferenceOnePager: React.FC = () => {
             </Reveal>
             <Reveal className="flex">
               <div className="flex w-full flex-col overflow-hidden rounded-[20px] bg-[linear-gradient(160deg,#FF6A5A,#FF5050)] px-7 pt-[26px] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]">
-                <p className="mb-[10px] text-[11px] font-bold uppercase tracking-[.14em] text-white/85">Three taps to booked</p>
+                <p className="mb-[10px] text-[11px] font-bold uppercase tracking-[.14em] text-white/85">Self-serve booking</p>
                 <h3 className="mb-2 text-[23px] font-extrabold leading-[1.04] tracking-[-.02em] text-white">Booking in three taps.</h3>
                 <p className="text-[13.5px] leading-[1.5] text-white/[.88]">No spreadsheets, no chasing. Attendees grab their own slot.</p>
                 <div className="mt-auto flex justify-center pt-[18px]">
@@ -1213,11 +1213,11 @@ const ConferenceOnePager: React.FC = () => {
                 </div>
               </div>
               <div className="flex flex-col bg-[linear-gradient(160deg,#0A3E5C,#06293D)] px-[38px] pb-8 pt-9 text-white">
-                <p className="mb-4 text-[11px] font-bold uppercase tracking-[.14em] text-[#9EFAFF]">Workhuman Live 2026 · Zen Zone</p>
+                <p className="mb-4 text-[11px] font-bold uppercase tracking-[.14em] text-[#9EFAFF]">Workhuman Live 2026 · The Gratitude Garden</p>
                 <h3 className="mb-3 text-[31px] font-extrabold leading-[1.04] tracking-[-.02em] text-white">Fifteen minutes that feel like an hour off.</h3>
                 <p className="max-w-[46ch] text-[14.5px] leading-[1.6] text-white/[.78]">
-                  Five chairs running from doors to close, <b className="font-semibold text-white">set up before the keynote and gone by 6pm.</b>{' '}
-                  Four hundred massages later, the waitlist was still two hundred deep.
+                  We ran the wellness zone at Workhuman Live 2026. <b className="font-semibold text-white">Five chairs, doors to close, 400 massages.</b>{' '}
+                  The waitlist never dropped below 200.
                 </p>
                 <div className="mt-auto flex gap-[34px] border-t border-white/[.18] pt-6">
                   <CsStat end={400} label="fifteen-minute massages" />
@@ -1309,13 +1309,13 @@ const ConferenceOnePager: React.FC = () => {
               <div className="flex flex-col bg-[#FEDC64] px-[34px] pb-5 pt-[30px] text-[#003756]">
                 <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[.14em]">For your sponsor prospectus</p>
                 <h3 className="mb-[22px] max-w-[16ch] text-[26px] font-extrabold leading-[1.12] tracking-[-.02em]">
-                  The booth with the waitlist, wearing their logo.
+                  10x the conversations. Every sign-up a lead.
                 </h3>
                 <div className="flex flex-1 flex-col">
                   {[
-                    { t: 'Fully brandable', d: 'Zone, signage, booking flow, follow-up.' },
-                    { t: 'Real engagement', d: "15 relaxed minutes with the sponsor's brand." },
-                    { t: 'Real leads', d: 'Every sign-up flows to their sales team.' },
+                    { t: 'Maximum engagement', d: "A booth with a waitlist. Attendees spend 15 relaxed minutes with the sponsor's brand." },
+                    { t: '10x the leads', d: 'Every booking captures a contact and flows straight to their sales team.' },
+                    { t: 'Their name on all of it', d: 'Zone, signage, booking flow and follow-up, fully branded.' },
                   ].map((row, i) => (
                     <div key={row.t} className="flex flex-1 items-center gap-[18px] border-t border-[rgba(0,55,86,.25)] py-[14px]">
                       <span className="text-[12px] font-extrabold tracking-[.06em]">{String(i + 1).padStart(2, '0')}</span>
