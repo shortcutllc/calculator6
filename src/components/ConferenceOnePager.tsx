@@ -354,11 +354,10 @@ const COVER_CARD_COLORS: Record<string, { bg: string; cap: string }> = {
 // Hero Stage (variant C) slides: real event photos; 'fit' slides letterbox the
 // photo over a blurred copy.
 const STAGE_SLIDES = [
-  { src: `${A}/onepager/gallery/massage-event.jpg`, tag: 'Massage', fit: false },
-  { src: `${A}/onepager/gallery/somatic-event.webp`, tag: 'Movement', fit: false },
-  { src: `${A}/onepager/gallery/wix-event.png`, tag: 'Table massage', fit: true },
-  { src: `${A}/onepager/gallery/reiki-event.webp`, tag: 'Recovery', fit: true },
-  { src: `${A}/onepager/gallery/draftkings-event.jpg`, tag: 'Your onsite team', fit: true },
+  { src: `${A}/onepager/gallery/massage-event.jpg`, tag: 'Massage', pos: '' },
+  { src: `${A}/onepager/gallery/somatic-event.webp`, tag: 'Movement', pos: '' },
+  { src: `${A}/onepager/svc/crystal-sound-bath-rooftop.webp`, tag: 'Sound bath', pos: 'object-[center_45%]' },
+  { src: `${A}/onepager/svc/stretch-mobility.webp`, tag: 'Assisted stretch', pos: 'object-[center_40%]' },
 ];
 
 const ROT_WORDS = ['conference', 'retreat', 'offsite'];
@@ -488,8 +487,7 @@ const HeroStage: React.FC = () => {
       <div className="relative mt-[34px] h-[320px] overflow-hidden rounded-[24px] bg-white text-left shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)] md:h-[480px]">
         {STAGE_SLIDES.map((s, i) => (
           <div key={s.src} className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? 'opacity-100' : 'opacity-0'}`} aria-hidden={i !== idx}>
-            {s.fit && <img src={s.src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-[1.12] object-cover blur-[20px] brightness-[.72]" />}
-            <img src={s.src} alt={s.tag} className={`absolute inset-0 h-full w-full ${s.fit ? 'z-[1] object-contain' : 'object-cover'}`} />
+            <img src={s.src} alt={s.tag} className={`absolute inset-0 h-full w-full object-cover ${s.pos}`} />
             <span className="absolute bottom-[18px] left-[18px] z-[2] rounded-full bg-white px-4 py-[9px] text-[12px] font-extrabold uppercase tracking-[.08em] text-[#003756] shadow-[0_3px_12px_rgba(3,34,50,.22)]">{s.tag}</span>
           </div>
         ))}
@@ -694,7 +692,7 @@ const ServiceModal: React.FC<{ index: number; galleryImages: string[]; onClose: 
         onClick={e => e.stopPropagation()}
       >
         <div className="grid max-h-[calc(100vh-56px)] grid-cols-1 md:min-h-[520px] md:grid-cols-[44%_56%]">
-          <div className="relative hidden bg-[#EAF7F9] md:block">
+          <div className="relative h-[200px] bg-[#EAF7F9] md:h-auto">
             {images.map((src, i) => (
               <img
                 key={src}
@@ -1150,7 +1148,8 @@ const ConferenceOnePager: React.FC = () => {
           </Reveal>
           <div className="mt-[30px] grid grid-cols-1 items-stretch gap-[14px] md:grid-cols-[1.25fr_1fr]">
             <Reveal className="flex">
-              <div className={`w-full rounded-[20px] border ${LINE} bg-white px-[30px] py-7 shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]`}>
+              <div className="w-full rounded-[20px] bg-[linear-gradient(155deg,#9EFAFF,#4FD4E4)] px-7 py-[26px] text-[#003756] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]">
+                <p className="mb-[18px] text-[10.5px] font-extrabold uppercase tracking-[.12em] text-[#003756]">How it works</p>
                 <ol className="grid gap-4">
                   {[
                     { t: 'Share the agenda.', d: 'We map stations and sessions to your schedule, space and headcount.' },
@@ -1158,11 +1157,11 @@ const ConferenceOnePager: React.FC = () => {
                     { t: 'We run the day.', d: 'Pros, gear, signage and a wrap report with participation stats. You do nothing else.' },
                   ].map((step, i) => (
                     <li key={step.t} className="grid grid-cols-[34px_1fr] items-start gap-[14px]">
-                      <span className="grid h-[34px] w-[34px] place-items-center rounded-[10px] bg-shortcut-coral text-[15px] font-bold text-white [font-variant-numeric:tabular-nums]">
+                      <span className="grid h-[34px] w-[34px] place-items-center rounded-[10px] bg-shortcut-blue text-[15px] font-extrabold text-white [font-variant-numeric:tabular-nums]">
                         {i + 1}
                       </span>
-                      <p className={`pt-[5px] text-[15px] ${SOFT}`}>
-                        <b className={`${INK} font-semibold`}>{step.t}</b> {step.d}
+                      <p className="pt-[5px] text-[15px] text-[#0A4560]">
+                        <b className="font-bold text-[#003756]">{step.t}</b> {step.d}
                       </p>
                     </li>
                   ))}
@@ -1303,7 +1302,7 @@ const ConferenceOnePager: React.FC = () => {
         <section className="my-[60px]">
           <Reveal>
             <SectionLabel>Sponsorships</SectionLabel>
-            <Statement main="Make it pay for itself." dim="Sell the wellness zone to a sponsor. They pay, their logo goes on it." />
+            <Statement main="Make it pay for itself." dim="A sponsor picks up the tab." />
           </Reveal>
           <Reveal>
             <div className="mt-[30px] grid grid-cols-1 overflow-hidden rounded-[22px] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)] md:grid-cols-2">
