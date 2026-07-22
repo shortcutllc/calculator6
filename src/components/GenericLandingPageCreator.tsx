@@ -656,6 +656,23 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             />
           </div>
 
+          {/* Conference salesperson — owns the Book a call calendar on the page */}
+          {options.pageType === 'conference' && (
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-gray-900">Salesperson</h3>
+            <p className="text-sm text-gray-500">Book a call opens this person's calendar, right on the page.</p>
+            <select
+              value={options.customization.bookingRep || 'Will Newton'}
+              onChange={(e) => handleFieldChange('customization.bookingRep', e.target.value)}
+              className="w-full max-w-xs px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+            >
+              {Object.keys(SENDER_TO_CALENDAR).map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+          )}
+
           {/* Conference section design variants */}
           {options.pageType === 'conference' && (
           <div className="space-y-4">

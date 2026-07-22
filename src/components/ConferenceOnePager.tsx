@@ -4,6 +4,7 @@ import { useGenericLandingPage } from '../contexts/GenericLandingPageContext';
 import { supabase } from '../lib/supabaseClient';
 import { GenericLandingPage, ConferencePackageOverride } from '../types/genericLandingPage';
 import { CONFERENCE_PACKAGES, CONFERENCE_BUNDLES, ConferencePkgBar } from '../utils/conferencePackages';
+import { SENDER_TO_CALENDAR } from '../utils/workhumanOutreachTemplates';
 
 // ---------------------------------------------------------------------------
 // Retreats & Conferences one-pager. Faithful recreation of the design handoff
@@ -439,6 +440,56 @@ const FeaturedEvent: React.FC = () => {
 };
 
 const ROT_WORDS = ['conference', 'retreat', 'offsite'];
+
+// Book-a-call: resolve the page's assigned salesperson to their Google
+// appointment-schedule embed (same mapping the book-a-call pages use).
+const resolveBooking = (rep?: string | null) => {
+  const name = rep && SENDER_TO_CALENDAR[rep as keyof typeof SENDER_TO_CALENDAR] ? rep : 'Will Newton';
+  const openUrl = SENDER_TO_CALENDAR[name as keyof typeof SENDER_TO_CALENDAR] || '';
+  const m = openUrl.match(/\/appointments\/schedules\/([^?]+)/);
+  return {
+    embedUrl: m ? `https://calendar.google.com/calendar/appointments/schedules/${m[1]}?gv=true` : null,
+    openUrl,
+    first: name.split(' ')[0],
+  };
+};
+
+const BookingModal: React.FC<{ rep?: string | null; onClose: () => void }> = ({ rep, onClose }) => {
+  const { embedUrl, openUrl, first } = resolveBooking(rep);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[rgba(4,16,24,.6)] p-4 print:hidden" onClick={onClose}>
+      <div
+        className="flex h-[min(760px,92vh)] w-[min(980px,96vw)] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_24px_80px_rgba(3,34,50,.35)]"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-black/[.08] px-6 py-4">
+          <span className="text-[15px] font-extrabold text-shortcut-blue">Book a call with {first}</span>
+          <button onClick={onClose} aria-label="Close" className="px-2 text-[26px] leading-none text-shortcut-blue/60 hover:text-shortcut-blue">×</button>
+        </div>
+        {embedUrl ? (
+          <iframe src={embedUrl} title={`Book a call with ${first}`} className="w-full flex-1 border-0" />
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+            <p className={`max-w-[40ch] text-[15px] ${SOFT}`}>{first}'s calendar opens in a new tab.</p>
+            <a href={openUrl} target="_blank" rel="noreferrer" className="rounded-full bg-shortcut-coral px-6 py-3 text-[14px] font-bold text-white">
+              Open {first}'s calendar
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // Good-to-know Cards (rail variant): 6 gradient cards, desc reveals on tap.
 const GTK_CARDS = [
@@ -910,6 +961,7 @@ const ConferenceOnePager: React.FC = () => {
   const { getGenericLandingPage } = useGenericLandingPage();
   const [page, setPage] = useState<GenericLandingPage | null>(null);
   const [loaded, setLoaded] = useState(!token);
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   // Desktop density: 100% zoom reads like 125% (design spec). Applied to body
   // (not a wrapper div) because compositors mis-capture zoomed subtrees, and
@@ -1009,7 +1061,7 @@ const ConferenceOnePager: React.FC = () => {
     <div className={`min-h-screen overflow-x-clip bg-white font-sans leading-[1.55] ${INK}`}>
       {/* Sticky partner nav (.pn) */}
       <nav className="sticky top-0 z-40 h-16 border-b border-black/[.08] bg-white">
-        <div className="mx-auto flex h-full max-w-[1020px] items-center justify-between px-5 md:px-8">
+        <div className="flex h-full items-center justify-between px-5 md:px-7">
           <div className="flex items-center gap-3.5">
             {clientName ? (
               <>
@@ -1033,14 +1085,16 @@ const ConferenceOnePager: React.FC = () => {
               <img src={`${A}/shortcut-logo-rgb.svg`} alt="Shortcut" className="block h-[26px] w-auto" />
             )}
           </div>
-          <a
-            href="/book-a-call"
+          <button
+            onClick={() => setBookingOpen(true)}
             className="rounded-full bg-shortcut-coral px-5 py-2.5 text-[14px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)]"
           >
             Book a call
-          </a>
+          </button>
         </div>
       </nav>
+
+      {bookingOpen && <BookingModal rep={cz?.bookingRep} onClose={() => setBookingOpen(false)} />}
       <div className="mx-auto max-w-[1020px] px-[22px] py-[34px] md:px-14 md:pb-12 md:pt-16">
         {/* Hero (variant-driven: editorial / cover / stage) */}
         <Reveal>
@@ -1467,12 +1521,12 @@ const ConferenceOnePager: React.FC = () => {
                 Tell us your dates, headcount and city. We'll send a package shaped to your event <b className="font-semibold text-white">within one business day.</b>
               </p>
               <div className="mt-[18px] flex flex-wrap items-center gap-x-[22px] gap-y-[14px]">
-                <a
-                  href="/book-a-call"
+                <button
+                  onClick={() => setBookingOpen(true)}
                   className="inline-block rounded-[12px] bg-[#9EFAFF] px-[26px] py-[13px] text-[15px] font-bold text-[#003756]"
                 >
                   Book a 15-min call
-                </a>
+                </button>
                 <span className="text-[15px] font-normal text-white/85">or reply with your dates and we'll take it from there.</span>
               </div>
             </div>
