@@ -63,7 +63,7 @@ export const SERVICE_DESC: Record<string, string> = {
     'One-on-one assisted stretching with a certified specialist. Ten to twenty-minute appointments, rotating through your team like a massage day. Targeted release for desk-related tightness in the neck, shoulders, hips, and lower back. Fully clothed, no oils.',
   // 2026 movement & sound services (approved copy, gated via brand voice guide).
   reiki:
-    'One-on-one Reiki sessions, right in the office. A trained practitioner guides each person through fifteen or sixty minutes of grounding and deep rest that calms the nervous system, fully clothed, seated or lying down. A real reset, no talking or performing required.',
+    'One-on-one Reiki sessions, right in the office. A trained practitioner guides each person through twenty minutes of grounding and deep rest that calms the nervous system, fully clothed, seated or lying down. A real reset, no talking or performing required.',
   'crystal-sound-bath':
     'A group sound bath built around crystal singing bowls. Your team settles in, eyes closed, and lets the tones do the work while a facilitator holds the room. Thirty or sixty minutes of stillness, no experience or gear required.',
   'somatic-sound-bath':

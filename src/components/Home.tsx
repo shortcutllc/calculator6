@@ -322,10 +322,11 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0,
     stretchType: 'chair'
   },
-  // Reiki Reset — individual appointment service modeled on massage. Client
-  // rate $200/hr; 15 or 60-min sessions (admin sets appTime per proposal).
+  // Reiki Reset — individual appointment service modeled on massage: per-person
+  // appointments, default 20 min (Will, 2026-07-21). Client rate $200/hr; admin
+  // can set longer sessions per proposal.
   reiki: {
-    appTime: 60,
+    appTime: 20,
     totalHours: 4,
     numPros: 2,
     proHourly: 50,
