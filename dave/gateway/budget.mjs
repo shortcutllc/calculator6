@@ -15,8 +15,11 @@ const FILE = path.join(STATE_DIR, 'budget.json');
 // RAISED 2026-07-21 (Will's call, with receipts): a full build week + Dave's heaviest
 // session used 16% of the weekly Max pool, so the caps were rationing nothing. They stay
 // because their real job is catching a runaway loop, not metering normal work.
+// 50→75 (2026-07-21 pm): the 50 tripped legitimately on day-one build intensity (47 chat
+// turns). Steady state is 5-10 calls/day; the cap is a runaway alarm, not a meter. The real
+// cost lever is fresh-threads-per-topic — thread resume made afternoon calls ~$4-6 each.
 export const CAPS = {
-  frontier_calls: 50,   // opus-class invocations/day (jobs + chat)
+  frontier_calls: 75,   // opus-class invocations/day (jobs + chat)
   job_calls: 25,        // scheduled-job invocations/day (subset of the above)
 };
 
