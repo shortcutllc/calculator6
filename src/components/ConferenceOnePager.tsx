@@ -406,7 +406,7 @@ const RotatingWord: React.FC = () => {
     >
       <span
         onTransitionEnd={onEnd}
-        className={`relative block [transform-style:preserve-3d] ${noAnim ? '' : 'transition-transform duration-[550ms] ease-[cubic-bezier(.45,.05,.18,1)]'} ${going ? '[transform:rotateX(-90deg)]' : ''}`}
+        className={`relative block [transform-style:preserve-3d] ${noAnim ? '' : 'transition-transform duration-[550ms] ease-[cubic-bezier(.45,.05,.18,1)]'} ${going ? '[transform:translateZ(-.515em)_rotateX(-90deg)]' : '[transform:translateZ(-.515em)]'}`}
       >
         {/* current word stays in flow so the h1 baseline comes from real text */}
         <span className="inline-block whitespace-pre [backface-visibility:hidden] [transform:translateZ(.515em)]">{ROT_WORDS[idx]}</span>
