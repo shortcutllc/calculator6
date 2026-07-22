@@ -373,9 +373,16 @@ const FEATURED_EVENT = {
   band: `${A}/tradestation/ts-hair-1.jpg`,
   images: [
     `${A}/tradestation/ts-hair-1.jpg`,
+    `${A}/tradestation/ts-event-8.jpg`,
+    `${A}/tradestation/ts-event-15.jpg`,
     `${A}/tradestation/ts-hair-2.jpg`,
+    `${A}/tradestation/ts-event-20.jpg`,
+    `${A}/tradestation/ts-event-26.jpg`,
     `${A}/tradestation/ts-hair-3.jpg`,
+    `${A}/tradestation/ts-event-51.jpg`,
+    `${A}/tradestation/ts-event-52.jpg`,
     `${A}/tradestation/ts-pedro.jpg`,
+    `${A}/tradestation/ts-event-90.jpg`,
   ],
 };
 
