@@ -23,28 +23,28 @@ const A = '/conference';
 
 export const CONFERENCE_PACKAGES: ConferencePackageDef[] = [
   {
-    id: 'reset-zone', name: 'The Reset Zone', image: `${A}/services/massage-v2.png`, bar: 'navy', popular: true,
+    id: 'reset-zone', name: 'The Reset Zone', image: `${A}/services/massage-v2.png`, bar: 'cyan', popular: true,
     meta: 'Chair massage · 15–20 min/service',
     desc: 'A calm corner with relaxing chair massage and soothing scents. The quick recharge between sessions everyone lines up for.',
     bullets: ['Licensed therapists, 2 chairs to 40+', '24–32 appointments per day at this size, scales to 1,100+', 'Privacy screens, scents & setup included'],
     price: '$1,200', unit: 'per day · 2 therapists × 4 hrs',
   },
   {
-    id: 'glow-lounge', name: 'The Glow Lounge', image: `${A}/services/hair-v2.png`, bar: 'cyan',
+    id: 'glow-lounge', name: 'The Glow Lounge', image: `${A}/services/hair-v2.png`, bar: 'pink',
     meta: 'Hair, hair & makeup, or facials · 20–30 min/service',
     desc: 'Pick your glow. Hair styling, hair & makeup, or express facials. A mid-event reset that shows.',
     bullets: ['Choose one service per station', 'Licensed stylists & estheticians', '16–24 appointments per day'],
     price: '$1,200', unit: 'per day · 2 pros × 4 hrs',
   },
   {
-    id: 'polish-bar', name: 'The Polish Bar', image: `${A}/services/nails.png`, bar: 'pink',
+    id: 'polish-bar', name: 'The Polish Bar', image: `${A}/services/nails.png`, bar: 'sun',
     meta: 'Express manicures · 20–30 min/service',
     desc: 'A clean, polished touch. Express manicures that feel like a treat. Simple, elevated, and always appreciated.',
     bullets: ['Licensed nail technicians', '16–24 appointments per day', 'Dry service, no plumbing, no fumes'],
     price: '$1,200', unit: 'per day · 2 techs × 4 hrs',
   },
   {
-    id: 'mindful-reset', name: 'The Mindful Reset', image: `${A}/services/mindfulness.png`, bar: 'sun',
+    id: 'mindful-reset', name: 'The Mindful Reset', image: `${A}/services/mindfulness.png`, bar: 'navy',
     meta: 'Facilitated sessions · 30–60 min',
     desc: 'Live guided sessions threaded through your agenda. An arrival drop-in, a post-keynote reset, a closing reflection your team takes home.',
     bullets: ['Expert facilitator, up to 100 participants', 'Breathwork, body scans & mindful movement', 'Works onstage, in breakouts, or on Zoom'],

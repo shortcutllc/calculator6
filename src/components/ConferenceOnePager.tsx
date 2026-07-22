@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGenericLandingPage } from '../contexts/GenericLandingPageContext';
+import { supabase } from '../lib/supabaseClient';
 import { GenericLandingPage, ConferencePackageOverride } from '../types/genericLandingPage';
 import { CONFERENCE_PACKAGES, CONFERENCE_BUNDLES, ConferencePkgBar } from '../utils/conferencePackages';
 
@@ -446,11 +447,17 @@ const GtkCardsRail: React.FC = () => {
           >
             <div className={`text-[10.5px] font-extrabold uppercase tracking-[.12em] ${card.dk ? 'text-[#9EFAFF]' : ''}`}>{card.kick}</div>
             <div className="mt-[9px] max-w-[10ch] text-[23px] font-extrabold leading-[1.1] tracking-[-.015em]">{card.title}</div>
-            <div className={`mt-3 max-w-[26ch] text-[14.5px] font-semibold leading-[1.5] transition-all duration-300 ${card.dk ? 'text-white/90' : 'text-[#003756]'} ${open[i] ? 'translate-y-0 opacity-100' : 'translate-y-1.5 opacity-0'}`}>
+            <div className={`mt-3 max-w-[26ch] text-[14.5px] font-semibold leading-[1.5] transition-all duration-300 ${card.dk ? 'text-white' : 'text-[#003756]'} ${open[i] ? 'translate-y-0 opacity-100' : 'translate-y-1.5 opacity-0'}`}>
               {card.desc}
             </div>
-            <span className="pointer-events-none absolute bottom-1 right-[14px] text-[118px] font-extrabold leading-none tracking-[-.05em] opacity-[.13]">
+            <span className={`pointer-events-none absolute bottom-1 right-[14px] text-[118px] font-extrabold leading-none tracking-[-.05em] transition-opacity duration-300 ${open[i] ? 'opacity-[.05]' : 'opacity-[.13]'}`}>
               {String(i + 1).padStart(2, '0')}
+            </span>
+            <span
+              aria-hidden
+              className="absolute bottom-[13px] left-[13px] z-[4] flex h-9 w-9 items-center justify-center rounded-full bg-white/[.94] text-[22px] font-medium leading-none text-shortcut-blue shadow-[0_2px_10px_rgba(3,34,50,.22)]"
+            >
+              +
             </span>
           </button>
         ))}
@@ -653,9 +660,16 @@ const MiniPhone: React.FC<{ eventName: string }> = ({ eventName }) => {
 };
 
 // Service detail modal (.svcm — 44%/56% split, crossfade media, prev/next).
-const ServiceModal: React.FC<{ index: number; onClose: () => void; onNav: (dir: 1 | -1) => void }> = ({ index, onClose, onNav }) => {
+// galleryImages: real event photos from the proposal gallery system, appended
+// after the design's own media so each service cycles through live photos too.
+const ServiceModal: React.FC<{ index: number; galleryImages: string[]; onClose: () => void; onNav: (dir: 1 | -1) => void }> = ({ index, galleryImages, onClose, onNav }) => {
   const service = SERVICES[index];
   const [imgIdx, setImgIdx] = useState(0);
+  const images = useMemo(() => {
+    const base = (u: string) => u.split('/').pop() || u;
+    const seen = new Set(service.modalImages.map(base));
+    return [...service.modalImages, ...galleryImages.filter(u => !seen.has(base(u)))];
+  }, [service, galleryImages]);
   useEffect(() => { setImgIdx(0); }, [index]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -663,10 +677,10 @@ const ServiceModal: React.FC<{ index: number; onClose: () => void; onNav: (dir: 
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
   useEffect(() => {
-    if (service.modalImages.length < 2 || prefersReducedMotion()) return;
-    const t = setInterval(() => setImgIdx(i => (i + 1) % service.modalImages.length), 3500);
+    if (images.length < 2 || prefersReducedMotion()) return;
+    const t = setInterval(() => setImgIdx(i => (i + 1) % images.length), 3500);
     return () => clearInterval(t);
-  }, [service]);
+  }, [images]);
   return (
     <div
       className="fixed inset-0 z-[300] flex items-center justify-center bg-[rgba(3,34,50,.58)] p-7"
@@ -681,18 +695,18 @@ const ServiceModal: React.FC<{ index: number; onClose: () => void; onNav: (dir: 
       >
         <div className="grid max-h-[calc(100vh-56px)] grid-cols-1 md:min-h-[520px] md:grid-cols-[44%_56%]">
           <div className="relative hidden bg-[#EAF7F9] md:block">
-            {service.modalImages.map((src, i) => (
+            {images.map((src, i) => (
               <img
                 key={src}
                 src={src}
                 alt={i === imgIdx ? service.title : ''}
                 aria-hidden={i !== imgIdx}
-                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${i === imgIdx ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${src.includes('/services/') ? 'scale-110' : ''} ${i === imgIdx ? 'opacity-100' : 'opacity-0'}`}
               />
             ))}
-            {service.modalImages.length > 1 && (
+            {images.length > 1 && (
               <div className="absolute bottom-4 left-4 z-[4] flex gap-[7px]">
-                {service.modalImages.map((_, i) => (
+                {images.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setImgIdx(i)}
@@ -757,12 +771,56 @@ const ServiceModal: React.FC<{ index: number; onClose: () => void; onNav: (dir: 
   );
 };
 
+// Conference service id → proposal_gallery service_type keys. The gallery
+// admin (/proposal-gallery-admin) stays the source of truth: published images
+// there flow into the matching service's modal automatically.
+const GALLERY_KEYS: Record<string, string[]> = {
+  massage: ['massage'],
+  hair: ['hair'],
+  nails: ['nails'],
+  facials: ['facial', 'facials'],
+  headshots: ['headshot', 'headshots'],
+  mindfulness: ['mindfulness'],
+  'sound-bath': ['sound-bath', 'crystal-sound-bath'],
+  yoga: ['yoga'],
+  'strength-sculpt': ['strength-sculpt'],
+  'dance-cardio': ['dance-cardio'],
+  'somatic-movement': ['somatic-movement', 'somatic-sound-bath'],
+  'assisted-stretch': ['assisted-stretch', 'stretch-mobility'],
+};
+
+const useServiceGallery = (): Record<string, string[]> => {
+  const [byService, setByService] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    let live = true;
+    supabase
+      .from('proposal_gallery')
+      .select('service_type,media_url,sort_order')
+      .eq('media_type', 'image')
+      .eq('is_published', true)
+      .order('sort_order')
+      .then(({ data, error }) => {
+        if (!live || error || !data) return;
+        const byKey: Record<string, string[]> = {};
+        data.forEach(r => { (byKey[r.service_type] = byKey[r.service_type] || []).push(r.media_url); });
+        const out: Record<string, string[]> = {};
+        Object.entries(GALLERY_KEYS).forEach(([svcId, keys]) => {
+          out[svcId] = keys.flatMap(k => byKey[k] || []);
+        });
+        setByService(out);
+      });
+    return () => { live = false; };
+  }, []);
+  return byService;
+};
+
 const ConferenceOnePager: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const { getGenericLandingPage } = useGenericLandingPage();
   const [page, setPage] = useState<GenericLandingPage | null>(null);
   const [loaded, setLoaded] = useState(!token);
   const [modalIdx, setModalIdx] = useState<number | null>(null);
+  const serviceGallery = useServiceGallery();
   const [caseIdx, setCaseIdx] = useState(0);
   const railRef = useRef<HTMLDivElement>(null);
   const [railAt, setRailAt] = useState<'start' | 'mid' | 'end'>('start');
@@ -1042,7 +1100,8 @@ const ConferenceOnePager: React.FC = () => {
                         </span>
                       )}
                       <div className={`overflow-hidden ${packagesVariant === 'bundles' ? 'h-[140px]' : 'h-[164px]'}`}>
-                        <img src={pkg.image} alt="" className="h-full w-full object-cover" />
+                        {/* stylized service PNGs carry a baked white margin + rounded corners; 1.1 crop hides them (same trick as the proposal cards) */}
+                        <img src={pkg.image} alt="" className="h-full w-full scale-110 object-cover" />
                       </div>
                       <div className={`px-5 pb-3 pt-[11px] text-[17px] font-extrabold leading-[1.2] tracking-[-.015em] ${BAR_CLASSES[pkg.bar]}`}>{pkg.name}</div>
                       <div className="flex flex-1 flex-col px-5 pb-[18px] pt-4">
@@ -1318,6 +1377,7 @@ const ConferenceOnePager: React.FC = () => {
       {modalIdx !== null && (
         <ServiceModal
           index={modalIdx}
+          galleryImages={serviceGallery[SERVICES[modalIdx].id] ?? []}
           onClose={() => setModalIdx(null)}
           onNav={dir => setModalIdx(i => (i === null ? 0 : (i + dir + SERVICES.length) % SERVICES.length))}
         />
