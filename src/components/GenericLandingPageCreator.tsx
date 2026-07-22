@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGenericLandingPage } from '../contexts/GenericLandingPageContext';
-import { GenericLandingPageCustomization } from '../types/genericLandingPage';
+import { GenericLandingPageCustomization, ConferencePackageOverride, LandingPageType } from '../types/genericLandingPage';
 import { SENDER_TO_CALENDAR } from '../utils/workhumanOutreachTemplates';
+import { CONFERENCE_PACKAGES, CONFERENCE_BUNDLES } from '../utils/conferencePackages';
 import { Button } from './Button';
 
 // Team members who have a Google Calendar booking link. The selected rep's
@@ -33,7 +34,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
     contactLastName: editingPage?.customization?.contactLastName || '',
     customMessage: editingPage?.data?.customMessage || '',
     isReturningClient: editingPage?.isReturningClient || false,
-    pageType: (editingPage?.pageType || 'generic') as 'generic' | 'workhuman',
+    pageType: (editingPage?.pageType || 'generic') as LandingPageType,
     customization: {
       contactFirstName: editingPage?.customization?.contactFirstName || '',
       contactLastName: editingPage?.customization?.contactLastName || '',
@@ -43,7 +44,14 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       includePricingCalculator: editingPage?.customization?.includePricingCalculator ?? true,
       includeTestimonials: editingPage?.customization?.includeTestimonials ?? true,
       includeFAQ: editingPage?.customization?.includeFAQ ?? true,
-      theme: (editingPage?.customization?.theme || 'default') as const
+      theme: (editingPage?.customization?.theme || 'default') as const,
+      showPackages: editingPage?.customization?.showPackages ?? true,
+      showPackagePricing: editingPage?.customization?.showPackagePricing ?? true,
+      packageOverrides: (editingPage?.customization?.packageOverrides || {}) as Record<string, ConferencePackageOverride>,
+      heroVariant: editingPage?.customization?.heroVariant || 'editorial',
+      servicesVariant: editingPage?.customization?.servicesVariant || 'rail',
+      packagesVariant: editingPage?.customization?.packagesVariant || 'stations',
+      goodToKnowVariant: editingPage?.customization?.goodToKnowVariant || 'list'
     }
   });
 
@@ -64,7 +72,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         contactLastName: editingPage.customization?.contactLastName || '',
         customMessage: editingPage.data?.customMessage || '',
         isReturningClient: isReturningClientValue,
-        pageType: (editingPage.pageType || 'generic') as 'generic' | 'workhuman',
+        pageType: (editingPage.pageType || 'generic') as LandingPageType,
         customization: {
           contactFirstName: editingPage.customization?.contactFirstName || '',
           contactLastName: editingPage.customization?.contactLastName || '',
@@ -74,7 +82,14 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
           includePricingCalculator: editingPage.customization?.includePricingCalculator ?? true,
           includeTestimonials: editingPage.customization?.includeTestimonials ?? true,
           includeFAQ: editingPage.customization?.includeFAQ ?? true,
-          theme: (editingPage.customization?.theme || 'default') as const
+          theme: (editingPage.customization?.theme || 'default') as const,
+          showPackages: editingPage.customization?.showPackages ?? true,
+          showPackagePricing: editingPage.customization?.showPackagePricing ?? true,
+          packageOverrides: (editingPage.customization?.packageOverrides || {}) as Record<string, ConferencePackageOverride>,
+          heroVariant: editingPage.customization?.heroVariant || 'editorial',
+          servicesVariant: editingPage.customization?.servicesVariant || 'rail',
+          packagesVariant: editingPage.customization?.packagesVariant || 'stations',
+          goodToKnowVariant: editingPage.customization?.goodToKnowVariant || 'list'
         }
       });
       // Reset updated logo URL when opening for editing
@@ -91,12 +106,15 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       newErrors.partnerName = 'Partner name is required';
     }
 
-    if (!options.contactFirstName.trim()) {
-      newErrors.contactFirstName = 'Contact first name is required';
-    }
+    // Conference pages only show the client name/logo, no contact block.
+    if (options.pageType !== 'conference') {
+      if (!options.contactFirstName.trim()) {
+        newErrors.contactFirstName = 'Contact first name is required';
+      }
 
-    if (!options.contactLastName.trim()) {
-      newErrors.contactLastName = 'Contact last name is required';
+      if (!options.contactLastName.trim()) {
+        newErrors.contactLastName = 'Contact last name is required';
+      }
     }
 
     if (options.clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(options.clientEmail)) {
@@ -313,6 +331,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       if (options.pageType === 'workhuman') {
         const base = options.customization.infoOnly ? '/info' : '/book-a-call';
         navigate(`${base}/${pageId}?refresh=${Date.now()}`);
+      } else if (options.pageType === 'conference') {
+        navigate(`/conference/${pageId}?refresh=${Date.now()}`);
       } else {
         navigate(`/generic-landing-page/${pageId}?refresh=${Date.now()}`);
       }
@@ -329,7 +349,10 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[200] relative">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            {editingPage ? `Edit ${options.pageType === 'workhuman' ? 'Book a Call' : 'Generic'} Landing Page` : `Create ${options.pageType === 'workhuman' ? 'Book a Call' : 'Generic'} Landing Page`}
+            {(() => {
+              const label = options.pageType === 'workhuman' ? 'Book a Call' : options.pageType === 'conference' ? 'Conference One-Pager' : 'Generic';
+              return editingPage ? `Edit ${label} Landing Page` : `Create ${label} Landing Page`;
+            })()}
           </h2>
           {onClose && (
             <button
@@ -349,6 +372,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               {([
                 { value: 'generic' as const, label: 'Generic Landing Page' },
                 { value: 'workhuman' as const, label: 'Book a Call' },
+                { value: 'conference' as const, label: 'Conference One-Pager' },
               ]).map(({ value, label }) => (
                 <button
                   key={value}
@@ -433,7 +457,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             </div>
 
             {/* Returning Client Checkbox (generic pages only) */}
-            {options.pageType !== 'workhuman' && (
+            {options.pageType === 'generic' && (
             <div style={{ backgroundColor: '#F1F6F5', padding: '16px', borderRadius: '8px', border: '2px solid #E5E7EB' }}>
               <label className="flex items-center cursor-pointer">
                 <input
@@ -575,7 +599,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             </div>
           </div>
 
-          {/* Contact Information */}
+          {/* Contact Information (not shown on conference pages) */}
+          {options.pageType !== 'conference' && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
             
@@ -615,6 +640,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               </div>
             </div>
           </div>
+          )}
 
           {/* Custom Message */}
           <div>
@@ -630,8 +656,121 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             />
           </div>
 
-          {/* Page Options (generic pages only — Workhuman has fixed sections) */}
-          {options.pageType !== 'workhuman' && (
+          {/* Conference section design variants */}
+          {options.pageType === 'conference' && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Section Designs</h3>
+            {([
+              { key: 'heroVariant', label: 'Hero', opts: [{ v: 'editorial', l: 'Editorial' }, { v: 'cover', l: 'Cover' }, { v: 'stage', l: 'Stage' }] },
+              { key: 'servicesVariant', label: 'Services', opts: [{ v: 'grid', l: 'Grid' }, { v: 'rail', l: 'Showcase' }] },
+              { key: 'packagesVariant', label: 'Packages', opts: [{ v: 'stations', l: 'Stations' }, { v: 'bundles', l: 'Bundles' }] },
+              { key: 'goodToKnowVariant', label: 'Good to know', opts: [{ v: 'list', l: 'List' }, { v: 'cards', l: 'Cards' }] },
+            ] as const).map(row => (
+              <div key={row.key} className="flex items-center gap-3">
+                <span className="w-28 text-sm font-bold text-shortcut-blue">{row.label}</span>
+                <div className="flex gap-2">
+                  {row.opts.map(opt => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => handleFieldChange(`customization.${row.key}`, opt.v)}
+                      className={`rounded-full border-2 px-4 py-1.5 text-sm font-medium transition-colors ${
+                        (options.customization as any)[row.key] === opt.v
+                          ? 'border-[#09364f] bg-[#09364f] text-white'
+                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          )}
+
+          {/* Conference package options */}
+          {options.pageType === 'conference' && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Packages & Pricing</h3>
+
+            <div className="space-y-3">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={options.customization.showPackages}
+                  onChange={(e) => handleFieldChange('customization.showPackages', e.target.checked)}
+                  className="mr-3"
+                />
+                <span className="text-sm text-gray-700">Show the packages section</span>
+              </label>
+
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={options.customization.showPackagePricing}
+                  onChange={(e) => handleFieldChange('customization.showPackagePricing', e.target.checked)}
+                  disabled={!options.customization.showPackages}
+                  className="mr-3"
+                />
+                <span className={`text-sm ${options.customization.showPackages ? 'text-gray-700' : 'text-gray-400'}`}>
+                  Show package pricing ("Starting at" rows)
+                </span>
+              </label>
+            </div>
+
+            {options.customization.showPackages && (
+              <div className="rounded-lg border-2 border-gray-200">
+                <div className="grid grid-cols-[1fr_110px_1fr_56px] items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+                  <span>Package</span>
+                  <span>Price</span>
+                  <span>Price unit</span>
+                  <span className="text-center">Hide</span>
+                </div>
+                {(options.customization.packagesVariant === 'bundles' ? CONFERENCE_BUNDLES : CONFERENCE_PACKAGES).map((pkg) => {
+                  const ov = options.customization.packageOverrides?.[pkg.id] || {};
+                  const setOverride = (patch: Partial<ConferencePackageOverride>) => {
+                    handleFieldChange('customization.packageOverrides', {
+                      ...options.customization.packageOverrides,
+                      [pkg.id]: { ...ov, ...patch }
+                    });
+                  };
+                  return (
+                    <div key={pkg.id} className={`grid grid-cols-[1fr_110px_1fr_56px] items-center gap-2 border-b border-gray-100 px-3 py-2 last:border-b-0 ${ov.hidden ? 'opacity-50' : ''}`}>
+                      <span className="text-sm font-medium text-gray-800">{pkg.name}</span>
+                      <input
+                        type="text"
+                        value={ov.price ?? ''}
+                        placeholder={pkg.price}
+                        onChange={(e) => setOverride({ price: e.target.value || undefined })}
+                        className="rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-shortcut-teal focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        value={ov.unit ?? ''}
+                        placeholder={pkg.unit}
+                        onChange={(e) => setOverride({ unit: e.target.value || undefined })}
+                        className="rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-shortcut-teal focus:outline-none"
+                      />
+                      <input
+                        type="checkbox"
+                        checked={!!ov.hidden}
+                        onChange={(e) => setOverride({ hidden: e.target.checked || undefined })}
+                        className="justify-self-center"
+                      />
+                    </div>
+                  );
+                })}
+                <p className="px-3 py-2 text-xs text-gray-500">
+                  Leave price and unit blank to use the defaults shown. Hide removes that package card from this client's page.
+                </p>
+              </div>
+            )}
+          </div>
+          )}
+
+          {/* Page Options (generic pages only — Workhuman and Conference have fixed sections) */}
+          {options.pageType === 'generic' && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Page Options</h3>
 

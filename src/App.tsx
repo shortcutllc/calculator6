@@ -49,6 +49,7 @@ const QRCodeSignDisplay = lazy(() => import('./components/QRCodeSignDisplay'));
 const MindfulnessProgramManager = lazy(() => import('./components/MindfulnessProgramManager'));
 const GenericLandingPageManager = lazy(() => import('./components/GenericLandingPageManager'));
 const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
+const ConferenceOnePager = lazy(() => import('./components/ConferenceOnePager'));
 const Plan2026 = lazy(() => import('./components/Plan2026'));
 const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
 const BrokerPlan = lazy(() => import('./components/BrokerPlan'));
@@ -125,6 +126,7 @@ function App() {
     location.pathname === '/workhuman-tv' ||
     location.pathname.startsWith('/book-a-call') ||
     location.pathname.startsWith('/wellness-funds') ||
+    location.pathname.startsWith('/conference') ||
     location.pathname.startsWith('/info') ||
     location.pathname.startsWith('/workhuman/recharge') ||
     location.pathname.startsWith('/survey/') ||
@@ -1133,7 +1135,35 @@ function App() {
                   </GenericLandingPageProvider>
                 }
               />
-              
+              <Route
+                path="/conference/:token"
+                element={
+                  <GenericLandingPageProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <ConferenceOnePager />
+                    </Suspense>
+                  </GenericLandingPageProvider>
+                }
+              />
+              <Route
+                path="/conference"
+                element={
+                  <GenericLandingPageProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <ConferenceOnePager />
+                    </Suspense>
+                  </GenericLandingPageProvider>
+                }
+              />
+
               {/* Custom URL Routes */}
               <Route
                 path="/:client/:type/:slug"

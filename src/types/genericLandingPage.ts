@@ -10,6 +10,16 @@ export interface GenericLandingPageData {
   updatedAt: string;
 }
 
+// Conference pages: per-package display overrides, keyed by package id
+// (reset-zone, glow-lounge, polish-bar, studio, stretch-lab, mindful-reset,
+// sound-sanctuary, movement-studio). Prices are display strings so staff can
+// write anything ("$1,500", "Custom").
+export interface ConferencePackageOverride {
+  price?: string;
+  unit?: string;
+  hidden?: boolean;
+}
+
 export interface GenericLandingPageCustomization {
   contactFirstName?: string;
   contactLastName?: string;
@@ -25,9 +35,18 @@ export interface GenericLandingPageCustomization {
   // Info-only variant: hides the booking card/modal/CTAs, shows a service-video
   // montage + soft "learn more" link instead. Served at /info/:token.
   infoOnly?: boolean;
+  // Conference pages only (page_type='conference'):
+  showPackages?: boolean;        // default true — render the packages section at all
+  showPackagePricing?: boolean;  // default true — render "Starting at $X" rows
+  packageOverrides?: Record<string, ConferencePackageOverride>;
+  // Per-section design variants (mirror the design file's switcher):
+  heroVariant?: 'editorial' | 'cover' | 'stage';       // default 'editorial'
+  servicesVariant?: 'rail' | 'grid';                   // default 'rail'
+  packagesVariant?: 'stations' | 'bundles';            // default 'stations'
+  goodToKnowVariant?: 'list' | 'cards';                // default 'list'
 }
 
-export type LandingPageType = 'generic' | 'workhuman';
+export type LandingPageType = 'generic' | 'workhuman' | 'conference';
 
 export interface GenericLandingPage {
   id: string;

@@ -130,6 +130,9 @@ const GenericLandingPageManager: React.FC = () => {
       const base = page.customization?.infoOnly ? 'info' : 'book-a-call';
       return `${window.location.origin}/${base}/${page.uniqueToken}`;
     }
+    if (page.pageType === 'conference') {
+      return `${window.location.origin}/conference/${page.uniqueToken}`;
+    }
     return `${window.location.origin}/generic-landing-page/${page.uniqueToken}`;
   };
 
@@ -155,6 +158,8 @@ const GenericLandingPageManager: React.FC = () => {
     if (page.pageType === 'workhuman') {
       const base = page.customization?.infoOnly ? 'info' : 'book-a-call';
       window.open(`/${base}/${page.uniqueToken}`, '_blank');
+    } else if (page.pageType === 'conference') {
+      window.open(`/conference/${page.uniqueToken}`, '_blank');
     } else {
       window.open(`/generic-landing-page/${page.uniqueToken}`, '_blank');
     }
@@ -375,6 +380,11 @@ const GenericLandingPageManager: React.FC = () => {
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
+                  {page.pageType === 'conference' && (
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-shortcut-teal bg-opacity-20 text-shortcut-blue">
+                      Conference
+                    </span>
+                  )}
                   {page.pageType === 'workhuman' && (
                     page.customization?.infoOnly ? (
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800">

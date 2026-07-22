@@ -46,6 +46,15 @@ export default {
       fontFamily: {
         sans: ['Outfit', 'system-ui', 'sans-serif'],
       },
+      keyframes: {
+        'logo-marquee': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+      },
+      animation: {
+        'logo-marquee': 'logo-marquee 40s linear infinite',
+      },
       fontWeight: {
         thin: 100,
         extralight: 200,
