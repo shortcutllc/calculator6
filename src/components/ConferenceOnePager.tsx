@@ -1390,7 +1390,7 @@ const ConferenceOnePager: React.FC = () => {
               </div>
               <div className="flex flex-col bg-[linear-gradient(160deg,#0A3E5C,#06293D)] px-[38px] pb-8 pt-9 text-white">
                 <p className="mb-4 text-[11px] font-bold uppercase tracking-[.14em] text-[#9EFAFF]">Workhuman Live 2026 · The Gratitude Garden</p>
-                <h3 className="mb-3 text-[31px] font-extrabold leading-[1.04] tracking-[-.02em] text-white">Fifteen minutes that feel like an hour off.</h3>
+                <h3 className="mb-3 text-[31px] font-extrabold leading-[1.04] tracking-[-.02em] text-white">The best session on the agenda had no slides.</h3>
                 <p className="max-w-[46ch] text-[14.5px] leading-[1.6] text-white/[.78]">
                   We ran the wellness zone at Workhuman Live 2026. <b className="font-semibold text-white">Five chairs, doors to close, 400 massages.</b>{' '}
                   The waitlist never dropped below 200.
