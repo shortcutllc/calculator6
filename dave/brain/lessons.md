@@ -142,3 +142,38 @@ means the learning loop is broken.
   missing from `outreach_replies`, the same forward/off-thread blind spot that hid the EPIC
   win. **Send-count plus "no reply on file" is not evidence of a cold lead; it is evidence the
   reply pipeline has holes. Open the thread before judging it.** · OpenSesame thread · high
+
+- 2026-07-21 · **Scoping subagents: give a BOUNDED candidate list and a REPORT-BY budget, never
+  an open-ended "find everything".** The Philadelphia/NYC rooms sweep died three times while
+  six sister agents completed fine. Evidence: both failed runs stopped at ~250 transcript lines
+  (a ceiling, not bad luck), and averaged 1.8 KB per line against 4.5 KB for the agent that
+  succeeded — i.e. many small tool calls returning nothing, the signature of hammering dead
+  pages. Three prompt errors, all Dave's: (1) two cities in one agent, double the surface of
+  any sister sweep; (2) eight OPEN-ENDED categories instead of a named target list — every
+  agent that succeeded had bounded targets; (3) Dave mandated dead-or-alive verification on
+  every candidate INCLUDING Meetup, when an earlier sweep had already proven Meetup dead for
+  this audience — ordering a long tail of fetches he already knew were worthless.
+  **Rules now: one geography or one question per agent; a named candidate list, not
+  categories; never re-verify what a previous sweep settled; and always instruct "at N fetches,
+  stop and report what you have" — an agent told to be thorough will spend its whole budget
+  searching and none reporting.** · three failed runs vs six clean ones · high
+
+- 2026-07-21 · **Write research to disk the moment an angle lands, not at the end.** Six research
+  angles survived the day because Dave wrote each one into influence-map.md as it completed. The
+  SEVENTH — the wellness-efficacy evidence sweep, which was the single most consequential finding
+  of the day because it invalidated Goal 3's thesis — existed ONLY in a chat message and was
+  nearly lost across three killed turns. It is now `brain/wellness-evidence.md`. **Reporting a
+  finding to Will is not the same as recording it. Chat is not storage.** · charter rule added
+  2026-07-21 · high
+
+- 2026-07-21 · **Subagent sweeps fail on SCOPE, not on time.** The Philadelphia/NYC sweep died
+  three times while six others finished. Diagnosis from the transcripts: the failed runs stopped
+  at almost the same point twice (246 and 253 lines), and averaged 1.8 KB per transcript line
+  against 4.5 KB for the successful ones — i.e. far more tool calls returning far less. It was
+  burning its budget on dead pages. Three causes, all Dave's prompt: two cities in one agent,
+  eight open-ended categories instead of a bounded candidate list, and a mandate to verify
+  dead-vs-alive on every branch INCLUDING Meetup, which an earlier sweep had already proven dead.
+  **Rules now: one agent per geography, a NAMED candidate list rather than categories, never
+  re-verify what a previous sweep settled, and always give an explicit "stop at N fetches and
+  report what you have" budget.** An agent told to "find everything" with no reporting trigger
+  spends its whole budget searching and none reporting. · three failed runs · high

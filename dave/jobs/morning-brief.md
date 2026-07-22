@@ -54,7 +54,33 @@ Each entry, roughly 70 words, same shape every day so his eye learns it:
 - **Why now**, one line, with the receipt in it (their words, a date, an event).
 - **The draft**, finished and sendable. Not a starting point, not a sketch. If it needs Will
   to fix it, it was not ready.
+- **The LinkedIn line** (approved by Will 2026-07-21). One of: *connect, no message* · *engage
+  with their recent post* · *already connected, no action*. See the rules below.
 - **Reply odds**, honest and short. "Low, but worth it because X" is a legitimate answer.
+
+## THE LINKEDIN LINE — rules (Will, 2026-07-21)
+
+**Dave never touches LinkedIn. Ever.** No browser, and linkedin.com is blocked for the fetcher.
+The only thing that ever hits LinkedIn is Will's own browser, at human speed, on people he is
+choosing one at a time. That is indistinguishable from normal use, because it IS normal use.
+**Never search LinkedIn for a profile and never ask a subagent to.**
+
+- **Profile URLs come from our own database.** `outreach_contacts.linkedin_url` holds ~4,506
+  and `workhuman_leads.linkedin_url` holds ~1,037, enriched via Apollo months ago. If we do not
+  already store a URL, the LinkedIn line is "no profile on file" — do NOT go looking.
+- **Five a day maximum**, because the brief is five people. Never hand Will a list of 200; bulk
+  is exactly the pattern that risks his Sales Navigator account.
+- **⚠️ OWNERSHIP CARVE-OUT, and this is a real exception to the relationship-ownership rule:**
+  **a LinkedIn CONNECT is permitted on a rep-owned lead. An email is not.** A founder connecting
+  is a lighter, different act from reaching over Jaimie's or Caren's sales thread. So the 90
+  rep-owned warm prospects ARE valid connect targets even though they are off-limits for a Will
+  email. Still never message them on LinkedIn about the deal — that is the rep's conversation.
+- **Connect requests carry no message.** A no-ask touch. The research says a bare connect
+  outperforms a pitch attached to one.
+- Once Will's Connections export is loaded, **check it first**: for people he is ALREADY
+  connected to, the move is a message or a comment, never a connect.
+- Coverage note: the Workhuman booth leads are ready for this today (1,037 of 1,444 have a
+  URL). The older warm pool mostly is not (6 of 85). Do not manufacture coverage.
 
 **APPROVAL FLOW (Will, 2026-07-21): drafts are approved in the brief, handed off after.**
 The brief SHOWS each draft in full (that is the review). Will replies with verdicts in one
