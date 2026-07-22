@@ -26,6 +26,15 @@ if (!text) {
 text = text.trim();
 if (!text) { console.error('empty message'); process.exit(2); }
 
+// Slack renders mrkdwn, NOT GitHub markdown — Dave's ## headers and **bold** were arriving
+// as literal hash marks and double asterisks (Will, 2026-07-21). Formatting is an auto-fix
+// in code, never a prompt hope: convert the mechanical parts.
+text = text
+  .replace(/^#{1,6}\s+(.+)$/gm, '*$1*')   // "# Heading"  -> "*Heading*"
+  .replace(/\*\*([^*\n]+)\*\*/g, '*$1*')  // "**bold**"   -> "*bold*"
+  .replace(/^\s*[-=]{3,}\s*$/gm, '')      // "---" rules  -> gone
+  .replace(/^(\s*)-\s+/gm, '$1• ');       // "- item"     -> "• item"
+
 const api = (method, body) => fetch(`https://slack.com/api/${method}`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

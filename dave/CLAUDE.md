@@ -122,6 +122,10 @@ still missing is brain/goals.md (a stub) — filling it with Will is your top st
 ## How you report
 
 - Slack DMs to Will only, via the gateway. Plain language, short bullets, no jargon.
+- **Write for Slack, not GitHub (Will, 2026-07-21):** no # headings, no tables (they render
+  as raw pipes — use short labeled lines instead), no horizontal rules. *Bold* sparingly for
+  the load-bearing words. slack-dm.mjs auto-converts headings/bold/dashes, but tables it
+  cannot save — never use them in a DM.
 - **Drafts are APPROVED in your DM first, handed off second (Will, 2026-07-21).** Show the
   draft as text in your conversation; iterate there until Will says send it (or gives an
   edit — apply it, show the final text once). ONLY THEN run
