@@ -353,9 +353,11 @@ const COVER_CARD_COLORS: Record<string, { bg: string; cap: string }> = {
 
 // Hero Stage (variant C) slides: real event photos; 'fit' slides letterbox the
 // photo over a blurred copy.
-const STAGE_SLIDES = [
+const STAGE_SLIDES: { src: string; tag: string; pos: string; fit?: boolean }[] = [
   { src: `${A}/onepager/gallery/massage-event.jpg`, tag: 'Massage', pos: '' },
-  { src: `${A}/onepager/gallery/somatic-event.webp`, tag: 'Movement', pos: '' },
+  { src: `${A}/onepager/gallery/dance-cardio-gallery.jpg`, tag: 'Dance cardio', pos: '' },
+  { src: `${A}/onepager/gallery/reiki-gallery.jpg`, tag: 'Reiki', pos: '', fit: true },
+  { src: `${A}/onepager/gallery/movement-gallery.jpg`, tag: 'Movement', pos: '', fit: true },
   { src: `${A}/onepager/svc/crystal-sound-bath-rooftop.webp`, tag: 'Sound bath', pos: 'object-[center_45%]' },
   { src: `${A}/onepager/svc/stretch-mobility.webp`, tag: 'Assisted stretch', pos: 'object-[center_40%]' },
 ];
@@ -377,42 +379,57 @@ const GTK_CARDS = [
 const RotatingWord: React.FC = () => {
   const [idx, setIdx] = useState(0);
   const [going, setGoing] = useState(false);
-  const [noAnim, setNoAnim] = useState(false);
-  const measRef = useRef<HTMLSpanElement>(null);
-  const [w, setW] = useState<number | undefined>(undefined);
+  const [gen, setGen] = useState(0);
+  const goingRef = useRef(false);
+  const rotRef = useRef<HTMLSpanElement>(null);
+  const faRef = useRef<HTMLSpanElement>(null);
+  const fbRef = useRef<HTMLSpanElement>(null);
   const next = (idx + 1) % ROT_WORDS.length;
+  // Completing a flip remounts the cube (key=gen) already at rest, so there is
+  // no un-animated snap-back frame to schedule; rAF is unavailable in
+  // backgrounded tabs and a scheduled snap-back left the flip frozen mid-turn.
+  const finish = () => {
+    if (!goingRef.current) return;
+    goingRef.current = false;
+    setIdx(i => (i + 1) % ROT_WORDS.length);
+    setGoing(false);
+    setGen(g => g + 1);
+  };
   useEffect(() => {
     if (prefersReducedMotion()) return;
-    const t = setInterval(() => setGoing(true), 3000);
+    const t = setInterval(() => {
+      goingRef.current = true;
+      setGoing(true);
+    }, 3000);
     return () => clearInterval(t);
   }, []);
+  // transitionend does not fire in a backgrounded tab; finish the flip anyway.
   useEffect(() => {
-    const el = measRef.current;
-    if (!el) return;
-    el.textContent = ROT_WORDS[going ? next : idx];
-    setW(el.offsetWidth);
-  }, [idx, going, next]);
-  const onEnd = (e: React.TransitionEvent) => {
-    if (e.propertyName !== 'transform' || !going) return;
-    setNoAnim(true);
-    setIdx(next);
-    setGoing(false);
-    requestAnimationFrame(() => requestAnimationFrame(() => setNoAnim(false)));
-  };
+    if (!going) return;
+    const t = setTimeout(finish, 700);
+    return () => clearTimeout(t);
+  }, [going]);
+  // Width follows the face that is (or is about to be) visible, measured off
+  // the real rendered element and written straight to the DOM so it can never
+  // desync from what is on screen.
+  useEffect(() => {
+    const target = going ? fbRef.current : faRef.current;
+    if (rotRef.current && target) rotRef.current.style.width = `${target.offsetWidth}px`;
+  }, [idx, going, next, gen]);
   return (
     <span
+      ref={rotRef}
       className="relative inline-block text-left align-baseline text-shortcut-coral [perspective:800px] transition-[width] duration-[550ms]"
-      style={{ width: w }}
     >
       <span
-        onTransitionEnd={onEnd}
-        className={`relative block [transform-style:preserve-3d] ${noAnim ? '' : 'transition-transform duration-[550ms] ease-[cubic-bezier(.45,.05,.18,1)]'} ${going ? '[transform:translateZ(-.515em)_rotateX(-90deg)]' : '[transform:translateZ(-.515em)]'}`}
+        key={gen}
+        onTransitionEnd={e => { if (e.propertyName === 'transform') finish(); }}
+        className={`relative block [transform-style:preserve-3d] transition-transform duration-[550ms] ease-[cubic-bezier(.45,.05,.18,1)] ${going ? '[transform:translateZ(-.515em)_rotateX(-90deg)]' : '[transform:translateZ(-.515em)]'}`}
       >
         {/* current word stays in flow so the h1 baseline comes from real text */}
-        <span className="inline-block whitespace-pre [backface-visibility:hidden] [transform:translateZ(.515em)]">{ROT_WORDS[idx]}</span>
-        <span aria-hidden className="absolute left-0 top-0 inline-block whitespace-pre [backface-visibility:hidden] [transform:rotateX(90deg)_translateZ(.515em)]">{ROT_WORDS[next]}</span>
+        <span ref={faRef} className="inline-block whitespace-pre [backface-visibility:hidden] [transform:translateZ(.515em)]">{ROT_WORDS[idx]}</span>
+        <span ref={fbRef} aria-hidden className="absolute left-0 top-0 inline-block whitespace-pre [backface-visibility:hidden] [transform:rotateX(90deg)_translateZ(.515em)]">{ROT_WORDS[next]}</span>
       </span>
-      <span ref={measRef} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-pre" />
     </span>
   );
 };
