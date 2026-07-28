@@ -62,14 +62,14 @@ export const CONFERENCE_PACKAGES: ConferencePackageDef[] = [
   {
     id: 'stretch-lab', name: 'The Stretch Lab', image: `${A}/onepager/svc/stretch-mobility.webp`, bar: 'cyan',
     meta: 'Assisted stretch · 10–20 min/service',
-    desc: 'One-on-one assisted stretch, fully clothed, no oils. Targeted relief for the necks, shoulders and backs three days of sessions produce.',
+    desc: 'A specialist walks each person through a targeted stretch, one on one. Relief for the necks, shoulders and backs three days of sessions produce.',
     bullets: ['Licensed stretch specialists, one on one', 'From a single table to 150 appointments a day', 'We bring the tables. Nothing needed from the venue'],
     price: '$1,200', unit: 'per day · 2 specialists × 4 hrs',
   },
   {
     id: 'movement-studio', name: 'The Movement Studio', image: `${A}/onepager/gallery/dance-cardio-gallery.jpg`, bar: 'pink',
     meta: 'Group classes · 30–60 min',
-    desc: 'Yoga, dance cardio, strength or mobility. Moves anyone can follow in what they wore to the conference.',
+    desc: 'Yoga, dance cardio, strength or mobility. A gentle morning reset or a real workout, whichever the agenda needs.',
     bullets: ['Certified instructors who read the room', 'A dozen people or the whole conference, no cap', 'Mats, music and setup included. Ballroom, lawn or breakout room'],
     price: '$650', unit: 'per 30-min chair yoga class',
   },

@@ -255,10 +255,10 @@ const SERVICES: ServiceDef[] = [
     meta: 'Movement + bowls · any group size',
   },
   {
-    id: 'assisted-stretch', title: 'Assisted stretch', sub: 'One-on-one, fully clothed, 10–20 min',
+    id: 'assisted-stretch', title: 'Assisted stretch', sub: 'One-on-one with a specialist, 10–20 min',
     image: `${A}/services/assisted-stretch.png`,
     modalImages: [`${A}/services/assisted-stretch.png`, `${A}/onepager/svc/stretch-mobility.webp`],
-    desc: 'One-on-one assisted stretching with a certified specialist. Backgrounds in physical therapy, sports massage and PNF/FST. Targeted release for desk and travel tightness in the neck, shoulders, hips and lower back. Fully clothed, no oils, same sign-up model as a massage day.',
+    desc: 'One-on-one assisted stretching with a certified specialist. Backgrounds in physical therapy, sports massage and PNF/FST. Targeted release for travel and session tightness in the neck, shoulders, hips and lower back. Same sign-up model as a massage day.',
     bringHeading: 'What we bring',
     bring: [
       { t: 'Certified specialist', d: 'PNF/FST-trained, not a generalist' },
