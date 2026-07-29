@@ -122,6 +122,7 @@ export function buildPositioningBlock({ channel = 'direct', seasonal = false, re
     `    "${PROBLEM_FIRST.medium}"`,
     '- THE THREE LEAD PILLARS, in this order (lead with #1, then #2, then #3 — this is what closes):',
     ...PILLARS.map((p, i) => `    ${i + 1}. ${p.claim}: ${p.proof}`),
+    '- OUTCOME VS MECHANISM: pillar 1 (people actually use it) is the OUTCOME; pillars 2 and 3 (zero lift, one vendor for the whole team) are the MECHANISMS that make it true. Lead with the outcome, prove it with the machinery.',
     `- THE FINISH (texture only — never a headline, never a fourth pillar): ${FINISH}`,
     `- SUPPORTING points (objection-handlers and texture, NOT headline claims — use at most one, only when it earns its place): ${SUPPORTING.filter((s) => s.key !== 'hospitality_and_tech').map((s) => s.point).join(' ')}`,
     '- NEVER sell the technology. Do not write "our platform", "our technology", "our software" or "our app". The tech is invisible plumbing that removes work, not a product we sell. Selling it makes us sound like the directory/SaaS players we beat (see "one vendor, not a directory" below).',
