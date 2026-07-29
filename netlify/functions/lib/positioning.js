@@ -10,9 +10,12 @@
  * When the spine changes, update BOTH this file and messaging_spine.md.
  */
 
-// North star (internal, never a tagline).
+// North star (internal, never a tagline). Re-cut 2026-07-29 to obey the
+// hierarchy: it now OPENS on the outcome and puts the machinery second. The old
+// version opened "Shortcut is the one vendor for your whole team…", which led
+// with a mechanism and buried the outcome in a subordinate clause.
 export const POSITIONING_STATEMENT =
-  'For HR and office managers tired of wellness perks employees ignore (and the hassle of running them), Shortcut is the one vendor for your whole team, in office and remote, that people actually use, fully managed start to finish. You approve a date and do nothing else.';
+  'For HR and office managers tired of wellness perks employees ignore (and the hassle of running them), Shortcut is the wellness their team actually shows up for. It works because one team runs the whole thing start to finish, in office and remote, so you approve a date and do nothing else.';
 
 // Lead with the problem. Three voice directions; medium is the fight-for.
 export const PROBLEM_FIRST = {
@@ -21,13 +24,28 @@ export const PROBLEM_FIRST = {
   brave: 'The average wellness budget buys a lot of things nobody opens. We bring the one they line up for.',
 };
 
-// The THREE lead pillars, IN PRIORITY (this is what closes — exactly three).
-// Order matters: drafts should lead with #1, then #2, then #3.
+// THE TOP LINE (Will, 2026-07-29). The outcome, alone, in five words. Everything
+// else on any surface is downstream of this. No dash, no second clause — the
+// moment you bolt "in office and remote, run start to finish by one team" onto
+// it you are leading with the machinery instead of the result.
+export const TOP_LINE = 'Wellness your people show up for.';
+
+// ONE OUTCOME, TWO MECHANISMS (Will, 2026-07-29) — NOT three co-equal claims.
+// Pillar 1 is what the buyer GETS; pillars 2 and 3 are WHY it happens. Drafts
+// lead with the outcome and prove it with the machinery underneath.
+//
+// Operating rule that falls out of this: the OUTCOME is a claim you PROVE (pair
+// it with a receipt from PROOF — it has no voice-of-customer support, it is only
+// true by revealed behaviour). The MECHANISMS are claims you STATE (they are
+// self-evidently checkable, so a stat on them reads as padding).
 export const PILLARS = [
-  { key: 'actually_used', claim: 'People actually use it, and love it', proof: 'Opt-out and comes to them, so participation approaches everyone vs ~24% for typical wellness programs (Gallup). The part of the budget that does not sit unused.' },
-  { key: 'zero_lift', claim: 'Zero lift for managers', proof: 'Fully managed start to finish: booking, vetted pros, equipment, the day itself. You approve a date and do nothing else. (This is the real "turnkey" benefit. Lead with it in plain words. Never write the word "turnkey".)' },
-  { key: 'one_vendor_whole_team', claim: 'One vendor for your whole team, in office and remote', proof: 'In-person experiences (massage, nails, facials and more) plus flexible sessions (mindfulness, sound baths, nutrition coaching) that run in person, over Zoom, or hybrid, all from one team. Breadth from one team is the differentiator, not any single service.' },
+  { key: 'actually_used', role: 'outcome', claim: 'People actually show up for it', proof: 'Opt-out and comes to them, so participation approaches everyone vs ~24% for typical wellness programs (Gallup). The part of the budget that does not sit unused. PROVE THIS ONE with a receipt.' },
+  { key: 'zero_lift', role: 'mechanism', claim: 'Zero lift for managers', proof: 'Fully managed start to finish: booking, vetted pros, equipment, the day itself. You approve a date and do nothing else. (This is the real "turnkey" benefit. Lead with it in plain words. Never write the word "turnkey".)' },
+  { key: 'one_vendor_whole_team', role: 'mechanism', claim: 'One vendor for your whole team, in office and remote', proof: 'In-person experiences (massage, nails, facials and more) plus flexible sessions (mindfulness, sound baths, nutrition coaching) that run in person, over Zoom, or hybrid, all from one team. Breadth from one team is the differentiator, not any single service.' },
 ];
+
+export const OUTCOME = PILLARS.find((p) => p.role === 'outcome');
+export const MECHANISMS = PILLARS.filter((p) => p.role === 'mechanism');
 
 // Supporting points — proof / objection handling, NOT headline pillars.
 export const SUPPORTING = [
@@ -120,9 +138,20 @@ export function buildPositioningBlock({ channel = 'direct', seasonal = false, re
     `- North star (internal, do not quote): ${POSITIONING_STATEMENT}`,
     '- LEAD WITH THE PROBLEM, calm not fear-based. Reference line to adapt (do not paste verbatim):',
     `    "${PROBLEM_FIRST.medium}"`,
-    '- THE THREE LEAD PILLARS, in this order (lead with #1, then #2, then #3 — this is what closes):',
-    ...PILLARS.map((p, i) => `    ${i + 1}. ${p.claim}: ${p.proof}`),
-    '- OUTCOME VS MECHANISM: pillar 1 (people actually use it) is the OUTCOME; pillars 2 and 3 (zero lift, one vendor for the whole team) are the MECHANISMS that make it true. Lead with the outcome, prove it with the machinery.',
+    // The hierarchy MUST come before the list. Stating it after a numbered
+    // 1-2-3 makes the model read three peers first and the correction second,
+    // which is how the spine kept getting flattened into three equal claims.
+    '- THE HIERARCHY (read this before the pillars — they are NOT three co-equal claims):',
+    `    THE OUTCOME (this is the message — lead here, every time): ${OUTCOME.claim}. ${OUTCOME.proof}`,
+    '    THE MECHANISMS (these are the evidence — they explain WHY the outcome happens, they never lead):',
+    ...MECHANISMS.map((p, i) => `      ${i + 1}. ${p.claim}: ${p.proof}`),
+    '- HOW TO USE THE HIERARCHY: open on the outcome, then earn it with one mechanism and one real receipt. Never present all three as a flat list of equal benefits, and never open on a mechanism. The outcome is a claim you PROVE (attach a receipt); the mechanisms are claims you STATE (a stat on them reads as padding).',
+    // Eased 2026-07-29 (Will). The old rule banned the word "love" outright,
+    // which was too broad and blocked good copy. Now it bans the UNSUPPORTED
+    // assertion. Note the channel carve-out: a cold E1 has no room for the
+    // receipt, so the ban still stands there.
+    '- SAYING PEOPLE LOVE IT: allowed ONLY when a real receipt from PROOF sits immediately adjacent (same paragraph, or the very next line). "Loved by your people." followed by "over 90% of slots booked" is correct. A love claim floating on its own is banned, as is any exclamation-mark version, any invented satisfaction score or eNPS, and any love claim in a first cold email (no room for the proof). We can evidence turnout, not affection, so affection must always arrive holding its receipt.',
+    `- THE TOP LINE (the shortest true version of the outcome; adapt, do not paste): "${TOP_LINE}"`,
     `- THE FINISH (texture only — never a headline, never a fourth pillar): ${FINISH}`,
     `- SUPPORTING points (objection-handlers and texture, NOT headline claims — use at most one, only when it earns its place): ${SUPPORTING.filter((s) => s.key !== 'hospitality_and_tech').map((s) => s.point).join(' ')}`,
     '- NEVER sell the technology. Do not write "our platform", "our technology", "our software" or "our app". The tech is invisible plumbing that removes work, not a product we sell. Selling it makes us sound like the directory/SaaS players we beat (see "one vendor, not a directory" below).',
