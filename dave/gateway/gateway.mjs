@@ -174,6 +174,12 @@ app.event('message', async ({ event, client }) => {
   }
 });
 
+// A socket-library exception killed the gateway on 2026-07-25 and it stayed dead for FOUR
+// DAYS (the dead-man's switch watches jobs, not this process). Crash CLEANLY so launchd's
+// KeepAlive restarts us, and log loudly so the nightly status can report it.
+process.on('uncaughtException', (e) => { console.error(`FATAL uncaughtException: ${e.stack || e}`); process.exit(1); });
+process.on('unhandledRejection', (e) => { console.error(`FATAL unhandledRejection: ${e?.stack || e}`); process.exit(1); });
+
 (async () => {
   ['DAVE_SLACK_BOT_TOKEN', 'DAVE_SLACK_APP_TOKEN'].forEach((k) => {
     if (!process.env[k]) { console.error(`MISSING ${k} — see dave/README.md`); process.exit(2); }

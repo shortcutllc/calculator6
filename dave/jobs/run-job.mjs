@@ -33,12 +33,33 @@ if (!job) { console.error('usage: run-job.mjs <job-name>'); process.exit(1); }
 const promptFile = path.join(DAVE_DIR, 'jobs', `${job}.md`);
 if (!fs.existsSync(promptFile)) { log(`${job}.err`, `no job prompt: ${promptFile}`); process.exit(1); }
 
-// --- 1+2. Day guard + watermark (extra launchd fires must cost $0) ---
+// --- 0. GATEWAY WATCHDOG (added 2026-07-29 after a 4-day silent gateway death) ---
+// The dead-man's switch watches JOBS; nothing watched the gateway, so a Jul-25 socket crash
+// left chat dead until Will noticed. Jobs run at least twice daily, so: every job fire checks
+// the gateway process and resurrects it via launchd. Max outage is now hours, not days.
+try {
+  const { execSync } = await import('child_process');
+  const alive = execSync('ps -eo command | grep "[g]ateway.mjs" | grep -v zsh | wc -l', { encoding: 'utf8' }).trim() !== '0';
+  if (!alive) {
+    execSync(`launchctl kickstart -k gui/$(id -u)/com.shortcut.dave.gateway`, { encoding: 'utf8', shell: '/bin/zsh' });
+    log('runs.log', `${new Date().toISOString()} WATCHDOG: gateway was DEAD — kickstarted it`);
+  }
+} catch (e) { log('runs.log', `${new Date().toISOString()} WATCHDOG: gateway check/restart failed: ${e.message.slice(0, 120)}`); }
+
+// --- 1+2. Day + HOUR guards + watermark (extra launchd fires must cost $0) ---
 const dow = new Date().getDay(); // 0=Sun 1=Mon ... 6=Sat
+const hour = new Date().getHours();
 let minH = 20; // default ≈ once daily
 if (job === 'monday-strategy') { if (!(dow === 1 || dow === 2)) process.exit(0); minH = 100; }  // Mon + Tue catch-up
 if (job === 'influence-scan') { if (!(dow >= 4 || dow === 0)) process.exit(0); minH = 100; }    // Thu-Sun window
 if (job === 'nightly-status') minH = 12;
+// HOUR GUARD (2026-07-29): the 21:00 launchd fire "claimed" the morning brief once, and the
+// 20h watermark then locked it to evenings for four straight days — Will's morning brief was
+// arriving at 9:30pm. The brief only runs in the morning; missed mornings are skipped, not
+// shifted (a 9:30pm "morning brief" is worse than none). minH drops to 16 so a 8:05 fire
+// always clears the previous morning's watermark.
+if (job === 'morning-brief') { if (hour < 5 || hour >= 13) process.exit(0); minH = 16; }
+if (job === 'nightly-status') { if (hour < 17 && hour >= 5) process.exit(0); }  // evenings (or overnight catch-up)
 const wmFile = path.join(STATE, `watermark-${job}`);
 try {
   const last = Number(fs.readFileSync(wmFile, 'utf8').trim());
