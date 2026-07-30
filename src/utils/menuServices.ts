@@ -334,8 +334,10 @@ export const MENU_SECTIONS: { name: string; sub?: string; ids: string[] }[] = [
     ids: ['massage', 'assisted-stretch', 'hair', 'nails', 'facials', 'headshots'],
   },
   {
+    // The first id is the section's hero (2-column card), so mindfulness leads
+    // here and yoga sits in a standard cell (Will, 2026-07-30).
     name: 'Group sessions',
-    ids: ['yoga', 'strength-sculpt', 'dance-cardio', 'somatic-movement', 'sound-bath', 'mindfulness'],
+    ids: ['mindfulness', 'strength-sculpt', 'dance-cardio', 'somatic-movement', 'sound-bath', 'yoga'],
   },
 ];
 

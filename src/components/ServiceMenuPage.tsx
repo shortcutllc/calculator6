@@ -508,7 +508,12 @@ const ServiceMenuPage: React.FC = () => {
     return () => {
       live = false;
     };
-  }, [token, getGenericLandingPage]);
+    // getGenericLandingPage is deliberately NOT a dependency: the context
+    // recreates it on every provider render (it calls setLoading internally and
+    // neither it nor the context value is memoized), so depending on it causes
+    // an endless refetch loop that blanks the client branding mid-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const cz = page?.customization;
   const clientName = page?.data?.partnerName?.trim() || '';
