@@ -225,9 +225,25 @@ export const generatePricingOptionsForService = (service: any): any[] => {
   if (isFlatPriceService(baseService.serviceType)) {
     const variants = flatPriceVariantsFor(baseService.serviceType);
     const currentPrice = baseService.fixedPrice || serviceCost || 0;
-    const source = variants.length
-      ? variants
-      : [{ name: 'Option 1', classLength: baseService.classLength, fixedPrice: currentPrice }];
+    const currentLength = baseService.classLength;
+    // The service's CURRENT configuration must lead, because the caller selects
+    // option 0 and mirrors its cost onto the service. Leading with the cheapest
+    // catalog entry would silently drop the price staff already set.
+    const matchIdx = variants.findIndex(
+      (v) => v.fixedPrice === currentPrice && (currentLength == null || v.classLength === currentLength)
+    );
+    let source: Array<{ name: string; classLength: number; fixedPrice: number }>;
+    if (!variants.length) {
+      source = [{ name: 'Option 1', classLength: currentLength, fixedPrice: currentPrice }];
+    } else if (matchIdx >= 0) {
+      source = [variants[matchIdx], ...variants.filter((_, i) => i !== matchIdx)];
+    } else {
+      // Custom price with no catalog match — keep it as the leading option.
+      source = [
+        { name: currentLength ? `Current (${currentLength} min)` : 'Current', classLength: currentLength, fixedPrice: currentPrice },
+        ...variants,
+      ];
+    }
     return source.map((v, i) => {
       const merged = { ...baseService, fixedPrice: v.fixedPrice, classLength: v.classLength };
       const res = calculateServiceResults(merged);
