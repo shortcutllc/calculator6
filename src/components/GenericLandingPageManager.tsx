@@ -133,6 +133,9 @@ const GenericLandingPageManager: React.FC = () => {
     if (page.pageType === 'conference') {
       return `${window.location.origin}/conference/${page.uniqueToken}`;
     }
+    if (page.pageType === 'menu') {
+      return `${window.location.origin}/menu/${page.uniqueToken}`;
+    }
     return `${window.location.origin}/generic-landing-page/${page.uniqueToken}`;
   };
 
@@ -160,6 +163,8 @@ const GenericLandingPageManager: React.FC = () => {
       window.open(`/${base}/${page.uniqueToken}`, '_blank');
     } else if (page.pageType === 'conference') {
       window.open(`/conference/${page.uniqueToken}`, '_blank');
+    } else if (page.pageType === 'menu') {
+      window.open(`/menu/${page.uniqueToken}`, '_blank');
     } else {
       window.open(`/generic-landing-page/${page.uniqueToken}`, '_blank');
     }
@@ -383,6 +388,11 @@ const GenericLandingPageManager: React.FC = () => {
                   {page.pageType === 'conference' && (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-shortcut-teal bg-opacity-20 text-shortcut-blue">
                       Conference
+                    </span>
+                  )}
+                  {page.pageType === 'menu' && (
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-cyan-100 text-shortcut-blue">
+                      Our Menu
                     </span>
                   )}
                   {page.pageType === 'workhuman' && (

@@ -4,6 +4,7 @@ import { useGenericLandingPage } from '../contexts/GenericLandingPageContext';
 import { GenericLandingPageCustomization, ConferencePackageOverride, LandingPageType } from '../types/genericLandingPage';
 import { SENDER_TO_CALENDAR } from '../utils/workhumanOutreachTemplates';
 import { CONFERENCE_PACKAGES, CONFERENCE_BUNDLES } from '../utils/conferencePackages';
+import { MENU_SECTIONS, MENU_SERVICES } from '../utils/menuServices';
 import { Button } from './Button';
 
 // Team members who have a Google Calendar booking link. The selected rep's
@@ -106,8 +107,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       newErrors.partnerName = 'Partner name is required';
     }
 
-    // Conference pages only show the client name/logo, no contact block.
-    if (options.pageType !== 'conference') {
+    // Conference and menu pages only show the client name/logo, no contact block.
+    if (options.pageType !== 'conference' && options.pageType !== 'menu') {
       if (!options.contactFirstName.trim()) {
         newErrors.contactFirstName = 'Contact first name is required';
       }
@@ -333,6 +334,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         navigate(`${base}/${pageId}?refresh=${Date.now()}`);
       } else if (options.pageType === 'conference') {
         navigate(`/conference/${pageId}?refresh=${Date.now()}`);
+      } else if (options.pageType === 'menu') {
+        navigate(`/menu/${pageId}?refresh=${Date.now()}`);
       } else {
         navigate(`/generic-landing-page/${pageId}?refresh=${Date.now()}`);
       }
@@ -350,7 +353,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
             {(() => {
-              const label = options.pageType === 'workhuman' ? 'Book a Call' : options.pageType === 'conference' ? 'Conference One-Pager' : 'Generic';
+              const label = options.pageType === 'workhuman' ? 'Book a Call' : options.pageType === 'conference' ? 'Conference One-Pager' : options.pageType === 'menu' ? 'Our Menu' : 'Generic';
               return editingPage ? `Edit ${label} Landing Page` : `Create ${label} Landing Page`;
             })()}
           </h2>
@@ -373,6 +376,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
                 { value: 'generic' as const, label: 'Generic Landing Page' },
                 { value: 'workhuman' as const, label: 'Book a Call' },
                 { value: 'conference' as const, label: 'Conference One-Pager' },
+                { value: 'menu' as const, label: 'Our Menu' },
               ]).map(({ value, label }) => (
                 <button
                   key={value}
@@ -599,8 +603,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             </div>
           </div>
 
-          {/* Contact Information (not shown on conference pages) */}
-          {options.pageType !== 'conference' && (
+          {/* Contact Information (not shown on conference or menu pages) */}
+          {options.pageType !== 'conference' && options.pageType !== 'menu' && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
             
@@ -656,8 +660,8 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
             />
           </div>
 
-          {/* Conference salesperson — owns the Book a call calendar on the page */}
-          {options.pageType === 'conference' && (
+          {/* Salesperson — owns the Book a call calendar on the page */}
+          {(options.pageType === 'conference' || options.pageType === 'menu') && (
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-gray-900">Salesperson</h3>
             <p className="text-sm text-gray-500">Book a call opens this person's calendar, right on the page.</p>
@@ -670,6 +674,45 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
                 <option key={name} value={name}>{name}</option>
               ))}
             </select>
+          </div>
+          )}
+
+          {/* Our Menu — which services this client sees */}
+          {options.pageType === 'menu' && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-gray-900">Services on this menu</h3>
+            <p className="text-sm text-gray-500">
+              Uncheck anything this client shouldn't see. A section disappears when all of its services are unchecked.
+            </p>
+            {MENU_SECTIONS.map(sec => (
+              <div key={sec.name} className="rounded-lg border-2 border-gray-200 p-3">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">{sec.name}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {sec.ids.map(id => {
+                    const svc = MENU_SERVICES.find(s => s.id === id);
+                    if (!svc) return null;
+                    const hidden = options.customization.hiddenServices || [];
+                    const on = !hidden.includes(id);
+                    return (
+                      <label key={id} className="flex items-center text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? hidden.filter(h => h !== id)
+                              : [...hidden, id];
+                            handleFieldChange('customization.hiddenServices', next);
+                          }}
+                          className="mr-2"
+                        />
+                        {svc.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
           )}
 

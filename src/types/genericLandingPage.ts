@@ -44,9 +44,12 @@ export interface GenericLandingPageCustomization {
   servicesVariant?: 'rail' | 'grid';                   // default 'rail'
   packagesVariant?: 'stations' | 'bundles';            // default 'stations'
   goodToKnowVariant?: 'list' | 'cards';                // default 'list'
+  // Service Menu pages only (page_type='menu'): service ids to omit for this
+  // client (ids from MENU_SERVICES in src/utils/menuServices.ts).
+  hiddenServices?: string[];
 }
 
-export type LandingPageType = 'generic' | 'workhuman' | 'conference';
+export type LandingPageType = 'generic' | 'workhuman' | 'conference' | 'menu';
 
 export interface GenericLandingPage {
   id: string;

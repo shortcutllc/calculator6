@@ -50,6 +50,7 @@ const MindfulnessProgramManager = lazy(() => import('./components/MindfulnessPro
 const GenericLandingPageManager = lazy(() => import('./components/GenericLandingPageManager'));
 const GenericLandingPage = lazy(() => import('./components/GenericLandingPage'));
 const ConferenceOnePager = lazy(() => import('./components/ConferenceOnePager'));
+const ServiceMenuPage = lazy(() => import('./components/ServiceMenuPage'));
 const Plan2026 = lazy(() => import('./components/Plan2026'));
 const Plan2026ML = lazy(() => import('./components/Plan2026ML'));
 const BrokerPlan = lazy(() => import('./components/BrokerPlan'));
@@ -127,6 +128,7 @@ function App() {
     location.pathname.startsWith('/book-a-call') ||
     location.pathname.startsWith('/wellness-funds') ||
     location.pathname.startsWith('/conference') ||
+    location.pathname.startsWith('/menu') ||
     location.pathname.startsWith('/info') ||
     location.pathname.startsWith('/workhuman/recharge') ||
     location.pathname.startsWith('/survey/') ||
@@ -1159,6 +1161,34 @@ function App() {
                       </div>
                     }>
                       <ConferenceOnePager />
+                    </Suspense>
+                  </GenericLandingPageProvider>
+                }
+              />
+              <Route
+                path="/menu/:token"
+                element={
+                  <GenericLandingPageProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <ServiceMenuPage />
+                    </Suspense>
+                  </GenericLandingPageProvider>
+                }
+              />
+              <Route
+                path="/menu"
+                element={
+                  <GenericLandingPageProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <ServiceMenuPage />
                     </Suspense>
                   </GenericLandingPageProvider>
                 }
