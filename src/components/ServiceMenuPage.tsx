@@ -592,16 +592,18 @@ const ServiceMenuPage: React.FC = () => {
             <div className="flex items-center gap-3.5">
               {clientName ? (
                 <>
-                  <span className="flex items-center gap-2 text-[20px] font-extrabold tracking-[-.02em] text-[#003756]">
-                    {clientLogo ? (
-                      <img src={clientLogo} alt="" className="h-7 w-auto object-contain" />
-                    ) : (
+                  {/* A logo REPLACES the name: client logos are usually wordmarks,
+                      so showing both reads as a duplicate. Name is the fallback. */}
+                  {clientLogo ? (
+                    <img src={clientLogo} alt={clientName} className="h-7 w-auto max-w-[220px] object-contain" />
+                  ) : (
+                    <span className="flex items-center gap-2 text-[20px] font-extrabold tracking-[-.02em] text-[#003756]">
                       <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#003756] text-[13px] font-extrabold text-white">
                         {clientName.charAt(0).toUpperCase()}
                       </span>
-                    )}
-                    {clientName}
-                  </span>
+                      {clientName}
+                    </span>
+                  )}
                   <span className="h-6 w-px bg-black/10" />
                   <span className="flex items-center gap-[7px] text-[11px] font-bold text-[rgba(3,34,50,.45)]">
                     <span>with</span>
@@ -641,14 +643,17 @@ const ServiceMenuPage: React.FC = () => {
         <div className="pb-[34px] pt-9 md:pt-14">
           {isCompact && (
             <div className="mb-5 flex items-center gap-2.5">
+              {/* Logo replaces the name here too (see the nav). */}
               {clientName && clientLogo ? (
-                <img src={clientLogo} alt={clientName} className="h-6 w-auto object-contain" />
+                <img src={clientLogo} alt={clientName} className="h-6 w-auto max-w-[150px] object-contain" />
               ) : clientName ? (
-                <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#003756] text-[11px] font-extrabold text-white">
-                  {clientName.charAt(0).toUpperCase()}
-                </span>
+                <>
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#003756] text-[11px] font-extrabold text-white">
+                    {clientName.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="text-[15px] font-extrabold text-[#003756]">{clientName}</span>
+                </>
               ) : null}
-              {clientName && <span className="text-[15px] font-extrabold text-[#003756]">{clientName}</span>}
               {clientName && <span className="h-4 w-px bg-black/10" />}
               <img src={`${A}/shortcut-logo-rgb.svg`} alt="Shortcut" className="h-[18px] w-auto" />
             </div>

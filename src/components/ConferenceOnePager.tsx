@@ -1077,16 +1077,18 @@ const ConferenceOnePager: React.FC = () => {
           <div className="flex items-center gap-3.5">
             {clientName ? (
               <>
-                <span className="flex items-center gap-2 text-[20px] font-extrabold tracking-[-.02em] text-shortcut-blue">
-                  {clientLogo ? (
-                    <img src={clientLogo} alt="" className="h-7 w-auto object-contain" />
-                  ) : (
+                {/* A logo REPLACES the name: client logos are usually wordmarks,
+                    so showing both reads as a duplicate. Name is the fallback. */}
+                {clientLogo ? (
+                  <img src={clientLogo} alt={clientName} className="h-7 w-auto max-w-[220px] object-contain" />
+                ) : (
+                  <span className="flex items-center gap-2 text-[20px] font-extrabold tracking-[-.02em] text-shortcut-blue">
                     <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-shortcut-blue text-[13px] font-extrabold text-white">
                       {clientName.charAt(0).toUpperCase()}
                     </span>
-                  )}
-                  {clientName}
-                </span>
+                    {clientName}
+                  </span>
+                )}
                 <span className="h-6 w-px bg-black/10" />
                 <span className="flex items-center gap-[7px] text-[11px] font-bold text-[rgba(3,34,50,.45)]">
                   <span>with</span>

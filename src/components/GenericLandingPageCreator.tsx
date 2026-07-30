@@ -95,10 +95,14 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
       });
       // Reset updated logo URL when opening for editing
       setUpdatedLogoUrl(null);
+      setRemoveLogo(false);
     }
   }, [editingPage]);
   const [logoInputType, setLogoInputType] = useState<'file' | 'url'>('file');
   const [updatedLogoUrl, setUpdatedLogoUrl] = useState<string | null>(null);
+  // Explicit "remove the logo" intent. Needed because on save an empty URL field
+  // is indistinguishable from "no change", so clearing it alone kept the old logo.
+  const [removeLogo, setRemoveLogo] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -274,6 +278,10 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
           console.log('📁 Uploading new logo file...');
           logoUrl = await uploadPartnerLogo(options.partnerLogoFile);
           console.log('✅ New logo uploaded:', logoUrl);
+        } else if (removeLogo) {
+          // Explicit removal — clear it so the page falls back to the partner name.
+          console.log('🗑️ Removing logo');
+          logoUrl = '';
         } else if (options.partnerLogoUrl && options.partnerLogoUrl !== editingPage.data.partnerLogoUrl) {
           console.log('🔗 Using new logo URL:', options.partnerLogoUrl);
           logoUrl = options.partnerLogoUrl;
@@ -491,7 +499,7 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
               {(() => {
                 // Show logo if we have a URL (either from new input, updated logo, or existing page)
                 const currentLogoUrl = updatedLogoUrl || options.partnerLogoUrl || editingPage?.data?.partnerLogoUrl;
-                const shouldShowLogo = currentLogoUrl && !options.partnerLogoFile;
+                const shouldShowLogo = currentLogoUrl && !options.partnerLogoFile && !removeLogo;
                 
                 console.log('🖼️ Logo display debug:', {
                   shouldShowLogo,
@@ -512,10 +520,40 @@ const GenericLandingPageCreator: React.FC<GenericLandingPageCreatorProps> = ({ o
                       onError={(e) => console.error('❌ Logo image failed to load:', currentLogoUrl)}
                       onLoad={() => console.log('✅ Logo image loaded successfully:', currentLogoUrl)}
                     />
-                    <p className="text-xs text-gray-500 mt-2">Upload a new file or paste a URL to replace this logo</p>
+                    <div className="mt-3 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRemoveLogo(true);
+                          setUpdatedLogoUrl(null);
+                          setOptions(prev => ({ ...prev, partnerLogoFile: null, partnerLogoUrl: '' }));
+                          setErrors(prev => ({ ...prev, partnerLogoFile: '', partnerLogoUrl: '' }));
+                        }}
+                        className="rounded-lg border-2 border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        Remove logo
+                      </button>
+                      <p className="text-xs text-gray-500">Or upload a new file / paste a URL to replace it</p>
+                    </div>
                   </div>
                 );
               })()}
+
+              {/* Removal pending — save to apply, or undo */}
+              {removeLogo && (editingPage?.data?.partnerLogoUrl || updatedLogoUrl) && (
+                <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                  <p className="text-sm text-red-700">
+                    Logo will be removed when you save. The page will show the partner name instead.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setRemoveLogo(false)}
+                    className="flex-none text-sm font-semibold text-shortcut-blue underline"
+                  >
+                    Undo
+                  </button>
+                </div>
+              )}
 
               {/* Input type toggle */}
               <div className="mb-3">
