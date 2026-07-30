@@ -301,6 +301,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     'totalHours',
     'numPros',
     'hourlyRate',
+    // Flat-price group sessions: price and class length live on the option, so
+    // editing them from the card face must write through to the selected one.
+    'fixedPrice',
+    'classLength',
   ]);
 
   const handleEdit = (field: keyof ServiceCardService) => (
@@ -1038,6 +1042,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             onGenerateOptions={internalView ? onGeneratePricingOptions : undefined}
             autoRecurringDiscount={autoRecurringDiscount}
             appTime={service.appTime}
+            flatPrice={isFlatClass}
           />
         </div>
       ) : null}

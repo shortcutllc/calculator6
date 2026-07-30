@@ -36,6 +36,7 @@ import { getProposalUrl } from '../utils/url';
 import {
   calculateServiceResults,
   generatePricingOptionsForService,
+  isFlatPriceService,
   recalculateServiceTotals,
 } from '../utils/proposalGenerator';
 import {
@@ -1227,6 +1228,11 @@ const ProposalViewerV2: React.FC = () => {
       totalHours: option.totalHours ?? baseService.totalHours,
       hourlyRate: option.hourlyRate ?? baseService.hourlyRate,
       numPros: option.numPros ?? baseService.numPros,
+      // Flat-price group sessions (mindfulness, sound bath, yoga, movement)
+      // cost fixedPrice, not hours × rate. Without these two the option's
+      // price input would recalc back to the base service's price.
+      fixedPrice: option.fixedPrice ?? baseService.fixedPrice,
+      classLength: option.classLength ?? baseService.classLength,
       discountPercent: effectiveDiscount,
     };
     const { totalAppointments, serviceCost, originalPrice, proRevenue } =
@@ -1296,6 +1302,12 @@ const ProposalViewerV2: React.FC = () => {
       serviceCost: 0,
       totalAppointments: 0,
     };
+    // Group sessions price off fixedPrice — seed it (and the class length) so a
+    // newly added option starts at the service's price and stays editable.
+    if (isFlatPriceService(svc.serviceType)) {
+      blank.fixedPrice = svc.fixedPrice;
+      blank.classLength = svc.classLength;
+    }
     svc.pricingOptions.push(recalcOption(svc, blank));
     const recalc = recalculateServiceTotals(updated);
     setEditedData({ ...recalc, customization: currentProposal?.customization });

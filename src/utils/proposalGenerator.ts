@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Proposal, ProposalData, ProposalCustomization, PricingOption, DateDataWithOptions, RecurringFrequency } from '../types/proposal';
 import { getProposalUrl } from './url';
-import { MINDFULNESS_CATALOG_BY_ID } from './mindfulnessCatalog';
-import { SOUND_BATH_CATALOG_BY_ID } from './soundBathCatalog';
-import { YOGA_CATALOG_BY_ID } from './yogaCatalog';
-import { MOVEMENT_CATALOG_BY_ID, resolveMovementEntry, isMovementServiceType } from './movementCatalog';
+import { MINDFULNESS_CATALOG_BY_ID, MINDFULNESS_CATALOG } from './mindfulnessCatalog';
+import { SOUND_BATH_CATALOG_BY_ID, SOUND_BATH_CATALOG } from './soundBathCatalog';
+import { YOGA_CATALOG_BY_ID, YOGA_CATALOG } from './yogaCatalog';
+import { MOVEMENT_CATALOG_BY_ID, MOVEMENT_CATALOG, resolveMovementEntry, isMovementServiceType } from './movementCatalog';
 
 // Helper function to calculate recurring discount based on occurrences
 export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
@@ -162,14 +162,94 @@ export const calculatePricingOptionsTotals = (options: PricingOption[]) => {
   });
 };
 
+/**
+ * Flat-price (group session) services: one price per session, unlimited
+ * attendance. They price off `fixedPrice` from a catalog, NOT hours × rate —
+ * so scaling hours does nothing to their cost. Mirrors the `isMindfulness`
+ * branch in calculateServiceResults; keep the two in sync.
+ */
+export const isFlatPriceService = (serviceType: string): boolean =>
+  serviceType === 'mindfulness' ||
+  serviceType === 'mindfulness-soles' ||
+  serviceType === 'mindfulness-movement' ||
+  serviceType === 'mindfulness-pro' ||
+  serviceType === 'mindfulness-cle' ||
+  serviceType === 'mindfulness-pro-reactivity' ||
+  serviceType === 'sound-bath' ||
+  serviceType === 'yoga' ||
+  isMovementServiceType(serviceType);
+
+/**
+ * Catalog entries a flat-price service can be sold at, as {classLength,
+ * fixedPrice, name}. Used to generate meaningful options (e.g. "30 min $1,250"
+ * / "60 min $1,500") instead of three identically-priced copies. Returns real
+ * catalog prices only — never invented numbers.
+ */
+const flatPriceVariantsFor = (serviceType: string): Array<{ name: string; classLength: number; fixedPrice: number }> => {
+  let entries: Array<{ name: string; classLength: number; fixedPrice: number }> = [];
+  if (serviceType === 'sound-bath') {
+    entries = SOUND_BATH_CATALOG.map((e) => ({ name: e.name, classLength: e.classLength, fixedPrice: e.fixedPrice }));
+  } else if (serviceType === 'yoga') {
+    entries = YOGA_CATALOG.map((e) => ({ name: e.name, classLength: e.classLength, fixedPrice: e.fixedPrice }));
+  } else if (isMovementServiceType(serviceType)) {
+    entries = MOVEMENT_CATALOG.filter((e) => e.serviceType === serviceType).map((e) => ({
+      name: e.name,
+      classLength: e.classLength,
+      fixedPrice: e.fixedPrice,
+    }));
+  } else if (serviceType.startsWith('mindfulness')) {
+    entries = MINDFULNESS_CATALOG.map((e) => ({ name: e.name, classLength: e.classLength, fixedPrice: e.fixedPrice }));
+  }
+  // Collapse duplicate length+price pairs (the mindfulness catalog has several
+  // offerings that share a duration and price) and keep the cheapest first.
+  const seen = new Set<string>();
+  return entries
+    .filter((e) => {
+      const key = `${e.classLength}-${e.fixedPrice}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a.fixedPrice - b.fixedPrice);
+};
+
 // Function to generate pricing options for a service
 export const generatePricingOptionsForService = (service: any): any[] => {
   const baseService = { ...service };
   const { totalAppointments, serviceCost, originalPrice } = calculateServiceResults(baseService);
-  
+
+  // ---- Flat-price group sessions -------------------------------------------
+  // Hours don't drive their cost, so the hour-scaling below would produce three
+  // options at an identical price. Build from the service's catalog durations
+  // instead, and always carry `fixedPrice` so the price stays editable.
+  if (isFlatPriceService(baseService.serviceType)) {
+    const variants = flatPriceVariantsFor(baseService.serviceType);
+    const currentPrice = baseService.fixedPrice || serviceCost || 0;
+    const source = variants.length
+      ? variants
+      : [{ name: 'Option 1', classLength: baseService.classLength, fixedPrice: currentPrice }];
+    return source.map((v, i) => {
+      const merged = { ...baseService, fixedPrice: v.fixedPrice, classLength: v.classLength };
+      const res = calculateServiceResults(merged);
+      return {
+        name: v.name || `Option ${i + 1}`,
+        classLength: v.classLength,
+        fixedPrice: v.fixedPrice,
+        totalHours: baseService.totalHours,
+        numPros: baseService.numPros,
+        hourlyRate: baseService.hourlyRate,
+        totalAppointments: res.totalAppointments,
+        serviceCost: res.serviceCost,
+        originalPrice: res.originalPrice,
+        proRevenue: res.proRevenue,
+        discountPercent: baseService.discountPercent || 0,
+      };
+    });
+  }
+
   // Create different pricing options based on service type and quantities
   const options = [];
-  
+
   // Option 1: Standard (current configuration)
   options.push({
     name: 'Option 1',
@@ -742,6 +822,13 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
             if (option.totalHours !== undefined) optionService.totalHours = option.totalHours;
             if (option.hourlyRate !== undefined) optionService.hourlyRate = option.hourlyRate;
             if (option.numPros !== undefined) optionService.numPros = option.numPros;
+            // Flat-price group sessions (mindfulness / sound bath / yoga /
+            // movement) cost fixedPrice, not hours × rate. Without these two
+            // every option would re-price to the BASE service's fixedPrice on
+            // the next recalc — silently erasing per-option prices on save and
+            // on the client viewer.
+            if (option.fixedPrice !== undefined) optionService.fixedPrice = option.fixedPrice;
+            if (option.classLength !== undefined) optionService.classLength = option.classLength;
             optionService.discountPercent = effectiveDiscount;
 
             const { totalAppointments, serviceCost, proRevenue: optionProRevenue, originalPrice } = calculateServiceResults(optionService);

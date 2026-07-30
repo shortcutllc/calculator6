@@ -22,6 +22,8 @@ export interface PricingOptionVariant {
   originalPrice?: number;
   // mindfulness flavor
   classLength?: number;
+  /** Flat-price group sessions: the per-session price this option sells at. */
+  fixedPrice?: number;
 }
 
 interface PricingOptionsSelectorProps {
@@ -48,6 +50,10 @@ interface PricingOptionsSelectorProps {
    *  their own appTime — length is constant across variants — so it's passed
    *  down to render "N min each" next to each tile's appointment count. */
   appTime?: number;
+  /** Flat-price group session (mindfulness / sound bath / yoga / movement).
+   *  These cost a fixed price per session rather than hours × rate × pros, so
+   *  the editor swaps the Hours/Pros/$-per-hour inputs for Price + Length. */
+  flatPrice?: boolean;
 }
 
 const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
@@ -63,6 +69,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
   onGenerateOptions,
   autoRecurringDiscount,
   appTime,
+  flatPrice = false,
 }) => {
   // Clamp to a sane range; treat 0/undefined/negative as "no recurring".
   const recurringPct = Math.max(0, Math.min(99, Number(autoRecurringDiscount) || 0));
@@ -313,21 +320,41 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                       marginTop: 6,
                     }}
                   >
-                    <OptionInput
-                      label="Hours"
-                      value={opt.totalHours ?? ''}
-                      onChange={(v) => onEditOption?.(i, 'totalHours', v)}
-                    />
-                    <OptionInput
-                      label="Pros"
-                      value={opt.numPros ?? ''}
-                      onChange={(v) => onEditOption?.(i, 'numPros', v)}
-                    />
-                    <OptionInput
-                      label="$/hr"
-                      value={opt.hourlyRate ?? ''}
-                      onChange={(v) => onEditOption?.(i, 'hourlyRate', v)}
-                    />
+                    {/* Group sessions are one flat price per session, so hours
+                        / pros / $-per-hour don't move their cost. Editing those
+                        would silently do nothing — show Price and Length. */}
+                    {flatPrice ? (
+                      <>
+                        <OptionInput
+                          label="Price $"
+                          value={opt.fixedPrice ?? ''}
+                          onChange={(v) => onEditOption?.(i, 'fixedPrice', v)}
+                        />
+                        <OptionInput
+                          label="Length (min)"
+                          value={opt.classLength ?? ''}
+                          onChange={(v) => onEditOption?.(i, 'classLength', v)}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <OptionInput
+                          label="Hours"
+                          value={opt.totalHours ?? ''}
+                          onChange={(v) => onEditOption?.(i, 'totalHours', v)}
+                        />
+                        <OptionInput
+                          label="Pros"
+                          value={opt.numPros ?? ''}
+                          onChange={(v) => onEditOption?.(i, 'numPros', v)}
+                        />
+                        <OptionInput
+                          label="$/hr"
+                          value={opt.hourlyRate ?? ''}
+                          onChange={(v) => onEditOption?.(i, 'hourlyRate', v)}
+                        />
+                      </>
+                    )}
                     {/* Per-option discount editor removed — the service-level
                         "Discount %" field is now the single source of truth.
                         All options inherit it automatically on recalc. */}
