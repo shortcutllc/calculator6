@@ -258,11 +258,19 @@ const MobileServiceCard: React.FC<MobileServiceCardProps> = (props) => {
           </div>
           {opts.map((opt, i) => {
             const selected = (service.selectedOption ?? 0) === i;
-            const off = opt.discountPercent ?? autoRecurringDiscount;
-            const orig =
-              opt.originalPrice && opt.originalPrice > opt.serviceCost
+            // Mirrors ServiceCardRefresh: the stored serviceCost is the
+            // pre-recurring price, so apply the proposal-wide discount here.
+            const recurringPct = autoRecurringDiscount || 0;
+            const finalPrice = opt.serviceCost * (1 - recurringPct / 100);
+            const listPrice =
+              typeof opt.originalPrice === 'number' && opt.originalPrice > 0
                 ? opt.originalPrice
-                : undefined;
+                : opt.serviceCost;
+            const orig = listPrice > finalPrice + 0.01 ? listPrice : undefined;
+            const off =
+              orig !== undefined
+                ? Math.round(((listPrice - finalPrice) / listPrice) * 100)
+                : 0;
             return (
               <button
                 key={i}
@@ -281,7 +289,7 @@ const MobileServiceCard: React.FC<MobileServiceCardProps> = (props) => {
                   </div>
                 </div>
                 <div className="pvm-popt-price">
-                  <div className="v">{formatCurrency(opt.serviceCost)}</div>
+                  <div className="v">{formatCurrency(finalPrice)}</div>
                   {orig && <span className="orig">{formatCurrency(orig)}</span>}
                   {off ? <span className="off">{off}% off</span> : null}
                 </div>

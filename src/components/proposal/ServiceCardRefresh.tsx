@@ -266,11 +266,21 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
           <div className="pv-popt-grid">
             {opts.map((opt, i) => {
               const selected = (service.selectedOption ?? 0) === i;
-              const off = opt.discountPercent ?? autoRecurringDiscount;
-              const orig =
-                opt.originalPrice && opt.originalPrice > opt.serviceCost
+              // An option's stored serviceCost is the PRE-recurring price (any
+              // per-option discount is already baked in), so the proposal-wide
+              // recurring discount has to be applied here or the tile quotes
+              // full price while the card above shows the discounted total.
+              const recurringPct = autoRecurringDiscount || 0;
+              const finalPrice = opt.serviceCost * (1 - recurringPct / 100);
+              const listPrice =
+                typeof opt.originalPrice === 'number' && opt.originalPrice > 0
                   ? opt.originalPrice
-                  : undefined;
+                  : opt.serviceCost;
+              const orig = listPrice > finalPrice + 0.01 ? listPrice : undefined;
+              const off =
+                orig !== undefined
+                  ? Math.round(((listPrice - finalPrice) / listPrice) * 100)
+                  : 0;
               return (
                 <button
                   key={i}
@@ -298,7 +308,7 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
                     <div className="pv-popt-len">{opt.appTime ?? service.appTime} min each</div>
                   )}
                   <div className="pv-popt-price">
-                    <span className="v">{formatCurrency(opt.serviceCost)}</span>
+                    <span className="v">{formatCurrency(finalPrice)}</span>
                     {orig && <span className="orig">{formatCurrency(orig)}</span>}
                     {off ? <span className="off">{off}% off</span> : null}
                   </div>
