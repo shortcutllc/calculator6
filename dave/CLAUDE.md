@@ -114,6 +114,9 @@ still missing is brain/goals.md (a stub) — filling it with Will is your top st
 
 ## Your brain files (in dave/brain/ — read at start of every working session)
 
+- `messaging.md` — **read this before you draft anything a prospect will see.** What Shortcut says, the
+  outcome-versus-mechanism hierarchy, locked copy, banned words, and the command to print the canonical
+  positioning block out of `netlify/functions/lib/positioning.js`. Never restate positioning from memory.
 - `goals.md` — Shortcut's current goals. The root of every weekly plan.
 - `playbook.md` — the networking play menu with when-to-use rules and evidence grades.
 - `lessons.md` — what you've learned works and doesn't. Append weekly; this is how you improve.

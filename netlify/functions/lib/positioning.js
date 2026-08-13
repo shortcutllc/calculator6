@@ -1,8 +1,8 @@
 /**
  * positioning.js — THE single programmatic source of Shortcut's positioning.
  *
- * Mirrors memory/messaging_spine.md (v3, locked 2026-06-25 — Will reprioritized
- * the differentiators to what actually CLOSES). That memory file is the human
+ * Mirrors memory/messaging_spine.md (v4, hierarchy locked 2026-07-29 — one outcome,
+ * two mechanisms; top line "Wellness your people show up for"). That memory file is the human
  * source of truth; this is its machine-readable twin. Every drafting surface
  * (draft-outreach.js, the cold sequence composer, the copy evaluator) imports
  * from HERE so positioning cannot drift between surfaces.
@@ -134,7 +134,7 @@ export const SEASONAL_ONLY_PHRASES = ['a gift they', 'gift your team', 'perfect 
  */
 export function buildPositioningBlock({ channel = 'direct', seasonal = false, remote = false } = {}) {
   const lines = [
-    'POSITIONING (source of truth — memory/messaging_spine.md v3). Everything you write ladders to this:',
+    'POSITIONING (source of truth — memory/messaging_spine.md v4). Everything you write ladders to this:',
     `- North star (internal, do not quote): ${POSITIONING_STATEMENT}`,
     '- LEAD WITH THE PROBLEM, calm not fear-based. Reference line to adapt (do not paste verbatim):',
     `    "${PROBLEM_FIRST.medium}"`,
