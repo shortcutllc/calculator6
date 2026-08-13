@@ -10,6 +10,10 @@
  * run · 5 cost recording · 6 watermark-on-success · 7 healthchecks ping · 8 run logging.
  */
 import fs from 'fs';
+// Positioning is injected, not remembered. Every other copy surface imports this
+// (scripts/check-copy-surfaces.mjs enforces it); Dave drafts prospect-facing text too,
+// so the same block goes in front of every job prompt that writes copy.
+import { buildPositioningBlock } from '../../netlify/functions/lib/positioning.js';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -70,6 +74,14 @@ try {
 const budget = await import(path.join(DAVE_DIR, 'gateway', 'budget.mjs'));
 if (!budget.canSpend('job').ok) { log('budget-refusals.log', `${new Date().toISOString()} ${job} refused: budget`); process.exit(0); }
 
+// Jobs that put words in front of a prospect get the positioning block prepended.
+// nightly-status is internal telemetry, so it does not.
+const COPY_JOBS = new Set(['morning-brief', 'monday-strategy', 'influence-scan']);
+function withPositioning(jobName, prompt) {
+  if (!COPY_JOBS.has(jobName)) return prompt;
+  return `${buildPositioningBlock({ channel: 'direct' })}\n\n---\n\n${prompt}`;
+}
+
 // --- 4. Run the job (ephemeral session, fresh context) ---
 // launchd PATH lacks /opt/homebrew/bin (where claude lives) — same fix as the gateway.
 if (!(process.env.PATH || '').includes('/opt/homebrew/bin')) {
@@ -80,7 +92,7 @@ const CLAUDE_BIN = process.env.DAVE_CLAUDE_BIN
 // Max-plan login only — a stale launchctl-env API key 401'd the gateway (2026-07-20).
 for (const k of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN']) delete process.env[k];
 const r = spawnSync(CLAUDE_BIN, [
-  '-p', fs.readFileSync(promptFile, 'utf8'),
+  '-p', withPositioning(job, fs.readFileSync(promptFile, 'utf8')),
   '--output-format', 'json',
   '--model', process.env.DAVE_MODEL || 'claude-opus-4-8',
   // Task = subagent fan-out (granted 2026-07-21): parallel research sweeps, each angle its

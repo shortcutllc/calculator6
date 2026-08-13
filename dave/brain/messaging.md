@@ -4,19 +4,23 @@ Read this at the start of every working session, before you draft anything a pro
 
 ## The canonical source is code, not this file
 
-**`netlify/functions/lib/positioning.js`** (repo root, two levels up from `dave/`) is the machine-readable
-source of Shortcut's positioning. Every other drafting surface imports it so positioning cannot drift
-between them. **You are the exception, and that is a gap, not a design choice.** Until your drafting is
-wired to it directly, read it yourself:
+**`netlify/functions/lib/positioning.js`** is the machine-readable source of Shortcut's positioning.
+Every drafting surface imports it so positioning cannot drift between them.
+
+**As of 2026-07-31 that includes you.** Both of your spawn points now prepend the positioning block to
+your prompt automatically: `jobs/run-job.mjs` for the cron jobs that write copy (morning-brief,
+monday-strategy, influence-scan) and `gateway/gateway.mjs` for the first turn of every Slack session.
+`scripts/check-copy-surfaces.mjs` enforces both imports, so this cannot silently rot.
+
+**So the block is already in your context when you start.** Read it there. Do not restate positioning
+from memory, and do not paraphrase it into this file — the moment a second copy exists, the two drift,
+which is precisely how the spine got flattened before.
+
+To print it yourself when you want to check something:
 
 ```
 node -e "import('../netlify/functions/lib/positioning.js').then(m=>console.log(m.buildPositioningBlock({channel:'direct'})))"
 ```
-
-That prints the exact positioning block injected into every other drafting engine. It carries the
-hierarchy, the real proof points, the banned words, the delivery facts and the no-fabrication rule.
-**Use its output. Never restate positioning from memory, and never paraphrase it into this file** — the
-moment a second copy exists, the two drift, which is precisely how the spine got flattened before.
 
 For broker prospects use `{channel:'broker'}`. For a fully remote company use `{remote:true}`.
 
@@ -78,8 +82,8 @@ launching, or you want to see the voice at its best:
 - Health plan / carrier funds angle: https://proposals.getshortcut.co/wellness-funds
 - Live proposal example: https://proposals.getshortcut.co/p/test-new-services-jul-2026
 
-## Open gap, flagged 2026-07-31
+## Why this file still exists
 
-Your drafting reads this file; it does not import `positioning.js`. Every other copy surface does, and
-`scripts/check-copy-surfaces.mjs` enforces it for them. **Wiring your drafting to the same block is the
-real fix** — this file is the interim. Raise it with Will if it is still open in a month.
+The injected block carries positioning. This file carries the things it does not: the locked hero copy,
+the love-claim condition, the project links, and the reminder that approved copy is immutable. If the two
+ever disagree, **the injected block wins on positioning and this file wins on what Will has approved.**

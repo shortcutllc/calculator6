@@ -18,6 +18,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { CAPS, canSpend, record, recordRefusal, status } from './budget.mjs';
+// Same rule as the cron jobs: positioning is injected, never recalled. Prepended to the
+// FIRST turn of a session only, since --resume carries it forward in context after that.
+import { buildPositioningBlock } from '../../netlify/functions/lib/positioning.js';
 
 const { App } = pkg;
 const DAVE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -64,7 +67,8 @@ function saveSessions(s) { fs.mkdirSync(STATE_DIR, { recursive: true }); fs.writ
 /** Run one Claude turn. Returns { text, sessionId, costUsd }. */
 function runClaude(prompt, resumeId) {
   return new Promise((resolve, reject) => {
-    const args = ['-p', prompt, '--output-format', 'json', '--model', MODEL, '--allowedTools', ALLOWED_TOOLS, '--max-turns', '25'];
+    const seeded = resumeId ? prompt : `${buildPositioningBlock({ channel: 'direct' })}\n\n---\n\n${prompt}`;
+    const args = ['-p', seeded, '--output-format', 'json', '--model', MODEL, '--allowedTools', ALLOWED_TOOLS, '--max-turns', '25'];
     if (resumeId) args.push('--resume', resumeId);
     const child = spawn(CLAUDE_BIN, args, { cwd: DAVE_DIR, env: process.env });
     let out = '', err = '';

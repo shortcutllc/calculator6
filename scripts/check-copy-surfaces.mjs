@@ -18,6 +18,10 @@ const COPY_SURFACES = [
   'netlify/functions/lib/founder-note.js',
   'netlify/functions/lib/founder-note-v2.js', // the generate-N-then-select writing loop
   'netlify/functions/draft-outreach.js',
+  // Dave, the networking agent. Both spawn points put prospect-facing words on the page,
+  // so both inject the block rather than relying on him remembering a brain file.
+  'dave/jobs/run-job.mjs',
+  'dave/gateway/gateway.mjs',
 ];
 
 let failed = false;
