@@ -7,7 +7,7 @@ import { Users, DollarSign, MapPin, Calendar, Scissors, Heart, AlertTriangle, Ma
    Shortcut design system — visual, card-based
    Data source: Shortcut Coordinator (Parse), pulled Aug 18 2026.
    All figures below are drawn directly from the 28 real (non-test,
-   non-cancelled) Bisnow Escape events on file. See Methodology.
+   non-cancelled) Bisnow Escape events on file.
    ───────────────────────────────────────────── */
 
 const SERVICES = {
@@ -17,64 +17,81 @@ const SERVICES = {
 
 type ServiceKey = keyof typeof SERVICES;
 
-// ── Per-year data, pulled from the coordinator (see Methodology for the
-// fill-rate caveat on 2021/2023/2024) ──
+// ── Per-year data, pulled from the coordinator ──
 const YEARS = [
   {
     year: '2021', days: 4, services: ['Hair'] as ServiceKey[], pros: ['Eddie Montalvo', 'Sally Souffrant'],
     slots: 64, filled: null as number | null, fillPct: null as number | null,
-    payment: null as number | null, barberPay: 1800, venue: 'Terra Ballroom', waitlist: 0,
+    payment: null as number | null, barberPay: 1800, venue: 'Terra Ballroom',
     contact: 'Katie LaPerch', note: 'Fill data unusable — every event this year shows an open-slot count above capacity (coordinator anomaly).',
   },
   {
     year: '2022', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Ray Edden'],
     slots: 104, filled: 96, fillPct: 92.3,
-    payment: 5640, barberPay: 2450, venue: 'Terra Gallery', waitlist: 3,
+    payment: 5640, barberPay: 2450, venue: 'Terra Gallery',
     contact: 'Aly Vazquez', note: null,
   },
   {
     year: '2023', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Kirvin Shand'],
     slots: 104, filled: 80, fillPct: 97.6,
-    payment: 5640, barberPay: 2300, venue: 'Terra Gallery', waitlist: 5,
+    payment: 5640, barberPay: 2300, venue: 'Terra Gallery',
     contact: 'Gretchen Severns', note: 'One Hair block (Nov 8) excluded from the fill-rate math — same open-slot anomaly as 2021.',
   },
   {
     year: '2024', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Meryhec Lopez'],
     slots: 100, filled: 80, fillPct: 90.9,
-    payment: 5520, barberPay: 2250, venue: 'Terra Gallery', waitlist: 6,
+    payment: 5520, barberPay: 2250, venue: 'Terra Gallery',
     contact: null, note: 'One Hair block (Nov 7) excluded from the fill-rate math — same open-slot anomaly as 2021.',
   },
   {
     year: '2025', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Julia Gonzalez Angulo', 'Meryhec Lopez', 'Pedro Rosario'],
     slots: 120, filled: 94, fillPct: 78.3,
-    payment: 6250, barberPay: 2625, venue: 'Terra Gallery + Garnet I & II', waitlist: 0,
+    payment: 6250, barberPay: 2625, venue: 'Terra Gallery + Garnet I & II',
     contact: 'Megan Harding & Ariel Fromm', note: null,
   },
 ];
 
-// Waitlist entries by service, all 5 years — pulled straight from
-// numWaitlistEntries per event block. Hair essentially never waitlists;
-// Massage does, in 3 of the last 4 years it's run.
-const WAITLIST_BY_SERVICE = [
-  { year: '2022', day: 'Nov 9', svc: 'Massage' as ServiceKey, count: 1 },
-  { year: '2022', day: 'Nov 9', svc: 'Hair' as ServiceKey, count: 1 },
-  { year: '2022', day: 'Nov 10', svc: 'Hair' as ServiceKey, count: 1 },
-  { year: '2023', day: 'Nov 6', svc: 'Hair' as ServiceKey, count: 1 },
-  { year: '2023', day: 'Nov 6', svc: 'Massage' as ServiceKey, count: 1 },
-  { year: '2023', day: 'Nov 8', svc: 'Massage' as ServiceKey, count: 3 },
-  { year: '2024', day: 'Nov 4', svc: 'Massage' as ServiceKey, count: 5 },
-  { year: '2024', day: 'Nov 6', svc: 'Massage' as ServiceKey, count: 1 },
-];
+type DayBooking = { day: string; svc: ServiceKey; booked: number | null; total: number; venue: string; anomaly?: boolean };
 
-// 2025 day-by-day — the cleanest, most recent year (no anomalies)
-const DAYS_2025 = [
-  { day: 'Mon · Nov 3', svc: 'Massage' as ServiceKey, booked: 27, total: 30, venue: 'Garnet I + II' },
-  { day: 'Mon · Nov 3', svc: 'Hair' as ServiceKey, booked: 15, total: 20, venue: 'Terra Gallery' },
-  { day: 'Tue · Nov 4', svc: 'Hair' as ServiceKey, booked: 0, total: 10, venue: 'Terra Gallery', flag: true },
-  { day: 'Wed · Nov 5', svc: 'Hair' as ServiceKey, booked: 17, total: 20, venue: 'Terra Gallery' },
-  { day: 'Wed · Nov 5', svc: 'Massage' as ServiceKey, booked: 29, total: 30, venue: 'Garnet I + II' },
-  { day: 'Thu · Nov 6', svc: 'Hair' as ServiceKey, booked: 6, total: 10, venue: 'Terra Gallery' },
-];
+// Day-by-day booking detail, every year. 2021 is entirely excluded — every
+// event that year shows an open-slot count above total capacity, so there's
+// no reliable booked/total to show (see the 2021 card's note instead).
+// Anomalous individual blocks in 2023/2024 are flagged rather than faked.
+const BOOKINGS_BY_YEAR: Record<string, DayBooking[] | null> = {
+  '2021': null,
+  '2022': [
+    { day: 'Mon · Nov 7', svc: 'Massage', booked: 14, total: 16, venue: 'Terra Gallery' },
+    { day: 'Mon · Nov 7', svc: 'Hair', booked: 20, total: 22, venue: 'Terra Gallery' },
+    { day: 'Tue · Nov 8', svc: 'Hair', booked: 13, total: 14, venue: 'Terra Gallery' },
+    { day: 'Wed · Nov 9', svc: 'Massage', booked: 16, total: 16, venue: 'Terra Gallery' },
+    { day: 'Wed · Nov 9', svc: 'Hair', booked: 21, total: 22, venue: 'Terra Gallery' },
+    { day: 'Thu · Nov 10', svc: 'Hair', booked: 12, total: 14, venue: 'Terra Gallery' },
+  ],
+  '2023': [
+    { day: 'Mon · Nov 6', svc: 'Hair', booked: 22, total: 22, venue: 'Terra Gallery' },
+    { day: 'Mon · Nov 6', svc: 'Massage', booked: 16, total: 16, venue: 'Terra Gallery' },
+    { day: 'Tue · Nov 7', svc: 'Hair', booked: 14, total: 14, venue: 'Terra Gallery' },
+    { day: 'Wed · Nov 8', svc: 'Hair', booked: null, total: 22, venue: 'Terra Gallery', anomaly: true },
+    { day: 'Wed · Nov 8', svc: 'Massage', booked: 16, total: 16, venue: 'Terra Gallery' },
+    { day: 'Thu · Nov 9', svc: 'Hair', booked: 12, total: 14, venue: 'Terra Gallery' },
+  ],
+  '2024': [
+    { day: 'Mon · Nov 4', svc: 'Hair', booked: 21, total: 22, venue: 'Terra Gallery' },
+    { day: 'Mon · Nov 4', svc: 'Massage', booked: 16, total: 16, venue: 'Terra Gallery' },
+    { day: 'Tue · Nov 5', svc: 'Hair', booked: 11, total: 12, venue: 'Terra Gallery' },
+    { day: 'Wed · Nov 6', svc: 'Hair', booked: 17, total: 22, venue: 'Terra Gallery' },
+    { day: 'Wed · Nov 6', svc: 'Massage', booked: 15, total: 16, venue: 'Terra Gallery' },
+    { day: 'Thu · Nov 7', svc: 'Hair', booked: null, total: 12, venue: 'Terra Gallery', anomaly: true },
+  ],
+  '2025': [
+    { day: 'Mon · Nov 3', svc: 'Massage', booked: 27, total: 30, venue: 'Garnet I + II' },
+    { day: 'Mon · Nov 3', svc: 'Hair', booked: 15, total: 20, venue: 'Terra Gallery' },
+    { day: 'Tue · Nov 4', svc: 'Hair', booked: 0, total: 10, venue: 'Terra Gallery' },
+    { day: 'Wed · Nov 5', svc: 'Hair', booked: 17, total: 20, venue: 'Terra Gallery' },
+    { day: 'Wed · Nov 5', svc: 'Massage', booked: 29, total: 30, venue: 'Garnet I + II' },
+    { day: 'Thu · Nov 6', svc: 'Hair', booked: 6, total: 10, venue: 'Terra Gallery' },
+  ],
+};
 
 function useFadeIn() {
   const ref = useRef<HTMLDivElement>(null);
@@ -215,7 +232,6 @@ function YearlyTable() {
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Pros</th>
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Slots Offered</th>
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Fill Rate</th>
-            <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Waitlisted</th>
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue">Paid to Shortcut</th>
           </tr>
         </thead>
@@ -229,9 +245,6 @@ function YearlyTable() {
               <td className="py-3.5 px-3 text-right text-[14px] font-semibold tabular-nums text-shortcut-blue">
                 {y.fillPct !== null ? `${y.fillPct}%` : <span className="text-shortcut-blue/30">n/a</span>}
               </td>
-              <td className={`py-3.5 px-3 text-right text-[14px] font-semibold tabular-nums ${y.waitlist > 0 ? 'text-shortcut-coral' : 'text-shortcut-blue/30'}`}>
-                {y.waitlist > 0 ? `+${y.waitlist}` : '—'}
-              </td>
               <td className="py-3.5 px-3 text-right text-[14px] font-extrabold tabular-nums text-shortcut-blue">
                 {y.payment !== null ? `$${y.payment.toLocaleString()}` : <span className="text-shortcut-blue/40 font-semibold">not recorded</span>}
               </td>
@@ -242,128 +255,80 @@ function YearlyTable() {
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">8 unique</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">492</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">88.8%*</td>
-            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">+14</td>
             <td className="py-4 px-3 text-right text-[15px] font-extrabold text-shortcut-teal tabular-nums rounded-r-xl">$23,050*</td>
           </tr>
         </tbody>
       </table>
       <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium leading-relaxed">
-        * Fill rate and 5-year total exclude 2021 (unusable data) and the 6 individual event blocks flagged with the open-slot anomaly. Paid-to-Shortcut total covers 2022–2025 only — 2021 billing wasn't recorded on the coordinator event. Waitlisted counts people who tried to book after a service filled — see the breakdown below.
+        * Fill rate and 5-year total exclude 2021 (unusable data) and the 6 individual event blocks flagged with the open-slot anomaly. Paid-to-Shortcut total covers 2022–2025 only — 2021 billing wasn't recorded on the coordinator event.
       </p>
     </div>
   );
 }
 
-// ── Waitlist demand breakdown ──
-function WaitlistDemand() {
-  const totalByService = WAITLIST_BY_SERVICE.reduce(
-    (acc, w) => { acc[w.svc] += w.count; return acc; },
-    { Hair: 0, Massage: 0 } as Record<ServiceKey, number>
-  );
+// ── Booking stats, day by day, every year ──
+function BookingStatsByYear() {
   return (
-    <div className="card-large">
-      <div className="mb-6 md:mb-7">
-        <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">Demand signal</div>
-        <h2 className="text-[1.75rem] md:text-[2.25rem] font-extrabold text-shortcut-blue leading-tight">
-          14 people waitlisted
-          <span className="text-shortcut-teal-blue"> over 5 years — 11 for Massage.</span>
-        </h2>
-        <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[640px]">
-          Zero waitlist activity in 2021 (Massage didn't exist yet) and 2025 (fill rate dropped to 78%, so there was slack instead of overflow). Every year Massage has run, it's waitlisted people at least once — Hair has only done it on 3 of 20 event-days, one person each time.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {(['Massage', 'Hair'] as ServiceKey[]).map((svc) => {
-          const s = SERVICES[svc];
-          const Icon = s.icon;
-          return (
-            <div key={svc} className="rounded-2xl p-5 border border-shortcut-blue/[.06] flex items-center gap-4" style={{ backgroundColor: s.tint }}>
-              <div className="w-11 h-11 rounded-full flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: s.bg }}>
-                <Icon size={19} className="text-shortcut-blue" strokeWidth={2.25} />
-              </div>
+    <div className="space-y-6">
+      {YEARS.map((y) => {
+        const bookings = BOOKINGS_BY_YEAR[y.year];
+        return (
+          <div key={y.year} className="card-large">
+            <div className="flex items-baseline justify-between mb-5 flex-wrap gap-2">
               <div>
-                <div className="text-[1.6rem] font-extrabold text-shortcut-blue leading-none tabular-nums">+{totalByService[svc]}</div>
-                <div className="text-[12px] font-semibold text-shortcut-blue/60 mt-1 leading-tight">{svc} waitlist signups, 5-year total</div>
+                <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">{y.year}</div>
+                <h3 className="text-[20px] md:text-[22px] font-extrabold text-shortcut-blue leading-tight">
+                  {y.fillPct !== null ? `${y.fillPct}% filled` : 'Data unusable'}
+                </h3>
               </div>
+              <div className="text-[12px] font-semibold text-shortcut-blue/50">{y.venue}</div>
             </div>
-          );
-        })}
-      </div>
 
-      <div className="space-y-1">
-        {WAITLIST_BY_SERVICE.map((w, i) => {
-          const s = SERVICES[w.svc];
-          const Icon = s.icon;
-          return (
-            <div key={i} className="flex items-center gap-3 py-2.5 border-b border-shortcut-blue/[.06] last:border-0">
-              <div className="text-[12px] font-bold text-shortcut-blue/40 tabular-nums w-16">{w.year}</div>
-              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: s.bg }}>
-                <Icon size={13} className="text-shortcut-blue" strokeWidth={2.25} />
+            {bookings ? (
+              <div className="space-y-3">
+                {bookings.map((d, i) => {
+                  const s = SERVICES[d.svc];
+                  const pct = d.booked !== null ? (d.booked / d.total) * 100 : 0;
+                  const isZero = d.booked === 0;
+                  return (
+                    <div key={i} className="grid grid-cols-[110px_60px_1fr_70px] md:grid-cols-[130px_90px_1fr_90px] gap-3 items-center">
+                      <div className="text-[12px] md:text-[13px] font-bold text-shortcut-blue">{d.day}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.bg }} />
+                        <span className="text-[11px] font-semibold text-shortcut-blue/60">{d.svc}</span>
+                      </div>
+                      <div className="relative h-8 rounded-lg bg-shortcut-blue/[.04]">
+                        {d.anomaly ? (
+                          <div className="absolute inset-0 rounded-lg bg-shortcut-blue/[.06] border border-dashed border-shortcut-blue/15 flex items-center px-3">
+                            <span className="text-[11px] font-bold text-shortcut-blue/40">data unreliable</span>
+                          </div>
+                        ) : (
+                          <div
+                            className={`absolute inset-y-0 left-0 rounded-lg flex items-center px-3 ${isZero ? 'bg-shortcut-coral' : ''}`}
+                            style={{ width: isZero ? '100%' : `${Math.max(pct, 4)}%`, backgroundColor: isZero ? undefined : s.bg }}
+                          >
+                            <span className={`text-[11px] font-extrabold tabular-nums ${isZero ? 'text-white' : 'text-shortcut-blue'}`}>
+                              {d.booked}/{d.total}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-[11px] font-semibold text-shortcut-blue/50 text-right">{d.venue}</div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="text-[13px] font-semibold text-shortcut-blue flex-1">{w.svc} · {w.day}</div>
-              <div className="text-[13px] font-extrabold text-shortcut-coral tabular-nums">+{w.count}</div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── 2025 day-by-day bars ──
-function DayByDayBars() {
-  return (
-    <div className="card-large">
-      <div className="mb-6 md:mb-7">
-        <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">2025 · day by day</div>
-        <h2 className="text-[1.75rem] md:text-[2.25rem] font-extrabold text-shortcut-blue leading-tight">
-          Where the bookings
-          <span className="text-shortcut-teal-blue"> actually landed.</span>
-        </h2>
-        <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[640px]">
-          2025 is the cleanest year on file — no open-slot anomalies — so it's the best lens on which conference days actually drive demand.
-        </p>
-      </div>
-      <div className="space-y-3">
-        {DAYS_2025.map((d, i) => {
-          const s = SERVICES[d.svc];
-          const pct = (d.booked / d.total) * 100;
-          return (
-            <div key={i} className="grid grid-cols-[110px_60px_1fr_70px] md:grid-cols-[130px_90px_1fr_90px] gap-3 items-center">
-              <div className="text-[12px] md:text-[13px] font-bold text-shortcut-blue">{d.day}</div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.bg }} />
-                <span className="text-[11px] font-semibold text-shortcut-blue/60">{d.svc}</span>
+            ) : (
+              <div className="flex items-start gap-3 rounded-2xl p-5 border border-shortcut-blue/[.08] bg-shortcut-blue/[.03]">
+                <AlertTriangle size={18} className="text-shortcut-blue/40 shrink-0 mt-0.5" strokeWidth={2.25} />
+                <p className="text-[13px] text-text-dark/70 font-medium leading-relaxed">
+                  {y.note} {y.slots} slots were offered across {y.days} days, but the recorded open-slot counts exceed capacity on every event, so booked/total can't be trusted for this year.
+                </p>
               </div>
-              <div className="relative h-8 rounded-lg bg-shortcut-blue/[.04]">
-                <div
-                  className={`absolute inset-y-0 left-0 rounded-lg transition-all duration-700 ease-out flex items-center px-3 ${d.flag ? 'bg-shortcut-coral' : ''}`}
-                  style={!d.flag ? { width: `${Math.max(pct, 4)}%`, backgroundColor: s.bg } : { width: '100%' }}
-                >
-                  {!d.flag && (
-                    <span className="text-[11px] font-extrabold tabular-nums text-shortcut-blue">{d.booked}/{d.total}</span>
-                  )}
-                </div>
-                {d.flag && (
-                  <span className="absolute inset-0 flex items-center px-3 text-[11px] font-extrabold tabular-nums text-white">0/{d.total} booked</span>
-                )}
-              </div>
-              <div className="text-[11px] font-semibold text-shortcut-blue/50 text-right">{d.venue}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 rounded-2xl p-5 md:p-6 border border-shortcut-coral/20 bg-shortcut-coral/[.05] flex items-start gap-3">
-        <AlertTriangle size={18} className="text-shortcut-coral shrink-0 mt-0.5" strokeWidth={2.25} />
-        <div>
-          <div className="text-[14px] font-extrabold text-shortcut-blue mb-1">Tuesday's Hair line went completely unbooked.</div>
-          <p className="text-[13px] text-text-dark/70 font-medium leading-relaxed">
-            Zero of 10 slots filled on the second conference day, while Monday and Wednesday ran 75–97%. This is a single-year observation, not an established pattern — 2023 and 2024's second days actually filled well. Worth watching next year before changing the schedule, but the 10 idle slots on Nov 4 are the clearest single opportunity in this dataset.
-          </p>
-        </div>
-      </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -454,11 +419,8 @@ export default function BisnowReport() {
     { id: 'headline', label: 'Headline' },
     { id: 'yearly', label: 'Year over Year' },
     { id: 'table', label: 'Per-Year Detail' },
-    { id: 'waitlist', label: 'Waitlist Demand' },
     { id: 'services', label: 'Service Mix' },
-    { id: 'days', label: '2025 Day by Day' },
-    { id: 'relationship', label: 'The Relationship' },
-    { id: 'methodology', label: 'Methodology' },
+    { id: 'days', label: 'Booking Stats by Year' },
   ];
 
   return (
@@ -622,14 +584,6 @@ export default function BisnowReport() {
           </Section>
 
           {/* ══════════════════════════════════════════
-              WAITLIST DEMAND
-              ══════════════════════════════════════════ */}
-          <Section id="waitlist">
-            <div data-toc id="waitlist" />
-            <WaitlistDemand />
-          </Section>
-
-          {/* ══════════════════════════════════════════
               SERVICE MIX EVOLUTION
               ══════════════════════════════════════════ */}
           <Section id="services">
@@ -676,88 +630,16 @@ export default function BisnowReport() {
           </Section>
 
           {/* ══════════════════════════════════════════
-              2025 DAY BY DAY
+              BOOKING STATS BY YEAR
               ══════════════════════════════════════════ */}
           <Section id="days">
             <div data-toc id="days" />
-            <DayByDayBars />
-          </Section>
-
-          {/* ══════════════════════════════════════════
-              THE RELATIONSHIP
-              ══════════════════════════════════════════ */}
-          <Section id="relationship">
-            <div data-toc id="relationship" />
-            <SectionLabel>Section II · The Relationship</SectionLabel>
-            <SectionHeading subtitle="Same venue, five different Bisnow contacts, and one pro who's never missed a year.">
-              The people
-              <span className="block text-shortcut-teal-blue">behind the Escape.</span>
+            <SectionLabel>Section II · Booking Stats</SectionLabel>
+            <SectionHeading subtitle="Booked vs. offered, day by day, for every year on file.">
+              Where the bookings
+              <span className="block text-shortcut-teal-blue">actually landed.</span>
             </SectionHeading>
-
-            <div className="card-large">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
-                {YEARS.map((y) => (
-                  <div key={y.year} className="flex items-center justify-between gap-3 py-3.5 border-b border-shortcut-blue/[.06]">
-                    <div className="flex items-center gap-3">
-                      <div className="text-[13px] font-extrabold text-shortcut-blue/40 tabular-nums w-10">{y.year}</div>
-                      <div>
-                        <div className="text-[14px] font-bold text-shortcut-blue">{y.contact || <span className="text-shortcut-blue/30 font-medium">Not captured</span>}</div>
-                        <div className="text-[11px] text-shortcut-blue/50 font-medium">{y.venue}</div>
-                      </div>
-                    </div>
-                    <div className="text-[11px] font-semibold text-shortcut-blue/50 text-right shrink-0">{y.pros.length} pros</div>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-5 pt-4 border-t border-shortcut-blue/[.06] text-[13px] text-text-dark/70 font-medium leading-relaxed">
-                Eight different Shortcut pros have worked an Escape over five years. <strong className="text-shortcut-blue">Eddie Montalvo</strong> has worked every single one since 2021, and <strong className="text-shortcut-blue">Cesar Brickell</strong> has worked every year since Massage was added in 2022.
-              </p>
-            </div>
-          </Section>
-
-          {/* ══════════════════════════════════════════
-              METHODOLOGY
-              ══════════════════════════════════════════ */}
-          <Section id="methodology">
-            <div data-toc id="methodology" />
-            <SectionLabel>Appendix · Methodology</SectionLabel>
-            <SectionHeading subtitle="How we calculated the numbers in this report.">
-              The fine print.
-            </SectionHeading>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-              {[
-                {
-                  title: 'Which events count',
-                  body: '28 real events across 2021–2025. Excludes 2 cancelled 2020 attempts (Bisnow Escape Retreat, likely COVID) and 2 internal test events run in New York in March 2023.',
-                },
-                {
-                  title: 'Fill Rate',
-                  body: 'Booked slots ÷ total slots offered, per event block. Six blocks (all of 2021, plus one each in 2023 and 2024) show an open-slot count higher than total capacity — a coordinator data quirk, not a real negative fill rate — so those blocks are excluded from fill-rate math but still counted in slots-offered and spend.',
-                },
-                {
-                  title: '2021 billing gap',
-                  body: 'The "payment" field (what Bisnow was billed) is empty on all four 2021 events. Only what Shortcut paid its pros ($1,800) was recorded that year, so 2021 is shown separately and excluded from the 5-year Paid-to-Shortcut total.',
-                },
-                {
-                  title: 'Slots vs. appointments',
-                  body: 'A slot is a bookable appointment window (30 min for Hair, 20 min for Massage). "Slots offered" is total capacity across all pros and days that year — not unique attendees.',
-                },
-                {
-                  title: 'Venue',
-                  body: 'Every real event has run at 1 Hotel South Beach (2341 Collins Avenue, Miami Beach, FL). Room names on file have varied — Terra Ballroom in 2021, Terra Gallery from 2022 on, with Garnet I & II added for Massage in 2025.',
-                },
-                {
-                  title: 'Source data',
-                  body: 'Pulled directly from the Shortcut Coordinator (Parse) on Aug 18, 2026, cross-checked against sponsorName, name, and legacyName to confirm no Bisnow events were missed. Per-event detail available on request.',
-                },
-              ].map((item, i) => (
-                <div key={i} className="card-small">
-                  <h4 className="text-[14px] font-extrabold text-shortcut-blue mb-2">{item.title}</h4>
-                  <p className="text-[13px] text-text-dark/70 font-medium leading-relaxed">{item.body}</p>
-                </div>
-              ))}
-            </div>
+            <BookingStatsByYear />
           </Section>
 
           {/* ══════════════════════════════════════════
