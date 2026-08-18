@@ -23,33 +23,47 @@ const YEARS = [
   {
     year: '2021', days: 4, services: ['Hair'] as ServiceKey[], pros: ['Eddie Montalvo', 'Sally Souffrant'],
     slots: 64, filled: null as number | null, fillPct: null as number | null,
-    payment: null as number | null, barberPay: 1800, venue: 'Terra Ballroom',
+    payment: null as number | null, barberPay: 1800, venue: 'Terra Ballroom', waitlist: 0,
     contact: 'Katie LaPerch', note: 'Fill data unusable — every event this year shows an open-slot count above capacity (coordinator anomaly).',
   },
   {
     year: '2022', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Ray Edden'],
     slots: 104, filled: 96, fillPct: 92.3,
-    payment: 5640, barberPay: 2450, venue: 'Terra Gallery',
+    payment: 5640, barberPay: 2450, venue: 'Terra Gallery', waitlist: 3,
     contact: 'Aly Vazquez', note: null,
   },
   {
     year: '2023', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Kirvin Shand'],
     slots: 104, filled: 80, fillPct: 97.6,
-    payment: 5640, barberPay: 2300, venue: 'Terra Gallery',
+    payment: 5640, barberPay: 2300, venue: 'Terra Gallery', waitlist: 5,
     contact: 'Gretchen Severns', note: 'One Hair block (Nov 8) excluded from the fill-rate math — same open-slot anomaly as 2021.',
   },
   {
     year: '2024', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Meryhec Lopez'],
     slots: 100, filled: 80, fillPct: 90.9,
-    payment: 5520, barberPay: 2250, venue: 'Terra Gallery',
+    payment: 5520, barberPay: 2250, venue: 'Terra Gallery', waitlist: 6,
     contact: null, note: 'One Hair block (Nov 7) excluded from the fill-rate math — same open-slot anomaly as 2021.',
   },
   {
     year: '2025', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Julia Gonzalez Angulo', 'Meryhec Lopez', 'Pedro Rosario'],
     slots: 120, filled: 94, fillPct: 78.3,
-    payment: 6250, barberPay: 2625, venue: 'Terra Gallery + Garnet I & II',
+    payment: 6250, barberPay: 2625, venue: 'Terra Gallery + Garnet I & II', waitlist: 0,
     contact: 'Megan Harding & Ariel Fromm', note: null,
   },
+];
+
+// Waitlist entries by service, all 5 years — pulled straight from
+// numWaitlistEntries per event block. Hair essentially never waitlists;
+// Massage does, in 3 of the last 4 years it's run.
+const WAITLIST_BY_SERVICE = [
+  { year: '2022', day: 'Nov 9', svc: 'Massage' as ServiceKey, count: 1 },
+  { year: '2022', day: 'Nov 9', svc: 'Hair' as ServiceKey, count: 1 },
+  { year: '2022', day: 'Nov 10', svc: 'Hair' as ServiceKey, count: 1 },
+  { year: '2023', day: 'Nov 6', svc: 'Hair' as ServiceKey, count: 1 },
+  { year: '2023', day: 'Nov 6', svc: 'Massage' as ServiceKey, count: 1 },
+  { year: '2023', day: 'Nov 8', svc: 'Massage' as ServiceKey, count: 3 },
+  { year: '2024', day: 'Nov 4', svc: 'Massage' as ServiceKey, count: 5 },
+  { year: '2024', day: 'Nov 6', svc: 'Massage' as ServiceKey, count: 1 },
 ];
 
 // 2025 day-by-day — the cleanest, most recent year (no anomalies)
@@ -193,7 +207,7 @@ function YearlyBars() {
 function YearlyTable() {
   return (
     <div className="overflow-x-auto -mx-1 px-1">
-      <table className="w-full min-w-[760px] border-collapse">
+      <table className="w-full min-w-[860px] border-collapse">
         <thead>
           <tr className="border-b-2 border-shortcut-blue/[.12]">
             <th className="text-left py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Year</th>
@@ -201,6 +215,7 @@ function YearlyTable() {
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Pros</th>
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Slots Offered</th>
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Fill Rate</th>
+            <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Waitlisted</th>
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue">Paid to Shortcut</th>
           </tr>
         </thead>
@@ -214,6 +229,9 @@ function YearlyTable() {
               <td className="py-3.5 px-3 text-right text-[14px] font-semibold tabular-nums text-shortcut-blue">
                 {y.fillPct !== null ? `${y.fillPct}%` : <span className="text-shortcut-blue/30">n/a</span>}
               </td>
+              <td className={`py-3.5 px-3 text-right text-[14px] font-semibold tabular-nums ${y.waitlist > 0 ? 'text-shortcut-coral' : 'text-shortcut-blue/30'}`}>
+                {y.waitlist > 0 ? `+${y.waitlist}` : '—'}
+              </td>
               <td className="py-3.5 px-3 text-right text-[14px] font-extrabold tabular-nums text-shortcut-blue">
                 {y.payment !== null ? `$${y.payment.toLocaleString()}` : <span className="text-shortcut-blue/40 font-semibold">not recorded</span>}
               </td>
@@ -224,13 +242,71 @@ function YearlyTable() {
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">8 unique</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">492</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">88.8%*</td>
+            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">+14</td>
             <td className="py-4 px-3 text-right text-[15px] font-extrabold text-shortcut-teal tabular-nums rounded-r-xl">$23,050*</td>
           </tr>
         </tbody>
       </table>
       <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium leading-relaxed">
-        * Fill rate and 5-year total exclude 2021 (unusable data) and the 6 individual event blocks flagged with the open-slot anomaly. Paid-to-Shortcut total covers 2022–2025 only — 2021 billing wasn't recorded on the coordinator event.
+        * Fill rate and 5-year total exclude 2021 (unusable data) and the 6 individual event blocks flagged with the open-slot anomaly. Paid-to-Shortcut total covers 2022–2025 only — 2021 billing wasn't recorded on the coordinator event. Waitlisted counts people who tried to book after a service filled — see the breakdown below.
       </p>
+    </div>
+  );
+}
+
+// ── Waitlist demand breakdown ──
+function WaitlistDemand() {
+  const totalByService = WAITLIST_BY_SERVICE.reduce(
+    (acc, w) => { acc[w.svc] += w.count; return acc; },
+    { Hair: 0, Massage: 0 } as Record<ServiceKey, number>
+  );
+  return (
+    <div className="card-large">
+      <div className="mb-6 md:mb-7">
+        <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">Demand signal</div>
+        <h2 className="text-[1.75rem] md:text-[2.25rem] font-extrabold text-shortcut-blue leading-tight">
+          14 people waitlisted
+          <span className="text-shortcut-teal-blue"> over 5 years — 11 for Massage.</span>
+        </h2>
+        <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[640px]">
+          Zero waitlist activity in 2021 (Massage didn't exist yet) and 2025 (fill rate dropped to 78%, so there was slack instead of overflow). Every year Massage has run, it's waitlisted people at least once — Hair has only done it on 3 of 20 event-days, one person each time.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {(['Massage', 'Hair'] as ServiceKey[]).map((svc) => {
+          const s = SERVICES[svc];
+          const Icon = s.icon;
+          return (
+            <div key={svc} className="rounded-2xl p-5 border border-shortcut-blue/[.06] flex items-center gap-4" style={{ backgroundColor: s.tint }}>
+              <div className="w-11 h-11 rounded-full flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: s.bg }}>
+                <Icon size={19} className="text-shortcut-blue" strokeWidth={2.25} />
+              </div>
+              <div>
+                <div className="text-[1.6rem] font-extrabold text-shortcut-blue leading-none tabular-nums">+{totalByService[svc]}</div>
+                <div className="text-[12px] font-semibold text-shortcut-blue/60 mt-1 leading-tight">{svc} waitlist signups, 5-year total</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="space-y-1">
+        {WAITLIST_BY_SERVICE.map((w, i) => {
+          const s = SERVICES[w.svc];
+          const Icon = s.icon;
+          return (
+            <div key={i} className="flex items-center gap-3 py-2.5 border-b border-shortcut-blue/[.06] last:border-0">
+              <div className="text-[12px] font-bold text-shortcut-blue/40 tabular-nums w-16">{w.year}</div>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: s.bg }}>
+                <Icon size={13} className="text-shortcut-blue" strokeWidth={2.25} />
+              </div>
+              <div className="text-[13px] font-semibold text-shortcut-blue flex-1">{w.svc} · {w.day}</div>
+              <div className="text-[13px] font-extrabold text-shortcut-coral tabular-nums">+{w.count}</div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -378,6 +454,7 @@ export default function BisnowReport() {
     { id: 'headline', label: 'Headline' },
     { id: 'yearly', label: 'Year over Year' },
     { id: 'table', label: 'Per-Year Detail' },
+    { id: 'waitlist', label: 'Waitlist Demand' },
     { id: 'services', label: 'Service Mix' },
     { id: 'days', label: '2025 Day by Day' },
     { id: 'relationship', label: 'The Relationship' },
@@ -542,6 +619,14 @@ export default function BisnowReport() {
               </div>
               <YearlyTable />
             </div>
+          </Section>
+
+          {/* ══════════════════════════════════════════
+              WAITLIST DEMAND
+              ══════════════════════════════════════════ */}
+          <Section id="waitlist">
+            <div data-toc id="waitlist" />
+            <WaitlistDemand />
           </Section>
 
           {/* ══════════════════════════════════════════
