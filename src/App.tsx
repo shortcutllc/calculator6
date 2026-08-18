@@ -64,6 +64,7 @@ const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'))
 const DraftKingsReport = lazy(() => import('./components/DraftKingsReport'));
 const DraftKingsLVReport = lazy(() => import('./components/DraftKingsLVReport'));
 const DraftKingsSpendReport = lazy(() => import('./components/DraftKingsSpendReport'));
+const BisnowReport = lazy(() => import('./components/BisnowReport'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
@@ -1091,6 +1092,30 @@ function App() {
                     </div>
                   }>
                     <DraftKingsSpendReport />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/bisnow"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BisnowReport />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/bisnow-report"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <BisnowReport />
                   </Suspense>
                 }
               />
