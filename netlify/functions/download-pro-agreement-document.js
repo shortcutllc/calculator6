@@ -84,7 +84,7 @@ export const handler = async (event) => {
 
     const { data: agreement, error } = await supabase
       .from('pro_agreements')
-      .select('documents_url, all_documents_urls, pro_name')
+      .select('docuseal_submission_id, documents_url, all_documents_urls, pro_name')
       .eq('id', agreementId)
       .single();
 
@@ -92,22 +92,41 @@ export const handler = async (event) => {
       return errorResponse(404, 'Agreement not found', 'NOT_FOUND');
     }
 
-    const docs = agreement.all_documents_urls;
-    let targetUrl;
-    let fileName;
+    // Stored /file/ URLs are signed and can go stale — prefer fresh ones from the API.
+    let docs = null;
+    if (agreement.docuseal_submission_id) {
+      const subResponse = await fetch(
+        `https://docuseal-production-f0ef.up.railway.app/api/submissions/${agreement.docuseal_submission_id}`,
+        { headers: { 'X-Auth-Token': docusealApiKey } }
+      );
+      if (subResponse.ok) {
+        const submission = await subResponse.json();
+        const fresh = submission.documents || submission.submitters?.[0]?.documents;
+        if (Array.isArray(fresh) && fresh.length > 0) docs = fresh;
+      }
+    }
+    if (!docs && Array.isArray(agreement.all_documents_urls) && agreement.all_documents_urls.length > 0) {
+      docs = agreement.all_documents_urls;
+    }
 
-    if (Array.isArray(docs) && docs.length > 0) {
+    let targetUrl;
+    let docName;
+
+    if (docs) {
       const doc = docs[docIndex] || docs[0];
       targetUrl = doc.url;
-      fileName = doc.name || `${agreement.pro_name || 'agreement'}.pdf`;
+      docName = doc.name;
     } else {
       targetUrl = agreement.documents_url;
-      fileName = `${agreement.pro_name || 'agreement'}.pdf`;
     }
 
     if (!targetUrl) {
       return errorResponse(404, 'No signed document available', 'NOT_FOUND');
     }
+
+    // DocuSeal document names keep the uploaded source extension (.docx) but signed output is PDF.
+    const baseName = (docName || agreement.pro_name || 'agreement').replace(/\.(docx?|pdf)$/i, '');
+    const fileName = `${baseName}.pdf`;
 
     const docResponse = await fetch(targetUrl, {
       headers: { 'X-Auth-Token': docusealApiKey }

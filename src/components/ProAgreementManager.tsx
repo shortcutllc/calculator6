@@ -17,6 +17,11 @@ const STATUS_CONFIG: Record<AgreementStatus, { label: string; className: string 
   declined: { label: 'Declined', className: 'bg-red-100 text-red-700' },
 };
 
+// DocuSeal keeps the uploaded source filename (often .docx) as the document name,
+// but signed output is always PDF — strip the stale extension for display/filenames.
+const cleanDocName = (name: string) => name.replace(/\.(docx?|pdf)$/i, '');
+const pdfFileName = (name: string) => `${cleanDocName(name)}.pdf`;
+
 const DOC_TYPE_LABELS: Record<DocumentType, string> = {
   ica: 'ICA',
   w9: 'W-9',
@@ -502,13 +507,13 @@ const ProAgreementManager: React.FC = () => {
                           return (
                             <button
                               key={idx}
-                              onClick={() => handleDownload(agreement, idx, doc.name || `${agreement.proName}.pdf`)}
+                              onClick={() => handleDownload(agreement, idx, pdfFileName(doc.name || agreement.proName))}
                               disabled={isDownloading}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200 disabled:opacity-50"
-                              title={`Download ${doc.name}`}
+                              title={`Download ${cleanDocName(doc.name || 'document')}`}
                             >
                               {isDownloading ? <RefreshCw size={12} className="animate-spin" /> : <Download size={12} />}
-                              {doc.name}
+                              {cleanDocName(doc.name || 'Document')}
                             </button>
                           );
                         })
@@ -518,7 +523,7 @@ const ProAgreementManager: React.FC = () => {
                           const isDownloading = downloadingKey === key;
                           return (
                             <button
-                              onClick={() => handleDownload(agreement, 0, `${agreement.proName}.pdf`)}
+                              onClick={() => handleDownload(agreement, 0, pdfFileName(agreement.proName))}
                               disabled={isDownloading}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200 disabled:opacity-50"
                               title="Download signed document"
