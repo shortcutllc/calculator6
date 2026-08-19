@@ -27,7 +27,7 @@ const DOC_TYPE_LABELS: Record<DocumentType, string> = {
 const ProAgreementManager: React.FC = () => {
   const {
     agreements, templates, loading, error,
-    sendAgreement, syncAgreementStatus, resendEmail,
+    sendAgreement, syncAgreementStatus, resendEmail, downloadDocument,
     createTemplate, updateTemplate,
   } = useProAgreement();
 
@@ -42,6 +42,8 @@ const ProAgreementManager: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [remindResult, setRemindResult] = useState<{ id: string; success: boolean } | null>(null);
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<{ key: string; message: string } | null>(null);
 
   // Phone prompt modal
   const [phonePromptAgreement, setPhonePromptAgreement] = useState<ProAgreement | null>(null);
@@ -175,6 +177,19 @@ const ProAgreementManager: React.FC = () => {
       setTimeout(() => setRemindResult(null), 3000);
     } finally {
       setRemindingId(null);
+    }
+  };
+
+  const handleDownload = async (agreement: ProAgreement, docIndex: number, fileName: string) => {
+    const key = `${agreement.id}-${docIndex}`;
+    try {
+      setDownloadingKey(key);
+      setDownloadError(null);
+      await downloadDocument(agreement.id, docIndex, fileName);
+    } catch (err) {
+      setDownloadError({ key, message: err instanceof Error ? err.message : 'Failed to download document' });
+    } finally {
+      setDownloadingKey(null);
     }
   };
 
@@ -481,30 +496,41 @@ const ProAgreementManager: React.FC = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Signed Docs:</span>
                       {agreement.allDocumentsUrls && agreement.allDocumentsUrls.length > 0 ? (
-                        agreement.allDocumentsUrls.map((doc, idx) => (
-                          <a
-                            key={idx}
-                            href={doc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200"
-                            title={`Download ${doc.name}`}
-                          >
-                            <Download size={12} />
-                            {doc.name}
-                          </a>
-                        ))
+                        agreement.allDocumentsUrls.map((doc, idx) => {
+                          const key = `${agreement.id}-${idx}`;
+                          const isDownloading = downloadingKey === key;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => handleDownload(agreement, idx, doc.name || `${agreement.proName}.pdf`)}
+                              disabled={isDownloading}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200 disabled:opacity-50"
+                              title={`Download ${doc.name}`}
+                            >
+                              {isDownloading ? <RefreshCw size={12} className="animate-spin" /> : <Download size={12} />}
+                              {doc.name}
+                            </button>
+                          );
+                        })
                       ) : (
-                        <a
-                          href={agreement.documentsUrl!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200"
-                          title="View signed document"
-                        >
-                          <FileCheck size={12} />
-                          Signed Doc
-                        </a>
+                        (() => {
+                          const key = `${agreement.id}-0`;
+                          const isDownloading = downloadingKey === key;
+                          return (
+                            <button
+                              onClick={() => handleDownload(agreement, 0, `${agreement.proName}.pdf`)}
+                              disabled={isDownloading}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors border border-green-200 disabled:opacity-50"
+                              title="Download signed document"
+                            >
+                              {isDownloading ? <RefreshCw size={12} className="animate-spin" /> : <FileCheck size={12} />}
+                              Signed Doc
+                            </button>
+                          );
+                        })()
+                      )}
+                      {downloadError && downloadError.key.startsWith(agreement.id) && (
+                        <span className="text-xs text-red-600 font-medium">{downloadError.message}</span>
                       )}
                     </div>
                   </div>

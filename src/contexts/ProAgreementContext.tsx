@@ -12,6 +12,7 @@ interface ProAgreementContextType {
   sendAgreement: (templateId: string, proName: string, proEmail: string, sendToClient?: boolean) => Promise<{ signingUrl: string; signingSlug: string }>;
   syncAgreementStatus: (agreementId: string) => Promise<void>;
   resendEmail: (agreementId: string) => Promise<void>;
+  downloadDocument: (agreementId: string, docIndex: number, fileName: string) => Promise<void>;
   createTemplate: (name: string, documentType: string, docusealTemplateId: number) => Promise<void>;
   updateTemplate: (id: string, updates: Partial<ProAgreementTemplate>) => Promise<void>;
 }
@@ -187,6 +188,35 @@ export const ProAgreementProvider: React.FC<{ children: React.ReactNode }> = ({ 
     await fetchAgreements();
   };
 
+  const downloadDocument = async (agreementId: string, docIndex: number, fileName: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not authenticated');
+
+    const response = await fetch(
+      `/.netlify/functions/download-pro-agreement-document?agreementId=${encodeURIComponent(agreementId)}&docIndex=${docIndex}`,
+      { headers: { 'Authorization': `Bearer ${session.access_token}` } }
+    );
+
+    if (!response.ok) {
+      let message = 'Failed to download document';
+      try {
+        const result = await response.json();
+        message = result.error || message;
+      } catch { /* non-JSON error body */ }
+      throw new Error(message);
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  };
+
   const createTemplate = async (name: string, documentType: string, docusealTemplateId: number) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
@@ -237,6 +267,7 @@ export const ProAgreementProvider: React.FC<{ children: React.ReactNode }> = ({ 
     sendAgreement,
     syncAgreementStatus,
     resendEmail,
+    downloadDocument,
     createTemplate,
     updateTemplate,
   };
