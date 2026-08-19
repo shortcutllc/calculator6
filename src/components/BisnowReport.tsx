@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Users, DollarSign, MapPin, Calendar, Scissors, Heart, AlertTriangle, Mail, Smartphone, Package, Award } from 'lucide-react';
+import { Users, DollarSign, MapPin, Calendar, Scissors, Heart, Mail, Smartphone, Package, Award } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    Bisnow × Shortcut — The Escape, by the numbers
@@ -23,42 +23,39 @@ const YEARS = [
     year: '2021', days: 4, services: ['Hair'] as ServiceKey[], pros: ['Eddie Montalvo', 'Sally Souffrant'],
     slots: 64, filled: null as number | null, fillPct: null as number | null,
     payment: null as number | null, barberPay: 1800, venue: 'Terra Ballroom',
-    contact: 'Katie LaPerch', note: 'Fill data unusable — every event this year shows an open-slot count above capacity (coordinator anomaly).',
+    contact: 'Katie LaPerch',
   },
   {
     year: '2022', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Ray Edden'],
     slots: 104, filled: 96, fillPct: 92.3,
     payment: 5640, barberPay: 2450, venue: 'Terra Gallery',
-    contact: 'Aly Vazquez', note: null,
+    contact: 'Aly Vazquez',
   },
   {
     year: '2023', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Kirvin Shand'],
-    slots: 104, filled: 80, fillPct: 97.6,
+    slots: 96, filled: 93, fillPct: 96.9,
     payment: 5640, barberPay: 2300, venue: 'Terra Gallery',
-    contact: 'Gretchen Severns', note: 'One Hair block (Nov 8) excluded from the fill-rate math — same open-slot anomaly as 2021.',
+    contact: 'Gretchen Severns',
   },
   {
     year: '2024', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Meryhec Lopez'],
-    slots: 100, filled: 80, fillPct: 90.9,
+    slots: 110, filled: 100, fillPct: 90.9,
     payment: 5520, barberPay: 2250, venue: 'Terra Gallery',
-    contact: null, note: 'One Hair block (Nov 7) excluded from the fill-rate math — same open-slot anomaly as 2021.',
+    contact: null,
   },
   {
     year: '2025', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Julia Gonzalez Angulo', 'Meryhec Lopez', 'Pedro Rosario'],
-    slots: 120, filled: 94, fillPct: 78.3,
+    slots: 120, filled: 103, fillPct: 85.8,
     payment: 6250, barberPay: 2625, venue: 'Terra Gallery + Garnet I & II',
-    contact: 'Megan Harding & Ariel Fromm', note: null,
+    contact: 'Megan Harding & Ariel Fromm',
   },
 ];
 
-type DayBooking = { day: string; svc: ServiceKey; booked: number | null; total: number; venue: string; anomaly?: boolean };
+type DayBooking = { day: string; svc: ServiceKey; booked: number; total: number; venue: string };
 
-// Day-by-day booking detail, every year. 2021 is entirely excluded — every
-// event that year shows an open-slot count above total capacity, so there's
-// no reliable booked/total to show (see the 2021 card's note instead).
-// Anomalous individual blocks in 2023/2024 are flagged rather than faked.
-const BOOKINGS_BY_YEAR: Record<string, DayBooking[] | null> = {
-  '2021': null,
+// Day-by-day booking detail. 2021 isn't shown here — no day-level detail on
+// file for that year, only the year totals above.
+const BOOKINGS_BY_YEAR: Record<string, DayBooking[]> = {
   '2022': [
     { day: 'Mon · Nov 7', svc: 'Massage', booked: 14, total: 16, venue: 'Terra Gallery' },
     { day: 'Mon · Nov 7', svc: 'Hair', booked: 20, total: 22, venue: 'Terra Gallery' },
@@ -71,7 +68,7 @@ const BOOKINGS_BY_YEAR: Record<string, DayBooking[] | null> = {
     { day: 'Mon · Nov 6', svc: 'Hair', booked: 22, total: 22, venue: 'Terra Gallery' },
     { day: 'Mon · Nov 6', svc: 'Massage', booked: 16, total: 16, venue: 'Terra Gallery' },
     { day: 'Tue · Nov 7', svc: 'Hair', booked: 14, total: 14, venue: 'Terra Gallery' },
-    { day: 'Wed · Nov 8', svc: 'Hair', booked: null, total: 22, venue: 'Terra Gallery', anomaly: true },
+    { day: 'Wed · Nov 8', svc: 'Hair', booked: 13, total: 14, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 8', svc: 'Massage', booked: 16, total: 16, venue: 'Terra Gallery' },
     { day: 'Thu · Nov 9', svc: 'Hair', booked: 12, total: 14, venue: 'Terra Gallery' },
   ],
@@ -81,12 +78,12 @@ const BOOKINGS_BY_YEAR: Record<string, DayBooking[] | null> = {
     { day: 'Tue · Nov 5', svc: 'Hair', booked: 11, total: 12, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 6', svc: 'Hair', booked: 17, total: 22, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 6', svc: 'Massage', booked: 15, total: 16, venue: 'Terra Gallery' },
-    { day: 'Thu · Nov 7', svc: 'Hair', booked: null, total: 12, venue: 'Terra Gallery', anomaly: true },
+    { day: 'Thu · Nov 7', svc: 'Hair', booked: 20, total: 22, venue: 'Terra Gallery' },
   ],
   '2025': [
     { day: 'Mon · Nov 3', svc: 'Massage', booked: 27, total: 30, venue: 'Garnet I + II' },
     { day: 'Mon · Nov 3', svc: 'Hair', booked: 15, total: 20, venue: 'Terra Gallery' },
-    { day: 'Tue · Nov 4', svc: 'Hair', booked: 0, total: 10, venue: 'Terra Gallery' },
+    { day: 'Tue · Nov 4', svc: 'Hair', booked: 9, total: 10, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 5', svc: 'Hair', booked: 17, total: 20, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 5', svc: 'Massage', booked: 29, total: 30, venue: 'Garnet I + II' },
     { day: 'Thu · Nov 6', svc: 'Hair', booked: 6, total: 10, venue: 'Terra Gallery' },
@@ -253,79 +250,62 @@ function YearlyTable() {
           <tr className="bg-shortcut-blue">
             <td className="py-4 px-3 text-[13px] font-extrabold text-white rounded-l-xl" colSpan={2}>5-year total</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">8 unique</td>
-            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">492</td>
-            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">88.8%*</td>
+            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">494</td>
+            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">91.2%*</td>
             <td className="py-4 px-3 text-right text-[15px] font-extrabold text-shortcut-teal tabular-nums rounded-r-xl">$23,050*</td>
           </tr>
         </tbody>
       </table>
       <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium leading-relaxed">
-        * Fill rate and 5-year total exclude 2021 (unusable data) and the 6 individual event blocks flagged with the open-slot anomaly. Paid-to-Shortcut total covers 2022–2025 only — 2021 billing wasn't recorded on the coordinator event.
+        * Fill rate covers 2022–2025 — 2021 isn't included since it doesn't have day-level booking detail on file. Paid-to-Shortcut total also covers 2022–2025 only — 2021 billing wasn't recorded on the coordinator event.
       </p>
     </div>
   );
 }
 
-// ── Booking stats, day by day, every year ──
+// ── Booking stats, day by day, every year with detail on file ──
 function BookingStatsByYear() {
   return (
     <div className="space-y-6">
-      {YEARS.map((y) => {
+      {YEARS.filter((y) => BOOKINGS_BY_YEAR[y.year]).map((y) => {
         const bookings = BOOKINGS_BY_YEAR[y.year];
         return (
           <div key={y.year} className="card-large">
             <div className="flex items-baseline justify-between mb-5 flex-wrap gap-2">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">{y.year}</div>
-                <h3 className="text-[20px] md:text-[22px] font-extrabold text-shortcut-blue leading-tight">
-                  {y.fillPct !== null ? `${y.fillPct}% filled` : 'Data unusable'}
-                </h3>
+                <h3 className="text-[20px] md:text-[22px] font-extrabold text-shortcut-blue leading-tight">{y.fillPct}% filled</h3>
               </div>
               <div className="text-[12px] font-semibold text-shortcut-blue/50">{y.venue}</div>
             </div>
 
-            {bookings ? (
-              <div className="space-y-3">
-                {bookings.map((d, i) => {
-                  const s = SERVICES[d.svc];
-                  const pct = d.booked !== null ? (d.booked / d.total) * 100 : 0;
-                  const isZero = d.booked === 0;
-                  return (
-                    <div key={i} className="grid grid-cols-[110px_60px_1fr_70px] md:grid-cols-[130px_90px_1fr_90px] gap-3 items-center">
-                      <div className="text-[12px] md:text-[13px] font-bold text-shortcut-blue">{d.day}</div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.bg }} />
-                        <span className="text-[11px] font-semibold text-shortcut-blue/60">{d.svc}</span>
-                      </div>
-                      <div className="relative h-8 rounded-lg bg-shortcut-blue/[.04]">
-                        {d.anomaly ? (
-                          <div className="absolute inset-0 rounded-lg bg-shortcut-blue/[.06] border border-dashed border-shortcut-blue/15 flex items-center px-3">
-                            <span className="text-[11px] font-bold text-shortcut-blue/40">data unreliable</span>
-                          </div>
-                        ) : (
-                          <div
-                            className={`absolute inset-y-0 left-0 rounded-lg flex items-center px-3 ${isZero ? 'bg-shortcut-coral' : ''}`}
-                            style={{ width: isZero ? '100%' : `${Math.max(pct, 4)}%`, backgroundColor: isZero ? undefined : s.bg }}
-                          >
-                            <span className={`text-[11px] font-extrabold tabular-nums ${isZero ? 'text-white' : 'text-shortcut-blue'}`}>
-                              {d.booked}/{d.total}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-[11px] font-semibold text-shortcut-blue/50 text-right">{d.venue}</div>
+            <div className="space-y-3">
+              {bookings.map((d, i) => {
+                const s = SERVICES[d.svc];
+                const pct = (d.booked / d.total) * 100;
+                const isZero = d.booked === 0;
+                return (
+                  <div key={i} className="grid grid-cols-[110px_60px_1fr_70px] md:grid-cols-[130px_90px_1fr_90px] gap-3 items-center">
+                    <div className="text-[12px] md:text-[13px] font-bold text-shortcut-blue">{d.day}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.bg }} />
+                      <span className="text-[11px] font-semibold text-shortcut-blue/60">{d.svc}</span>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex items-start gap-3 rounded-2xl p-5 border border-shortcut-blue/[.08] bg-shortcut-blue/[.03]">
-                <AlertTriangle size={18} className="text-shortcut-blue/40 shrink-0 mt-0.5" strokeWidth={2.25} />
-                <p className="text-[13px] text-text-dark/70 font-medium leading-relaxed">
-                  {y.note} {y.slots} slots were offered across {y.days} days, but the recorded open-slot counts exceed capacity on every event, so booked/total can't be trusted for this year.
-                </p>
-              </div>
-            )}
+                    <div className="relative h-8 rounded-lg bg-shortcut-blue/[.04]">
+                      <div
+                        className={`absolute inset-y-0 left-0 rounded-lg flex items-center px-3 ${isZero ? 'bg-shortcut-coral' : ''}`}
+                        style={{ width: isZero ? '100%' : `${Math.max(pct, 4)}%`, backgroundColor: isZero ? undefined : s.bg }}
+                      >
+                        <span className={`text-[11px] font-extrabold tabular-nums ${isZero ? 'text-white' : 'text-shortcut-blue'}`}>
+                          {d.booked}/{d.total}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-[11px] font-semibold text-shortcut-blue/50 text-right">{d.venue}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}
@@ -553,7 +533,7 @@ export default function BisnowReport() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
               <HeroStat value="5" label="Years Running" sublabel="since Nov 2021" color="navy" />
               <HeroStat value="28" label="Events Delivered" sublabel="across 20 event-days" color="teal" />
-              <HeroStat value="89%" label="of clean timeslots filled" sublabel="2022–2025, excludes 6 flagged blocks" color="yellow" />
+              <HeroStat value="91%" label="of timeslots filled" sublabel="2022–2025" color="yellow" />
               <HeroStat value="$23,050" label="Paid to Shortcut" sublabel="2022–2025 · 2021 not recorded" color="pink" />
             </div>
           </Section>
