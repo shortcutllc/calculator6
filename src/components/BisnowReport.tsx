@@ -39,13 +39,13 @@ const YEARS = [
   },
   {
     year: '2024', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Meryhec Lopez'],
-    slots: 110, filled: 100, fillPct: 90.9,
+    slots: 110, filled: 101, fillPct: 91.8,
     payment: 5520, barberPay: 2250, venue: 'Terra Gallery',
     contact: null,
   },
   {
     year: '2025', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Julia Gonzalez Angulo', 'Meryhec Lopez', 'Pedro Rosario'],
-    slots: 120, filled: 108, fillPct: 90.0,
+    slots: 120, filled: 112, fillPct: 93.3,
     payment: 6250, barberPay: 2625, venue: 'Terra Gallery + Garnet I & II',
     contact: 'Megan Harding & Ariel Fromm',
   },
@@ -77,15 +77,15 @@ const BOOKINGS_BY_YEAR: Record<string, DayBooking[]> = {
     { day: 'Mon · Nov 4', svc: 'Massage', booked: 16, total: 16, venue: 'Terra Gallery' },
     { day: 'Tue · Nov 5', svc: 'Hair', booked: 11, total: 12, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 6', svc: 'Hair', booked: 17, total: 22, venue: 'Terra Gallery' },
-    { day: 'Wed · Nov 6', svc: 'Massage', booked: 15, total: 16, venue: 'Terra Gallery' },
+    { day: 'Wed · Nov 6', svc: 'Massage', booked: 16, total: 16, venue: 'Terra Gallery' },
     { day: 'Thu · Nov 7', svc: 'Hair', booked: 20, total: 22, venue: 'Terra Gallery' },
   ],
   '2025': [
-    { day: 'Mon · Nov 3', svc: 'Massage', booked: 27, total: 30, venue: 'Garnet I + II' },
+    { day: 'Mon · Nov 3', svc: 'Massage', booked: 30, total: 30, venue: 'Garnet I + II' },
     { day: 'Mon · Nov 3', svc: 'Hair', booked: 18, total: 20, venue: 'Terra Gallery' },
     { day: 'Tue · Nov 4', svc: 'Hair', booked: 9, total: 10, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 5', svc: 'Hair', booked: 17, total: 20, venue: 'Terra Gallery' },
-    { day: 'Wed · Nov 5', svc: 'Massage', booked: 29, total: 30, venue: 'Garnet I + II' },
+    { day: 'Wed · Nov 5', svc: 'Massage', booked: 30, total: 30, venue: 'Garnet I + II' },
     { day: 'Thu · Nov 6', svc: 'Hair', booked: 8, total: 10, venue: 'Terra Gallery' },
   ],
 };
@@ -247,7 +247,7 @@ function YearlyTable() {
             <td className="py-4 px-3 text-[13px] font-extrabold text-white rounded-l-xl" colSpan={2}>5-year total</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">8 unique</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">494</td>
-            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">92.3%*</td>
+            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">93.5%*</td>
             <td className="py-4 px-3 text-right text-[15px] font-extrabold text-shortcut-teal tabular-nums rounded-r-xl">$26,890</td>
           </tr>
         </tbody>
@@ -529,7 +529,7 @@ export default function BisnowReport() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
               <HeroStat value="5" label="Years Running" sublabel="since Nov 2021" color="navy" />
               <HeroStat value="28" label="Events Delivered" sublabel="across 20 event-days" color="teal" />
-              <HeroStat value="92%" label="of timeslots filled" sublabel="2022–2025" color="yellow" />
+              <HeroStat value="94%" label="of timeslots filled" sublabel="2022–2025" color="yellow" />
               <HeroStat value="$26,890" label="Total Event Cost" sublabel="since 2021" color="pink" />
             </div>
           </Section>
