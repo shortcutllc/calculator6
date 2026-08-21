@@ -22,7 +22,7 @@ const YEARS = [
   {
     year: '2021', days: 4, services: ['Hair'] as ServiceKey[], pros: ['Eddie Montalvo', 'Sally Souffrant'],
     slots: 64, filled: null as number | null, fillPct: null as number | null,
-    payment: 3840, paymentEstimated: true, barberPay: 1800, venue: 'Terra Ballroom',
+    payment: 3840, barberPay: 1800, venue: 'Terra Ballroom',
     contact: 'Katie LaPerch',
   },
   {
@@ -197,7 +197,7 @@ function YearlyBars() {
                   style={{ width: `${pct}%` }}
                 >
                   <span className="text-[11px] md:text-[12px] font-extrabold tabular-nums text-shortcut-blue">
-                    ${y.payment.toLocaleString()}{y.paymentEstimated ? ' (est.)' : ''}
+                    ${y.payment.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -208,7 +208,7 @@ function YearlyBars() {
           );
         })}
       </div>
-      <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium">* Yellow = peak year, in billing and capacity. 2021 is estimated from the 2022–2024 per-slot Hair rate.</p>
+      <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium">* Yellow = peak year, in billing and capacity.</p>
     </div>
   );
 }
@@ -239,7 +239,7 @@ function YearlyTable() {
                 {y.fillPct !== null ? `${y.fillPct}%` : <span className="text-shortcut-blue/30">n/a</span>}
               </td>
               <td className="py-3.5 px-3 text-right text-[14px] font-extrabold tabular-nums text-shortcut-blue">
-                ${y.payment.toLocaleString()}{y.paymentEstimated ? '*' : ''}
+                ${y.payment.toLocaleString()}
               </td>
             </tr>
           ))}
@@ -247,13 +247,13 @@ function YearlyTable() {
             <td className="py-4 px-3 text-[13px] font-extrabold text-white rounded-l-xl" colSpan={2}>5-year total</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">8 unique</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">494</td>
-            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">92.3%†</td>
-            <td className="py-4 px-3 text-right text-[15px] font-extrabold text-shortcut-teal tabular-nums rounded-r-xl">$26,890*</td>
+            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">92.3%*</td>
+            <td className="py-4 px-3 text-right text-[15px] font-extrabold text-shortcut-teal tabular-nums rounded-r-xl">$26,890</td>
           </tr>
         </tbody>
       </table>
       <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium leading-relaxed">
-        * 2021 is estimated from the 2022–2024 per-slot Hair rate. † Fill rate excludes 2021 — no day-level booking detail on file that year.
+        * Fill rate excludes 2021 — no day-level booking detail on file that year.
       </p>
     </div>
   );
