@@ -26,6 +26,7 @@ export default function BrokerPlan() {
     'apollo-toolkit',
     'apollo-filters',
     'adjacent-channels',
+    'captives',
     'conferences',
     'thirty-day-plan',
     'open-decisions',
@@ -556,7 +557,16 @@ export default function BrokerPlan() {
                 ))}
               </div>
 
-              <p className="text-center mt-8 text-sm italic" style={{ color: '#003756', opacity: 0.6 }}>
+              <div className="max-w-4xl mx-auto mt-8 p-6 rounded-2xl" style={{ backgroundColor: '#003756' }}>
+                <p className="text-xs uppercase font-semibold mb-3" style={{ color: '#9EFAFF' }}>The retention numbers — lead with these (Maryalice asked for them unprompted, Aug 2026)</p>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div><p className="text-3xl font-semibold" style={{ color: 'white' }}>87%</p><p className="text-xs mt-1" style={{ color: '#9EFAFF' }}>of companies rebook</p></div>
+                  <div><p className="text-3xl font-semibold" style={{ color: 'white' }}>90%+</p><p className="text-xs mt-1" style={{ color: '#9EFAFF' }}>of appointment slots get booked</p></div>
+                  <div><p className="text-3xl font-semibold" style={{ color: 'white' }}>500+</p><p className="text-xs mt-1" style={{ color: '#9EFAFF' }}>companies, incl. BCG &amp; DraftKings</p></div>
+                </div>
+              </div>
+
+              <p className="text-center mt-6 text-sm italic" style={{ color: '#003756', opacity: 0.6 }}>
                 What doesn't land: "Mental health crisis" framing · "ROI of wellness" decks · Emails over 150 words
               </p>
             </div>
@@ -1058,7 +1068,7 @@ export default function BrokerPlan() {
                   { rank: 1, ch: 'Wellness Marketplaces', who: 'Wellable + Wellhub', why: 'Direct listings, distribution to thousands of HR buyers, free or pay-per-visit', start: 'This month' },
                   { rank: 2, ch: 'EAP Partners', who: 'Spring Health (not Lyra — they compete)', why: 'Explicit channel program, mental-health adjacency = mindfulness fit', start: 'Q1' },
                   { rank: 3, ch: 'Class-A Building Amenities', who: 'SL Green · RXR · Brookfield · Tishman Speyer · Industrious (CBRE)', why: 'Proven at 195 Nassau. Recurring per-building revenue.', start: 'Now' },
-                  { rank: 4, ch: 'Captive Insurance Cooperatives', who: 'ParetoHealth (1,800 employers)', why: 'Sophisticated mid-market buyers, one approval = many-employer access', start: 'Q2' },
+                  { rank: 4, ch: 'Captive Insurance Cooperatives', who: 'ParetoHealth (600K+ covered lives)', why: 'Sophisticated mid-market buyers, one approval = many-employer access. Flagged by SterlingRisk (Aug 2026) — see next slide.', start: 'Now' },
                   { rank: 5, ch: 'CHRO Dinners', who: 'Evanta CHRO Executive Summits, Chief', why: '$25-50K sponsorship buys ~30 CHROs in one room. Beats booths.', start: 'Q2' },
                 ].map((c, idx) => (
                   <div key={idx} className="p-5 rounded-2xl" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0,55,86,0.1)' }}>
@@ -1082,8 +1092,64 @@ export default function BrokerPlan() {
           </section>
         )}
 
-        {/* ==================== SLIDE 23: CONFERENCES ==================== */}
+        {/* ==================== SLIDE 23: CAPTIVES DEEP-DIVE ==================== */}
         {currentSlide === 22 && (
+          <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="text-center mb-10">
+                <p className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: '#FF5050' }}>
+                  Field-Validated — SterlingRisk Call, Aug 2026
+                </p>
+                <h2 className="text-4xl md:text-6xl font-semibold mb-4" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
+                  Captives: one yes, hundreds of employers
+                </h2>
+                <p className="text-base max-w-3xl mx-auto" style={{ color: '#003756', opacity: 0.7 }}>
+                  Maryalice Nazaretian (President, Employee Benefits) pointed us at captives unprompted: "There are captives — Pareto — they offer a lot of point solutions."
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
+                {[
+                  { stat: '600K+', label: 'Covered lives at ParetoHealth', sub: 'Largest benefits captive in the US' },
+                  { stat: '50-1,000', label: 'Employees per member company', sub: 'Self-funded mid-market — richest wellness budgets' },
+                  { stat: '$800M', label: 'Stop-loss premium under management', sub: 'Members are committed, sophisticated buyers' },
+                ].map((item, idx) => (
+                  <div key={idx} className="p-6 rounded-3xl text-center" style={{ backgroundColor: '#E0F2F7' }}>
+                    <p className="text-4xl font-semibold mb-2" style={{ color: '#003756' }}>{item.stat}</p>
+                    <p className="text-sm font-medium mb-2" style={{ color: '#003756' }}>{item.label}</p>
+                    <p className="text-xs" style={{ color: '#018EA2' }}>{item.sub}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                <div className="rounded-3xl p-8" style={{ backgroundColor: 'white', border: '2px solid #018EA2' }}>
+                  <p className="text-xs uppercase tracking-wide font-semibold mb-3" style={{ color: '#018EA2' }}>What the call confirmed</p>
+                  <ul className="space-y-3 text-sm" style={{ color: '#003756' }}>
+                    <li>• Broker economics start at <strong>100+ lives</strong> — "no money in the under 100"</li>
+                    <li>• Their larger groups are mostly <strong>self-funded</strong> — the richest wellness-budget tier</li>
+                    <li>• <strong>Renewal negotiation</strong> is the moment brokers hunt for value-adds</li>
+                    <li>• Captives curate <strong>point-solution ecosystems</strong> — an established buying pattern we slot into</li>
+                    <li>• Technology/integration is a pain point in their vendor stack — our zero-lift booking flow is the answer</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-3xl p-8" style={{ backgroundColor: '#003756' }}>
+                  <p className="text-xs uppercase tracking-wide font-semibold mb-3" style={{ color: '#9EFAFF' }}>The play</p>
+                  <ul className="space-y-3 text-sm" style={{ color: 'white' }}>
+                    <li>• Get vetted into ParetoHealth's solution ecosystem — one approval = distribution to hundreds of self-funded mid-market employers</li>
+                    <li>• Entry via broker intro: SterlingRisk and peers place clients into captives — warm path beats cold</li>
+                    <li>• Angle: Pareto's ecosystem is clinical-cost focused (cancer, GLP-1s, mental health) — we enter through <strong>mental health / wellbeing adjacency</strong> + member experience</li>
+                    <li>• Same motion extends to other benefit captives (Roundstone, Stealth) once the Pareto template exists</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ==================== SLIDE 24: CONFERENCES ==================== */}
+        {currentSlide === 23 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1126,8 +1192,8 @@ export default function BrokerPlan() {
           </section>
         )}
 
-        {/* ==================== SLIDE 24: 30-DAY PLAN ==================== */}
-        {currentSlide === 23 && (
+        {/* ==================== SLIDE 25: 30-DAY PLAN ==================== */}
+        {currentSlide === 24 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1160,8 +1226,8 @@ export default function BrokerPlan() {
           </section>
         )}
 
-        {/* ==================== SLIDE 25: OPEN DECISIONS ==================== */}
-        {currentSlide === 24 && (
+        {/* ==================== SLIDE 26: OPEN DECISIONS ==================== */}
+        {currentSlide === 25 && (
           <section className="min-h-screen flex items-center py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-10">
@@ -1191,8 +1257,8 @@ export default function BrokerPlan() {
           </section>
         )}
 
-        {/* ==================== SLIDE 26: APPENDIX TOP 30 ==================== */}
-        {currentSlide === 25 && (
+        {/* ==================== SLIDE 27: APPENDIX TOP 30 ==================== */}
+        {currentSlide === 26 && (
           <section className="min-h-screen flex items-start py-20" style={{ backgroundColor: 'white' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
@@ -1250,8 +1316,8 @@ export default function BrokerPlan() {
           </section>
         )}
 
-        {/* ==================== SLIDE 27: EMAIL TEMPLATES ==================== */}
-        {currentSlide === 26 && (
+        {/* ==================== SLIDE 28: EMAIL TEMPLATES ==================== */}
+        {currentSlide === 27 && (
           <section className="min-h-screen flex items-start py-20" style={{ backgroundColor: '#F8F9FA' }}>
             <div className="max-w-6xl mx-auto px-6">
               <div className="text-center mb-8">
