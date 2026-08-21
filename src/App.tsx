@@ -83,6 +83,7 @@ const WorkhumanBooth = lazy(() => import('./components/WorkhumanBooth'));
 const BookACallLanding = lazy(() => import('./components/BookACallLanding'));
 const BookACallLandingRefresh = lazy(() => import('./components/BookACallLandingRefresh'));
 const WellnessFundsOnePager = lazy(() => import('./components/WellnessFundsOnePager'));
+const SterlingPartnerPage = lazy(() => import('./components/SterlingPartnerPage'));
 const SurveyManager = lazy(() => import('./components/SurveyManager'));
 const SurveyDisplay = lazy(() => import('./components/SurveyDisplay'));
 const SurveyResultsPublic = lazy(() => import('./components/SurveyResultsPublic'));
@@ -128,6 +129,7 @@ function App() {
     location.pathname === '/workhuman-tv' ||
     location.pathname.startsWith('/book-a-call') ||
     location.pathname.startsWith('/wellness-funds') ||
+    location.pathname.startsWith('/partners/') ||
     location.pathname.startsWith('/conference') ||
     location.pathname.startsWith('/menu') ||
     location.pathname.startsWith('/info') ||
@@ -616,6 +618,19 @@ function App() {
                     </div>
                   }>
                     <WellnessFundsOnePager />
+                  </Suspense>
+                }
+              />
+              {/* SterlingRisk partner one-pager — personalized broker page */}
+              <Route
+                path="/partners/sterling"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <SterlingPartnerPage />
                   </Suspense>
                 }
               />
