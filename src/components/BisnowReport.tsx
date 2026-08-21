@@ -184,7 +184,7 @@ function YearlyBars() {
           <span className="text-shortcut-teal-blue"> by year.</span>
         </h2>
         <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[640px]">
-          2021 billing wasn't recorded on the coordinator event — the bar shown is what we paid the pros that year, not what Bisnow was billed, and is marked separately below.
+          2021's bar is pro payout, not billing — Bisnow's 2021 invoice wasn't recorded.
         </p>
       </div>
       <div className="space-y-3">
@@ -212,7 +212,7 @@ function YearlyBars() {
           );
         })}
       </div>
-      <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium">* 2025 is a yellow bar because it's the peak year on record — both in what was billed and in capacity offered.</p>
+      <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium">* Yellow = peak year, in billing and capacity.</p>
     </div>
   );
 }
@@ -257,7 +257,7 @@ function YearlyTable() {
         </tbody>
       </table>
       <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium leading-relaxed">
-        * Fill rate covers 2022–2025 — 2021 isn't included since it doesn't have day-level booking detail on file. Paid-to-Shortcut total also covers 2022–2025 only — 2021 billing wasn't recorded on the coordinator event.
+        * Excludes 2021 — no day-level booking or billing data on file that year.
       </p>
     </div>
   );
@@ -468,7 +468,7 @@ export default function BisnowReport() {
                   <span className="block text-shortcut-teal-blue">by the numbers.</span>
                 </h1>
                 <p className="text-[16px] md:text-[19px] text-text-dark/70 mt-5 font-medium leading-relaxed max-w-[680px]">
-                  Every grooming and massage appointment we've run at the Bisnow Escape in Miami Beach since the relationship launched in November 2021 — grown from a single hair line to two simultaneous service rooms.
+                  Every grooming and massage appointment at the Bisnow Escape in Miami Beach since 2021 — one hair line grown into two service rooms.
                 </p>
 
                 <div className="flex flex-wrap gap-3 mt-7">
@@ -505,10 +505,10 @@ export default function BisnowReport() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 {[
-                  { Icon: Award, tint: 'bg-shortcut-teal/30', title: 'A returning crew', body: "Eddie Montalvo has cut hair at every Bisnow Escape since it started in 2021 — five years running." },
-                  { Icon: Mail, tint: 'bg-accent-yellow/40', title: 'Light lift on your side', body: "Bisnow's team doesn't run scheduling, communications, or day-of logistics. We do." },
-                  { Icon: Smartphone, tint: 'bg-accent-pink/30', title: 'Technology built in', body: 'Attendees book through our platform with automated reminders and confirmations.' },
-                  { Icon: Package, tint: 'bg-shortcut-coral/15', title: 'Two rooms, one team', body: 'Since 2025, Hair and Massage run simultaneously in separate rooms — same crew, same setup discipline.' },
+                  { Icon: Award, tint: 'bg-shortcut-teal/30', title: 'A returning crew', body: 'Eddie Montalvo has cut hair at every Escape since 2021.' },
+                  { Icon: Mail, tint: 'bg-accent-yellow/40', title: 'Light lift on your side', body: 'We run scheduling, communications, and day-of logistics — not your team.' },
+                  { Icon: Smartphone, tint: 'bg-accent-pink/30', title: 'Technology built in', body: 'Attendees book with automated reminders and confirmations.' },
+                  { Icon: Package, tint: 'bg-shortcut-coral/15', title: 'Two rooms, one team', body: 'Since 2025, Hair and Massage run at once in separate rooms.' },
                 ].map((tile, i) => {
                   const { Icon } = tile;
                   return (
@@ -569,7 +569,7 @@ export default function BisnowReport() {
           <Section id="services">
             <div data-toc id="services" />
             <SectionLabel>Section I · How the program grew</SectionLabel>
-            <SectionHeading subtitle="From one hair line in a single ballroom to two service rooms running at once.">
+            <SectionHeading subtitle="From one hair line to two service rooms running at once.">
               Service mix,
               <span className="block text-shortcut-teal-blue">year by year.</span>
             </SectionHeading>
@@ -585,7 +585,7 @@ export default function BisnowReport() {
                   <div className="text-[13px] font-bold text-shortcut-blue">2 pros · 4 days · 64 slots offered</div>
                 </div>
                 <p className="text-[13px] text-text-dark/70 font-medium leading-relaxed">
-                  The relationship's real start — a first attempt in April 2020 (2 events, hair only, Miami Beach) was cancelled before it ran, almost certainly a COVID casualty. The Escape didn't actually launch until November 2021.
+                  A first attempt in April 2020 was cancelled before it ran, likely COVID — the Escape actually launched in November 2021.
                 </p>
               </div>
               <div className="card-medium">
@@ -603,7 +603,7 @@ export default function BisnowReport() {
                   <div className="text-[13px] font-bold text-shortcut-blue">Up to 5 pros · 120 slots offered in 2025</div>
                 </div>
                 <p className="text-[13px] text-text-dark/70 font-medium leading-relaxed">
-                  Massage joined in 2022, sharing Terra Gallery with Hair for three years. In 2025 the two lines split into separate rooms — Terra Gallery for Hair, Garnet I &amp; II for Massage — running in parallel for the first time.
+                  Massage joined in 2022, sharing Terra Gallery with Hair. In 2025 the two split into separate rooms, running in parallel for the first time.
                 </p>
               </div>
             </div>
@@ -615,7 +615,7 @@ export default function BisnowReport() {
           <Section id="days">
             <div data-toc id="days" />
             <SectionLabel>Section II · Booking Stats</SectionLabel>
-            <SectionHeading subtitle="Booked vs. offered, day by day, for every year on file.">
+            <SectionHeading subtitle="Booked vs. offered, day by day.">
               Where the bookings
               <span className="block text-shortcut-teal-blue">actually landed.</span>
             </SectionHeading>
