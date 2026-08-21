@@ -455,7 +455,9 @@ const CSS = `
 .wfop .stat-mini b{ font-size:20px; font-weight:800; color:#003756; display:block; }
 .wfop .stat-mini span{ font-size:11px; font-weight:600; color:#175071; }
 .wfop .pk-gh{ display:flex; align-items:center; gap:12px; margin:28px 0 0; }
-.wfop .pk-gh .gchip{ flex:none; border-radius:999px; padding:7px 14px; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+/* border:0 + box-shadow:none guard against the `.wfop .fund` carrier-card
+   rule, which also matches the "gchip fund" class pair (coral top border). */
+.wfop .pk-gh .gchip{ flex:none; border:0; box-shadow:none; border-radius:999px; padding:7px 14px; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
 .wfop .pk-gh .gchip.fund{ background:#9EFAFF; color:#003756; }
 .wfop .pk-gh .gchip.rate{ background:#FF5050; color:#fff; }
 .wfop .pk-gh p{ margin:0; font-size:14px; color:var(--ink-soft); }
