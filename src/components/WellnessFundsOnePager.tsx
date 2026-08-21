@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { MENU_SERVICES, MenuService } from '../utils/menuServices';
 
 /**
  * Carrier Wellness Funds one-pager — public marketing page at /wellness-funds.
@@ -23,6 +24,21 @@ const CENCORA_PHOTO = 'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v1/objec
 const MINDFULNESS_VIDEO = 'https://cdn.sanity.io/files/7qf1r87p/production/e94281566161c5674ab843b72e54b5ea39364609.mp4';
 // Will's Google Calendar appointment schedule (SENDER_TO_CALENDAR in workhumanOutreachTemplates).
 const WILL_CALENDAR = 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ32vKfzSRhuWGXuzgv0w3x21bOQnmWva5xVuPtCsMF3iq25Oh_vInOsmmHr13npkewS-GnsQRqu';
+
+// Fund-eligible services ONLY (carrier_wellness_funds.md): massage, stretch,
+// mind-body and group fitness — the carriers' "group exercise / stress
+// management" categories. Beauty services and headshots are not fund-eligible
+// and must never appear on this page. Cards + modal reuse MENU_SERVICES from
+// the service-menu page so the two surfaces share one copy source.
+const FUND_SERVICE_IDS = [
+  'massage', 'assisted-stretch', 'mindfulness', 'sound-bath',
+  'yoga', 'strength-sculpt', 'dance-cardio', 'somatic-movement',
+];
+const FUND_SERVICES: MenuService[] = FUND_SERVICE_IDS
+  .map(id => MENU_SERVICES.find(s => s.id === id))
+  .filter((s): s is MenuService => !!s);
+// Sound-bath card art is photographic; keep the menu page's framing.
+const ART_POS: Record<string, string> = { 'sound-bath': 'center 42%' };
 
 const CSS = `
 .wfop { --brand:#003756; --brand-deep:#003C5E; --teal:#018EA2; --cyan:#9EFAFF; --coral:#FF5050;
@@ -60,18 +76,52 @@ const CSS = `
 .wfop .op-gtile:hover img, .wfop .op-gtile:hover video{ transform:scale(1.04); }
 .wfop .op-gtile.main{ grid-row:1 / 3; grid-column:1; }
 .wfop .op-gtag{ position:absolute; left:12px; bottom:12px; background:#fff; color:var(--brand); font-weight:700; font-size:12px; border-radius:999px; padding:6px 13px; box-shadow:0 2px 8px rgba(9,54,79,.18); }
-.wfop .svc-tiles{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:2px 0 14px; }
-.wfop .svc-tile{ border-radius:16px; overflow:hidden; border:1px solid var(--line); background:var(--panel); box-shadow:var(--shadow); display:flex; flex-direction:column; }
-.wfop .svc-tile .ph{ aspect-ratio:5 / 4; overflow:hidden; }
-.wfop .svc-tile .ph img{ width:100%; height:100%; object-fit:cover; display:block; }
-.wfop .svc-tile .cap{ padding:12px 15px; font-weight:600; font-size:15px; color:var(--brand); }
-.wfop .svc-tile .sub{ display:block; font-weight:400; font-size:12.5px; line-height:1.4; margin-top:4px; color:var(--ink-soft); }
-.wfop .svc-tile.nutri .ph{ background:#55BA90; display:flex; align-items:center; justify-content:center; }
-.wfop .svc-tile.nutri .ph img{ width:auto; height:82%; object-fit:contain; }
-.wfop .svc-tile.zoom .ph{ background:var(--cyan); display:flex; align-items:center; justify-content:center; }
-.wfop .svc-tile.zoom .zicon{ width:52px; height:52px; border-radius:14px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(3,34,50,.14); }
-.wfop .svc-tile.zoom .zicon svg{ width:28px; height:28px; }
-.wfop .svc-tile.zoom .cap{ color:#003756; } .wfop .svc-tile.zoom .sub{ color:#175071; }
+/* Service cards + detail modal — design ported from ServiceMenuPage (/menu) */
+.wfop .sm-filter{ display:flex; align-items:center; gap:14px; margin:0 0 16px; }
+.wfop .sm-pills{ display:flex; gap:4px; background:var(--tint); border-radius:999px; padding:4px; }
+.wfop .sm-pills button{ border:0; background:transparent; border-radius:999px; padding:8px 15px; font-size:13px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:var(--font); transition:color .18s,background .18s; }
+.wfop .sm-pills button:hover{ color:var(--brand); }
+.wfop .sm-pills button.on{ background:var(--brand); color:#fff; }
+.wfop .sm-count{ margin-left:auto; font-size:13px; font-weight:600; color:var(--ink-soft); }
+.wfop .sm-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:2px 0 14px; }
+.wfop .sm-card{ position:relative; overflow:hidden; border-radius:18px; background:var(--tint); min-height:300px; box-shadow:var(--shadow); border:0; padding:0; text-align:left; cursor:pointer; font-family:var(--font); display:block; width:100%; }
+.wfop .sm-card .art{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.wfop .sm-card.crop .art{ transform:scale(1.1); }
+.wfop .sm-card .scrim{ position:absolute; inset:0; background:linear-gradient(0deg,rgba(3,34,50,.82) 0%,rgba(3,34,50,.34) 46%,rgba(3,34,50,0) 78%); }
+.wfop .sm-card .cap2{ position:absolute; left:20px; bottom:20px; z-index:2; }
+.wfop .sm-card .cap2 b{ display:block; font-size:19px; font-weight:800; letter-spacing:-.01em; color:#fff; }
+.wfop .sm-card .cap2 span{ display:block; margin-top:3px; font-size:12px; font-weight:600; color:rgba(255,255,255,.86); }
+.wfop .sm-card .plus{ position:absolute; right:14px; top:14px; z-index:3; width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.94); color:var(--brand); display:grid; place-items:center; font-size:22px; font-weight:500; box-shadow:0 2px 10px rgba(3,34,50,.22); transition:background .15s; }
+.wfop .sm-card:hover .plus{ background:#fff; }
+.wfop .sm-card .rchip{ position:absolute; right:62px; top:22px; z-index:3; background:var(--cyan); color:var(--brand); border-radius:999px; padding:6px 11px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; }
+.wfop .sm-card.static{ cursor:default; }
+.wfop .sm-card.nutri{ background:#55BA90; }
+.wfop .sm-card.nutri .art{ object-fit:contain; padding:12% 24% 30%; }
+.wfop .sm-card.nutri .rchip{ right:22px; }
+.wfop .sm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:rgba(3,34,50,.58); padding:16px; }
+.wfop .sm-modal{ position:relative; display:grid; grid-template-columns:44% 56%; width:min(960px,100%); height:min(520px,calc(100vh - 56px)); border-radius:24px; overflow:hidden; background:#fff; box-shadow:0 30px 80px rgba(3,34,50,.4); }
+.wfop .sm-close{ position:absolute; right:16px; top:16px; z-index:20; width:38px; height:38px; border-radius:50%; background:var(--brand); color:#fff; font-size:20px; line-height:1; border:0; display:grid; place-items:center; cursor:pointer; }
+.wfop .sm-media{ position:relative; background:#EAF7F9; overflow:hidden; }
+.wfop .sm-media img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .3s; }
+.wfop .sm-media img.on{ opacity:1; }
+.wfop .sm-media img.crop{ transform:scale(1.1); }
+.wfop .sm-dots{ position:absolute; left:16px; bottom:16px; z-index:3; display:flex; gap:8px; }
+.wfop .sm-dots button{ width:9px; height:9px; border-radius:50%; border:0; padding:0; background:rgba(255,255,255,.5); cursor:pointer; }
+.wfop .sm-dots button.on{ background:#fff; }
+.wfop .sm-body{ display:flex; flex-direction:column; overflow-y:auto; padding:34px 36px 28px; }
+.wfop .sm-pos{ margin:0; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); }
+.wfop .sm-name{ margin:6px 0 0; font-size:27px; font-weight:800; letter-spacing:-.02em; line-height:1.1; color:var(--brand); }
+.wfop .sm-desc{ margin:10px 0 22px; font-size:14px; line-height:1.6; color:var(--ink); }
+.wfop .sm-cols{ display:grid; grid-template-columns:1.15fr 1fr; gap:24px; border-top:1px solid var(--line); padding-top:18px; }
+.wfop .sm-colh{ margin:0; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); }
+.wfop .sm-cols ul{ list-style:none; margin:10px 0 0; padding:0; display:grid; gap:8px; }
+.wfop .sm-cols li{ display:flex; gap:10px; font-size:13px; line-height:1.45; color:var(--ink-soft); }
+.wfop .sm-cols li::before{ content:""; margin-top:7px; width:6px; height:6px; border-radius:50%; background:var(--cyan); flex:none; }
+.wfop .sm-cols li b{ font-weight:600; color:var(--ink); }
+.wfop .sm-foot{ margin-top:auto; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding-top:24px; }
+.wfop .sm-meta{ margin:0; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); }
+.wfop .sm-nav{ display:flex; gap:8px; flex:none; }
+.wfop .sm-nav button{ width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:#fff; color:var(--brand); font-size:15px; display:grid; place-items:center; cursor:pointer; }
 .wfop ol.steps{ list-style:none; counter-reset:s; margin:2px 0 0; padding:0; display:grid; gap:15px; }
 .wfop ol.steps li{ counter-increment:s; display:grid; grid-template-columns:38px 1fr; gap:15px; align-items:start; }
 .wfop ol.steps li::before{ content:counter(s); font-weight:700; font-size:16px; color:#fff; background:var(--coral); width:38px; height:38px; display:grid; place-items:center; border-radius:10px; font-variant-numeric:tabular-nums; }
@@ -143,13 +193,59 @@ const CSS = `
 .wfop footer{ margin-top:34px; padding-top:18px; border-top:1px solid var(--line); display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; font-size:13px; color:var(--ink-soft); }
 .wfop footer .trust b{ color:var(--ink); font-weight:600; }
 .wfop footer a{ color:var(--teal); text-decoration:none; font-weight:600; }
-@media (max-width:560px){ .wfop .sheet{ padding:34px 22px; } .wfop .funds{ grid-template-columns:1fr; } .wfop .svc-tiles{ grid-template-columns:repeat(2,1fr); } .wfop .feat4{ grid-template-columns:1fr; } .wfop .op-gallery{ height:auto; grid-template-columns:1fr 1fr; grid-template-rows:auto; } .wfop .op-gtile{ height:150px; } .wfop .op-gtile.main{ grid-column:1 / 3; grid-row:auto; height:200px; } .wfop .statement{ font-size:27px; } .wfop .top .tag{ display:none; } }
+@media (max-width:560px){ .wfop .sheet{ padding:34px 22px; } .wfop .funds{ grid-template-columns:1fr; } .wfop .sm-grid{ grid-template-columns:repeat(2,1fr); } .wfop .sm-card{ min-height:200px; } .wfop .sm-card .cap2{ left:14px; bottom:14px; } .wfop .sm-card .cap2 b{ font-size:15px; } .wfop .sm-card .rchip{ display:none; } .wfop .sm-modal{ grid-template-columns:1fr; height:auto; max-height:calc(100vh - 40px); overflow-y:auto; } .wfop .sm-media{ height:220px; flex:none; } .wfop .sm-body{ overflow-y:visible; padding:26px 24px 22px; } .wfop .sm-cols{ grid-template-columns:1fr; } .wfop .feat4{ grid-template-columns:1fr; } .wfop .op-gallery{ height:auto; grid-template-columns:1fr 1fr; grid-template-rows:auto; } .wfop .op-gtile{ height:150px; } .wfop .op-gtile.main{ grid-column:1 / 3; grid-row:auto; height:200px; } .wfop .statement{ font-size:27px; } .wfop .top .tag{ display:none; } }
 @media print{ .wfop{ background:#fff; } .wfop .sheet{ max-width:100%; padding:22px; } .wfop .fund,.wfop .chip,.wfop .ask,.wfop .cta .primary{ box-shadow:none; } .wfop .mapdots g{ transform:scale(1) !important; } }
 @media (prefers-reduced-motion:reduce){ .wfop .mapdots g{ transition:none; transform:scale(1); } .wfop .op-gtile img{ transition:none; } }
 `;
 
 export default function WellnessFundsOnePager() {
   const navyRef = useRef<HTMLDivElement>(null);
+  const modalBodyRef = useRef<HTMLDivElement>(null);
+  const [modalId, setModalId] = useState<string | null>(null);
+  const [imgIdx, setImgIdx] = useState(0);
+  const [mode, setMode] = useState<'all' | 'remote'>('all');
+
+  // "On-site or remote" filters like /menu: remote-capable services only.
+  const visibleServices = mode === 'remote' ? FUND_SERVICES.filter(s => s.remote) : FUND_SERVICES;
+  const nutritionVisible = true; // nutrition runs remote too — shown in both modes
+  const visibleCount = visibleServices.length + (nutritionVisible ? 1 : 0);
+
+  const modalIdx = modalId ? visibleServices.findIndex(s => s.id === modalId) : -1;
+  const modalSvc = modalIdx >= 0 ? visibleServices[modalIdx] : null;
+  const modalImages = modalSvc
+    ? Array.from(new Set([...(modalSvc.photos || []), modalSvc.image])).slice(0, 6)
+    : [];
+
+  const navModal = useCallback((dir: 1 | -1) => {
+    setModalId(cur => {
+      const list = mode === 'remote' ? FUND_SERVICES.filter(s => s.remote) : FUND_SERVICES;
+      const i = list.findIndex(s => s.id === cur);
+      if (i < 0) return cur;
+      return list[(i + dir + list.length) % list.length].id;
+    });
+  }, [mode]);
+
+  // Reset media + scroll on every service change (same behaviour as /menu).
+  useEffect(() => {
+    setImgIdx(0);
+    modalBodyRef.current?.scrollTo({ top: 0 });
+  }, [modalId]);
+
+  useEffect(() => {
+    if (!modalId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setModalId(null);
+      if (e.key === 'ArrowRight') navModal(1);
+      if (e.key === 'ArrowLeft') navModal(-1);
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.documentElement.style.overflow = prev;
+    };
+  }, [modalId, navModal]);
 
   useEffect(() => {
     document.title = 'Shortcut · Carrier Wellness Funds';
@@ -226,16 +322,111 @@ export default function WellnessFundsOnePager() {
 
         <section>
           <p className="label">What the fund covers</p>
-          <div className="svc-tiles">
-            <div className="svc-tile"><div className="ph"><img src={`${A}/services/massage.png`} alt="Massage" /></div><div className="cap">Massage<span className="sub">Chair &amp; table options</span></div></div>
-            <div className="svc-tile"><div className="ph"><img src={`${A}/services/assisted-stretch.png`} alt="Assisted stretch" /></div><div className="cap">Assisted stretch<span className="sub">Guided one-on-one sessions</span></div></div>
-            <div className="svc-tile"><div className="ph"><img src={`${A}/services/sound-bath.png`} alt="Sound bath" /></div><div className="cap">Sound bath<span className="sub">Group relaxation sessions</span></div></div>
-            <div className="svc-tile"><div className="ph"><img src={`${A}/services/mindfulness.png`} alt="Mindfulness session" /></div><div className="cap">Mindfulness<span className="sub">Guided meditation &amp; breathwork</span></div></div>
-            <div className="svc-tile nutri"><div className="ph"><img src={`${A}/onepager/nutrition-avocado.png`} alt="Nutrition coaching" /></div><div className="cap">Nutrition coaching<span className="sub">1:1 &amp; group sessions</span></div></div>
-            <div className="svc-tile zoom"><div className="ph"><span className="zicon"><svg viewBox="0 0 24 24" fill="none"><rect x="2" y="6.5" width="13.5" height="11" rx="3" fill="#003756" /><path d="M17 10.2 L22 7 V17 L17 13.8 Z" fill="#003756" /></svg></span></div><div className="cap">Also on Zoom<span className="sub">Mindfulness, sound bath &amp; nutrition run remote</span></div></div>
+          <div className="sm-filter">
+            <div className="sm-pills" role="radiogroup" aria-label="Where">
+              {([
+                { v: 'all' as const, l: 'All services' },
+                { v: 'remote' as const, l: 'On-site or remote' },
+              ]).map(opt => (
+                <button
+                  key={opt.v}
+                  role="radio"
+                  aria-checked={mode === opt.v}
+                  className={mode === opt.v ? 'on' : ''}
+                  onClick={() => setMode(opt.v)}
+                >
+                  {opt.l}
+                </button>
+              ))}
+            </div>
+            <span className="sm-count">{visibleCount} service{visibleCount === 1 ? '' : 's'}</span>
+          </div>
+          <div className="sm-grid">
+            {visibleServices.map(svc => (
+              <button
+                key={svc.id}
+                className={`sm-card${svc.cropArt ? ' crop' : ''}`}
+                onClick={() => setModalId(svc.id)}
+                aria-label={`More about ${svc.name.toLowerCase()}`}
+              >
+                <img
+                  className="art"
+                  src={svc.image}
+                  alt={svc.name}
+                  style={ART_POS[svc.id] ? { objectPosition: ART_POS[svc.id] } : undefined}
+                />
+                <span className="scrim" />
+                <span className="cap2"><b>{svc.name}</b><span>{svc.meta}</span></span>
+                <span className="plus">+</span>
+                {svc.remote && <span className="rchip">Remote too</span>}
+              </button>
+            ))}
+            <div className="sm-card nutri static">
+              <img className="art" src={`${A}/onepager/nutrition-avocado.png`} alt="Nutrition coaching" />
+              <span className="scrim" />
+              <span className="cap2"><b>Nutrition coaching</b><span>1:1 &amp; group sessions</span></span>
+              <span className="rchip">Remote too</span>
+            </div>
           </div>
           <p className="note">Delivered onsite by <b>licensed, vetted pros</b>, one team running the whole day, and your remote employees are covered too.</p>
         </section>
+
+        {modalSvc && (
+          <div className="sm-overlay" onClick={() => setModalId(null)} role="dialog" aria-modal="true" aria-label={modalSvc.name}>
+            <div className="sm-modal" onClick={e => e.stopPropagation()}>
+              <button className="sm-close" onClick={() => setModalId(null)} aria-label="Close">×</button>
+              <div className="sm-media">
+                {modalImages.map((src, i) => (
+                  <img
+                    key={src}
+                    src={src}
+                    alt={i === imgIdx ? modalSvc.name : ''}
+                    aria-hidden={i !== imgIdx}
+                    className={`${i === imgIdx ? 'on' : ''}${src === modalSvc.image && modalSvc.cropArt ? ' crop' : ''}`}
+                    style={src === modalSvc.image && ART_POS[modalSvc.id] ? { objectPosition: ART_POS[modalSvc.id] } : undefined}
+                  />
+                ))}
+                {modalImages.length > 1 && (
+                  <div className="sm-dots">
+                    {modalImages.map((_, i) => (
+                      <button key={i} className={i === imgIdx ? 'on' : ''} onClick={() => setImgIdx(i)} aria-label={`Photo ${i + 1}`} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="sm-body" ref={modalBodyRef}>
+                <p className="sm-pos">What the fund covers · {modalIdx + 1} of {visibleServices.length}</p>
+                <h3 className="sm-name">{modalSvc.name}</h3>
+                <p className="sm-desc">{modalSvc.desc}</p>
+                <div className="sm-cols">
+                  <div>
+                    <p className="sm-colh">What we bring</p>
+                    <ul>
+                      {modalSvc.bring.map(b => (
+                        <li key={b.lead}><span><b>{b.lead}</b>, {b.rest}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="sm-colh">{modalSvc.columnKind}</p>
+                    <ul>
+                      {modalSvc.items.map(it => (
+                        <li key={it.rest}><span>{it.lead ? <><b>{it.lead}</b>, {it.rest}</> : it.rest}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="sm-foot">
+                  <p className="sm-meta">{modalSvc.metaFooter}</p>
+                  <div className="sm-nav">
+                    <button onClick={() => navModal(-1)} aria-label="Previous service">←</button>
+                    <button onClick={() => navModal(1)} aria-label="Next service">→</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <section>
           <p className="label">A day with Shortcut</p>
