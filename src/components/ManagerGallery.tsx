@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Users, Camera, Check, Clock, AlertCircle, Copy, Mail, ExternalLink, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Camera, Check, Clock, AlertCircle, Copy, Mail, ExternalLink, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { HeadshotService } from '../services/HeadshotService';
 import { EmployeeGallery, HeadshotEvent } from '../types/headshot';
 
+// Brand tokens (mirrors the menu / conference / partner pages).
+const SOFT = 'text-[#45596A]';
+const LINE = 'border-[#E2E9E8]';
+const SHADOW = 'shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]';
+
 const ManagerGallery: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  
+
   const [event, setEvent] = useState<HeadshotEvent | null>(null);
   const [galleries, setGalleries] = useState<EmployeeGallery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,9 +21,9 @@ const ManagerGallery: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const statusDefinitions = {
-    'Photos Ready': 'Initial photos have been uploaded and are ready for the employee to make a selection.',
-    'Final In Progress': 'The employee has selected their preferred photo, and it is currently undergoing final retouching.',
-    'Final Ready': 'The final retouched photo is complete and available for the employee to download.'
+    'Photos ready': 'Photos are uploaded and the employee can make their selection.',
+    'In retouching': 'The employee picked their photo and our retouchers are on it.',
+    'Final ready': 'The retouched photo is done and ready for the employee to download.',
   };
 
   useEffect(() => {
@@ -31,7 +36,7 @@ const ManagerGallery: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // First, get the event by manager token
       const eventData = await HeadshotService.getEventByManagerToken(token);
       setEvent(eventData);
@@ -39,10 +44,10 @@ const ManagerGallery: React.FC = () => {
       // Then get all galleries for this event
       const galleriesData = await HeadshotService.getGalleriesByEvent(eventData.id);
       setGalleries(galleriesData);
-      
+
     } catch (err) {
       console.error('Error fetching manager data:', err);
-      setError('Failed to load manager dashboard. Please try again or contact support.');
+      setError('The dashboard did not load. Try refreshing, or contact us and we will sort it out.');
     } finally {
       setIsLoading(false);
     }
@@ -55,35 +60,35 @@ const ManagerGallery: React.FC = () => {
 
     if (!hasPhotos) {
       return {
-        text: 'No Photos',
-        color: 'bg-gray-100 text-gray-800',
-        icon: <AlertCircle className="w-4 h-4" />,
+        text: 'No photos yet',
+        color: 'bg-[#F1F6F5] text-[#45596A]',
+        icon: <AlertCircle className="h-3.5 w-3.5" />,
         sortOrder: 0
       };
     }
 
     if (hasFinalPhoto) {
       return {
-        text: 'Final Ready',
-        color: 'bg-green-100 text-green-800',
-        icon: <Check className="w-4 h-4" />,
+        text: 'Final ready',
+        color: 'bg-[#003756] text-[#9EFAFF]',
+        icon: <Check className="h-3.5 w-3.5" />,
         sortOrder: 3
       };
     }
 
     if (status === 'selection_made' || status === 'retouching') {
       return {
-        text: 'Final In Progress',
-        color: 'bg-blue-100 text-blue-800',
-        icon: <Clock className="w-4 h-4" />,
+        text: 'In retouching',
+        color: 'bg-[#9EFAFF] text-[#003756]',
+        icon: <Clock className="h-3.5 w-3.5" />,
         sortOrder: 2
       };
     }
 
     return {
-      text: 'Photos Ready',
-      color: 'bg-yellow-100 text-yellow-800',
-      icon: <Camera className="w-4 h-4" />,
+      text: 'Photos ready',
+      color: 'bg-[#FEDC64] text-[#003756]',
+      icon: <Camera className="h-3.5 w-3.5" />,
       sortOrder: 1
     };
   };
@@ -135,10 +140,10 @@ const ManagerGallery: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading manager dashboard...</p>
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-b-2 border-[#003756]" />
+          <p className={SOFT}>Loading your dashboard&hellip;</p>
         </div>
       </div>
     );
@@ -146,17 +151,17 @@ const ManagerGallery: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <a 
-            href="mailto:hello@getshortcut.co" 
-            className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+      <div className="flex min-h-screen items-center justify-center bg-white px-4">
+        <div className={`max-w-md rounded-[18px] border ${LINE} bg-white p-8 text-center ${SHADOW}`}>
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#FF5050]" />
+          <h1 className="mb-2 text-[24px] font-extrabold tracking-[-.02em] text-[#003756]">Something went wrong</h1>
+          <p className={`mb-5 text-[15px] leading-[1.55] ${SOFT}`}>{error}</p>
+          <a
+            href="mailto:hello@getshortcut.co"
+            className="inline-flex items-center gap-2 text-[14px] font-bold text-[#003756]"
           >
-            <Mail className="w-4 h-4 mr-2" />
-            Contact Support
+            <Mail className="h-4 w-4" />
+            hello@getshortcut.co
           </a>
         </div>
       </div>
@@ -165,10 +170,10 @@ const ManagerGallery: React.FC = () => {
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Event Not Found</h1>
-          <p className="text-gray-600">The requested event could not be found.</p>
+      <div className="flex min-h-screen items-center justify-center bg-white px-4">
+        <div className={`max-w-md rounded-[18px] border ${LINE} bg-white p-8 text-center ${SHADOW}`}>
+          <h1 className="mb-2 text-[24px] font-extrabold tracking-[-.02em] text-[#003756]">Event not found</h1>
+          <p className={`text-[15px] ${SOFT}`}>This event does not exist or the link has expired.</p>
         </div>
       </div>
     );
@@ -180,213 +185,161 @@ const ManagerGallery: React.FC = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{event.event_name}</h1>
-              <p className="text-gray-600 mt-1">Manager Dashboard</p>
-            </div>
-            {event.client_logo_url && (
-              <div className="flex-shrink-0">
-                <img 
-                  src={event.client_logo_url} 
-                  alt="Client Logo" 
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+  const stats: { value: number; label: string }[] = [
+    { value: galleries.length, label: 'people' },
+    { value: statusCounts['Photos ready'] || 0, label: 'picking their photo' },
+    { value: statusCounts['In retouching'] || 0, label: 'in retouching' },
+    { value: statusCounts['Final ready'] || 0, label: 'finals ready' },
+  ];
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        <div className="mb-6">
-          <div className="flex items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Status Overview</h2>
-            <div className="relative group ml-2">
-              <Info className="w-5 h-5 text-gray-500 cursor-pointer hover:text-gray-700" />
-              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-80 p-4 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
-                <p className="font-semibold text-gray-800 mb-3">Status Definitions:</p>
+  return (
+    <div className="min-h-screen bg-white font-sans leading-[1.55] text-[#032232]">
+      {/* Sticky partner nav */}
+      <nav className="sticky top-0 z-40 h-16 border-b border-black/[.08] bg-white">
+        <div className="mx-auto flex h-full max-w-[1140px] items-center justify-between gap-4 px-5 md:px-7">
+          <div className="flex items-center gap-3.5">
+            {event.client_logo_url ? (
+              <img src={event.client_logo_url} alt={event.event_name} className="h-7 w-auto max-w-[200px] object-contain" />
+            ) : (
+              <span className="text-[17px] font-extrabold tracking-[-.02em] text-[#003756]">{event.event_name}</span>
+            )}
+            <span className="h-6 w-px bg-black/10" />
+            <span className="flex items-center gap-[7px] text-[11px] font-bold text-[rgba(3,34,50,.45)]">
+              <span>with</span>
+              <img src="/conference/shortcut-logo-rgb.svg" alt="Shortcut" className="block h-4 w-auto" />
+            </span>
+          </div>
+          <span className="flex-none rounded-full border border-[#E2E9E8] px-3.5 py-[7px] text-[11.5px] font-extrabold uppercase tracking-[.08em] text-[#45596A]">
+            Manager view
+          </span>
+        </div>
+      </nav>
+
+      <div className="mx-auto max-w-[1140px] px-5 pb-16 md:px-7">
+        {/* Page head */}
+        <div className="pb-2 pt-10 md:pt-12">
+          <p className="mb-3 flex items-center gap-[9px] text-[12px] font-bold uppercase tracking-[.09em] text-[#45596A]">
+            <span className="h-[7px] w-[7px] flex-none rounded-full bg-[#FF5050]" />
+            Manager dashboard
+          </p>
+          <h1 className="text-[clamp(28px,4vw,40px)] font-extrabold leading-[1.06] tracking-[-.03em] text-[#003756]">
+            {event.event_name}. <span className={`font-bold ${SOFT}`}>Every gallery, one view.</span>
+          </h1>
+        </div>
+
+        {/* Stats strip */}
+        <div className={`mt-8 grid grid-cols-2 gap-y-5 border-y ${LINE} py-6 md:grid-cols-4`}>
+          {stats.map((s, i) => (
+            <div key={s.label} className={`px-1 md:px-8 ${i === 0 ? 'md:border-0 md:pl-1' : `md:border-l md:${LINE.replace('border-', 'border-l-')}`}`}>
+              <b className="block text-[38px] font-extrabold leading-none tracking-[-.03em] text-[#003756]">{s.value}</b>
+              <span className={`mt-2 block text-[11.5px] font-bold uppercase tracking-[.08em] ${SOFT}`}>{s.label}</span>
+            </div>
+          ))}
+          <div className="relative col-span-2 flex items-center gap-2 md:col-span-4">
+            <div className="group relative flex items-center gap-2">
+              <Info className={`h-4 w-4 cursor-pointer ${SOFT}`} />
+              <span className={`text-[12.5px] font-semibold ${SOFT}`}>What the statuses mean</span>
+              <div className={`pointer-events-none absolute left-0 top-6 z-10 w-80 rounded-[14px] border ${LINE} bg-white p-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${SHADOW}`}>
                 {Object.entries(statusDefinitions).map(([status, definition]) => (
-                  <div key={status} className="mb-2">
-                    <p className="text-sm font-medium text-gray-700">{status}:</p>
-                    <p className="text-xs text-gray-600 ml-2">{definition}</p>
+                  <div key={status} className="mb-2 last:mb-0">
+                    <p className="text-[13px] font-bold text-[#003756]">{status}</p>
+                    <p className={`text-[12.5px] leading-[1.45] ${SOFT}`}>{definition}</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <Users className="w-8 h-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Employees</p>
-                <p className="text-2xl font-bold text-gray-900">{galleries.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <Camera className="w-8 h-8 text-yellow-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Photos Ready</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts['Photos Ready'] || 0}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <Clock className="w-8 h-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Final In Progress</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts['Final In Progress'] || 0}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <Check className="w-8 h-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Final Ready</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts['Final Ready'] || 0}</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Employee List */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-medium text-gray-900">Employee Galleries</h2>
-                <p className="text-sm text-gray-600">Click on gallery links to view individual employee galleries</p>
-              </div>
-              <div className="text-sm text-gray-500">
-                Sorted by: <span className="font-medium capitalize">{sortField}</span> ({sortDirection === 'asc' ? 'A-Z' : 'Z-A'})
-              </div>
+        {/* Employee list */}
+        <div className={`mt-8 overflow-hidden rounded-[18px] border ${LINE} bg-white ${SHADOW}`}>
+          <div className={`flex flex-wrap items-center justify-between gap-3 border-b ${LINE} px-6 py-4`}>
+            <div>
+              <h2 className="text-[18px] font-extrabold tracking-[-.015em] text-[#003756]">Your team&rsquo;s galleries</h2>
+              <p className={`text-[13.5px] ${SOFT}`}>Open any gallery exactly as that person sees it, or copy their link to resend it.</p>
             </div>
+            <span className={`rounded-full border ${LINE} px-3.5 py-[7px] text-[11.5px] font-extrabold uppercase tracking-[.08em] ${SOFT}`}>
+              Sorted by {sortField}
+            </span>
           </div>
-          
+
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort('name')}
-                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
-                    >
-                      <span>Employee</span>
-                      {sortField === 'name' ? (
-                        sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                      ) : (
-                        <ArrowUpDown className="w-4 h-4 opacity-50" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort('status')}
-                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
-                    >
-                      <span>Status</span>
-                      {sortField === 'status' ? (
-                        sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                      ) : (
-                        <ArrowUpDown className="w-4 h-4 opacity-50" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort('email')}
-                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
-                    >
-                      <span>Email</span>
-                      {sortField === 'email' ? (
-                        sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                      ) : (
-                        <ArrowUpDown className="w-4 h-4 opacity-50" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-[#003756]">
+                  {([
+                    { field: 'name' as const, label: 'Employee' },
+                    { field: 'status' as const, label: 'Status' },
+                    { field: 'email' as const, label: 'Gallery' },
+                  ]).map(col => (
+                    <th key={col.field} className="px-6 py-3 text-left">
+                      <button
+                        onClick={() => handleSort(col.field)}
+                        className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[.08em] text-white transition-opacity hover:opacity-80"
+                      >
+                        <span>{col.label}</span>
+                        {sortField === col.field ? (
+                          sortDirection === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+                        )}
+                      </button>
+                    </th>
+                  ))}
+                  <th className="px-6 py-3 text-left text-[11px] font-extrabold uppercase tracking-[.08em] text-white">
+                    Photos
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedGalleries.map((gallery) => {
+              <tbody>
+                {sortedGalleries.map((gallery, idx) => {
                   const status = getStatusBadge(gallery);
                   const galleryUrl = getGalleryUrl(gallery.unique_token);
-                  
+
                   return (
-                    <tr key={gallery.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {gallery.employee_name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {gallery.email}
-                          </div>
+                    <tr key={gallery.id} className={idx % 2 ? 'bg-[#F8F9FA]' : 'bg-white'}>
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <div className="text-[14px] font-bold text-[#003756]">
+                          {gallery.employee_name}
+                        </div>
+                        <div className={`text-[12.5px] ${SOFT}`}>
+                          {gallery.email}
                         </div>
                       </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-extrabold ${status.color}`}>
                           {status.icon}
-                          <span className="ml-1">{status.text}</span>
+                          {status.text}
                         </span>
                       </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
+
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <div className="flex items-center gap-3">
                           <a
                             href={galleryUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                            className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#003756] hover:underline"
                           >
-                            <ExternalLink className="w-4 h-4 mr-1" />
-                            View Gallery
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Open gallery
                           </a>
                           <button
                             onClick={() => copyToClipboard(galleryUrl, gallery.unique_token)}
-                            className="text-gray-400 hover:text-gray-600"
+                            className={`${SOFT} transition-colors hover:text-[#003756]`}
                             title="Copy link"
                           >
-                            <Copy className="w-4 h-4" />
+                            <Copy className="h-4 w-4" />
                           </button>
                           {copiedToken === gallery.unique_token && (
-                            <span className="text-xs text-green-600">Copied!</span>
+                            <span className="rounded-full bg-[#9EFAFF] px-2.5 py-1 text-[10.5px] font-extrabold text-[#003756]">Copied</span>
                           )}
                         </div>
                       </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center space-x-4">
-                          <span className="text-xs">
-                            {gallery.photos?.length || 0} photos
-                          </span>
-                          {gallery.photos?.some(photo => photo.is_final) && (
-                            <span className="text-xs text-green-600 font-medium">
-                              Final photo ready
-                            </span>
-                          )}
-                        </div>
+
+                      <td className={`whitespace-nowrap px-6 py-4 text-[12.5px] font-semibold ${SOFT}`}>
+                        {gallery.photos?.length || 0} photo{(gallery.photos?.length || 0) === 1 ? '' : 's'}
                       </td>
                     </tr>
                   );
@@ -397,29 +350,17 @@ const ManagerGallery: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-3">
-                <span className="text-gray-600 font-medium">Powered by</span>
-                <img 
-                  src="/shortcut-logo-blue.svg" 
-                  alt="Shortcut" 
-                  className="h-6 w-auto ml-1"
-                />
-              </div>
-              <p className="text-gray-600 mb-2">
-                Need help or have questions about this dashboard?
-              </p>
-              <a 
-                href="mailto:hello@getshortcut.co" 
-                className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                hello@getshortcut.co
-              </a>
-            </div>
+        <div className={`mt-10 border-t ${LINE} pt-8 text-center`}>
+          <div className="mb-2 flex items-center justify-center gap-[7px] text-[12px] font-bold text-[rgba(3,34,50,.45)]">
+            <span>Run by</span>
+            <img src="/conference/shortcut-logo-rgb.svg" alt="Shortcut" className="h-[18px] w-auto" />
           </div>
+          <p className={`text-[14px] ${SOFT}`}>
+            Questions about this dashboard?{' '}
+            <a href="mailto:hello@getshortcut.co" className="font-bold text-[#003756]">
+              hello@getshortcut.co
+            </a>
+          </p>
         </div>
       </div>
     </div>

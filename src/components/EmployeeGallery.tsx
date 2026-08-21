@@ -5,9 +5,40 @@ import { HeadshotService } from '../services/HeadshotService';
 import { EmployeeGallery as EmployeeGalleryType, GalleryPhoto } from '../types/headshot';
 import { supabase } from '../lib/supabaseClient';
 
+// Brand tokens (mirrors the menu / conference / partner pages).
+const INK = 'text-[#032232]';
+const SOFT = 'text-[#45596A]';
+const LINE = 'border-[#E2E9E8]';
+const SHADOW = 'shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]';
+
+// Sticky partner nav: client logo (name fallback), "with Shortcut", status pill.
+const GalleryNav: React.FC<{
+  logoUrl?: string | null;
+  name?: string | null;
+  right?: React.ReactNode;
+}> = ({ logoUrl, name, right }) => (
+  <nav className="sticky top-0 z-40 h-16 border-b border-black/[.08] bg-white">
+    <div className="mx-auto flex h-full max-w-[1140px] items-center justify-between gap-4 px-5 md:px-7">
+      <div className="flex items-center gap-3.5">
+        {logoUrl ? (
+          <img src={logoUrl} alt={name || 'Client'} className="h-7 w-auto max-w-[200px] object-contain" />
+        ) : name ? (
+          <span className="text-[17px] font-extrabold tracking-[-.02em] text-[#003756]">{name}</span>
+        ) : null}
+        {(logoUrl || name) && <span className="h-6 w-px bg-black/10" />}
+        <span className="flex items-center gap-[7px] text-[11px] font-bold text-[rgba(3,34,50,.45)]">
+          <span>with</span>
+          <img src="/conference/shortcut-logo-rgb.svg" alt="Shortcut" className="block h-4 w-auto" />
+        </span>
+      </div>
+      {right}
+    </div>
+  </nav>
+);
+
 const EmployeeGallery: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  
+
   const [gallery, setGallery] = useState<EmployeeGalleryType | null>(null);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -46,24 +77,24 @@ const EmployeeGallery: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const galleryData = await HeadshotService.getGalleryByToken(token!);
       if (galleryData) {
         setGallery(galleryData);
         setPhotos(galleryData.photos || []);
-        
+
         // Check if a photo is already selected
         const selected = galleryData.photos?.find(photo => photo.is_selected);
         if (selected) {
           setSelectedPhoto(selected.id);
         }
-        
+
         // Load existing notes
         setNotes(galleryData.notes || '');
-        
+
         // Determine if selection can be changed
-        const isSelectionMade = galleryData.status === 'selection_made' || 
-                               galleryData.status === 'retouching' || 
+        const isSelectionMade = galleryData.status === 'selection_made' ||
+                               galleryData.status === 'retouching' ||
                                galleryData.status === 'completed';
         setCanChangeSelection(!isSelectionMade);
 
@@ -77,14 +108,14 @@ const EmployeeGallery: React.FC = () => {
 
           if (!error && event) {
             setEventData(event);
-            
+
             // Check if deadline has passed (compare dates only)
             if (event.selection_deadline) {
               // Parse the date as local time to avoid timezone issues
               const dateStr = event.selection_deadline.split('T')[0];
               const [year, month, day] = dateStr.split('-');
               const deadlineDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-              
+
               const now = new Date();
               const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
               setIsDeadlinePassed(today > deadlineDate);
@@ -95,11 +126,11 @@ const EmployeeGallery: React.FC = () => {
           // Don't fail the whole operation if event data fails
         }
       } else {
-        setError('Gallery not found. Please check your link or contact support.');
+        setError('We could not find this gallery. Check your link, or contact us and we will sort it out.');
       }
     } catch (err) {
       console.error('Error fetching gallery:', err);
-      setError('Failed to load your photos. Please try again or contact support.');
+      setError('Your photos did not load. Try refreshing, or contact us and we will sort it out.');
     } finally {
       setIsLoading(false);
     }
@@ -135,21 +166,21 @@ const EmployeeGallery: React.FC = () => {
     try {
       setIsSubmitting(true);
       setError(null);
-      
+
       // Update the gallery with the selected photo
       await HeadshotService.updateGalleryStatus(gallery.id, 'selection_made', selectedPhoto);
-      
-      setSuccess('Photo selected successfully! We\'ll notify you when your retouched photo is ready for download.');
-      
+
+      setSuccess('Selection confirmed. We will email you when your retouched photo is ready to download.');
+
       // Update local state to reflect the change
       setCanChangeSelection(false);
-      
+
       // Refresh the gallery data
       await fetchGallery();
-      
+
     } catch (err) {
       console.error('Error submitting selection:', err);
-      setError('Failed to submit your selection. Please try again.');
+      setError('Your selection did not go through. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -160,7 +191,7 @@ const EmployeeGallery: React.FC = () => {
       // Fetch the image as a blob
       const response = await fetch(photoUrl);
       const blob = await response.blob();
-      
+
       // Create a download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -168,7 +199,7 @@ const EmployeeGallery: React.FC = () => {
       link.download = photoName || 'headshot.jpg';
       document.body.appendChild(link);
       link.click();
-      
+
       // Clean up
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -181,19 +212,19 @@ const EmployeeGallery: React.FC = () => {
 
   const handleSaveNotes = async () => {
     if (!gallery) return;
-    
+
     try {
       setIsSavingNotes(true);
       setError(null);
-      
+
       await HeadshotService.updateEmployeeGallery(gallery.id, { notes });
-      setSuccess('Notes saved successfully!');
-      
+      setSuccess('Notes saved.');
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error('Error saving notes:', error);
-      setError('Failed to save notes. Please try again.');
+      setError('Your notes did not save. Please try again.');
     } finally {
       setIsSavingNotes(false);
     }
@@ -201,25 +232,29 @@ const EmployeeGallery: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your photos...</p>
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-b-2 border-[#003756]" />
+          <p className={SOFT}>Loading your photos&hellip;</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !gallery) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center p-6">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Error</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <p className="text-sm text-gray-500">
-            If you have any questions, please contact hello@getshortcut.co
-          </p>
+      <div className="flex min-h-screen items-center justify-center bg-white px-4">
+        <div className={`max-w-md rounded-[18px] border ${LINE} bg-white p-8 text-center ${SHADOW}`}>
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#FF5050]" />
+          <h1 className="mb-2 text-[24px] font-extrabold tracking-[-.02em] text-[#003756]">Something went wrong</h1>
+          <p className={`mb-5 text-[15px] leading-[1.55] ${SOFT}`}>{error}</p>
+          <a
+            href="mailto:hello@getshortcut.co"
+            className="inline-flex items-center gap-2 text-[14px] font-bold text-[#003756]"
+          >
+            <Mail className="h-4 w-4" />
+            hello@getshortcut.co
+          </a>
         </div>
       </div>
     );
@@ -227,14 +262,18 @@ const EmployeeGallery: React.FC = () => {
 
   if (!gallery) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center p-6">
-          <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Gallery Not Found</h1>
-          <p className="text-gray-600 mb-6">The gallery you're looking for doesn't exist or has expired.</p>
-          <p className="text-sm text-gray-500">
-            If you have any questions, please contact hello@getshortcut.co
-          </p>
+      <div className="flex min-h-screen items-center justify-center bg-white px-4">
+        <div className={`max-w-md rounded-[18px] border ${LINE} bg-white p-8 text-center ${SHADOW}`}>
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#45596A]" />
+          <h1 className="mb-2 text-[24px] font-extrabold tracking-[-.02em] text-[#003756]">Gallery not found</h1>
+          <p className={`mb-5 text-[15px] leading-[1.55] ${SOFT}`}>This gallery does not exist or has expired.</p>
+          <a
+            href="mailto:hello@getshortcut.co"
+            className="inline-flex items-center gap-2 text-[14px] font-bold text-[#003756]"
+          >
+            <Mail className="h-4 w-4" />
+            hello@getshortcut.co
+          </a>
         </div>
       </div>
     );
@@ -242,138 +281,104 @@ const EmployeeGallery: React.FC = () => {
 
   const isSelectionMade = gallery.status === 'selection_made' || gallery.status === 'retouching' || gallery.status === 'completed';
   const hasFinalPhoto = photos.some(photo => photo.is_final);
+  const firstName = gallery.employee_name?.split(' ')[0] || gallery.employee_name;
+
+  const deadlineLabel = eventData?.selection_deadline ? (() => {
+    const dateStr = eventData.selection_deadline.split('T')[0];
+    const [year, month, day] = dateStr.split('-');
+    const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return localDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  })() : null;
+
+  const statusPill = hasFinalPhoto ? (
+    <span className="flex-none rounded-full bg-[#003756] px-4 py-2 text-[12px] font-extrabold text-[#9EFAFF]">Final photo ready</span>
+  ) : isSelectionMade ? (
+    <span className="flex-none rounded-full bg-[#9EFAFF] px-4 py-2 text-[12px] font-extrabold text-[#003756]">Selection confirmed</span>
+  ) : (
+    <span className="flex-none rounded-full bg-[#FEDC64] px-4 py-2 text-[12px] font-extrabold text-[#003756]">Pick your photo</span>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50" onContextMenu={(e) => e.preventDefault()}>
-      {/* Client Logo Header */}
-      {eventData?.client_logo_url && (
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex justify-center">
-              <img 
-                src={eventData.client_logo_url} 
-                alt="Client Logo" 
-                className="h-12 w-auto object-contain"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+    <div className={`min-h-screen bg-white font-sans leading-[1.55] ${INK}`} onContextMenu={(e) => e.preventDefault()}>
+      <GalleryNav logoUrl={eventData?.client_logo_url} name={eventData?.event_name} right={statusPill} />
 
-      {/* Main Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-1">Your Headshot Gallery</h1>
-              <p className="text-lg text-gray-600">Welcome back, {gallery.employee_name}</p>
-              {eventData?.event_name && (
-                <p className="text-sm text-gray-500">{eventData.event_name}</p>
-              )}
-              {eventData?.selection_deadline && (
-                <p className="text-sm text-amber-600 font-medium">
-                  Selection deadline: {(() => {
-                    // Parse the date as local time to avoid timezone issues
-                    const dateStr = eventData.selection_deadline.split('T')[0]; // Get just the date part
-                    const [year, month, day] = dateStr.split('-');
-                    const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                    return localDate.toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    });
-                  })()}
-                </p>
-              )}
-            </div>
-            
-            {/* Status Badge */}
-            <div className="flex-shrink-0">
-              {hasFinalPhoto ? (
-                <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-full text-sm font-medium border border-purple-200">
-                  <div className="flex items-center space-x-2">
-                    <Check className="w-4 h-4" />
-                    <span>Final Photo Ready</span>
-                  </div>
-                </div>
-              ) : isSelectionMade ? (
-                <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium border border-blue-200">
-                  <div className="flex items-center space-x-2">
-                    <Check className="w-4 h-4" />
-                    <span>Selection Confirmed</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm font-medium border border-amber-200">
-                  <div className="flex items-center space-x-2">
-                    <Camera className="w-4 h-4" />
-                    <span>Awaiting Selection</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="mx-auto max-w-[1020px] px-5 pb-16 md:px-7">
+        {/* Page head */}
+        <div className="pb-8 pt-10 md:pt-12">
+          <p className="mb-3 flex items-center gap-[9px] text-[12px] font-bold uppercase tracking-[.09em] text-[#45596A]">
+            <span className="h-[7px] w-[7px] flex-none rounded-full bg-[#FF5050]" />
+            {eventData?.event_name || 'Your headshot gallery'}
+          </p>
+          <h1 className="text-[clamp(28px,4vw,40px)] font-extrabold leading-[1.06] tracking-[-.03em] text-[#003756]">
+            {hasFinalPhoto ? 'Your headshot is ready.' : isSelectionMade ? `Nice pick, ${firstName}.` : 'Choose your headshot.'}
+          </h1>
+          <p className={`mt-3 max-w-[52ch] text-[16px] leading-[1.5] ${SOFT}`}>
+            {hasFinalPhoto
+              ? 'Your retouched photo is below. Download it and put it everywhere.'
+              : isSelectionMade
+              ? 'Your photo is with our retouchers. We will email you when the final is ready.'
+              : `Welcome back, ${firstName}. Pick the photo we should retouch, and we will take it from there.`}
+          </p>
+          {deadlineLabel && !isSelectionMade && !hasFinalPhoto && (
+            <p className="mt-4 inline-flex rounded-full border border-[#E2E9E8] px-3.5 py-[7px] text-[11.5px] font-extrabold uppercase tracking-[.08em] text-[#45596A]">
+              Selection deadline: {deadlineLabel}
+            </p>
+          )}
         </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Status Messages */}
+        {/* Status messages */}
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <Check className="w-5 h-5 text-green-600 mr-3" />
-              <p className="text-green-800">{success}</p>
-            </div>
+          <div className="mb-6 flex items-center gap-3 rounded-[14px] bg-[#9EFAFF] px-5 py-4">
+            <Check className="h-5 w-5 flex-none text-[#003756]" />
+            <p className="text-[14.5px] font-semibold text-[#003756]">{success}</p>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
-              <p className="text-red-800">{error}</p>
-            </div>
+          <div className="mb-6 flex items-center gap-3 rounded-[14px] border-2 border-[#FF5050] bg-white px-5 py-4">
+            <AlertCircle className="h-5 w-5 flex-none text-[#FF5050]" />
+            <p className="text-[14.5px] font-semibold text-[#003756]">{error}</p>
           </div>
         )}
 
-        {/* Gallery Status */}
+        {/* Contextual status card */}
         <div className="mb-8">
           {isSelectionMade && !hasFinalPhoto && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Selection Confirmed</h3>
-              <p className="text-blue-800 mb-3">
-                Thank you for selecting your photo! We're currently retouching it and will notify you when it's ready for download.
+            <div className={`rounded-[18px] bg-[#F1F6F5] p-6 ${SHADOW}`}>
+              <h3 className="mb-1 text-[17px] font-extrabold text-[#003756]">Selection confirmed.</h3>
+              <p className={`text-[14.5px] leading-[1.55] ${SOFT}`}>
+                Thanks for choosing. Retouching is underway, and we will email you the moment your final photo is ready to download.
               </p>
               {!canChangeSelection && (
                 <button
                   onClick={() => setCanChangeSelection(true)}
-                  className="text-blue-600 hover:text-blue-800 underline text-sm"
+                  className="mt-3 rounded-full border-[1.5px] border-[#003756] px-4 py-1.5 text-[12.5px] font-bold text-[#003756] transition-colors hover:bg-[#003756] hover:text-white"
                 >
-                  Change Selection
+                  Change my selection
                 </button>
               )}
             </div>
           )}
 
           {hasFinalPhoto && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h3 className="font-semibold text-green-900 mb-2">Your Final Photo is Ready!</h3>
-              <p className="text-green-800">
-                Your retouched photo is ready for download. Click the download button below to get your final headshot.
+            <div className={`rounded-[18px] bg-[#003756] p-6 ${SHADOW}`}>
+              <h3 className="mb-1 text-[17px] font-extrabold text-[#9EFAFF]">Your final photo is ready.</h3>
+              <p className="text-[14.5px] leading-[1.55] text-white/85">
+                Retouching is done. Download your headshot below.
               </p>
             </div>
           )}
 
           {!isSelectionMade && !hasFinalPhoto && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <h3 className="font-semibold text-amber-900 mb-2">Select Your Photo for Retouching</h3>
-              <p className="text-amber-800">
-                Review your photos below and choose the one you'd like us to enhance. We'll apply our professional retouching process to create your perfect headshot.
+            <div className={`rounded-[18px] bg-[#F1F6F5] p-6 ${SHADOW}`}>
+              <h3 className="mb-1 text-[17px] font-extrabold text-[#003756]">Tap a photo to select it.</h3>
+              <p className={`text-[14.5px] leading-[1.55] ${SOFT}`}>
+                Choose the one you want us to retouch, then confirm. Double tap any photo to see it full size.
               </p>
               {isDeadlinePassed && (
-                <div className="mt-3 p-3 bg-red-100 border border-red-300 rounded-lg">
-                  <p className="text-red-800 font-medium">
-                    ⚠️ The selection deadline has passed. Please contact support if you need to make a selection.
+                <div className="mt-3 rounded-[12px] border-2 border-[#FF5050] bg-white px-4 py-3">
+                  <p className="text-[13.5px] font-semibold text-[#003756]">
+                    The selection deadline has passed. Email us at hello@getshortcut.co and we will see what we can do.
                   </p>
                 </div>
               )}
@@ -381,69 +386,53 @@ const EmployeeGallery: React.FC = () => {
           )}
         </div>
 
-        {/* Photos Grid */}
+        {/* Photos */}
         {photos.length > 0 ? (
-          <div className="space-y-8">
-            {/* Final Photo Section */}
+          <div className="space-y-10">
+            {/* Final photo */}
             {hasFinalPhoto && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-900">Your Final Photo</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <h2 className="mb-4 text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">Your final photo</h2>
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
                   {photos.filter(photo => photo.is_final).map((photo) => (
                     <div
                       key={photo.id}
-                      className="relative group bg-white rounded-lg shadow-lg border-2 border-purple-500 ring-2 ring-purple-200 transition-all duration-200"
+                      className={`group relative overflow-hidden rounded-[18px] border-[3px] border-[#003756] bg-white ${SHADOW}`}
                     >
-                      {/* Photo */}
-                      <div className="aspect-square overflow-hidden rounded-t-lg">
+                      <div className="relative aspect-square overflow-hidden">
                         <img
                           src={photo.photo_url}
-                          alt={photo.photo_name || 'Final headshot photo'}
-                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200 select-none"
+                          alt={photo.photo_name || 'Final headshot'}
+                          className="h-full w-full select-none object-cover transition-transform duration-200 hover:scale-105"
                           onDoubleClick={() => handlePhotoDoubleClick(photo)}
                           onContextMenu={(e) => e.preventDefault()}
                           onDragStart={(e) => e.preventDefault()}
                           draggable={false}
                         />
-                        {/* Expand button */}
+                        <span className="absolute left-3 top-3 rounded-full bg-[#9EFAFF] px-3 py-1.5 text-[10.5px] font-extrabold uppercase tracking-[.07em] text-[#003756]">
+                          Final
+                        </span>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePhotoExpand(photo);
-                          }}
-                          className="absolute top-2 left-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                          title="Expand photo"
+                          onClick={(e) => { e.stopPropagation(); handlePhotoExpand(photo); }}
+                          className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/[.94] text-[#003756] opacity-0 shadow-[0_2px_10px_rgba(3,34,50,.22)] transition-opacity duration-200 group-hover:opacity-100"
+                          title="View full size"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                           </svg>
                         </button>
                       </div>
-
-                      {/* Final photo indicator */}
-                      <div className="absolute top-2 right-2 bg-purple-600 text-white rounded-full p-1">
-                        <Check className="w-4 h-4" />
-                      </div>
-
-                      {/* Photo info */}
-                      <div className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {photo.photo_name || 'Final Headshot'}
-                            </p>
-                            <p className="text-xs text-purple-600 font-medium">Final Retouched Photo</p>
-                          </div>
-                          
-                          {/* Download button for final photos */}
-                          <button
-                            onClick={() => handleDownload(photo.photo_url, photo.photo_name || 'final-headshot.jpg')}
-                            className="flex items-center text-purple-600 hover:text-purple-800 transition-colors"
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            <span className="text-sm">Download</span>
-                          </button>
-                        </div>
+                      <div className="flex items-center justify-between px-4 py-3.5">
+                        <p className="text-[13.5px] font-bold text-[#003756]">
+                          {photo.photo_name || 'Final headshot'}
+                        </p>
+                        <button
+                          onClick={() => handleDownload(photo.photo_url, photo.photo_name || 'final-headshot.jpg')}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-[#FF5050] px-4 py-2 text-[12.5px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.03]"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -451,106 +440,79 @@ const EmployeeGallery: React.FC = () => {
               </div>
             )}
 
-            {/* Selection Photos Section */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {hasFinalPhoto ? 'Your Original Photos' : 'Select Your Photo'}
+            {/* Selection photos */}
+            <div>
+              <h2 className="mb-4 text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">
+                {hasFinalPhoto ? 'Your original photos' : 'Your photos'}
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {photos.filter(photo => !photo.is_final).map((photo) => (
-                    <div
-                      key={photo.id}
-                      className={`relative group bg-white rounded-lg shadow-sm border-2 transition-all duration-200 ${
-                        selectedPhoto === photo.id
-                          ? canChangeSelection 
-                            ? 'border-blue-500 ring-2 ring-blue-200' 
-                            : hasFinalPhoto
-                            ? 'border-purple-500 ring-2 ring-purple-200'
-                            : 'border-green-500 ring-2 ring-green-200'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {/* Photo */}
-                      <div className="aspect-square overflow-hidden rounded-t-lg">
-                        <img
-                          src={photo.photo_url}
-                          alt={photo.photo_name || 'Headshot photo'}
-                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200 select-none"
-                          onClick={() => handlePhotoSelect(photo.id)}
-                          onDoubleClick={() => handlePhotoDoubleClick(photo)}
-                          onContextMenu={(e) => e.preventDefault()}
-                          onDragStart={(e) => e.preventDefault()}
-                          draggable={false}
-                        />
-                        {/* Expand button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePhotoExpand(photo);
-                          }}
-                          className="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                          title="Expand photo"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      {/* Overlay for selection */}
+                  <div
+                    key={photo.id}
+                    className={`group relative overflow-hidden rounded-[18px] bg-white transition-all duration-200 ${SHADOW} ${
+                      selectedPhoto === photo.id
+                        ? 'border-[3px] border-[#FF5050]'
+                        : `border ${LINE} hover:border-[#003756]`
+                    }`}
+                  >
+                    <div className="relative aspect-square overflow-hidden">
+                      <img
+                        src={photo.photo_url}
+                        alt={photo.photo_name || 'Headshot'}
+                        className="h-full w-full cursor-pointer select-none object-cover transition-transform duration-200 hover:scale-105"
+                        onClick={() => handlePhotoSelect(photo.id)}
+                        onDoubleClick={() => handlePhotoDoubleClick(photo)}
+                        onContextMenu={(e) => e.preventDefault()}
+                        onDragStart={(e) => e.preventDefault()}
+                        draggable={false}
+                      />
                       {selectedPhoto === photo.id && (
-                        <div className={`absolute inset-0 flex items-center justify-center ${
-                          canChangeSelection ? 'bg-blue-500 bg-opacity-20' : 
-                          hasFinalPhoto ? 'bg-purple-500 bg-opacity-20' : 'bg-green-500 bg-opacity-20'
-                        }`}>
-                          <div className={`text-white rounded-full p-2 ${
-                            canChangeSelection ? 'bg-blue-600' : 
-                            hasFinalPhoto ? 'bg-purple-600' : 'bg-green-600'
-                          }`}>
-                            <Check className="w-6 h-6" />
-                          </div>
-                        </div>
+                        <span className="pointer-events-none absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-[#FF5050] text-white shadow-[0_2px_10px_rgba(3,34,50,.3)]">
+                          <Check className="h-5 w-5" />
+                        </span>
                       )}
-
-                      {/* Selected indicator for final photo context */}
-                      {hasFinalPhoto && selectedPhoto === photo.id && (
-                        <div className="absolute top-2 left-2 bg-purple-600 text-white rounded-full px-2 py-1 text-xs font-medium">
-                          Selected for Retouching
-                        </div>
-                      )}
-
-                      {/* Photo info */}
-                      <div className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {photo.photo_name || 'Headshot'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handlePhotoExpand(photo); }}
+                        className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/[.94] text-[#003756] opacity-0 shadow-[0_2px_10px_rgba(3,34,50,.22)] transition-opacity duration-200 group-hover:opacity-100"
+                        title="View full size"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                      </button>
                     </div>
-                  ))}
-                </div>
+                    <div className="px-4 py-3">
+                      <p className="text-[13.5px] font-bold text-[#003756]">
+                        {photo.photo_name || 'Headshot'}
+                      </p>
+                      {selectedPhoto === photo.id && (
+                        <p className="text-[11.5px] font-bold uppercase tracking-[.06em] text-[#FF5050]">
+                          {canChangeSelection ? 'Selected' : 'Selected for retouching'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
+            </div>
 
-            {/* Submit button */}
+            {/* Confirm */}
             {canChangeSelection && !hasFinalPhoto && selectedPhoto && !isDeadlinePassed && (
-              <div className="flex justify-center pt-6">
+              <div className="flex justify-center pt-2">
                 <button
                   onClick={handleSubmitSelection}
                   disabled={isSubmitting}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#FF5050] px-8 py-3.5 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Submitting...
+                      <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
+                      Confirming&hellip;
                     </>
                   ) : (
                     <>
-                      <Check className="w-4 h-4 mr-2" />
-                      Confirm Selection
+                      <Check className="h-4 w-4" />
+                      Confirm my selection
                     </>
                   )}
                 </button>
@@ -558,146 +520,110 @@ const EmployeeGallery: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Photos Available</h3>
-            <p className="text-gray-600">
-              Your photos haven't been uploaded yet. Please contact support if you believe this is an error.
+          <div className={`rounded-[18px] bg-[#F1F6F5] px-6 py-14 text-center ${SHADOW}`}>
+            <Camera className="mx-auto mb-4 h-12 w-12 text-[#45596A]" />
+            <h3 className="mb-1 text-[18px] font-extrabold text-[#003756]">No photos yet</h3>
+            <p className={`mx-auto max-w-[40ch] text-[14.5px] ${SOFT}`}>
+              Your photos have not been uploaded yet. If that seems wrong, email us and we will check.
             </p>
           </div>
         )}
 
-        {/* Retouching Process Explanation */}
-        <div className="mt-12 mb-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-4">Professional Retouching Process</h3>
-          <p className="text-blue-800 mb-4">
-            Our professional retouching team will enhance your selected photo with subtle, natural improvements including:
-          </p>
-          <ul className="text-blue-800 space-y-2 mb-4">
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-2">•</span>
-              <span>Softening fine lines and wrinkles while maintaining your natural appearance</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-2">•</span>
-              <span>Refining hairline and flyaway hairs for a polished look</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-2">•</span>
-              <span>Removing temporary blemishes and skin imperfections</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-2">•</span>
-              <span>Eliminating glare and shine for professional lighting</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-2">•</span>
-              <span>Smoothing fabric textures and removing distracting elements</span>
-            </li>
+        {/* Retouching explainer */}
+        <div className={`mt-12 rounded-[18px] bg-[#003756] p-7 md:p-8 ${SHADOW}`}>
+          <p className="mb-3 text-[11px] font-bold uppercase tracking-[.1em] text-[#9EFAFF]">What retouching includes</p>
+          <h3 className="mb-4 text-[21px] font-extrabold tracking-[-.02em] text-white">Subtle, natural, still you.</h3>
+          <ul className="grid gap-2.5 md:grid-cols-2">
+            {[
+              'Softening fine lines while keeping your natural look',
+              'Tidying flyaways and refining the hairline',
+              'Removing temporary blemishes',
+              'Evening out glare and shine',
+              'Smoothing fabric and clearing distractions',
+            ].map(item => (
+              <li key={item} className="flex gap-2.5 text-[14px] leading-[1.5] text-white/85">
+                <span className="mt-[7px] h-1.5 w-1.5 flex-none rounded-full bg-[#9EFAFF]" />
+                {item}
+              </li>
+            ))}
           </ul>
-          <p className="text-blue-800 font-medium">
-            The final result will be a clean, professional headshot that represents you at your best while maintaining your authentic look.
-          </p>
         </div>
 
-        {/* Notes Section */}
-        <div className="mb-8 bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Notes & Feedback</h3>
-          <p className="text-gray-600 mb-4">
-            Add any personal notes, questions, or specific feedback about your photos. Our team will review these notes during the retouching process.
+        {/* Notes */}
+        <div className={`mt-6 rounded-[18px] border ${LINE} bg-white p-7 ${SHADOW}`}>
+          <h3 className="mb-1 text-[18px] font-extrabold tracking-[-.015em] text-[#003756]">Notes for our retouchers</h3>
+          <p className={`mb-4 text-[14.5px] ${SOFT}`}>
+            Anything you want us to know about your photo. We read every note.
           </p>
-          <div className="space-y-4">
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any personal notes, questions, or feedback about your photos..."
-              className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-              maxLength={500}
-            />
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">
-                {notes.length}/500 characters
-              </span>
-              <button
-                onClick={handleSaveNotes}
-                disabled={isSavingNotes}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-              >
-                {isSavingNotes ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Saving...
-                  </>
-                ) : (
-                  'Save Notes'
-                )}
-              </button>
-            </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Glasses glare, a stray hair, a preference. Tell us here."
+            className="h-32 w-full resize-none rounded-[14px] border-2 border-[#E2E9E8] px-4 py-3 text-[14.5px] focus:border-[#003756] focus:outline-none"
+            maxLength={500}
+          />
+          <div className="mt-3 flex items-center justify-between">
+            <span className={`text-[12.5px] ${SOFT}`}>{notes.length}/500</span>
+            <button
+              onClick={handleSaveNotes}
+              disabled={isSavingNotes}
+              className="inline-flex items-center gap-2 rounded-full bg-[#003756] px-5 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-[#032232] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingNotes ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-b-2 border-white" />
+                  Saving&hellip;
+                </>
+              ) : (
+                'Save notes'
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Contact Information */}
-        <div className="mt-16 pt-8 border-t border-gray-200">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-3">
-                <span className="text-gray-600 font-medium">Powered by</span>
-                <img 
-                  src="/shortcut-logo-blue.svg" 
-                  alt="Shortcut" 
-                  className="h-6 w-auto ml-1"
-                />
-              </div>
-              <p className="text-gray-600 mb-2">
-                Need help or have questions about your headshots?
-              </p>
-              <a 
-                href="mailto:hello@getshortcut.co" 
-                className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                hello@getshortcut.co
-              </a>
-            </div>
+        {/* Footer */}
+        <div className={`mt-10 border-t ${LINE} pt-8 text-center`}>
+          <div className="mb-2 flex items-center justify-center gap-[7px] text-[12px] font-bold text-[rgba(3,34,50,.45)]">
+            <span>Run by</span>
+            <img src="/conference/shortcut-logo-rgb.svg" alt="Shortcut" className="h-[18px] w-auto" />
           </div>
+          <p className={`text-[14px] ${SOFT}`}>
+            Questions about your headshots?{' '}
+            <a href="mailto:hello@getshortcut.co" className="font-bold text-[#003756]">
+              hello@getshortcut.co
+            </a>
+          </p>
         </div>
       </div>
 
-      {/* Photo Expansion Modal */}
+      {/* Lightbox */}
       {expandedPhoto && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,34,50,.85)] p-4"
           onClick={handleModalClick}
         >
-          <div className="relative max-w-4xl max-h-full">
-            {/* Close button */}
+          <div className="relative max-h-full max-w-4xl">
             <button
               onClick={handleCloseExpanded}
-              className="absolute top-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2 transition-all duration-200 z-10"
-              title="Close (or press Escape)"
+              className="absolute right-4 top-4 z-10 grid h-[38px] w-[38px] place-items-center rounded-full bg-white text-[20px] leading-none text-[#003756] shadow-[0_2px_10px_rgba(3,34,50,.3)]"
+              title="Close"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              ×
             </button>
-            
-            {/* Expanded photo */}
             <img
               src={expandedPhoto.photo_url}
-              alt={expandedPhoto.photo_name || 'Expanded headshot photo'}
-              className="max-w-full max-h-full object-contain rounded-lg select-none"
+              alt={expandedPhoto.photo_name || 'Headshot'}
+              className="max-h-full max-w-full select-none rounded-[18px] object-contain"
               onContextMenu={(e) => e.preventDefault()}
               onDragStart={(e) => e.preventDefault()}
               draggable={false}
             />
-            
-            {/* Photo info */}
-            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 rounded-b-lg">
-              <p className="text-lg font-medium">
-                {expandedPhoto.photo_name || 'Headshot Photo'}
+            <div className="absolute bottom-0 left-0 right-0 rounded-b-[18px] bg-[rgba(3,34,50,.75)] p-4">
+              <p className="text-[15px] font-bold text-white">
+                {expandedPhoto.photo_name || 'Headshot'}
               </p>
               {expandedPhoto.is_final && (
-                <p className="text-sm text-purple-300">Final Retouched Photo</p>
+                <p className="text-[12px] font-bold uppercase tracking-[.07em] text-[#9EFAFF]">Final retouched photo</p>
               )}
             </div>
           </div>
