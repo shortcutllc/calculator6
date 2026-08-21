@@ -22,7 +22,7 @@ const YEARS = [
   {
     year: '2021', days: 4, services: ['Hair'] as ServiceKey[], pros: ['Eddie Montalvo', 'Sally Souffrant'],
     slots: 64, filled: null as number | null, fillPct: null as number | null,
-    payment: null as number | null, barberPay: 1800, venue: 'Terra Ballroom',
+    payment: 3840, paymentEstimated: true, barberPay: 1800, venue: 'Terra Ballroom',
     contact: 'Katie LaPerch',
   },
   {
@@ -45,7 +45,7 @@ const YEARS = [
   },
   {
     year: '2025', days: 4, services: ['Hair', 'Massage'] as ServiceKey[], pros: ['Cesar Brickell', 'Eddie Montalvo', 'Julia Gonzalez Angulo', 'Meryhec Lopez', 'Pedro Rosario'],
-    slots: 120, filled: 103, fillPct: 85.8,
+    slots: 120, filled: 108, fillPct: 90.0,
     payment: 6250, barberPay: 2625, venue: 'Terra Gallery + Garnet I & II',
     contact: 'Megan Harding & Ariel Fromm',
   },
@@ -82,11 +82,11 @@ const BOOKINGS_BY_YEAR: Record<string, DayBooking[]> = {
   ],
   '2025': [
     { day: 'Mon · Nov 3', svc: 'Massage', booked: 27, total: 30, venue: 'Garnet I + II' },
-    { day: 'Mon · Nov 3', svc: 'Hair', booked: 15, total: 20, venue: 'Terra Gallery' },
+    { day: 'Mon · Nov 3', svc: 'Hair', booked: 18, total: 20, venue: 'Terra Gallery' },
     { day: 'Tue · Nov 4', svc: 'Hair', booked: 9, total: 10, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 5', svc: 'Hair', booked: 17, total: 20, venue: 'Terra Gallery' },
     { day: 'Wed · Nov 5', svc: 'Massage', booked: 29, total: 30, venue: 'Garnet I + II' },
-    { day: 'Thu · Nov 6', svc: 'Hair', booked: 6, total: 10, venue: 'Terra Gallery' },
+    { day: 'Thu · Nov 6', svc: 'Hair', booked: 8, total: 10, venue: 'Terra Gallery' },
   ],
 };
 
@@ -183,15 +183,11 @@ function YearlyBars() {
           $ paid to Shortcut,
           <span className="text-shortcut-teal-blue"> by year.</span>
         </h2>
-        <p className="mt-2 text-[14px] md:text-[15px] text-text-dark/70 font-medium leading-relaxed max-w-[640px]">
-          2021's bar is pro payout, not billing — Bisnow's 2021 invoice wasn't recorded.
-        </p>
       </div>
       <div className="space-y-3">
         {YEARS.map((y) => {
-          const hasPayment = y.payment !== null;
-          const pct = hasPayment ? ((y.payment as number) / maxPaid) * 100 : ((y.barberPay / maxPaid) * 100);
-          const barColor = !hasPayment ? 'bg-shortcut-blue/15' : y.year === '2025' ? 'bg-accent-yellow' : 'bg-shortcut-teal';
+          const pct = (y.payment / maxPaid) * 100;
+          const barColor = y.year === '2025' ? 'bg-accent-yellow' : 'bg-shortcut-teal';
           return (
             <div key={y.year} className="grid grid-cols-[52px_1fr_150px] md:grid-cols-[64px_1fr_190px] gap-3 md:gap-4 items-center">
               <div className="text-[13px] md:text-[14px] font-bold text-shortcut-blue tabular-nums">{y.year}</div>
@@ -201,7 +197,7 @@ function YearlyBars() {
                   style={{ width: `${pct}%` }}
                 >
                   <span className="text-[11px] md:text-[12px] font-extrabold tabular-nums text-shortcut-blue">
-                    {hasPayment ? `$${(y.payment as number).toLocaleString()}` : `$${y.barberPay.toLocaleString()} (payout only)`}
+                    ${y.payment.toLocaleString()}{y.paymentEstimated ? ' (est.)' : ''}
                   </span>
                 </div>
               </div>
@@ -212,7 +208,7 @@ function YearlyBars() {
           );
         })}
       </div>
-      <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium">* Yellow = peak year, in billing and capacity.</p>
+      <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium">* Yellow = peak year, in billing and capacity. 2021 is estimated from the 2022–2024 per-slot Hair rate.</p>
     </div>
   );
 }
@@ -243,7 +239,7 @@ function YearlyTable() {
                 {y.fillPct !== null ? `${y.fillPct}%` : <span className="text-shortcut-blue/30">n/a</span>}
               </td>
               <td className="py-3.5 px-3 text-right text-[14px] font-extrabold tabular-nums text-shortcut-blue">
-                {y.payment !== null ? `$${y.payment.toLocaleString()}` : <span className="text-shortcut-blue/40 font-semibold">not recorded</span>}
+                ${y.payment.toLocaleString()}{y.paymentEstimated ? '*' : ''}
               </td>
             </tr>
           ))}
@@ -251,13 +247,13 @@ function YearlyTable() {
             <td className="py-4 px-3 text-[13px] font-extrabold text-white rounded-l-xl" colSpan={2}>5-year total</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">8 unique</td>
             <td className="py-4 px-3 text-right text-[14px] font-extrabold text-white tabular-nums">494</td>
-            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">91.2%*</td>
-            <td className="py-4 px-3 text-right text-[15px] font-extrabold text-shortcut-teal tabular-nums rounded-r-xl">$23,050*</td>
+            <td className="py-4 px-3 text-right text-[14px] font-extrabold text-shortcut-teal tabular-nums">92.3%†</td>
+            <td className="py-4 px-3 text-right text-[15px] font-extrabold text-shortcut-teal tabular-nums rounded-r-xl">$26,890*</td>
           </tr>
         </tbody>
       </table>
       <p className="mt-5 text-[12px] text-shortcut-blue/50 font-medium leading-relaxed">
-        * Excludes 2021 — no day-level booking or billing data on file that year.
+        * 2021 is estimated from the 2022–2024 per-slot Hair rate. † Fill rate excludes 2021 — no day-level booking detail on file that year.
       </p>
     </div>
   );
@@ -533,8 +529,8 @@ export default function BisnowReport() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
               <HeroStat value="5" label="Years Running" sublabel="since Nov 2021" color="navy" />
               <HeroStat value="28" label="Events Delivered" sublabel="across 20 event-days" color="teal" />
-              <HeroStat value="91%" label="of timeslots filled" sublabel="2022–2025" color="yellow" />
-              <HeroStat value="$23,050" label="Paid to Shortcut" sublabel="2022–2025 · 2021 not recorded" color="pink" />
+              <HeroStat value="92%" label="of timeslots filled" sublabel="2022–2025" color="yellow" />
+              <HeroStat value="$26,890" label="Paid to Shortcut" sublabel="since 2021" color="pink" />
             </div>
           </Section>
 
@@ -615,7 +611,7 @@ export default function BisnowReport() {
           <Section id="days">
             <div data-toc id="days" />
             <SectionLabel>Section II · Booking Stats</SectionLabel>
-            <SectionHeading subtitle="Booked vs. offered, day by day.">
+            <SectionHeading subtitle="Booked vs. offered, day by day — pre-booked sign-ups only, doesn't include walk-ups.">
               Where the bookings
               <span className="block text-shortcut-teal-blue">actually landed.</span>
             </SectionHeading>
