@@ -23,9 +23,6 @@ const A = '/wellness-funds';
 // plus the DraftKings/BCG/Wix event tiles. All tagged "Service @ Company".
 const CENCORA_PHOTO = 'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v1/object/public/proposal-gallery/massage/1778730425338-dhy6o2.jpg';
 const MINDFULNESS_VIDEO = 'https://cdn.sanity.io/files/7qf1r87p/production/e94281566161c5674ab843b72e54b5ea39364609.mp4';
-// Caren's Google Calendar appointment schedule (SENDER_TO_CALENDAR in
-// workhumanOutreachTemplates) — she owns the SterlingRisk relationship.
-const CAREN_CALENDAR = 'https://calendar.google.com/calendar/appointments/schedules/AcZssZ1P-Oh9wQEOHZbwvSZTLfzFglXTo9AaIwmrQTYHIqwIlFlIch-VqSneJYcaJqWifF7gDuZsA6xr';
 
 // Fund-eligible services ONLY (carrier_wellness_funds.md): massage, stretch,
 // mind-body and group fitness — the carriers' "group exercise / stress
@@ -182,7 +179,7 @@ const STERLING_PACKAGES = [
   },
   {
     id: 'mindful-reset', name: 'The Mindful Reset', bar: 'navy',
-    image: `${C}/gallery/somatic-event.webp`,
+    image: '/conference/services/mindfulness.png',
     meta: 'Facilitated sessions · 30–60 min',
     desc: 'Guided meditation and practical tools for stress and focus, dropped into the workday right where the team needs a breath.',
     bullets: ['Ten people or the whole floor, no cap', 'Morning drop-ins, midday resets, end-of-week wind-downs', 'In a conference room or over Zoom for the people at home'],
@@ -457,7 +454,12 @@ const CSS = `
 .wfop .stat-mini > div{ flex:1; background:rgba(255,255,255,.6); border-radius:12px; padding:10px 12px; }
 .wfop .stat-mini b{ font-size:20px; font-weight:800; color:#003756; display:block; }
 .wfop .stat-mini span{ font-size:11px; font-weight:600; color:#175071; }
-.wfop .cpk-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:24px; }
+.wfop .pk-gh{ display:flex; align-items:center; gap:12px; margin:28px 0 0; }
+.wfop .pk-gh .gchip{ flex:none; border-radius:999px; padding:7px 14px; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.wfop .pk-gh .gchip.fund{ background:#9EFAFF; color:#003756; }
+.wfop .pk-gh .gchip.rate{ background:#FF5050; color:#fff; }
+.wfop .pk-gh p{ margin:0; font-size:14px; color:var(--ink-soft); }
+.wfop .cpk-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:14px; }
 .wfop .cpk{ position:relative; display:flex; flex-direction:column; overflow:hidden; border-radius:18px; border:1px solid var(--line); background:#fff; box-shadow:var(--shadow); }
 .wfop .cpk .ph{ height:164px; overflow:hidden; }
 .wfop .cpk .ph img{ width:100%; height:100%; object-fit:cover; transform:scale(1.1); display:block; }
@@ -630,7 +632,6 @@ export default function SterlingPartnerPage() {
               </span>
             </span>
           </div>
-          <a className="cta-btn" href={CAREN_CALENDAR} target="_blank" rel="noopener noreferrer">Book a call</a>
         </div>
       </nav>
 
@@ -685,7 +686,7 @@ export default function SterlingPartnerPage() {
 
         <RevSection>
           <p className="label">The funds</p>
-          <h2 className="stmt">Three carriers, three funds. <span className="dim">You know these. We deploy them.</span></h2>
+          <h2 className="stmt">Three carriers, three wellness funds. <span className="dim">We know how to put them to work.</span></h2>
           <div className="funds">
             <div className="fund"><img className="lg-cigna" src="/partners/carriers/cigna.svg" alt="Cigna" /></div>
             <div className="fund"><img className="lg-aetna" src="/partners/carriers/aetna.svg" alt="Aetna" /></div>
@@ -751,31 +752,33 @@ export default function SterlingPartnerPage() {
         <RevSection>
           <p className="label">Packages</p>
           <h2 className="stmt">Our most popular packages. <span className="dim">Pick one, or combine.</span></h2>
-          <div className="cpk-grid">
-            {STERLING_PACKAGES.map(pkg => (
-              <div key={pkg.id} className="cpk">
-                <span className={`chip ${FUND_ELIGIBLE_PKGS.has(pkg.id) ? 'fund' : 'rate'}`}>
-                  {FUND_ELIGIBLE_PKGS.has(pkg.id) ? 'Fund eligible' : 'Partner rate · 10% off'}
-                </span>
-                <div className="ph"><img src={pkg.image} alt="" /></div>
-                <div className={`nb ${pkg.bar}`}>{pkg.name}</div>
-                <div className="bd">
-                  <p className="pmeta">{pkg.meta}</p>
-                  <p className="pdesc">{pkg.desc}</p>
-                  <ul>
-                    {pkg.bullets.map(b => <li key={b}>{b}</li>)}
-                  </ul>
-                  <div className="prow">
-                    <div>
-                      <span className="pfrom">Starting at</span>
-                      <b className="pval">{pkg.price}</b>
+          {([
+            { key: 'fund', chip: 'Fund eligible', chipClass: 'fund', line: 'Paid through your client’s carrier wellness fund.', pkgs: STERLING_PACKAGES.filter(p => FUND_ELIGIBLE_PKGS.has(p.id)) },
+            { key: 'rate', chip: 'Partner rate · 10% off', chipClass: 'rate', line: 'Beauty and headshots, at the SterlingRisk partner rate.', pkgs: STERLING_PACKAGES.filter(p => !FUND_ELIGIBLE_PKGS.has(p.id)) },
+          ]).map(group => (
+            <React.Fragment key={group.key}>
+              <div className="pk-gh">
+                <span className={`gchip ${group.chipClass}`}>{group.chip}</span>
+                <p>{group.line}</p>
+              </div>
+              <div className="cpk-grid">
+                {group.pkgs.map(pkg => (
+                  <div key={pkg.id} className="cpk">
+                    <div className="ph"><img src={pkg.image} alt="" /></div>
+                    <div className={`nb ${pkg.bar}`}>{pkg.name}</div>
+                    <div className="bd">
+                      <p className="pmeta">{pkg.meta}</p>
+                      <p className="pdesc">{pkg.desc}</p>
+                      <ul>
+                        {pkg.bullets.map(b => <li key={b}>{b}</li>)}
+                      </ul>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <p className="note" style={{ marginTop: 16 }}>Every package includes <b>pros, gear, setup, self-serve booking, digital invites and onsite signage</b>. Pricing scales with headcount, hours and cities. Fund eligible packages can be paid through your client&rsquo;s carrier wellness fund. Everything else carries the 10% partner rate.</p>
+            </React.Fragment>
+          ))}
+          <p className="note" style={{ marginTop: 16 }}>Every package includes <b>pros, gear, setup, self-serve booking, digital invites and onsite signage</b>. Fund eligible packages can be paid through your client&rsquo;s carrier wellness fund. Everything else carries the 10% partner rate.</p>
         </RevSection>
 
         {modalSvc && (
@@ -834,6 +837,38 @@ export default function SterlingPartnerPage() {
             </div>
           </div>
         )}
+
+        <RevSection>
+          <p className="label">Partner benefits</p>
+          <h2 className="stmt">Why partner with Shortcut. <span className="dim">For you and your clients.</span></h2>
+          <div className="pkgs">
+            <div className="pkg">
+              <h3>Fund deployment, done.</h3>
+              <p>Pre-approval language, carrier-ready invoices, W-9, participation summaries. Your team never touches the paperwork, and neither does your client.</p>
+            </div>
+            <div className="pkg rec">
+              <span className="badge">Partner rate</span>
+              <h3>10% off the rest of the menu.</h3>
+              <p>Carrier funds do not cover beauty services or headshots. SterlingRisk clients get 10% off hair, nails, facials and headshots.</p>
+            </div>
+            <div className="pkg">
+              <h3>A renewal story.</h3>
+              <p>Value found inside a plan your client already pays for. A concrete win to bring to the negotiation, with the participation numbers to back it up.</p>
+            </div>
+            <div className="pkg">
+              <h3>The whole team, wherever they work.</h3>
+              <p>Mindfulness, sound baths, yoga and nutrition coaching run in person or over Zoom, so remote employees are covered too. One vendor across your book, nationwide.</p>
+            </div>
+            <div className="pkg">
+              <h3>CLE for your law firm clients.</h3>
+              <p>Pause, Breathe, Lead is a New York accredited 1.0 Law Practice Management CLE. We manage the accreditation, attendance tracking and credit reporting.</p>
+            </div>
+            <div className="pkg">
+              <h3>Programming built around each client.</h3>
+              <p>Self-funded, 100 plus lives, a brutal busy season. We shape the program to the client, not the other way around.</p>
+            </div>
+          </div>
+        </RevSection>
 
         <RevSection>
           <p className="label">What sets us apart</p>
@@ -932,38 +967,6 @@ export default function SterlingPartnerPage() {
         </RevSection>
 
         <RevSection>
-          <p className="label">Partner benefits</p>
-          <h2 className="stmt">Why partner with Shortcut. <span className="dim">For you and your clients.</span></h2>
-          <div className="pkgs">
-            <div className="pkg">
-              <h3>Fund deployment, done.</h3>
-              <p>Pre-approval language, carrier-ready invoices, W-9, participation summaries. Your team never touches the paperwork, and neither does your client.</p>
-            </div>
-            <div className="pkg rec">
-              <span className="badge">Partner rate</span>
-              <h3>10% off the rest of the menu.</h3>
-              <p>Carrier funds do not cover beauty services or headshots. SterlingRisk clients get 10% off hair, nails, facials and headshots.</p>
-            </div>
-            <div className="pkg">
-              <h3>A renewal story.</h3>
-              <p>Value found inside a plan your client already pays for. A concrete win to bring to the negotiation, with the participation numbers to back it up.</p>
-            </div>
-            <div className="pkg">
-              <h3>The whole team, wherever they work.</h3>
-              <p>Mindfulness, sound baths, yoga and nutrition coaching run in person or over Zoom, so remote employees are covered too. One vendor across your book, nationwide.</p>
-            </div>
-            <div className="pkg">
-              <h3>CLE for your law firm clients.</h3>
-              <p>Pause, Breathe, Lead is a New York accredited 1.0 Law Practice Management CLE. We manage the accreditation, attendance tracking and credit reporting.</p>
-            </div>
-            <div className="pkg">
-              <h3>Programming built around each client.</h3>
-              <p>Self-funded, 100 plus lives, a brutal busy season. We shape the program to the client, not the other way around.</p>
-            </div>
-          </div>
-        </RevSection>
-
-        <RevSection>
           <p className="label">What clients say</p>
           <h2 className="stmt">Booked once, kept forever. <span className="dim">BCG and DraftKings use us at every US office.</span></h2>
           <div className="quotes">
@@ -995,11 +998,10 @@ export default function SterlingPartnerPage() {
 
         <RevSection>
           <div className="cta-band">
-            <h2 className="cta-h">Pick two or three clients. We do the rest.</h2>
-            <p className="note">Start with a couple of clients on Cigna, Aetna, or Anthem whose plan year ends in December. Grab a few minutes with Caren and we&rsquo;ll map the first events together.</p>
+            <h2 className="cta-h">Let&rsquo;s deploy your clients&rsquo; unused funds before the end of 2026.</h2>
+            <p className="note">Most plan years reset in December, and whatever is left goes back to the carrier. Tell us which clients come to mind and we&rsquo;ll map the first events together.</p>
             <div className="cta">
-              <a className="primary" href={CAREN_CALENDAR} target="_blank" rel="noopener noreferrer">Grab 15 minutes with Caren</a>
-              <span className="alt">or email caren@getshortcut.co</span>
+              <a className="primary" href="mailto:caren@getshortcut.co">Email Caren</a>
             </div>
           </div>
         </RevSection>
