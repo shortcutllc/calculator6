@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Users, DollarSign, MapPin, Calendar, Scissors, Heart, Mail, Smartphone, Package, Award } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
-   Bisnow × Shortcut — The Escape, by the numbers
+   Bisnow × Shortcut — Escape + Ascent, by the numbers
    Five years at 1 Hotel South Beach (2021–2025)
    Shortcut design system — visual, card-based
    Data source: Shortcut Coordinator (Parse), pulled Aug 18 2026.
    All figures below are drawn directly from the 28 real (non-test,
-   non-cancelled) Bisnow Escape events on file.
+   non-cancelled) Bisnow Escape + Ascent events on file.
    ───────────────────────────────────────────── */
 
 const SERVICES = {
@@ -172,7 +172,7 @@ function HeroStat({ value, label, sublabel, color = 'navy' }: {
   );
 }
 
-// ── Year-over-year bars: $ paid to Shortcut ──
+// ── Year-over-year bars: event cost ──
 function YearlyBars() {
   const maxPaid = Math.max(...YEARS.map(y => y.payment || 0));
   return (
@@ -180,7 +180,7 @@ function YearlyBars() {
       <div className="mb-6 md:mb-7">
         <div className="text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40 mb-1">Year over year</div>
         <h2 className="text-[1.75rem] md:text-[2.25rem] font-extrabold text-shortcut-blue leading-tight">
-          $ paid to Shortcut,
+          Event cost,
           <span className="text-shortcut-teal-blue"> by year.</span>
         </h2>
       </div>
@@ -225,7 +225,7 @@ function YearlyTable() {
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Pros</th>
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Slots Offered</th>
             <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/40">Fill Rate</th>
-            <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue">Paid to Shortcut</th>
+            <th className="text-right py-3 px-3 text-[10px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue">Event Cost</th>
           </tr>
         </thead>
         <tbody>
@@ -362,7 +362,7 @@ export default function BisnowReport() {
                 className="h-5 w-auto"
               />
             </div>
-            <div className="text-[12px] text-shortcut-blue/50 font-medium">The Escape Report</div>
+            <div className="text-[12px] text-shortcut-blue/50 font-medium">Escape + Ascent Report</div>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -414,7 +414,7 @@ export default function BisnowReport() {
               className="h-4 w-auto"
             />
             <div className="hidden sm:block ml-1 md:ml-2 pl-3 md:pl-4 border-l border-shortcut-blue/[.12] text-[10px] font-semibold uppercase tracking-wider text-shortcut-blue/40">
-              The Escape Report
+              Escape + Ascent Report
             </div>
           </div>
           <div className="hidden md:block text-[11px] font-bold uppercase tracking-[.12em] text-shortcut-blue/40">2021 – 2025</div>
@@ -460,11 +460,11 @@ export default function BisnowReport() {
                   Five Years at 1 Hotel South Beach
                 </div>
                 <h1 className="text-[2.5rem] md:text-[4rem] lg:text-[4.5rem] font-extrabold text-shortcut-blue leading-[1.02] tracking-tight">
-                  The Bisnow Escape,
+                  Bisnow Escape + Ascent,
                   <span className="block text-shortcut-teal-blue">by the numbers.</span>
                 </h1>
                 <p className="text-[16px] md:text-[19px] text-text-dark/70 mt-5 font-medium leading-relaxed max-w-[680px]">
-                  Every grooming and massage appointment at the Bisnow Escape in Miami Beach since 2021 — one hair line grown into two service rooms.
+                  Every grooming and massage appointment at Bisnow Escape + Ascent in Miami Beach since 2021 — one hair line grown into two service rooms.
                 </p>
 
                 <div className="flex flex-wrap gap-3 mt-7">
@@ -495,13 +495,13 @@ export default function BisnowReport() {
               <div className="mb-7 md:mb-8">
                 <div className="text-[11px] font-extrabold uppercase tracking-[.15em] text-shortcut-blue/40 mb-2">What's in the number</div>
                 <h2 className="text-[1.75rem] md:text-[2.25rem] font-extrabold text-shortcut-blue leading-tight">
-                  What every Escape
+                  What every Escape + Ascent
                   <span className="block text-shortcut-teal-blue">includes.</span>
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 {[
-                  { Icon: Award, tint: 'bg-shortcut-teal/30', title: 'A returning crew', body: 'Eddie Montalvo has cut hair at every Escape since 2021.' },
+                  { Icon: Award, tint: 'bg-shortcut-teal/30', title: 'A returning crew', body: 'Eddie Montalvo has cut hair at every Escape + Ascent since 2021.' },
                   { Icon: Mail, tint: 'bg-accent-yellow/40', title: 'Light lift on your side', body: 'We run scheduling, communications, and day-of logistics — not your team.' },
                   { Icon: Smartphone, tint: 'bg-accent-pink/30', title: 'Technology built in', body: 'Attendees book with automated reminders and confirmations.' },
                   { Icon: Package, tint: 'bg-shortcut-coral/15', title: 'Two rooms, one team', body: 'Since 2025, Hair and Massage run at once in separate rooms.' },
@@ -530,7 +530,7 @@ export default function BisnowReport() {
               <HeroStat value="5" label="Years Running" sublabel="since Nov 2021" color="navy" />
               <HeroStat value="28" label="Events Delivered" sublabel="across 20 event-days" color="teal" />
               <HeroStat value="92%" label="of timeslots filled" sublabel="2022–2025" color="yellow" />
-              <HeroStat value="$26,890" label="Paid to Shortcut" sublabel="since 2021" color="pink" />
+              <HeroStat value="$26,890" label="Total Event Cost" sublabel="since 2021" color="pink" />
             </div>
           </Section>
 
@@ -581,7 +581,7 @@ export default function BisnowReport() {
                   <div className="text-[13px] font-bold text-shortcut-blue">2 pros · 4 days · 64 slots offered</div>
                 </div>
                 <p className="text-[13px] text-text-dark/70 font-medium leading-relaxed">
-                  A first attempt in April 2020 was cancelled before it ran, likely COVID — the Escape actually launched in November 2021.
+                  A first attempt in April 2020 was cancelled before it ran, likely COVID — Escape + Ascent actually launched in November 2021.
                 </p>
               </div>
               <div className="card-medium">
