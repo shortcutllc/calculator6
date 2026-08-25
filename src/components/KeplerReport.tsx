@@ -20,11 +20,11 @@ const CITIES = [
   },
   {
     city: 'Philadelphia', venue: 'Boys II Men & Wooder Ice', pros: ['Gianni Voltaire', 'Isaiah Graham-Mobley'],
-    slots: 24, filled: 13, fillPct: 54.2, payment: 1001,
+    slots: 24, filled: 19, fillPct: 79.2, payment: 1001,
   },
   {
     city: 'Chicago', venue: 'Resnik', pros: ['Aleena Husain'],
-    slots: 15, filled: 9, fillPct: 60.0, payment: 626,
+    slots: 15, filled: 12, fillPct: 80.0, payment: 626,
   },
 ];
 
@@ -440,7 +440,7 @@ export default function KeplerReport() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
               <HeroStat value="3" label="Cities Activated" sublabel="same day" color="navy" />
               <HeroStat value="6" label="Pros Deployed" sublabel="across 3 offices" color="teal" />
-              <HeroStat value="77%" label="of timeslots filled" sublabel="79 slots offered" color="yellow" />
+              <HeroStat value="89%" label="of timeslots filled" sublabel="79 slots offered" color="yellow" />
               <HeroStat value="$3,316" label="Total Event Cost" sublabel="Aug 20, 2026" color="pink" />
             </div>
           </Section>
