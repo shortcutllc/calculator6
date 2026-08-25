@@ -529,10 +529,10 @@ export default function KeplerReport() {
                 <div className="text-[12px] text-shortcut-blue/60 font-medium mt-1">Per-event detail and additional cuts available on request.</div>
               </div>
               <a
-                href="mailto:will@getshortcut.co"
+                href="mailto:jaimie@getshortcut.co"
                 className="inline-flex items-center gap-2 bg-shortcut-blue text-white px-5 py-2.5 rounded-full text-[13px] font-extrabold hover:bg-shortcut-blue/90 transition-colors w-fit"
               >
-                will@getshortcut.co
+                jaimie@getshortcut.co
               </a>
             </div>
           </Section>
