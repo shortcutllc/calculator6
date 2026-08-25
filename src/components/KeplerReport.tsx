@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Users, MapPin, Calendar, Heart, Mail, Smartphone, Package, Award } from 'lucide-react';
+import { Users, MapPin, Calendar, Heart, Mail, Smartphone, Package, Award, Eye, EyeOff } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    Kepler Group × Shortcut — by the numbers
@@ -235,6 +235,7 @@ export default function KeplerReport() {
   });
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [activeSection, setActiveSection] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -282,14 +283,25 @@ export default function KeplerReport() {
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(false); }}
-                placeholder="Enter password"
-                autoFocus
-                className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-shortcut-coral bg-red-50/30' : 'border-shortcut-blue/[.12]'} text-[15px] text-shortcut-blue font-medium placeholder:text-shortcut-blue/30 focus:outline-none focus:border-shortcut-blue/30 focus:ring-2 focus:ring-shortcut-teal/40 transition-colors`}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(false); }}
+                  placeholder="Enter password"
+                  autoFocus
+                  className={`w-full px-4 py-3 pr-11 rounded-xl border ${error ? 'border-shortcut-coral bg-red-50/30' : 'border-shortcut-blue/[.12]'} text-[15px] text-shortcut-blue font-medium placeholder:text-shortcut-blue/30 focus:outline-none focus:border-shortcut-blue/30 focus:ring-2 focus:ring-shortcut-teal/40 transition-colors`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-shortcut-blue/40 hover:text-shortcut-blue/70 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {error && <p className="mt-2 text-[13px] text-shortcut-coral font-medium">Incorrect password.</p>}
             </div>
             <button
