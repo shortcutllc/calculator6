@@ -65,6 +65,7 @@ const DraftKingsReport = lazy(() => import('./components/DraftKingsReport'));
 const DraftKingsLVReport = lazy(() => import('./components/DraftKingsLVReport'));
 const DraftKingsSpendReport = lazy(() => import('./components/DraftKingsSpendReport'));
 const BisnowReport = lazy(() => import('./components/BisnowReport'));
+const KeplerReport = lazy(() => import('./components/KeplerReport'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
@@ -1131,6 +1132,30 @@ function App() {
                     </div>
                   }>
                     <BisnowReport />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/kepler"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <KeplerReport />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/kepler-report"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <KeplerReport />
                   </Suspense>
                 }
               />
