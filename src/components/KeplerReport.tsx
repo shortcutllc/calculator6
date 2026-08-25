@@ -16,7 +16,7 @@ const SERVICE = { bg: '#9EFAFF', tint: '#E2FAFC', deep: '#015F6E', icon: Heart, 
 const CITIES = [
   {
     city: 'New York City', venue: 'Astro, Pegasus & Ursa', pros: ['Karen Singer', 'Calin Fernandez', 'Keiko Pratt'],
-    slots: 40, filled: 39, fillPct: 97.5, payment: 1689,
+    slots: 40, filled: 40, fillPct: 100.0, payment: 1689, waitlist: 3,
   },
   {
     city: 'Philadelphia', venue: 'Boys II Men & Wooder Ice', pros: ['Gianni Voltaire', 'Isaiah Graham-Mobley'],
@@ -211,7 +211,12 @@ function BookingStatsByCity() {
                   <span className="text-[11px] font-extrabold tabular-nums text-shortcut-blue">{c.filled}/{c.slots}</span>
                 </div>
               </div>
-              <div className="text-[11px] font-semibold text-shortcut-blue/50 text-right">{c.venue}</div>
+              <div className="text-right">
+                <div className="text-[11px] font-semibold text-shortcut-blue/50">{c.venue}</div>
+                {c.waitlist ? (
+                  <div className="text-[10px] font-extrabold text-shortcut-coral mt-0.5">+{c.waitlist} waitlisted</div>
+                ) : null}
+              </div>
             </div>
           );
         })}
@@ -440,7 +445,7 @@ export default function KeplerReport() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
               <HeroStat value="3" label="Cities Activated" sublabel="same day" color="navy" />
               <HeroStat value="6" label="Pros Deployed" sublabel="across 3 offices" color="teal" />
-              <HeroStat value="89%" label="of timeslots filled" sublabel="79 slots offered" color="yellow" />
+              <HeroStat value="90%" label="of timeslots filled" sublabel="79 slots offered" color="yellow" />
               <HeroStat value="$3,316" label="Total Event Cost" sublabel="Aug 20, 2026" color="pink" />
             </div>
           </Section>
