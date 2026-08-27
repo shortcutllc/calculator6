@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Camera, Check, AlertCircle, Download, Mail } from 'lucide-react';
+import { Camera, Check, AlertCircle, Download, Mail, X } from 'lucide-react';
 import { HeadshotService } from '../services/HeadshotService';
 import { EmployeeGallery as EmployeeGalleryType, GalleryPhoto } from '../types/headshot';
 import { supabase } from '../lib/supabaseClient';
@@ -35,6 +35,197 @@ const GalleryNav: React.FC<{
     </div>
   </nav>
 );
+
+/**
+ * The guided rail. On desktop it pins beside the photos so the count, the
+ * picks, the notes and the Confirm button stay in view while scrolling; on
+ * mobile it stacks under the grid. It is the single place that answers
+ * "what am I meant to do, and how far along am I?".
+ */
+const ActionRail: React.FC<{
+  maxPicks: number;
+  selectedPhotos: string[];
+  photos: GalleryPhoto[];
+  canChangeSelection: boolean;
+  hasFinalPhoto: boolean;
+  isSelectionMade: boolean;
+  isDeadlinePassed: boolean;
+  isSubmitting: boolean;
+  onUnpick: (photoId: string) => void;
+  onConfirm: () => void;
+  deadlineLabel?: string | null;
+  notes: string;
+  setNotes: (v: string) => void;
+  onSaveNotes: () => void;
+  savingNotes: boolean;
+}> = ({
+  maxPicks, selectedPhotos, photos, canChangeSelection, hasFinalPhoto,
+  isSelectionMade, isDeadlinePassed, isSubmitting, onUnpick, onConfirm,
+  deadlineLabel, notes, setNotes, onSaveNotes, savingNotes,
+}) => {
+  const picked = selectedPhotos.length;
+  const left = maxPicks - picked;
+  const choosing = canChangeSelection && !hasFinalPhoto && !isDeadlinePassed;
+  const byId = (id: string) => photos.find(p => p.id === id);
+
+  return (
+    <div className={`rounded-[18px] border ${LINE} bg-white p-6 ${SHADOW}`}>
+      {/* ---- Step 1: pick ---- */}
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-[17px] font-extrabold tracking-[-.02em] text-[#003756]">
+          {hasFinalPhoto ? 'All done' : isSelectionMade ? 'With our retouchers' : 'Your picks'}
+        </h3>
+        {choosing && (
+          <span className={`text-[13px] font-bold ${left === 0 ? 'text-[#FF5050]' : SOFT}`}>
+            {picked} of {maxPicks}
+          </span>
+        )}
+      </div>
+
+      {choosing && (
+        <>
+          <p className={`mt-1 text-[14px] leading-[1.5] ${SOFT}`}>
+            {left > 0
+              ? `Pick ${left} more ${left === 1 ? 'photo' : 'photos'} from the left, then confirm.`
+              : maxPicks > 1
+              ? 'That is all of them. Confirm when you are happy.'
+              : 'Confirm when you are happy, or tap another photo to swap.'}
+          </p>
+
+          {/* progress slots, so the allowance is visible even before picking */}
+          <div className="mt-4 flex gap-2">
+            {Array.from({ length: maxPicks }).map((_, i) => {
+              const id = selectedPhotos[i];
+              const photo = id ? byId(id) : undefined;
+              return (
+                <div
+                  key={i}
+                  className={`relative aspect-square w-full max-w-[84px] overflow-hidden rounded-[12px] border-2 ${
+                    photo ? 'border-[#FF5050]' : `border-dashed ${LINE} bg-[#F1F6F5]`
+                  }`}
+                >
+                  {photo ? (
+                    <>
+                      <img src={photo.photo_url} alt="" className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => onUnpick(photo.id)}
+                        className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[#003756] shadow-[0_1px_5px_rgba(3,34,50,.3)]"
+                        title="Remove this pick"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <span className="grid h-full w-full place-items-center text-[15px] font-extrabold text-[#45596A]/50">
+                      {i + 1}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ---- Step 2: notes ---- */}
+          <div className={`mt-6 border-t ${LINE} pt-5`}>
+            <h4 className="text-[14px] font-extrabold text-[#003756]">Notes for our retouchers</h4>
+            <p className={`mt-1 text-[13px] leading-[1.45] ${SOFT}`}>
+              Optional. Glasses glare, a stray hair, a preference.
+            </p>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Tell us here."
+              className={`mt-3 h-24 w-full resize-none rounded-[14px] border-2 ${LINE} px-3.5 py-2.5 text-[14px] focus:border-[#003756] focus:outline-none`}
+              maxLength={500}
+            />
+            <div className="mt-2 flex items-center justify-between">
+              <span className={`text-[12px] ${SOFT}`}>{notes.length}/500</span>
+              <button
+                onClick={onSaveNotes}
+                disabled={savingNotes}
+                className={`text-[13px] font-bold text-[#003756] underline underline-offset-2 hover:opacity-70 disabled:opacity-50`}
+              >
+                {savingNotes ? 'Saving...' : 'Save notes'}
+              </button>
+            </div>
+          </div>
+
+          {/* ---- Step 3: confirm ---- */}
+          <button
+            onClick={onConfirm}
+            disabled={isSubmitting || picked === 0}
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#FF5050] px-6 py-3.5 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
+                Confirming&hellip;
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                {picked === 0
+                  ? 'Pick a photo first'
+                  : picked > 1
+                  ? `Confirm these ${picked}`
+                  : 'Confirm my pick'}
+              </>
+            )}
+          </button>
+          <p className={`mt-2.5 text-center text-[12.5px] ${SOFT}`}>
+            You can change your mind until you confirm.
+          </p>
+
+          {deadlineLabel && (
+            <p className={`mt-4 border-t ${LINE} pt-4 text-center text-[12px] font-bold uppercase tracking-[.06em] ${SOFT}`}>
+              Pick by {deadlineLabel}
+            </p>
+          )}
+        </>
+      )}
+
+      {/* ---- Locked in ---- */}
+      {!choosing && (
+        <>
+          <p className={`mt-1 text-[14px] leading-[1.5] ${SOFT}`}>
+            {hasFinalPhoto
+              ? 'Your retouched photo is ready to download on the left.'
+              : isDeadlinePassed && !isSelectionMade
+              ? 'The deadline has passed. Email us and we will see what we can do.'
+              : 'We are retouching your pick now. We will email you when it is ready.'}
+          </p>
+          {selectedPhotos.length > 0 && (
+            <div className="mt-4 flex gap-2">
+              {selectedPhotos.map(id => {
+                const photo = byId(id);
+                return photo ? (
+                  <img
+                    key={id}
+                    src={photo.photo_url}
+                    alt=""
+                    className="aspect-square w-full max-w-[84px] rounded-[12px] border-2 border-[#FF5050] object-cover"
+                  />
+                ) : null;
+              })}
+            </div>
+          )}
+          {notes.trim() && (
+            <div className={`mt-5 border-t ${LINE} pt-4`}>
+              <h4 className="text-[13px] font-extrabold text-[#003756]">Your note</h4>
+              <p className={`mt-1 text-[13.5px] leading-[1.5] ${SOFT}`}>{notes}</p>
+            </div>
+          )}
+          <a
+            href="mailto:hello@getshortcut.co"
+            className={`mt-5 block border-t ${LINE} pt-4 text-center text-[13px] font-bold text-[#003756] hover:opacity-70`}
+          >
+            Need a change? Email us
+          </a>
+        </>
+      )}
+    </div>
+  );
+};
 
 const EmployeeGallery: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -326,7 +517,7 @@ const EmployeeGallery: React.FC = () => {
     <div className={`min-h-screen bg-white font-sans leading-[1.55] ${INK}`} onContextMenu={(e) => e.preventDefault()}>
       <GalleryNav logoUrl={eventData?.client_logo_url} name={eventData?.event_name} right={statusPill} />
 
-      <div className="mx-auto max-w-[1020px] px-5 pb-16 md:px-7">
+      <div className="mx-auto max-w-[1200px] px-5 pb-28 md:px-7 lg:pb-16">
         {/* Page head */}
         <div className="pb-8 pt-10 md:pt-12">
           <p className="mb-3 flex items-center gap-[9px] text-[12px] font-bold uppercase tracking-[.09em] text-[#45596A]">
@@ -373,6 +564,10 @@ const EmployeeGallery: React.FC = () => {
           </div>
         )}
 
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_356px] lg:items-start lg:gap-8">
+          {/* ---------- Main column ---------- */}
+          <main className="min-w-0">
+
         {/* Contextual status card */}
         <div className="mb-8">
           {isSelectionMade && !hasFinalPhoto && (
@@ -401,25 +596,11 @@ const EmployeeGallery: React.FC = () => {
             </div>
           )}
 
-          {!isSelectionMade && !hasFinalPhoto && (
-            <div className={`rounded-[18px] bg-[#F1F6F5] p-6 ${SHADOW}`}>
-              <h3 className="mb-1 text-[17px] font-extrabold text-[#003756]">
-                {maxPicks > 1
-                  ? `You can pick ${maxPicks} photos for retouching.`
-                  : 'You can pick 1 photo for retouching.'}
-              </h3>
-              <p className={`text-[14.5px] leading-[1.55] ${SOFT}`}>
-                {maxPicks > 1
-                  ? `Tap to pick, tap again to unpick. Choose up to ${maxPicks}, then confirm. Double tap any photo to see it full size.`
-                  : 'Tap the one you want us to retouch, then confirm. Double tap any photo to see it full size.'}
+          {isDeadlinePassed && !isSelectionMade && !hasFinalPhoto && (
+            <div className="rounded-[14px] border-2 border-[#FF5050] bg-white px-5 py-4">
+              <p className="text-[13.5px] font-semibold text-[#003756]">
+                The selection deadline has passed. Email us at hello@getshortcut.co and we will see what we can do.
               </p>
-              {isDeadlinePassed && (
-                <div className="mt-3 rounded-[12px] border-2 border-[#FF5050] bg-white px-4 py-3">
-                  <p className="text-[13.5px] font-semibold text-[#003756]">
-                    The selection deadline has passed. Email us at hello@getshortcut.co and we will see what we can do.
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -485,7 +666,7 @@ const EmployeeGallery: React.FC = () => {
                   {hasFinalPhoto ? 'Your original photos' : 'Your photos'}
                 </h2>
                 {canChangeSelection && !hasFinalPhoto && (
-                  <p className={`text-[14px] font-bold ${picksLeft === 0 ? 'text-[#FF5050]' : SOFT}`}>
+                  <p className={`text-[14px] font-bold lg:hidden ${picksLeft === 0 ? 'text-[#FF5050]' : SOFT}`}>
                     {selectedPhotos.length} of {maxPicks} picked
                     {picksLeft > 0
                       ? ` \u00b7 ${picksLeft} to go`
@@ -495,13 +676,7 @@ const EmployeeGallery: React.FC = () => {
                   </p>
                 )}
               </div>
-              {canChangeSelection && !hasFinalPhoto && (
-                <p className={`mb-4 text-[15px] ${SOFT}`}>
-                  {maxPicks > 1
-                    ? `You are eligible to have ${maxPicks} photos retouched. Pick your favorites, then confirm.`
-                    : 'You are eligible to have 1 photo retouched. Pick your favorite, then confirm.'}
-                </p>
-              )}
+
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {photos.filter(photo => !photo.is_final).map((photo) => (
                   <div
@@ -553,30 +728,6 @@ const EmployeeGallery: React.FC = () => {
               </div>
             </div>
 
-            {/* Confirm */}
-            {canChangeSelection && !hasFinalPhoto && selectedPhotos.length > 0 && !isDeadlinePassed && (
-              <div className="flex justify-center pt-2">
-                <button
-                  onClick={handleSubmitSelection}
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#FF5050] px-8 py-3.5 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
-                      Confirming&hellip;
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" />
-                      {selectedPhotos.length > 1
-                        ? `Confirm these ${selectedPhotos.length}`
-                        : 'Confirm my pick'}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
         ) : (
           <div className={`rounded-[18px] bg-[#F1F6F5] px-6 py-14 text-center ${SHADOW}`}>
@@ -608,36 +759,28 @@ const EmployeeGallery: React.FC = () => {
           </ul>
         </div>
 
-        {/* Notes */}
-        <div className={`mt-6 rounded-[18px] border ${LINE} bg-white p-7 ${SHADOW}`}>
-          <h3 className="mb-1 text-[18px] font-extrabold tracking-[-.015em] text-[#003756]">Notes for our retouchers</h3>
-          <p className={`mb-4 text-[14.5px] ${SOFT}`}>
-            Anything you want us to know about your photo. We read every note.
-          </p>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Glasses glare, a stray hair, a preference. Tell us here."
-            className="h-32 w-full resize-none rounded-[14px] border-2 border-[#E2E9E8] px-4 py-3 text-[14.5px] focus:border-[#003756] focus:outline-none"
-            maxLength={500}
-          />
-          <div className="mt-3 flex items-center justify-between">
-            <span className={`text-[12.5px] ${SOFT}`}>{notes.length}/500</span>
-            <button
-              onClick={handleSaveNotes}
-              disabled={isSavingNotes}
-              className="inline-flex items-center gap-2 rounded-full bg-[#003756] px-5 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-[#032232] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSavingNotes ? (
-                <>
-                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-b-2 border-white" />
-                  Saving&hellip;
-                </>
-              ) : (
-                'Save notes'
-              )}
-            </button>
-          </div>
+          </main>
+
+          {/* ---------- Guided action rail ---------- */}
+          <aside className="mt-8 lg:sticky lg:top-[88px] lg:mt-0">
+            <ActionRail
+              maxPicks={maxPicks}
+              selectedPhotos={selectedPhotos}
+              photos={photos}
+              canChangeSelection={canChangeSelection}
+              hasFinalPhoto={hasFinalPhoto}
+              isSelectionMade={isSelectionMade}
+              isDeadlinePassed={isDeadlinePassed}
+              isSubmitting={isSubmitting}
+              onUnpick={handlePhotoSelect}
+              onConfirm={handleSubmitSelection}
+              deadlineLabel={deadlineLabel}
+              notes={notes}
+              setNotes={setNotes}
+              onSaveNotes={handleSaveNotes}
+              savingNotes={isSavingNotes}
+            />
+          </aside>
         </div>
 
         {/* Footer */}
@@ -654,6 +797,30 @@ const EmployeeGallery: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Mobile action bar: the rail is far below the grid on phones, so keep
+          the count and Confirm reachable without scrolling to the end. */}
+      {canChangeSelection && !hasFinalPhoto && !isDeadlinePassed && photos.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/[.08] bg-white/95 px-5 py-3 backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-[600px] items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[13.5px] font-extrabold text-[#003756]">
+                {selectedPhotos.length} of {maxPicks} picked
+              </p>
+              <p className={`truncate text-[12px] ${SOFT}`}>
+                {picksLeft > 0 ? `Pick ${picksLeft} more, then confirm` : 'Ready to confirm'}
+              </p>
+            </div>
+            <button
+              onClick={handleSubmitSelection}
+              disabled={isSubmitting || selectedPhotos.length === 0}
+              className="inline-flex flex-none items-center gap-2 rounded-full bg-[#FF5050] px-5 py-2.5 text-[14px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] disabled:opacity-40"
+            >
+              {isSubmitting ? 'Confirming...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {expandedPhoto && (
