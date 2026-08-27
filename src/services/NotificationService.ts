@@ -221,57 +221,45 @@ export class NotificationService {
     }
   }
 
-  // Send notifications to all employees in an event
-  static async sendBulkGalleryReadyNotifications(eventId: string): Promise<void> {
-    try {
-      console.log('Starting bulk notification send for event:', eventId);
-      
-      // Get all galleries for this event with their photos
-      const { data: galleries, error } = await supabase
-        .from('employee_galleries')
-        .select(`
-          *,
-          event:headshot_events(*),
-          photos:gallery_photos!gallery_photos_gallery_id_fkey(*)
-        `)
-        .eq('event_id', eventId);
+  // Send notifications to all employees in an event.
+  // Returns a per-recipient tally so callers can report what actually happened
+  // instead of assuming success.
+  static async sendBulkGalleryReadyNotifications(
+    eventId: string
+  ): Promise<{ sent: number; failed: number; skipped: number; total: number }> {
+    console.log('Starting bulk notification send for event:', eventId);
 
-      if (error) {
-        console.error('Error fetching galleries:', error);
-        throw error;
-      }
+    const { data: galleries, error } = await supabase
+      .from('employee_galleries')
+      .select(`
+        *,
+        event:headshot_events(*),
+        photos:gallery_photos!gallery_photos_gallery_id_fkey(*)
+      `)
+      .eq('event_id', eventId);
 
-      console.log('Found galleries:', galleries);
-      
-      // Debug: Log the first gallery's fields
-      if (galleries && galleries.length > 0) {
-        console.log('First gallery fields:', Object.keys(galleries[0]));
-        console.log('First gallery email field:', galleries[0].email);
-      }
+    if (error) {
+      console.error('Error fetching galleries:', error);
+      throw error;
+    }
 
-      if (!galleries || galleries.length === 0) {
-        throw new Error('No galleries found for this event');
-      }
+    if (!galleries || galleries.length === 0) {
+      throw new Error('NO_EMPLOYEES');
+    }
 
-      // Filter out galleries that don't have any photos
-      const galleriesWithPhotos = galleries.filter(gallery => 
-        gallery.photos && gallery.photos.length > 0
-      );
+    // Only people who actually have photos to look at.
+    const galleriesWithPhotos = galleries.filter(g => g.photos && g.photos.length > 0);
+    const skipped = galleries.length - galleriesWithPhotos.length;
 
-      console.log(`Found ${galleries.length} total galleries, ${galleriesWithPhotos.length} with photos`);
+    if (galleriesWithPhotos.length === 0) {
+      throw new Error('NO_PHOTOS');
+    }
 
-      if (galleriesWithPhotos.length === 0) {
-        throw new Error('No galleries with photos found for this event');
-      }
+    const eventName = galleriesWithPhotos[0].event?.event_name || 'Headshot Event';
 
-      const eventName = galleriesWithPhotos[0].event?.event_name || 'Headshot Event';
-      console.log('Event name:', eventName);
-      
-      // Send notifications only to employees with photos
-      const notificationPromises = galleriesWithPhotos.map(async (gallery) => {
+    const results = await Promise.all(
+      galleriesWithPhotos.map(async gallery => {
         const galleryUrl = `${window.location.origin}/gallery/${gallery.unique_token}`;
-        console.log(`Preparing notification for ${gallery.employee_name} (${gallery.email})`);
-        
         try {
           await this.sendGalleryReadyNotification(
             gallery.employee_name,
@@ -280,19 +268,19 @@ export class NotificationService {
             eventName,
             gallery.id
           );
-          console.log(`✅ Gallery ready notification sent to ${gallery.employee_name}`);
-        } catch (error) {
-          console.error(`❌ Failed to send notification to ${gallery.employee_name}:`, error);
-          // Continue with other notifications even if one fails
+          return true;
+        } catch (err) {
+          console.error(`Failed to send notification to ${gallery.employee_name} (${gallery.email}):`, err);
+          return false;
         }
-      });
+      })
+    );
 
-      await Promise.all(notificationPromises);
-      console.log('Bulk notification process completed');
-    } catch (error) {
-      console.error('Error sending bulk notifications:', error);
-      throw error;
-    }
+    const sent = results.filter(Boolean).length;
+    const failed = results.length - sent;
+    console.log(`Bulk notifications: ${sent} sent, ${failed} failed, ${skipped} skipped`);
+
+    return { sent, failed, skipped, total: galleries.length };
   }
 
   // Send final photo ready notification to a specific employee

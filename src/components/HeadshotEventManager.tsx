@@ -141,19 +141,33 @@ export const HeadshotEventManager: React.FC = () => {
   const handleSendNotifications = async () => {
     if (!selectedEvent) return;
     
+    // Only people with photos get an email, so promise that number, not the roster size.
+    const willReceive = eventStats?.photos_uploaded || 0;
     const confirmed = window.confirm(
-      `Send gallery ready notifications to all ${eventStats?.total_employees || 0} employees in "${selectedEvent.event_name}"?`
+      `Email the ${willReceive} ${willReceive === 1 ? 'person' : 'people'} who have photos in "${selectedEvent.event_name}"?\n\n` +
+      `Anyone without photos yet is skipped.`
     );
     
     if (!confirmed) return;
 
     try {
       setSendingNotifications(true);
-      await NotificationService.sendBulkGalleryReadyNotifications(selectedEvent.id);
-      alert('Gallery ready notifications sent successfully!');
+      const { sent, failed, skipped } = await NotificationService.sendBulkGalleryReadyNotifications(selectedEvent.id);
+
+      const parts = [`Emailed ${sent} ${sent === 1 ? 'person' : 'people'}.`];
+      if (failed > 0) parts.push(`${failed} failed to send, check the console for which.`);
+      if (skipped > 0) parts.push(`${skipped} skipped because they have no photos yet.`);
+      alert(parts.join('\n'));
     } catch (error) {
       console.error('Error sending notifications:', error);
-      alert('Failed to send notifications. Please try again.');
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'NO_PHOTOS') {
+        alert('Nobody has photos uploaded yet, so there is nothing to tell them about. Upload photos first, then send.');
+      } else if (code === 'NO_EMPLOYEES') {
+        alert('There is nobody on this event yet. Import the roster first.');
+      } else {
+        alert('Could not send the emails. Please try again.');
+      }
     } finally {
       setSendingNotifications(false);
     }
