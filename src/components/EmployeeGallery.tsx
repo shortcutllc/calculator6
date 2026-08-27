@@ -347,7 +347,9 @@ const EmployeeGallery: React.FC = () => {
               ? 'Your retouched photo is below. Download it and put it everywhere.'
               : isSelectionMade
               ? 'Your photos are with our retouchers. We will email you when the finals are ready.'
-              : `Welcome back, ${firstName}. Pick the photo we should retouch, and we will take it from there.`}
+              : maxPicks > 1
+              ? `Welcome back, ${firstName}. You can choose ${maxPicks} photos for us to retouch.`
+              : `Welcome back, ${firstName}. You can choose 1 photo for us to retouch.`}
           </p>
           {deadlineLabel && !isSelectionMade && !hasFinalPhoto && (
             <p className="mt-4 inline-flex rounded-full border border-[#E2E9E8] px-3.5 py-[7px] text-[11.5px] font-extrabold uppercase tracking-[.08em] text-[#45596A]">
@@ -401,9 +403,15 @@ const EmployeeGallery: React.FC = () => {
 
           {!isSelectionMade && !hasFinalPhoto && (
             <div className={`rounded-[18px] bg-[#F1F6F5] p-6 ${SHADOW}`}>
-              <h3 className="mb-1 text-[17px] font-extrabold text-[#003756]">Tap a photo to select it.</h3>
+              <h3 className="mb-1 text-[17px] font-extrabold text-[#003756]">
+                {maxPicks > 1
+                  ? `You can pick ${maxPicks} photos for retouching.`
+                  : 'You can pick 1 photo for retouching.'}
+              </h3>
               <p className={`text-[14.5px] leading-[1.55] ${SOFT}`}>
-                Choose the one you want us to retouch, then confirm. Double tap any photo to see it full size.
+                {maxPicks > 1
+                  ? `Tap to pick, tap again to unpick. Choose up to ${maxPicks}, then confirm. Double tap any photo to see it full size.`
+                  : 'Tap the one you want us to retouch, then confirm. Double tap any photo to see it full size.'}
               </p>
               {isDeadlinePassed && (
                 <div className="mt-3 rounded-[12px] border-2 border-[#FF5050] bg-white px-4 py-3">
@@ -476,18 +484,22 @@ const EmployeeGallery: React.FC = () => {
                 <h2 className="text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">
                   {hasFinalPhoto ? 'Your original photos' : 'Your photos'}
                 </h2>
-                {canChangeSelection && !hasFinalPhoto && maxPicks > 1 && (
+                {canChangeSelection && !hasFinalPhoto && (
                   <p className={`text-[14px] font-bold ${picksLeft === 0 ? 'text-[#FF5050]' : SOFT}`}>
                     {selectedPhotos.length} of {maxPicks} picked
                     {picksLeft > 0
-                      ? ` \u00b7 pick up to ${picksLeft} more`
-                      : ' \u00b7 tap one again to swap it out'}
+                      ? ` \u00b7 ${picksLeft} to go`
+                      : maxPicks > 1
+                      ? ' \u00b7 tap one again to swap it out'
+                      : ' \u00b7 tap another to swap it'}
                   </p>
                 )}
               </div>
-              {canChangeSelection && !hasFinalPhoto && maxPicks > 1 && (
+              {canChangeSelection && !hasFinalPhoto && (
                 <p className={`mb-4 text-[15px] ${SOFT}`}>
-                  You can have up to {maxPicks} photos retouched. Pick your favorites, then confirm.
+                  {maxPicks > 1
+                    ? `You are eligible to have ${maxPicks} photos retouched. Pick your favorites, then confirm.`
+                    : 'You are eligible to have 1 photo retouched. Pick your favorite, then confirm.'}
                 </p>
               )}
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
