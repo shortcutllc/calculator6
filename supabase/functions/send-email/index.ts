@@ -14,6 +14,7 @@ interface EmailRequest {
   eventName: string
   clientLogoUrl?: string
   selectionDeadline?: string
+  selectionsAllowed?: number
 }
 
 serve(async (req) => {
@@ -23,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, employeeName, employeeEmail, galleryUrl, eventName, clientLogoUrl, selectionDeadline }: EmailRequest = await req.json()
+    const { type, employeeName, employeeEmail, galleryUrl, eventName, clientLogoUrl, selectionDeadline, selectionsAllowed }: EmailRequest = await req.json()
 
     // Validate required fields
     if (!type || !employeeName || !employeeEmail || !galleryUrl || !eventName) {
@@ -51,11 +52,11 @@ serve(async (req) => {
     let text: string
 
     if (type === 'gallery_ready') {
-      subject = `Your headshot photos are ready for selection - ${eventName}`
-      html = getGalleryReadyHtml(employeeName, galleryUrl, eventName, clientLogoUrl, selectionDeadline)
-      text = getGalleryReadyText(employeeName, galleryUrl, eventName, selectionDeadline)
+      subject = `Your headshots are ready to pick`
+      html = getGalleryReadyHtml(employeeName, galleryUrl, eventName, clientLogoUrl, selectionDeadline, selectionsAllowed)
+      text = getGalleryReadyText(employeeName, galleryUrl, eventName, selectionDeadline, selectionsAllowed)
     } else {
-      subject = `Your retouched headshot is ready for download - ${eventName}`
+      subject = `Your retouched headshot is ready`
       html = getFinalPhotoReadyHtml(employeeName, galleryUrl, eventName, clientLogoUrl)
       text = getFinalPhotoReadyText(employeeName, galleryUrl, eventName)
     }
@@ -149,218 +150,161 @@ serve(async (req) => {
   }
 })
 
-function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName: string, clientLogoUrl?: string, selectionDeadline?: string): string {
+/** Shared shell so both emails look like Shortcut. Table based for Outlook. */
+function shell(bodyHtml: string, clientLogoUrl?: string): string {
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Your Headshot Photos Are Ready</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-        .button { display: inline-block; background: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-        .button:hover { background: #45a049; }
-        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-      </style>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
     </head>
-    <body>
-      <div class="container">
-        ${clientLogoUrl ? `
-        <div style="background: white; padding: 20px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-          <img src="${clientLogoUrl}" alt="Client Logo" style="height: 50px; width: auto; object-fit: contain;">
-        </div>
-        ` : ''}
-        <div class="header">
-          <h1>📸 Your Headshot Photos Are Ready!</h1>
-          <p>Event: ${eventName}</p>
-        </div>
-        <div class="content">
-          <h2>Hello ${employeeName}!</h2>
-          <p>Great news! Your headshot photos from the <strong>${eventName}</strong> event are now ready for you to review and select your favorite.</p>
-          
-          <p>Please follow these steps:</p>
-          <ol>
-            <li>Click the button below to view your photos</li>
-            <li>Review all the photos we captured</li>
-            <li>Select the one you'd like us to retouch</li>
-            <li>Confirm your selection</li>
-          </ol>
-          
-          <p>Once you make your selection, we'll begin retouching your chosen photo and notify you when it's ready for download.</p>
-          
-          ${selectionDeadline ? `
-          <div style="background: #fef3cd; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin: 20px 0;">
-            <p style="margin: 0; color: #92400e; font-weight: 600;">
-              ⏰ Important: Please make your selection by ${(() => {
-                const dateStr = selectionDeadline.split('T')[0];
-                const [year, month, day] = dateStr.split('-');
-                const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                return localDate.toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                });
-              })()} to ensure we can process your retouched photo in a timely manner.
-            </p>
-          </div>
-          ` : ''}
-          
-          <div style="text-align: center;">
-            <a href="${galleryUrl}" class="button">View Your Photos</a>
-          </div>
-          
-          ${selectionDeadline ? `
-          <p><strong>Important:</strong> Please make your selection by ${(() => {
-            const dateStr = selectionDeadline.split('T')[0];
-            const [year, month, day] = dateStr.split('-');
-            const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-            return localDate.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            });
-          })()} to ensure we can process your retouched photo in a timely manner.</p>
-          ` : `
-          <p><strong>Important:</strong> Please make your selection within 7 days to ensure we can process your retouched photo in a timely manner.</p>
-          `}
-        </div>
-        <div class="footer">
-          <p>If you have any questions, please contact us.</p>
-          <p>This link is unique to you - please do not share it with others.</p>
-        </div>
-      </div>
+    <body style="margin:0; padding:0; background:#F1F6F5;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F6F5; padding:32px 16px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background:#FFFFFF; border-radius:18px; overflow:hidden; box-shadow:0 10px 30px rgba(3,34,50,.06);">
+
+              <tr>
+                <td style="padding:22px 32px; border-bottom:1px solid #E2E9E8;">
+                  <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                    ${clientLogoUrl ? `
+                    <td style="padding-right:14px;">
+                      <img src="${clientLogoUrl}" alt="" style="height:26px; width:auto; display:block;">
+                    </td>
+                    <td style="padding-right:14px; border-left:1px solid rgba(0,0,0,.1); height:22px;"></td>
+                    ` : ''}
+                    <td style="font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; font-weight:700; color:#003756; letter-spacing:-.01em;">
+                      ${clientLogoUrl ? '<span style="color:rgba(3,34,50,.45); font-weight:600;">with </span>' : ''}Shortcut
+                    </td>
+                  </tr></table>
+                </td>
+              </tr>
+
+              <tr><td style="padding:34px 32px 36px;">${bodyHtml}</td></tr>
+
+              <tr>
+                <td style="padding:22px 32px 28px; border-top:1px solid #E2E9E8;">
+                  <p style="margin:0 0 6px; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; color:#45596A;">
+                    This link is yours alone. Please do not forward it.
+                  </p>
+                  <p style="margin:0; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; color:#45596A;">
+                    Questions? <a href="mailto:hello@getshortcut.co" style="color:#003756; font-weight:700; text-decoration:none;">hello@getshortcut.co</a>
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `
 }
 
-function getGalleryReadyText(employeeName: string, galleryUrl: string, eventName: string, selectionDeadline?: string): string {
+function coralButton(href: string, label: string): string {
   return `
-    Your Headshot Photos Are Ready!
-    
-    Hello ${employeeName}!
-    
-    Great news! Your headshot photos from the ${eventName} event are now ready for you to review and select your favorite.
-    
-    Please follow these steps:
-    1. Visit your gallery: ${galleryUrl}
-    2. Review all the photos we captured
-    3. Select the one you'd like us to retouch
-    4. Confirm your selection
-    
-    Once you make your selection, we'll begin retouching your chosen photo and notify you when it's ready for download.
-    
-    ${selectionDeadline ? `Important: Please make your selection by ${(() => {
-      const dateStr = selectionDeadline.split('T')[0];
-      const [year, month, day] = dateStr.split('-');
-      const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      return localDate.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    })()} to ensure we can process your retouched photo in a timely manner.` : 'Important: Please make your selection within 7 days to ensure we can process your retouched photo in a timely manner.'}
-    
-    If you have any questions, please contact us.
-    This link is unique to you - please do not share it with others.
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 0;"><tr>
+      <td style="background:#FF5050; border-radius:999px;">
+        <a href="${href}" style="display:inline-block; padding:14px 30px; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; color:#FFFFFF; text-decoration:none;">
+          ${label}
+        </a>
+      </td>
+    </tr></table>
   `
+}
+
+function prettyDate(selectionDeadline: string): string {
+  const dateStr = selectionDeadline.split('T')[0]
+  const [year, month, day] = dateStr.split('-')
+  const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  return localDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function getGalleryReadyHtml(employeeName: string, galleryUrl: string, eventName: string, clientLogoUrl?: string, selectionDeadline?: string, selectionsAllowed = 1): string {
+  const n = selectionsAllowed > 1 ? selectionsAllowed : 1
+  const many = n > 1
+  const firstName = employeeName.split(' ')[0] || employeeName
+
+  const body = `
+    <p style="margin:0 0 12px; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:#45596A;">
+      ${eventName}
+    </p>
+    <h1 style="margin:0 0 14px; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:30px; line-height:1.12; font-weight:800; letter-spacing:-.02em; color:#003756;">
+      Your headshots are ready.
+    </h1>
+    <p style="margin:0 0 18px; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.55; color:#032232;">
+      Hi ${firstName}. Your photos are up. Take a look and pick
+      ${many ? `<strong style="color:#003756;">the ${n} you want us to retouch</strong>` : `<strong style="color:#003756;">the one you want us to retouch</strong>`}.
+    </p>
+    <p style="margin:0; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.55; color:#032232;">
+      We will do the retouching and email you the ${many ? 'finals' : 'final'} to download. It takes a couple of minutes on your end.
+    </p>
+
+    ${coralButton(galleryUrl, many ? `Pick your ${n} photos` : 'Pick your photo')}
+
+    ${selectionDeadline ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0 0;">
+      <tr><td style="background:#F1F6F5; border-radius:14px; padding:16px 18px;">
+        <p style="margin:0; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.5; color:#032232;">
+          Please choose by <strong style="color:#003756;">${prettyDate(selectionDeadline)}</strong> so we can get ${many ? 'them' : 'it'} retouched on time.
+        </p>
+      </td></tr>
+    </table>
+    ` : ''}
+  `
+  return shell(body, clientLogoUrl)
+}
+
+function getGalleryReadyText(employeeName: string, galleryUrl: string, eventName: string, selectionDeadline?: string, selectionsAllowed = 1): string {
+  const n = selectionsAllowed > 1 ? selectionsAllowed : 1
+  const many = n > 1
+  const firstName = employeeName.split(' ')[0] || employeeName
+  return `Your headshots are ready.
+
+Hi ${firstName}. Your photos from ${eventName} are up. Take a look and pick ${many ? `the ${n} you want us to retouch` : 'the one you want us to retouch'}.
+
+We will do the retouching and email you the ${many ? 'finals' : 'final'} to download.
+
+${many ? `Pick your ${n} photos:` : 'Pick your photo:'} ${galleryUrl}
+${selectionDeadline ? `
+Please choose by ${prettyDate(selectionDeadline)} so we can get ${many ? 'them' : 'it'} retouched on time.
+` : ''}
+This link is yours alone. Please do not forward it.
+Questions? hello@getshortcut.co
+`
 }
 
 function getFinalPhotoReadyHtml(employeeName: string, galleryUrl: string, eventName: string, clientLogoUrl?: string): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Your Retouched Headshot Is Ready</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-        .button { display: inline-block; background: #2196F3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-        .button:hover { background: #1976D2; }
-        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-        .highlight { background: #e8f5e8; padding: 15px; border-radius: 5px; border-left: 4px solid #4CAF50; margin: 20px 0; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        ${clientLogoUrl ? `
-        <div style="background: white; padding: 20px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-          <img src="${clientLogoUrl}" alt="Client Logo" style="height: 50px; width: auto; object-fit: contain;">
-        </div>
-        ` : ''}
-        <div class="header">
-          <h1>🎉 Your Retouched Headshot Is Ready!</h1>
-          <p>Event: ${eventName}</p>
-        </div>
-        <div class="content">
-          <h2>Hello ${employeeName}!</h2>
-          <p>Excellent news! Your retouched headshot from the <strong>${eventName}</strong> event is now ready for download.</p>
-          
-          <div class="highlight">
-            <p><strong>✨ Your professional headshot has been retouched and is ready for use!</strong></p>
-          </div>
-          
-          <p>Please follow these steps to download your photo:</p>
-          <ol>
-            <li>Click the button below to access your gallery</li>
-            <li>Look for your final retouched photo (it will be clearly marked)</li>
-            <li>Click the download button to save it to your device</li>
-          </ol>
-          
-          <div style="text-align: center;">
-            <a href="${galleryUrl}" class="button">Download Your Photo</a>
-          </div>
-          
-          <p><strong>Photo Details:</strong></p>
-          <ul>
-            <li>High-resolution JPEG format</li>
-            <li>Professional retouching completed</li>
-            <li>Ready for professional use</li>
-          </ul>
-          
-          <p>Thank you for participating in our headshot event! We hope you love your new professional photo.</p>
-        </div>
-        <div class="footer">
-          <p>If you have any questions or need assistance, please contact us.</p>
-          <p>This link is unique to you - please do not share it with others.</p>
-        </div>
-      </div>
-    </body>
-    </html>
+  const firstName = employeeName.split(' ')[0] || employeeName
+  const body = `
+    <p style="margin:0 0 12px; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:#45596A;">
+      ${eventName}
+    </p>
+    <h1 style="margin:0 0 14px; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:30px; line-height:1.12; font-weight:800; letter-spacing:-.02em; color:#003756;">
+      Your headshot is ready.
+    </h1>
+    <p style="margin:0 0 18px; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.55; color:#032232;">
+      Hi ${firstName}. Retouching is done. Your photo is ready to download in full resolution.
+    </p>
+    <p style="margin:0; font-family:Outfit,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.55; color:#032232;">
+      Use it wherever you need it. LinkedIn, your email signature, the company site.
+    </p>
+    ${coralButton(galleryUrl, 'Download your headshot')}
   `
+  return shell(body, clientLogoUrl)
 }
 
 function getFinalPhotoReadyText(employeeName: string, galleryUrl: string, eventName: string): string {
-  return `
-    Your Retouched Headshot Is Ready!
-    
-    Hello ${employeeName}!
-    
-    Excellent news! Your retouched headshot from the ${eventName} event is now ready for download.
-    
-    ✨ Your professional headshot has been retouched and is ready for use!
-    
-    Please follow these steps to download your photo:
-    1. Visit your gallery: ${galleryUrl}
-    2. Look for your final retouched photo (it will be clearly marked)
-    3. Click the download button to save it to your device
-    
-    Photo Details:
-    - High-resolution JPEG format
-    - Professional retouching completed
-    - Ready for professional use
-    
-    Thank you for participating in our headshot event! We hope you love your new professional photo.
-    
-    If you have any questions or need assistance, please contact us.
-    This link is unique to you - please do not share it with others.
-  `
+  const firstName = employeeName.split(' ')[0] || employeeName
+  return `Your headshot is ready.
+
+Hi ${firstName}. Retouching is done on your photo from ${eventName}. It is ready to download in full resolution.
+
+Download it here: ${galleryUrl}
+
+This link is yours alone. Please do not forward it.
+Questions? hello@getshortcut.co
+`
 }

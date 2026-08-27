@@ -13,6 +13,7 @@ export interface EmailNotificationRequest {
   programName?: string;
   clientLogoUrl?: string;
   selectionDeadline?: string;
+  selectionsAllowed?: number;
   sessionDate?: string;
   sessionTime?: string;
   documentName?: string;
@@ -74,6 +75,7 @@ export class NotificationService {
     let actualEventName = eventName; // fallback to passed eventName
     let clientLogoUrl: string | undefined;
     let selectionDeadline: string | undefined;
+    let selectionsAllowed = 1;
     
     if (galleryId) {
       try {
@@ -84,16 +86,27 @@ export class NotificationService {
           .single();
 
         if (!error && gallery) {
-          const { data: event, error: eventError } = await supabase
+          const BASE = 'event_name, client_logo_url, selection_deadline';
+          let { data: event, error: eventError } = await supabase
             .from('headshot_events')
-            .select('event_name, client_logo_url, selection_deadline')
+            .select(`${BASE}, selections_allowed`)
             .eq('id', gallery.event_id)
             .single();
+
+          if (eventError) {
+            ({ data: event, error: eventError } = await supabase
+              .from('headshot_events')
+              .select(BASE)
+              .eq('id', gallery.event_id)
+              .single());
+          }
 
           if (!eventError && event) {
             actualEventName = event.event_name; // Use the actual event name from database
             clientLogoUrl = event.client_logo_url;
             selectionDeadline = event.selection_deadline;
+            const allowed = (event as { selections_allowed?: number }).selections_allowed;
+            if (typeof allowed === 'number' && allowed >= 1) selectionsAllowed = allowed;
           }
         }
       } catch (error) {
@@ -108,6 +121,7 @@ export class NotificationService {
       employeeEmail,
       galleryUrl,
       eventName: actualEventName,
+      selectionsAllowed,
       clientLogoUrl,
       selectionDeadline
     };
