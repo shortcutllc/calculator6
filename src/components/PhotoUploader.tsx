@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Camera, Users, CheckCircle, AlertCircle, XCircle, Trash2, Plus, Eye } from 'lucide-react';
 import { Button } from './Button';
+import { Card, SOFT, LINE } from './headshot/brand';
 import { HeadshotService } from '../services/HeadshotService';
 import { NotificationService } from '../services/NotificationService';
 import { EmployeeGallery, PhotoUploadProgress } from '../types/headshot';
@@ -306,13 +307,13 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       case 'pending':
         return <XCircle className="w-4 h-4 text-gray-400" />;
       case 'photos_uploaded':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-4 h-4 text-[#003756]" />;
       case 'selection_made':
         return <CheckCircle className="w-4 h-4 text-blue-500" />;
       case 'retouching':
         return <AlertCircle className="w-4 h-4 text-orange-500" />;
       case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-[#003756]" />;
       default:
         return <XCircle className="w-4 h-4 text-gray-400" />;
     }
@@ -320,30 +321,26 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
   const getStatusColor = (status: EmployeeGallery['status']) => {
     switch (status) {
-      case 'pending':
-        return 'bg-gray-100 text-gray-600';
-      case 'photos_uploaded':
-        return 'bg-green-100 text-green-800';
-      case 'selection_made':
-        return 'bg-blue-100 text-blue-800';
-      case 'retouching':
-        return 'bg-orange-100 text-orange-800';
       case 'completed':
-        return 'bg-green-100 text-green-800';
+      case 'retouching':
+        return 'bg-[#003756] text-[#9EFAFF]';
+      case 'photos_uploaded':
+      case 'selection_made':
+        return 'bg-[#9EFAFF] text-[#003756]';
       default:
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-[#F1F6F5] text-[#45596A]';
     }
   };
 
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <span className="text-gray-600">Loading employee galleries...</span>
+        <Card className="p-8">
+          <div className="flex items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#E2E9E8] border-t-[#FF5050]" />
+            <span className={`text-[15px] ${SOFT}`}>Loading the list...</span>
           </div>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -352,8 +349,10 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Upload Headshot Photos</h2>
+        <div className={`flex items-center justify-between border-b ${LINE} p-6`}>
+          <h2 className="text-[20px] font-extrabold tracking-[-.02em] text-[#003756]">
+            {uploadMode === 'final' ? 'Upload the retouched final' : 'Upload photos'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -364,31 +363,30 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
         <div className="p-6 space-y-6">
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900 mb-2">Upload Instructions</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Select an employee from the list below</li>
-              <li>• Upload 1-5 photos for that employee</li>
-              <li>• Photos should be high-resolution JPEG files</li>
-              <li>• You can upload photos for multiple employees</li>
+          <div className="rounded-[14px] bg-[#F1F6F5] p-5">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[.09em] text-[#45596A]">How this works</p>
+            <ul className={`space-y-1.5 text-[14px] ${SOFT}`}>
+              <li className="flex gap-2.5"><span className="mt-[9px] h-1.5 w-1.5 flex-none rounded-full bg-[#FF5050]" />Pick a person below</li>
+              <li className="flex gap-2.5"><span className="mt-[9px] h-1.5 w-1.5 flex-none rounded-full bg-[#FF5050]" />Add 1 to 5 high resolution JPEGs</li>
+              <li className="flex gap-2.5"><span className="mt-[9px] h-1.5 w-1.5 flex-none rounded-full bg-[#FF5050]" />Repeat for the next person, no need to close this</li>
             </ul>
           </div>
 
           {/* Employee Selection */}
           <div className="space-y-4">
-            <h3 className="font-medium text-gray-900 flex items-center space-x-2">
-              <Users className="w-5 h-5" />
-              <span>Select Employee ({galleries.length} total)</span>
+            <h3 className="flex items-center gap-2 text-[15px] font-extrabold text-[#003756]">
+              <Users className="h-4 w-4" />
+              Who are these photos for? ({galleries.length})
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto">
               {galleries.map((gallery) => (
                 <div
                   key={gallery.id}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all relative group ${
+                  className={`group relative cursor-pointer rounded-[14px] border-2 p-4 transition-all ${
                     selectedGallery?.id === gallery.id
-                      ? 'border-shortcut-blue bg-shortcut-blue/5'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-[#FF5050] bg-[#FF5050]/[.04]'
+                      : `${LINE} hover:border-[#003756]`
                   }`}
                   onClick={() => setSelectedGallery(gallery)}
                 >
@@ -417,7 +415,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                       <div className="text-gray-500 mt-1">
                         {gallery.photos.length} photo{gallery.photos.length !== 1 ? 's' : ''}
                         {gallery.selected_photo_id && (
-                          <div className="text-green-600 text-xs mt-1">
+                          <div className="mt-1 text-xs font-bold text-[#003756]">
                             ✓ Photo selected
                           </div>
                         )}
@@ -450,7 +448,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                             e.stopPropagation();
                             setUploadingFinalFor(gallery);
                           }}
-                          className="w-full text-xs bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded transition-colors"
+                          className="w-full rounded-[10px] bg-[#9EFAFF] px-2 py-1.5 text-xs font-bold text-[#003756] transition-opacity hover:opacity-80"
                         >
                           <Upload className="w-3 h-3 inline mr-1" />
                           Upload Final
@@ -507,7 +505,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                   
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                     <div
-                      className="bg-shortcut-blue h-2 rounded-full transition-all duration-300"
+                      className="h-2 rounded-full bg-[#FF5050] transition-all duration-300"
                       style={{ width: `${progress.progress}%` }}
                     />
                   </div>
@@ -521,8 +519,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                     )}
                     {progress.status === 'completed' && (
                       <>
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-green-600">Upload completed!</span>
+                        <CheckCircle className="h-4 w-4 text-[#003756]" />
+                        <span className="font-bold text-[#003756]">Uploaded</span>
                       </>
                     )}
                     {progress.status === 'error' && (
@@ -608,33 +606,12 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
               </div>
             </div>
 
-            {/* Debug Info */}
-            <div className="p-6 bg-gray-50 border-b">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Debug Info:</h3>
-              <div className="text-xs text-gray-600 space-y-1">
-                <div>Photos count: {viewingPhotos.photos?.length || 0}</div>
-                {viewingPhotos.photos?.map((photo, index) => (
-                  <div key={photo.id} className="break-all">
-                    <div>Photo {index + 1}: {photo.photo_url}</div>
-                    <a 
-                      href={photo.photo_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline"
-                    >
-                      Test direct link
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Photos Grid */}
             <div className="p-6">
               {viewingPhotos.photos && viewingPhotos.photos.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {viewingPhotos.photos.map((photo) => (
-                    <div key={photo.id} className={`relative group ${photo.is_selected ? 'ring-2 ring-green-500' : ''}`}>
+                    <div key={photo.id} className={`relative group ${photo.is_selected ? 'ring-2 ring-[#FF5050]' : ''}`}>
                       <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
                         <img
                           src={photo.photo_url}
@@ -662,7 +639,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                         
                         {/* Selected indicator */}
                         {photo.is_selected && (
-                          <div className="absolute top-2 right-2 bg-green-600 text-white rounded-full p-1">
+                          <div className="absolute right-2 top-2 rounded-full bg-[#FF5050] p-1 text-white">
                             <CheckCircle className="w-4 h-4" />
                           </div>
                         )}
@@ -674,7 +651,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                           {photo.photo_name || 'Untitled'}
                         </div>
                         {photo.is_selected && (
-                          <div className="text-xs text-green-300 font-medium">
+                          <div className="text-xs font-bold text-[#9EFAFF]">
                             ✓ Selected
                           </div>
                         )}
@@ -790,7 +767,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                 <button
                   onClick={handleFinalPhotoUpload}
                   disabled={!finalPhotoFile || uploadingFinal}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                  className="inline-flex items-center rounded-full bg-[#FF5050] px-6 py-3 text-[14.5px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
                   {uploadingFinal ? (
                     <>

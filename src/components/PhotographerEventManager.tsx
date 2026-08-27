@@ -2,19 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  Users, 
   Camera, 
   Upload, 
-  Eye, 
   Mail, 
   Search,
-  Filter,
   Plus,
   Edit,
   Trash2,
   ExternalLink,
-  CheckCircle,
-  Clock,
   AlertCircle,
   Download,
   MessageCircle
@@ -24,8 +19,8 @@ import { HeadshotService } from '../services/HeadshotService';
 import { NotificationService } from '../services/NotificationService';
 import { SMSService } from '../services/SMSService';
 import { EmployeeGallery, HeadshotEvent, HeadshotEventStats } from '../types/headshot';
+import { BrandNav, Kicker, Headline, Sub, Card, Stat, StatusPill, OutlineButton, INK, SOFT, LINE } from './headshot/brand';
 import { PhotographerAccess } from '../types/photographer';
-import { Button } from './Button';
 import { PhotoUploader } from './PhotoUploader';
 
 const PhotographerEventManager: React.FC = () => {
@@ -241,35 +236,14 @@ const PhotographerEventManager: React.FC = () => {
   };
 
   const getStatusBadge = (gallery: EmployeeGallery) => {
-    const hasPhotos = gallery.photos && gallery.photos.length > 0;
-    const hasSelection = gallery.selected_photo_id;
-    const hasFinal = gallery.photos?.some(p => p.is_final);
+    const hasPhotos = !!gallery.photos && gallery.photos.length > 0;
+    const hasSelection = !!gallery.selected_photo_id;
+    const hasFinal = !!gallery.photos?.some(p => p.is_final);
 
-    if (hasFinal) {
-      return {
-        text: 'Final Photo Ready',
-        color: 'bg-purple-100 text-purple-800 border-purple-200',
-        icon: <CheckCircle className="w-4 h-4" />
-      };
-    } else if (hasSelection) {
-      return {
-        text: 'Photo Selected',
-        color: 'bg-green-100 text-green-800 border-green-200',
-        icon: <CheckCircle className="w-4 h-4" />
-      };
-    } else if (hasPhotos) {
-      return {
-        text: 'Photos Added',
-        color: 'bg-blue-100 text-blue-800 border-blue-200',
-        icon: <Camera className="w-4 h-4" />
-      };
-    } else {
-      return {
-        text: 'No Photos',
-        color: 'bg-gray-100 text-gray-800 border-gray-200',
-        icon: <AlertCircle className="w-4 h-4" />
-      };
-    }
+    if (hasFinal) return { text: 'Final delivered' };
+    if (hasSelection) return { text: 'Picked a photo' };
+    if (hasPhotos) return { text: 'Waiting on them' };
+    return { text: 'Needs photos' };
   };
 
   const handleDownloadSelectedPhoto = async (gallery: EmployeeGallery) => {
@@ -366,9 +340,9 @@ const PhotographerEventManager: React.FC = () => {
     // Status filter
     let matchesStatus = true;
     if (statusFilter !== 'all') {
-      const hasPhotos = gallery.photos && gallery.photos.length > 0;
-      const hasSelection = gallery.selected_photo_id;
-      const hasFinal = gallery.photos?.some(p => p.is_final);
+      const hasPhotos = !!gallery.photos && gallery.photos.length > 0;
+      const hasSelection = !!gallery.selected_photo_id;
+      const hasFinal = !!gallery.photos?.some(p => p.is_final);
 
       switch (statusFilter) {
         case 'No Photos':
@@ -391,10 +365,10 @@ const PhotographerEventManager: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`flex min-h-screen items-center justify-center bg-white font-sans ${INK}`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading event data...</p>
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-[3px] border-[#E2E9E8] border-t-[#FF5050]" />
+          <p className={`text-[15px] ${SOFT}`}>Loading your event...</p>
         </div>
       </div>
     );
@@ -402,333 +376,272 @@ const PhotographerEventManager: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Error</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => navigate(`/photographer/${token}`)}
-            className="text-blue-600 hover:text-blue-800 font-medium"
-          >
-            Back to Dashboard
-          </button>
-        </div>
+      <div className={`flex min-h-screen items-center justify-center bg-white px-5 font-sans ${INK}`}>
+        <Card className="max-w-md p-8 text-center">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#FF5050]" />
+          <h1 className="text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">Something went wrong</h1>
+          <p className={`mt-2 text-[15px] ${SOFT}`}>{error}</p>
+          <OutlineButton onClick={() => navigate(`/photographer/${token}`)} className="mt-5">
+            Back to your events
+          </OutlineButton>
+        </Card>
       </div>
     );
   }
 
   if (!event || !access) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Event Not Found</h1>
-          <p className="text-gray-600">The requested event could not be found.</p>
-        </div>
+      <div className={`flex min-h-screen items-center justify-center bg-white px-5 font-sans ${INK}`}>
+        <Card className="max-w-md p-8 text-center">
+          <h1 className="text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">We could not find this event</h1>
+          <p className={`mt-2 text-[15px] ${SOFT}`}>Check the link in your email, or contact us for a fresh one.</p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate(`/photographer/${token}`)}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">{event.event_name}</h1>
-                <p className="text-gray-600 mt-1">Event Management - {access.photographer_name}</p>
-              </div>
-            </div>
-            {event.client_logo_url && (
-              <div className="flex-shrink-0">
-                <img 
-                  src={event.client_logo_url} 
-                  alt="Client Logo" 
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className={`min-h-screen bg-white font-sans leading-[1.55] ${INK}`}>
+      <BrandNav logoUrl={event.client_logo_url} name={event.event_name} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Event Stats */}
+      <div className="mx-auto max-w-[1140px] px-5 pb-16 md:px-7">
+        {/* Page head */}
+        <div className="pb-8 pt-10 md:pt-12">
+          <button
+            onClick={() => navigate(`/photographer/${token}`)}
+            className={`mb-5 inline-flex items-center gap-1.5 text-[13.5px] font-bold ${SOFT} transition-colors hover:text-[#003756]`}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            All events
+          </button>
+          <Kicker>{event.event_name}</Kicker>
+          <Headline>Upload each person's photos.</Headline>
+          <Sub>
+            Find someone below and add their photos. They get an email with a link to pick their
+            favorite, and you upload the retouched final when it is ready.
+          </Sub>
+        </div>
+
+        {/* Stats */}
         {eventStats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <Users className="w-8 h-8 text-blue-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Employees</p>
-                  <p className="text-2xl font-bold text-gray-900">{eventStats.total_employees}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <Camera className="w-8 h-8 text-yellow-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Photos Uploaded</p>
-                  <p className="text-2xl font-bold text-gray-900">{eventStats.photos_uploaded}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Selections Made</p>
-                  <p className="text-2xl font-bold text-gray-900">{eventStats.selections_made}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <Download className="w-8 h-8 text-purple-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Final Photos</p>
-                  <p className="text-2xl font-bold text-gray-900">{eventStats.final_photos}</p>
-                </div>
-              </div>
-            </div>
+          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <Stat label="People" value={eventStats.total_employees} />
+            <Stat label="Photos uploaded" value={eventStats.photos_uploaded} />
+            <Stat label="Picked a photo" value={eventStats.selections_made} />
+            <Stat label="Finals delivered" value={eventStats.completed} />
           </div>
         )}
 
-        {/* Search and Filter */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search employees by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+        {/* Search and filter */}
+        <Card className="mb-6 p-5">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#45596A]" />
+              <input
+                type="text"
+                placeholder="Search by name or email"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full rounded-[14px] border-2 ${LINE} py-2.5 pl-11 pr-4 text-[14.5px] focus:border-[#003756] focus:outline-none`}
+              />
             </div>
-            <div className="sm:w-48">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Status</option>
-                <option value="No Photos">No Photos</option>
-                <option value="Photos Added">Photos Added</option>
-                <option value="Photo Selected">Photo Selected</option>
-                <option value="Final Photo Ready">Final Photo Ready</option>
-              </select>
-            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`rounded-[14px] border-2 ${LINE} px-4 py-2.5 text-[14.5px] font-medium text-[#003756] focus:border-[#003756] focus:outline-none sm:w-56`}
+            >
+              <option value="all">Everyone</option>
+              <option value="No Photos">Needs photos</option>
+              <option value="Photos Added">Photos added</option>
+              <option value="Photo Selected">Picked a photo</option>
+              <option value="Final Photo Ready">Final delivered</option>
+            </select>
           </div>
-        </div>
+        </Card>
 
         {/* Employee List */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-medium text-gray-900">Employee Galleries</h2>
-                <p className="text-sm text-gray-600">Manage photos and galleries for each employee</p>
-              </div>
-              <Button
-                onClick={handleAddEmployee}
-                className="flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Employee</span>
-              </Button>
+        <Card className="overflow-hidden">
+          <div className={`flex flex-wrap items-center justify-between gap-3 border-b ${LINE} px-6 py-5`}>
+            <div>
+              <h2 className="text-[17px] font-extrabold tracking-[-.02em] text-[#003756]">Everyone at this event</h2>
+              <p className={`mt-1 text-[14px] ${SOFT}`}>Add photos to a person's gallery, or add someone who is not on the list.</p>
             </div>
+            <OutlineButton onClick={handleAddEmployee}>
+              <Plus className="h-4 w-4" />
+              Add person
+            </OutlineButton>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employee
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Gallery
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredGalleries.map((gallery) => {
-                  const status = getStatusBadge(gallery);
-                  const galleryUrl = `${window.location.origin}/gallery/${gallery.unique_token}`;
-                  
-                  return (
-                    <tr key={gallery.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {gallery.employee_name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {gallery.email}
-                          </div>
-                        </div>
-                      </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${status.color}`}>
-                          {status.icon}
-                          <span className="ml-1">{status.text}</span>
-                        </span>
-                      </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <a
-                          href={galleryUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          View Gallery
-                        </a>
-                      </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
+          {filteredGalleries.length === 0 ? (
+            <div className="px-6 py-16 text-center">
+              <Camera className="mx-auto mb-4 h-10 w-10 text-[#45596A]" />
+              <p className="text-[16px] font-bold text-[#003756]">
+                {galleries.length === 0 ? 'Nobody on the list yet' : 'Nobody matches that search'}
+              </p>
+              <p className={`mt-1.5 text-[14.5px] ${SOFT}`}>
+                {galleries.length === 0
+                  ? 'Add someone with the button above, or ask us to import the roster.'
+                  : 'Try a different name, or clear the filter.'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-[#003756]">
+                    {['Person', 'Where they are', 'Add photos', ''].map((label, i) => (
+                      <th
+                        key={i}
+                        className="px-6 py-3 text-left text-[11px] font-extrabold uppercase tracking-[.08em] text-white"
+                      >
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredGalleries.map((gallery, i) => {
+                    const status = getStatusBadge(gallery);
+                    const galleryUrl = `${window.location.origin}/gallery/${gallery.unique_token}`;
+                    const hasPhotos = !!gallery.photos && gallery.photos.length > 0;
+                    const hasFinal = !!gallery.photos?.some(p => p.is_final);
+
+                    return (
+                      <tr
+                        key={gallery.id}
+                        className={`${i % 2 ? 'bg-[#F1F6F5]' : 'bg-white'} align-top transition-colors hover:bg-[#9EFAFF]/25`}
+                      >
+                        {/* Person */}
+                        <td className="px-6 py-4">
+                          <div className="text-[15px] font-bold text-[#003756]">{gallery.employee_name}</div>
+                          <div className={`text-[13.5px] ${SOFT}`}>{gallery.email}</div>
+                          <a
+                            href={galleryUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1.5 inline-flex items-center gap-1.5 text-[13px] font-bold text-[#003756] underline underline-offset-2 hover:opacity-70"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            See their gallery
+                          </a>
+                        </td>
+
+                        {/* Status */}
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <StatusPill tone={hasFinal ? 'navy' : hasPhotos ? 'cyan' : 'mist'}>
+                            {status.text}
+                          </StatusPill>
+                        </td>
+
+                        {/* Primary action */}
+                        <td className="whitespace-nowrap px-6 py-4">
                           <button
                             onClick={() => handleUploadPhotos(gallery)}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            className="inline-flex items-center gap-2 rounded-full bg-[#FF5050] px-5 py-2.5 text-[13.5px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.03]"
                           >
-                            <Upload className="w-4 h-4 inline mr-1" />
-                            Upload Photos
+                            <Upload className="h-4 w-4" />
+                            {hasPhotos ? 'Add more' : 'Upload photos'}
                           </button>
-                          
-                          {gallery.photos && gallery.photos.length > 0 && (
+                          {hasPhotos && !hasFinal && (
                             <button
                               onClick={() => handleUploadFinal(gallery)}
-                              className="text-green-600 hover:text-green-800 text-sm font-medium"
+                              className="mt-2 flex items-center gap-1.5 text-[13px] font-bold text-[#003756] hover:opacity-70"
                             >
-                              <Upload className="w-4 h-4 inline mr-1" />
-                              Upload Final
+                              <Upload className="h-3.5 w-3.5" />
+                              Upload retouched final
                             </button>
                           )}
+                        </td>
 
-                          {gallery.selected_photo_id && (
-                            <button
-                              onClick={() => handleDownloadSelectedPhoto(gallery)}
-                              className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                            >
-                              <Download className="w-4 h-4 inline mr-1" />
-                              Download Selected
-                            </button>
-                          )}
-                          
-                          {gallery.photos && gallery.photos.length > 0 && !gallery.photos.some(p => p.is_final) && (
-                            <button
-                              onClick={() => handleSendGalleryReadyEmail(gallery)}
-                              className="text-purple-600 hover:text-purple-800 text-sm font-medium"
-                            >
-                              <Mail className="w-4 h-4 inline mr-1" />
-                              Send Gallery Email
-                            </button>
-                          )}
-                          
-                          {gallery.photos?.some(p => p.is_final) && (
-                            <button
-                              onClick={() => handleSendFinalPhotoEmail(gallery)}
-                              className="text-pink-600 hover:text-pink-800 text-sm font-medium"
-                            >
-                              <Mail className="w-4 h-4 inline mr-1" />
-                              Send Final Email
-                            </button>
-                          )}
-
-                          {gallery.phone && gallery.photos && gallery.photos.length > 0 && !gallery.selected_photo_id && (
-                            <button
-                              onClick={() => handleSendSMSReminder(gallery)}
-                              disabled={sendingSMS.has(gallery.id)}
-                              className="text-teal-600 hover:text-teal-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {sendingSMS.has(gallery.id) ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600 inline mr-1"></div>
-                                  Sending...
-                                </>
-                              ) : (
-                                <>
-                                  <MessageCircle className="w-4 h-4 inline mr-1" />
-                                  Send SMS Reminder
-                                </>
-                              )}
-                            </button>
-                          )}
-                          
-                          <button
-                            onClick={() => handleEditEmployee(gallery)}
-                            className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                            title="Edit employee info"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          
-                          <button
-                            onClick={() => handleDeleteEmployee(gallery)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium"
-                            title="Delete employee"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                        {/* Everything else, deliberately quiet */}
+                        <td className="px-6 py-4">
+                          <div className={`flex flex-col items-start gap-1.5 text-[13px] font-medium ${SOFT}`}>
+                            {gallery.selected_photo_id && (
+                              <button
+                                onClick={() => handleDownloadSelectedPhoto(gallery)}
+                                className="flex items-center gap-1.5 hover:text-[#003756]"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                Download their pick
+                              </button>
+                            )}
+                            {hasPhotos && !hasFinal && (
+                              <button
+                                onClick={() => handleSendGalleryReadyEmail(gallery)}
+                                className="flex items-center gap-1.5 hover:text-[#003756]"
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                                Email them the link
+                              </button>
+                            )}
+                            {hasFinal && (
+                              <button
+                                onClick={() => handleSendFinalPhotoEmail(gallery)}
+                                className="flex items-center gap-1.5 hover:text-[#003756]"
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                                Email the final
+                              </button>
+                            )}
+                            {gallery.phone && hasPhotos && !gallery.selected_photo_id && (
+                              <button
+                                onClick={() => handleSendSMSReminder(gallery)}
+                                disabled={sendingSMS.has(gallery.id)}
+                                className="flex items-center gap-1.5 hover:text-[#003756] disabled:opacity-50"
+                              >
+                                {sendingSMS.has(gallery.id) ? (
+                                  <>
+                                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#E2E9E8] border-t-[#003756]" />
+                                    Sending
+                                  </>
+                                ) : (
+                                  <>
+                                    <MessageCircle className="h-3.5 w-3.5" />
+                                    Text a reminder
+                                  </>
+                                )}
+                              </button>
+                            )}
+                            <div className="mt-1 flex items-center gap-3">
+                              <button
+                                onClick={() => handleEditEmployee(gallery)}
+                                className="flex items-center gap-1.5 hover:text-[#003756]"
+                                title="Edit their details"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteEmployee(gallery)}
+                                className="flex items-center gap-1.5 hover:text-[#FF5050]"
+                                title="Remove from this event"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
 
         {/* Footer */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-3">
-                <span className="text-gray-600 font-medium">Powered by</span>
-                <img 
-                  src="/shortcut-logo-blue.svg" 
-                  alt="Shortcut" 
-                  className="h-6 w-auto ml-1"
-                />
-              </div>
-              <p className="text-gray-600 mb-2">
-                Photographer Portal - Need help or have questions?
-              </p>
-              <a 
-                href="mailto:hello@getshortcut.co" 
-                className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
-              >
-                hello@getshortcut.co
-              </a>
-            </div>
-          </div>
-        </div>
+        <Card tone="mist" className="mt-10 px-6 py-8 text-center">
+          <p className="text-[16px] font-bold text-[#003756]">Need a hand?</p>
+          <p className={`mt-1.5 text-[14.5px] ${SOFT}`}>We answer fast during a shoot.</p>
+          <a
+            href="mailto:hello@getshortcut.co"
+            className="mt-4 inline-flex items-center rounded-full border-2 border-[#003756] bg-white px-6 py-2.5 text-[14px] font-bold text-[#003756] transition-colors hover:bg-white/70"
+          >
+            hello@getshortcut.co
+          </a>
+        </Card>
       </div>
 
       {/* Photo Uploader Modal */}
@@ -751,73 +664,49 @@ const PhotographerEventManager: React.FC = () => {
         />
       )}
 
-      {/* Add/Edit Employee Modal */}
+      {/* Add / edit person */}
       {showAddEmployeeModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {editingEmployee ? 'Edit Employee' : 'Add Employee'}
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Employee Name *
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,34,50,.55)] p-4">
+          <Card className="w-full max-w-md p-7">
+            <h3 className="text-[20px] font-extrabold tracking-[-.02em] text-[#003756]">
+              {editingEmployee ? 'Edit their details' : 'Add someone'}
+            </h3>
+            <p className={`mt-1.5 text-[14px] ${SOFT}`}>
+              They get their own gallery link once you upload photos.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              {([
+                { key: 'employee_name', label: 'Name', type: 'text', placeholder: 'Jane Smith', required: true },
+                { key: 'email', label: 'Email', type: 'email', placeholder: 'jane@company.com', required: true },
+                { key: 'phone', label: 'Phone (optional)', type: 'tel', placeholder: 'For text reminders', required: false },
+              ] as const).map(f => (
+                <div key={f.key}>
+                  <label className="mb-1.5 block text-[12.5px] font-bold uppercase tracking-[.06em] text-[#45596A]">
+                    {f.label}
                   </label>
                   <input
-                    type="text"
-                    value={employeeFormData.employee_name}
-                    onChange={(e) => setEmployeeFormData({...employeeFormData, employee_name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter employee name"
+                    type={f.type}
+                    value={employeeFormData[f.key]}
+                    onChange={(e) => setEmployeeFormData({ ...employeeFormData, [f.key]: e.target.value })}
+                    className={`w-full rounded-[14px] border-2 ${LINE} px-4 py-2.5 text-[14.5px] focus:border-[#003756] focus:outline-none`}
+                    placeholder={f.placeholder}
                   />
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    value={employeeFormData.email}
-                    onChange={(e) => setEmployeeFormData({...employeeFormData, email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter email address"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone (Optional)
-                  </label>
-                  <input
-                    type="tel"
-                    value={employeeFormData.phone}
-                    onChange={(e) => setEmployeeFormData({...employeeFormData, phone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter phone number"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowAddEmployeeModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveEmployee}
-                  disabled={!employeeFormData.employee_name.trim() || !employeeFormData.email.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {editingEmployee ? 'Update Employee' : 'Add Employee'}
-                </button>
-              </div>
+              ))}
             </div>
-          </div>
+
+            <div className="mt-7 flex justify-end gap-3">
+              <OutlineButton onClick={() => setShowAddEmployeeModal(false)}>Cancel</OutlineButton>
+              <button
+                onClick={handleSaveEmployee}
+                disabled={!employeeFormData.employee_name.trim() || !employeeFormData.email.trim()}
+                className="inline-flex items-center gap-2 rounded-full bg-[#FF5050] px-6 py-3 text-[14.5px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {editingEmployee ? 'Save changes' : 'Add person'}
+              </button>
+            </div>
+          </Card>
         </div>
       )}
     </div>

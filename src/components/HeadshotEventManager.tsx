@@ -45,6 +45,7 @@ export const HeadshotEventManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'employees' | 'photos' | 'links' | 'photographers'>('employees');
   const [uploadingForEmployee, setUploadingForEmployee] = useState<{id: string, name: string} | null>(null);
   const [uploadMode, setUploadMode] = useState<'photos' | 'final'>('photos');
+  const [employeeRefreshKey, setEmployeeRefreshKey] = useState(0);
 
   useEffect(() => {
     fetchEvents();
@@ -128,6 +129,7 @@ export const HeadshotEventManager: React.FC = () => {
       const galleries = await HeadshotService.createEmployeeGalleries(selectedEvent.id, employees);
       console.log('Created galleries:', galleries);
       await fetchEventStats(selectedEvent.id);
+      setEmployeeRefreshKey(k => k + 1);
       setShowCSVUploader(false);
       alert(`Successfully imported ${employees.length} employees!`);
     } catch (error) {
@@ -410,6 +412,7 @@ export const HeadshotEventManager: React.FC = () => {
                 
                 <EmployeeManager
                   eventId={selectedEvent.id}
+                  refreshKey={employeeRefreshKey}
                   onEmployeeUpdate={() => fetchEventStats(selectedEvent.id)}
                   onUploadPhotos={handleUploadPhotosForEmployee}
                   onUploadFinal={handleUploadFinalForEmployee}

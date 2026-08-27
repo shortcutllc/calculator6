@@ -10,6 +10,8 @@ import { CustomUrlHelper } from '../utils/customUrlHelper';
 
 interface EmployeeManagerProps {
   eventId: string;
+  /** Bump to force a reload after employees are added outside this component (e.g. CSV import). */
+  refreshKey?: number;
   onEmployeeUpdate: () => void;
   onUploadPhotos: (employeeId: string, employeeName: string) => void;
   onUploadFinal: (employeeId: string, employeeName: string) => void;
@@ -23,6 +25,7 @@ interface EmployeeFormData {
 
 export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   eventId,
+  refreshKey,
   onEmployeeUpdate,
   onUploadPhotos,
   onUploadFinal
@@ -48,7 +51,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   useEffect(() => {
     fetchEventName();
     fetchEmployees();
-  }, [eventId]);
+  }, [eventId, refreshKey]);
 
   const fetchEventName = async () => {
     try {
