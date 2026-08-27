@@ -247,33 +247,34 @@ const PhotographerEventManager: React.FC = () => {
   };
 
   const handleDownloadSelectedPhoto = async (gallery: EmployeeGallery) => {
-    if (!gallery.selected_photo_id) {
-      alert('No photo selected by this employee yet.');
+    // is_selected carries the whole set; selected_photo_id is only the first pick.
+    const picks = (gallery.photos || []).filter(p => p.is_selected && !p.is_final);
+    const fallback = gallery.photos?.find(p => p.id === gallery.selected_photo_id);
+    const toDownload = picks.length > 0 ? picks : fallback ? [fallback] : [];
+
+    if (toDownload.length === 0) {
+      alert('They have not picked a photo yet.');
       return;
     }
 
     try {
-      const selectedPhoto = gallery.photos?.find(p => p.id === gallery.selected_photo_id);
-      if (!selectedPhoto) {
-        alert('Could not find the selected photo.');
-        return;
+      for (const [i, photo] of toDownload.entries()) {
+        const response = await fetch(photo.photo_url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        const suffix = toDownload.length > 1 ? `_pick${i + 1}` : '_pick';
+        a.download = `${gallery.employee_name.replace(/\s+/g, '_')}${suffix}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       }
-
-      // Fetch the image and download it
-      const response = await fetch(selectedPhoto.photo_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `${gallery.employee_name.replace(/\s+/g, '_')}_selected_photo.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading photo:', error);
-      alert('Failed to download photo. Please try again.');
+      alert('Could not download. Please try again.');
     }
   };
 

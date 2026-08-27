@@ -9,6 +9,8 @@ export interface HeadshotEvent {
   client_logo_url?: string;
   manager_token?: string;
   selection_deadline?: string;
+  /** How many photos each employee may pick for retouching. Defaults to 1. */
+  selections_allowed?: number;
   created_at: string;
   updated_at: string;
 }

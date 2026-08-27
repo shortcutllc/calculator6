@@ -41,13 +41,13 @@ const EmployeeGallery: React.FC = () => {
 
   const [gallery, setGallery] = useState<EmployeeGalleryType | null>(null);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [canChangeSelection, setCanChangeSelection] = useState(false);
-  const [eventData, setEventData] = useState<{ event_name: string; client_logo_url?: string; selection_deadline?: string } | null>(null);
+  const [eventData, setEventData] = useState<{ event_name: string; client_logo_url?: string; selection_deadline?: string; selections_allowed?: number } | null>(null);
   const [notes, setNotes] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
@@ -83,11 +83,9 @@ const EmployeeGallery: React.FC = () => {
         setGallery(galleryData);
         setPhotos(galleryData.photos || []);
 
-        // Check if a photo is already selected
-        const selected = galleryData.photos?.find(photo => photo.is_selected);
-        if (selected) {
-          setSelectedPhoto(selected.id);
-        }
+        // Restore whatever they already picked
+        const alreadyPicked = (galleryData.photos || []).filter(photo => photo.is_selected);
+        setSelectedPhotos(alreadyPicked.map(photo => photo.id));
 
         // Load existing notes
         setNotes(galleryData.notes || '');
@@ -100,11 +98,24 @@ const EmployeeGallery: React.FC = () => {
 
         // Fetch event data for client logo
         try {
-          const { data: event, error } = await supabase
+          const BASE_COLS = 'event_name, client_logo_url, selection_deadline';
+
+          // selections_allowed arrives with its migration. Until that has run,
+          // asking for it fails the whole query, which would drop the client
+          // logo and event name from this page, so fall back to the old columns.
+          let { data: event, error } = await supabase
             .from('headshot_events')
-            .select('event_name, client_logo_url, selection_deadline')
+            .select(`${BASE_COLS}, selections_allowed`)
             .eq('id', galleryData.event_id)
             .single();
+
+          if (error) {
+            ({ data: event, error } = await supabase
+              .from('headshot_events')
+              .select(BASE_COLS)
+              .eq('id', galleryData.event_id)
+              .single());
+          }
 
           if (!error && event) {
             setEventData(event);
@@ -137,9 +148,17 @@ const EmployeeGallery: React.FC = () => {
   };
 
   const handlePhotoSelect = (photoId: string) => {
-    if (canChangeSelection) {
-      setSelectedPhoto(photoId);
-    }
+    if (!canChangeSelection) return;
+
+    setSelectedPhotos(prev => {
+      if (prev.includes(photoId)) {
+        return prev.filter(id => id !== photoId);
+      }
+      // At the cap with one pick allowed, tapping another photo swaps it.
+      if (maxPicks === 1) return [photoId];
+      if (prev.length >= maxPicks) return prev;
+      return [...prev, photoId];
+    });
   };
 
   const handlePhotoExpand = (photo: GalleryPhoto) => {
@@ -161,16 +180,19 @@ const EmployeeGallery: React.FC = () => {
   };
 
   const handleSubmitSelection = async () => {
-    if (!selectedPhoto || !gallery) return;
+    if (selectedPhotos.length === 0 || !gallery) return;
 
     try {
       setIsSubmitting(true);
       setError(null);
 
-      // Update the gallery with the selected photo
-      await HeadshotService.updateGalleryStatus(gallery.id, 'selection_made', selectedPhoto);
+      await HeadshotService.selectPhotos(selectedPhotos, gallery.id);
 
-      setSuccess('Selection confirmed. We will email you when your retouched photo is ready to download.');
+      setSuccess(
+        selectedPhotos.length > 1
+          ? 'Picks confirmed. We will email you when your retouched photos are ready to download.'
+          : 'Pick confirmed. We will email you when your retouched photo is ready to download.'
+      );
 
       // Update local state to reflect the change
       setCanChangeSelection(false);
@@ -280,6 +302,8 @@ const EmployeeGallery: React.FC = () => {
   }
 
   const isSelectionMade = gallery.status === 'selection_made' || gallery.status === 'retouching' || gallery.status === 'completed';
+  const maxPicks = HeadshotService.selectionsAllowed(eventData);
+  const picksLeft = maxPicks - selectedPhotos.length;
   const hasFinalPhoto = photos.some(photo => photo.is_final);
   const firstName = gallery.employee_name?.split(' ')[0] || gallery.employee_name;
 
@@ -310,13 +334,19 @@ const EmployeeGallery: React.FC = () => {
             {eventData?.event_name || 'Your headshot gallery'}
           </p>
           <h1 className="text-[clamp(28px,4vw,40px)] font-extrabold leading-[1.06] tracking-[-.03em] text-[#003756]">
-            {hasFinalPhoto ? 'Your headshot is ready.' : isSelectionMade ? `Nice pick, ${firstName}.` : 'Choose your headshot.'}
+            {hasFinalPhoto
+              ? 'Your headshot is ready.'
+              : isSelectionMade
+              ? `Nice pick, ${firstName}.`
+              : maxPicks > 1
+              ? 'Choose your headshots.'
+              : 'Choose your headshot.'}
           </h1>
           <p className={`mt-3 max-w-[52ch] text-[16px] leading-[1.5] ${SOFT}`}>
             {hasFinalPhoto
               ? 'Your retouched photo is below. Download it and put it everywhere.'
               : isSelectionMade
-              ? 'Your photo is with our retouchers. We will email you when the final is ready.'
+              ? 'Your photos are with our retouchers. We will email you when the finals are ready.'
               : `Welcome back, ${firstName}. Pick the photo we should retouch, and we will take it from there.`}
           </p>
           {deadlineLabel && !isSelectionMade && !hasFinalPhoto && (
@@ -442,15 +472,30 @@ const EmployeeGallery: React.FC = () => {
 
             {/* Selection photos */}
             <div>
-              <h2 className="mb-4 text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">
-                {hasFinalPhoto ? 'Your original photos' : 'Your photos'}
-              </h2>
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">
+                  {hasFinalPhoto ? 'Your original photos' : 'Your photos'}
+                </h2>
+                {canChangeSelection && !hasFinalPhoto && maxPicks > 1 && (
+                  <p className={`text-[14px] font-bold ${picksLeft === 0 ? 'text-[#FF5050]' : SOFT}`}>
+                    {selectedPhotos.length} of {maxPicks} picked
+                    {picksLeft > 0
+                      ? ` \u00b7 pick up to ${picksLeft} more`
+                      : ' \u00b7 tap one again to swap it out'}
+                  </p>
+                )}
+              </div>
+              {canChangeSelection && !hasFinalPhoto && maxPicks > 1 && (
+                <p className={`mb-4 text-[15px] ${SOFT}`}>
+                  You can have up to {maxPicks} photos retouched. Pick your favorites, then confirm.
+                </p>
+              )}
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {photos.filter(photo => !photo.is_final).map((photo) => (
                   <div
                     key={photo.id}
                     className={`group relative overflow-hidden rounded-[18px] bg-white transition-all duration-200 ${SHADOW} ${
-                      selectedPhoto === photo.id
+                      selectedPhotos.includes(photo.id)
                         ? 'border-[3px] border-[#FF5050]'
                         : `border ${LINE} hover:border-[#003756]`
                     }`}
@@ -466,9 +511,9 @@ const EmployeeGallery: React.FC = () => {
                         onDragStart={(e) => e.preventDefault()}
                         draggable={false}
                       />
-                      {selectedPhoto === photo.id && (
-                        <span className="pointer-events-none absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-[#FF5050] text-white shadow-[0_2px_10px_rgba(3,34,50,.3)]">
-                          <Check className="h-5 w-5" />
+                      {selectedPhotos.includes(photo.id) && (
+                        <span className="pointer-events-none absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-[#FF5050] text-[15px] font-extrabold text-white shadow-[0_2px_10px_rgba(3,34,50,.3)]">
+                          {maxPicks > 1 ? selectedPhotos.indexOf(photo.id) + 1 : <Check className="h-5 w-5" />}
                         </span>
                       )}
                       <button
@@ -485,9 +530,9 @@ const EmployeeGallery: React.FC = () => {
                       <p className="text-[13.5px] font-bold text-[#003756]">
                         {photo.photo_name || 'Headshot'}
                       </p>
-                      {selectedPhoto === photo.id && (
+                      {selectedPhotos.includes(photo.id) && (
                         <p className="text-[11.5px] font-bold uppercase tracking-[.06em] text-[#FF5050]">
-                          {canChangeSelection ? 'Selected' : 'Selected for retouching'}
+                          {canChangeSelection ? 'Picked' : 'Being retouched'}
                         </p>
                       )}
                     </div>
@@ -497,7 +542,7 @@ const EmployeeGallery: React.FC = () => {
             </div>
 
             {/* Confirm */}
-            {canChangeSelection && !hasFinalPhoto && selectedPhoto && !isDeadlinePassed && (
+            {canChangeSelection && !hasFinalPhoto && selectedPhotos.length > 0 && !isDeadlinePassed && (
               <div className="flex justify-center pt-2">
                 <button
                   onClick={handleSubmitSelection}
@@ -512,7 +557,9 @@ const EmployeeGallery: React.FC = () => {
                   ) : (
                     <>
                       <Check className="h-4 w-4" />
-                      Confirm my selection
+                      {selectedPhotos.length > 1
+                        ? `Confirm these ${selectedPhotos.length}`
+                        : 'Confirm my pick'}
                     </>
                   )}
                 </button>

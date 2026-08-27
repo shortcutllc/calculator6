@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Users, Upload } from 'lucide-react';
+import { Calendar, Users, Upload, Check } from 'lucide-react';
 import { Modal, Field, CoralButton, OutlineButton, SOFT, LINE, inputClass } from './headshot/brand';
 import { HeadshotEvent } from '../types/headshot';
 import { supabase } from '../lib/supabaseClient';
@@ -22,7 +22,8 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
     status: editingEvent?.status || 'draft' as HeadshotEvent['status'],
     client_logo_url: editingEvent?.client_logo_url || '',
     selection_deadline: editingEvent?.selection_deadline ? 
-      editingEvent.selection_deadline.slice(0, 10) : ''
+      editingEvent.selection_deadline.slice(0, 10) : '',
+    selections_allowed: editingEvent?.selections_allowed ?? 1
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,7 +42,11 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
     }
 
     if (formData.total_employees < 0) {
-      newErrors.total_employees = 'Total employees cannot be negative';
+      newErrors.total_employees = 'This cannot be negative';
+    }
+
+    if (!formData.selections_allowed || formData.selections_allowed < 1) {
+      newErrors.selections_allowed = 'Everyone has to be able to pick at least one';
     }
 
     if (formData.selection_deadline) {
@@ -69,6 +74,7 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
       ...formData,
       event_date: formData.event_date,
       total_employees: formData.total_employees || 0,
+      selections_allowed: formData.selections_allowed || 1,
       selection_deadline: formData.selection_deadline ? 
         `${formData.selection_deadline}T00:00:00` : undefined
     };
@@ -195,6 +201,27 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
             <Users className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#45596A]" />
           </div>
           <Err msg={errors.total_employees} />
+        </Field>
+
+        <Field
+          label="Picks for retouching"
+          hint={
+            formData.selections_allowed > 1
+              ? `Each person can choose up to ${formData.selections_allowed} photos to be retouched.`
+              : 'Each person chooses one photo to be retouched. Raise this if the client paid for more.'
+          }
+        >
+          <div className="relative">
+            <input
+              type="number"
+              min="1"
+              value={formData.selections_allowed}
+              onChange={(e) => handleInputChange('selections_allowed', parseInt(e.target.value) || 1)}
+              className={fieldClass(errors.selections_allowed)}
+            />
+            <Check className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#45596A]" />
+          </div>
+          <Err msg={errors.selections_allowed} />
         </Field>
 
         <Field

@@ -261,6 +261,12 @@ export const HeadshotEventManager: React.FC = () => {
                   <Users className="h-4 w-4" />
                   {event.total_employees} people
                 </div>
+                <div className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  {HeadshotService.selectionsAllowed(event) > 1
+                    ? `${HeadshotService.selectionsAllowed(event)} picks for retouching`
+                    : '1 pick for retouching'}
+                </div>
                 {event.client_logo_url && (
                   <div className="flex items-center gap-2">
                     <ImageIcon className="h-4 w-4" />

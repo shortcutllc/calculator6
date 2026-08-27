@@ -82,7 +82,7 @@ export const EmployeeLinksModal: React.FC<EmployeeLinksModalProps> = ({
           {galleries.map((gallery) => {
             const galleryUrl = generateGalleryUrl(gallery.unique_token);
             const isCopied = copiedToken === gallery.unique_token;
-            const selectedPhoto = gallery.photos?.find(p => p.id === gallery.selected_photo_id);
+            const picks = (gallery.photos || []).filter(p => p.is_selected && !p.is_final);
 
             return (
               <Card key={gallery.id} className="p-5">
@@ -93,18 +93,25 @@ export const EmployeeLinksModal: React.FC<EmployeeLinksModalProps> = ({
                   </StatusPill>
                 </div>
 
-                {selectedPhoto && (
+                {picks.length > 0 && (
                   <div className="mb-4 flex items-center gap-3">
-                    <img
-                      src={selectedPhoto.photo_url}
-                      alt=""
-                      className="h-16 w-16 rounded-[12px] border-[3px] border-[#FF5050] object-cover"
-                    />
+                    <div className="flex gap-2">
+                      {picks.map(pick => (
+                        <img
+                          key={pick.id}
+                          src={pick.photo_url}
+                          alt=""
+                          className="h-16 w-16 rounded-[12px] border-[3px] border-[#FF5050] object-cover"
+                        />
+                      ))}
+                    </div>
                     <div>
                       <div className="text-[14px] font-bold text-[#003756]">
-                        {selectedPhoto.photo_name || 'Their pick'}
+                        {picks.length > 1 ? `${picks.length} picks` : 'Their pick'}
                       </div>
-                      <div className={`text-[13px] ${SOFT}`}>Chosen for retouching</div>
+                      <div className={`text-[13px] ${SOFT}`}>
+                        {picks.length > 1 ? 'Chosen for retouching' : 'Chosen for retouching'}
+                      </div>
                     </div>
                   </div>
                 )}

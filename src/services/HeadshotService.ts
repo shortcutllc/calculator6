@@ -263,22 +263,43 @@ export class HeadshotService {
   }
 
   static async selectPhoto(photoId: string, galleryId: string): Promise<void> {
-    // First, unselect all photos in this gallery
-    await supabase
+    return this.selectPhotos([photoId], galleryId);
+  }
+
+  /**
+   * Record which photos an employee wants retouched.
+   *
+   * `gallery_photos.is_selected` is the source of truth for the whole set;
+   * `employee_galleries.selected_photo_id` keeps the first pick so the many
+   * existing single-selection reads (emails, downloads, stats) still work.
+   */
+  static async selectPhotos(photoIds: string[], galleryId: string): Promise<void> {
+    if (photoIds.length === 0) {
+      throw new Error('Pick at least one photo.');
+    }
+
+    // Clear the previous set, then mark the new one.
+    const { error: clearError } = await supabase
       .from('gallery_photos')
       .update({ is_selected: false })
       .eq('gallery_id', galleryId);
 
-    // Then select the chosen photo
+    if (clearError) throw clearError;
+
     const { error } = await supabase
       .from('gallery_photos')
       .update({ is_selected: true })
-      .eq('id', photoId);
+      .in('id', photoIds);
 
     if (error) throw error;
 
-    // Update gallery status
-    await this.updateGalleryStatus(galleryId, 'selection_made', photoId);
+    await this.updateGalleryStatus(galleryId, 'selection_made', photoIds[0]);
+  }
+
+  /** How many photos this event lets each person pick. Missing column or value means 1. */
+  static selectionsAllowed(event?: Pick<HeadshotEvent, 'selections_allowed'> | null): number {
+    const n = event?.selections_allowed;
+    return typeof n === 'number' && n >= 1 ? n : 1;
   }
 
   static async uploadFinalPhoto(galleryId: string, file: File): Promise<GalleryPhoto> {
