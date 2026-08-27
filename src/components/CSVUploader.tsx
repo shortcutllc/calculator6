@@ -22,7 +22,6 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
   label
 }) => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvContent, setCsvContent] = useState<string>('');
   const [parsedData, setParsedData] = useState<CSVData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -47,8 +46,6 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      setCsvContent(content);
-      
       try {
         const parsed = type === 'mindfulness' 
           ? MindfulnessProgramService.parseCSV(content)
@@ -74,8 +71,6 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
       const reader = new FileReader();
       reader.onload = (event) => {
         const content = event.target?.result as string;
-        setCsvContent(content);
-        
         try {
           const parsed = type === 'mindfulness'
             ? MindfulnessProgramService.parseCSV(content)
@@ -180,7 +175,6 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
                   variant="secondary"
                   onClick={() => {
                     setCsvFile(null);
-                    setCsvContent('');
                     setParsedData([]);
                     setError('');
                     if (fileInputRef.current) {
@@ -229,7 +223,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
           )}
 
           {/* Preview */}
-          {parsedEmployees.length > 0 && (
+          {parsedData.length > 0 && (
             <div className="space-y-4">
               <h3 className="font-medium text-gray-900 flex items-center space-x-2">
                 <Users className="w-5 h-5" />

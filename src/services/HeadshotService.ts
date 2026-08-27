@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { CustomUrlService } from './CustomUrlService';
 import { ClientNameExtractor } from '../utils/clientNameExtractor';
+import { parseCSVLine, splitCSVLines } from '../utils/csv';
 import { 
   HeadshotEvent, 
   EmployeeGallery, 
@@ -435,8 +436,9 @@ export class HeadshotService {
 
   // CSV Processing
   static parseCSV(csvContent: string): CSVEmployeeData[] {
-    const lines = csvContent.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const lines = splitCSVLines(csvContent);
+    if (lines.length === 0) return [];
+    const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
     
     console.log('CSV Headers:', headers);
     
@@ -456,10 +458,7 @@ export class HeadshotService {
     const employees: CSVEmployeeData[] = [];
     
     for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      const values = line.split(',').map(v => v.trim());
+      const values = parseCSVLine(lines[i]);
       const employee: CSVEmployeeData = {
         name: nameIndex >= 0 ? values[nameIndex] || '' : values[0] || '',
         email: emailIndex >= 0 ? values[emailIndex] || '' : values[1] || '',
