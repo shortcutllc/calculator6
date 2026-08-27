@@ -2,17 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   Plus, 
-  X, 
   CheckCircle, 
   AlertCircle,
-  Calendar,
   User
 } from 'lucide-react';
 import { PhotographerService } from '../services/PhotographerService';
-import { HeadshotService } from '../services/HeadshotService';
 import { PhotographerToken, PhotographerEventAssignment } from '../types/photographer';
-import { HeadshotEvent } from '../types/headshot';
-import { Button } from './Button';
+import { Modal, Card, CoralButton, OutlineButton, SOFT, LINE } from './headshot/brand';
 
 interface PhotographerEventAssignmentsProps {
   eventId: string;
@@ -39,7 +35,7 @@ export const PhotographerEventAssignments: React.FC<PhotographerEventAssignments
     try {
       setLoading(true);
       const [photographersData, assignmentsData] = await Promise.all([
-        PhotographerService.getPhotographerTokens(),
+        PhotographerService.getAllTokens(),
         PhotographerService.getEventAssignments(eventId)
       ]);
       
@@ -113,173 +109,143 @@ export const PhotographerEventAssignments: React.FC<PhotographerEventAssignments
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          </div>
-        </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,34,50,.55)] p-4">
+        <Card className="p-10">
+          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#E2E9E8] border-t-[#FF5050]" />
+        </Card>
       </div>
     );
   }
 
+  const available = getAvailablePhotographers();
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Manage Photographers</h2>
-              <p className="text-sm text-gray-600 mt-1">Event: {eventName}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
+    <Modal
+      onClose={onClose}
+      title="Who is shooting this event?"
+      sub={eventName}
+      wide
+    >
+      {error && (
+        <div className="mb-5 flex items-start gap-3 rounded-[14px] border-2 border-[#FF5050] bg-white px-5 py-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 flex-none text-[#FF5050]" />
+          <p className="text-[14px] text-[#032232]">{error}</p>
         </div>
+      )}
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center">
-                <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-                <p className="text-red-700">{error}</p>
-              </div>
-            </div>
-          )}
+      {/* Assigned */}
+      <div className="mb-8">
+        <h3 className="mb-4 flex items-center gap-2 text-[15px] font-extrabold text-[#003756]">
+          <CheckCircle className="h-4 w-4" />
+          On this event ({assignments.length})
+        </h3>
 
-          {/* Assigned Photographers */}
-          <div className="mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-              Assigned Photographers ({assignments.length})
-            </h3>
-            
-            {assignments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No photographers assigned to this event</p>
-                <p className="text-sm">Assign photographers below to give them access to this event</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {assignments.map((assignment) => (
-                  <div
-                    key={assignment.id}
-                    className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <User className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {assignment.photographer?.photographer_name}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {assignment.photographer?.photographer_email}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Assigned: {new Date(assignment.assigned_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleRemovePhotographer(assignment.photographer_token_id)}
-                      disabled={assigning}
-                      className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+        {assignments.length === 0 ? (
+          <Card tone="mist" className="px-6 py-10 text-center">
+            <Users className="mx-auto mb-3 h-9 w-9 text-[#45596A]" />
+            <p className="text-[15px] font-bold text-[#003756]">Nobody assigned yet</p>
+            <p className={`mt-1.5 text-[14px] ${SOFT}`}>
+              Add someone below and they can upload photos for this event.
+            </p>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {assignments.map((assignment) => (
+              <div
+                key={assignment.id}
+                className="flex items-center justify-between gap-4 rounded-[14px] border-2 border-[#9EFAFF] bg-[#9EFAFF]/20 p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 flex-none text-[#003756]" />
+                  <div>
+                    <p className="text-[15px] font-bold text-[#003756]">
+                      {assignment.photographer?.photographer_name}
+                    </p>
+                    <p className={`text-[13.5px] ${SOFT}`}>
+                      {assignment.photographer?.photographer_email}
+                    </p>
+                    <p className={`text-[12.5px] ${SOFT}`}>
+                      Added {new Date(assignment.assigned_at).toLocaleDateString()}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Available Photographers */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                <Plus className="w-5 h-5 text-blue-500 mr-2" />
-                Available Photographers ({getAvailablePhotographers().length})
-              </h3>
-              {getAvailablePhotographers().length > 1 && (
-                <Button
-                  onClick={() => {
-                    const availableIds = getAvailablePhotographers().map(p => p.id);
-                    if (confirm(`Assign all ${availableIds.length} available photographers to this event?`)) {
-                      handleBulkAssign(availableIds);
-                    }
-                  }}
+                </div>
+                <button
+                  onClick={() => handleRemovePhotographer(assignment.photographer_token_id)}
                   disabled={assigning}
-                  variant="secondary"
-                  className="text-sm"
+                  className={`flex-none text-[13.5px] font-bold ${SOFT} transition-colors hover:text-[#FF5050] disabled:opacity-50`}
                 >
-                  Assign All
-                </Button>
-              )}
-            </div>
-            
-            {getAvailablePhotographers().length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>All active photographers are already assigned to this event</p>
+                  Remove
+                </button>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {getAvailablePhotographers().map((photographer) => (
-                  <div
-                    key={photographer.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <User className="w-5 h-5 text-gray-600" />
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {photographer.photographer_name}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {photographer.photographer_email}
-                        </p>
-                        <div className="flex items-center space-x-4 mt-1">
-                          <span className="text-xs text-gray-500">
-                            Token: {photographer.token}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            Created: {new Date(photographer.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => handleAssignPhotographer(photographer.id)}
-                      disabled={assigning}
-                      className="flex items-center space-x-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Assign</span>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
+        )}
+      </div>
+
+      {/* Available */}
+      <div>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="flex items-center gap-2 text-[15px] font-extrabold text-[#003756]">
+            <Plus className="h-4 w-4" />
+            Everyone else ({available.length})
+          </h3>
+          {available.length > 1 && (
+            <OutlineButton
+              onClick={() => {
+                const availableIds = available.map(p => p.id);
+                if (confirm(`Add all ${availableIds.length} photographers to this event?`)) {
+                  handleBulkAssign(availableIds);
+                }
+              }}
+              disabled={assigning}
+              className="px-5 py-2 text-[13.5px]"
+            >
+              Add everyone
+            </OutlineButton>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex justify-end">
-            <Button onClick={onClose} variant="secondary">
-              Close
-            </Button>
+        {available.length === 0 ? (
+          <Card tone="mist" className="px-6 py-10 text-center">
+            <Users className="mx-auto mb-3 h-9 w-9 text-[#45596A]" />
+            <p className="text-[15px] font-bold text-[#003756]">Everyone is already on this event</p>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {available.map((photographer) => (
+              <div
+                key={photographer.id}
+                className={`flex flex-wrap items-center justify-between gap-4 rounded-[14px] border-2 ${LINE} p-4`}
+              >
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 flex-none text-[#45596A]" />
+                  <div>
+                    <p className="text-[15px] font-bold text-[#003756]">
+                      {photographer.photographer_name}
+                    </p>
+                    <p className={`text-[13.5px] ${SOFT}`}>{photographer.photographer_email}</p>
+                    <p className={`text-[12.5px] ${SOFT}`}>
+                      Added {new Date(photographer.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <CoralButton
+                  onClick={() => handleAssignPhotographer(photographer.id)}
+                  disabled={assigning}
+                  className="px-5 py-2.5 text-[13.5px]"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add
+                </CoralButton>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
-    </div>
+
+      <div className={`mt-6 flex justify-end border-t ${LINE} pt-5`}>
+        <OutlineButton onClick={onClose}>Close</OutlineButton>
+      </div>
+    </Modal>
   );
 };

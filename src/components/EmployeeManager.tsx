@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit, Trash2, X, Save, User, Mail, Phone, Camera, Link, Copy, CheckCircle, Clock, AlertCircle, Search, Filter, Send, MessageSquare, Download, MessageCircle } from 'lucide-react';
-import { Button } from './Button';
+import { Plus, Edit, Trash2, X, Save, User, Mail, Phone, Camera, Link, CheckCircle, Search, Send, MessageSquare, Download, MessageCircle } from 'lucide-react';
+import { Card, CoralButton, OutlineButton, StatusPill, Field, SOFT, inputClass } from './headshot/brand';
 import { HeadshotService } from '../services/HeadshotService';
 import { NotificationService } from '../services/NotificationService';
 import { SMSService } from '../services/SMSService';
@@ -82,37 +82,6 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
     }
   };
 
-  const getStatusBadge = (employee: EmployeeGallery) => {
-    const hasPhotos = employee.photos && employee.photos.length > 0;
-    const hasSelection = employee.selected_photo_id;
-    const hasFinal = employee.photos?.some(p => p.is_final);
-
-    if (hasFinal) {
-      return {
-        text: 'Final Photo Ready',
-        color: 'bg-purple-100 text-purple-800 border-purple-200',
-        icon: CheckCircle
-      };
-    } else if (hasSelection) {
-      return {
-        text: 'Photo Selected',
-        color: 'bg-green-100 text-green-800 border-green-200',
-        icon: CheckCircle
-      };
-    } else if (hasPhotos) {
-      return {
-        text: 'Photos Added',
-        color: 'bg-blue-100 text-blue-800 border-blue-200',
-        icon: Camera
-      };
-    } else {
-      return {
-        text: 'No Photos',
-        color: 'bg-gray-100 text-gray-800 border-gray-200',
-        icon: AlertCircle
-      };
-    }
-  };
 
   const copyGalleryLink = async (employee: EmployeeGallery) => {
     try {
@@ -469,8 +438,8 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center py-10">
+        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#E2E9E8] border-t-[#FF5050]" />
       </div>
     );
   }
@@ -478,454 +447,263 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Employees ({filteredEmployees.length} of {employees.length})
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-[16px] font-extrabold text-[#003756]">
+          People ({filteredEmployees.length} of {employees.length})
         </h3>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2"
+        <OutlineButton onClick={() => setShowAddForm(true)} className="px-5 py-2.5 text-[13.5px]">
+          <Plus className="h-4 w-4" />
+          Add person
+        </OutlineButton>
+      </div>
+
+      {/* Search and filter */}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#45596A]" />
+          <input
+            type="text"
+            placeholder="Search by name, email or phone"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`${inputClass} pl-11`}
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          className={`${inputClass} sm:w-60`}
         >
-          <Plus className="w-4 h-4" />
-          <span>Add Employee</span>
-        </Button>
+          <option value="all">Everyone</option>
+          <option value="no_photos">Needs photos</option>
+          <option value="photos_uploaded">Waiting on them</option>
+          <option value="photo_selected">Picked a photo</option>
+          <option value="final_ready">Final delivered</option>
+          <option value="has_notes">Has notes</option>
+        </select>
       </div>
 
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Search Bar */}
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search employees by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Status</option>
-            <option value="no_photos">No Photos</option>
-            <option value="photos_uploaded">Photos Uploaded</option>
-            <option value="photo_selected">Photo Selected</option>
-            <option value="final_ready">Final Photo Ready</option>
-            <option value="has_notes">Has Notes</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Add Employee Form */}
-      {showAddForm && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-medium text-blue-900">Add New Employee</h4>
+      {/* Add or edit, one form for both */}
+      {(showAddForm || editingEmployee) && (
+        <Card tone="mist" className="p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h4 className="text-[15px] font-extrabold text-[#003756]">
+              {editingEmployee ? 'Edit their details' : 'Add someone'}
+            </h4>
             <button
-              onClick={cancelAdd}
-              className="text-blue-600 hover:text-blue-800"
+              onClick={editingEmployee ? cancelEdit : cancelAdd}
+              className={`${SOFT} transition-colors hover:text-[#003756]`}
+              aria-label="Close"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Employee name"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-              )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="employee@company.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.phone ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="(555) 123-4567"
-              />
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-              )}
-            </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {([
+              { key: 'name', label: 'Name', type: 'text', placeholder: 'Jane Smith' },
+              { key: 'email', label: 'Email', type: 'email', placeholder: 'jane@company.com' },
+              { key: 'phone', label: 'Phone', type: 'tel', placeholder: 'For text reminders' },
+            ] as const).map(f => (
+              <Field key={f.key} label={f.label}>
+                <input
+                  type={f.type}
+                  value={formData[f.key]}
+                  onChange={(e) => setFormData(prev => ({ ...prev, [f.key]: e.target.value }))}
+                  className={`${inputClass} ${errors[f.key] ? 'border-[#FF5050]' : ''}`}
+                  placeholder={f.placeholder}
+                />
+                {errors[f.key] && (
+                  <p className="mt-1.5 text-[13px] font-bold text-[#FF5050]">{errors[f.key]}</p>
+                )}
+              </Field>
+            ))}
           </div>
 
-          <div className="flex space-x-3 mt-4">
-            <Button
-              onClick={handleAddEmployee}
+          <div className="mt-5 flex gap-3">
+            <CoralButton
+              onClick={editingEmployee ? handleEditEmployee : handleAddEmployee}
               disabled={saving}
-              className="flex items-center space-x-2"
+              className="px-5 py-2.5 text-[13.5px]"
             >
               {saving ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
               ) : (
-                <Save className="w-4 h-4" />
+                <Save className="h-4 w-4" />
               )}
-              <span>{saving ? 'Adding...' : 'Add Employee'}</span>
-            </Button>
-            <Button
-              onClick={cancelAdd}
-              variant="secondary"
+              {saving ? 'Saving...' : editingEmployee ? 'Save changes' : 'Add person'}
+            </CoralButton>
+            <OutlineButton
+              onClick={editingEmployee ? cancelEdit : cancelAdd}
+              className="px-5 py-2.5 text-[13.5px]"
             >
               Cancel
-            </Button>
+            </OutlineButton>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Edit Employee Form */}
-      {editingEmployee && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-medium text-yellow-900">Edit Employee</h4>
-            <button
-              onClick={cancelEdit}
-              className="text-yellow-600 hover:text-yellow-800"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
-                Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                  errors.name ? 'border-red-500' : 'border-gray-200'
-                }`}
-                placeholder="Employee name"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                  errors.email ? 'border-red-500' : 'border-gray-200'
-                }`}
-                placeholder="employee@company.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-shortcut-blue mb-2">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal ${
-                  errors.phone ? 'border-red-500' : 'border-gray-200'
-                }`}
-                placeholder="(555) 123-4567"
-              />
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex space-x-3 mt-4">
-            <Button
-              onClick={handleEditEmployee}
-              disabled={saving}
-              className="flex items-center space-x-2"
-            >
-              {saving ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              <span>{saving ? 'Saving...' : 'Save Changes'}</span>
-            </Button>
-            <Button
-              onClick={cancelEdit}
-              variant="secondary"
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Employees List */}
-      <div className="space-y-2">
+      {/* People */}
+      <div className="space-y-3">
         {employees.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <User className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>No employees added yet</p>
-            <p className="text-sm">Click "Add Employee" to get started</p>
-          </div>
+          <Card tone="mist" className="px-6 py-12 text-center">
+            <User className="mx-auto mb-3 h-9 w-9 text-[#45596A]" />
+            <p className="text-[15px] font-bold text-[#003756]">Nobody here yet</p>
+            <p className={`mt-1.5 text-[14px] ${SOFT}`}>Import a CSV, or add someone by hand.</p>
+          </Card>
         ) : filteredEmployees.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>No employees match your search criteria</p>
-            <p className="text-sm">Try adjusting your search or filter</p>
-          </div>
+          <Card tone="mist" className="px-6 py-12 text-center">
+            <Search className="mx-auto mb-3 h-9 w-9 text-[#45596A]" />
+            <p className="text-[15px] font-bold text-[#003756]">Nobody matches that</p>
+            <p className={`mt-1.5 text-[14px] ${SOFT}`}>Try a different search, or clear the filter.</p>
+          </Card>
         ) : (
           filteredEmployees.map((employee) => {
-            const statusBadge = getStatusBadge(employee);
             const isLinkCopied = copiedLinks.has(employee.id);
-            
+            const hasPhotos = !!employee.photos && employee.photos.length > 0;
+            const hasFinal = !!employee.photos?.some(p => p.is_final);
+            const busy = sendingEmails.has(employee.id);
+
             return (
-              <div
-                key={employee.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    {/* Employee Info */}
-                    <div className="flex items-center space-x-3 mb-3">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium text-gray-900">{employee.employee_name}</span>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusBadge.color}`}>
-                        <statusBadge.icon className="w-3 h-3 mr-1" />
-                        {statusBadge.text}
-                      </span>
+              <Card key={employee.id} className="p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex flex-wrap items-center gap-3">
+                      <h4 className="text-[15.5px] font-bold text-[#003756]">{employee.employee_name}</h4>
+                      <StatusPill tone={hasFinal ? 'navy' : hasPhotos ? 'cyan' : 'mist'}>
+                        {hasFinal
+                          ? 'Final delivered'
+                          : employee.selected_photo_id
+                          ? 'Picked a photo'
+                          : hasPhotos
+                          ? 'Waiting on them'
+                          : 'Needs photos'}
+                      </StatusPill>
                     </div>
-                    
-                    {/* Contact Info */}
-                    <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center space-x-1">
-                        <Mail className="w-3 h-3" />
-                        <span>{employee.email}</span>
-                      </div>
+
+                    <div className={`mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px] ${SOFT}`}>
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        {employee.email}
+                      </span>
                       {employee.phone && (
-                        <div className="flex items-center space-x-1">
-                          <Phone className="w-3 h-3" />
-                          <span>{employee.phone}</span>
-                        </div>
+                        <span className="flex items-center gap-1.5">
+                          <Phone className="h-3.5 w-3.5" />
+                          {employee.phone}
+                        </span>
+                      )}
+                      {hasPhotos && (
+                        <span>
+                          {employee.photos!.length} photo{employee.photos!.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {employee.notes && employee.notes.trim().length > 0 && (
+                        <span className="flex items-center gap-1.5 font-bold text-[#003756]">
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          Has notes
+                        </span>
                       )}
                     </div>
 
-                    {/* Photo Count */}
-                    {employee.photos && employee.photos.length > 0 && (
-                      <div className="text-xs text-gray-500 mb-3">
-                        {employee.photos.length} photo{employee.photos.length !== 1 ? 's' : ''} uploaded
-                      </div>
-                    )}
-
-                    {/* Notes Indicator */}
-                    {employee.notes && employee.notes.trim().length > 0 && (
-                      <div className="flex items-center space-x-1 text-xs text-blue-600 mb-3">
-                        <MessageSquare className="w-3 h-3" />
-                        <span>Has personal notes</span>
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2">
-                      {/* Upload Photos Button - only show if no photos or photos but no selection */}
-                      {(!employee.photos || employee.photos.length === 0 || !employee.selected_photo_id) && (
+                    {/* One primary action, then quiet secondaries */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                      {(!hasPhotos || !employee.selected_photo_id) && (
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             onUploadPhotos(employee.id, employee.employee_name);
                           }}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
-                          title="Upload photos for this employee"
+                          className="inline-flex items-center gap-2 rounded-full bg-[#FF5050] px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.03]"
                         >
-                          <Camera className="w-3 h-3 mr-1" />
-                          {!employee.photos || employee.photos.length === 0 ? 'Upload Photos' : 'Add More Photos'}
+                          <Camera className="h-3.5 w-3.5" />
+                          {hasPhotos ? 'Add more' : 'Upload photos'}
                         </button>
                       )}
-                      
-                      {/* Upload Final Button - only show if photo is selected but no final photo */}
-                      {employee.selected_photo_id && !employee.photos?.some(p => p.is_final) && (
+
+                      {employee.selected_photo_id && !hasFinal && (
                         <button
                           onClick={() => onUploadFinal(employee.id, employee.employee_name)}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
-                          title="Upload final retouched photo"
+                          className="inline-flex items-center gap-2 rounded-full bg-[#FF5050] px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.03]"
                         >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Upload Final
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Upload final
                         </button>
                       )}
 
-                      {/* Download Selected Photo Button - only show if photo is selected */}
-                      {employee.selected_photo_id && (
-                        <button
-                          onClick={() => handleDownloadSelectedPhoto(employee)}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-md transition-colors"
-                          title="Download selected photo for retouching"
-                        >
-                          <Download className="w-3 h-3 mr-1" />
-                          Download Selected
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => copyGalleryLink(employee)}
-                        className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                          isLinkCopied 
-                            ? 'text-green-700 bg-green-100' 
-                            : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
-                        }`}
-                        title="Copy gallery link"
-                      >
-                        {isLinkCopied ? (
-                          <>
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Link className="w-3 h-3 mr-1" />
-                            Copy Link
-                          </>
+                      <div className={`flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] font-medium ${SOFT}`}>
+                        {employee.selected_photo_id && (
+                          <button
+                            onClick={() => handleDownloadSelectedPhoto(employee)}
+                            className="flex items-center gap-1.5 hover:text-[#003756]"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            Download their pick
+                          </button>
                         )}
-                      </button>
 
-                      {/* Notification Buttons - Email & SMS */}
-                      {employee.photos && employee.photos.length > 0 && !employee.photos.some(p => p.is_final) && (
-                        <>
+                        <button
+                          onClick={() => copyGalleryLink(employee)}
+                          className={`flex items-center gap-1.5 ${isLinkCopied ? 'font-bold text-[#003756]' : 'hover:text-[#003756]'}`}
+                        >
+                          {isLinkCopied ? <CheckCircle className="h-3.5 w-3.5" /> : <Link className="h-3.5 w-3.5" />}
+                          {isLinkCopied ? 'Copied' : 'Copy link'}
+                        </button>
+
+                        {hasPhotos && !hasFinal && (
                           <button
                             onClick={() => handleSendGalleryReadyEmail(employee)}
-                            disabled={sendingEmails.has(employee.id)}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
-                            title="Send email notification"
+                            disabled={busy}
+                            className="flex items-center gap-1.5 hover:text-[#003756] disabled:opacity-50"
                           >
-                            {sendingEmails.has(employee.id) ? (
-                              <>
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600 mr-1"></div>
-                                Sending...
-                              </>
-                            ) : (
-                              <>
-                                <Mail className="w-3 h-3 mr-1" />
-                                Email
-                              </>
-                            )}
+                            <Mail className="h-3.5 w-3.5" />
+                            {busy ? 'Sending' : 'Email them the link'}
                           </button>
+                        )}
 
-                          {/* SMS Button - only if has phone and no selection */}
-                          {employee.phone && !employee.selected_photo_id && (
-                            <button
-                              onClick={() => handleSendSMSReminder(employee)}
-                              disabled={sendingSMS.has(employee.id)}
-                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-100 hover:bg-teal-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
-                              title="Send SMS text reminder"
-                            >
-                              {sendingSMS.has(employee.id) ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-600 mr-1"></div>
-                                  Sending...
-                                </>
-                              ) : (
-                                <>
-                                  <MessageCircle className="w-3 h-3 mr-1" />
-                                  SMS
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </>
-                      )}
+                        {hasPhotos && !hasFinal && employee.phone && !employee.selected_photo_id && (
+                          <button
+                            onClick={() => handleSendSMSReminder(employee)}
+                            disabled={sendingSMS.has(employee.id)}
+                            className="flex items-center gap-1.5 hover:text-[#003756] disabled:opacity-50"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            {sendingSMS.has(employee.id) ? 'Sending' : 'Text a reminder'}
+                          </button>
+                        )}
 
-                      {employee.photos?.some(p => p.is_final) && (
-                        <button
-                          onClick={() => handleSendFinalPhotoEmail(employee)}
-                          disabled={sendingEmails.has(employee.id)}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-pink-700 bg-pink-100 hover:bg-pink-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
-                          title="Send final photo ready notification"
-                        >
-                          {sendingEmails.has(employee.id) ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-600 mr-1"></div>
-                              Sending...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-3 h-3 mr-1" />
-                              Send Final Email
-                            </>
-                          )}
-                        </button>
-                      )}
+                        {hasFinal && (
+                          <button
+                            onClick={() => handleSendFinalPhotoEmail(employee)}
+                            disabled={busy}
+                            className="flex items-center gap-1.5 hover:text-[#003756] disabled:opacity-50"
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                            {busy ? 'Sending' : 'Email the final'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Edit/Delete Actions */}
-                  <div className="flex items-center space-x-1 ml-4">
+                  <div className={`flex flex-none items-center gap-3 text-[13px] font-bold ${SOFT}`}>
                     <button
                       onClick={() => startEdit(employee)}
-                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                      title="Edit employee"
+                      className="transition-colors hover:text-[#003756]"
+                      title="Edit their details"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteEmployee(employee.id, employee.employee_name)}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Delete employee"
+                      className="transition-colors hover:text-[#FF5050]"
+                      title="Remove from this event"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })
         )}

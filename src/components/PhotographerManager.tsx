@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Copy, Trash2, Edit, User, Mail, Key, Calendar, UserMinus, UserPlus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Copy, Trash2, User, Key, Calendar, UserMinus, UserPlus, ChevronDown, ChevronRight } from 'lucide-react';
 import { PhotographerService } from '../services/PhotographerService';
 import { HeadshotService } from '../services/HeadshotService';
 import { PhotographerToken, PhotographerEventAssignment } from '../types/photographer';
 import { HeadshotEvent } from '../types/headshot';
-import { Button } from './Button';
+import { Card, Modal, Field, CoralButton, OutlineButton, SectionHead, StatusPill, SOFT, LINE, inputClass } from './headshot/brand';
 import { CustomUrlHelper } from '../utils/customUrlHelper';
 import { formatLocalDateShort } from '../utils/dateHelpers';
 
@@ -175,7 +175,7 @@ export const PhotographerManager: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#E2E9E8] border-t-[#FF5050]" />
       </div>
     );
   }
@@ -183,72 +183,63 @@ export const PhotographerManager: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Photographer Access</h2>
-          <p className="text-gray-600 mt-1">Manage photographer portal access tokens</p>
+          <h2 className="text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">Photographer access</h2>
+          <p className={`mt-1 text-[14.5px] ${SOFT}`}>
+            Each photographer gets a private link. No password, no account.
+          </p>
         </div>
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Photographer</span>
-        </Button>
+        <CoralButton onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4" />
+          Add photographer
+        </CoralButton>
       </div>
 
-      {/* Tokens List */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Active Photographer Tokens</h3>
-        </div>
-        
+      {/* Tokens */}
+      <Card className="overflow-hidden">
+        <SectionHead title="Everyone with access" />
+
         {tokens.length === 0 ? (
-          <div className="text-center py-12">
-            <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No photographers added</h3>
-            <p className="text-gray-600 mb-4">Get started by adding a photographer to give them access to the portal.</p>
-            <Button onClick={() => setShowCreateModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add First Photographer
-            </Button>
+          <div className="px-6 py-14 text-center">
+            <User className="mx-auto mb-4 h-10 w-10 text-[#45596A]" />
+            <p className="text-[16px] font-bold text-[#003756]">No photographers yet</p>
+            <p className={`mx-auto mt-1.5 max-w-[42ch] text-[14.5px] ${SOFT}`}>
+              Add one and send them their link. They can upload straight into an event.
+            </p>
+            <div className="mt-5 flex justify-center">
+              <CoralButton onClick={() => setShowCreateModal(true)}>
+                <Plus className="h-4 w-4" />
+                Add the first one
+              </CoralButton>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Photographer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Token
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Permissions
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Events
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-[#003756]">
+                  {['Photographer', 'Their link', 'Can do', 'Status', 'Events', ''].map((label, i) => (
+                    <th
+                      key={i}
+                      className="px-6 py-3 text-left text-[11px] font-extrabold uppercase tracking-[.08em] text-white"
+                    >
+                      {label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {tokens.map((token) => (
                   <React.Fragment key={token.id}>
-                    <tr className="hover:bg-gray-50">
+                    <tr className="border-b border-[#E2E9E8] transition-colors hover:bg-[#9EFAFF]/20">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-[15px] font-bold text-[#003756]">
                           {token.photographer_name}
                         </div>
                         {token.photographer_email && (
-                          <div className="text-sm text-gray-500">
+                          <div className="text-[13.5px] text-[#45596A]">
                             {token.photographer_email}
                           </div>
                         )}
@@ -257,18 +248,18 @@ export const PhotographerManager: React.FC = () => {
                     
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
-                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                        <code className="rounded-[8px] bg-[#F1F6F5] px-2 py-1 font-mono text-[12px] text-[#003756]">
                           {token.token}
                         </code>
                         <button
                           onClick={() => copyPhotographerLink(token.token, token.id)}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-[#45596A] transition-colors hover:text-[#003756]"
                           title="Copy photographer link"
                         >
                           <Copy className="w-4 h-4" />
                         </button>
                         {copiedToken === token.token && (
-                          <span className="text-xs text-green-600">Copied!</span>
+                          <span className="text-[12px] font-bold text-[#003756]">Copied</span>
                         )}
                       </div>
                     </td>
@@ -276,17 +267,17 @@ export const PhotographerManager: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-wrap gap-1">
                         {token.permissions.can_manage_events && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <span className="inline-flex items-center rounded-full bg-[#F1F6F5] px-3 py-1 text-[11.5px] font-bold text-[#003756]">
                             Events
                           </span>
                         )}
                         {token.permissions.can_upload_photos && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center rounded-full bg-[#F1F6F5] px-3 py-1 text-[11.5px] font-bold text-[#003756]">
                             Upload
                           </span>
                         )}
                         {token.permissions.can_manage_galleries && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          <span className="inline-flex items-center rounded-full bg-[#F1F6F5] px-3 py-1 text-[11.5px] font-bold text-[#003756]">
                             Galleries
                           </span>
                         )}
@@ -294,13 +285,9 @@ export const PhotographerManager: React.FC = () => {
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        token.is_active 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {token.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      <StatusPill tone={token.is_active ? 'cyan' : 'mist'}>
+                        {token.is_active ? 'Active' : 'Switched off'}
+                      </StatusPill>
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -309,7 +296,7 @@ export const PhotographerManager: React.FC = () => {
                           onClick={() => setExpandedPhotographer(
                             expandedPhotographer === token.id ? null : token.id
                           )}
-                          className="flex items-center text-sm text-gray-600 hover:text-gray-800"
+                          className="flex items-center text-[13.5px] font-medium text-[#45596A] transition-colors hover:text-[#003756]"
                         >
                           {expandedPhotographer === token.id ? (
                             <ChevronDown className="w-4 h-4 mr-1" />
@@ -327,7 +314,7 @@ export const PhotographerManager: React.FC = () => {
                       <div className="flex items-center space-x-4">
                         <button
                           onClick={() => copyPhotographerLink(token.token, token.id)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-[13.5px] font-bold text-[#003756] transition-opacity hover:opacity-70"
                           title="Copy photographer link"
                         >
                           <Key className="w-4 h-4" />
@@ -336,7 +323,7 @@ export const PhotographerManager: React.FC = () => {
                         {token.is_active ? (
                           <button
                             onClick={() => handleDeactivateToken(token.id)}
-                            className="text-yellow-600 hover:text-yellow-800"
+                            className="text-[13.5px] font-bold text-[#45596A] transition-colors hover:text-[#FF5050]"
                             title="Deactivate access"
                           >
                             Deactivate
@@ -344,7 +331,7 @@ export const PhotographerManager: React.FC = () => {
                         ) : (
                           <button
                             onClick={() => handleDeleteToken(token.id)}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-[13.5px] font-bold text-[#45596A] transition-colors hover:text-[#FF5050]"
                             title="Delete permanently"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -357,17 +344,17 @@ export const PhotographerManager: React.FC = () => {
                     {/* Expanded Event Assignments Row */}
                     {expandedPhotographer === token.id && (
                       <tr>
-                        <td colSpan={6} className="px-6 py-4 bg-gray-50">
+                        <td colSpan={6} className="bg-[#F1F6F5] px-6 py-4">
                           <div className="space-y-4">
-                            <h4 className="text-sm font-medium text-gray-900 mb-3">
+                            <h4 className="mb-3 text-[14.5px] font-extrabold text-[#003756]">
                               Event Assignments for {token.photographer_name}
                             </h4>
                             
                             {/* Assigned Events */}
                             <div>
-                              <h5 className="text-xs font-medium text-gray-700 mb-2">Currently Assigned:</h5>
+                              <h5 className="mb-2 text-[11px] font-bold uppercase tracking-[.08em] text-[#45596A]">On these events</h5>
                               {getPhotographerAssignments(token.id).length === 0 ? (
-                                <p className="text-sm text-gray-500">No events assigned</p>
+                                <p className="text-[13.5px] text-[#45596A]">Not on any events yet</p>
                               ) : (
                                 <div className="space-y-2">
                                   {getPhotographerAssignments(token.id).map((assignment) => {
@@ -377,10 +364,10 @@ export const PhotographerManager: React.FC = () => {
                                     return (
                                       <div key={assignment.id} className="flex items-center justify-between bg-white p-3 rounded border">
                                         <div className="flex items-center space-x-3">
-                                          <Calendar className="w-4 h-4 text-gray-400" />
+                                          <Calendar className="h-4 w-4 text-[#45596A]" />
                                           <div>
-                                            <p className="text-sm font-medium text-gray-900">{event.event_name}</p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-[14px] font-bold text-[#003756]">{event.event_name}</p>
+                                            <p className="text-[12.5px] text-[#45596A]">
                                               {formatLocalDateShort(event.event_date)} • {event.status}
                                             </p>
                                           </div>
@@ -388,7 +375,7 @@ export const PhotographerManager: React.FC = () => {
                                         <button
                                           onClick={() => handleRemoveFromEvent(token.id, event.id)}
                                           disabled={assigning.has(token.id)}
-                                          className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                          className="text-[13px] font-bold text-[#45596A] transition-colors hover:text-[#FF5050] disabled:opacity-50"
                                           title="Remove from event"
                                         >
                                           <UserMinus className="w-4 h-4" />
@@ -402,9 +389,9 @@ export const PhotographerManager: React.FC = () => {
                             
                             {/* Available Events */}
                             <div>
-                              <h5 className="text-xs font-medium text-gray-700 mb-2">Available Events:</h5>
+                              <h5 className="mb-2 text-[11px] font-bold uppercase tracking-[.08em] text-[#45596A]">Could be added to</h5>
                               {events.filter(e => !isAssignedToEvent(token.id, e.id)).length === 0 ? (
-                                <p className="text-sm text-gray-500">All events are already assigned</p>
+                                <p className="text-[13.5px] text-[#45596A]">Already on every event</p>
                               ) : (
                                 <div className="space-y-2">
                                   {events
@@ -412,10 +399,10 @@ export const PhotographerManager: React.FC = () => {
                                     .map((event) => (
                                       <div key={event.id} className="flex items-center justify-between bg-white p-3 rounded border">
                                         <div className="flex items-center space-x-3">
-                                          <Calendar className="w-4 h-4 text-gray-400" />
+                                          <Calendar className="h-4 w-4 text-[#45596A]" />
                                           <div>
-                                            <p className="text-sm font-medium text-gray-900">{event.event_name}</p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-[14px] font-bold text-[#003756]">{event.event_name}</p>
+                                            <p className="text-[12.5px] text-[#45596A]">
                                               {formatLocalDateShort(event.event_date)} • {event.status}
                                             </p>
                                           </div>
@@ -423,7 +410,7 @@ export const PhotographerManager: React.FC = () => {
                                         <button
                                           onClick={() => handleAssignToEvent(token.id, event.id)}
                                           disabled={assigning.has(token.id)}
-                                          className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                                          className="text-[13px] font-bold text-[#003756] transition-opacity hover:opacity-70 disabled:opacity-50"
                                           title="Assign to event"
                                         >
                                           <UserPlus className="w-4 h-4" />
@@ -443,105 +430,69 @@ export const PhotographerManager: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Create Modal */}
+      {/* Add photographer */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Add Photographer Access</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Photographer Name
+        <Modal
+          onClose={() => setShowCreateModal(false)}
+          title="Add a photographer"
+          sub="They get a private link. No account or password needed."
+        >
+          <div className="space-y-5">
+            <Field label="Name">
+              <input
+                type="text"
+                value={formData.photographer_name}
+                onChange={(e) => setFormData({ ...formData, photographer_name: e.target.value })}
+                className={inputClass}
+                placeholder="Susan Beard"
+              />
+            </Field>
+
+            <Field label="Email (optional)">
+              <input
+                type="email"
+                value={formData.photographer_email}
+                onChange={(e) => setFormData({ ...formData, photographer_email: e.target.value })}
+                className={inputClass}
+                placeholder="susan@example.com"
+              />
+            </Field>
+
+            <Field label="What they can do">
+              <div className="space-y-2.5">
+                {([
+                  ['can_upload_photos', 'Upload photos'],
+                  ['can_manage_galleries', 'Manage galleries'],
+                  ['can_manage_events', 'Manage events'],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className="flex cursor-pointer items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={formData.permissions[key]}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          permissions: { ...formData.permissions, [key]: e.target.checked },
+                        })
+                      }
+                      className="h-4 w-4 accent-[#FF5050]"
+                    />
+                    <span className="text-[14.5px] text-[#032232]">{label}</span>
                   </label>
-                  <input
-                    type="text"
-                    value={formData.photographer_name}
-                    onChange={(e) => setFormData({...formData, photographer_name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter photographer name"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.photographer_email}
-                    onChange={(e) => setFormData({...formData, photographer_email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter email address"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Permissions
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.permissions.can_manage_events}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          permissions: {...formData.permissions, can_manage_events: e.target.checked}
-                        })}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">Manage Events</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.permissions.can_upload_photos}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          permissions: {...formData.permissions, can_upload_photos: e.target.checked}
-                        })}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">Upload Photos</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.permissions.can_manage_galleries}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          permissions: {...formData.permissions, can_manage_galleries: e.target.checked}
-                        })}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">Manage Galleries</span>
-                    </label>
-                  </div>
-                </div>
+                ))}
               </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateToken}
-                  disabled={!formData.photographer_name}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Create Access
-                </button>
-              </div>
+            </Field>
+
+            <div className={`flex justify-end gap-3 border-t ${LINE} pt-5`}>
+              <OutlineButton onClick={() => setShowCreateModal(false)}>Cancel</OutlineButton>
+              <CoralButton onClick={handleCreateToken} disabled={!formData.photographer_name}>
+                Create their link
+              </CoralButton>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

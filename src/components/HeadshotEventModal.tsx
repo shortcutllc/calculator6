@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Calendar, Users, Upload, Image as ImageIcon } from 'lucide-react';
-import { Button } from './Button';
+import { Calendar, Users, Upload } from 'lucide-react';
+import { Modal, Field, CoralButton, OutlineButton, SOFT, LINE, inputClass } from './headshot/brand';
 import { HeadshotEvent } from '../types/headshot';
 import { supabase } from '../lib/supabaseClient';
 
@@ -142,210 +142,146 @@ export const HeadshotEventModal: React.FC<HeadshotEventModalProps> = ({
     setLogoPreview(null);
   };
 
+  const fieldClass = (bad?: string) =>
+    `${inputClass} ${bad ? 'border-[#FF5050]' : ''}`;
+
+  const Err: React.FC<{ msg?: string }> = ({ msg }) =>
+    msg ? <p className="mt-1.5 text-[13px] font-bold text-[#FF5050]">{msg}</p> : null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {editingEvent ? 'Edit Headshot Event' : 'Create Headshot Event'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Modal
+      onClose={onClose}
+      title={editingEvent ? 'Edit this event' : 'New headshot event'}
+      sub={editingEvent ? undefined : 'You can import the roster once it exists.'}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Field label="Event name">
+          <input
+            type="text"
+            value={formData.event_name}
+            onChange={(e) => handleInputChange('event_name', e.target.value)}
+            className={fieldClass(errors.event_name)}
+            placeholder="DraftKings Raleigh"
+          />
+          <Err msg={errors.event_name} />
+        </Field>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Event Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Event Name *
-            </label>
+        <Field label="Event date">
+          <div className="relative">
             <input
-              type="text"
-              value={formData.event_name}
-              onChange={(e) => handleInputChange('event_name', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-shortcut-blue focus:border-shortcut-blue ${
-                errors.event_name ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="e.g., Q4 2024 Headshots"
+              type="date"
+              value={formData.event_date}
+              onChange={(e) => handleInputChange('event_date', e.target.value)}
+              className={fieldClass(errors.event_date)}
             />
-            {errors.event_name && (
-              <p className="mt-1 text-sm text-red-600">{errors.event_name}</p>
-            )}
+            <Calendar className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#45596A]" />
           </div>
+          <Err msg={errors.event_date} />
+        </Field>
 
-          {/* Event Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Event Date *
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                value={formData.event_date}
-                onChange={(e) => handleInputChange('event_date', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-shortcut-blue focus:border-shortcut-blue ${
-                  errors.event_date ? 'border-red-500' : 'border-gray-300'
-                }`}
+        <Field
+          label="How many people"
+          hint="A rough number is fine. Import the real list later."
+        >
+          <div className="relative">
+            <input
+              type="number"
+              min="0"
+              value={formData.total_employees}
+              onChange={(e) => handleInputChange('total_employees', parseInt(e.target.value) || 0)}
+              className={fieldClass(errors.total_employees)}
+              placeholder="0"
+            />
+            <Users className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#45596A]" />
+          </div>
+          <Err msg={errors.total_employees} />
+        </Field>
+
+        <Field
+          label="Deadline to pick a photo"
+          hint="Optional. Leave blank for no deadline."
+        >
+          <div className="relative">
+            <input
+              type="date"
+              value={formData.selection_deadline}
+              onChange={(e) => handleInputChange('selection_deadline', e.target.value)}
+              className={fieldClass(errors.selection_deadline)}
+            />
+            <Calendar className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#45596A]" />
+          </div>
+          <Err msg={errors.selection_deadline} />
+        </Field>
+
+        <Field label="Client logo" hint="Optional. Shows on their gallery pages and emails.">
+          {logoPreview || formData.client_logo_url ? (
+            <div className={`flex items-center gap-3 rounded-[14px] border-2 ${LINE} p-3`}>
+              <img
+                src={logoPreview || formData.client_logo_url}
+                alt="Client logo"
+                className="h-11 w-auto max-w-[140px] object-contain"
               />
-              <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+              <p className={`flex-1 text-[13.5px] ${SOFT}`}>Logo added</p>
+              <button
+                type="button"
+                onClick={removeLogo}
+                className={`text-[13.5px] font-bold ${SOFT} transition-colors hover:text-[#FF5050]`}
+              >
+                Remove
+              </button>
             </div>
-            {errors.event_date && (
-              <p className="mt-1 text-sm text-red-600">{errors.event_date}</p>
-            )}
-          </div>
-
-          {/* Total Employees */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Expected Number of Employees
-            </label>
-            <div className="relative">
+          ) : (
+            <div className={`rounded-[14px] border-2 border-dashed ${LINE} p-6 text-center transition-colors hover:border-[#003756]`}>
               <input
-                type="number"
-                min="0"
-                value={formData.total_employees}
-                onChange={(e) => handleInputChange('total_employees', parseInt(e.target.value) || 0)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-shortcut-blue focus:border-shortcut-blue ${
-                  errors.total_employees ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="0"
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                disabled={uploadingLogo}
+                className="hidden"
+                id="logo-upload"
               />
-              <Users className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+              <label htmlFor="logo-upload" className="flex cursor-pointer flex-col items-center gap-2">
+                {uploadingLogo ? (
+                  <>
+                    <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-[#E2E9E8] border-t-[#FF5050]" />
+                    <span className={`text-[13.5px] ${SOFT}`}>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-7 w-7 text-[#45596A]" />
+                    <div>
+                      <p className="text-[14.5px] font-bold text-[#003756]">Add a logo</p>
+                      <p className={`text-[13px] ${SOFT}`}>PNG, JPG or SVG, up to 5MB</p>
+                    </div>
+                  </>
+                )}
+              </label>
             </div>
-            {errors.total_employees && (
-              <p className="mt-1 text-sm text-red-600">{errors.total_employees}</p>
-            )}
-            <p className="mt-1 text-xs text-gray-500">
-              This is just an estimate. You can import the actual employee list later.
-            </p>
-          </div>
+          )}
+        </Field>
 
-          {/* Selection Deadline */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Photo Selection Deadline
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                value={formData.selection_deadline}
-                onChange={(e) => handleInputChange('selection_deadline', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-shortcut-blue focus:border-shortcut-blue ${
-                  errors.selection_deadline ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-            {errors.selection_deadline && (
-              <p className="mt-1 text-sm text-red-600">{errors.selection_deadline}</p>
-            )}
-            <p className="mt-1 text-xs text-gray-500">
-              Optional: Set a deadline date for employees to select their photos. Leave blank for no deadline.
-            </p>
-          </div>
+        <Field label="Status">
+          <select
+            value={formData.status}
+            onChange={(e) => handleInputChange('status', e.target.value as HeadshotEvent['status'])}
+            className={inputClass}
+          >
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+            <option value="archived">Archived</option>
+          </select>
+        </Field>
 
-          {/* Client Logo Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Client Logo (Optional)
-            </label>
-            
-            {logoPreview || formData.client_logo_url ? (
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg">
-                  <img 
-                    src={logoPreview || formData.client_logo_url} 
-                    alt="Client logo preview" 
-                    className="h-12 w-auto object-contain"
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-600">Client logo uploaded</p>
-                    <p className="text-xs text-gray-500">This will appear on gallery pages and emails</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={removeLogo}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  disabled={uploadingLogo}
-                  className="hidden"
-                  id="logo-upload"
-                />
-                <label
-                  htmlFor="logo-upload"
-                  className="cursor-pointer flex flex-col items-center space-y-2"
-                >
-                  {uploadingLogo ? (
-                    <>
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span className="text-sm text-gray-600">Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-8 h-8 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Upload Client Logo</p>
-                        <p className="text-xs text-gray-500">PNG, JPG, or SVG up to 5MB</p>
-                      </div>
-                    </>
-                  )}
-                </label>
-              </div>
-            )}
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Status
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => handleInputChange('status', e.target.value as HeadshotEvent['status'])}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-shortcut-blue focus:border-shortcut-blue"
-            >
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-
-          {/* Actions */}
-          <div className="flex space-x-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1"
-            >
-              {editingEvent ? 'Update Event' : 'Create Event'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className={`flex gap-3 border-t ${LINE} pt-5`}>
+          <OutlineButton type="button" onClick={onClose} className="flex-1 justify-center">
+            Cancel
+          </OutlineButton>
+          <CoralButton type="submit" className="flex-1 justify-center">
+            {editingEvent ? 'Save changes' : 'Create event'}
+          </CoralButton>
+        </div>
+      </form>
+    </Modal>
   );
 };

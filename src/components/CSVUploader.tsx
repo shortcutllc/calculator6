@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, FileText, Users, AlertCircle, CheckCircle } from 'lucide-react';
-import { Button } from './Button';
+import { Upload, FileText, Users, AlertCircle, CheckCircle } from 'lucide-react';
+import { Modal, Card, CoralButton, OutlineButton, SOFT, LINE } from './headshot/brand';
 import { CSVEmployeeData } from '../types/headshot';
 import { CSVParticipantData } from '../types/mindfulnessProgram';
 import { HeadshotService } from '../services/HeadshotService';
@@ -28,7 +28,6 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const itemLabel = label || (type === 'mindfulness' ? 'participants' : 'employees');
-  const ItemLabel = itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -121,161 +120,145 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Import {ItemLabel} from CSV</h2>
+    <Modal
+      onClose={onClose}
+      title={`Import ${itemLabel} from a CSV`}
+      sub={`One row per ${itemLabel.slice(0, -1)}, with a name and an email.`}
+      wide
+    >
+      <div className="space-y-6">
+        {/* What the file needs */}
+        <div className="rounded-[14px] bg-[#F1F6F5] p-5">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[.09em] text-[#45596A]">
+            What the file needs
+          </p>
+          <ul className={`space-y-1.5 text-[14px] ${SOFT}`}>
+            <li className="flex gap-2.5">
+              <span className="mt-[9px] h-1.5 w-1.5 flex-none rounded-full bg-[#FF5050]" />
+              A header row with name, email and phone
+            </li>
+            <li className="flex gap-2.5">
+              <span className="mt-[9px] h-1.5 w-1.5 flex-none rounded-full bg-[#FF5050]" />
+              Name and email are required, phone is optional
+            </li>
+            <li className="flex gap-2.5">
+              <span className="mt-[9px] h-1.5 w-1.5 flex-none rounded-full bg-[#FF5050]" />
+              Exports from Excel or Google Sheets work as they are
+            </li>
+          </ul>
           <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={downloadTemplate}
+            className="mt-3.5 text-[13.5px] font-bold text-[#003756] underline underline-offset-2 hover:opacity-70"
           >
-            <X className="w-6 h-6" />
+            Download a template
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900 mb-2">CSV Format Requirements</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• First row should contain headers: name, email, phone</li>
-              <li>• Each row represents one {itemLabel.slice(0, -1)}</li>
-              <li>• Name and email are required, phone is optional</li>
-              <li>• Use commas to separate values</li>
-            </ul>
-            <button
-              onClick={downloadTemplate}
-              className="mt-3 text-sm text-blue-600 hover:text-blue-800 underline"
-            >
-              Download CSV template
-            </button>
-          </div>
-
-          {/* File Upload Area */}
-          <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              csvFile
-                ? 'border-green-300 bg-green-50'
-                : 'border-gray-300 hover:border-gray-400'
-            }`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-          >
-            {csvFile ? (
-              <div className="space-y-4">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
-                <div>
-                  <p className="text-lg font-medium text-gray-900">{csvFile.name}</p>
-                  <p className="text-sm text-gray-600">
-                    {parsedData.length} {itemLabel} found
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setCsvFile(null);
-                    setParsedData([]);
-                    setError('');
-                    if (fileInputRef.current) {
-                      fileInputRef.current.value = '';
-                    }
-                  }}
-                >
-                  Choose Different File
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto" />
-                <div>
-                  <p className="text-lg font-medium text-gray-900">
-                    Drop your CSV file here, or click to browse
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Supports CSV files with {itemLabel} data
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Choose File
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Error Display */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          {/* Preview */}
-          {parsedData.length > 0 && (
+        {/* Drop zone */}
+        <div
+          className={`rounded-[18px] border-2 border-dashed p-8 text-center transition-colors ${
+            csvFile ? 'border-[#FF5050] bg-[#FF5050]/[.04]' : `${LINE} hover:border-[#003756]`
+          }`}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
+          {csvFile ? (
             <div className="space-y-4">
-              <h3 className="font-medium text-gray-900 flex items-center space-x-2">
-                <Users className="w-5 h-5" />
-                <span>Preview ({parsedData.length} {itemLabel})</span>
-              </h3>
-
-              <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
-                <div className="space-y-2">
-                  {parsedData.slice(0, 10).map((item, index) => (
-                    <div key={index} className="flex items-center space-x-4 text-sm">
-                      <div className="w-8 h-8 bg-shortcut-blue text-white rounded-full flex items-center justify-center text-xs font-medium">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{item.name}</div>
-                        <div className="text-gray-600">{item.email}</div>
-                        {item.phone && (
-                          <div className="text-gray-500">{item.phone}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {parsedData.length > 10 && (
-                    <div className="text-sm text-gray-500 text-center py-2">
-                      ... and {parsedData.length - 10} more {itemLabel}
-                    </div>
-                  )}
-                </div>
+              <CheckCircle className="mx-auto h-10 w-10 text-[#003756]" />
+              <div>
+                <p className="text-[16px] font-bold text-[#003756]">{csvFile.name}</p>
+                <p className={`text-[14px] ${SOFT}`}>
+                  {parsedData.length} {itemLabel} found
+                </p>
               </div>
+              <OutlineButton
+                onClick={() => {
+                  setCsvFile(null);
+                  setParsedData([]);
+                  setError('');
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+              >
+                Choose a different file
+              </OutlineButton>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Upload className="mx-auto h-10 w-10 text-[#45596A]" />
+              <div>
+                <p className="text-[16px] font-bold text-[#003756]">Drop your CSV here</p>
+                <p className={`text-[14px] ${SOFT}`}>or pick it from your computer</p>
+              </div>
+              <OutlineButton onClick={() => fileInputRef.current?.click()}>
+                <FileText className="h-4 w-4" />
+                Choose file
+              </OutlineButton>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
             </div>
           )}
+        </div>
 
-          {/* Actions */}
-          <div className="flex space-x-3 pt-4 border-t border-gray-200">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpload}
-              disabled={parsedData.length === 0 || loading}
-              className="flex-1"
-            >
-              {loading ? 'Uploading...' : `Upload ${parsedData.length} ${ItemLabel}`}
-            </Button>
+        {/* Error */}
+        {error && (
+          <div className="flex items-start gap-3 rounded-[14px] border-2 border-[#FF5050] bg-white px-5 py-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-none text-[#FF5050]" />
+            <p className="text-[14px] text-[#032232]">{error}</p>
           </div>
+        )}
+
+        {/* Preview */}
+        {parsedData.length > 0 && (
+          <div>
+            <h3 className="mb-3 flex items-center gap-2 text-[15px] font-extrabold text-[#003756]">
+              <Users className="h-4 w-4" />
+              Check these look right ({parsedData.length})
+            </h3>
+            <Card tone="mist" className="max-h-64 overflow-y-auto p-5">
+              <div className="space-y-3">
+                {parsedData.slice(0, 10).map((item, index) => (
+                  <div key={index} className="flex items-center gap-4">
+                    <div className="grid h-8 w-8 flex-none place-items-center rounded-full bg-[#003756] text-[11px] font-extrabold text-[#9EFAFF]">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[14.5px] font-bold text-[#003756]">{item.name}</div>
+                      <div className={`text-[13.5px] ${SOFT}`}>
+                        {item.email}
+                        {item.phone ? ` · ${item.phone}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {parsedData.length > 10 && (
+                  <p className={`pt-1 text-center text-[13.5px] ${SOFT}`}>
+                    and {parsedData.length - 10} more
+                  </p>
+                )}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className={`flex gap-3 border-t ${LINE} pt-5`}>
+          <OutlineButton type="button" onClick={onClose} className="flex-1 justify-center">
+            Cancel
+          </OutlineButton>
+          <CoralButton
+            onClick={handleUpload}
+            disabled={parsedData.length === 0 || loading}
+            className="flex-1 justify-center"
+          >
+            {loading ? 'Importing...' : `Import ${parsedData.length} ${itemLabel}`}
+          </CoralButton>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

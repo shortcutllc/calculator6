@@ -5,19 +5,15 @@ import {
   Users, 
   Camera, 
   Upload, 
-  Download,
   Eye,
   Trash2,
   Edit,
-  CheckCircle,
-  Clock,
-  AlertCircle,
   Link,
   Mail,
   Image as ImageIcon,
   ExternalLink
 } from 'lucide-react';
-import { Button } from './Button';
+import { Card, Tabs, CoralButton, OutlineButton, StatusPill, SOFT, LINE, SHADOW } from './headshot/brand';
 import { HeadshotService } from '../services/HeadshotService';
 import { NotificationService } from '../services/NotificationService';
 import { HeadshotEvent, HeadshotEventStats, CSVEmployeeData } from '../types/headshot';
@@ -185,40 +181,13 @@ export const HeadshotEventManager: React.FC = () => {
     setShowPhotoUploader(true);
   };
 
-  const getStatusIcon = (status: HeadshotEvent['status']) => {
-    switch (status) {
-      case 'draft':
-        return <Edit className="w-4 h-4 text-gray-500" />;
-      case 'active':
-        return <Clock className="w-4 h-4 text-blue-500" />;
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'archived':
-        return <AlertCircle className="w-4 h-4 text-gray-400" />;
-      default:
-        return <Clock className="w-4 h-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status: HeadshotEvent['status']) => {
-    switch (status) {
-      case 'draft':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'active':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'archived':
-        return 'bg-gray-100 text-gray-600 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  const statusTone = (status: HeadshotEvent['status']) =>
+    status === 'completed' ? 'navy' : status === 'active' ? 'cyan' : 'mist';
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-[#E2E9E8] border-t-[#FF5050]" />
       </div>
     );
   }
@@ -226,204 +195,172 @@ export const HeadshotEventManager: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Headshot Gallery Management</h1>
-          <p className="text-gray-600 mt-2">Manage headshot events and employee galleries</p>
+          <h2 className="text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">Events</h2>
+          <p className={`mt-1 text-[14.5px] ${SOFT}`}>Pick an event to manage its roster and photos.</p>
         </div>
-        <Button
-          onClick={() => setShowEventModal(true)}
-          className="flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Event</span>
-        </Button>
+        <CoralButton onClick={() => setShowEventModal(true)}>
+          <Plus className="h-4 w-4" />
+          New event
+        </CoralButton>
       </div>
 
-      {/* Events Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event) => (
-          <div
-            key={event.id}
-            className={`bg-white rounded-2xl shadow-lg p-6 border-2 transition-all cursor-pointer ${
-              selectedEvent?.id === event.id
-                ? 'border-shortcut-blue bg-shortcut-blue/5'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-            onClick={() => {
-              setSelectedEvent(event);
-              fetchEventStats(event.id);
-            }}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                {getStatusIcon(event.status)}
-                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(event.status)}`}>
-                  {event.status}
-                </span>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditEvent(event);
-                  }}
-                  className="text-blue-500 hover:text-blue-700 p-1"
-                  title="Edit event"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteEvent(event.id);
-                  }}
-                  className="text-red-500 hover:text-red-700 p-1"
-                  title="Delete event"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">{event.event_name}</h3>
-            
-            <div className="space-y-2 text-sm text-gray-600">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4" />
-                <span>{formatLocalDateShort(event.event_date)}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4" />
-                <span>{event.total_employees} employees</span>
-              </div>
-              {event.client_logo_url && (
-                <div className="flex items-center space-x-2">
-                  <ImageIcon className="w-4 h-4 text-blue-500" />
-                  <span className="text-blue-600 font-medium">Client logo added</span>
+      {/* Events */}
+      {events.length === 0 ? (
+        <Card tone="mist" className="px-6 py-16 text-center">
+          <Calendar className="mx-auto mb-4 h-10 w-10 text-[#45596A]" />
+          <p className="text-[16px] font-bold text-[#003756]">No events yet</p>
+          <p className={`mt-1.5 text-[14.5px] ${SOFT}`}>Create one and import the roster.</p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {events.map((event) => (
+            <div
+              key={event.id}
+              className={`cursor-pointer rounded-[18px] border-2 bg-white p-6 transition-all ${SHADOW} ${
+                selectedEvent?.id === event.id
+                  ? 'border-[#FF5050]'
+                  : `${LINE} hover:border-[#003756]`
+              }`}
+              onClick={() => {
+                setSelectedEvent(event);
+                fetchEventStats(event.id);
+              }}
+            >
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <StatusPill tone={statusTone(event.status)}>{event.status}</StatusPill>
+                <div className={`flex flex-none gap-3 text-[13px] font-bold ${SOFT}`}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleEditEvent(event); }}
+                    className="transition-colors hover:text-[#003756]"
+                    title="Edit event"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event.id); }}
+                    className="transition-colors hover:text-[#FF5050]"
+                    title="Delete event"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-              )}
-              {event.manager_token && (
-                <div className="flex items-center space-x-2">
-                  <ExternalLink className="w-4 h-4 text-green-500" />
+              </div>
+
+              <h3 className="mb-3 text-[18px] font-extrabold tracking-[-.02em] text-[#003756]">
+                {event.event_name}
+              </h3>
+
+              <div className={`space-y-1.5 text-[14px] ${SOFT}`}>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {formatLocalDateShort(event.event_date)}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  {event.total_employees} people
+                </div>
+                {event.client_logo_url && (
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Client logo added
+                  </div>
+                )}
+                {event.manager_token && (
                   <button
                     onClick={async (e) => {
                       e.stopPropagation();
                       try {
                         const customUrl = await CustomUrlHelper.getManagerUrl(event.id, event.manager_token!);
                         navigator.clipboard.writeText(customUrl);
-                        alert('Manager link copied to clipboard!');
                       } catch (error) {
                         console.error('Failed to get custom manager URL:', error);
-                        // Fallback to original URL
-                        const managerUrl = `${window.location.origin}/manager/${event.manager_token}`;
-                        navigator.clipboard.writeText(managerUrl);
-                        alert('Manager link copied to clipboard!');
+                        navigator.clipboard.writeText(`${window.location.origin}/manager/${event.manager_token}`);
                       }
+                      alert('Copied. Send this to the client contact, not the photographer.');
                     }}
-                    className="text-green-600 hover:text-green-800 font-medium text-xs"
-                    title="Click to copy manager link"
+                    className="flex items-center gap-2 font-bold text-[#003756] transition-opacity hover:opacity-70"
+                    title="For the employer point of contact"
                   >
-                    Copy Manager Link
+                    <ExternalLink className="h-4 w-4" />
+                    Copy client contact link
                   </button>
+                )}
+              </div>
+
+              {selectedEvent?.id === event.id && eventStats && (
+                <div className={`mt-4 grid grid-cols-2 gap-3 border-t ${LINE} pt-4`}>
+                  {([
+                    ['Photos in', eventStats.photos_uploaded],
+                    ['Picked', eventStats.selections_made],
+                    ['Retouching', eventStats.retouching_in_progress],
+                    ['Done', eventStats.completed],
+                  ] as const).map(([label, value]) => (
+                    <div key={label} className="text-center">
+                      <div className="text-[19px] font-extrabold leading-none text-[#003756]">{value}</div>
+                      <div className={`mt-1 text-[11.5px] font-bold uppercase tracking-[.06em] ${SOFT}`}>{label}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
+          ))}
+        </div>
+      )}
 
-            {selectedEvent?.id === event.id && eventStats && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="text-center">
-                    <div className="font-semibold text-blue-600">{eventStats.photos_uploaded}</div>
-                    <div className="text-gray-500">Photos Uploaded</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-green-600">{eventStats.selections_made}</div>
-                    <div className="text-gray-500">Selections Made</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-orange-600">{eventStats.retouching_in_progress}</div>
-                    <div className="text-gray-500">Retouching</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-purple-600">{eventStats.completed}</div>
-                    <div className="text-gray-500">Completed</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Selected Event Content */}
+      {/* Selected event */}
       {selectedEvent && (
-        <div className="bg-white rounded-2xl shadow-lg">
-          {/* Event Header */}
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Event: {selectedEvent.event_name}
+        <Card className="overflow-hidden">
+          <div className={`border-b ${LINE} px-6 pt-5`}>
+            <h2 className="mb-4 text-[17px] font-extrabold tracking-[-.02em] text-[#003756]">
+              {selectedEvent.event_name}
             </h2>
-            
-            {/* Tab Navigation */}
-            <div className="border-b border-gray-200">
-              <nav className="-mb-px flex space-x-8">
-                {[
-                  { key: 'employees', label: 'Employees', icon: Users },
-                  { key: 'photos', label: 'Photos', icon: Camera },
-                  { key: 'links', label: 'Links', icon: Link },
-                  { key: 'photographers', label: 'Photographers', icon: Users }
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key as 'employees' | 'photos' | 'links' | 'photographers')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                      activeTab === tab.key
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <tab.icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
+            <Tabs
+              active={activeTab}
+              onChange={(k) => setActiveTab(k as 'employees' | 'photos' | 'links' | 'photographers')}
+              tabs={[
+                { key: 'employees', label: 'People', icon: <Users className="h-4 w-4" /> },
+                { key: 'photos', label: 'Photos', icon: <Camera className="h-4 w-4" /> },
+                { key: 'links', label: 'Links', icon: <Link className="h-4 w-4" /> },
+                { key: 'photographers', label: 'Photographers', icon: <Camera className="h-4 w-4" /> },
+              ]}
+            />
           </div>
 
-          {/* Tab Content */}
+          {/* Tab content */}
           <div className="p-6">
             {activeTab === 'employees' && (
               <div className="space-y-6">
-                <div className="flex flex-wrap gap-4">
-                  <Button
-                    onClick={() => setShowCSVUploader(true)}
-                    variant="secondary"
-                    className="flex items-center space-x-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span>Import Employees (CSV)</span>
-                  </Button>
-                  
-                  <Button
+                <div className="flex flex-wrap gap-3">
+                  <OutlineButton onClick={() => setShowCSVUploader(true)}>
+                    <Upload className="h-4 w-4" />
+                    Import from CSV
+                  </OutlineButton>
+
+                  <CoralButton
                     onClick={handleSendNotifications}
-                    disabled={sendingNotifications || !eventStats?.total_employees}
-                    className="flex items-center space-x-2"
+                    disabled={sendingNotifications || !eventStats?.photos_uploaded}
+                    title={
+                      !eventStats?.photos_uploaded
+                        ? 'Nobody has photos yet, so there is nothing to send'
+                        : undefined
+                    }
                   >
                     {sendingNotifications ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Sending...</span>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        Sending...
                       </>
                     ) : (
                       <>
-                        <Mail className="w-4 h-4" />
-                        <span>Send Notifications</span>
+                        <Mail className="h-4 w-4" />
+                        Email everyone with photos
                       </>
                     )}
-                  </Button>
+                  </CoralButton>
                 </div>
-                
+
                 <EmployeeManager
                   eventId={selectedEvent.id}
                   refreshKey={employeeRefreshKey}
@@ -435,70 +372,55 @@ export const HeadshotEventManager: React.FC = () => {
             )}
 
             {activeTab === 'photos' && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">Photo Management</h3>
-                  <div className="flex space-x-2">
-                    <Button
-                      onClick={() => setShowPhotoUploader(true)}
-                      className="flex items-center space-x-2"
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>Upload Photos</span>
-                    </Button>
-                    <Button
-                      onClick={() => setShowPhotoUploader(true)}
-                      variant="secondary"
-                      className="flex items-center space-x-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span>View Galleries</span>
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-gray-600">
-                  Use the buttons above to manage photos for employees in this event.
+              <div>
+                <h3 className="text-[16px] font-extrabold text-[#003756]">Photos</h3>
+                <p className={`mt-1.5 text-[14.5px] ${SOFT}`}>
+                  Upload into a person's gallery, or look at what is already there.
                 </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <CoralButton onClick={() => setShowPhotoUploader(true)}>
+                    <Camera className="h-4 w-4" />
+                    Upload photos
+                  </CoralButton>
+                  <OutlineButton onClick={() => setShowPhotoUploader(true)}>
+                    <Eye className="h-4 w-4" />
+                    Browse galleries
+                  </OutlineButton>
+                </div>
               </div>
             )}
 
             {activeTab === 'links' && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">Employee Links</h3>
-                  <Button
-                    onClick={() => setShowEmployeeLinks(true)}
-                    className="flex items-center space-x-2"
-                  >
-                    <Link className="w-4 h-4" />
-                    <span>View Employee Links</span>
-                  </Button>
-                </div>
-                <p className="text-gray-600">
-                  View and copy employee gallery links for this event.
+              <div>
+                <h3 className="text-[16px] font-extrabold text-[#003756]">Gallery links</h3>
+                <p className={`mt-1.5 text-[14.5px] ${SOFT}`}>
+                  Every person has a private link. Copy one if their email bounced.
                 </p>
+                <div className="mt-4">
+                  <CoralButton onClick={() => setShowEmployeeLinks(true)}>
+                    <Link className="h-4 w-4" />
+                    See everyone's links
+                  </CoralButton>
+                </div>
               </div>
             )}
 
             {activeTab === 'photographers' && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">Photographer Access</h3>
-                  <Button
-                    onClick={() => setShowPhotographerAssignments(true)}
-                    className="flex items-center space-x-2"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span>Manage Photographers</span>
-                  </Button>
-                </div>
-                <p className="text-gray-600">
-                  Assign photographers to this event to give them access to manage photos and galleries.
+              <div>
+                <h3 className="text-[16px] font-extrabold text-[#003756]">Photographers</h3>
+                <p className={`mt-1.5 text-[14.5px] ${SOFT}`}>
+                  Whoever you add here can upload photos for this event.
                 </p>
+                <div className="mt-4">
+                  <CoralButton onClick={() => setShowPhotographerAssignments(true)}>
+                    <Users className="h-4 w-4" />
+                    Choose photographers
+                  </CoralButton>
+                </div>
               </div>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Modals */}

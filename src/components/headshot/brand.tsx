@@ -144,3 +144,104 @@ export const Stat: React.FC<{ label: string; value: React.ReactNode }> = ({
     </p>
   </div>
 );
+
+/** Page shell for the admin headshot screens. */
+export const Page: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className={`min-h-screen bg-white font-sans leading-[1.55] ${INK}`}>
+    <div className="mx-auto max-w-[1140px] px-5 pb-16 md:px-7">{children}</div>
+  </div>
+);
+
+/** Section heading used above a card or table. */
+export const SectionHead: React.FC<{
+  title: string;
+  sub?: string;
+  right?: React.ReactNode;
+}> = ({ title, sub, right }) => (
+  <div className={`flex flex-wrap items-center justify-between gap-3 border-b ${LINE} px-6 py-5`}>
+    <div>
+      <h2 className="text-[17px] font-extrabold tracking-[-.02em] text-[#003756]">{title}</h2>
+      {sub && <p className={`mt-1 text-[14px] ${SOFT}`}>{sub}</p>}
+    </div>
+    {right}
+  </div>
+);
+
+/** Underlined tab bar. */
+export const Tabs: React.FC<{
+  tabs: { key: string; label: string; icon?: React.ReactNode }[];
+  active: string;
+  onChange: (key: string) => void;
+}> = ({ tabs, active, onChange }) => (
+  <div className={`border-b ${LINE}`}>
+    <nav className="-mb-px flex gap-7">
+      {tabs.map(t => (
+        <button
+          key={t.key}
+          onClick={() => onChange(t.key)}
+          className={`flex items-center gap-2 border-b-[3px] px-1 py-3 text-[14.5px] font-bold transition-colors ${
+            active === t.key
+              ? 'border-[#FF5050] text-[#003756]'
+              : `border-transparent ${SOFT} hover:text-[#003756]`
+          }`}
+        >
+          {t.icon}
+          {t.label}
+        </button>
+      ))}
+    </nav>
+  </div>
+);
+
+/** Text input matching the brand forms. */
+export const Field: React.FC<{
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}> = ({ label, hint, children }) => (
+  <div>
+    <label className="mb-1.5 block text-[12.5px] font-bold uppercase tracking-[.06em] text-[#45596A]">
+      {label}
+    </label>
+    {children}
+    {hint && <p className={`mt-1.5 text-[13px] ${SOFT}`}>{hint}</p>}
+  </div>
+);
+
+/** Shared input class so every headshot form field matches. */
+export const inputClass =
+  'w-full rounded-[14px] border-2 border-[#E2E9E8] px-4 py-2.5 text-[14.5px] text-[#032232] placeholder:text-[#45596A]/60 focus:border-[#003756] focus:outline-none';
+
+/** Modal shell: dimmed navy backdrop, brand card. */
+export const Modal: React.FC<{
+  onClose: () => void;
+  title: string;
+  sub?: string;
+  wide?: boolean;
+  children: React.ReactNode;
+}> = ({ onClose, title, sub, wide, children }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,34,50,.55)] p-4">
+    <div
+      className={`max-h-[90vh] w-full overflow-y-auto rounded-[18px] border ${LINE} bg-white ${SHADOW} ${
+        wide ? 'max-w-3xl' : 'max-w-lg'
+      }`}
+    >
+      <div className={`flex items-start justify-between gap-4 border-b ${LINE} p-6`}>
+        <div>
+          <h2 className="text-[20px] font-extrabold tracking-[-.02em] text-[#003756]">{title}</h2>
+          {sub && <p className={`mt-1.5 text-[14px] ${SOFT}`}>{sub}</p>}
+        </div>
+        <button
+          onClick={onClose}
+          className={`flex-none rounded-full p-1 ${SOFT} transition-colors hover:bg-[#F1F6F5] hover:text-[#003756]`}
+          aria-label="Close"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
+  </div>
+);

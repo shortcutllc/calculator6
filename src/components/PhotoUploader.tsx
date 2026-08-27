@@ -305,17 +305,17 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const getStatusIcon = (status: EmployeeGallery['status']) => {
     switch (status) {
       case 'pending':
-        return <XCircle className="w-4 h-4 text-gray-400" />;
+        return <XCircle className="w-4 h-4 text-[#45596A]" />;
       case 'photos_uploaded':
         return <CheckCircle className="w-4 h-4 text-[#003756]" />;
       case 'selection_made':
-        return <CheckCircle className="w-4 h-4 text-blue-500" />;
+        return <CheckCircle className="w-4 h-4 text-[#003756]" />;
       case 'retouching':
-        return <AlertCircle className="w-4 h-4 text-orange-500" />;
+        return <AlertCircle className="w-4 h-4 text-[#FF5050]" />;
       case 'completed':
         return <CheckCircle className="w-4 h-4 text-[#003756]" />;
       default:
-        return <XCircle className="w-4 h-4 text-gray-400" />;
+        return <XCircle className="w-4 h-4 text-[#45596A]" />;
     }
   };
 
@@ -355,7 +355,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-[#45596A] transition-colors hover:text-[#003756]"
           >
             <X className="w-6 h-6" />
           </button>
@@ -396,7 +396,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                       e.stopPropagation();
                       handleDeleteGallery(gallery.id, gallery.employee_name);
                     }}
-                    className="absolute top-2 right-2 p-1 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute right-2 top-2 p-1 text-[#45596A] opacity-0 transition-opacity hover:text-[#FF5050] group-hover:opacity-100"
                     title="Delete gallery"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -409,10 +409,10 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                     </span>
                   </div>
                   <div className="text-sm">
-                    <div className="font-medium text-gray-900">{gallery.employee_name}</div>
-                    <div className="text-gray-600">{gallery.email}</div>
+                    <div className="text-[14.5px] font-bold text-[#003756]">{gallery.employee_name}</div>
+                    <div className="text-[13px] text-[#45596A]">{gallery.email}</div>
                     {gallery.photos && (
-                      <div className="text-gray-500 mt-1">
+                      <div className="mt-1 text-[13px] text-[#45596A]">
                         {gallery.photos.length} photo{gallery.photos.length !== 1 ? 's' : ''}
                         {gallery.selected_photo_id && (
                           <div className="mt-1 text-xs font-bold text-[#003756]">
@@ -420,7 +420,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                           </div>
                         )}
                         {gallery.photos?.some(p => p.is_final) && (
-                          <div className="text-purple-600 text-xs mt-1">
+                          <div className="mt-1 text-xs font-bold text-[#003756]">
                             🎉 Final photo ready
                           </div>
                         )}
@@ -436,7 +436,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                           e.stopPropagation();
                           setViewingPhotos(gallery);
                         }}
-                        className="w-full text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded transition-colors"
+                        className="w-full rounded-[10px] bg-[#F1F6F5] px-2 py-1.5 text-xs font-bold text-[#003756] transition-opacity hover:opacity-80"
                       >
                         <Eye className="w-3 h-3 inline mr-1" />
                         View Photos
@@ -464,17 +464,17 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           {/* File Upload */}
           {selectedGallery && (
             <div className="space-y-4">
-              <h3 className="font-medium text-gray-900">
+              <h3 className="text-[15px] font-extrabold text-[#003756]">
                 Upload Photos for {selectedGallery.employee_name}
               </h3>
               
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <div className="rounded-[18px] border-2 border-dashed border-[#E2E9E8] p-8 text-center">
+                <Camera className="mx-auto mb-4 h-10 w-10 text-[#45596A]" />
                 <div className="space-y-2">
-                  <p className="text-lg font-medium text-gray-900">
+                  <p className="text-[16px] font-bold text-[#003756]">
                     Select photos to upload
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-[14px] text-[#45596A]">
                     Choose 1-5 high-resolution JPEG files
                   </p>
                 </div>
@@ -493,17 +493,17 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           {/* Upload Progress */}
           {uploadProgress.length > 0 && (
             <div className="space-y-4">
-              <h3 className="font-medium text-gray-900">Upload Progress</h3>
+              <h3 className="text-[15px] font-extrabold text-[#003756]">Upload Progress</h3>
               {uploadProgress.map((progress, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-4">
+                <div key={index} className="rounded-[14px] bg-[#F1F6F5] p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-gray-900">{progress.employeeName}</span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-[14.5px] font-bold text-[#003756]">{progress.employeeName}</span>
+                    <span className="text-[13.5px] text-[#45596A]">
                       {progress.uploadedPhotos}/{progress.totalPhotos} photos
                     </span>
                   </div>
                   
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                  <div className="mb-2 h-2 w-full rounded-full bg-[#E2E9E8]">
                     <div
                       className="h-2 rounded-full bg-[#FF5050] transition-all duration-300"
                       style={{ width: `${progress.progress}%` }}
@@ -514,7 +514,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                     {progress.status === 'uploading' && (
                       <>
                         <div className="w-4 h-4 border-2 border-shortcut-blue border-t-transparent rounded-full animate-spin" />
-                        <span className="text-gray-600">Uploading...</span>
+                        <span className="text-[13.5px] text-[#45596A]">Uploading...</span>
                       </>
                     )}
                     {progress.status === 'completed' && (
@@ -525,8 +525,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                     )}
                     {progress.status === 'error' && (
                       <>
-                        <XCircle className="w-4 h-4 text-red-500" />
-                        <span className="text-red-600">{progress.error}</span>
+                        <XCircle className="h-4 w-4 text-[#FF5050]" />
+                        <span className="text-[13.5px] font-bold text-[#FF5050]">{progress.error}</span>
                       </>
                     )}
                   </div>
@@ -537,14 +537,14 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="flex items-start gap-3 rounded-[14px] border-2 border-[#FF5050] bg-white px-5 py-4">
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-none text-[#FF5050]" />
+              <p className="text-[14px] text-[#032232]">{error}</p>
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex space-x-3 pt-4 border-t border-gray-200">
+          <div className="flex gap-3 border-t border-[#E2E9E8] pt-5">
             <Button
               type="button"
               variant="secondary"
@@ -573,12 +573,12 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between border-b border-[#E2E9E8] p-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-[20px] font-extrabold tracking-[-.02em] text-[#003756]">
                   Photos for {viewingPhotos.employee_name}
                 </h2>
-                <p className="text-gray-600">{viewingPhotos.email}</p>
+                <p className="text-[14px] text-[#45596A]">{viewingPhotos.email}</p>
               </div>
               <div className="flex items-center space-x-3">
                 <Button
@@ -599,7 +599,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                 </Button>
                 <button
                   onClick={() => setViewingPhotos(null)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-[#45596A] transition-colors hover:text-[#003756]"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -612,7 +612,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {viewingPhotos.photos.map((photo) => (
                     <div key={photo.id} className={`relative group ${photo.is_selected ? 'ring-2 ring-[#FF5050]' : ''}`}>
-                      <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                      <div className="h-48 w-full overflow-hidden rounded-[14px] bg-[#F1F6F5]">
                         <img
                           src={photo.photo_url}
                           alt={photo.photo_name || 'Headshot photo'}
@@ -629,7 +629,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                           }}
                         />
                         {/* Fallback for broken images */}
-                        <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 text-sm" style={{display: 'none'}}>
+                        <div className="flex h-full w-full items-center justify-center bg-[#E2E9E8] text-[13.5px] text-[#45596A]" style={{display: 'none'}}>
                           <div className="text-center">
                             <Camera className="w-8 h-8 mx-auto mb-2" />
                             <div>Image not found</div>
@@ -656,7 +656,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                           </div>
                         )}
                         {photo.is_final && (
-                          <div className="text-xs text-blue-300 font-medium">
+                          <div className="text-xs font-bold text-[#9EFAFF]">
                             ✓ Final
                           </div>
                         )}
@@ -665,7 +665,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                       {/* Delete Button */}
                       <button
                         onClick={() => handleDeletePhoto(photo.id, photo.photo_name || 'photo')}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        className="absolute right-2 top-2 rounded-full bg-[#FF5050] p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:opacity-90"
                         title="Delete photo"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -675,9 +675,9 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No photos yet</h3>
-                  <p className="text-gray-600 mb-4">Upload some photos to get started</p>
+                  <Camera className="mx-auto mb-4 h-12 w-12 text-[#45596A]" />
+                  <h3 className="mb-2 text-[16px] font-bold text-[#003756]">No photos yet</h3>
+                  <p className="mb-4 text-[14.5px] text-[#45596A]">Add their first photos above.</p>
                   <Button
                     onClick={() => {
                       const input = document.createElement('input');
@@ -723,32 +723,32 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <h3 className="mb-4 text-[18px] font-extrabold tracking-[-.02em] text-[#003756]">
                 Upload Final Photo for {uploadingFinalFor.employee_name}
               </h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="mb-1.5 block text-[12.5px] font-bold uppercase tracking-[.06em] text-[#45596A]">
                     Select Final Retouched Photo
                   </label>
                   <input
                     type="file"
                     accept="image/jpeg,image/jpg,image/png"
                     onChange={(e) => setFinalPhotoFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    className="block w-full text-[13.5px] text-[#45596A] file:mr-4 file:rounded-full file:border-0 file:bg-[#F1F6F5] file:px-4 file:py-2 file:text-[13.5px] file:font-bold file:text-[#003756] hover:file:opacity-80"
                   />
                 </div>
 
                 {finalPhotoFile && (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-[13.5px] text-[#45596A]">
                     Selected: {finalPhotoFile.name}
                   </div>
                 )}
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm text-red-800">{error}</p>
+                  <div className="rounded-[14px] border-2 border-[#FF5050] bg-white p-3">
+                    <p className="text-[14px] text-[#032232]">{error}</p>
                   </div>
                 )}
               </div>
@@ -760,7 +760,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                     setFinalPhotoFile(null);
                     setError('');
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="rounded-full border-2 border-[#003756] bg-white px-5 py-2.5 text-[14px] font-bold text-[#003756] transition-colors hover:bg-[#F1F6F5]"
                 >
                   Cancel
                 </button>

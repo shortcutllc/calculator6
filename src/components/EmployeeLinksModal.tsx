@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Mail, Phone, User } from 'lucide-react';
+import { Copy, Check, Mail, Phone, User } from 'lucide-react';
 import { HeadshotService } from '../services/HeadshotService';
 import { EmployeeGallery } from '../types/headshot';
+import { Modal, Card, OutlineButton, StatusPill, SOFT, LINE, inputClass } from './headshot/brand';
 
 interface EmployeeLinksModalProps {
   isOpen: boolean;
@@ -52,143 +53,108 @@ export const EmployeeLinksModal: React.FC<EmployeeLinksModalProps> = ({
 
   if (!isOpen) return null;
 
+  const statusTone = (status: EmployeeGallery['status']) =>
+    status === 'completed' || status === 'retouching'
+      ? 'navy'
+      : status === 'photos_uploaded' || status === 'selection_made'
+      ? 'cyan'
+      : 'mist';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Employee Gallery Links</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+    <Modal
+      onClose={onClose}
+      title="Gallery links"
+      sub="Each person has their own private link. Send it if their email bounced."
+      wide
+    >
+      {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#E2E9E8] border-t-[#FF5050]" />
         </div>
+      ) : galleries.length === 0 ? (
+        <div className="py-12 text-center">
+          <User className="mx-auto mb-4 h-10 w-10 text-[#45596A]" />
+          <p className="text-[16px] font-bold text-[#003756]">Nobody on this event yet</p>
+          <p className={`mt-1.5 text-[14.5px] ${SOFT}`}>Import the roster from a CSV first.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {galleries.map((gallery) => {
+            const galleryUrl = generateGalleryUrl(gallery.unique_token);
+            const isCopied = copiedToken === gallery.unique_token;
+            const selectedPhoto = gallery.photos?.find(p => p.id === gallery.selected_photo_id);
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : galleries.length === 0 ? (
-            <div className="text-center py-8">
-              <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Employees Found</h3>
-              <p className="text-gray-600">Import employees using the CSV uploader first.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {galleries.map((gallery) => {
-                const galleryUrl = generateGalleryUrl(gallery.unique_token);
-                const isCopied = copiedToken === gallery.unique_token;
-                
-                return (
-                  <div key={gallery.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <User className="w-5 h-5 text-gray-500" />
-                          <h3 className="font-medium text-gray-900">{gallery.employee_name}</h3>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            gallery.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                            gallery.status === 'photos_uploaded' ? 'bg-blue-100 text-blue-600' :
-                            gallery.status === 'selection_made' ? 'bg-green-100 text-green-600' :
-                            gallery.status === 'retouching' ? 'bg-orange-100 text-orange-600' :
-                            gallery.status === 'completed' ? 'bg-purple-100 text-purple-600' :
-                            'bg-red-100 text-red-600'
-                          }`}>
-                            {gallery.status.replace('_', ' ')}
-                          </span>
-                        </div>
-                        
-                        {/* Selected Photo Preview */}
-                        {gallery.selected_photo_id && gallery.photos && (
-                          <div className="mb-3">
-                            <div className="text-xs text-gray-500 mb-1">Selected Photo:</div>
-                            <div className="flex items-center space-x-3">
-                              {(() => {
-                                const selectedPhoto = gallery.photos.find(p => p.id === gallery.selected_photo_id);
-                                return selectedPhoto ? (
-                                  <>
-                                    <img
-                                      src={selectedPhoto.photo_url}
-                                      alt="Selected photo"
-                                      className="w-16 h-16 object-cover rounded border-2 border-green-500"
-                                    />
-                                    <div className="text-sm text-gray-600">
-                                      <div className="font-medium">{selectedPhoto.photo_name || 'Selected Photo'}</div>
-                                      <div className="text-xs text-gray-500">Selected for retouching</div>
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div className="text-sm text-gray-500 italic">Selected photo not found</div>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
-                          <div className="flex items-center space-x-1">
-                            <Mail className="w-4 h-4" />
-                            <span>{gallery.email}</span>
-                          </div>
-                          {gallery.phone && (
-                            <div className="flex items-center space-x-1">
-                              <Phone className="w-4 h-4" />
-                              <span>{gallery.phone}</span>
-                            </div>
-                          )}
-                        </div>
+            return (
+              <Card key={gallery.id} className="p-5">
+                <div className="mb-3 flex flex-wrap items-center gap-3">
+                  <h3 className="text-[15.5px] font-bold text-[#003756]">{gallery.employee_name}</h3>
+                  <StatusPill tone={statusTone(gallery.status)}>
+                    {gallery.status.replace(/_/g, ' ')}
+                  </StatusPill>
+                </div>
 
-                        <div className="bg-gray-50 rounded p-3">
-                          <div className="text-xs text-gray-500 mb-1">Gallery Link:</div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="text"
-                              value={galleryUrl}
-                              readOnly
-                              className="flex-1 text-sm bg-white border border-gray-300 rounded px-3 py-2 font-mono"
-                            />
-                            <button
-                              onClick={() => copyToClipboard(galleryUrl, gallery.unique_token)}
-                              className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                            >
-                              {isCopied ? (
-                                <>
-                                  <Check className="w-4 h-4" />
-                                  <span className="text-sm">Copied!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-4 h-4" />
-                                  <span className="text-sm">Copy</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
+                {selectedPhoto && (
+                  <div className="mb-4 flex items-center gap-3">
+                    <img
+                      src={selectedPhoto.photo_url}
+                      alt=""
+                      className="h-16 w-16 rounded-[12px] border-[3px] border-[#FF5050] object-cover"
+                    />
+                    <div>
+                      <div className="text-[14px] font-bold text-[#003756]">
+                        {selectedPhoto.photo_name || 'Their pick'}
                       </div>
+                      <div className={`text-[13px] ${SOFT}`}>Chosen for retouching</div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                )}
 
-        {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Close
-          </button>
+                <div className={`mb-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13.5px] ${SOFT}`}>
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5" />
+                    {gallery.email}
+                  </span>
+                  {gallery.phone && (
+                    <span className="flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5" />
+                      {gallery.phone}
+                    </span>
+                  )}
+                </div>
+
+                <div className="rounded-[14px] bg-[#F1F6F5] p-4">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[.09em] text-[#45596A]">
+                    Their private link
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      value={galleryUrl}
+                      readOnly
+                      className={`${inputClass} min-w-[240px] flex-1 bg-white font-mono text-[13px]`}
+                    />
+                    <button
+                      onClick={() => copyToClipboard(galleryUrl, gallery.unique_token)}
+                      className={`inline-flex flex-none items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-bold transition-colors ${
+                        isCopied
+                          ? 'bg-[#9EFAFF] text-[#003756]'
+                          : 'bg-[#003756] text-white hover:opacity-90'
+                      }`}
+                    >
+                      {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      {isCopied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
+      )}
+
+      <div className={`mt-6 flex justify-end border-t ${LINE} pt-5`}>
+        <OutlineButton onClick={onClose}>Close</OutlineButton>
       </div>
-    </div>
+    </Modal>
   );
 };
