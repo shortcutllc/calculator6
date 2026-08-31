@@ -20,6 +20,7 @@ import { fileURLToPath } from 'url';
 import { CAPS, canSpend, record, recordRefusal, status } from './budget.mjs';
 // Same rule as the cron jobs: positioning is injected, never recalled. Prepended to the
 // FIRST turn of a session only, since --resume carries it forward in context after that.
+import { toSlackMrkdwn, chunkForSlack } from '../lib/slack-format.mjs';
 import { buildPositioningBlock } from '../../netlify/functions/lib/positioning.js';
 
 const { App } = pkg;
@@ -59,10 +60,31 @@ for (const k of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN']) delete process.en
 // Tools Dave gets in chat sessions. Read/search freely, write only inside dave/, run the
 // repo's read-only scripts via Bash. No git push, no deploys, no Gmail — those are Will's.
 // Task = subagent fan-out (granted 2026-07-21) so Dave can parallelize research sweeps.
-const ALLOWED_TOOLS = 'Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash,Task';
+// CHROME (2026-08-31): Dave can LOOK at a page, not act on one. The read/navigate subset only —
+// take_screenshot/take_snapshot/navigate_page/list_pages/select_page/new_page/resize_page. The
+// acting tools (evaluate_script, click, fill, fill_form, type_text, press_key, drag, hover,
+// upload_file, handle_dialog, close_page) are deliberately EXCLUDED: this MCP drives Will's real
+// Chrome with its live logged-in sessions, and Dave runs unattended on cron while reading
+// untrusted web pages via WebSearch/WebFetch. Script execution + form filling in that browser is
+// a prompt-injection path into Gmail/Supabase/Admin console. Widen only with a reason.
+const CHROME_TOOLS = [
+  'list_pages', 'select_page', 'new_page', 'navigate_page',
+  'take_screenshot', 'take_snapshot', 'resize_page',
+].map((t) => `mcp__chrome-devtools__${t}`).join(',');
+const ALLOWED_TOOLS = `Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash,Task,${CHROME_TOOLS}`;
 
 function loadSessions() { try { return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch { return {}; } }
 function saveSessions(s) { fs.mkdirSync(STATE_DIR, { recursive: true }); fs.writeFileSync(SESSIONS_FILE, JSON.stringify(s, null, 2)); }
+
+// Turn log — one line per turn in state/logs/turns.log, separate from gateway.out so it is
+// not buried under socket-mode reconnect spam. This is the file to read when asking "what did
+// Dave actually do / why did that tool not run".
+function logTurn(msg) {
+  try {
+    fs.mkdirSync(path.join(STATE_DIR, 'logs'), { recursive: true });
+    fs.appendFileSync(path.join(STATE_DIR, 'logs', 'turns.log'), `${new Date().toISOString()} ${msg}\n`);
+  } catch { /* logging must never break a turn */ }
+}
 
 /** Run one Claude turn. Returns { text, sessionId, costUsd }. */
 function runClaude(prompt, resumeId) {
@@ -86,8 +108,24 @@ function runClaude(prompt, resumeId) {
       if (code !== 0 && !out.trim()) return reject(new Error(`claude exited ${code}: ${err.slice(0, 300)}`));
       try {
         const j = JSON.parse(out);
+        // TURN LOG (2026-08-31): the gateway used to record NOTHING per turn — 12k lines of
+        // socket noise and restart banners, zero about what Dave did. So when a tool was
+        // blocked, Dave could only guess at why and there was no record to check him against.
+        // `permission_denials` is the field that answers it: the CLI already reports exactly
+        // which tools were refused, and we were parsing it and throwing it away.
+        const denials = (j.permission_denials || [])
+          .map((d) => d.tool_name || d.tool || JSON.stringify(d)).join(', ');
+        logTurn([
+          `turns=${j.num_turns ?? '?'}`,
+          `cost=$${(j.total_cost_usd || 0).toFixed(4)}`,
+          `err=${j.is_error ? (j.result || 'yes').slice(0, 200) : 'no'}`,
+          denials ? `DENIED=[${denials}]` : 'denied=none',
+        ].join(' '));
         resolve({ text: j.result || '(no reply)', sessionId: j.session_id || resumeId || null, costUsd: j.total_cost_usd || 0 });
-      } catch { resolve({ text: out.trim().slice(0, 3500) || '(unparseable reply)', sessionId: resumeId || null, costUsd: 0 }); }
+      } catch {
+        logTurn(`unparseable output rc=${code} stderr=${(err || '').trim().slice(0, 200)}`);
+        resolve({ text: out.trim().slice(0, 3500) || '(unparseable reply)', sessionId: resumeId || null, costUsd: 0 });
+      }
     });
   });
 }
@@ -166,9 +204,14 @@ app.event('message', async ({ event, client }) => {
       ? `\n\n_⚠️ Thread meter: ${meter.turns} turns, ~$${meter.cost.toFixed(0)} at API rates. Each reply reloads this whole thread — a fresh DM resets the meter, and my brain files carry everything forward._`
       : '';
     // Slack hard-caps message length; chunk long replies.
-    const outText = reply + threadWarning;
-    for (let i = 0; i < outText.length; i += 3800) {
-      await client.chat.postMessage({ channel: event.channel, thread_ts: threadKey, text: outText.slice(i, i + 3800) });
+    // Dave writes GitHub markdown; Slack renders mrkdwn. Until 2026-08-31 this path
+    // posted the reply RAW, so his headings arrived as literal "##" and his bold as
+    // "**" (tools/slack-dm.mjs had a converter, the gateway never used it). One shared
+    // formatter now serves both surfaces, and chunking splits on line boundaries so a
+    // long answer never breaks mid-word or mid-code-block.
+    const outText = toSlackMrkdwn(reply + threadWarning);
+    for (const part of chunkForSlack(outText)) {
+      await client.chat.postMessage({ channel: event.channel, thread_ts: threadKey, text: part });
     }
     await client.reactions.remove({ channel: event.channel, name: 'thinking_face', timestamp: event.ts }).catch(() => {});
     await client.reactions.add({ channel: event.channel, name: 'white_check_mark', timestamp: event.ts }).catch(() => {});

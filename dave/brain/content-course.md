@@ -17,6 +17,24 @@ flagged "early not wrong, awaiting Will's weighting").
 
 ---
 
+## APPROVED — Website hero copy (locked with Will, 2026-07-29)
+Main tagline + subheadline for the website (and other top-of-funnel surfaces):
+- HEADLINE (v4, moved team→people 2026-07-29 to harmonise w/ subhead): **"Wellness your people show up for."**
+- SUBHEADLINE (workshopped + locked this session): **"Loved by your people. All handled for you."**
+- ⚠️ OPEN FLAG raised to Will: headline "your people" + subhead "Loved by your people" repeats
+  "people" twice in ~8 words — same repetition standard Will used to reject the "wellness" repeat.
+  Cleanest fix = headline "team" + subhead "people" (variation, no echo), OR keep "people" as a
+  deliberate through-line (Will's call). When headline was "your team" the pairing had no repeat.
+Why it won (the workshop trail): the first-draft subhead ("A dozen services, from massage to sound
+baths, in your office or over Zoom, all run by one team") was 100% MECHANISM — breadth/delivery/
+one-team, zero felt outcome (the exact outcome-vs-mechanism gap). Target emotions Will named:
+dependable, ease, love, quality, confidence. Landed on the two-audience juxtaposition (same device
+as the approved "Felt by employees. Effortless for employers."): "Loved by your people" = love;
+"All handled for you" = ease/confidence (stated as flat fact, NOT the negated "never a worry").
+Cut the service list entirely (it lives in the services section, not the hero) → 8 words, in the
+register of Maven/Oura/Linear/Equinox (all 6-11 words, one idea). IMMUTABLE unless Will re-opens.
+Open: add to messaging_spine.md "Brand lines that fit the spine" as a Will-approved change? (asked)
+
 ## Milestone 1 — "Going Public"
 
 By the end, Will will:

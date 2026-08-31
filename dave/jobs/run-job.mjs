@@ -8,6 +8,8 @@
  * Rules re-homed from the retired run-job.sh — ALL of them (the vanished-130-word-ceiling
  * lesson): 1 day guards · 2 watermark min-intervals · 3 budget gate · 4 ephemeral claude
  * run · 5 cost recording · 6 watermark-on-success · 7 healthchecks ping · 8 run logging.
+ * Plus 9 failure alarm (2026-08-31): a failed run self-reports to Will's Slack DM, because
+ * the external dead-man's switch went unnoticed for 12 days.
  */
 import fs from 'fs';
 // Positioning is injected, not remembered. Every other copy surface imports this
@@ -103,15 +105,57 @@ const r = spawnSync(CLAUDE_BIN, [
 const out = r.stdout || '';
 if (r.stderr) log(`${job}.err`, r.stderr.slice(0, 4000));
 fs.writeFileSync(path.join(STATE, `last-${job}.json`), out);
-const ok = r.status === 0;
+
+// The CLI can exit non-zero AND report the real reason only inside the result JSON — the
+// 2026-08-19 OAuth death wrote empty stderr, so `${job}.err` stayed empty and runs.log showed
+// a bare `rc=1 cost=$0` for 12 days. Parse the JSON: that's where the message lives.
+let parsed = null;
+try { parsed = JSON.parse(out); } catch { /* unparseable — handled below */ }
+// A run that errored must NOT bank a watermark, or the next fire "free skips" a job that
+// never actually ran. is_error can be true even on rc=0, so check both.
+const ok = r.status === 0 && !(parsed && parsed.is_error);
 
 // --- 5-8. Record cost, watermark on success, dead-man's ping, run log ---
-let cost = 0;
-try { cost = JSON.parse(out).total_cost_usd || 0; } catch { /* unparseable — cost stays 0 */ }
+const cost = (parsed && parsed.total_cost_usd) || 0;
 budget.record('job', cost);
 if (ok) {
   fs.writeFileSync(wmFile, String(Math.floor(Date.now() / 1000)));
   if (process.env.HEALTHCHECKS_URL) await fetch(process.env.HEALTHCHECKS_URL, { signal: AbortSignal.timeout(10000) }).catch(() => {});
 }
 log('runs.log', `${new Date().toISOString()} ${job} rc=${r.status} cost=$${cost}`);
+
+// --- 9. FAILURE ALARM (2026-08-31, after a 12-day silent OAuth death) ---
+// Same class of bug as the gateway watchdog above: the dead-man's switch is external and its
+// alert never reached Will, so ~35 dead runs passed unnoticed. Dave's own Slack DM is the
+// channel Will actually reads, so failures now self-report there instead of relying on a ping
+// he doesn't see. Throttled to one DM per job per 12h, and re-armed on recovery, so a long
+// outage nags once or twice a day rather than on every fire.
+const alertFile = path.join(STATE, `alert-${job}`);
+if (ok) {
+  try { fs.unlinkSync(alertFile); } catch { /* nothing to re-arm */ }
+} else {
+  const reason = (parsed && parsed.result) || (r.stderr || '').trim().slice(0, 300)
+    || `no output (rc=${r.status}${r.error ? `, ${r.error.message}` : ''})`;
+  // Auth failures are the recurring case and have a known one-line fix — say it in the DM so
+  // Will can act straight from his phone instead of coming back here to diagnose.
+  const isAuth = /auth|oauth|401|unauthorized|credential|login/i.test(reason);
+  let last = 0;
+  try { last = Number(fs.readFileSync(alertFile, 'utf8').trim()) || 0; } catch { /* first failure */ }
+  const throttled = (Date.now() / 1000 - last) / 3600 < 12;
+  if (!throttled) {
+    fs.writeFileSync(alertFile, String(Math.floor(Date.now() / 1000)));
+    const msg = [
+      `*Dave job failed: ${job}*`,
+      `rc=${r.status} · ${new Date().toISOString()}`,
+      '',
+      reason.slice(0, 800),
+      ...(isAuth ? ['', 'Looks like auth. Fix: run `claude auth login` in a terminal.'] : []),
+      '',
+      `Full result: dave/state/last-${job}.json`,
+    ].join('\n');
+    const dm = spawnSync(process.execPath, [path.join(DAVE_DIR, 'tools', 'slack-dm.mjs'), msg],
+      { encoding: 'utf8', timeout: 20000 });
+    log('runs.log', `${new Date().toISOString()} ALERT ${job}: DM ${dm.status === 0 ? 'sent' : `FAILED (${(dm.stderr || '').trim().slice(0, 120)})`}`);
+  }
+}
 process.exit(ok ? 0 : 1);

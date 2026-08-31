@@ -902,5 +902,172 @@ partners or buyers.)
 (Debates happening NOW that Will has standing to enter — RTO, wellness-spend waste, perks
 theater. Each: the conversation, where it's happening, Will's angle, expiry date.)
 
+### SCAN REFRESH 2026-07-24 (this week's section: live debates + tastemaker recency)
+
+The map's rooms/podcasts/communities were built exhaustively 2026-07-21, so this week spent its
+budget on the DECAYING layer — what moved this month and what Will has standing to enter now.
+
+**1. The RTO backlash is peaking — and it is Will's cleanest LinkedIn opening, not a booth play.**
+- **Live and dated:** California state workers protested as a return-to-office mandate took
+  effect **1 Jul 2026** (https://www.capradio.org/articles/2026/07/01/californias-state-workers-protest-as-return-to-office-mandate-takes-effect/).
+  The broader debate is hot: reporting this month cites **80% of companies losing talent to RTO
+  mandates and 13% higher turnover under strict policies**
+  (https://www.bschools.org/blog/return-to-the-office, "The Great Resistance", 2026) and RTO
+  mandates "backfiring" (https://www.entrepreneur.com/leadership/why-are-rto-mandates-backfiring-and-whats-the/499215).
+- **Will's standing / angle:** he is NOT in the RTO-good-vs-bad fight and should not be. His
+  standing is the honest adjacent take: companies are dragging people back to offices that feel
+  like punishment, and the fix is making the day worth the commute. This is Peter Miscovich's
+  "make the office worth the commute" budget line (already mapped) with Will's receipt attached:
+  90%+ booked, 87% rebook — when the office has a thing people actually show up for, they show
+  up. NOT a health claim (safe per [[wellness-evidence]]); a "was the day worth leaving the
+  house for" claim, which is exactly our lane.
+- **Move:** a LinkedIn post (Goal 3, format = data observation). Do NOT pitch RTO as a strategy;
+  report from inside 500+ companies' events what a good in-office day actually looks like.
+- **Expiry:** RTO is an evergreen debate but the July protest news peg is ~2 weeks fresh. Post in
+  the next 10 days or drop the news hook and keep the evergreen version.
+- **Status:** proposed to Will 2026-07-24.
+
+**2. Hebba Youssef's live episode IS Will's thesis — the pitch window is open right now.**
+- Her S13 E2 (**~20 Jul 2026**, ~4 days before this scan), "What If HR Stopped Playing Therapist
+  and Started Designing Better Workplaces Instead?" with Stephanie Lemek, is the exact argument
+  Will holds. She is actively running this theme across a new season (S13 E1 aired Jul 13; a new
+  "Leadership Divide" series started this week). Source: her Apple Podcasts feed, checked
+  2026-07-24, https://podcasts.apple.com/us/podcast/i-hate-it-here/id1666309191
+- **Why now:** the map already ranked I Hate It Here (193k subs, books vendor founders) the #1
+  pitch. The recency check confirms she is ON this topic this month, so a pitch that hands her
+  attendance evidence for a position she is actively arguing lands better this week than in a
+  month. See the full entry under PODCASTS & NEWSLETTERS sweep 3.
+- **Move:** listen to S13 E2, then a 4-line pitch supplying our show-up-rate data as evidence for
+  her argument (NOT a product pitch). Draft on request.
+- **Status:** proposed to Will 2026-07-24.
+
+**Nothing else this month cleared the bar.** The wellness-trend pieces surfaced (Wellhub,
+HR Digest, TechTimes) were vendor SEO listicles with no author Will has standing to engage and
+no live debate — recorded here so next week's scan does not re-chase them.
+
+### SCAN REFRESH 2026-07-30 (decaying layer: the wellness-BUDGET-CUT debate)
+
+**The live conversation that moved this month: employers are CUTTING wellness spend into a 2026
+cost crunch — and that is Will's waste thesis handed a news peg.**
+- **The hard anchor (traceable):** Mercer's 2026 survey projects employer health-benefit cost
+  above **$18,500 per employee in 2026**, the steepest run-up in years, forcing benefits teams
+  to defend every discretionary wellness dollar.
+  https://www.barchart.com/story/news/36185790/mercer-survey-finds-us-employers-and-workers-will-face-affordability-crunch-as-health-insurance-cost-is-expected-to-exceed-18-500-per-employee-in-2026
+- **The debate framing (analyst, but STALE — Mar 2026):** Josh Bersin, on wellness ROI: *"I
+  don't know that anybody's told me that it's paid off... it does not surprise me that this got
+  really overbuilt and overhyped"* (Business Insider, Mar 2026). The exact skeptic position the
+  spine already answers: waste, not health.
+- **⚠️ SOFT STAT — DO NOT put in Will's hands as fact:** the widely-repeated "wellness spend
+  dropped 19% per employee, $1,366 → $1,103 (2023-25)" traces only to an aggregator
+  (Moneywise, citing "Data Ramp Capital"), not a hard benefits survey. Frame stands without it;
+  the number does not. https://moneywise.com/insurance/health/corporate-wellness-spending-dropped-19-in-just-2-years-just-as-health-care-premiums-may-cost-families-30k-in-2026-protect-your-health-and-wallet
+- **Will's standing / angle:** budgets are getting cut precisely because 24% of employees ever
+  touch the programs (Gallup, [[goals]] Goal 3). The honest post: good — cut the stuff nobody
+  used; here's what people actually show up for. Only OUR receipts (90%+ booked, 87% rebook);
+  never the external 19% number. Format = data observation, Goal 3, LinkedIn.
+- **Why now / expiry:** the cost-crunch story runs through open-enrollment season (peaks
+  Sep-Nov as 2027 renewals land). Sharper and longer-lived news peg than July's RTO protest.
+- **Consolidation note:** this is the SAME instrument as the 07-24 RTO post (LinkedIn
+  data-observation, Goal 3). Both still pending Will's read. If Will posts once, THIS is the
+  better peg — do not stack a third parallel post.
+- **Status:** proposed to Will 2026-07-30.
+
+### SCAN REFRESH 2026-08-06 (decaying layer: what moved, and one sharper hook)
+
+The static map (rooms/podcasts/communities) was built exhaustively 2026-07-21, so this week's
+budget went to the decaying layer again. Read: **little genuinely new, and the two content pegs
+from 07-24 and 07-30 are STILL pending Will's read — do not stack more parallel LinkedIn posts.**
+What did surface:
+
+**1. The RTO peg sharpened, but it is the SAME instrument as the 07-24 post.**
+- The Washington Post, "Return-to-office mandates are killing workplace trust", 28 Jul 2026:
+  https://www.washingtonpost.com/ripple/2026/07/28/office-attendance-backlash/
+- Federal News Network: federal employees back in office report LOW productivity and morale,
+  93% want more flexibility, Jul 2026:
+  https://federalnewsnetwork.com/workforce/2026/07/after-returning-to-the-office-federal-employees-report-low-productivity-morale/
+- Same "make the day worth the commute" lane already logged 07-24. Fresher pegs, no new move.
+
+**2. "Wellness theater" is now the trade-press framing — and it is Will's word.**
+- Compt's 2026 perks data: standalone wellness stipends 62-70% utilization vs 86-89% when
+  folded into a consolidated benefit; the piece explicitly frames 2026 as "a shift away from
+  wellness theater." https://compt.io/blog/employee-perks-statistics/
+- ⚠️ VENDOR SEO SOURCE (Compt sells LSAs). Directional only — do NOT put the utilization
+  numbers in Will's hands as fact. What matters: the category press is now using the exact
+  waste framing the spine holds. Will's receipts (90%+ booked, 87% rebook) are the answer to
+  "which wellness actually gets used", and that question is now mainstream.
+
+**3. NEW tastemaker development — Josh Bersin's "The Healthy Organization."**
+- Bersin (the skeptic already mapped for his Mar-2026 "I don't know that anybody's told me it
+  paid off" quote) has a new research banner: wellbeing moving "beyond benefits" to a systemic
+  "Healthy Organization" frame.
+  https://joshbersin.com/podcast/the-healthy-organization-next-step-in-employee-wellbeing/
+- Why it matters: it is the same critique the spine answers (programs-don't-fix-systems), now
+  with an analyst's brand on it. Their critique is our argument.
+- ⚠️ Standing to engage Bersin directly is LOW (he is a category-defining analyst, not a peer).
+  This is a frame to KNOW and echo in Will's own posts, not a cold pitch. No move.
+
+**4. SHARPER HOOK for the map's #1 pitch (I Hate It Here) — genuinely actionable, window open.**
+- Hebba Youssef is publishing heavily THIS week. S13 E3, "Proof That The AI Productivity
+  Obsession Is Making Everyone Worse" (Aubrey Blanche, 27 Jul 2026), plus S13 E4 (~3 Aug) and a
+  live "Leadership Divide" series. Feed checked 2026-08-06:
+  https://podcasts.apple.com/us/podcast/i-hate-it-here/id1666309191
+- Her Jul-27 episode is a cleaner hook than the S13 E2 cited on 07-24: Will's thesis (stop
+  scoring wellness by productivity ROI, score whether people show up and have a good hour) is
+  the direct POSITIVE complement to her "the productivity obsession is making everyone worse."
+- Move: listen to S13 E3, then a 4-line pitch supplying our show-up-rate data as evidence for a
+  position she is actively arguing (NOT a product pitch). Dave to find the guest-booking path
+  before drafting. This UPGRADES the 07-24 pitch rather than adding a new one.
+- Status: re-surfaced to Will 2026-08-06 with the fresher peg.
+
+### SCAN REFRESH 2026-08-13 (the pivot from content pegs to a dated room deadline)
+
+**The honest read this week: THREE content pegs are still pending Will's read (07-24 RTO, 07-30
+budget-cut, the standing I Hate It Here pitch), and lessons.md 08-10 shows Will hasn't acted on a
+single influence-map content proposal in ~6 weeks — his real energy goes to warm threads HE
+starts. Proposing a fourth LinkedIn peg would be malfunctioning. So this week's budget went to
+the one DATED, NON-content move on the map: the September room triage.**
+
+**1. From Day One Philadelphia — CONFIRMED live, and the clock is the story.**
+- **Tue 22 Sept 2026, 8:30-17:30, The Union League of Philadelphia.** Employee well-being and
+  total rewards on the published agenda; 4 SHRM/HRCI credits.
+  https://www.eventbrite.com/e/from-day-one-philadelphia-2026-tickets-1982891978285 ·
+  https://www.fromdayone.com/conferences/2026/2026_p_philadelphia (checked 2026-08-13)
+- **Sponsorship page re-verified: sponsorships explicitly include SPEAKING slots** — "panels and
+  keynotes to breakout workshops" — plus custom webinars, roundtable dinners, contributed content.
+  So the in-kind-activation-plus-stage posture the map already recommends (POSTURE 1) is real
+  here, not hypothetical. https://www.fromdayone.com/sponsorships/
+- Inquiry is via an ONLINE FORM only — no named contact, no published price, **no published
+  deadline.** With the event ~5.5 weeks out, "no deadline" means slots are filling now; this is
+  the move that expires if it waits another weekly scan.
+- This is already the map's #1 best-qualified target (sweep 9: FDO sells to physically-delivered
+  vendors AND buys the wellbeing category; no competitor in the slot). It is Will's home city.
+  **First step is one form submission asking what a chair-massage activation is worth against the
+  cash sponsorship price.**
+
+**2. The wellness-spend debate did NOT move — same conversation, no new peg.** Aug searches
+returned only the cost-crunch + participation-gap story already logged 07-30 (employer healthcare
++6-10% in 2026, the highest spike in a decade; only ~1/3 of workers use available wellness
+programs — Wellhub 2026, Compt 2026, both vendor sources, directional only). This is the SAME
+instrument as the pending 07-30 post, freshly corroborated. It confirms "do not stack a fourth
+post," it does not create one. https://wellhub.com/en-us/blog/wellness-and-benefits-programs/roi-employee-wellness-programs/
+
+**3. I Hate It Here feed unchanged since the 08-06 check** — the pitch stays exactly as logged,
+still pending. No re-surface.
+
 ## Moves proposed / taken
 (Running log: date · move · outcome.)
+- 2026-07-24 · Proposed to Will: (1) RTO-backlash LinkedIn post (news peg: CA protest 1 Jul);
+  (2) pitch I Hate It Here off Hebba's live S13 E2 topic. Outcome: pending Will's read.
+- 2026-07-30 · Proposed to Will: LinkedIn post riding the 2026 wellness-budget-CUT debate
+  (hard peg = Mercer >$18,500/employee 2026; Bersin skeptic quote), Will's receipts only,
+  external 19% stat withheld as unverified. Framed as the better single peg vs the 07-24 RTO
+  post rather than a third parallel post. Outcome: pending Will's read.
+- 2026-08-06 · Weekly scan. No new parallel post proposed (two still pending). Re-surfaced the
+  I Hate It Here pitch with a fresher hook (Hebba's 27-Jul "AI productivity obsession" episode =
+  Will's exact adjacent argument). Added to map: WaPo/FedNews RTO pegs, Compt "wellness theater"
+  framing (vendor source, directional), Josh Bersin "Healthy Organization" frame. Outcome: pending.
+- 2026-08-13 · Weekly scan. NO new content peg (three still pending, ~6 weeks unactioned — stacking
+  a fourth would be malfunctioning). Pivoted to the one dated non-content move: From Day One
+  Philadelphia (22 Sept, ~5.5 wks out), re-verified live + that sponsorships include stage time.
+  Proposed to Will: submit the FDO sponsorship form asking what a chair-massage in-kind activation
+  is worth vs cash price. Map updated with the 08-13 scan refresh. Outcome: pending Will's read.

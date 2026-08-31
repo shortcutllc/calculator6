@@ -15,6 +15,8 @@ try {
   }
 } catch { /* fine */ }
 
+import { toSlackMrkdwn, chunkForSlack } from '../lib/slack-format.mjs';
+
 const token = process.env.DAVE_SLACK_BOT_TOKEN;
 const user = process.env.DAVE_ALLOWED_USER;
 if (!token || !user) { console.error('need DAVE_SLACK_BOT_TOKEN + DAVE_ALLOWED_USER'); process.exit(2); }
@@ -26,14 +28,10 @@ if (!text) {
 text = text.trim();
 if (!text) { console.error('empty message'); process.exit(2); }
 
-// Slack renders mrkdwn, NOT GitHub markdown — Dave's ## headers and **bold** were arriving
-// as literal hash marks and double asterisks (Will, 2026-07-21). Formatting is an auto-fix
-// in code, never a prompt hope: convert the mechanical parts.
-text = text
-  .replace(/^#{1,6}\s+(.+)$/gm, '*$1*')   // "# Heading"  -> "*Heading*"
-  .replace(/\*\*([^*\n]+)\*\*/g, '*$1*')  // "**bold**"   -> "*bold*"
-  .replace(/^\s*[-=]{3,}\s*$/gm, '')      // "---" rules  -> gone
-  .replace(/^(\s*)-\s+/gm, '$1• ');       // "- item"     -> "• item"
+// Slack renders mrkdwn, NOT GitHub markdown (Will, 2026-07-21). The conversion used to
+// live here as four regexes while the gateway had none, so the two surfaces disagreed
+// about what Dave's messages looked like. Both now call the shared formatter.
+text = toSlackMrkdwn(text);
 
 const api = (method, body) => fetch(`https://slack.com/api/${method}`, {
   method: 'POST',
@@ -43,8 +41,8 @@ const api = (method, body) => fetch(`https://slack.com/api/${method}`, {
 
 const open = await api('conversations.open', { users: user });
 if (!open.ok) { console.error(`conversations.open failed: ${open.error}`); process.exit(1); }
-for (let i = 0; i < text.length; i += 3800) {
-  const r = await api('chat.postMessage', { channel: open.channel.id, text: text.slice(i, i + 3800) });
+for (const part of chunkForSlack(text)) {
+  const r = await api('chat.postMessage', { channel: open.channel.id, text: part });
   if (!r.ok) { console.error(`postMessage failed: ${r.error}`); process.exit(1); }
 }
 console.log('sent');
