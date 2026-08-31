@@ -416,6 +416,9 @@ const ProposalViewer: React.FC = () => {
   const isSharedView = location.search.includes('shared=true');
   
   const [isEditing, setIsEditing] = useState(false);
+  // Volume-discount dropdown: true once staff pick "Custom", so the number
+  // input stays open even while the value happens to equal a preset.
+  const [customVolumeDiscount, setCustomVolumeDiscount] = useState(false);
   const [editedData, setEditedData] = useState<any>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -3981,35 +3984,75 @@ The Shortcut Team`);
                         (Auto-applied: 15% for 4-8 dates, 20% for 9+ dates)
                       </span>
                     </label>
-                    <select
-                      value={editedData?.isAutoRecurring ? String(editedData.autoRecurringDiscount || 0) : '0'}
-                      onChange={(e) => {
-                        const discountValue = parseInt(e.target.value) || 0;
-                        const newData = { ...editedData };
+                    {(() => {
+                      const PRESETS = [0, 5, 10, 15, 20, 25];
+                      const currentPct = editedData?.isAutoRecurring ? (editedData.autoRecurringDiscount || 0) : 0;
+                      // Custom stays selected either because staff picked it, or
+                      // because the saved value simply isn't one of the presets.
+                      const isCustom = customVolumeDiscount
+                        || (!!editedData?.isAutoRecurring && !PRESETS.includes(currentPct));
 
-                        if (discountValue === 0) {
-                          // Clear auto-recurring
+                      const applyPct = (pct: number) => {
+                        const newData = { ...editedData };
+                        const clamped = Math.min(100, Math.max(0, Math.round(pct)));
+                        if (clamped === 0) {
+                          // Explicit "none". isAutoRecurring:false is what the client
+                          // viewer reads as an override of 0, so it must be set here.
                           newData.isAutoRecurring = false;
                           newData.autoRecurringDiscount = undefined;
                           newData.autoRecurringSavings = undefined;
                         } else {
-                          // Set manual auto-recurring discount
                           newData.isAutoRecurring = true;
-                          newData.autoRecurringDiscount = discountValue;
-                          // Savings will be calculated by recalculateServiceTotals
+                          newData.autoRecurringDiscount = clamped;
+                          // Savings recalculated by recalculateServiceTotals
                         }
-
                         const recalculated = recalculateServiceTotals(newData);
                         setEditedData({ ...recalculated, customization: currentProposal?.customization });
                         setDisplayData({ ...recalculated, customization: currentProposal?.customization });
-                      }}
-                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
-                    >
-                      <option value="0">No Recurring Discount</option>
-                      <option value="10">10% Recurring Discount</option>
-                      <option value="15">15% Recurring Discount</option>
-                      <option value="20">20% Recurring Discount</option>
-                    </select>
+                      };
+
+                      return (
+                        <>
+                          <select
+                            value={isCustom ? 'custom' : String(currentPct)}
+                            onChange={(e) => {
+                              if (e.target.value === 'custom') {
+                                setCustomVolumeDiscount(true);
+                                // Keep whatever is set; seed at 15 if currently none
+                                // so the input never opens on an empty value.
+                                if (!editedData?.isAutoRecurring) applyPct(15);
+                                return;
+                              }
+                              setCustomVolumeDiscount(false);
+                              applyPct(parseInt(e.target.value, 10) || 0);
+                            }}
+                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                          >
+                            <option value="0">No Recurring Discount</option>
+                            <option value="5">5% Recurring Discount</option>
+                            <option value="10">10% Recurring Discount</option>
+                            <option value="15">15% Recurring Discount</option>
+                            <option value="20">20% Recurring Discount</option>
+                            <option value="25">25% Recurring Discount</option>
+                            <option value="custom">Custom…</option>
+                          </select>
+                          {isCustom && (
+                            <div className="mt-3 flex items-center gap-2">
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={currentPct}
+                                onChange={(e) => applyPct(Number(e.target.value))}
+                                className="w-28 px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal"
+                              />
+                              <span className="text-sm font-bold text-shortcut-blue">% off</span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   {editedData?.isAutoRecurring && editedData.autoRecurringDiscount && (
                     <div className="flex items-center gap-2 text-green-600 font-semibold">

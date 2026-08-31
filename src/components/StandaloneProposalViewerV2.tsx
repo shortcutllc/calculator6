@@ -61,6 +61,18 @@ import {
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 
+/** Staff's explicit volume-discount choice for a proposal, or null when they
+ *  never set one (in which case the automatic 4+/9+ tiers apply). Mirrors the
+ *  admin dropdown in ProposalViewer: `isAutoRecurring === false` means staff
+ *  deliberately turned it off, which is an override of 0, not "unset". */
+function resolveVolumeDiscount(data: any): number | null {
+  if (!data) return null;
+  if (data.isAutoRecurring === false) return 0;
+  const v = data.autoRecurringDiscount;
+  return typeof v === 'number' && Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : null;
+}
+
+
 // ============================================================================
 // StandaloneProposalViewerV2 — the new client-facing proposal viewer.
 //
@@ -440,6 +452,16 @@ const StandaloneProposalViewerV2: React.FC = () => {
     // service starts unchecked so the price reflects only what the client
     // opts into. Persisted state still wins on subsequent loads.
     startUnselected: displayData?.startUnselected === true,
+    // VOLUME DISCOUNT (2026-08-31): the staff setting from the admin viewer is
+    // the source of truth. It used to be ignored here entirely — this hook
+    // recomputed its own 4+/9+ tier, so "No recurring discount" in admin still
+    // rendered 15% to the client (Bisnow, and 44 others).
+    //
+    // GRANDFATHERED: approved proposals keep rendering exactly what they showed
+    // when they were approved. A client who already signed off must never see
+    // the price move under them, so we pass null there and let the old
+    // automatic tiers stand. Drafts and everything new get the real setting.
+    volumeDiscountOverride: isApproved ? null : resolveVolumeDiscount(displayData),
   });
 
   // ---- Service-type mix (drives Phase 5 conditional sections) -----------

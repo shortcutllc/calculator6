@@ -81,6 +81,14 @@ interface UseServiceSelectionsArgs {
    *  win. Per-service `optionsSelectedDefault === false` also wins; this
    *  flag is the fallback when nothing else has an opinion. */
   startUnselected?: boolean;
+  /** Staff-set volume discount, straight from the proposal row.
+   *  `null` / `undefined` means the admin never expressed an opinion, so the
+   *  automatic 4+/9+ tiers apply (every pre-existing proposal keeps its
+   *  current price). A number — INCLUDING 0 — is an explicit override and
+   *  wins outright. Before this existed the client viewer recomputed its own
+   *  tier and silently ignored the admin's setting entirely, so 45 proposals
+   *  were showing a discount nobody had chosen (2026-08-31). */
+  volumeDiscountOverride?: number | null;
 }
 
 /**
@@ -95,6 +103,7 @@ export function useServiceSelections({
   onChange,
   readOnly,
   startUnselected,
+  volumeDiscountOverride,
 }: UseServiceSelectionsArgs) {
   // Build defaults from staff-set fields on each service if provided.
   // Precedence for the initial frequency:
@@ -256,8 +265,12 @@ export function useServiceSelections({
     // the post-per-service-discount subtotal (combined event count across
     // all selected services — project decision #2).
     let discountPercent = 0;
-    if (totalEvents >= 9) discountPercent = 20;
-    else if (totalEvents >= 4) discountPercent = 15;
+    if (typeof volumeDiscountOverride === 'number' && Number.isFinite(volumeDiscountOverride)) {
+      // Explicit staff setting wins, 0 included ("No volume discount").
+      discountPercent = Math.min(100, Math.max(0, volumeDiscountOverride));
+    } else {
+      discountPercent = totalEvents >= 9 ? 20 : totalEvents >= 4 ? 15 : 0;
+    }
 
     const discountAmount = (subtotal * discountPercent) / 100;
     const total = subtotal - discountAmount;
@@ -276,7 +289,7 @@ export function useServiceSelections({
       perEventServiceDiscount,
       perEventTotal: perEventSubtotal,
     };
-  }, [state, servicesByLocation]);
+  }, [state, servicesByLocation, volumeDiscountOverride]);
 
   return { get, setIncluded, setFrequency, summary, state };
 }
