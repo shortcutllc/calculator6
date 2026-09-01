@@ -71,7 +71,20 @@ const CHROME_TOOLS = [
   'list_pages', 'select_page', 'new_page', 'navigate_page',
   'take_screenshot', 'take_snapshot', 'resize_page',
 ].map((t) => `mcp__chrome-devtools__${t}`).join(',');
-const ALLOWED_TOOLS = `Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash,Task,${CHROME_TOOLS}`;
+// GOOGLE ADS (2026-08-31): READ-ONLY slice of the NotFair MCP. The server exposes 119
+// tools and 103 of them mutate live spend — createCampaign, updateCampaignBudget,
+// bulkUpdateBids, plus arbitrary runScript/runMutationScript/mutate. Dave's charter is
+// "you never send anything"; changing ad spend is the same kind of irreversible outward
+// act, and he runs unattended while reading untrusted web pages. So he gets the reporting
+// surface and nothing that writes. `askSupport` is excluded too: it messages a vendor.
+// Granted on the CHAT gateway only, where Will is present — NOT to the cron jobs.
+const GOOGLE_ADS_READ_TOOLS = [
+  'getAssetLinks', 'getChangeIntervention', 'getChanges', 'getGuardrails',
+  'getKeywordIdeas', 'getPmaxIntegrity', 'getResourceMetadata', 'getUsageStatus',
+  'listActiveExperiments', 'listChangeInterventions', 'listConnectedAccounts',
+  'listExperimentAsyncErrors', 'listKeywords', 'listQueryableResources', 'searchGeoTargets',
+].map((t) => `mcp__plugin_toprank_NotFair-GoogleAds__${t}`).join(',');
+const ALLOWED_TOOLS = `Read,Grep,Glob,WebSearch,WebFetch,Write,Edit,Bash,Task,${CHROME_TOOLS},${GOOGLE_ADS_READ_TOOLS}`;
 
 function loadSessions() { try { return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch { return {}; } }
 function saveSessions(s) { fs.mkdirSync(STATE_DIR, { recursive: true }); fs.writeFileSync(SESSIONS_FILE, JSON.stringify(s, null, 2)); }
