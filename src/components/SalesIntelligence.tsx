@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Target, Crosshair, BarChart3, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, Briefcase, Workflow, Scale } from 'lucide-react';
+import { Target, Crosshair, BarChart3, KanbanSquare, Search, FileDown, RefreshCw, AlertCircle, PenLine, X, Copy, Check, Send, Mail, Building2, MapPin, ExternalLink, Clock, Bookmark, BookmarkCheck, Trash2, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, Briefcase, Workflow, Scale } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 import { createLandingPageForLead } from '../services/WorkhumanLeadService';
 import { useAuth } from '../contexts/AuthContext';
 import SystemLoopDiagram from './SystemLoopDiagram';
+import PipelineBoard from './PipelineBoard';
 
 // Rep email → first name (for timestamped notes). Mirrors WorkhumanLeads.
 const REP_EMAIL_TO_FIRST_NAME: Record<string, string> = {
@@ -15,7 +16,7 @@ const REP_EMAIL_TO_FIRST_NAME: Record<string, string> = {
   'caren@getshortcut.co': 'Caren',
 };
 
-type TabId = 'playA' | 'playB' | 'law' | 'realestate' | 'followups' | 'brokers' | 'drafts' | 'recon' | 'loop';
+type TabId = 'pipeline' | 'playA' | 'playB' | 'law' | 'realestate' | 'followups' | 'brokers' | 'drafts' | 'recon' | 'loop';
 interface SavedDraftRow {
   id: string; recipient_email: string | null; subject: string; body: string;
   direction_label: string | null; source_company: string | null; source_contact: string | null;
@@ -1545,6 +1546,7 @@ const CRMCardContent: React.FC<{ target: CardTarget; onDraft: (t: DraftTarget) =
 // comment for context; the inline pattern is rendered per-tab below.
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
+  { id: 'pipeline', label: 'Pipeline', icon: <KanbanSquare size={18} /> },
   { id: 'playA', label: 'Play A — Expand', icon: <Target size={18} /> },
   { id: 'playB', label: 'Net-New — Standard', icon: <Crosshair size={18} /> },
   { id: 'law', label: 'Law — CLE', icon: <Scale size={18} /> },
@@ -1570,7 +1572,7 @@ function exportCSV(rows: Record<string, unknown>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-const VALID_TABS: TabId[] = ['playA', 'playB', 'law', 'realestate', 'followups', 'brokers', 'drafts', 'recon', 'loop'];
+const VALID_TABS: TabId[] = ['pipeline', 'playA', 'playB', 'law', 'realestate', 'followups', 'brokers', 'drafts', 'recon', 'loop'];
 // Law tab = Play B filtered to the law-firm industry (CLE/wellness vertical).
 const LAW_INDUSTRY_RE = /law practice|legal services/i;
 // Real Estate tab = Play B filtered to CRE / property / coworking (B2B2C amenity vertical).
@@ -2022,7 +2024,7 @@ const SalesIntelligence: React.FC = () => {
       const h = window.location.hash.replace(/^#/, '') as TabId;
       if (VALID_TABS.includes(h)) return h;
     } catch { /* SSR/safety */ }
-    return 'playA';
+    return 'pipeline';
   });
   useEffect(() => {
     try { window.history.replaceState(null, '', `#${tab}`); } catch { /* */ }
@@ -2790,6 +2792,8 @@ const SalesIntelligence: React.FC = () => {
             </table>
           </div>
         </div>
+      ) : tab === 'pipeline' ? (
+        <PipelineBoard />
       ) : tab === 'followups' ? (
         <div>
           {/* Inbox status banner — preloaded leads + accuracy warning when not connected */}
