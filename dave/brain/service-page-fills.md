@@ -70,6 +70,26 @@ Recurring discount = **10% at 4+, 15% at 9+** (Will's page call; matches pricing
 
 ---
 
+## Per-service "handled" lines (THE WHOLE THING HANDLED card)
+
+Personalize the "we bring" half only (carries service-specific nouns = natural keywords); keep "you
+bring a room and an outlet" as the constant close. Do NOT personalize the parallel ONE-VENDOR card.
+
+1. **Massage** — We bring the massage chairs, tables, linens and privacy screens. You bring a room and an outlet.
+2. **Assisted stretch** — We bring the tables, mats and straps. You bring a room and an outlet.
+3. **Hair** — We bring the chair, the clippers, the premium products, and we sweep up after. You bring a room and an outlet.
+4. **Nails** — We bring the single-use manicure kits, the colors and sanitized tools. You bring a table and two chairs.
+5. **Facials** — We bring the skincare, the steamer and the spa setup. You bring a quiet room.
+6. **Headshots** — We bring the lighting, the backdrops and the retouching. You bring a room and an outlet.
+7. **Mindfulness** — We bring the facilitator, the guided meditation and the handouts. You bring a room or a Zoom link.
+8. **Sound bath** — We bring the crystal singing bowls, the instruments and the setup. You bring a room or a Zoom link.
+9. **Yoga** — We bring the certified instructor and the playlist. You bring a conference room, no mats needed.
+10. **Strength & sculpt** — We bring the instructor, the class and optional bands or dumbbells. You bring open space or a screen.
+11. **Dance cardio** — We bring the instructor, the playlist and the energy. You bring open space or a screen.
+12. **Somatic movement** — We bring the facilitator, the crystal bowls and everything for the movement. You bring floor space or a screen.
+
+---
+
 # TEMPLATE A — APPOINTMENT SERVICES
 
 ## 1. Massage  (LOCKED — the template itself)
