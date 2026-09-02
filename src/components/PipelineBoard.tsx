@@ -35,6 +35,8 @@ const PIPE: Array<{ id: Stage; label: string; dot: string; grouped?: boolean }> 
   { id: 'proposal_sent', label: 'Proposal sent', dot: 'bg-amber-500', grouped: true },
   { id: 'negotiation', label: 'Negotiation', dot: 'bg-indigo-500', grouped: true },
   { id: 'closing', label: 'Closing soon', dot: 'bg-emerald-600', grouped: true },
+];
+const PARKED: Array<{ id: Stage; label: string; dot: string; grouped?: boolean }> = [
   { id: 'won', label: 'Won this year', dot: 'bg-shortcut-blue', grouped: true },
   { id: 'future', label: 'Future pipeline', dot: 'bg-fuchsia-600' },
 ];
@@ -44,7 +46,7 @@ const OTHER: Array<{ id: Stage; label: string; dot: string; grouped?: boolean }>
   { id: 'no_for_now', label: 'No for now', dot: 'bg-gray-500' },
   { id: 'hidden', label: 'Hidden', dot: 'bg-gray-300' },
 ];
-const ALL = [...PIPE, ...OTHER];
+const ALL = [...PIPE, ...PARKED, ...OTHER];
 const LABEL: Record<string, string> = Object.fromEntries(ALL.map((s) => [s.id, s.label]));
 const STAGE_TONE: Record<string, string> = {
   discovery: 'bg-shortcut-teal/40 text-shortcut-blue', active: 'bg-red-100 text-red-800', proposal_sent: 'bg-amber-100 text-amber-900',
@@ -191,7 +193,7 @@ const PipelineBoard: React.FC = () => {
       disabled={busyKeys.has(r.key)}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => { e.stopPropagation(); move(targetsOf(r), e.target.value as Stage | '__suggested__'); }}
-      className="flex-1 min-w-0 appearance-none rounded-full border-2 border-gray-200 bg-white px-3 py-1 pr-7 text-xs font-bold text-text-button-blue hover:border-shortcut-teal-blue focus:border-shortcut-teal-blue focus:outline-none disabled:opacity-50 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22 viewBox=%220 0 10 6%22><path d=%22M1 1l4 4 4-4%22 fill=%22none%22 stroke=%22%23018EA2%22 stroke-width=%221.6%22 stroke-linecap=%22round%22/></svg>')] bg-no-repeat bg-[right_0.7rem_center]"
+      className="w-full min-w-0 appearance-none rounded-full border border-gray-200 bg-neutral-light-gray/60 px-3 py-1.5 pr-7 text-xs font-semibold text-text-button-blue hover:border-shortcut-teal-blue focus:border-shortcut-teal-blue focus:outline-none disabled:opacity-50 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22 viewBox=%220 0 10 6%22><path d=%22M1 1l4 4 4-4%22 fill=%22none%22 stroke=%22%23018EA2%22 stroke-width=%221.6%22 stroke-linecap=%22round%22/></svg>')] bg-no-repeat bg-[right_0.7rem_center]"
     >
       {ALL.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
       <option value="__suggested__">Suggested: {LABEL[r.suggested]}</option>
@@ -206,17 +208,17 @@ const PipelineBoard: React.FC = () => {
       <article
         draggable
         onDragStart={(e) => { e.dataTransfer.setData('text/plain', r.key); e.dataTransfer.effectAllowed = 'move'; }}
-        className={`w-full rounded-xl border border-gray-200 bg-white p-3 shadow-sm hover:border-gray-300 cursor-grab ${busyKeys.has(r.key) ? 'opacity-60' : ''}`}
+        className={`w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 shadow-sm hover:border-gray-300 cursor-grab ${busyKeys.has(r.key) ? 'opacity-60' : ''}`}
       >
         <div className="flex items-start justify-between gap-2">
-          <div className="text-sm font-bold text-shortcut-blue leading-tight">{r.company || r.name || 'Unknown company'}</div>
+          <div className="truncate text-[15px] font-bold text-shortcut-blue leading-snug" title={r.company || r.name || ''}>{r.company || r.name || 'Unknown company'}</div>
           <button onClick={() => toggleOpen(r.key)} aria-expanded={isOpen} aria-label="Show details" className="shrink-0 rounded-full p-0.5 text-gray-400 hover:bg-neutral-light-gray hover:text-shortcut-blue">
             {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
         </div>
-        {who && <div className="mt-0.5 text-xs text-gray-600 leading-snug">{who}</div>}
-        <div className="mt-1.5 text-xs text-gray-500">{signal(r)}</div>
-        <div className="mt-2 flex flex-wrap gap-1">
+        {who && <div className="mt-0.5 truncate text-[13px] text-gray-600 leading-snug" title={who}>{who}</div>}
+        <div className="mt-2 text-xs text-gray-500">{signal(r)}</div>
+        <div className="mt-2.5 flex flex-wrap gap-1.5 empty:hidden">
           {r.moved && <span className="rounded-full bg-shortcut-teal px-2 py-0.5 text-[10.5px] font-bold text-text-button-blue">Moved</span>}
           {r.tier && <span className="rounded-full bg-neutral-light-gray px-2 py-0.5 text-[10.5px] font-bold text-gray-600">Tier {r.tier}</span>}
           {r.note && <span className="rounded-full bg-shortcut-teal/40 px-2 py-0.5 text-[10.5px] font-bold text-shortcut-blue">Personal note</span>}
@@ -225,13 +227,12 @@ const PipelineBoard: React.FC = () => {
           {r.flags.map((f) => <span key={f} className="rounded-full bg-amber-100 px-2 py-0.5 text-[10.5px] font-bold text-amber-900">{f}</span>)}
         </div>
         {r.next && r.stage !== 'hidden' && (
-          <div className="mt-2 flex items-start gap-2 border-t border-gray-100 pt-2 text-xs text-text-dark">
+          <div className="mt-3 flex items-start gap-2 border-t border-gray-100 pt-3 text-[13px] leading-snug text-text-dark">
             <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${hold ? 'bg-shortcut-teal-blue' : 'bg-shortcut-coral'}`} />
             <span>{r.next}</span>
           </div>
         )}
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-[10.5px] font-bold uppercase tracking-wide text-gray-400">Move</span>
+        <div className="mt-3 flex items-center gap-2">
           <Mover r={r} />
         </div>
         {isOpen && (
@@ -317,8 +318,8 @@ const PipelineBoard: React.FC = () => {
 
       {/* pills */}
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-gray-400">Also in your book</span>
-        {OTHER.map((s) => {
+        <span className="text-xs font-semibold text-gray-400">Not on the board</span>
+        {[...PARKED, ...OTHER].map((s) => {
           const n = listFor(s, rows).length; const active = filter === s.id;
           return (
             <button key={s.id} onClick={() => setFilter(active ? null : s.id)} aria-pressed={active}
@@ -329,7 +330,7 @@ const PipelineBoard: React.FC = () => {
         })}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="space-y-6">
         <section>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="inline-flex rounded-full bg-neutral-light-gray p-0.5">
@@ -341,12 +342,12 @@ const PipelineBoard: React.FC = () => {
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search company, name, or note" aria-label="Search" className="w-64 rounded-full border-2 border-gray-200 bg-white py-1.5 pl-8 pr-3 text-sm focus:border-shortcut-teal-blue focus:outline-none" />
             </div>
-            <span className="ml-auto text-xs text-gray-400">{filter ? `Showing ${LABEL[filter]} only. Click it again to clear.` : 'Drag cards between columns, or use Move on a card.'}</span>
+            <span className="ml-auto text-xs text-gray-400">{filter ? `Showing ${LABEL[filter]} only. Click it again to clear.` : 'Drag cards between columns, or use the menu on a card. Won and Future live in the tiles above.'}</span>
           </div>
 
           {view === 'board' ? (
             <div className="overflow-x-auto pb-2">
-              <div className={`grid gap-2.5 ${cols.length === 1 ? 'max-w-xl grid-cols-1' : 'min-w-max grid-cols-[repeat(7,minmax(232px,1fr))]'}`}>
+              <div className={`grid gap-3 ${cols.length === 1 ? 'max-w-2xl grid-cols-1' : 'grid-cols-[repeat(5,minmax(236px,1fr))]'}`}>
                 {cols.map((s) => {
                   const list = listFor(s, visible);
                   const cap = showAll.has(s.id) || filter ? list.length : 8;
@@ -359,16 +360,16 @@ const PipelineBoard: React.FC = () => {
                         const key = e.dataTransfer.getData('text/plain');
                         const src = rows.find((r) => r.key === key); if (!src || src.stage === s.id) return;
                         // A dropped company card moves every contact under it.
-                        const group = PIPE.concat(OTHER).find((x) => x.id === src.stage)?.grouped ? groupByCompany(rows.filter((r) => r.stage === src.stage)).find((g) => g.key === key) : null;
+                        const group = ALL.find((x) => x.id === src.stage)?.grouped ? groupByCompany(rows.filter((r) => r.stage === src.stage)).find((g) => g.key === key) : null;
                         move(group ? targetsOf(group) : [src], s.id);
                       }}
-                      className={`rounded-2xl bg-neutral-light-gray p-2 ${dragOver === s.id ? 'ring-2 ring-shortcut-teal-blue' : ''}`}>
-                      <header className="flex items-center gap-2 px-2 pb-2 pt-1.5">
+                      className={`rounded-2xl bg-neutral-light-gray p-2.5 ${dragOver === s.id ? 'ring-2 ring-shortcut-teal-blue' : ''}`}>
+                      <header className="flex items-center gap-2 px-2 pb-3 pt-2">
                         <span className={`h-2 w-2 rounded-full ${s.dot}`} />
                         <h3 className="flex-1 text-[11.5px] font-bold uppercase tracking-wider text-gray-600">{s.label}</h3>
                         <span className="text-xs font-bold text-gray-400">{list.length}</span>
                       </header>
-                      <div className="flex min-h-[40px] flex-col gap-2">
+                      <div className="flex min-h-[40px] flex-col gap-2.5">
                         {list.slice(0, cap).map((r) => <Card key={r.key} r={r} />)}
                         {!list.length && <div className="px-2 pb-3 pt-2 text-xs text-gray-400">Nothing here yet. Drag a card in.</div>}
                       </div>
@@ -402,7 +403,7 @@ const PipelineBoard: React.FC = () => {
           )}
         </section>
 
-        <aside className="space-y-3">
+        <aside className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Panel title="This week" count={attention.length}>
             {attention.length ? attention.slice(0, 8).map((a) => <Item key={a.r.key} c={a.r.company || a.r.name || ''} a={a.why} d={LABEL[a.r.stage]} hot />) : <Empty>Nothing urgent surfaced. Work the Discovery column.</Empty>}
           </Panel>
@@ -425,13 +426,13 @@ const PipelineBoard: React.FC = () => {
 };
 
 const Panel: React.FC<{ title: string; count?: number; children: React.ReactNode }> = ({ title, count, children }) => (
-  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-    <h3 className="mb-2 flex justify-between text-[11.5px] font-bold uppercase tracking-wider text-gray-600">{title}{count ? <span className="text-gray-400">{count}</span> : null}</h3>
+  <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <h3 className="mb-3 flex justify-between text-[11.5px] font-bold uppercase tracking-wider text-gray-600">{title}{count ? <span className="text-gray-400">{count}</span> : null}</h3>
     <div className="divide-y divide-gray-100">{children}</div>
   </div>
 );
 const Item: React.FC<{ c: string; a: string; d: string; hot?: boolean }> = ({ c, a, d, hot }) => (
-  <div className="grid grid-cols-[1fr_auto] gap-2 py-2 first:pt-0 last:pb-0 text-sm">
+  <div className="grid grid-cols-[1fr_auto] gap-3 py-2.5 first:pt-0 last:pb-0 text-sm">
     <div><div className="font-bold text-shortcut-blue leading-tight">{c}</div><div className="text-xs text-gray-600">{a}</div></div>
     <div className={`whitespace-nowrap text-xs font-bold ${hot ? 'text-red-700' : 'text-gray-400'}`}>{d}</div>
   </div>
