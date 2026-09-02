@@ -23,6 +23,9 @@ failure mode (mine, repeatedly) is over-crafting a fourth, more elaborate paragr
   Pricing too: "$150 per Pro, per hour," "3 Pros over 4 hours."
 - Massage = **15- or 20-minute increments** (the customer picks the length), ~3–4 an hour per Pro.
   NOT "about 15 to 20 minutes."
+- **NEVER use "about" (or "roughly / around") for a duration, price, or count.** State the real figure
+  or the real range: "15 or 20 minutes," "eight to twelve minutes," "$80 to $100 a person" — never
+  "about ten minutes," "about $80." (Will, 2026-09-02.) A range is definite; "about" is a hedge.
 - Chair or table = the customer's choice. **NEVER** write "oils," "no oils," "private room," "a room
   that closes," "whichever fits the space," or undressing — none of it is in our copy, all of it reads
   wrong for an office, and Will has killed each one by hand.
