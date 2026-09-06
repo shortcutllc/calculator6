@@ -1,6 +1,8 @@
 # CLE Research & Competitive Intelligence
 *Compiled February 2026 — for Shortcut CLE Landing Page*
 
+> **UPDATE 2026-09-05:** Substantial corrections + additions to this file (PA Ethics minimum, FL 33→30-hour reduction, FL bias-quota removal, FL Legal Professionalism sub-requirement, ABA Pledge signatory count, BigLaw attrition figures, verified state-by-state Institutional-endorsement infrastructure) are captured in [PROPOSAL_LANDING_PAGES_SEO_2026-09-05.md](./PROPOSAL_LANDING_PAGES_SEO_2026-09-05.md) §1.1. That doc also carries per-state landing-page recommendations (title/meta/H1/FAQ) and a verification checklist. Read that first if you are writing copy or updating the pages — the numbers below reflect Feb-2026 state and some no longer match.
+
 ---
 
 ## NY CLE Requirements

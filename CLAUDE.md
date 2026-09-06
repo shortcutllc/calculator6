@@ -22,6 +22,15 @@ The V2 proposal redesign is **live on `main` / production**: the refreshed deskt
 
 ---
 
+## Landing-page SEO reference docs
+
+Before touching copy on `/cle`, `/cle/pa`, `/cle/fl`, or either Solution page (Brokers, Health Plans), read:
+
+- [PROPOSAL_LANDING_PAGES_SEO_2026-09-05.md](./PROPOSAL_LANDING_PAGES_SEO_2026-09-05.md) — current source of truth. Per-state relevance research (NY/PA/FL), Google Keyword Planner data, title/meta/H1 recommendations, per-page FAQ additions, verification checklist for firm-name claims, and the CRITICAL finding that the proposals site is a CSR SPA — no CLE keywords or per-state meta reach Google's crawler until SSR/prerender is fixed. Also: Solution-page audiences (Brokers, Health Plans) have near-zero organic search demand per Keyword Planner — those pages are sales-enablement + paid-channel destinations, not SEO plays.
+- [CLE_RESEARCH.md](./CLE_RESEARCH.md) — Dave's original Feb-2026 competitive intel. Still useful for narrative and stats; multiple factual numbers are superseded — see §1.1 of the 2026-09-05 doc for corrections.
+
+---
+
 ## Tech Stack
 - **Frontend:** React 18 + TypeScript + Vite
 - **Styling:** Tailwind CSS
