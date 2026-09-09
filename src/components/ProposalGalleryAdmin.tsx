@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   CheckCircle2,
+  Download,
   Image as ImageIcon,
   Pencil,
   Play,
@@ -143,6 +144,47 @@ const ProposalGalleryAdmin: React.FC = () => {
   useEffect(() => {
     fetchRows();
   }, []);
+
+  // ---- Download ------------------------------------------------------------
+  // Saves the original file to the staff member's machine, named after the
+  // service + caption so a folder of downloads stays readable. Fetches as a
+  // blob first because the `download` attribute is ignored on cross-origin
+  // links (the Supabase bucket is a different origin). Falls back to opening
+  // the bucket's own attachment URL if the fetch is blocked.
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const downloadRow = async (row: GalleryRow) => {
+    const ext = (row.media_url.split('?')[0].split('.').pop() || 'bin').toLowerCase();
+    const slug = (row.caption || row.id)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60);
+    const fileName = `${row.service_type}-${slug}.${ext}`;
+    setDownloadingId(row.id);
+    try {
+      const res = await fetch(row.media_url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000);
+    } catch (err) {
+      console.warn('Blob download failed, opening attachment URL instead:', err);
+      const sep = row.media_url.includes('?') ? '&' : '?';
+      window.open(
+        `${row.media_url}${sep}download=${encodeURIComponent(fileName)}`,
+        '_blank',
+        'noopener'
+      );
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   // ---- Upload --------------------------------------------------------------
   // Uploads one OR many files. Single-file path (the form-submit click) uses
@@ -1086,6 +1128,12 @@ const ProposalGalleryAdmin: React.FC = () => {
                                   : 'Regen thumb'}
                               </SmallChipButton>
                             )}
+                            <SmallChipButton
+                              onClick={() => downloadRow(row)}
+                              icon={<Download size={11} />}
+                            >
+                              {downloadingId === row.id ? 'Saving…' : 'Download'}
+                            </SmallChipButton>
                             <SmallChipButton
                               onClick={() => deleteRow(row)}
                               tone="danger"
