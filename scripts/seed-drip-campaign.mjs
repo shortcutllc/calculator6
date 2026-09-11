@@ -73,6 +73,34 @@ async function sheetLeads(tab) {
   return out;
 }
 
+/**
+ * Resolve a verified last service per company. ONLY crm_companies rows with a
+ * completed event qualify: a row in `proposals` means we sent a quote, not that
+ * we were ever on site, so it cannot support "since we were in for X".
+ * Returns a Map of normalized company key -> { service, lastEventAt }.
+ */
+async function lastServiceIndex(sb) {
+  const norm = (x) => String(x || '').toLowerCase()
+    .replace(/\b(inc|llc|ltd|corp|co|the|group|holdings)\b/g, '').replace(/[^a-z0-9]/g, '');
+  const { data } = await sb.from('crm_companies')
+    .select('display_name,canonical_key,aliases,service_titles,last_event_at,completed_events')
+    .gt('completed_events', 0).limit(10000);
+  const idx = new Map();
+  for (const c of data || []) {
+    const titles = Array.isArray(c.service_titles) ? c.service_titles : [];
+    if (!titles.length) continue;
+    // first title is the anchor service; lowercased so it reads mid-sentence
+    const service = String(titles[0]).toLowerCase();
+    const entry = { service, lastEventAt: c.last_event_at };
+    for (const k of [c.display_name, c.canonical_key, ...(Array.isArray(c.aliases) ? c.aliases : [])]) {
+      const n = norm(k);
+      if (n) idx.set(n, entry);
+    }
+  }
+  idx.norm = norm;
+  return idx;
+}
+
 (async () => {
   requireEnv('VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY');
   const apply = has('--apply');
@@ -80,6 +108,8 @@ async function sheetLeads(tab) {
   if (!reps.length) throw new Error('pass --rep <marc|caren|jaimie> or --all');
 
   const sb = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  const svcIdx = await lastServiceIndex(sb);
 
   // one suppression read for all reps
   const supp = new Set();
@@ -119,16 +149,24 @@ async function sheetLeads(tab) {
     }, { onConflict: 'slug' }).select().single();
     if (ce) throw new Error(`campaign upsert: ${ce.message}`);
 
+    let withService = 0;
     for (let i = 0; i < clean.length; i += 500) {
-      const batch = clean.slice(i, i + 500).map((l) => ({
-        campaign_id: camp.id, email: l.email, first_name: l.first_name, last_name: l.last_name,
-        company_name: l.company_name, custom_fields: { source: `${rep}_drip_sheet` },
-      }));
+      const batch = clean.slice(i, i + 500).map((l) => {
+        const hit = svcIdx.get(svcIdx.norm(l.company_name))
+          || svcIdx.get(svcIdx.norm(l.email.split('@')[1].split('.')[0]));
+        const cf = { source: `${rep}_drip_sheet` };
+        if (hit) { cf.last_service = hit.service; cf.last_event_at = hit.lastEventAt; withService++; }
+        return {
+          campaign_id: camp.id, email: l.email, first_name: l.first_name, last_name: l.last_name,
+          company_name: l.company_name, custom_fields: cf,
+        };
+      });
       const { error } = await sb.from('drip_leads').upsert(batch, { onConflict: 'campaign_id,email', ignoreDuplicates: true });
       if (error) throw new Error(`lead upsert: ${error.message}`);
     }
     const { count } = await sb.from('drip_leads').select('*', { count: 'exact', head: true }).eq('campaign_id', camp.id);
     console.log(`  campaign ${slug} (${camp.id}) status=draft, ${count} leads loaded`);
+    console.log(`  ${withService} have a VERIFIED last service (booked variant); ${clean.length - withService} get the "last spoke" variant`);
   }
   console.log(apply ? '\nSeeded. Campaigns are DRAFT — flip status to active to start sending.' : '\nDry run complete.');
 })().catch((e) => { console.error('FAILED:', e.message); process.exit(1); });

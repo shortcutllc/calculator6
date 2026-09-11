@@ -1,81 +1,107 @@
 /**
  * drip-copy.js — the fall nurture copy, as templates the drip runner renders.
  *
- * This is the SAME copy that sits in the "Fall Email Campaign 2026" doc and in
- * scripts/lib/nurture-sequence.mjs (the Smartlead path). Kept here as the
- * plain-text source of truth for self-hosted sending.
+ * TWO TOUCH-1 VARIANTS, chosen per lead by what we can actually prove:
  *
- * SPINTAX RULE, same as the Smartlead sequence: spin the connective tissue,
- * never the approved copy. These lines send verbatim in every variant because
- * Will approved that exact wording:
- *   - "Shortcut looks different, and does more. New site, new services."
- *   - the five-new-Mind-&-Body-classes line
- *   - the Venture House / World Mental Health Day line
- * Anything spun is greeting, the summer line, transitions and the ask, none of
- * which carry a claim.
+ *   'booked'  — crm_companies.completed_events > 0, i.e. we ran a real event.
+ *               Only this variant may claim history or name {{last_service}}.
+ *               39 of Jaimie's 700 qualify.
+ *   'spoke'   — everyone else. Same structure and same copy, but it claims
+ *               nothing beyond a lapsed conversation.
  *
- * {{sign_off}} is replaced with the sending rep's name before render, so one
- * template serves Marc, Caren and Jaimie.
+ * The split exists because the honest version is the majority case: a proposal
+ * in `draft` means we quoted someone, not that we were ever on site, so
+ * "since we were in for X" is false for 94% of the list.
+ *
+ * SPINTAX: subject line only (Will, 2026-09-11). The body is approved prose and
+ * ships verbatim. Spintax defends against volume pattern-detection on cold
+ * blasts from burner domains; this is 10-40/day from a real mailbox with a real
+ * signature to people already emailed before. The realistic failure mode is not
+ * detection, it is shipping a sentence nobody approved — which already happened
+ * once ("Hope you got a decent break over the summer and the Exos team").
  *
  * Bodies are plain text. The runner escapes them, converts newlines, reifies
- * [label](url) markdown into anchors, and appends the compliance footer.
+ * [label](url) markdown into anchors, appends the rep's real Gmail signature,
+ * then the compliance footer.
  */
 
 const SITE = 'https://www.getshortcut.co/';
 const CAMPAIGN = 'https://www.getshortcut.co/mental-health-day';
 
+/** Shared below the opener. Identical in both variants, so the approved copy exists once. */
+const BODY_REST = `We've made a few changes at Shortcut since we last connected: new site, new services, and a lot more to offer. [Take a look](${SITE})
+
+Along with the massage, nails, and facials your team already knows, we've added a full Mind & Body offering with classes that can run in the office, over Zoom, or a mix of both:
+
+**Sound baths:** A guided sound session to slow things down and reset.
+**Yoga:** An all-levels class to stretch, move, and refocus.
+**Somatic movement:** Gentle movement designed to release tension and help everyone settle in.
+**Strength & sculpt:** A quick, energizing full-body workout.
+**Dance cardio:** An upbeat class to get everyone moving.
+
+We're also doing something special for **World Mental Health Day this October:** 10% of every booking will be donated to Venture House, a New York nonprofit that has supported mental health recovery for nearly 40 years. [See the campaign](${CAMPAIGN})
+
+I'd love to catch up and reconnect, and hear what you have coming up for the fall and holidays. Let me know if you have time in the coming weeks for a quick call.
+
+Thank you!
+{{sign_off}}`;
+
+const SUBJECT = '{Checking in from Shortcut|A few updates from Shortcut|Shortcut has a new look|Catching up before fall}';
+
 export const STEPS = {
   1: {
-    subject: "{Shortcut's got a new look|Shortcut has a new look|New look at Shortcut}",
-    body: `{Hi|Hey} {{first_name}},
+    subject: SUBJECT,
+    // Verbatim as Will wrote it. Requires {{last_service}} on the lead.
+    booked: `Hi {{first_name}},
 
-{Hope the summer was good to you and the {{company_name}} team|Hope you had a good summer and everyone at {{company_name}} did too|Hope the summer treated you and the {{company_name}} team well|Hope you and the {{company_name}} team got a decent break over the summer}. {It has been a while since we were in|It has been a minute since we were last in|We have not been in for a while now}, {and I wanted to catch you before the fall calendar fills up|and I wanted to reach you before fall gets away from us|so I wanted to check in before the fall books up}.
+Hope you had a great summer! I wanted to check in as we head into fall and the holiday season, especially since it's been a little while since we were in for {{last_service}}.
 
-Shortcut looks different, and does more. New site, new services. [See for yourself](${SITE}) ✨
+${BODY_REST.replace("since we last connected", "since we last worked together")}`,
 
-Five new Mind & Body classes joined the menu, including sound baths, yoga and dance cardio. They run in the office, on Zoom, or both, and it is one price however many people come.
+    // No claim of a visit or of having worked together.
+    spoke: `Hi {{first_name}},
 
-One more thing. This October, for World Mental Health Day, we have partnered with Venture House, a New York nonprofit backing mental health recovery for nearly 40 years. 10% of every booking goes straight to them. [See the campaign](${CAMPAIGN}) 💚
+Hope you had a great summer! I wanted to check in as we head into fall and the holiday season, especially since it's been a little while since we last spoke.
 
-{Want to find a date for the team this fall?|Want to get something on the calendar for the fall?|Worth finding a date for the team this fall?}
-
-{Thanks!|Thanks}
-
-{{sign_off}}`,
+${BODY_REST}`,
   },
 
   2: {
     subject: '',
-    body: `{Hi|Hey} {{first_name}},
+    body: `Hi {{first_name}},
 
-{Bumping this in case it got buried|Popping this back up in case it slipped by|Following up in case this one got lost|Nudging this back to the top of your inbox}.
+Just bumping this in case it got buried.
 
-{The October piece is the part with a date on it|October is the bit with a date attached|The October window is the time-sensitive part}, so I wanted to make sure it reached you.
+The October piece is the part with a date on it, so I wanted to make sure it reached you.
 
-{Want me to send over a couple of options?|Want me to put a couple of dates on hold?|Want me to pull together a couple of options?}
+Want me to put a couple of dates on hold?
 
-{Thanks!|Thanks}
-
+Thank you!
 {{sign_off}}`,
   },
 
   3: {
     subject: '',
-    body: `{Hi|Hey} {{first_name}},
+    body: `Hi {{first_name}},
 
-{Last one from me on this|This is my last note on this|I will leave this one here after today}.
+Last one from me on this.
 
-{If the timing is wrong, no problem at all|If it is not the right time, that is completely fine|If this is not the year for it, no problem}. Just say the word and I will leave you be. {If you would rather pick it up later in the year, I am happy to circle back then|If the new year suits better, just tell me when|If it is worth revisiting after the holidays, say so and I will}.
+If the timing is wrong, no problem at all. Just say the word and I'll leave you be. If you'd rather pick it up later in the year, I'm happy to circle back then.
 
-{Thanks!|Thanks}
-
+Thank you!
 {{sign_off}}`,
   },
 };
 
-/** The three lines that must survive every render untouched. Asserted in tests. */
+/** Pick the touch-1 variant from what we can prove about the lead. */
+export function step1For(lead) {
+  const svc = (lead.custom_fields || {}).last_service;
+  return (lead.booked_before || svc) && svc ? STEPS[1].booked : STEPS[1].spoke;
+}
+
+/** Lines that must survive every render byte-for-byte. Asserted in tests. */
 export const LOCKED_LINES = [
-  'Shortcut looks different, and does more. New site, new services.',
-  'Five new Mind & Body classes joined the menu, including sound baths, yoga and dance cardio.',
-  'we have partnered with Venture House, a New York nonprofit backing mental health recovery for nearly 40 years',
+  "we've added a full Mind & Body offering with classes that can run in the office, over Zoom, or a mix of both:",
+  '10% of every booking will be donated to Venture House, a New York nonprofit that has supported mental health recovery for nearly 40 years.',
+  "I'd love to catch up and reconnect, and hear what you have coming up for the fall and holidays.",
 ];

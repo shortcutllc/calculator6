@@ -18,13 +18,13 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { getAccessToken, sendEmail, getMessageHeaders, lc } from './lib/gmail.js';
+import { getAccessToken, sendEmail, getMessageHeaders, getSignature, lc } from './lib/gmail.js';
 import {
   renderBody, classifyThread, dueTouch, withinSendWindow, todaysCap, jitterMs,
   unsubscribeUrl, complianceFooter, complianceHeaders, nowInZone, checkBreaker,
   PER_DOMAIN_PER_DAY, LAST_TOUCH, DAY_MS,
 } from './lib/drip-engine.js';
-import { STEPS } from './lib/drip-copy.js';
+import { STEPS, step1For } from './lib/drip-copy.js';
 
 const SLACK_API = 'https://slack.com/api';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -82,6 +82,13 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
 
   const token = await getAccessToken(sb, rep).catch((e) => { log(`${camp.slug}: no Gmail token for ${rep}: ${e.message}`); return null; });
   if (!token) return { campaign: camp.slug, error: `no Gmail access for ${rep}` };
+
+  // The rep's REAL Gmail signature. These people have corresponded with her
+  // before, so the email should look like it came from her, not from a tool.
+  // Fetched once per run; the compliance footer is appended beneath it rather
+  // than replacing it.
+  const repSignature = await getSignature(token, rep);
+  if (!repSignature) log(`${camp.slug}: WARNING — no Gmail signature found for ${rep}, sending with footer only`);
 
   // Ramp: how many distinct days has this campaign already sent on?
   const { data: hist } = await sb.from('drip_leads')
@@ -169,11 +176,13 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
         }
       }
 
-      const step = STEPS[touch];
+      // Touch 1 picks its variant from what we can prove about the lead; a lead
+      // with no verified service can never receive the "we were in for X" claim.
+      const template = touch === 1 ? step1For(lead) : STEPS[touch].body;
       const unsubUrl = unsubscribeUrl(camp.unsubscribe_url, email, camp.id, secret);
-      const text = renderBody(step.body.replace(/\{\{sign_off\}\}/g, camp.rep_sign_off || repFirstName(rep)), lead);
+      const text = renderBody(template.replace(/\{\{sign_off\}\}/g, camp.rep_sign_off || repFirstName(rep)), lead);
       const subject = touch === 1
-        ? renderBody(step.subject, lead)
+        ? renderBody(STEPS[1].subject, lead)
         : (lead.touches?.[0]?.subject ? `Re: ${String(lead.touches[0].subject).replace(/^re:\s*/i, '')}` : 'Re: following up');
 
       if (!confirm) {
@@ -184,7 +193,7 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
       const rootMsgId = touch > 1 && lead.root_message_id ? lead.root_message_id : null;
       const r = await sendEmail(token, {
         from: rep, to: email, subject, body: text,
-        signatureHtml: complianceFooter({ unsubUrl, postalAddress: camp.postal_address }),
+        signatureHtml: (repSignature || '') + complianceFooter({ unsubUrl, postalAddress: camp.postal_address }),
         threadId: touch > 1 ? lead.thread_id : undefined,
         inReplyTo: rootMsgId, references: rootMsgId,
         extraHeaders: complianceHeaders({ unsubUrl, unsubMailto: camp.unsub_mailto || null }),
