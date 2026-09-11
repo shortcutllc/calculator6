@@ -58,10 +58,13 @@ const SUBJECT = '{Checking in from Shortcut|A few updates from Shortcut|Shortcut
 export const STEPS = {
   1: {
     subject: SUBJECT,
-    // Verbatim as Will wrote it. Requires {{last_service}} on the lead.
+    // For leads with a VERIFIED completed event only. Deliberately says just
+    // "our last event": naming the service meant quoting raw CRM line items
+    // ("Lip Wax", "Quick Clean Up", "Shave") back at a client, and categorising
+    // them added a mapping to maintain for no gain a recipient would notice.
     booked: `Hi {{first_name}},
 
-Hope you had a great summer! I wanted to check in as we head into fall and the holiday season, especially since it's been a little while since we were in for {{last_service}}.
+Hope you had a great summer! I wanted to check in as we head into fall and the holiday season, especially since it's been a little while since our last event.
 
 ${BODY_REST}`,
 
@@ -102,8 +105,11 @@ Thank you!
 
 /** Pick the touch-1 variant from what we can prove about the lead. */
 export function step1For(lead) {
-  const svc = (lead.custom_fields || {}).last_service;
-  return (lead.booked_before || svc) && svc ? STEPS[1].booked : STEPS[1].spoke;
+  const cf = lead.custom_fields || {};
+  // Only a verified completed event unlocks the history claim. Anything falsy,
+  // missing or unparsed falls through to the variant that claims nothing.
+  const booked = cf.booked === true || cf.booked === 'true';
+  return booked ? STEPS[1].booked : STEPS[1].spoke;
 }
 
 /** Lines that must survive every render byte-for-byte. Asserted in tests. */

@@ -7,22 +7,24 @@ const r=(l)=>renderBody(step1For(l).replace(/\{\{sign_off\}\}/g,'Jaimie'), l);
 // THE BUG THIS SPLIT EXISTS TO PREVENT
 const noSvc = { email:'a@b.com', first_name:'Dana', company_name:'Exos' };
 const outNo = r(noSvc);
-T('lead with no service NEVER gets the "we were in for" claim', !/we were in for/.test(outNo));
-T('lead with no service NEVER gets "we last worked together"', !/last worked together/.test(outNo));
+T('lead with no history NEVER gets an "our last X event" claim', !/since our last/.test(outNo));
 T('lead with no service gets "since we last spoke"', /since we last spoke/.test(outNo));
 
 // booked path
-const booked = { email:'c@d.com', first_name:'Kate', booked_before:true, custom_fields:{last_service:'chair massage'} };
+const booked = { email:'c@d.com', first_name:'Kate', custom_fields:{booked:'true'} };
 const outB = r(booked);
-T('booked lead names the real service', /we were in for chair massage\./.test(outB));
+T('booked lead says exactly "since our last event"', /since our last event\./.test(outB));
+T('booked lead never names a service', !/massage|nails|hair event|headshots|facials/i.test(outB.split('\n')[2]));
 // option 3 removed the second time-clause; the booked lead's ONLY history claim
 // is now in the opener, which is what we assert instead.
-T('booked lead makes its history claim exactly once', (outB.match(/we were in for/g)||[]).length===1);
+{ const raw=['Lip Wax','Quick Clean Up','Nail Clean Up','Shave','Classic Manicure','Sports'];
+  T('no raw CRM line item can reach a recipient', raw.every(x=>!outB.includes(x) && !outNo.includes(x))); }
+T('booked lead makes its history claim exactly once', (outB.match(/since our last/g)||[]).length===1);
 
 // booked_before true but service missing -> must fall back, never render blank
-const halfBooked = { email:'e@f.com', first_name:'Sam', booked_before:true };
+const halfBooked = { email:'e@f.com', first_name:'Sam', booked_before:true };  // top-level flag only, not the verified custom field
 const outH = r(halfBooked);
-T('booked flag WITHOUT a service falls back to the safe variant', /since we last spoke/.test(outH) && !/we were in for/.test(outH));
+T('unverified booked flag falls back to the safe variant', /since we last spoke/.test(outH) && !/since our last event/.test(outH));
 
 // no empty merge artifacts anywhere
 const cases=[noSvc, booked, halfBooked, {email:'g@h.com'}];
@@ -59,8 +61,8 @@ T(`subject varies (${subjects.size} of 4)`, subjects.size>=3, [...subjects].join
 // option 3: the time clause must appear exactly ONCE, in the opener
 const bodyB = r(booked), bodyS = r(noSvc);
 T('no "since we last connected" anywhere', ![bodyB,bodyS].some(b=>/since we last connected/.test(b)));
-T('booked: time clause appears once', (bodyB.match(/since we (were in for|last spoke|last worked together)/g)||[]).length===1);
-T('spoke: time clause appears once', (bodyS.match(/since we (were in for|last spoke|last worked together)/g)||[]).length===1);
+T('booked: time clause appears once', (bodyB.match(/since (our last|we last spoke)/g)||[]).length===1);
+T('spoke: time clause appears once', (bodyS.match(/since (our last|we last spoke)/g)||[]).length===1);
 T('approved line restored', [bodyB,bodyS].every(b=>b.includes('Shortcut looks different, and does more. New site, new services.')));
 // below the opener the two variants must be byte-identical
 const belowB = bodyB.split('\n').slice(3).join('\n'), belowS = bodyS.split('\n').slice(3).join('\n');
