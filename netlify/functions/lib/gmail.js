@@ -150,7 +150,7 @@ function renderMarkdownLinks(escapedBody) {
  *  inReplyTo/references (RFC Message-ID of the message being replied to) make the
  *  send a TRUE reply on the recipient's side (Outlook/etc. thread on these
  *  headers, not on Gmail's internal threadId). */
-function buildRaw({ from, to, subject, bodyHtml, inReplyTo, references }) {
+function buildRaw({ from, to, subject, bodyHtml, inReplyTo, references, extraHeaders }) {
   const headers = [
     `From: ${from}`,
     `To: ${to}`,
@@ -160,6 +160,13 @@ function buildRaw({ from, to, subject, bodyHtml, inReplyTo, references }) {
   ];
   if (inReplyTo) headers.push(`In-Reply-To: ${inReplyTo}`);
   if (references) headers.push(`References: ${references}`);
+  // Arbitrary RFC headers. Used for List-Unsubscribe / List-Unsubscribe-Post on
+  // bulk drip sends; a 1:1 note passes nothing and is unchanged. Values are
+  // stripped of CR/LF so a header can never inject another header.
+  for (const [k, v] of Object.entries(extraHeaders || {})) {
+    if (v == null) continue;
+    headers.push(`${k}: ${String(v).replace(/[\r\n]+/g, ' ').trim()}`);
+  }
   const mime = `${headers.join('\r\n')}\r\n\r\n${bodyHtml}`;
   return Buffer.from(mime, 'utf-8').toString('base64')
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -171,7 +178,7 @@ function buildRaw({ from, to, subject, bodyHtml, inReplyTo, references }) {
  * getSignature) is appended verbatim after a separator. `inReplyTo`/`references`
  * (optional RFC Message-ID) make it a true threaded reply. Returns { id, threadId }.
  */
-export async function sendEmail(accessToken, { from, to, subject, body, signatureHtml, threadId, inReplyTo, references }) {
+export async function sendEmail(accessToken, { from, to, subject, body, signatureHtml, threadId, inReplyTo, references, extraHeaders }) {
   // Escape first (handles &, <, >, etc.), THEN reify any [Label](https://…)
   // markdown into anchor tags. Order matters: escapeHtml turns `&` in URLs
   // into `&amp;`, which is the correct in-anchor form.
@@ -182,7 +189,7 @@ export async function sendEmail(accessToken, { from, to, subject, body, signatur
   // getting his heavy default sig appended below the founder-min one).
   const sigBlock = signatureHtml ? `<br><br><div class="gmail_signature" data-smartmail="gmail_signature">${signatureHtml}</div>` : '';
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${bodyHtml}${sigBlock}</div>`;
-  const raw = buildRaw({ from, to, subject, bodyHtml: html, inReplyTo, references });
+  const raw = buildRaw({ from, to, subject, bodyHtml: html, inReplyTo, references, extraHeaders });
   // threadId attaches the message to an existing Gmail thread (follow-ups).
   // Gmail also requires the subject to match the thread to keep it grouped.
   const payload = threadId ? { raw, threadId } : { raw };
