@@ -28,8 +28,15 @@
 const SITE = 'https://www.getshortcut.co/';
 const CAMPAIGN = 'https://www.getshortcut.co/mental-health-day';
 
-/** Shared below the opener. Identical in both variants, so the approved copy exists once. */
-const BODY_REST = `We've made a few changes at Shortcut since we last connected: new site, new services, and a lot more to offer. [Take a look](${SITE}) ✨
+/**
+ * Shared below the opener, byte-identical in both variants.
+ *
+ * The second line deliberately carries NO "since we last ..." clause. The opener
+ * already sets the time frame ("since we last spoke" / "since we were in for X"),
+ * so repeating it one line later read as padding. Dropping it also means the two
+ * variants share this block verbatim with no substitution, so they cannot drift.
+ */
+const BODY_REST = `Shortcut looks different, and does more. New site, new services. [Take a look](${SITE}) ✨
 
 Along with the massage, nails, and facials your team already knows, we've added a full Mind & Body offering with classes that can run in the office, over Zoom, or a mix of both:
 
@@ -56,7 +63,7 @@ export const STEPS = {
 
 Hope you had a great summer! I wanted to check in as we head into fall and the holiday season, especially since it's been a little while since we were in for {{last_service}}.
 
-${BODY_REST.replace("since we last connected", "since we last worked together")}`,
+${BODY_REST}`,
 
     // No claim of a visit or of having worked together.
     spoke: `Hi {{first_name}},
@@ -101,6 +108,7 @@ export function step1For(lead) {
 
 /** Lines that must survive every render byte-for-byte. Asserted in tests. */
 export const LOCKED_LINES = [
+  'Shortcut looks different, and does more. New site, new services.',
   "we've added a full Mind & Body offering with classes that can run in the office, over Zoom, or a mix of both:",
   '10% of every booking will be donated to Venture House, a New York nonprofit that has supported mental health recovery for nearly 40 years.',
   "I'd love to catch up and reconnect, and hear what you have coming up for the fall and holidays.",
