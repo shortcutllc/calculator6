@@ -27,9 +27,9 @@ const CAMPAIGN = 'https://www.getshortcut.co/mental-health-day';
 export const STEPS = {
   1: {
     subject: "{Shortcut's got a new look|Shortcut has a new look|New look at Shortcut}",
-    body: `{Hi|Hey|Hi there} {{first_name}},
+    body: `{Hi|Hey} {{first_name}},
 
-{Hope the summer was good to you|Hope you had a good summer|Hope the summer treated you well|Hope you got a decent break over the summer} {and the {{company_name}} team|and everyone at {{company_name}}|and the team at {{company_name}}}. {It has been a while since we were in|It has been a minute since we were last in|We have not been in for a while now}, {and I wanted to catch you before the fall calendar fills up|and I wanted to reach you before fall gets away from us|so I wanted to check in before the fall books up}.
+{Hope the summer was good to you and the {{company_name}} team|Hope you had a good summer and everyone at {{company_name}} did too|Hope the summer treated you and the {{company_name}} team well|Hope you and the {{company_name}} team got a decent break over the summer}. {It has been a while since we were in|It has been a minute since we were last in|We have not been in for a while now}, {and I wanted to catch you before the fall calendar fills up|and I wanted to reach you before fall gets away from us|so I wanted to check in before the fall books up}.
 
 Shortcut looks different, and does more. New site, new services. [See for yourself](${SITE}) ✨
 

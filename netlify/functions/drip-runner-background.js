@@ -7,8 +7,8 @@
  *
  * ORDER OF THE GATES MATTERS. Cheap, certain refusals come first so we never
  * spend a Gmail API call on someone we were never going to email:
- *   suppression -> campaign window -> daily cap -> per-domain cap -> cadence
- *   -> LIVE thread read -> send.
+ *   compliance config -> campaign window -> CIRCUIT BREAKER -> daily cap
+ *   -> suppression -> per-domain cap -> cadence -> LIVE thread read -> send.
  *
  * DRY BY DEFAULT. `confirm: true` is required to send. A dry run does everything
  * including the live thread read, so you can see exactly who would receive what.
@@ -21,7 +21,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAccessToken, sendEmail, getMessageHeaders, lc } from './lib/gmail.js';
 import {
   renderBody, classifyThread, dueTouch, withinSendWindow, todaysCap, jitterMs,
-  unsubscribeUrl, complianceFooter, complianceHeaders, nowInZone,
+  unsubscribeUrl, complianceFooter, complianceHeaders, nowInZone, checkBreaker,
   PER_DOMAIN_PER_DAY, LAST_TOUCH, DAY_MS,
 } from './lib/drip-engine.js';
 import { STEPS } from './lib/drip-copy.js';
@@ -94,6 +94,33 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
   const room = Math.max(0, Math.min(cap - sentToday, max));
   log(`${camp.slug}: day ${sendingDays + 1}, cap ${cap}, already ${sentToday} today, room ${room}`);
   if (room <= 0) return { campaign: camp.slug, sent: 0, note: `daily cap ${cap} reached` };
+
+  // CIRCUIT BREAKER. Checked BEFORE any send, over every lead this campaign has
+  // already contacted. A warm list should bounce near zero — every address here
+  // was deliverable before — so a real bounce rate means the list is wrong, and
+  // grinding through the remainder damages the domain that carries proposals and
+  // invoices. Tripping pauses the campaign; a human has to look and restart it.
+  const { data: contactedRows } = await sb.from('drip_leads')
+    .select('status').eq('campaign_id', camp.id).not('last_touch_at', 'is', null);
+  const contacted = (contactedRows || []).length;
+  const bounced = (contactedRows || []).filter((r) => r.status === 'bounced').length;
+  const unsubscribed = (contactedRows || []).filter((r) => r.status === 'unsubscribed').length;
+  const breaker = checkBreaker({ contacted, bounced, unsubscribed });
+  if (breaker.trip) {
+    log(`${camp.slug}: CIRCUIT BREAKER — ${breaker.reason}. Pausing campaign.`);
+    if (confirm) {
+      await sb.from('drip_campaigns')
+        .update({ status: 'paused', updated_at: new Date().toISOString() })
+        .eq('id', camp.id);
+      await slackPost('chat.postMessage', {
+        channel: camp.slack_channel || '#sales',
+        text: `:rotating_light: Drip *${camp.slug}* auto-paused: ${breaker.reason}. ${contacted} contacted, ${bounced} bounced, ${unsubscribed} unsubscribed. Nothing further will send until someone restarts it.`,
+        unfurl_links: false,
+      });
+    }
+    return { campaign: camp.slug, paused: true, reason: breaker.reason, contacted, bounced, unsubscribed };
+  }
+  if (contacted) log(`${camp.slug}: health ok — ${contacted} contacted, ${bounced} bounced, ${unsubscribed} unsubscribed`);
 
   // suppression: the cross-system stop list
   const supp = new Set();

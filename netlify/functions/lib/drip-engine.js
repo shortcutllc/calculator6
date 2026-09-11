@@ -33,6 +33,10 @@
  *  8. SPINTAX, so no two recipients receive byte-identical text.
  *  9. BUSINESS HOURS ONLY in the rep's timezone, weekdays by default.
  * 10. DRY RUN IS THE DEFAULT. Sending requires an explicit confirm.
+ 11. CIRCUIT BREAKER. If the bounce or unsubscribe rate over recent sends crosses
+     a threshold, the campaign PAUSES ITSELF rather than grinding through the
+     rest of the list. A bad list is the single fastest way to damage a domain,
+     and this one also carries proposals and invoices.
  */
 
 import crypto from 'node:crypto';
@@ -47,6 +51,41 @@ export const LAST_TOUCH = 3;
 
 /** No more than this many sends to one recipient domain per campaign per day. */
 export const PER_DOMAIN_PER_DAY = 2;
+
+/**
+ * Circuit breaker thresholds, measured over the most recent MIN_SAMPLE contacted
+ * leads. Deliberately tighter than the provider limits, because by the time a
+ * provider reacts the damage is done:
+ *   - Gmail/Yahoo enforce at a 0.3% SPAM COMPLAINT rate; under 0.1% is the target.
+ *     We cannot see complaints without Postmaster Tools, so unsubscribe rate is
+ *     the closest in-band proxy we have and the ceiling is set low.
+ *   - A 2%+ bounce rate on a WARM list means the list is wrong, not unlucky:
+ *     every one of these addresses was deliverable before.
+ * MIN_SAMPLE stops a single early bounce (1 of 3 = 33%) tripping the breaker.
+ */
+export const BREAKER = {
+  MIN_SAMPLE: 25,
+  MAX_BOUNCE_RATE: 0.05,
+  MAX_UNSUB_RATE: 0.03,
+};
+
+/**
+ * Decide whether a campaign should stop sending. `counts` are over leads that
+ * have actually been contacted. Returns { trip, reason } so the caller can log
+ * and persist a human-readable cause.
+ */
+export function checkBreaker({ contacted, bounced, unsubscribed }) {
+  if (contacted < BREAKER.MIN_SAMPLE) return { trip: false, reason: null };
+  const bounceRate = bounced / contacted;
+  const unsubRate = unsubscribed / contacted;
+  if (bounceRate > BREAKER.MAX_BOUNCE_RATE) {
+    return { trip: true, reason: `bounce rate ${(bounceRate * 100).toFixed(1)}% over ${contacted} sends exceeds ${(BREAKER.MAX_BOUNCE_RATE * 100)}%` };
+  }
+  if (unsubRate > BREAKER.MAX_UNSUB_RATE) {
+    return { trip: true, reason: `unsubscribe rate ${(unsubRate * 100).toFixed(1)}% over ${contacted} sends exceeds ${(BREAKER.MAX_UNSUB_RATE * 100)}%` };
+  }
+  return { trip: false, reason: null };
+}
 
 const BOUNCE_FROM_RE = /(postmaster@|mailer-daemon|microsoftexchange\w*@|mail delivery (subsystem|system)|delivery status notification)/i;
 
