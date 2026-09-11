@@ -29,7 +29,7 @@ const SITE = 'https://www.getshortcut.co/';
 const CAMPAIGN = 'https://www.getshortcut.co/mental-health-day';
 
 /** Shared below the opener. Identical in both variants, so the approved copy exists once. */
-const BODY_REST = `We've made a few changes at Shortcut since we last connected: new site, new services, and a lot more to offer. [Take a look](${SITE})
+const BODY_REST = `We've made a few changes at Shortcut since we last connected: new site, new services, and a lot more to offer. [Take a look](${SITE}) ✨
 
 Along with the massage, nails, and facials your team already knows, we've added a full Mind & Body offering with classes that can run in the office, over Zoom, or a mix of both:
 
@@ -39,7 +39,7 @@ Along with the massage, nails, and facials your team already knows, we've added 
 **Strength & sculpt:** A quick, energizing full-body workout.
 **Dance cardio:** An upbeat class to get everyone moving.
 
-We're also doing something special for **World Mental Health Day this October:** 10% of every booking will be donated to Venture House, a New York nonprofit that has supported mental health recovery for nearly 40 years. [See the campaign](${CAMPAIGN})
+We're also doing something special for **World Mental Health Day this October:** 10% of every booking will be donated to Venture House, a New York nonprofit that has supported mental health recovery for nearly 40 years. [See the campaign](${CAMPAIGN}) 💚
 
 I'd love to catch up and reconnect, and hear what you have coming up for the fall and holidays. Let me know if you have time in the coming weeks for a quick call.
 

@@ -139,6 +139,16 @@ export async function getSignature(accessToken, fromEmail) {
  * post-call template uses, so a draft-from-Pro looks consistent with hand-
  * written templates from the Client Emails section of the app.
  */
+/**
+ * Reify **bold** into <strong>. Runs AFTER escapeHtml (asterisks are not escaped)
+ * and after link rendering, so a bolded label inside a link still works. The
+ * pattern is non-greedy and `.` does not cross newlines, so an unmatched pair
+ * cannot swallow the rest of the email.
+ */
+function renderBold(html) {
+  return html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+}
+
 function renderMarkdownLinks(escapedBody) {
   return escapedBody.replace(
     /\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)\)/g,
@@ -182,7 +192,7 @@ export async function sendEmail(accessToken, { from, to, subject, body, signatur
   // Escape first (handles &, <, >, etc.), THEN reify any [Label](https://…)
   // markdown into anchor tags. Order matters: escapeHtml turns `&` in URLs
   // into `&amp;`, which is the correct in-anchor form.
-  let bodyHtml = renderMarkdownLinks(escapeHtml(body)).replace(/\r?\n/g, '<br>');
+  let bodyHtml = renderBold(renderMarkdownLinks(escapeHtml(body))).replace(/\r?\n/g, '<br>');
   // Tag the embedded signature with Gmail's own signature marker so the web
   // client treats it as THE signature and does NOT append the account's default
   // sendAs signature on top (Will 2026-07-08: hand-sent founder/broker drafts were
@@ -216,7 +226,7 @@ export async function sendEmail(accessToken, { from, to, subject, body, signatur
  * sends + cancels we delete it explicitly.
  */
 export async function createDraft(accessToken, { from, to, subject, body, signatureHtml, threadId }) {
-  const bodyHtml = renderMarkdownLinks(escapeHtml(body)).replace(/\r?\n/g, '<br>');
+  const bodyHtml = renderBold(renderMarkdownLinks(escapeHtml(body))).replace(/\r?\n/g, '<br>');
   // gmail_signature marker → Gmail web recognizes this as THE signature and does
   // not append will@'s heavy default sendAs signature when he hand-sends the draft
   // (Will 2026-07-08). Same fix as sendEmail above.
