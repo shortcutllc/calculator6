@@ -1,22 +1,27 @@
 /**
  * drip-runner-scheduled — Netlify SCHEDULED trigger for rep nurture drips.
  *
- * Fires four times across the weekday sending window so the day's ramped cap is
- * spread out rather than dumped in one burst, and so a touch that comes due at
- * lunchtime still goes out the same day. The background function re-checks the
- * send window itself, so a fire outside a given campaign's hours is a no-op.
+ * Fires every 10 minutes across the weekday sending window. Four fires a day put
+ * ~17 sends into a 12-minute burst — roughly 42s apart, against Smartlead's ~19
+ * minutes — which is exactly the automated pattern we are trying not to look
+ * like. Frequent small ticks let the runner hold a human cadence: it sends 0-2
+ * per tick and waits a random slice of the interval first, so messages scatter
+ * across the window instead of landing on the :00/:10/:20 grid.
+ *
+ * The background function re-checks each campaign's own send window and daily
+ * cap, so ticks outside a campaign's hours are cheap no-ops.
  *
  * Concurrent or double fires are safe: the runner re-reads each lead's touch
  * state, enforces one touch per lead per day, and counts what has already gone
  * out today against the cap before sending anything.
  *
- * 13/15/17/19 UTC = 9am/11am/1pm/3pm ET during EDT. Schedule declared here AND
- * in netlify.toml (see scripts/check-schedules.mjs).
+ * 13-20 UTC = 9am-4pm ET during EDT. Schedule declared here AND in netlify.toml
+ * (see scripts/check-schedules.mjs).
  */
 
 const BACKGROUND_URL_PATH = '/.netlify/functions/drip-runner-background';
 
-export const config = { schedule: '0 13,15,17,19 * * 1-5' };
+export const config = { schedule: '*/10 13-20 * * 1-5' };
 
 export const handler = async () => {
   const base = (process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://proposals.getshortcut.co').replace(/\/$/, '');
@@ -24,8 +29,8 @@ export const handler = async () => {
     const r = await fetch(`${base}${BACKGROUND_URL_PATH}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // max is a per-RUN ceiling; the campaign's own ramped daily cap is the real limit.
-      body: JSON.stringify({ confirm: true, max: 25 }),
+      // Per-run ceiling only; tickPlan decides the real number for this tick.
+      body: JSON.stringify({ confirm: true, max: 2 }),
     });
     console.log(`[drip-runner-scheduled] dispatched → HTTP ${r.status}`);
     return { statusCode: 200, body: `dispatched drip-runner-background (HTTP ${r.status})` };

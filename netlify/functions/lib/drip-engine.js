@@ -231,11 +231,41 @@ export function todaysCap(campaign, sendingDays) {
   return Math.max(1, Math.min(campaign.daily_cap ?? 25, ramped));
 }
 
-/** Randomised gap in ms, so sends never look like a metronome. */
+/** Randomised gap in ms between two sends inside one run. */
 export function jitterMs(capPerDay, campaign) {
   const windowMin = Math.max(1, (campaign.send_end_hour - campaign.send_start_hour)) * 60;
   const mean = (windowMin / Math.max(1, capPerDay)) * 60000;
   return Math.round(mean * (0.55 + Math.random() * 0.9));
+}
+
+/**
+ * How many to send on THIS tick, and how long to wait before starting.
+ *
+ * The cron fires on a fixed grid. Sending the moment it fires puts every message
+ * on :00/:10/:20, which is a cleaner pattern than the burst it replaced. So each
+ * run waits a random slice of its own interval first, which scatters sends across
+ * the whole window instead of stacking them on the grid.
+ *
+ * The count self-corrects: it divides what is left of today's cap by the ticks
+ * left in the window, so a slow morning is made up in the afternoon rather than
+ * dumped at the end. Fractional allowances are resolved by coin flip, so a rate
+ * of 0.4/tick really does send on roughly 4 ticks in 10 rather than never.
+ */
+export function tickPlan({ campaign, cap, sentToday, intervalMin = 10, at = new Date(), rand = Math.random }) {
+  const { hour } = nowInZone(campaign.timezone || 'America/New_York', at);
+  const minutesLeft = Math.max(0, (campaign.send_end_hour - hour) * 60);
+  const ticksLeft = Math.max(1, Math.floor(minutesLeft / intervalMin));
+  const remaining = Math.max(0, cap - sentToday);
+  if (!remaining) return { count: 0, startDelayMs: 0, ticksLeft };
+
+  const perTick = remaining / ticksLeft;
+  let count = Math.floor(perTick);
+  if (rand() < perTick - count) count += 1;
+  count = Math.min(count, 2, remaining); // never burst, even if the window is nearly over
+
+  // Wait a random slice of the interval, leaving headroom for the sends.
+  const startDelayMs = Math.round(rand() * intervalMin * 0.7 * 60000);
+  return { count, startDelayMs, ticksLeft, perTick: Number(perTick.toFixed(2)) };
 }
 
 // ------------------------------------------------------------------ halt ----

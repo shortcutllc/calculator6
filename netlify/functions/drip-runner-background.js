@@ -21,7 +21,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAccessToken, sendEmail, getMessageHeaders, getSignature, lc } from './lib/gmail.js';
 import {
   renderBody, classifyThread, dueTouch, withinSendWindow, todaysCap, jitterMs,
-  unsubscribeUrl, complianceFooter, complianceHeaders, nowInZone, checkBreaker,
+  unsubscribeUrl, complianceFooter, complianceHeaders, nowInZone, checkBreaker, tickPlan,
   PER_DOMAIN_PER_DAY, LAST_TOUCH, DAY_MS,
 } from './lib/drip-engine.js';
 import { STEPS, step1For } from './lib/drip-copy.js';
@@ -35,7 +35,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // its configured cap). Stop cleanly with headroom and let the next cron tick
 // pick up the rest; the cron fires four times across the window.
 const RUN_BUDGET_MS = 11 * 60 * 1000;
-const MAX_JITTER_MS = 20000;
+// Only 1-2 sends happen per tick now, so the in-run gap barely matters; the
+// scatter comes from tickPlan's random start delay instead. Kept modest so two
+// sends plus a start delay still fit the run budget.
+const MAX_JITTER_MS = 90 * 1000;
+const TICK_INTERVAL_MIN = 10;
 
 async function slackPost(method, body) {
   if (!process.env.PRO_SLACK_BOT_TOKEN) return {};
@@ -107,9 +111,14 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
 
   const today = nowInZone(camp.timezone).date;
   const sentToday = (hist || []).filter((r) => String(r.last_touch_at).slice(0, 10) === today).length;
-  const room = Math.max(0, Math.min(cap - sentToday, max));
-  log(`${camp.slug}: day ${sendingDays + 1}, cap ${cap}, already ${sentToday} today, room ${room}`);
-  if (room <= 0) return { campaign: camp.slug, sent: 0, note: `daily cap ${cap} reached` };
+
+  // Spread the day's cap across the remaining ticks instead of sending the
+  // moment the cron fires. A fixed cron plus immediate sending puts every
+  // message on the :00/:10/:20 grid; the random start delay scatters them.
+  const plan = tickPlan({ campaign: camp, cap, sentToday, intervalMin: TICK_INTERVAL_MIN });
+  const room = Math.max(0, Math.min(plan.count, max));
+  log(`${camp.slug}: day ${sendingDays + 1}, cap ${cap}, sent ${sentToday} today, ${plan.ticksLeft} ticks left, rate ${plan.perTick}/tick -> ${room} this tick`);
+  if (room <= 0) return { campaign: camp.slug, sent: 0, note: sentToday >= cap ? `daily cap ${cap} reached` : 'nothing scheduled for this tick' };
 
   // BOUNCE SWEEP — fixes a hole that made the circuit breaker inert exactly when
   // it mattered. The per-lead halt check only runs at touch > 1 (there is no
@@ -162,6 +171,12 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
     return { campaign: camp.slug, paused: true, reason: breaker.reason, contacted, bounced, unsubscribed };
   }
   if (contacted) log(`${camp.slug}: health ok — ${contacted} contacted, ${bounced} bounced, ${unsubscribed} unsubscribed`);
+
+  // Scatter this tick's sends off the cron grid.
+  if (confirm && plan.startDelayMs) {
+    log(`${camp.slug}: waiting ${(plan.startDelayMs / 60000).toFixed(1)}m before sending (off-grid scatter)`);
+    await sleep(plan.startDelayMs);
+  }
 
   // suppression: the cross-system stop list
   const supp = new Set();
