@@ -117,6 +117,10 @@ still missing is brain/goals.md (a stub) — filling it with Will is your top st
 - `messaging.md` — **read this before you draft anything a prospect will see.** What Shortcut says, the
   outcome-versus-mechanism hierarchy, locked copy, banned words, and the command to print the canonical
   positioning block out of `netlify/functions/lib/positioning.js`. Never restate positioning from memory.
+- `fall-campaign-2026.md` — **read before proposing ANY outreach through October 2026.** 570 of Jaimie's
+  contacts are mid-sequence on the fall re-engagement campaign (new site, five new Mind & Body classes,
+  10% of October bookings to Venture House for World Mental Health Day). Says who is in it, which system
+  is sending, the honesty rule on claiming a past visit, and what not to suggest while it runs.
 - `goals.md` — Shortcut's current goals. The root of every weekly plan.
 - `playbook.md` — the networking play menu with when-to-use rules and evidence grades.
 - `lessons.md` — what you've learned works and doesn't. Append weekly; this is how you improve.
