@@ -29,6 +29,14 @@ import { STEPS, step1For } from './lib/drip-copy.js';
 const SLACK_API = 'https://slack.com/api';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Netlify background functions are killed at 15 minutes. 25 sends at the old
+// 45s jitter ceiling came to 18.8 minutes, so runs were truncated mid-batch
+// (no double-sends, state is written per send, but throughput silently missed
+// its configured cap). Stop cleanly with headroom and let the next cron tick
+// pick up the rest; the cron fires four times across the window.
+const RUN_BUDGET_MS = 11 * 60 * 1000;
+const MAX_JITTER_MS = 20000;
+
 async function slackPost(method, body) {
   if (!process.env.PRO_SLACK_BOT_TOKEN) return {};
   const r = await fetch(`${SLACK_API}/${method}`, {
@@ -63,6 +71,7 @@ export const handler = async (event) => {
 };
 
 async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
+  const startedAt = Date.now();
   const rep = lc(camp.rep_email);
   const results = [];
   let sent = 0;
@@ -101,6 +110,31 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
   const room = Math.max(0, Math.min(cap - sentToday, max));
   log(`${camp.slug}: day ${sendingDays + 1}, cap ${cap}, already ${sentToday} today, room ${room}`);
   if (room <= 0) return { campaign: camp.slug, sent: 0, note: `daily cap ${cap} reached` };
+
+  // BOUNCE SWEEP — fixes a hole that made the circuit breaker inert exactly when
+  // it mattered. The per-lead halt check only runs at touch > 1 (there is no
+  // thread before touch 1), and the breaker counts status === 'bounced', which
+  // only that check ever set. So across a 28-day touch-1 rollout NOTHING was ever
+  // marked bounced and the breaker could not trip until the whole list had been
+  // emailed. This sweeps recently-contacted leads that are not yet due, so a bad
+  // list surfaces within a day instead of after the rollout.
+  const SWEEP_MAX = 30;
+  const sweepCutoff = new Date(Date.now() - 7 * DAY_MS).toISOString();
+  const { data: sweepable } = await sb.from('drip_leads')
+    .select('id,email,thread_id,touches,paused_since_ms')
+    .eq('campaign_id', camp.id).eq('status', 'active')
+    .not('thread_id', 'is', null).gte('last_touch_at', sweepCutoff)
+    .order('last_touch_at', { ascending: true }).limit(SWEEP_MAX);
+  let swept = 0;
+  for (const l of sweepable || []) {
+    if (dueTouch(l)) continue; // due leads get the same check inside the send loop
+    const since = l.paused_since_ms || new Date(l.touches?.[0]?.sent_at || 0).getTime();
+    const v = await classifyThread(token, l.thread_id, since, rep);
+    if (v.status === 'bounce') { await suppress(sb, lc(l.email), 'bounce'); await halt(sb, l, 'bounced', v.reason); swept++; }
+    else if (v.status === 'unsub') { await suppress(sb, lc(l.email), 'unsubscribe'); await halt(sb, l, 'unsubscribed', v.reason); swept++; }
+    else if (v.status === 'reply') { await halt(sb, l, 'replied', v.reason); swept++; }
+  }
+  if (swept) log(`${camp.slug}: sweep updated ${swept} lead(s) from live threads`);
 
   // CIRCUIT BREAKER. Checked BEFORE any send, over every lead this campaign has
   // already contacted. A warm list should bounce near zero — every address here
@@ -145,6 +179,10 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
 
   for (const lead of leads || []) {
     if (sent >= room) { log(`${camp.slug}: room exhausted`); break; }
+    if (Date.now() - startedAt > RUN_BUDGET_MS) {
+      log(`${camp.slug}: run budget reached after ${sent} send(s); remainder waits for the next tick`);
+      break;
+    }
     const email = lc(lead.email);
     const domain = email.split('@')[1] || '';
     try {
@@ -217,7 +255,7 @@ async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {
       results.push({ email, touch, sent: true });
       log(`${camp.slug}: sent touch ${touch} to ${email}`);
 
-      if (sent < room) await sleep(Math.min(jitterMs(cap, camp), 45000));
+      if (sent < room) await sleep(Math.min(jitterMs(cap, camp), MAX_JITTER_MS));
     } catch (e) {
       console.error(`[drip] ${email}:`, e.message);
       results.push({ email, error: e.message });
