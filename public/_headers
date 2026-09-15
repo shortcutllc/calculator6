@@ -1,3 +1,104 @@
+# Private and client-facing routes never belong in Google's index (SEO audit
+# 2026-09-10, E1). noindex via header rather than robots.txt Disallow, so that
+# URLs already indexed get re-crawled, see the header, and drop out. The
+# marketing pages stay indexable: /, /cle, /cle/*, /wellness-funds,
+# /holiday-page/*, /holiday-generic, /solutions/*.
+/proposal/*
+  X-Robots-Tag: noindex, nofollow
+
+/p/*
+  X-Robots-Tag: noindex, nofollow
+
+/shared/*
+  X-Robots-Tag: noindex, nofollow
+
+/brochures/*
+  X-Robots-Tag: noindex, nofollow
+
+/sign/*
+  X-Robots-Tag: noindex, nofollow
+
+/r/*
+  X-Robots-Tag: noindex, nofollow
+
+/survey/*
+  X-Robots-Tag: noindex, nofollow
+
+/survey-results/*
+  X-Robots-Tag: noindex, nofollow
+
+/surveys
+  X-Robots-Tag: noindex, nofollow
+
+/photographer/*
+  X-Robots-Tag: noindex, nofollow
+
+/qr-code-sign/*
+  X-Robots-Tag: noindex, nofollow
+
+/qr-code-signs
+  X-Robots-Tag: noindex, nofollow
+
+/workhuman
+  X-Robots-Tag: noindex, nofollow
+
+/workhuman/*
+  X-Robots-Tag: noindex, nofollow
+
+/workhuman-tv
+  X-Robots-Tag: noindex, nofollow
+
+/workhuman-leads
+  X-Robots-Tag: noindex, nofollow
+
+/workhuman-leads/*
+  X-Robots-Tag: noindex, nofollow
+
+/users
+  X-Robots-Tag: noindex, nofollow
+
+/sign-up-links
+  X-Robots-Tag: noindex, nofollow
+
+/upcoming-events
+  X-Robots-Tag: noindex, nofollow
+
+/history
+  X-Robots-Tag: noindex, nofollow
+
+/login
+  X-Robots-Tag: noindex, nofollow
+
+/register
+  X-Robots-Tag: noindex, nofollow
+
+/sales-intelligence
+  X-Robots-Tag: noindex, nofollow
+
+/sales-comp-model
+  X-Robots-Tag: noindex, nofollow
+
+/social-media/*
+  X-Robots-Tag: noindex, nofollow
+
+/social-media-pages
+  X-Robots-Tag: noindex, nofollow
+
+/social-media-pages/*
+  X-Robots-Tag: noindex, nofollow
+
+/pro-agreements
+  X-Robots-Tag: noindex, nofollow
+
+/proposal-gallery-admin
+  X-Robots-Tag: noindex, nofollow
+
+/redesign-preview
+  X-Robots-Tag: noindex, nofollow
+
+/partners/*
+  X-Robots-Tag: noindex, nofollow
+
 /holiday-page/*
   X-Robots-Tag: index, follow
   
