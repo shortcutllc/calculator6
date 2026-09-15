@@ -64,9 +64,18 @@ export const PER_DOMAIN_PER_DAY = 2;
  * MIN_SAMPLE stops a single early bounce (1 of 3 = 33%) tripping the breaker.
  */
 export const BREAKER = {
-  MIN_SAMPLE: 25,
+  // Raised from 25 after the first live trip (Will, 2026-09-15). At 25 contacts a
+  // single unsubscribe is already 4%, so the old floor let small-sample noise halt
+  // a healthy campaign: 2 opt-outs in 52 sends paused the cohort while bounces were
+  // zero and the domain's spam-complaint rate was 0.00%.
+  MIN_SAMPLE: 50,
   MAX_BOUNCE_RATE: 0.05,
-  MAX_UNSUB_RATE: 0.03,
+  // An unsubscribe is a HEALTHY outcome — the recipient used the mechanism instead
+  // of reporting spam. The rate that actually causes harm is the spam complaint
+  // rate (Google enforces at 0.3%), which this cannot see. So treat this as a
+  // list-quality smoke alarm, not a compliance line; 3% was tighter than the
+  // evidence warranted.
+  MAX_UNSUB_RATE: 0.05,
 };
 
 /**
