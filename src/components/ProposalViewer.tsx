@@ -3350,7 +3350,7 @@ The Shortcut Team`);
                                     {/* Recurring Event Details */}
                                     {service.isRecurring && service.recurringFrequency && (() => {
                                       const occurrences = service.recurringFrequency.occurrences;
-                                      const discountRate = occurrences >= 9 ? 0.15 : occurrences >= 4 ? 0.10 : 0;
+                                      const discountRate = occurrences >= 9 ? 0.20 : occurrences >= 4 ? 0.15 : 0;
                                       // service.serviceCost is THIS event's cost (already discounted)
                                       const thisEventDiscounted = service.serviceCost;
                                       const thisEventOriginal = discountRate > 0 ? thisEventDiscounted / (1 - discountRate) : thisEventDiscounted;
@@ -3981,7 +3981,7 @@ The Shortcut Team`);
                     <label className="block text-sm font-bold text-shortcut-blue mb-2">
                       Discount Amount
                       <span className="font-normal text-gray-500 ml-2">
-                        (Auto-applied: 10% for 4-8 dates, 15% for 9+ dates)
+                        (Auto-applied: 15% for 4-8 dates, 20% for 9+ dates)
                       </span>
                     </label>
                     {(() => {
@@ -4322,7 +4322,7 @@ The Shortcut Team`);
                       (dateData.services || []).forEach((service: any) => {
                         if (service.isRecurring && service.recurringFrequency && service.recurringFrequency.occurrences >= 4) {
                           hasRecurring = true;
-                          const discount = service.recurringFrequency.occurrences >= 9 ? 0.15 : 0.10;
+                          const discount = service.recurringFrequency.occurrences >= 9 ? 0.20 : 0.15;
                           // Estimate savings based on service cost
                           const originalCost = service.serviceCost / (1 - discount);
                           totalSavings += originalCost - service.serviceCost;

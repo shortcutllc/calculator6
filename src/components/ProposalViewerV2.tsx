@@ -7335,7 +7335,7 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
             outline: 'none',
           }}
         >
-          <option value="auto">Auto (10% at 4+, 15% at 9+ dates)</option>
+          <option value="auto">Auto (15% at 4+, 20% at 9+ dates)</option>
           <option value="off">No discount</option>
           <option value="10">Fixed 10%</option>
           <option value="15">Fixed 15%</option>

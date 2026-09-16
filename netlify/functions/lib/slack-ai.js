@@ -156,8 +156,8 @@ For CLE proposals, set cleState to the state where accreditation applies (NY, PA
 - Appointments per pro per hour = 60 / appTime.
 
 ## Recurring Discounts
-- 4-8 occurrences (quarterly): 10% discount
-- 9+ occurrences (monthly): 15% discount
+- 4-8 occurrences (quarterly): 15% discount
+- 9+ occurrences (monthly): 20% discount
 Discounts apply to the service cost.
 
 ## Locations

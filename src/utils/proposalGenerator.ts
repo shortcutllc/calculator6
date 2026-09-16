@@ -10,8 +10,8 @@ import { MOVEMENT_CATALOG_BY_ID, MOVEMENT_CATALOG, resolveMovementEntry, isMovem
 export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
   if (!frequency) return 0;
   const occurrences = frequency.occurrences;
-  if (occurrences >= 9) return 15;
-  if (occurrences >= 4) return 10;
+  if (occurrences >= 9) return 20;
+  if (occurrences >= 4) return 15;
   return 0;
 };
 
@@ -984,8 +984,8 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     // Use manually set value
     autoRecurringDiscount = updatedData.autoRecurringDiscount;
   } else if (uniqueDateCount >= 4 && !hasManualRecurring) {
-    // Auto-calculate: 10% for 4-8 dates, 15% for 9+ dates
-    autoRecurringDiscount = uniqueDateCount >= 9 ? 15 : 10;
+    // Auto-calculate: 15% for 4-8 dates, 20% for 9+ dates
+    autoRecurringDiscount = uniqueDateCount >= 9 ? 20 : 15;
   }
 
   // Apply auto-recurring if applicable

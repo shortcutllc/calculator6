@@ -372,12 +372,12 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
     });
 
     // Apply discount based on total events (across all locations)
-    // 4 events = 10% discount, 9+ events = 15% discount
+    // 4 events = 15% discount, 9+ events = 20% discount
     let discountPercent = 0;
     if (totals.totalEvents >= 9) {
-      discountPercent = 15;
+      discountPercent = 20;
     } else if (totals.totalEvents >= 4) {
-      discountPercent = 10;
+      discountPercent = 15;
     }
     
     const discountAmount = totals.totalCost * (discountPercent / 100);
@@ -785,12 +785,12 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
 
     try {
       // Calculate service data for all events
-      // Discount: 4 events = 10%, 9+ events = 15%
+      // Discount: 4 events = 15%, 9+ events = 20%
       let discountPercent = 0;
       if (events.length >= 9) {
-        discountPercent = 15;
+        discountPercent = 20;
       } else if (events.length >= 4) {
-        discountPercent = 10;
+        discountPercent = 15;
       }
       
       const allServices = events.map(event => {
@@ -1140,7 +1140,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
               Build My 2026 Proposal
             </h2>
             <p className="text-sm md:text-lg lg:text-xl max-w-2xl" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.5' }}>
-              Create your customized proposal and unlock savings: 10% off for 4+ events, 15% off for 9+ events
+              Create your customized proposal and unlock savings: 15% off for 4+ events, 20% off for 9+ events
             </p>
           </div>
           <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
@@ -1500,9 +1500,9 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                         </h4>
                         <p className="text-sm text-text-dark-60">
                           {events.length < 4
-                            ? 'Add more events to unlock 10% discount'
+                            ? 'Add more events to unlock 15% discount'
                             : events.length < 9
-                            ? 'Add more for 15% savings!'
+                            ? 'Add more for 20% savings!'
                             : 'Maximum savings unlocked!'}
                         </p>
                       </div>
@@ -1532,7 +1532,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-bold" style={{ color: '#003756' }}>
-                          4 Events = 10% Discount
+                          4 Events = 15% Discount
                         </span>
                         <span className="text-sm font-extrabold" style={{ color: events.length >= 4 ? '#FF5050' : '#6b7280' }}>
                           {Math.min(events.length, 4)}/4
@@ -1553,7 +1553,7 @@ const ClientProposalBuilder: React.FC<ClientProposalBuilderProps> = ({ isOpen, o
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-bold" style={{ color: '#003756' }}>
-                          9 Events = 15% Discount
+                          9 Events = 20% Discount
                         </span>
                         <span className="text-sm font-extrabold" style={{ color: events.length >= 9 ? '#FF5050' : '#6b7280' }}>
                           {Math.min(events.length, 9)}/9

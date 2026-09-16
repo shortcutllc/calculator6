@@ -679,9 +679,9 @@ interface FrequencyPickerProps {
   hideLabel?: boolean;
 }
 /** Recurring volume-discount % for a given events/year count. Mirrors
- *  calculateRecurringDiscount in proposalGenerator (≥9 → 15%, ≥4 → 10%). */
+ *  calculateRecurringDiscount in proposalGenerator (≥9 → 20%, ≥4 → 15%). */
 export const freqDiscount = (occurrences: number): number =>
-  occurrences >= 9 ? 15 : occurrences >= 4 ? 10 : 0;
+  occurrences >= 9 ? 20 : occurrences >= 4 ? 15 : 0;
 
 export const FrequencyPicker: React.FC<FrequencyPickerProps> = ({
   value,
@@ -928,7 +928,7 @@ export const FrequencyPicker: React.FC<FrequencyPickerProps> = ({
                 </span>
               </div>
               <div style={{ fontFamily: T.fontD, fontSize: 12, color: T.fgMuted, marginTop: 6 }}>
-                4+ events / year = 10% off · 9+ = 15% off. Press enter to apply.
+                4+ events / year = 15% off · 9+ = 20% off. Press enter to apply.
               </div>
             </div>
           )}

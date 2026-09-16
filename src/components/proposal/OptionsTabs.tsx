@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Eyebrow, T } from './shared/primitives';
 import { formatCurrency } from './data';
-import { selectionKey, resolveVolumeDiscount } from './useServiceSelections';
+import { selectionKey } from './useServiceSelections';
 
 // Whether a service counts toward the option's price, mirroring
 // useServiceSelections: persisted client pick wins, then per-service
@@ -83,14 +83,8 @@ const optionMetrics = (option: ProposalOption) => {
       });
     });
   });
-  // Volume discount mirrors the hook exactly: the staff setting (or a
-  // discount already baked into serviceCost) wins; only with no opinion do
-  // the automatic tiers apply (10% at 4+ events, 15% at 9+). Without this a
-  // sibling card re-discounted an already-discounted option and showed a
-  // 4-service one-day option at 4+ "events".
-  const override = resolveVolumeDiscount(option.data);
-  const discountPercent =
-    typeof override === 'number' ? override : totalEvents >= 9 ? 15 : totalEvents >= 4 ? 10 : 0;
+  // Volume discount mirrors the hook: 15% at 4+ events, 20% at 9+.
+  const discountPercent = totalEvents >= 9 ? 20 : totalEvents >= 4 ? 15 : 0;
   const cost = subtotal - (subtotal * discountPercent) / 100;
   const locationCount = Object.keys(services).length;
   return { locationCount, dateCount, appointmentCount, cost };

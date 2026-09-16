@@ -100,7 +100,7 @@ This is a **B2B SaaS platform** for corporate wellness proposal generation and e
 The main feature — create detailed service proposals with pricing:
 - **Services:** Massage, facials, hair & makeup, nails, headshots, mindfulness
 - **Pricing logic:** Hourly rates, appointment times, early arrival fees, retouching costs
-- **Recurring events:** Quarterly/monthly services with volume discounts (10-15%)
+- **Recurring events:** Quarterly/monthly services with volume discounts (15-20%)
 - **Proposal sharing:** Unique links, optional password protection, client comments
 - **Status tracking:** Pending → approved → changes submitted
 - **Admin review:** Dashboard for managing pending proposals
