@@ -261,7 +261,7 @@ export function useServiceSelections({
       });
     });
 
-    // Volume discount: 15% at 4+ total events, 20% at 9+. Applies on top of
+    // Volume discount: 10% at 4+ total events, 15% at 9+. Applies on top of
     // the post-per-service-discount subtotal (combined event count across
     // all selected services — project decision #2).
     let discountPercent = 0;
@@ -269,7 +269,7 @@ export function useServiceSelections({
       // Explicit staff setting wins, 0 included ("No volume discount").
       discountPercent = Math.min(100, Math.max(0, volumeDiscountOverride));
     } else {
-      discountPercent = totalEvents >= 9 ? 20 : totalEvents >= 4 ? 15 : 0;
+      discountPercent = totalEvents >= 9 ? 15 : totalEvents >= 4 ? 10 : 0;
     }
 
     const discountAmount = (subtotal * discountPercent) / 100;
@@ -292,4 +292,26 @@ export function useServiceSelections({
   }, [state, servicesByLocation, volumeDiscountOverride]);
 
   return { get, setIncluded, setFrequency, summary, state };
+}
+
+/** Staff's explicit volume-discount choice for a proposal, or null when they
+ *  never set one (in which case the automatic 4+/9+ tiers apply). Mirrors the
+ *  admin dropdown in ProposalViewer: `isAutoRecurring === false` means staff
+ *  deliberately turned it off, which is an override of 0, not "unset".
+ *  Shared by the live-total hook and the multi-option comparison cards so a
+ *  sibling option never renders a different discount than its own page. */
+export function resolveVolumeDiscount(data: any): number | null {
+  if (!data) return null;
+  // Staff explicitly turned it off: no discount, full stop.
+  if (data.isAutoRecurring === false) return 0;
+  const v = data.autoRecurringDiscount;
+  if (typeof v !== 'number' || !Number.isFinite(v)) return null; // no opinion -> auto tiers
+  // CRITICAL: recalculateServiceTotals BAKES the staff discount into each
+  // service cost and records the delta as autoRecurringSavings. The hook sums
+  // those already-discounted costs, so re-applying the percentage here charges
+  // it twice (Bisnow briefly rendered 7,500 - 750 - 675 = 6,075 instead of
+  // 6,750). When it is already baked in, this layer must contribute nothing.
+  const bakedIn = typeof data.autoRecurringSavings === 'number' && data.autoRecurringSavings > 0;
+  if (bakedIn) return 0;
+  return Math.min(100, Math.max(0, v));
 }

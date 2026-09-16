@@ -100,7 +100,7 @@ export interface Service {
   // Recurring event fields
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;
-  recurringDiscount?: number; // 15% for 4+, 20% for 9+
+  recurringDiscount?: number; // 10% for 4+, 15% for 9+
 }
 
 export interface DateData {
@@ -170,7 +170,7 @@ export interface ProposalData {
   hasPricingOptions?: boolean;
   // Auto-recurring: automatically applied when 4+ unique dates exist
   isAutoRecurring?: boolean;
-  autoRecurringDiscount?: number; // 15% for 4-8 dates, 20% for 9+ dates
+  autoRecurringDiscount?: number; // 10% for 4-8 dates, 15% for 9+ dates
   autoRecurringSavings?: number; // Total savings from auto-recurring discount
   // Gratuity fields
   gratuityType?: 'percentage' | 'dollar' | null;

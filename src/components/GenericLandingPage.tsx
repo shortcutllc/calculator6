@@ -661,7 +661,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
         includeCalculations: false,
         includeCalculator: false,
         customNote: isReturningClient
-          ? `We're excited to continue our partnership with ${partnerName}! This quarterly commitment proposal includes a 15% discount for committing to 4+ events in 2026.`
+          ? `We're excited to continue our partnership with ${partnerName}! This quarterly commitment proposal includes a 10% discount for committing to 4+ events in 2026.`
           : `We are so excited to service the incredible staff at ${partnerName}! Our team is looking forward to providing an exceptional experience for everyone involved.`
       };
 
@@ -1539,7 +1539,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
             {/* Subheadline */}
             <p className="text-sm md:text-xl lg:text-2xl font-normal mb-6 md:mb-12 max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto px-6" style={{ color: '#003756', opacity: 0.7, lineHeight: '1.7', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
               {isReturningClient ? (
-                'As a thank-you for a great 2025, partners who commit to at least four events in 2026 unlock Premier Partner status — including priority scheduling and 15% off all services.'
+                'As a thank-you for a great 2025, partners who commit to at least four events in 2026 unlock Premier Partner status — including priority scheduling and 10% off all services.'
               ) : (
                 'We bring the spa, salon, and studio directly to your office. No scheduling headaches, no employee complaints—just wellness that your team actually wants.'
               )}
@@ -1695,7 +1695,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   color: commitmentLevel === '4plus' ? 'white' : '#003756'
                 }}
               >
-                4+ Events • Save 15%
+                4+ Events • Save 10%
               </button>
               <button
                 onClick={() => setCommitmentLevel('9plus')}
@@ -1705,7 +1705,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                   color: commitmentLevel === '9plus' ? 'white' : '#003756'
                 }}
               >
-                9+ Events • Save 20%
+                9+ Events • Save 15%
               </button>
             </div>
 
@@ -1770,7 +1770,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       Quarterly
                     </p>
                     <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: '#003756', letterSpacing: '-0.02em' }}>
-                      15% off
+                      10% off
                     </h3>
                   </div>
                   <div className="space-y-3 mb-8">
@@ -1828,7 +1828,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       Monthly
                     </p>
                     <h3 className="text-4xl md:text-5xl font-semibold mb-3" style={{ color: 'white', letterSpacing: '-0.02em' }}>
-                      20% off
+                      15% off
                     </h3>
                   </div>
                   <div className="space-y-3 mb-8">
@@ -3005,7 +3005,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
           </h2>
           <p className="text-base md:text-xl lg:text-2xl mb-8 md:mb-12 max-w-3xl mx-auto" style={{ color: 'white', opacity: 0.8, lineHeight: '1.6' }}>
             {isReturningClient
-              ? `As a valued partner, commit to 4+ quarterly events and save 15% while securing priority booking and guaranteed availability on your preferred dates. Commit by April 1, 2026.`
+              ? `As a valued partner, commit to 4+ quarterly events and save 10% while securing priority booking and guaranteed availability on your preferred dates. Commit by April 1, 2026.`
               : 'Join 500+ companies who trust Shortcut to deliver employee happiness. Book a call today and see how easy workplace wellness can be.'
             }
           </p>
@@ -3016,7 +3016,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
               className="px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 hover:scale-105 min-h-[48px] w-full sm:w-auto"
               style={{ backgroundColor: '#FF5050', color: 'white', boxShadow: '0 10px 40px rgba(255, 80, 80, 0.3)' }}
             >
-              {isReturningClient ? 'Commit to Quarterly Program & Save 15%' : 'Get in touch'}
+              {isReturningClient ? 'Commit to Quarterly Program & Save 10%' : 'Get in touch'}
             </button>
             <p className="text-sm font-medium" style={{ color: 'white', opacity: 0.6 }}>
               {isReturningClient
@@ -3108,7 +3108,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                 </h2>
                 <p className="text-lg text-gray-600 max-w-2xl">
                   {isReturningClient 
-                    ? `Commit to 4+ quarterly events and save 15% on your 2026 calendar. Build your personalized proposal below and lock in your preferred dates.`
+                    ? `Commit to 4+ quarterly events and save 10% on your 2026 calendar. Build your personalized proposal below and lock in your preferred dates.`
                     : 'Experience the future of wellness at work with Shortcut, from soothing massages to calming mindfulness sessions.'}
                 </p>
               </div>
@@ -3499,7 +3499,7 @@ const GenericLandingPage: React.FC<GenericLandingPageProps> = ({ isGeneric = fal
                       </h3>
                       <ul className="space-y-2 list-disc list-inside">
                         <li>Commit to 4+ events in 2026</li>
-                        <li>15% discount applied to all events</li>
+                        <li>10% discount applied to all events</li>
                         <li>Priority booking and guaranteed availability</li>
                         <li>Dedicated account manager</li>
                         <li>Deadline: April 1, 2026</li>

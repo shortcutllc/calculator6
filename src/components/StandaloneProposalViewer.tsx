@@ -1822,7 +1822,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                           </span>
                                           {service.recurringFrequency.occurrences >= 4 && (
                                             <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">
-                                              {service.recurringFrequency.occurrences >= 9 ? '20%' : '15%'} off
+                                              {service.recurringFrequency.occurrences >= 9 ? '15%' : '10%'} off
                                             </span>
                                           )}
                                         </span>
@@ -1832,7 +1832,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                                     {/* Recurring Event Details */}
                                     {service.isRecurring && service.recurringFrequency && (() => {
                                       const occurrences = service.recurringFrequency.occurrences;
-                                      const discountRate = occurrences >= 9 ? 0.20 : occurrences >= 4 ? 0.15 : 0;
+                                      const discountRate = occurrences >= 9 ? 0.15 : occurrences >= 4 ? 0.10 : 0;
                                       // service.serviceCost is THIS event's cost (already discounted)
                                       const thisEventDiscounted = service.serviceCost;
                                       const thisEventOriginal = discountRate > 0 ? thisEventDiscounted / (1 - discountRate) : thisEventDiscounted;
@@ -2548,7 +2548,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                       (dateData.services || []).forEach((service: any) => {
                         if (service.isRecurring && service.recurringFrequency && service.recurringFrequency.occurrences >= 4) {
                           hasRecurring = true;
-                          const discount = service.recurringFrequency.occurrences >= 9 ? 0.20 : 0.15;
+                          const discount = service.recurringFrequency.occurrences >= 9 ? 0.15 : 0.10;
                           // Estimate savings based on service cost
                           const originalCost = service.serviceCost / (1 - discount);
                           totalSavings += originalCost - service.serviceCost;

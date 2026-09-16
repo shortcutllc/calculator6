@@ -27,6 +27,7 @@ import {
   useServiceSelections,
   selectionKey,
   ServiceSelection,
+  resolveVolumeDiscount,
 } from './proposal/useServiceSelections';
 import { useProposalGallery, type GalleryItem } from './proposal/useProposalGallery';
 import ProposalGallery, { type GalleryPhoto } from './proposal/ProposalGallery';
@@ -61,25 +62,6 @@ import {
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 
-/** Staff's explicit volume-discount choice for a proposal, or null when they
- *  never set one (in which case the automatic 4+/9+ tiers apply). Mirrors the
- *  admin dropdown in ProposalViewer: `isAutoRecurring === false` means staff
- *  deliberately turned it off, which is an override of 0, not "unset". */
-function resolveVolumeDiscount(data: any): number | null {
-  if (!data) return null;
-  // Staff explicitly turned it off: no discount, full stop.
-  if (data.isAutoRecurring === false) return 0;
-  const v = data.autoRecurringDiscount;
-  if (typeof v !== 'number' || !Number.isFinite(v)) return null; // no opinion -> auto tiers
-  // CRITICAL: recalculateServiceTotals BAKES the staff discount into each
-  // service cost and records the delta as autoRecurringSavings. The hook sums
-  // those already-discounted costs, so re-applying the percentage here charges
-  // it twice (Bisnow briefly rendered 7,500 - 750 - 675 = 6,075 instead of
-  // 6,750). When it is already baked in, this layer must contribute nothing.
-  const bakedIn = typeof data.autoRecurringSavings === 'number' && data.autoRecurringSavings > 0;
-  if (bakedIn) return 0;
-  return Math.min(100, Math.max(0, v));
-}
 
 
 // ============================================================================
@@ -1266,7 +1248,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </svg>
             <span className="t">
               Sign up for more, save more. Commit to 4 events a year and{' '}
-              <strong>save 15%</strong>, or go with 9 and <strong>save 20%</strong>.
+              <strong>save 10%</strong>, or go with 9 and <strong>save 15%</strong>.
             </span>
           </div>
 
@@ -2449,7 +2431,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </svg>
               <span className="txt">
                 Sign up for more, save more. Commit to 4 events a year and{' '}
-                <strong>save 15%</strong>, or go with 9 and <strong>save 20%</strong>.
+                <strong>save 10%</strong>, or go with 9 and <strong>save 15%</strong>.
               </span>
             </div>
             {/* Intro meta-row (reference `.pv-meta-row`): date · location · appts. */}
@@ -3615,7 +3597,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         )}
                         {/* Volume discount — applied PER EVENT so the "Per event"
                             total below reflects what each event costs once the
-                            4+ (15%) / 9+ (20%) threshold is met. */}
+                            4+ (10%) / 9+ (15%) threshold is met. */}
                         {summary.discountPercent > 0 && perEventVolumeDiscount > 0 && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: T.aqua }}>
                             <span>Volume discount · {summary.discountPercent}%</span>

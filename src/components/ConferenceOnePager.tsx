@@ -308,7 +308,7 @@ const GOOD_TO_KNOW: { t: string; d: React.ReactNode }[] = [
   { t: 'Paperwork, ready.', d: 'Licensed, vetted, insured pros. Certificate of insurance for your venue on request.' },
   { t: 'One point of contact.', d: 'A dedicated onsite lead runs the floor from load-in to teardown. You never manage a vendor mid-event.' },
   { t: 'Any venue, anywhere in the US.', d: 'Hotels, convention centers, offices and offsites. One team, coast to coast.' },
-  { t: 'Dates fill fast.', d: <>Share your date early. 4+ events a year unlocks <b className={`${INK} font-semibold`}>15% off</b>, 9+ unlocks <b className={`${INK} font-semibold`}>20%</b>.</> },
+  { t: 'Dates fill fast.', d: <>Share your date early. 4+ events a year unlocks <b className={`${INK} font-semibold`}>10% off</b>, 9+ unlocks <b className={`${INK} font-semibold`}>15%</b>.</> },
 ];
 
 const prefersReducedMotion = () =>
@@ -506,7 +506,7 @@ const GTK_CARDS = [
   { kick: 'Insurance', title: 'Paperwork, ready.', desc: 'Licensed, vetted, insured pros. Certificate of insurance for your venue on request.', grad: 'bg-[linear-gradient(155deg,#F7BBFF,#E49BF7)]', dk: false },
   { kick: 'Support', title: 'One point of contact.', desc: 'A dedicated onsite lead runs the floor from load-in to teardown.', grad: 'bg-[linear-gradient(155deg,#083650,#041D2C)]', dk: true },
   { kick: 'Coverage', title: 'Any venue, anywhere in the US.', desc: 'Hotels, convention centers, offices and offsites. One team wherever your event lands.', grad: 'bg-[linear-gradient(155deg,#01879C,#015565)]', dk: true },
-  { kick: 'Booking', title: 'Dates fill fast.', desc: 'Share your date early. And 4+ events a year unlock 15–20% off.', grad: 'bg-[linear-gradient(155deg,#FA5648,#DE2B2B)]', dk: true },
+  { kick: 'Booking', title: 'Dates fill fast.', desc: 'Share your date early. And 4+ events a year unlock 10 to 15% off.', grad: 'bg-[linear-gradient(155deg,#FA5648,#DE2B2B)]', dk: true },
 ];
 
 // Hero C rotating word: 3D cube flip through ROT_WORDS every 3s (.55s flip),
