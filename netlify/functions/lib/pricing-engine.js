@@ -61,13 +61,13 @@ const SERVICE_DEFAULTS = {
     retouchingCost: 0
   },
   headshot: {
-    appTime: 12,
+    appTime: 8,
     totalHours: 5,
     numPros: 1,
     proHourly: 400,
     hourlyRate: 0,
     earlyArrival: 0,
-    retouchingCost: 40
+    retouchingCost: 25
   },
   mindfulness: {
     appTime: 45,
@@ -163,16 +163,16 @@ const SERVICE_DEFAULTS = {
 
 const HEADSHOT_TIERS = {
   basic: {
-    appTime: 12,
+    appTime: 8,
     proHourly: 400,
-    retouchingCost: 40,
+    retouchingCost: 25,
     totalHours: 5,
     numPros: 1,
     hourlyRate: 0,
     earlyArrival: 0
   },
   premium: {
-    appTime: 12,
+    appTime: 8,
     proHourly: 500,
     retouchingCost: 50,
     totalHours: 5,
@@ -181,7 +181,7 @@ const HEADSHOT_TIERS = {
     earlyArrival: 0
   },
   executive: {
-    appTime: 12,
+    appTime: 8,
     proHourly: 600,
     retouchingCost: 60,
     totalHours: 5,

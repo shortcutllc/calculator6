@@ -124,9 +124,9 @@ Nails services have an optional nailsType field: "nails" (classic, 30 min) or "n
 ### Headshot Tiers
 | Tier | Pro Rate | Retouching | Appt Time | Default Hours |
 |------|----------|------------|-----------|---------------|
-| basic (default) | $400/hr | $40/photo | 12 min | 5 hrs |
-| premium | $500/hr | $50/photo | 12 min | 5 hrs |
-| executive | $600/hr | $60/photo | 12 min | 5 hrs |
+| basic (default) | $400/hr | $25/photo | 8 min | 5 hrs |
+| premium | $500/hr | $50/photo | 8 min | 5 hrs |
+| executive | $600/hr | $60/photo | 8 min | 5 hrs |
 
 Headshot cost = (numPros × totalHours × proHourly) + (totalAppointments × retouchingCost).
 Pass headshotTier: "basic", "premium", or "executive" to set the tier.

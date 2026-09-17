@@ -194,13 +194,13 @@ const SERVICE_DEFAULTS: Record<string, any> = {
     retouchingCost: 0,
   },
   headshot: {
-    appTime: 12,
+    appTime: 8,
     totalHours: 5,
     numPros: 1,
     proHourly: 400,
     hourlyRate: 0,
     earlyArrival: 0,
-    retouchingCost: 40,
+    retouchingCost: 25,
   },
   mindfulness: {
     // Mindfulness defaults derive from the shared catalog (default id is

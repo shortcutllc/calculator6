@@ -86,7 +86,7 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     retouchingCost: 0
   },
   headshot: {
-    appTime: 12,
+    appTime: 8,
     proHourly: 400,
     hourlyRate: 0,
     earlyArrival: 0,
