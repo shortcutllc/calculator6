@@ -2116,10 +2116,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
             style={{
               width: '100%',
               display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              gap: 40,
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              gap: 16,
               flexWrap: 'wrap',
+              marginTop: 8,
             }}
           >
             <a href="#pv-services" className="pv-hero-cta">
@@ -2144,12 +2145,12 @@ const StandaloneProposalViewerV2: React.FC = () => {
               tilt: TILT[i % TILT.length],
               delay: DELAY[i % DELAY.length],
             }));
-            const half = Math.ceil(pills.length / 2);
-            const rows = pills.length > 3 ? [pills.slice(0, half), pills.slice(half)] : [pills];
+            // One row beside the CTA, same 44px height as the button.
+            const rows = [pills];
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, paddingBottom: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 {rows.map((row, r) => (
-                  <div key={r} style={{ display: 'flex', gap: 8 }}>
+                  <div key={r} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     {row.map((p) => (
                       <a
                         key={p.key}

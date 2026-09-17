@@ -113,7 +113,7 @@
     90%  { transform: translate3d(var(--dx), 0, 0) rotate(var(--tilt)) }
     100% { opacity: 1; transform: translate3d(var(--dx), 0, 0) rotate(var(--tilt)) }
   }
-  .pv-root .pv-hero-pill { position: relative; opacity: 0; transform-origin: 50% 100%; animation: pv-pill-drop 2.1s linear both; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 9999px; font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; text-decoration: none; color: var(--sc-navy); box-shadow: 0 6px 16px rgba(3,34,50,.18); transition: translate .45s cubic-bezier(.34,1.56,.64,1), box-shadow .35s ease, filter .35s ease; }
+  .pv-root .pv-hero-pill { position: relative; opacity: 0; transform-origin: 50% 100%; animation: pv-pill-drop 2.1s linear both; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 9999px; font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; text-decoration: none; color: var(--sc-navy); box-shadow: 0 6px 16px rgba(3,34,50,.18); transition: translate .45s cubic-bezier(.34,1.56,.64,1), box-shadow .35s ease, filter .35s ease; }
   .pv-root .pv-hero-pill:hover { translate: 0 -6px; box-shadow: 0 16px 30px rgba(3,34,50,.28); filter: brightness(1.05); z-index: 2; color: var(--sc-navy); }
   .pv-root .pv-hero-pill svg { transition: transform .5s cubic-bezier(.34,1.56,.64,1); }
   .pv-root .pv-hero-pill:hover svg { transform: translate(1px,-1px) rotate(-45deg); }
