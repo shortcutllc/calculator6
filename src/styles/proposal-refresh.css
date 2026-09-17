@@ -121,6 +121,11 @@
     .pv-root .pv-h1-w, .pv-root .pv-hero-pill { animation: none !important; opacity: 1 !important; transform: none !important; }
   }
 
+  /* Homepage hero CTA (the coral "Get a quote" pill on getshortcut.co). */
+  .pv-root .pv-hero-cta { height: 44px; display: inline-flex; align-items: center; padding: 0 24px; background: var(--sc-coral); color: #fff; border-radius: 9999px; font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; box-shadow: 0 4px 14px rgba(255,80,80,.3); transition: transform .42s cubic-bezier(.22,.9,.28,1), box-shadow .42s ease; }
+  .pv-root .pv-hero-cta:hover { transform: translateY(-3px); color: #fff; box-shadow: 0 12px 30px rgba(255,80,80,.42); }
+  .pv-root #pv-services { scroll-margin-top: 96px; }
+
   /* ── Hero ── */
   .pv-hero { display: flex; align-items: flex-start; gap: 18px; margin-top: 36px; }
   .pv-hero .lt-h1 { font-size: 56px; margin-top: 2px; }

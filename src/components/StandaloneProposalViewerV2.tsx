@@ -185,7 +185,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
   // frosted white with a hairline once the client scrolls.
   const [navScrolled, setNavScrolled] = useState(false);
   useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 24);
+    // Hysteresis: flip on past 48px, flip back only under 8px, so a scroll
+    // position that hovers around the threshold cannot toggle the bar.
+    const onScroll = () =>
+      setNavScrolled((prev) => (prev ? window.scrollY > 8 : window.scrollY > 48));
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -1805,17 +1808,21 @@ const StandaloneProposalViewerV2: React.FC = () => {
       {/* ===== Sticky header ===== */}
       <header
         style={{
-          position: 'sticky',
+          // Desktop: fixed like the design's .pv-bar, so its padding change
+          // on scroll never reflows the page beneath it.
+          position: isCompact ? 'sticky' : 'fixed',
           top: 0,
+          left: 0,
+          right: 0,
           zIndex: 30,
           background: navScrolled || isCompact ? 'rgba(255,255,255,0.88)' : 'transparent',
-          backdropFilter: navScrolled || isCompact ? 'blur(14px)' : 'none',
-          WebkitBackdropFilter: navScrolled || isCompact ? 'blur(14px)' : 'none',
+          // Blur stays on in both states: toggling it created and destroyed a
+          // compositing layer on every flip, which painted as a flash.
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
           boxShadow: navScrolled || isCompact ? '0 1px 0 rgba(3,34,50,0.08)' : 'none',
           padding: isCompact ? '10px 16px' : navScrolled ? '10px 24px' : '22px 24px',
-          // Desktop: the bar floats over the navy hero band (which pads for it).
-          // At the top it is 88px tall (22 + 44 + 22), so the band sits under it.
-          marginBottom: isCompact ? 0 : -88,
+          // The hero band pads 150px for the fixed bar (88px tall at the top).
           transition: 'background .25s ease, box-shadow .25s ease, padding .25s ease',
         }}
       >
@@ -2050,17 +2057,16 @@ const StandaloneProposalViewerV2: React.FC = () => {
         <div
           style={{
             display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            gap: 40,
-            flexWrap: 'wrap',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 28,
             maxWidth: 1232,
             margin: '0 auto',
           }}
         >
           {/* Design refresh: title-led hero. The client logo moved to the nav
               bar (#6), so no logo/avatar block here. */}
-          <div style={{ minWidth: 0, flex: '1 1 560px' }}>
+          <div style={{ minWidth: 0, maxWidth: 940 }}>
             <Eyebrow color={T.aqua} style={{ marginBottom: 18 }}>
               Prepared for · {clientName}
               {contactFirst && ` · ${contactFirst}`}
@@ -2104,6 +2110,21 @@ const StandaloneProposalViewerV2: React.FC = () => {
               )}
             </h1>
           </div>
+          {/* Homepage lead row: coral CTA on the left, the service pills
+              settling on the right, both on the same baseline. */}
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              gap: 40,
+              flexWrap: 'wrap',
+            }}
+          >
+            <a href="#pv-services" className="pv-hero-cta">
+              Review your services
+            </a>
           {/* Homepage hero pills: this proposal's services, dropping in and
               settling with the site's tilt and timing. Desktop only. */}
           {!isCompact && serviceTypes.length > 0 && (() => {
@@ -2149,6 +2170,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </div>
             );
           })()}
+          </div>
         </div>
 
         {/* Hero subtitle removed — it duplicated the "Toggle, repeat, or
