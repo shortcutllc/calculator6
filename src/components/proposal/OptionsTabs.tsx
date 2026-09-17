@@ -83,8 +83,8 @@ const optionMetrics = (option: ProposalOption) => {
       });
     });
   });
-  // Volume discount mirrors the hook: 15% at 4+ events, 20% at 9+.
-  const discountPercent = totalEvents >= 9 ? 20 : totalEvents >= 4 ? 15 : 0;
+  // Volume discount mirrors the hook: 10% at 4+ events, 15% at 9+.
+  const discountPercent = totalEvents >= 9 ? 15 : totalEvents >= 4 ? 10 : 0;
   const cost = subtotal - (subtotal * discountPercent) / 100;
   const locationCount = Object.keys(services).length;
   return { locationCount, dateCount, appointmentCount, cost };

@@ -493,7 +493,7 @@ const Home: React.FC = () => {
       // Apply auto-recurring if 4+ dates and no manual recurring services
       if (allDates.size >= 4 && !results.hasRecurringServices) {
         results.isAutoRecurring = true;
-        results.autoRecurringDiscount = allDates.size >= 9 ? 20 : 15;
+        results.autoRecurringDiscount = allDates.size >= 9 ? 15 : 10;
         const discountMultiplier = results.autoRecurringDiscount / 100;
         results.autoRecurringSavings = results.totalCost * discountMultiplier;
 
@@ -701,7 +701,7 @@ const Home: React.FC = () => {
       // Apply auto-recurring if 4+ dates and no manual recurring services
       if (allDates.size >= 4 && !results.hasRecurringServices) {
         results.isAutoRecurring = true;
-        results.autoRecurringDiscount = allDates.size >= 9 ? 20 : 15;
+        results.autoRecurringDiscount = allDates.size >= 9 ? 15 : 10;
         const discountMultiplier = results.autoRecurringDiscount / 100;
         results.autoRecurringSavings = results.totalCost * discountMultiplier;
 
@@ -2186,10 +2186,10 @@ const Home: React.FC = () => {
                                 <div>
                                   <p className={`font-bold text-sm ${service.recurringFrequency.occurrences >= 4 ? 'text-purple-800' : 'text-shortcut-blue'}`}>
                                     {service.recurringFrequency.occurrences >= 9
-                                      ? '20% Volume Discount Applied!'
-                                      : service.recurringFrequency.occurrences >= 4
                                       ? '15% Volume Discount Applied!'
-                                      : `Add ${4 - service.recurringFrequency.occurrences} more event${4 - service.recurringFrequency.occurrences !== 1 ? 's' : ''} to unlock 15% savings`
+                                      : service.recurringFrequency.occurrences >= 4
+                                      ? '10% Volume Discount Applied!'
+                                      : `Add ${4 - service.recurringFrequency.occurrences} more event${4 - service.recurringFrequency.occurrences !== 1 ? 's' : ''} to unlock 10% savings`
                                     }
                                   </p>
                                   <p className="text-xs text-text-dark-60 mt-1">

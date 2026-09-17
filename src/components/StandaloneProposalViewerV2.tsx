@@ -1266,7 +1266,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </svg>
             <span className="t">
               Sign up for more, save more. Commit to 4 events a year and{' '}
-              <strong>save 15%</strong>, or go with 9 and <strong>save 20%</strong>.
+              <strong>save 10%</strong>, or go with 9 and <strong>save 15%</strong>.
             </span>
           </div>
 
@@ -2449,7 +2449,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </svg>
               <span className="txt">
                 Sign up for more, save more. Commit to 4 events a year and{' '}
-                <strong>save 15%</strong>, or go with 9 and <strong>save 20%</strong>.
+                <strong>save 10%</strong>, or go with 9 and <strong>save 15%</strong>.
               </span>
             </div>
             {/* Intro meta-row (reference `.pv-meta-row`): date · location · appts. */}
@@ -3615,7 +3615,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         )}
                         {/* Volume discount — applied PER EVENT so the "Per event"
                             total below reflects what each event costs once the
-                            4+ (15%) / 9+ (20%) threshold is met. */}
+                            4+ (10%) / 9+ (15%) threshold is met. */}
                         {summary.discountPercent > 0 && perEventVolumeDiscount > 0 && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: T.aqua }}>
                             <span>Volume discount · {summary.discountPercent}%</span>

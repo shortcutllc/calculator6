@@ -213,8 +213,8 @@ function isMindfulnessService(serviceType) {
 function calculateRecurringDiscount(frequency) {
   if (!frequency) return 0;
   const occurrences = frequency.occurrences;
-  if (occurrences >= 9) return 20;
-  if (occurrences >= 4) return 15;
+  if (occurrences >= 9) return 15;
+  if (occurrences >= 4) return 10;
   return 0;
 }
 
@@ -403,7 +403,7 @@ function recalculateProposalSummary(proposalData) {
   } else if (hasManualAutoRecurring) {
     autoRecurringDiscount = proposalData.autoRecurringDiscount;
   } else if (uniqueDateCount >= 4 && !hasManualRecurring) {
-    autoRecurringDiscount = uniqueDateCount >= 9 ? 20 : 15;
+    autoRecurringDiscount = uniqueDateCount >= 9 ? 15 : 10;
   }
 
   if (autoRecurringDiscount && autoRecurringDiscount > 0 && !hasManualRecurring) {

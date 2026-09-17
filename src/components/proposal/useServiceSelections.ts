@@ -261,7 +261,7 @@ export function useServiceSelections({
       });
     });
 
-    // Volume discount: 15% at 4+ total events, 20% at 9+. Applies on top of
+    // Volume discount: 10% at 4+ total events, 15% at 9+. Applies on top of
     // the post-per-service-discount subtotal (combined event count across
     // all selected services — project decision #2).
     let discountPercent = 0;
@@ -269,7 +269,7 @@ export function useServiceSelections({
       // Explicit staff setting wins, 0 included ("No volume discount").
       discountPercent = Math.min(100, Math.max(0, volumeDiscountOverride));
     } else {
-      discountPercent = totalEvents >= 9 ? 20 : totalEvents >= 4 ? 15 : 0;
+      discountPercent = totalEvents >= 9 ? 15 : totalEvents >= 4 ? 10 : 0;
     }
 
     const discountAmount = (subtotal * discountPercent) / 100;
