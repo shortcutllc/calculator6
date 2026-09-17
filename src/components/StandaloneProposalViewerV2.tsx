@@ -2042,7 +2042,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
           // Website hero: full-bleed navy band; the photo mosaic below laps
           // up over its foot like the design's photo card.
           background: T.navy,
-          padding: isCompact ? '28px 16px 120px' : '120px 24px 232px',
+          padding: isCompact ? '28px 16px 200px' : '120px 24px 344px',
         }}
       >
         <div
@@ -2111,7 +2111,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
               nails: '#F7BBFF', facial: '#F7BBFF',
               mindfulness: '#C7CBFB', 'sound-bath': '#C7CBFB', yoga: '#A9F0CC',
             };
-            const TILT = [-1, 2, -1.5, 1.5, -2, 1, -1, 1.5];
+            // Pills land straight (Will, 2026-09-17); the site's tilt is off here.
+            const TILT = [0, 0, 0, 0, 0, 0, 0, 0];
             const DELAY = [0.95, 1.13, 1.31, 0.4, 0.58, 0.76, 0.94, 1.12];
             const pills = serviceTypes.slice(0, 8).map((s, i) => ({
               key: s,
@@ -2171,9 +2172,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
           padding: isCompact ? '0 16px 40px' : '0 24px 64px',
           position: 'relative',
           zIndex: 2,
+          // flow-root stops the mosaic's negative top margin collapsing
+          // through the sheet (which dragged the whole sheet up instead of
+          // letting the card ride into the navy).
+          display: 'flow-root',
         }}
       >
-        <div style={{ maxWidth: 1232, margin: isCompact ? '-56px auto 0' : '-80px auto 0' }}>
+        <div style={{ maxWidth: 1232, margin: isCompact ? '-120px auto 0' : '-220px auto 0' }}>
         <ProposalGallery
           photos={(() => {
             // Prefer photos explicitly tagged 'hero' in the gallery admin (the
