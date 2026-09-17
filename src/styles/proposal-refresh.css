@@ -146,66 +146,71 @@
 
   /* service card */
   .pv-svc { border-radius: 28px; overflow: hidden; background: #fff; border: 1px solid var(--sw-rule); box-shadow: var(--shadow-card-soft); margin-bottom: 16px; }
-  .pv-svc-grid { display: grid; grid-template-columns: 210px 1fr; }
+  .pv-svc-grid { display: grid; grid-template-columns: 232px 1fr; }
   .pv-svc-photo { position: relative; overflow: hidden; min-height: 220px; }
   .pv-svc-photo img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
   .pv-photo-badge { position: absolute; left: 10px; bottom: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 5px; background: rgba(3,34,50,0.66); color: #fff; font-family: var(--font-ui); font-weight: 700; font-size: 11px; border-radius: 9999px; padding: 5px 10px; cursor: pointer; }
   .pv-photo-badge svg { width: 13px; height: 13px; stroke: #fff; fill: none; }
-  .pv-photo-label { position: absolute; left: 10px; top: 10px; z-index: 2; background: #fff; color: var(--sc-navy); font-family: var(--font-ui); font-weight: 700; font-size: 11px; border-radius: 9999px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(9,54,79,0.18); }
-  .pv-svc-body { padding: 22px 24px; }
+  .pv-photo-label { position: absolute; left: 12px; top: 12px; z-index: 2; display: inline-flex; align-items: center; height: 26px; background: #fff; color: var(--sc-navy); font-family: var(--font-display); font-weight: 800; font-size: 11px; letter-spacing: 0.02em; border-radius: 9999px; padding: 0 10px; box-shadow: 0 2px 8px rgba(3,34,50,.16); }
+  .pv-svc-body { padding: 28px 30px; display: flex; flex-direction: column; gap: 18px; }
+  .pv-svc-body > * { margin-top: 0; margin-bottom: 0; }
   .pv-svc-top { display: flex; align-items: center; gap: 10px; }
   .pv-dot { width: 12px; height: 12px; border-radius: 9999px; flex-shrink: 0; }
   .pv-svc-name { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.025em; margin: 0; }
   .pv-toggle { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
   .pv-toggle .lbl { font-family: var(--font-ui); font-weight: 700; font-size: 12px; color: var(--status-success); }
   .pv-switch { width: 52px; height: 30px; border-radius: 9999px; background: var(--sc-navy); position: relative; }
-  .pv-switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; border-radius: 9999px; background: #fff; }
-  .pv-desc-label { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); margin: 16px 0 6px; }
+  .pv-switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; border-radius: 9999px; background: #fff; box-shadow: 0 1px 3px rgba(3,34,50,.3); }
+  .pv-desc-label { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); margin: 0 0 -10px; }
+  .pv-svc-body > .pv-desc-label { margin-bottom: -10px; }
   .pv-svc-desc { font-family: var(--font-display); font-weight: 500; font-size: 16px; line-height: 1.55; color: var(--sw-ink-meta); margin: 0; }
   .pv-readmore { color: var(--sc-coral); font-weight: 700; font-size: 15px; cursor: pointer; font-family: var(--font-display); }
-  .pv-svc-metrics { display: flex; align-items: flex-end; gap: 24px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.07); flex-wrap: wrap; }
-  .pv-bignum { font-family: var(--font-display); font-weight: 800; font-size: 32px; line-height: 0.95; letter-spacing: -0.03em; color: var(--sc-navy); }
-  .pv-bignum + .pv-metric-sub { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); margin-top: 6px; }
+  .pv-svc-metrics { display: flex; align-items: flex-end; gap: 44px; padding-top: 18px; border-top: 1px solid rgba(0,55,86,0.1); flex-wrap: wrap; }
+  /* Website order inside each metric: label, then the number. */
+  .pv-svc-metrics > div:first-child { display: flex; flex-direction: column-reverse; }
+  .pv-svc-metrics > .pv-cost { display: flex; flex-direction: column-reverse; align-items: flex-end; }
+  .pv-bignum { font-family: var(--font-display); font-weight: 800; font-size: 32px; line-height: 1; letter-spacing: -0.03em; color: var(--sc-navy); }
+  .pv-bignum + .pv-metric-sub { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); margin: 0 0 8px; }
   .pv-cost { margin-left: auto; text-align: right; }
-  .pv-cost .v { font-family: var(--font-display); font-weight: 800; font-size: 32px; letter-spacing: -0.03em; color: var(--sc-coral); }
-  .pv-cost .k { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); margin-top: 2px; }
-  .pv-cost .orig { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--sw-ink-meta); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+  .pv-cost .v { font-family: var(--font-display); font-weight: 800; font-size: 32px; line-height: 1; letter-spacing: -0.03em; color: var(--sc-coral); }
+  .pv-cost .k { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); margin-bottom: 8px; }
+  .pv-cost .orig { font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--sw-ink-meta); text-decoration: line-through; text-decoration-thickness: 1.5px; margin-top: 6px; }
   /* format segmented */
-  .pv-format { display: flex; align-items: center; gap: 12px; margin-top: 14px; margin-bottom: 0; }
+  .pv-format { display: flex; align-items: center; gap: 16px; }
   .pv-format-label { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); }
-  .pv-format-seg { display: inline-flex; background: var(--sc-light-gray); border-radius: 9999px; padding: 3px; gap: 2px; }
+  .pv-format-seg { display: inline-flex; background: #fff; border: 1px solid var(--sw-rule); border-radius: 9999px; padding: 4px; gap: 2px; }
   .pv-format-seg button { font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: -0.01em; height: 36px; color: var(--sc-navy); background: transparent; border: none; border-radius: 9999px; padding: 0 16px; cursor: pointer; transition: background .18s, color .18s; }
   .pv-format-seg button.on { background: var(--sc-navy); color: #fff; }
   /* pricing options — integrated "configure" band at the foot of the card */
-  .pv-pricing { background: var(--sc-light-gray); border-top: 1px solid var(--sw-rule); padding: 20px 24px 22px; }
-  .pv-pricing-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .pv-pricing { background: #F8FBFA; border-top: 1px solid rgba(0,55,86,0.1); padding: 22px 30px 28px; }
+  .pv-pricing-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .pv-pricing-head .lbl { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sc-navy); }
   .pv-pricing-head .lbl::before { content: ""; width: 7px; height: 7px; border-radius: 9999px; background: var(--sc-coral); }
   .pv-pricing-head .hint { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--sw-ink-meta); }
-  .pv-popt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .pv-popt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .pv-popt { position: relative; background: #fff; text-align: left; border: 2px solid var(--sw-rule); border-radius: 16px; padding: 18px 20px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; transition: border-color .18s, box-shadow .18s, transform .18s; }
   .pv-popt:hover { border-color: var(--sc-navy); transform: translateY(-1px); }
-  .pv-popt.on { border: 2px solid var(--sc-navy); box-shadow: 0 4px 14px rgba(0,55,86,0.10); }
+  .pv-popt.on { border: 2px solid var(--sc-navy); }
   .pv-popt.on:hover { transform: none; }
   .pv-popt-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .pv-popt-name { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.015em; color: var(--sc-navy); }
-  .pv-popt-radio { width: 18px; height: 18px; border-radius: 9999px; border: 2px solid var(--sc-gray-300); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+  .pv-popt-radio { width: 22px; height: 22px; border-radius: 9999px; border: 2px solid var(--sw-rule); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: #fff; }
   .pv-popt.on .pv-popt-radio { border: none; background: var(--sc-navy); }
-  .pv-popt.on .pv-popt-radio svg { width: 11px; height: 11px; stroke: #fff; stroke-width: 3; fill: none; }
+  .pv-popt.on .pv-popt-radio svg { width: 12px; height: 12px; stroke: #fff; stroke-width: 3; fill: none; }
   .pv-popt-appts { display: flex; align-items: baseline; gap: 5px; }
   .pv-popt-appts .n { font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1; color: var(--sc-navy); }
   .pv-popt-appts .u { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sw-ink-meta); }
   .pv-popt-len { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--sw-ink-meta); }
-  .pv-popt-price { display: flex; align-items: baseline; gap: 8px; margin-top: auto; flex-wrap: wrap; }
+  .pv-popt-price { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
   .pv-popt-price .v { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -0.025em; color: var(--sc-navy); }
   .pv-popt-price .orig { font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--sw-ink-meta); text-decoration: line-through; text-decoration-thickness: 1.5px; }
   .pv-popt-price .off { font-family: var(--font-ui); font-weight: 700; font-size: 11px; color: var(--status-success); background: rgba(30,158,106,0.12); padding: 2px 8px; border-radius: 9999px; white-space: nowrap; }
-  .pv-repeats { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px dashed rgba(0,0,0,0.1); }
+  .pv-repeats { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 18px; border-top: 1px solid rgba(0,55,86,0.1); }
   .pv-repeats .rl { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); }
   .pv-repeats .rl svg { width: 15px; height: 15px; stroke: var(--sc-teal); fill: none; }
   .pv-dropdown { display: inline-flex; align-items: center; gap: 8px; height: 36px; background: #fff; border: 1px solid rgba(0,55,86,.22); border-radius: 9999px; padding: 0 16px; font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--sc-navy); cursor: pointer; }
   .pv-dropdown svg { width: 14px; height: 14px; stroke: var(--sc-navy); fill: none; }
-  .pv-collapse { display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(0,0,0,0.07); padding: 16px 24px; cursor: pointer; }
+  .pv-collapse { display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(0,55,86,0.1); padding: 16px 30px; cursor: pointer; }
   .pv-collapse svg { width: 16px; height: 16px; stroke: var(--sc-coral); fill: none; }
   .pv-collapse span { font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.012em; }
 
