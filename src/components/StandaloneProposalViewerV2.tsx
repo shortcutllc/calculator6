@@ -181,6 +181,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
   // Responsive flags drive inline-style switches for the major layout
   // surfaces (body grid columns, hero type scale, card padding).
   const isMobile = useIsMobile();
+  // Website nav: transparent over the navy hero at the top of the page,
+  // frosted white with a hairline once the client scrolls.
+  const [navScrolled, setNavScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setNavScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   const isCompact = useIsCompact();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1799,11 +1808,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
           position: 'sticky',
           top: 0,
           zIndex: 30,
-          background: 'rgba(255,255,255,0.88)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-          boxShadow: '0 1px 0 rgba(3,34,50,0.08)',
+          background: navScrolled || isCompact ? 'rgba(255,255,255,0.88)' : 'transparent',
+          backdropFilter: navScrolled || isCompact ? 'blur(14px)' : 'none',
+          WebkitBackdropFilter: navScrolled || isCompact ? 'blur(14px)' : 'none',
+          boxShadow: navScrolled || isCompact ? '0 1px 0 rgba(3,34,50,0.08)' : 'none',
           padding: isCompact ? '10px 16px' : '10px 24px',
+          // Desktop: the bar floats over the navy hero band (which pads for it).
+          marginBottom: isCompact ? 0 : -64,
+          transition: 'background .25s ease, box-shadow .25s ease',
         }}
       >
         <div
@@ -1822,7 +1834,17 @@ const StandaloneProposalViewerV2: React.FC = () => {
         >
           {/* Design refresh (#6): partner/client logo lives in the nav, followed
               by a divider + lowercase "with [Shortcut]" lockup. */}
-          <div className="pv-brand" style={{ minWidth: 0 }}>
+          <div
+            className="pv-brand"
+            style={{
+              minWidth: 0,
+              height: 44,
+              padding: '0 16px',
+              background: '#fff',
+              border: '1px solid #E2E9E8',
+              borderRadius: 9999,
+            }}
+          >
             {clientLogoUrl ? (
               <img
                 className="pv-partner"
@@ -1871,7 +1893,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 <button
                   type="button"
                   onClick={cancelClientEditMode}
-                  className="lt-btn lt-btn-ghost lt-btn-sm"
+                  className={`lt-btn ${navScrolled || isCompact ? 'lt-btn-ghost' : 'lt-btn-ghost-w'} lt-btn-sm`}
                 >
                   Discard
                 </button>
@@ -1896,6 +1918,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   title="How to review"
                   aria-label="Help"
                   className="pv-icon-btn"
+                  style={
+                    navScrolled || isCompact
+                      ? undefined
+                      : { borderColor: 'rgba(255,255,255,0.35)', color: '#fff' }
+                  }
                 >
                   <HelpCircle size={18} />
                 </button>
@@ -1904,7 +1931,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     type="button"
                     onClick={handleDownloadPdf}
                     disabled={isDownloading}
-                    className="lt-btn lt-btn-ghost lt-btn-sm"
+                    className={`lt-btn ${navScrolled || isCompact ? 'lt-btn-ghost' : 'lt-btn-ghost-w'} lt-btn-sm`}
                     style={{ cursor: isDownloading ? 'wait' : 'pointer' }}
                   >
                     <Download size={15} />
@@ -1933,13 +1960,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: 38,
-                        height: 38,
+                        width: 44,
+                        height: 44,
                         background: menuOpen ? T.lightGray : 'transparent',
-                        border: '1px solid rgba(0,0,0,0.1)',
+                        border: `1px solid ${navScrolled || isCompact ? 'rgba(0,55,86,0.22)' : 'rgba(255,255,255,0.35)'}`,
                         borderRadius: 9999,
                         cursor: 'pointer',
-                        color: T.navy,
+                        color: navScrolled || isCompact || menuOpen ? T.navy : '#fff',
                         flexShrink: 0,
                       }}
                     >
@@ -2015,7 +2042,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
           // Website hero: full-bleed navy band; the photo mosaic below laps
           // up over its foot like the design's photo card.
           background: T.navy,
-          padding: isCompact ? '28px 16px 120px' : '56px 24px 168px',
+          padding: isCompact ? '28px 16px 120px' : '120px 24px 178px',
         }}
       >
         <div
@@ -2068,13 +2095,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
           with curated office stock so the mosaic always reads full. */}
       <section
         style={{
-          padding: isCompact ? '0 16px' : '0 24px',
-          maxWidth: 1280,
-          margin: isCompact ? '-96px auto 40px' : '-120px auto 64px',
+          // Website sheet: white surface with 50px curved top corners that
+          // laps 50px over the navy hero band. The mosaic sits on it and
+          // rides up further into the navy, like the design's photo card.
+          background: '#fff',
+          borderRadius: isCompact ? '32px 32px 0 0' : '50px 50px 0 0',
+          margin: '-50px 0 0',
+          padding: isCompact ? '0 16px 40px' : '0 24px 64px',
           position: 'relative',
           zIndex: 2,
         }}
       >
+        <div style={{ maxWidth: 1232, margin: isCompact ? '-56px auto 0' : '-80px auto 0' }}>
         <ProposalGallery
           photos={(() => {
             // Prefer photos explicitly tagged 'hero' in the gallery admin (the
@@ -2101,6 +2133,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             return dbPhotos;
           })()}
         />
+        </div>
       </section>
 
       {/* ===== 2-col body grid ===== */}
