@@ -28,7 +28,9 @@
 .lt-btn-secondary { background: transparent; color: var(--sc-navy); border: 1px solid rgba(0,55,86,.22); }
 .lt-btn-secondary:hover { background: rgba(0,55,86,.06); }
 .lt-btn-sm { height: 44px; padding: 0 22px; font-size: 14.5px; }
-.lt-btn-ghost.lt-btn-sm, .lt-btn-ghost-w.lt-btn-sm { padding: 0 18px; font-size: 14px; gap: 8px; }
+/* Bar ghosts. The design's .pv-ghost resets to `font: inherit` and never picks
+   up the CTA's negative tracking, so these run at normal letter-spacing. */
+.lt-btn-ghost.lt-btn-sm, .lt-btn-ghost-w.lt-btn-sm { padding: 0 18px; font-size: 14px; gap: 8px; letter-spacing: normal; }
 .lt-btn-block { width: 100%; }
 .lt-card { background: #fff; border-radius: 28px; padding: 32px; border: 1px solid var(--sw-rule); box-shadow: var(--shadow-card-soft); }
 .lt-eyebrow { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sw-ink-meta); margin: 0 0 10px; }
@@ -83,10 +85,13 @@
   .pv-brand { display: flex; align-items: center; gap: 14px; }
   .pv-partner { height: 26px; display: block; }
   .pv-brand-divider { width: 1px; height: 18px; background: rgba(0,55,86,0.18); }
-  .pv-powered { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--sw-ink-meta); }
-  /* Our wordmark SVG carries more vertical padding than the design's (300x60 vs
-     300x50), so 22px here renders the same 108px-wide mark as its 18px. */
-  .pv-powered img { height: 22px; display: block; }
+  /* The design pill spaces every child by 12px — name · rule · "with" · mark —
+     so this lockup's inner gap is 12px too, not a tighter 8px. */
+  .pv-powered { display: inline-flex; align-items: center; gap: 12px; font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--sw-ink-meta); }
+  /* 18px, straight off the design. It only reads as 18px because the bar uses
+     the ink-cropped wordmark; the padded shortcut-logo-blue.svg would render
+     the mark at 12px and hold 27px of dead space beside it. */
+  .pv-powered img { height: 18px; display: block; }
   .pv-header-actions { display: flex; align-items: center; gap: 12px; }
   .pv-pill-pending { display: inline-flex; align-items: center; gap: 8px; height: 44px; font-family: var(--font-display); font-weight: 800; font-size: 14.5px; letter-spacing: 0.02em; background: var(--sc-yellow); color: var(--sc-navy); border-radius: 9999px; padding: 0 20px; }
   .pv-pill-pending .dot { width: 7px; height: 7px; border-radius: 9999px; background: var(--sc-navy); }
@@ -121,8 +126,11 @@
     .pv-root .pv-h1-w, .pv-root .pv-hero-pill { animation: none !important; opacity: 1 !important; transform: none !important; }
   }
 
-  /* Homepage hero CTA (the coral "Get a quote" pill on getshortcut.co). */
-  .pv-root .pv-hero-cta { height: 44px; display: inline-flex; align-items: center; padding: 0 24px; background: var(--sc-coral); color: #fff; border-radius: 9999px; font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; box-shadow: 0 4px 14px rgba(255,80,80,.3); transition: transform .42s cubic-bezier(.22,.9,.28,1), box-shadow .42s ease; }
+  /* Hero CTA. The design runs this at the large button size (.sw-btn +
+     .sw-btn--lg): 52px tall, 28px side padding, 16.5px label — a full step up
+     from the 44px bar buttons, which is what gives the hero its one clear
+     action. It is NOT the 44px pill the bar and the service chips use. */
+  .pv-root .pv-hero-cta { height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 28px; background: var(--sc-coral); color: #fff; border-radius: 9999px; font-family: var(--font-display); font-size: 16.5px; font-weight: 700; letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; box-shadow: 0 4px 14px rgba(255,80,80,.3); transition: transform .42s cubic-bezier(.22,.9,.28,1), box-shadow .42s ease; }
   .pv-root .pv-hero-cta:hover { transform: translateY(-3px); color: #fff; box-shadow: 0 12px 30px rgba(255,80,80,.42); }
   .pv-root #pv-services { scroll-margin-top: 96px; }
 

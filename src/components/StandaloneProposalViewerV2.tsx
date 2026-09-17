@@ -1882,7 +1882,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
             <span className="pv-brand-divider" />
             <span className="pv-powered">
               <span>with</span>
-              <img src="/shortcut-logo-blue.svg" alt="Shortcut" />
+              {/* Ink-cropped wordmark: inside a 44px pill the padded version's
+                  dead margins throw off both the mark's size and its spacing. */}
+              <img src="/shortcut-wordmark-blue.svg" alt="Shortcut" />
             </span>
           </div>
             <StatusPill status={status === 'approved' ? 'approved' : 'pending_review'} size="lg" />
