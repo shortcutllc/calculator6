@@ -1812,10 +1812,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
           backdropFilter: navScrolled || isCompact ? 'blur(14px)' : 'none',
           WebkitBackdropFilter: navScrolled || isCompact ? 'blur(14px)' : 'none',
           boxShadow: navScrolled || isCompact ? '0 1px 0 rgba(3,34,50,0.08)' : 'none',
-          padding: isCompact ? '10px 16px' : '10px 24px',
+          padding: isCompact ? '10px 16px' : navScrolled ? '10px 24px' : '22px 24px',
           // Desktop: the bar floats over the navy hero band (which pads for it).
-          marginBottom: isCompact ? 0 : -64,
-          transition: 'background .25s ease, box-shadow .25s ease',
+          // At the top it is 88px tall (22 + 44 + 22), so the band sits under it.
+          marginBottom: isCompact ? 0 : -88,
+          transition: 'background .25s ease, box-shadow .25s ease, padding .25s ease',
         }}
       >
         <div
@@ -1833,15 +1834,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
           }}
         >
           {/* Design refresh (#6): partner/client logo lives in the nav, followed
-              by a divider + lowercase "with [Shortcut]" lockup. */}
+              by a divider + lowercase "with [Shortcut]" lockup. The status pill
+              sits beside it in the left cluster, as in the design bar. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
           <div
             className="pv-brand"
             style={{
               minWidth: 0,
               height: 44,
-              padding: '0 16px',
+              padding: '0 18px 0 16px',
+              gap: 12,
               background: '#fff',
-              border: '1px solid #E2E9E8',
+              boxShadow: '0 2px 10px rgba(3,34,50,0.16)',
               borderRadius: 9999,
             }}
           >
@@ -1850,14 +1854,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 className="pv-partner"
                 src={clientLogoUrl}
                 alt={clientName || 'Client'}
-                style={{ height: 26, width: 'auto', display: 'block', flexShrink: 0 }}
+                style={{ height: 22, width: 'auto', display: 'block', flexShrink: 0 }}
               />
             ) : (
               <span
                 style={{
                   fontFamily: T.fontD,
                   fontWeight: 800,
-                  fontSize: 18,
+                  fontSize: 16,
                   letterSpacing: '-0.02em',
                   color: T.navy,
                   whiteSpace: 'nowrap',
@@ -1872,6 +1876,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
               <img src="/shortcut-logo-blue.svg" alt="Shortcut" />
             </span>
           </div>
+            <StatusPill status={status === 'approved' ? 'approved' : 'pending_review'} size="lg" />
+          </div>
 
           <div
             ref={menuRef}
@@ -1885,7 +1891,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
               justifyContent: isCompact ? 'flex-start' : 'flex-end',
             }}
           >
-            <StatusPill status={(status as any) || 'draft'} />
             {isClientEditing ? (
               // While editing, the in-progress task actions stay visible —
               // they're what the client came to the header to do.
@@ -2042,7 +2047,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
           // Website hero: full-bleed navy band; the photo mosaic below laps
           // up over its foot like the design's photo card.
           background: T.navy,
-          padding: isCompact ? '28px 16px 200px' : '120px 24px 344px',
+          padding: isCompact ? '28px 16px 200px' : '150px 24px 344px',
         }}
       >
         <div

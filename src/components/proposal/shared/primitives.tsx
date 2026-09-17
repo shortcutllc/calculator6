@@ -107,11 +107,12 @@ export const CardHeading: React.FC<CardHeadingProps> = ({
 type StatusValue = 'draft' | 'pending_review' | 'has_changes' | 'approved' | 'sent';
 const STATUS_MAP: Record<StatusValue, { label: string; bg: string; color: string; dot: string }> = {
   draft: { bg: 'var(--pv-light-gray)', color: T.navy, dot: T.navy, label: 'Draft' },
+  // Website bar pill: solid sun, navy ink and dot.
   pending_review: {
     label: 'Pending review',
-    bg: 'rgba(254,220,100,.25)',
-    color: '#8C5A07',
-    dot: '#F2A93B',
+    bg: T.yellow,
+    color: T.navy,
+    dot: T.navy,
   },
   has_changes: {
     label: 'Changes requested',
