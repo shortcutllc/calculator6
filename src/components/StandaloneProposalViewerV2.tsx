@@ -27,6 +27,7 @@ import {
   useServiceSelections,
   selectionKey,
   ServiceSelection,
+  resolveVolumeDiscount,
 } from './proposal/useServiceSelections';
 import { useProposalGallery, type GalleryItem } from './proposal/useProposalGallery';
 import ProposalGallery, { type GalleryPhoto } from './proposal/ProposalGallery';
@@ -61,25 +62,6 @@ import {
 import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 
-/** Staff's explicit volume-discount choice for a proposal, or null when they
- *  never set one (in which case the automatic 4+/9+ tiers apply). Mirrors the
- *  admin dropdown in ProposalViewer: `isAutoRecurring === false` means staff
- *  deliberately turned it off, which is an override of 0, not "unset". */
-function resolveVolumeDiscount(data: any): number | null {
-  if (!data) return null;
-  // Staff explicitly turned it off: no discount, full stop.
-  if (data.isAutoRecurring === false) return 0;
-  const v = data.autoRecurringDiscount;
-  if (typeof v !== 'number' || !Number.isFinite(v)) return null; // no opinion -> auto tiers
-  // CRITICAL: recalculateServiceTotals BAKES the staff discount into each
-  // service cost and records the delta as autoRecurringSavings. The hook sums
-  // those already-discounted costs, so re-applying the percentage here charges
-  // it twice (Bisnow briefly rendered 7,500 - 750 - 675 = 6,075 instead of
-  // 6,750). When it is already baked in, this layer must contribute nothing.
-  const bakedIn = typeof data.autoRecurringSavings === 'number' && data.autoRecurringSavings > 0;
-  if (bakedIn) return 0;
-  return Math.min(100, Math.max(0, v));
-}
 
 
 // ============================================================================
