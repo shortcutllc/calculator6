@@ -41,9 +41,10 @@ const WhatsNextCard: React.FC<WhatsNextCardProps> = ({ activeStep = 1 }) => {
     <div
       style={{
         background: '#fff',
-        borderRadius: 16,
+        borderRadius: 28,
+        boxShadow: '0 1px 2px rgba(3,34,50,0.05), 0 10px 30px rgba(3,34,50,0.06)',
         padding: '22px 24px',
-        border: '1px solid rgba(0,0,0,0.06)',
+        border: '1px solid #E2E9E8',
       }}
     >
       <Eyebrow style={{ marginBottom: 6 }}>What's next</Eyebrow>

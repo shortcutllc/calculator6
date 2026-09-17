@@ -47,15 +47,29 @@ interface EyebrowProps {
 export const Eyebrow: React.FC<EyebrowProps> = ({ children, color, style }) => (
   <div
     style={{
-      fontFamily: T.fontUi,
-      fontWeight: 700,
-      fontSize: 11,
-      color: color || T.fgMuted,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      fontFamily: T.fontD,
+      fontWeight: 800,
+      fontSize: 12,
+      color: color || T.navy,
       textTransform: 'uppercase',
-      letterSpacing: '0.1em',
+      letterSpacing: '0.09em',
       ...style,
     }}
   >
+    {/* Website kicker: coral dot before the label (aqua when the label is on navy). */}
+    <span
+      aria-hidden
+      style={{
+        width: 7,
+        height: 7,
+        flex: 'none',
+        borderRadius: 9999,
+        background: color === '#fff' || color === T.aqua ? T.aqua : T.coral,
+      }}
+    />
     {children}
   </div>
 );
@@ -65,9 +79,9 @@ export const Eyebrow: React.FC<EyebrowProps> = ({ children, color, style }) => (
 // ============================================================================
 type HeadingSize = 'section' | 'card' | 'item';
 const HEADING_SIZES: Record<HeadingSize, { fz: number; lh: number; ls: string }> = {
-  section: { fz: 32, lh: 1.1, ls: '-0.02em' },
-  card: { fz: 22, lh: 1.15, ls: '-0.015em' },
-  item: { fz: 20, lh: 1.2, ls: '-0.01em' },
+  section: { fz: 44, lh: 1.05, ls: '-0.035em' },
+  card: { fz: 24, lh: 1.1, ls: '-0.025em' },
+  item: { fz: 20, lh: 1.2, ls: '-0.015em' },
 };
 interface CardHeadingProps {
   size?: HeadingSize;
@@ -103,7 +117,7 @@ export const CardHeading: React.FC<CardHeadingProps> = ({
 // ============================================================================
 type StatusValue = 'draft' | 'pending_review' | 'has_changes' | 'approved' | 'sent';
 const STATUS_MAP: Record<StatusValue, { label: string; bg: string; color: string; dot: string }> = {
-  draft: { label: 'Draft', bg: '#F1F6F5', color: 'var(--pv-navy)', dot: '#9CA3AF' },
+  draft: { bg: 'var(--pv-light-gray)', color: T.navy, dot: T.navy, label: 'Draft' },
   pending_review: {
     label: 'Pending review',
     bg: 'rgba(254,220,100,.25)',
@@ -143,12 +157,13 @@ export const StatusPill: React.FC<StatusPillProps> = ({ status, size = 'md' }) =
         gap: 8,
         background: t.bg,
         color: t.color,
-        padding: size === 'lg' ? '8px 16px' : '5px 12px',
+        height: size === 'lg' ? 44 : 36,
+        padding: size === 'lg' ? '0 20px' : '0 14px',
         borderRadius: 9999,
-        fontFamily: T.fontUi,
-        fontWeight: 700,
-        fontSize: size === 'lg' ? 13 : 12,
-        letterSpacing: '.01em',
+        fontFamily: T.fontD,
+        fontWeight: 800,
+        fontSize: size === 'lg' ? 14.5 : 13,
+        letterSpacing: '.02em',
       }}
     >
       <span

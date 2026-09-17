@@ -30,11 +30,11 @@
 @layer tokens {
   :root {
     /* ---- Brand color ---- */
-    --pv-navy:        #09364F;
-    --pv-deep-navy:   #003C5E;
+    --pv-navy:        #003756;
+    --pv-deep-navy:   #003756;
     --pv-coral:       #FF5050;
     --pv-aqua:        #9EFAFF;
-    --pv-teal:        #0098AD;
+    --pv-teal:        #018EA2;
     --pv-pink:        #F7BBFF;
     --pv-yellow:      #FEDC64;
 
@@ -45,7 +45,7 @@
 
     /* ---- Foreground / state ---- */
     --pv-fg:          var(--pv-navy);
-    --pv-fg-muted:    rgba(3, 34, 50, 0.6);
+    --pv-fg-muted:    #45596A;
     --pv-fg-on-navy:  #FFFFFF;
     --pv-fg-on-navy-muted: rgba(255, 255, 255, 0.65);
 
@@ -66,12 +66,8 @@
       0 2px 8px rgba(0,0,0,0.06),
       0 1px 4px rgba(0,0,0,0.04),
       0 0 0 1px rgba(0,0,0,0.03);
-    --pv-shadow-card:
-      0 4px 16px rgba(0,0,0,0.08),
-      0 2px 8px rgba(0,0,0,0.06),
-      0 0 0 1px rgba(0,0,0,0.04);
-    --pv-shadow-elevated:
-      0 10px 30px rgba(9, 54, 79, 0.22);
+    --pv-shadow-card: 0 1px 2px rgba(3, 34, 50, 0.05), 0 10px 30px rgba(3, 34, 50, 0.06);
+    --pv-shadow-elevated: 0 20px 50px rgba(3, 34, 50, 0.22);
     --pv-shadow-cta:
       0 12px 32px rgba(255, 80, 80, 0.10);
 
@@ -80,7 +76,7 @@
     --pv-radius-sm:   12px;
     --pv-radius-md:   16px;
     --pv-radius-lg:   20px;
-    --pv-radius-xl:   24px;
+    --pv-radius-xl:   28px;
     --pv-radius-pill: 9999px;
 
     /* ---- Spacing (4pt scale) ---- */
@@ -109,13 +105,13 @@
 
     /* Type scale (px, integer values so they snap on screen) */
     --pv-fs-hero:    56px;
-    --pv-fs-section: 32px;
+    --pv-fs-section: 44px;
     --pv-fs-card:    22px;
     --pv-fs-item:    20px;
-    --pv-fs-body:    15px;
+    --pv-fs-body:    16px;
     --pv-fs-sm:      13px;
     --pv-fs-xs:      12px;
-    --pv-fs-eyebrow: 11px;
+    --pv-fs-eyebrow: 12px;
 
     --pv-lh-hero:    1.06;
     --pv-lh-section: 1.10;
@@ -125,10 +121,10 @@
     --pv-lh-sm:      1.50;
 
     --pv-ls-hero:    -0.025em;
-    --pv-ls-section: -0.020em;
+    --pv-ls-section: -0.035em;
     --pv-ls-card:    -0.015em;
     --pv-ls-item:    -0.010em;
-    --pv-ls-eyebrow:  0.10em;
+    --pv-ls-eyebrow:  0.09em;
 
     /* ---- Layout ---- */
     --pv-page-gutter:   40px;    /* client view */

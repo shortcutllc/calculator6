@@ -157,15 +157,15 @@ const ApproveConfirmModal: React.FC<ApproveConfirmModalProps> = ({
             onClick={onClose}
             disabled={busy}
             style={{
-              padding: '11px 18px',
+              padding: '0 22px', height: 44,
               background: '#fff',
               color: T.navy,
               border: '1.5px solid rgba(0,0,0,0.12)',
-              borderRadius: 10,
+              borderRadius: 9999,
               cursor: busy ? 'not-allowed' : 'pointer',
-              fontFamily: T.fontUi,
+              fontFamily: T.fontD,
               fontWeight: 700,
-              fontSize: 13,
+              fontSize: 14.5,
               opacity: busy ? 0.6 : 1,
             }}
           >
@@ -176,15 +176,15 @@ const ApproveConfirmModal: React.FC<ApproveConfirmModalProps> = ({
             onClick={onConfirm}
             disabled={busy}
             style={{
-              padding: '11px 22px',
+              padding: '0 22px', height: 44,
               background: T.coral,
               color: '#fff',
               border: 'none',
-              borderRadius: 10,
+              borderRadius: 9999,
               cursor: busy ? 'wait' : 'pointer',
-              fontFamily: T.fontUi,
+              fontFamily: T.fontD,
               fontWeight: 700,
-              fontSize: 13,
+              fontSize: 14.5,
               boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
               display: 'inline-flex',
               alignItems: 'center',

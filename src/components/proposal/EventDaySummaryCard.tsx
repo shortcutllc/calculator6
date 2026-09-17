@@ -74,7 +74,7 @@ const EventDaySummaryCard: React.FC<EventDaySummaryCardProps> = ({
               key={loc}
               style={{
                 background: '#fff',
-                borderRadius: 16,
+                borderRadius: 28,
                 padding: '22px 24px',
                 border: '1px solid rgba(0,0,0,0.06)',
               }}

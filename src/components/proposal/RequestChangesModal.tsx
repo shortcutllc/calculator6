@@ -219,15 +219,15 @@ const RequestChangesModal: React.FC<RequestChangesModalProps> = ({
             onClick={onClose}
             disabled={submitting}
             style={{
-              padding: '10px 18px',
+              padding: '0 22px', height: 44,
               background: 'transparent',
               border: '1.5px solid rgba(0,0,0,0.12)',
               color: T.navy,
-              borderRadius: 10,
+              borderRadius: 9999,
               cursor: submitting ? 'not-allowed' : 'pointer',
-              fontFamily: T.fontUi,
+              fontFamily: T.fontD,
               fontWeight: 700,
-              fontSize: 13,
+              fontSize: 14.5,
             }}
           >
             Cancel
@@ -240,15 +240,15 @@ const RequestChangesModal: React.FC<RequestChangesModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              padding: '10px 18px',
+              padding: '0 22px', height: 44,
               background: T.coral,
               color: '#fff',
               border: 'none',
-              borderRadius: 10,
+              borderRadius: 9999,
               cursor: submitting ? 'wait' : 'pointer',
-              fontFamily: T.fontUi,
+              fontFamily: T.fontD,
               fontWeight: 700,
-              fontSize: 13,
+              fontSize: 14.5,
               opacity: !note.trim() || submitting ? 0.6 : 1,
             }}
           >

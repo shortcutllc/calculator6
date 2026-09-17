@@ -31,9 +31,10 @@ const FaqCard: React.FC = () => {
     <div
       style={{
         background: '#fff',
-        borderRadius: 16,
+        borderRadius: 28,
+        border: '1px solid #E2E9E8',
         padding: '22px 24px',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.07)',
+        boxShadow: '0 1px 2px rgba(3,34,50,0.05), 0 10px 30px rgba(3,34,50,0.06)',
       }}
     >
       <Eyebrow style={{ marginBottom: 14 }}>Common questions</Eyebrow>

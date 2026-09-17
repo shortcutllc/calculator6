@@ -1799,9 +1799,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
           position: 'sticky',
           top: 0,
           zIndex: 30,
-          background: '#fff',
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
-          padding: isCompact ? '10px 16px' : '12px 24px',
+          background: 'rgba(255,255,255,0.88)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          boxShadow: '0 1px 0 rgba(3,34,50,0.08)',
+          padding: isCompact ? '10px 16px' : '10px 24px',
         }}
       >
         <div
@@ -1869,20 +1871,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 <button
                   type="button"
                   onClick={cancelClientEditMode}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 14px',
-                    background: 'transparent',
-                    border: '1.5px solid rgba(0,0,0,0.12)',
-                    borderRadius: 10,
-                    cursor: 'pointer',
-                    fontFamily: T.fontUi,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    color: T.navy,
-                  }}
+                  className="lt-btn lt-btn-ghost lt-btn-sm"
                 >
                   Discard
                 </button>
@@ -1890,22 +1879,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   type="button"
                   onClick={() => setClientEditCommentOpen(true)}
                   disabled={isSubmittingClientChanges}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 16px',
-                    background: T.coral,
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 10,
-                    cursor: isSubmittingClientChanges ? 'wait' : 'pointer',
-                    fontFamily: T.fontUi,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
-                    opacity: isSubmittingClientChanges ? 0.7 : 1,
-                  }}
+                  className="lt-btn lt-btn-coral lt-btn-sm"
+                  style={{ cursor: isSubmittingClientChanges ? 'wait' : 'pointer' }}
                 >
                   {isSubmittingClientChanges ? 'Sending…' : 'Submit changes'}
                 </button>
@@ -1920,19 +1895,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   onClick={() => setHelpOpen(true)}
                   title="How to review"
                   aria-label="Help"
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 9999,
-                    border: '1px solid rgba(0,0,0,0.1)',
-                    background: '#fff',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: T.navy,
-                    flexShrink: 0,
-                  }}
+                  className="pv-icon-btn"
                 >
                   <HelpCircle size={18} />
                 </button>
@@ -1941,21 +1904,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     type="button"
                     onClick={handleDownloadPdf}
                     disabled={isDownloading}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      padding: '9px 18px',
-                      background: 'transparent',
-                      border: `2px solid ${T.navy}`,
-                      borderRadius: 9999,
-                      cursor: isDownloading ? 'wait' : 'pointer',
-                      fontFamily: T.fontUi,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      color: T.navy,
-                      whiteSpace: 'nowrap',
-                    }}
+                    className="lt-btn lt-btn-ghost lt-btn-sm"
+                    style={{ cursor: isDownloading ? 'wait' : 'pointer' }}
                   >
                     <Download size={15} />
                     {isDownloading ? 'Generating…' : 'Download PDF'}
@@ -1965,22 +1915,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setApproveConfirmOpen(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      padding: '11px 20px',
-                      background: T.coral,
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 9999,
-                      cursor: 'pointer',
-                      fontFamily: T.fontUi,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      whiteSpace: 'nowrap',
-                      boxShadow: '0 2px 8px rgba(255,80,80,0.25)',
-                    }}
+                    className="lt-btn lt-btn-coral lt-btn-sm"
                   >
                     <CheckCircle2 size={15} />
                     Approve proposal
@@ -2101,12 +2036,12 @@ const StandaloneProposalViewerV2: React.FC = () => {
             <h1
               style={{
                 fontFamily: T.fontD,
-                fontWeight: 800,
-                // Scale h1 from 38px desktop → 28px compact phones so it
-                // doesn't wrap to four lines on the smallest devices.
-                fontSize: isCompact ? 26 : isMobile ? 30 : 38,
-                lineHeight: 1.12,
-                letterSpacing: '-0.025em',
+                fontWeight: 600,
+                // Website headline scale: 56px desktop, down to 28px on
+                // compact phones so it doesn't wrap to four lines.
+                fontSize: isCompact ? 28 : isMobile ? 32 : 56,
+                lineHeight: 1.06,
+                letterSpacing: '-0.03em',
                 color: T.navy,
                 margin: 0,
               }}
@@ -2402,9 +2337,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
             <p
               style={{
                 fontFamily: T.fontD,
-                fontSize: 15,
-                color: T.fgMuted,
-                lineHeight: 1.55,
+                fontSize: 19,
+                fontWeight: 500,
+                color: 'var(--sw-ink-soft)',
+                lineHeight: 1.45,
                 margin: '0 0 18px',
                 maxWidth: 680,
               }}
@@ -3231,26 +3167,24 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           ) : (
             <div
+              className="pv-final"
               style={{
-                background: '#fff',
-                border: `2px solid ${T.coral}`,
-                borderRadius: 24,
-                padding: isCompact ? '28px 22px' : isMobile ? '32px 28px' : '40px 44px',
-                boxShadow: '0 8px 32px rgba(255,80,80,0.16)',
+                marginTop: 0,
+                padding: isCompact ? '28px 22px' : isMobile ? '32px 28px' : '48px 52px',
               }}
             >
-              <Eyebrow color={T.coral}>
+              <Eyebrow color={T.aqua}>
                 {summary.rows.every((r) => !r.included) ? 'Build your proposal' : 'Final step'}
               </Eyebrow>
               <h2
                 style={{
                   fontFamily: T.fontD,
                   fontWeight: 700,
-                  fontSize: isCompact ? 22 : isMobile ? 26 : 30,
-                  lineHeight: 1.15,
-                  letterSpacing: '-0.015em',
-                  color: T.navy,
-                  margin: '8px 0 12px',
+                  fontSize: isCompact ? 26 : isMobile ? 32 : 44,
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.035em',
+                  color: '#fff',
+                  margin: '10px 0 12px',
                 }}
               >
                 {summary.rows.every((r) => !r.included)
@@ -3262,9 +3196,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
               <p
                 style={{
                   fontFamily: T.fontD,
-                  fontSize: 15,
-                  color: T.fgMuted,
-                  lineHeight: 1.55,
+                  fontSize: 17,
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.86)',
+                  lineHeight: 1.5,
                   margin: '0 0 24px',
                   maxWidth: 560,
                 }}
@@ -3276,7 +3211,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 ) : (
                   <>
                     Approving locks in your selections at{' '}
-                    <strong style={{ color: T.navy }}>{formatCurrency(grandTotal)}</strong>{' '}
+                    <strong style={{ color: '#fff' }}>{formatCurrency(grandTotal)}</strong>{' '}
                     for {summary.rows.filter((r) => r.included).length} service
                     {summary.rows.filter((r) => r.included).length === 1 ? '' : 's'}. Our team will follow up with logistics.
                   </>
@@ -3286,17 +3221,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setRequestChangesOpen(true)}
-                  style={{
-                    padding: '12px 20px',
-                    background: '#fff',
-                    color: T.navy,
-                    border: '1.5px solid rgba(0,0,0,0.12)',
-                    borderRadius: 10,
-                    cursor: 'pointer',
-                    fontFamily: T.fontUi,
-                    fontWeight: 700,
-                    fontSize: 14,
-                  }}
+                  className="lt-btn lt-btn-ghost-w"
                 >
                   Request changes
                 </button>
@@ -3304,18 +3229,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   type="button"
                   onClick={() => setApproveConfirmOpen(true)}
                   disabled={isApproving || summary.rows.every((r) => !r.included)}
-                  style={{
-                    padding: '12px 24px',
-                    background: T.coral,
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 10,
-                    cursor: isApproving ? 'wait' : 'pointer',
-                    fontFamily: T.fontUi,
-                    fontWeight: 700,
-                    fontSize: 14,
-                    opacity: summary.rows.every((r) => !r.included) ? 0.5 : 1,
-                  }}
+                  className="lt-btn lt-btn-coral"
+                  style={{ cursor: isApproving ? 'wait' : 'pointer' }}
                 >
                   {isApproving ? 'Approving…' : 'Approve proposal'}
                 </button>
@@ -3410,14 +3325,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
           <div className="pv-price-dock" style={{ height: dockHeight }}>
             <div className="pv-dock-sticky">
           <div
+            className="pv-price"
             style={{
-              // Design refresh: navy gradient + aqua hairline + deeper shadow.
-              background: 'linear-gradient(160deg, #00496F 0%, #003C5E 100%)',
-              color: '#fff',
-              borderRadius: 16,
-              padding: '22px 24px',
-              border: '1px solid rgba(158,250,255,0.18)',
-              boxShadow: '0 12px 32px rgba(0,60,94,0.28)',
+              // Website skin: flat navy card, 28px radius, deep navy shadow
+              // (all from .pv-price in proposal-refresh.css).
               // Deliberately not sticky: with the app-shell overflow fix the
               // sticky would now actually engage, and a pinned card floats
               // over the sibling cards as they scroll underneath it.
@@ -3698,7 +3609,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   background: 'rgba(30,158,106,.18)',
                   color: '#9FE9C4',
                   border: '1.5px solid rgba(30,158,106,.40)',
-                  borderRadius: 10,
+                  borderRadius: 9999,
                   fontFamily: T.fontUi,
                   fontWeight: 700,
                   fontSize: 14,
@@ -3717,20 +3628,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 type="button"
                 onClick={() => setApproveConfirmOpen(true)}
                 disabled={isApproving || summary.rows.every((r) => !r.included)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  background: T.coral,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 10,
-                  fontFamily: T.fontUi,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: isApproving ? 'wait' : 'pointer',
-                  marginBottom: 8,
-                  opacity: summary.rows.every((r) => !r.included) ? 0.5 : 1,
-                }}
+                className="lt-btn lt-btn-aqua lt-btn-block"
+                style={{ cursor: isApproving ? 'wait' : 'pointer', marginBottom: 10 }}
               >
                 {isApproving ? 'Approving…' : 'Approve proposal'}
               </button>
@@ -3738,27 +3637,17 @@ const StandaloneProposalViewerV2: React.FC = () => {
             <button
               type="button"
               onClick={() => setRequestChangesOpen(true)}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                background: 'transparent',
-                color: 'rgba(255,255,255,0.85)',
-                border: '1.5px solid rgba(255,255,255,0.2)',
-                borderRadius: 10,
-                fontFamily: T.fontUi,
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-              }}
+              className="lt-btn lt-btn-ghost-w lt-btn-block"
             >
               Request changes
             </button>
             <div
               style={{
                 fontFamily: T.fontD,
-                fontSize: 11,
-                color: 'rgba(255,255,255,0.5)',
-                marginTop: 10,
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'rgba(255,255,255,0.7)',
+                marginTop: 12,
                 textAlign: 'center',
               }}
             >

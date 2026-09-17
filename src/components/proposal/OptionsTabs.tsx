@@ -151,14 +151,14 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
                   ? `2px solid ${T.navy}`
                   : approved
                   ? `2px solid ${T.success}`
-                  : '1.5px solid rgba(0,0,0,0.08)',
-                borderRadius: 18,
-                padding: '24px 24px',
+                  : '1px solid #E2E9E8',
+                borderRadius: 28,
+                padding: '26px 28px 28px',
                 cursor: 'pointer',
                 transition: 'border-color .15s, box-shadow .15s, transform .15s',
                 boxShadow: active
-                  ? '0 8px 24px rgba(9,54,79,0.18)'
-                  : '0 2px 8px rgba(0,0,0,0.04)',
+                  ? '0 20px 50px rgba(3,34,50,0.22)'
+                  : '0 1px 2px rgba(3,34,50,0.05), 0 10px 30px rgba(3,34,50,0.06)',
                 transform: active ? 'translateY(-2px)' : 'none',
                 position: 'relative',
                 display: 'flex',

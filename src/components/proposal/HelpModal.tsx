@@ -173,15 +173,15 @@ const HelpModal: React.FC<HelpModalProps> = ({ open, onClose }) => {
             type="button"
             onClick={onClose}
             style={{
-              padding: '11px 22px',
+              padding: '0 22px', height: 44,
               background: T.navy,
               color: '#fff',
               border: 'none',
-              borderRadius: 10,
+              borderRadius: 9999,
               cursor: 'pointer',
-              fontFamily: T.fontUi,
+              fontFamily: T.fontD,
               fontWeight: 700,
-              fontSize: 13,
+              fontSize: 14.5,
             }}
           >
             Got it
