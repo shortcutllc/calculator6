@@ -2122,7 +2122,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
         <main style={{ minWidth: 0 }}>
           {/* Options tabs — only when there's a sibling group */}
           {proposalOptions.length > 1 && id && (
-            <div style={{ marginBottom: 32 }}>
+            <div>
               <OptionsTabs
                 options={proposalOptions}
                 currentId={id}
@@ -2348,7 +2348,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 fontWeight: 500,
                 color: 'var(--sw-ink-soft)',
                 lineHeight: 1.45,
-                margin: '0 0 18px',
+                margin: '4px 0 24px',
                 maxWidth: 680,
               }}
             >
@@ -3176,7 +3176,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             <div
               className="pv-final"
               style={{
-                marginTop: 0,
+                marginTop: isCompact ? 40 : 80,
                 padding: isCompact ? '28px 22px' : isMobile ? '32px 28px' : '48px 52px',
               }}
             >

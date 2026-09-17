@@ -499,7 +499,7 @@ export const SectionLabel: React.FC<SectionLabelProps> = ({
       }}
     >
       <div>
-        {eyebrow && <Eyebrow style={{ marginBottom: 6 }}>{eyebrow}</Eyebrow>}
+        {eyebrow && <Eyebrow style={{ marginBottom: 14 }}>{eyebrow}</Eyebrow>}
         <CardHeading size={size}>{title}</CardHeading>
       </div>
       {action}

@@ -119,13 +119,14 @@
   .pv-savings svg { width: 18px; height: 18px; stroke: var(--status-success); fill: none; flex-shrink: 0; }
   .pv-savings .txt { font-family: var(--font-display); font-size: 15px; font-weight: 500; line-height: 1.4; color: var(--sc-navy); }
   .pv-savings .txt strong { font-weight: 700; color: var(--status-success); }
-  .pv-meta-row { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 24px; padding-top: 22px; border-top: 1px solid rgba(0,0,0,0.07); }
+  .pv-meta-row { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--sw-rule); }
 
   /* ── Two-col ── */
   .pv-cols { display: grid; grid-template-columns: 1fr 372px; gap: 32px; align-items: flex-start; margin-top: 40px; }
   /* Renamed from .pv-section-label to avoid colliding with the app's existing
      .pv-section-label (proposal-viewer.css — a space-between eyebrow/heading row). */
-  .pv-sec-label { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sc-navy); display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin: 40px 0 16px; }
+  .pv-sec-label { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sc-navy); display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin: 80px 0 20px; }
+  .pv-sec-label:first-child { margin-top: 0; }
   .pv-sec-label::before { content: ""; width: 7px; height: 7px; border-radius: 9999px; background: var(--sc-coral); flex-shrink: 0; }
 
   /* location header */
@@ -138,7 +139,7 @@
   .pv-loc-stats .k { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); }
   .pv-loc-stats .v { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--sc-navy); }
 
-  .pv-day { margin-bottom: 26px; }
+  .pv-day { margin-bottom: 32px; }
   .pv-day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
   .pv-day-head h3 { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; margin: 0; }
   .pv-day-head .sub { font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--sw-ink-meta); }
@@ -209,7 +210,7 @@
   .pv-collapse span { font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.012em; }
 
   /* day summary */
-  .pv-daysum { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 26px; }
+  .pv-daysum { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0; }
   .pv-daysum-card { background: #fff; border: 1px solid var(--sw-rule); border-radius: 28px; padding: 22px 24px; box-shadow: var(--shadow-card-soft); }
   .pv-daysum-card h4 { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin: 0 0 12px; }
   .pv-daysum-thumbs { display: flex; gap: 8px; margin-bottom: 14px; }
@@ -226,7 +227,7 @@
   .pv-bullet p { font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--sw-ink-meta); margin: 0; }
 
   /* agreement quick-view */
-  .pv-agreement-row { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid var(--sw-rule); border-radius: 20px; padding: 18px 20px; box-shadow: var(--shadow-card-soft); cursor: pointer; margin-top: 24px; }
+  .pv-agreement-row { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid var(--sw-rule); border-radius: 20px; padding: 18px 20px; box-shadow: var(--shadow-card-soft); cursor: pointer; margin-top: 32px; }
   .pv-agreement-row .ic { width: 40px; height: 40px; border-radius: 11px; background: var(--sc-light-gray); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .pv-agreement-row .ic svg { width: 19px; height: 19px; stroke: var(--sc-navy); fill: none; }
   .pv-agreement-row h4 { font-family: var(--font-display); font-weight: 700; font-size: 16px; margin: 0; }
@@ -238,7 +239,7 @@
   .pv-agreement-body p { font-size: 13.5px; line-height: 1.6; color: rgba(3,34,50,0.6); margin: 12px 0 0; }
 
   /* final CTA */
-  .pv-final { border: none; border-radius: 28px; padding: 48px 52px; margin-top: 24px; background: var(--sc-navy); color: #fff; box-shadow: var(--shadow-navy); }
+  .pv-final { border: none; border-radius: 28px; padding: 48px 52px; margin-top: 80px; background: var(--sc-navy); color: #fff; box-shadow: var(--shadow-navy); }
   .pv-final .lt-h2 { font-size: 44px; color: #fff; margin-top: 10px; }
   .pv-final .lt-eyebrow { color: var(--sc-aqua); }
   .pv-final .lt-eyebrow::before { background: var(--sc-aqua); }
@@ -309,9 +310,10 @@
   .ph-input { border: 1.5px solid var(--sc-gray-200); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--sc-navy); margin-top: 8px; }
 
   /* getting started — Wise-style numbered cards (left column) */
-  .pv-getstarted { margin: 8px 0 28px; }
-  .pv-getstarted .lt-h2 { font-size: 44px; margin: 6px 0 0; }
-  .pv-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+  .pv-getstarted { margin: 80px 0 0; }
+  .pv-getstarted .pv-sec-label { margin: 0 0 14px; }
+  .pv-getstarted .lt-h2 { font-size: 44px; margin: 0; }
+  .pv-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
   .pv-step-card { background: #fff; border: 1px solid var(--sw-rule); border-radius: 28px; box-shadow: var(--shadow-card-soft); padding: 26px 24px 28px; display: flex; flex-direction: column; }
   .pv-step-card .num { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9999px; background: var(--sc-aqua); font-family: var(--font-display); font-weight: 800; font-size: 14px; line-height: 1; letter-spacing: -0.01em; color: var(--sc-navy); margin-bottom: 20px; }
   .pv-step-card h4 { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -0.015em; color: var(--sc-navy); margin: 0 0 6px; line-height: 1.2; }
@@ -382,7 +384,7 @@
   .pv-dot.is-aqua { background: var(--sc-aqua); }
   .pv-dot.is-pink { background: var(--sc-pink); }
   .pv-dot.is-yellow { background: var(--sc-yellow); }
-  .pv-why-block { margin-bottom: 24px; }
+  .pv-why-block { margin: 80px 0 0; }
   .pv-why-block > .lt-h2 { font-size: 44px; margin: 6px 0 4px; }
   .pv-why-lead { font-size: 19px; font-weight: 500; color: var(--sw-ink-soft); margin: 0 0 8px; }
   .pv-final-eyebrow { color: var(--sc-aqua); }

@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Eyebrow, T } from './shared/primitives';
-import { formatCurrency } from './data';
+import { formatCurrency, SERVICE_DISPLAY } from './data';
 import { selectionKey, resolveVolumeDiscount } from './useServiceSelections';
 
 // Whether a service counts toward the option's price, mirroring
@@ -96,6 +96,21 @@ const optionMetrics = (option: ProposalOption) => {
   return { locationCount, dateCount, appointmentCount, cost };
 };
 
+// Services an option includes (unique, in first-seen order), for the card's
+// sub-line: "Chair massage · Headshots · 2 visits".
+const optionServiceNames = (option: ProposalOption): string[] => {
+  const seen: string[] = [];
+  Object.values(option.data?.services || {}).forEach((byDate: any) => {
+    Object.values(byDate || {}).forEach((dd: any) => {
+      (dd?.services || []).forEach((s: any) => {
+        const name = SERVICE_DISPLAY[s?.serviceType] || s?.serviceType;
+        if (name && !seen.includes(name)) seen.push(name);
+      });
+    });
+  });
+  return seen;
+};
+
 const OptionsTabs: React.FC<OptionsTabsProps> = ({
   options,
   currentId,
@@ -105,39 +120,32 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
   const navigate = useNavigate();
   if (!options || options.length < 2) return null;
 
+  // Website option-card anatomy (design "Three ways to start"): kicker, then a
+  // 16px grid of 28px cards. Each card: letter circle + status badge, 22px
+  // title, service sub-line, then a bottom block pinned to the card's foot
+  // with a hairline, PROGRAM TOTAL label, the total, and the per-visit price.
   return (
-    <div style={{ marginBottom: 32 }}>
-      <Eyebrow style={{ marginBottom: 6 }}>Multi-option proposal</Eyebrow>
-      <div
-        style={{
-          fontFamily: T.fontD,
-          fontWeight: 700,
-          fontSize: 20,
-          color: T.navy,
-          letterSpacing: '-0.01em',
-          marginBottom: 16,
-        }}
-      >
-        Pick the option that fits — compare side by side
-      </div>
+    <div style={{ marginBottom: 80 }}>
+      <Eyebrow>Multi-option proposal</Eyebrow>
       <div
         style={{
           display: 'grid',
-          // auto-fit collapses 3-up to 2-up to 1-up as the viewport
-          // shrinks below the minmax floor, so the option tabs reflow
-          // cleanly on phones/tablets without a JS breakpoint.
           gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))`,
-          gap: 14,
+          gap: 16,
+          marginTop: 20,
         }}
       >
-        {options.map((opt) => {
+        {options.map((opt, i) => {
           const active = opt.id === currentId;
           const approved = opt.status === 'approved';
           const m = optionMetrics(opt);
-          // The viewed option uses the live selection-aware total so its card
-          // tracks the client's picks; others use their persisted-state total.
           const displayCost =
             active && typeof currentTotal === 'number' ? currentTotal : m.cost;
+          const names = optionServiceNames(opt);
+          const visits = Math.max(1, m.dateCount);
+          const perVisit = visits > 1 ? displayCost / visits : null;
+          const letter = String.fromCharCode(65 + (typeof opt.option_order === 'number' && opt.option_order > 0 ? opt.option_order - 1 : i));
+          const ink = active ? '#fff' : T.navy;
           return (
             <button
               type="button"
@@ -146,136 +154,167 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
               style={{
                 textAlign: 'left',
                 background: active ? T.navy : '#fff',
-                color: active ? '#fff' : T.navy,
+                color: ink,
                 border: active
-                  ? `2px solid ${T.navy}`
+                  ? `1px solid ${T.navy}`
                   : approved
                   ? `2px solid ${T.success}`
                   : '1px solid #E2E9E8',
                 borderRadius: 28,
                 padding: '26px 28px 28px',
                 cursor: 'pointer',
-                transition: 'border-color .15s, box-shadow .15s, transform .15s',
+                transition: 'box-shadow .15s, transform .15s',
                 boxShadow: active
                   ? '0 20px 50px rgba(3,34,50,0.22)'
                   : '0 1px 2px rgba(3,34,50,0.05), 0 10px 30px rgba(3,34,50,0.06)',
-                transform: active ? 'translateY(-2px)' : 'none',
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 14,
                 minWidth: 0,
+                minHeight: 300,
+                fontFamily: T.fontD,
               }}
             >
-              {/* Top row — option name + status callouts */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                }}
-              >
-                <Eyebrow color={active ? T.aqua : T.navy}>
-                  {opt.option_name || `Option ${opt.option_order ?? ''}`}
-                </Eyebrow>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {approved && (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        fontFamily: T.fontUi,
-                        fontWeight: 700,
-                        fontSize: 10,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                        color: T.success,
-                        background: 'rgba(30,158,106,.14)',
-                        padding: '3px 8px',
-                        borderRadius: 9999,
-                      }}
-                    >
-                      <CheckCircle2 size={11} strokeWidth={3} />
-                      Approved
-                    </span>
-                  )}
-                  {active && (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        height: 28,
-                        fontFamily: T.fontD,
-                        fontWeight: 800,
-                        fontSize: 12,
-                        letterSpacing: '0.02em',
-                        color: T.navy,
-                        background: T.yellow,
-                        padding: '0 12px',
-                        borderRadius: 9999,
-                      }}
-                    >
-                      Viewing
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Big price */}
-              <div>
-                <div
+              {/* Top row: letter circle + status badge */}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10, height: 36 }}>
+                <span
                   style={{
-                    fontFamily: T.fontD,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 9999,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: active ? T.aqua : 'var(--pv-light-gray)',
+                    color: T.navy,
                     fontWeight: 800,
-                    fontSize: 30,
-                    color: active ? T.aqua : T.navy,
-                    letterSpacing: '-0.03em',
-                    lineHeight: 1,
+                    fontSize: 15,
+                    flexShrink: 0,
                   }}
                 >
-                  {formatCurrency(displayCost)}
-                </div>
-                <div
+                  {letter}
+                </span>
+                {approved && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      height: 28,
+                      padding: '0 12px',
+                      borderRadius: 9999,
+                      background: 'rgba(30,158,106,.14)',
+                      color: active ? '#9FE9C4' : T.success,
+                      fontWeight: 800,
+                      fontSize: 12,
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    <CheckCircle2 size={12} strokeWidth={3} />
+                    Approved
+                  </span>
+                )}
+                {active && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      height: 28,
+                      padding: '0 12px',
+                      borderRadius: 9999,
+                      background: T.yellow,
+                      color: T.navy,
+                      fontWeight: 800,
+                      fontSize: 12,
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    Viewing
+                  </span>
+                )}
+              </span>
+
+              {/* Title */}
+              <span
+                style={{
+                  display: 'block',
+                  marginTop: 22,
+                  fontWeight: 700,
+                  fontSize: 22,
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.025em',
+                  color: ink,
+                }}
+              >
+                {opt.option_name || `Option ${opt.option_order ?? i + 1}`}
+              </span>
+
+              {/* Services included · visits */}
+              <span
+                style={{
+                  display: 'block',
+                  marginTop: 10,
+                  fontWeight: 500,
+                  fontSize: 14.5,
+                  lineHeight: 1.45,
+                  color: ink,
+                  opacity: 0.82,
+                }}
+              >
+                {[...names, `${visits} visit${visits === 1 ? '' : 's'}`].join(' · ')}
+              </span>
+
+              {/* Bottom block, pinned to the foot of the card */}
+              <span style={{ display: 'block', marginTop: 'auto', paddingTop: 22 }}>
+                <span
                   style={{
-                    fontFamily: T.fontD,
+                    display: 'block',
+                    height: 1,
+                    background: active ? 'rgba(255,255,255,0.14)' : 'rgba(0,55,86,0.12)',
+                  }}
+                />
+                <span
+                  style={{
+                    display: 'block',
+                    marginTop: 18,
                     fontWeight: 800,
                     fontSize: 12,
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
-                    color: active ? '#fff' : T.fgMuted,
-                    marginTop: 6,
+                    color: ink,
+                    opacity: 0.75,
                   }}
                 >
-                  Total locked in
-                </div>
-              </div>
-
-              {/* Stats row */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                  gap: 10,
-                  borderTop: active
-                    ? '1px solid rgba(255,255,255,0.18)'
-                    : '1px solid #E2E9E8',
-                  paddingTop: 14,
-                }}
-              >
-                <Stat
-                  active={active}
-                  label="Locations"
-                  value={m.locationCount}
-                />
-                <Stat active={active} label="Dates" value={m.dateCount} />
-                <Stat
-                  active={active}
-                  label="Appts"
-                  value={m.appointmentCount.toLocaleString('en-US')}
-                />
-              </div>
+                  Program total
+                </span>
+                <span
+                  style={{
+                    display: 'block',
+                    marginTop: 8,
+                    fontWeight: 800,
+                    fontSize: 30,
+                    lineHeight: 1,
+                    letterSpacing: '-0.03em',
+                    color: active ? T.aqua : T.navy,
+                  }}
+                >
+                  {formatCurrency(displayCost)}
+                </span>
+                <span
+                  style={{
+                    display: 'block',
+                    marginTop: 8,
+                    fontWeight: 600,
+                    fontSize: 14,
+                    color: ink,
+                    opacity: 0.8,
+                  }}
+                >
+                  {perVisit !== null
+                    ? `${formatCurrency(perVisit)} per visit`
+                    : `${m.appointmentCount.toLocaleString('en-US')} appointments · ${m.locationCount} location${m.locationCount === 1 ? '' : 's'}`}
+                </span>
+              </span>
             </button>
           );
         })}
@@ -283,41 +322,5 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
     </div>
   );
 };
-
-const Stat: React.FC<{
-  active: boolean;
-  label: string;
-  value: React.ReactNode;
-}> = ({ active, label, value }) => (
-  <div style={{ minWidth: 0 }}>
-    <div
-      style={{
-        fontFamily: T.fontD,
-        fontWeight: 800,
-        fontSize: 12,
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-        color: active ? 'rgba(255,255,255,0.86)' : T.fgMuted,
-      }}
-    >
-      {label}
-    </div>
-    <div
-      style={{
-        fontFamily: T.fontD,
-        fontWeight: 700,
-        fontSize: 17,
-        color: active ? '#fff' : T.navy,
-        letterSpacing: '-0.01em',
-        marginTop: 2,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}
-    >
-      {value}
-    </div>
-  </div>
-);
 
 export default OptionsTabs;
