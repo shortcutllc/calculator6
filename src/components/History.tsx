@@ -191,6 +191,11 @@ const History: React.FC = () => {
   });
   const [locations, setLocations] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  // Proposal awaiting an in-page delete confirmation. window.confirm() was
+  // used before: embedded browsers (the desktop app's pane) block native
+  // dialogs and return false, so the button silently did nothing.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<{ id: string; message: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [surveyResponses, setSurveyResponses] = useState<Record<string, any>>({});
   const [surveyModal, setSurveyModal] = useState<{ response: any; clientName: string } | null>(null);
@@ -518,16 +523,17 @@ const History: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this proposal? This action cannot be undone.')) {
-      setIsDeleting(id);
-      try {
-        await deleteProposal(id);
-      } catch (error) {
-        console.error('Failed to delete proposal:', error);
-        alert('Failed to delete proposal. Please try again.');
-      } finally {
-        setIsDeleting(null);
-      }
+    setConfirmDeleteId(null);
+    setIsDeleting(id);
+    setDeleteError(null);
+    try {
+      await deleteProposal(id);
+    } catch (error) {
+      console.error('Failed to delete proposal:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setDeleteError({ id, message: `Could not delete this proposal. ${message}` });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -820,16 +826,45 @@ const History: React.FC = () => {
                       >
                         {copiedId === proposal.id ? 'Copied!' : 'Share'}
                       </Button>
-                      <Button
-                        onClick={() => handleDelete(proposal.id)}
-                        variant="secondary"
-                        icon={<Trash2 size={20} />}
-                        disabled={isDeleting === proposal.id}
-                      >
-                        Delete
-                      </Button>
+                      {confirmDeleteId === proposal.id ? (
+                        <span className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5">
+                          <span className="text-sm font-semibold text-red-700">Delete this proposal for good?</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(proposal.id)}
+                            disabled={isDeleting === proposal.id}
+                            className="rounded-md bg-red-600 px-3 py-1 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                          >
+                            {isDeleting === proposal.id ? 'Deleting…' : 'Yes, delete'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="rounded-md px-3 py-1 text-sm font-bold text-shortcut-blue hover:bg-white"
+                          >
+                            Keep
+                          </button>
+                        </span>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            setDeleteError(null);
+                            setConfirmDeleteId(proposal.id);
+                          }}
+                          variant="secondary"
+                          icon={<Trash2 size={20} />}
+                          disabled={isDeleting === proposal.id}
+                        >
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
+                  {deleteError?.id === proposal.id && (
+                    <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                      {deleteError.message}
+                    </div>
+                  )}
 
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="flex items-center gap-2">

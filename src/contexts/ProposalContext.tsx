@@ -283,12 +283,19 @@ export const ProposalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLoading(true);
       setError(null);
 
-      const { error } = await supabase
+      const { data: deleted, error } = await supabase
         .from('proposals')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
 
       if (error) throw error;
+      // PostgREST reports success even when row-level security filtered the
+      // row out and nothing was deleted. Treat "0 rows" as the failure it is
+      // instead of quietly dropping the card from the list.
+      if (!deleted || deleted.length === 0) {
+        throw new Error('The database did not remove the row. It may already be gone, or this account is not allowed to delete it.');
+      }
 
       setProposals(prev => prev.filter(p => p.id !== id));
       if (currentProposal?.id === id) {
