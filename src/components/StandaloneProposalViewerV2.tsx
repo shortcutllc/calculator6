@@ -2012,9 +2012,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
           help modal covers that ground for first-time visitors). */}
       <section
         style={{
-          padding: isCompact ? '16px 16px 8px' : '24px 24px 12px',
-          maxWidth: 1280,
-          margin: '0 auto',
+          // Website hero: full-bleed navy band; the photo mosaic below laps
+          // up over its foot like the design's photo card.
+          background: T.navy,
+          padding: isCompact ? '28px 16px 120px' : '56px 24px 168px',
         }}
       >
         <div
@@ -2023,13 +2024,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
             alignItems: 'center',
             gap: 18,
             flexWrap: 'wrap',
-            marginBottom: 14,
+            maxWidth: 1232,
+            margin: '0 auto',
           }}
         >
           {/* Design refresh: title-led hero. The client logo moved to the nav
               bar (#6), so no logo/avatar block here. */}
           <div style={{ minWidth: 0 }}>
-            <Eyebrow style={{ marginBottom: 4 }}>
+            <Eyebrow color={T.aqua} style={{ marginBottom: 18 }}>
               Prepared for · {clientName}
               {contactFirst && ` · ${contactFirst}`}
             </Eyebrow>
@@ -2042,8 +2044,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 fontSize: isCompact ? 28 : isMobile ? 32 : 56,
                 lineHeight: 1.06,
                 letterSpacing: '-0.03em',
-                color: T.navy,
+                color: '#fff',
                 margin: 0,
+                maxWidth: 720,
               }}
             >
               {displayData?.heroTitle || 'Employee Happiness Delivered.'}
@@ -2067,7 +2070,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
         style={{
           padding: isCompact ? '0 16px' : '0 24px',
           maxWidth: 1280,
-          margin: '0 auto',
+          margin: isCompact ? '-96px auto 40px' : '-120px auto 64px',
+          position: 'relative',
+          zIndex: 2,
         }}
       >
         <ProposalGallery
