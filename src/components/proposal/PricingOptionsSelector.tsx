@@ -220,6 +220,11 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
               aria-disabled={disabled}
               onClick={handleSelect}
               onKeyDown={(e) => {
+                // Keyboard selection is for the tile itself. Keystrokes inside
+                // the inline editors (name / hours / pros / rate) bubble up here
+                // too, and swallowing Space there made it impossible to type a
+                // space into an option name.
+                if (e.target !== e.currentTarget) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   handleSelect();
@@ -636,48 +641,63 @@ const OptionInput: React.FC<{
   label: string;
   value: number | string;
   onChange: (v: number) => void;
-}> = ({ label, value, onChange }) => (
-  <label
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 2,
-    }}
-  >
-    <span
+}> = ({ label, value, onChange }) => {
+  // Draft text while the field is focused. Parsing on every keystroke and
+  // writing the number straight back turned "4." into "4" and an emptied
+  // field into 0, which made decimals (and re-typing a value) impossible.
+  const [draft, setDraft] = React.useState<string | null>(null);
+  const shown = draft !== null ? draft : value === undefined || value === null ? '' : String(value);
+  return (
+    <label
       style={{
-        fontFamily: T.fontUi,
-        fontWeight: 700,
-        fontSize: 10,
-        color: T.fgMuted,
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
       }}
     >
-      {label}
-    </span>
-    <input
-      type="number"
-      value={value as any}
-      onChange={(e) => {
-        const next = parseFloat(e.target.value);
-        onChange(Number.isFinite(next) ? next : 0);
-      }}
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        width: '100%',
-        padding: '5px 8px',
-        fontFamily: T.fontD,
-        fontWeight: 600,
-        fontSize: 13,
-        color: T.navy,
-        border: '1.5px solid rgba(0,0,0,0.1)',
-        borderRadius: 6,
-        background: '#fff',
-        outline: 'none',
-      }}
-    />
-  </label>
-);
+      <span
+        style={{
+          fontFamily: T.fontUi,
+          fontWeight: 700,
+          fontSize: 10,
+          color: T.fgMuted,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+        }}
+      >
+        {label}
+      </span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={shown}
+        onFocus={() => setDraft(shown)}
+        onChange={(e) => {
+          const text = e.target.value;
+          setDraft(text);
+          const next = parseFloat(text);
+          if (Number.isFinite(next)) onChange(next);
+        }}
+        onBlur={() => {
+          if (draft !== null && !Number.isFinite(parseFloat(draft))) onChange(0);
+          setDraft(null);
+        }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          padding: '5px 8px',
+          fontFamily: T.fontD,
+          fontWeight: 600,
+          fontSize: 13,
+          color: T.navy,
+          border: '1.5px solid rgba(0,0,0,0.1)',
+          borderRadius: 6,
+          background: '#fff',
+          outline: 'none',
+        }}
+      />
+    </label>
+  );
+};
 
 export default PricingOptionsSelector;
