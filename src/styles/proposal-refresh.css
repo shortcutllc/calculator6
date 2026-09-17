@@ -15,14 +15,14 @@
    Lifted verbatim from signup_redesign/lite.css.
    ============================================================ */
 .lt-btn { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; height: 52px; border-radius: 9999px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 30px; line-height: 1; white-space: nowrap; box-sizing: border-box; transition: transform 300ms var(--ease-out), box-shadow 300ms var(--ease-out); }
-.lt-btn:hover { transform: translateY(-2px); }
+.lt-btn:hover { transform: translateY(-3px); }
 .lt-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .lt-btn-coral { background: var(--sc-coral); color: #fff; box-shadow: 0 4px 14px rgba(255,80,80,.3); }
 .lt-btn-coral:hover { box-shadow: 0 12px 30px rgba(255,80,80,.42); }
 .lt-btn-navy { background: var(--sc-navy); color: #fff; box-shadow: 0 4px 14px rgba(0,55,86,.26); }
 .lt-btn-ghost { background: transparent; color: var(--sc-navy); border: 1px solid rgba(0,55,86,.22); }
 .lt-btn-ghost:hover { background: rgba(0,55,86,.06); }
-.lt-btn-ghost-w { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.3); }
+.lt-btn-ghost-w { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.35); }
 .lt-btn-ghost-w:hover { background: rgba(255,255,255,.12); }
 .lt-btn-aqua { background: var(--sc-aqua); color: var(--sc-navy); }
 .lt-btn-secondary { background: transparent; color: var(--sc-navy); border: 1px solid rgba(0,55,86,.22); }

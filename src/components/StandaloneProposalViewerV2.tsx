@@ -1923,15 +1923,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   type="button"
                   onClick={() => setHelpOpen(true)}
                   title="How to review"
-                  aria-label="Help"
-                  className="pv-icon-btn"
-                  style={
-                    navScrolled || isCompact
-                      ? undefined
-                      : { borderColor: 'rgba(255,255,255,0.35)', color: '#fff' }
-                  }
+                  aria-label="How to review"
+                  className={`lt-btn ${navScrolled || isCompact ? 'lt-btn-ghost' : 'lt-btn-ghost-w'} lt-btn-sm`}
+                  style={{ width: 44, padding: 0, justifyContent: 'center', fontSize: 16 }}
                 >
-                  <HelpCircle size={18} />
+                  ?
                 </button>
                 {!isCompact && (
                   <button
@@ -1941,7 +1937,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     className={`lt-btn ${navScrolled || isCompact ? 'lt-btn-ghost' : 'lt-btn-ghost-w'} lt-btn-sm`}
                     style={{ cursor: isDownloading ? 'wait' : 'pointer' }}
                   >
-                    <Download size={15} />
+                    <Download size={16} strokeWidth={2} />
                     {isDownloading ? 'Generating…' : 'Download PDF'}
                   </button>
                 )}
@@ -1951,7 +1947,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     onClick={() => setApproveConfirmOpen(true)}
                     className="lt-btn lt-btn-coral lt-btn-sm"
                   >
-                    <CheckCircle2 size={15} />
                     Approve proposal
                   </button>
                 )}
