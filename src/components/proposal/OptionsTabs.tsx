@@ -176,7 +176,7 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
                   gap: 8,
                 }}
               >
-                <Eyebrow color={active ? 'rgba(255,255,255,0.65)' : T.fgMuted}>
+                <Eyebrow color={active ? T.aqua : T.navy}>
                   {opt.option_name || `Option ${opt.option_order ?? ''}`}
                 </Eyebrow>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -204,14 +204,16 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
                   {active && (
                     <span
                       style={{
-                        fontFamily: T.fontUi,
-                        fontWeight: 700,
-                        fontSize: 10,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        height: 28,
+                        fontFamily: T.fontD,
+                        fontWeight: 800,
+                        fontSize: 12,
+                        letterSpacing: '0.02em',
                         color: T.navy,
-                        background: T.aqua,
-                        padding: '3px 8px',
+                        background: T.yellow,
+                        padding: '0 12px',
                         borderRadius: 9999,
                       }}
                     >
@@ -227,9 +229,9 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
                   style={{
                     fontFamily: T.fontD,
                     fontWeight: 800,
-                    fontSize: 36,
+                    fontSize: 30,
                     color: active ? T.aqua : T.navy,
-                    letterSpacing: '-0.025em',
+                    letterSpacing: '-0.03em',
                     lineHeight: 1,
                   }}
                 >
@@ -237,13 +239,13 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
                 </div>
                 <div
                   style={{
-                    fontFamily: T.fontUi,
-                    fontWeight: 700,
-                    fontSize: 10,
-                    letterSpacing: '0.1em',
+                    fontFamily: T.fontD,
+                    fontWeight: 800,
+                    fontSize: 12,
+                    letterSpacing: '0.06em',
                     textTransform: 'uppercase',
-                    color: active ? 'rgba(255,255,255,0.55)' : T.fgMuted,
-                    marginTop: 4,
+                    color: active ? '#fff' : T.fgMuted,
+                    marginTop: 6,
                   }}
                 >
                   Total locked in
@@ -257,8 +259,8 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
                   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
                   gap: 10,
                   borderTop: active
-                    ? '1px solid rgba(255,255,255,0.12)'
-                    : '1px solid rgba(0,0,0,0.06)',
+                    ? '1px solid rgba(255,255,255,0.18)'
+                    : '1px solid #E2E9E8',
                   paddingTop: 14,
                 }}
               >
@@ -290,12 +292,12 @@ const Stat: React.FC<{
   <div style={{ minWidth: 0 }}>
     <div
       style={{
-        fontFamily: T.fontUi,
-        fontWeight: 700,
-        fontSize: 10,
-        letterSpacing: '0.1em',
+        fontFamily: T.fontD,
+        fontWeight: 800,
+        fontSize: 12,
+        letterSpacing: '0.06em',
         textTransform: 'uppercase',
-        color: active ? 'rgba(255,255,255,0.55)' : T.fgMuted,
+        color: active ? 'rgba(255,255,255,0.86)' : T.fgMuted,
       }}
     >
       {label}

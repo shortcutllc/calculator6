@@ -2325,11 +2325,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
             <SectionLabel
               eyebrow="Your Proposal"
               title={
-                summary.rows.length === 1
-                  ? `Build your ${serviceLineLabel(
-                      summary.rows[0].serviceType
-                    ).toLowerCase()}.`
-                  : 'Build your ideal wellness program.'
+                summary.rows.length === 1 ? (
+                  <>
+                    Build your{' '}
+                    <span style={{ color: T.coral }}>
+                      {serviceLineLabel(summary.rows[0].serviceType).toLowerCase()}.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    Build your ideal <span style={{ color: T.coral }}>wellness program.</span>
+                  </>
+                )
               }
               size="section"
               mb={10}
