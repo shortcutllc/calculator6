@@ -2042,14 +2042,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
           // Website hero: full-bleed navy band; the photo mosaic below laps
           // up over its foot like the design's photo card.
           background: T.navy,
-          padding: isCompact ? '28px 16px 120px' : '120px 24px 178px',
+          padding: isCompact ? '28px 16px 120px' : '120px 24px 232px',
         }}
       >
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: 18,
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: 40,
             flexWrap: 'wrap',
             maxWidth: 1232,
             margin: '0 auto',
@@ -2057,7 +2058,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
         >
           {/* Design refresh: title-led hero. The client logo moved to the nav
               bar (#6), so no logo/avatar block here. */}
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: '1 1 560px' }}>
             <Eyebrow color={T.aqua} style={{ marginBottom: 18 }}>
               Prepared for · {clientName}
               {contactFirst && ` · ${contactFirst}`}
@@ -2076,9 +2077,75 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 maxWidth: 720,
               }}
             >
-              {displayData?.heroTitle || 'Employee Happiness Delivered.'}
+              {displayData?.heroTitle ? (
+                displayData.heroTitle
+              ) : (
+                <>
+                  {['Wellness', 'your', 'people'].map((w, i) => (
+                    <React.Fragment key={w}>
+                      <span className="pv-h1-w" style={{ animationDelay: `${0.15 + i * 0.055}s` }}>
+                        {w}
+                      </span>{' '}
+                    </React.Fragment>
+                  ))}
+                  <span style={{ color: T.aqua }}>
+                    {['show', 'up', 'for.'].map((w, i) => (
+                      <React.Fragment key={w}>
+                        {i > 0 ? ' ' : ''}
+                        <span className="pv-h1-w" style={{ animationDelay: `${0.5 + i * 0.055}s` }}>
+                          {w}
+                        </span>
+                      </React.Fragment>
+                    ))}
+                  </span>
+                </>
+              )}
             </h1>
           </div>
+          {/* Homepage hero pills: this proposal's services, dropping in and
+              settling with the site's tilt and timing. Desktop only. */}
+          {!isCompact && serviceTypes.length > 0 && (() => {
+            const FILL: Record<string, string> = {
+              massage: '#9EFAFF', stretch: '#FFCBA6', reiki: '#9EFAFF', headshot: '#FFCBA6',
+              hair: '#FEDC64', makeup: '#FEDC64', 'hair-makeup': '#FEDC64', 'headshot-hair-makeup': '#FEDC64',
+              nails: '#F7BBFF', facial: '#F7BBFF',
+              mindfulness: '#C7CBFB', 'sound-bath': '#C7CBFB', yoga: '#A9F0CC',
+            };
+            const TILT = [-1, 2, -1.5, 1.5, -2, 1, -1, 1.5];
+            const DELAY = [0.95, 1.13, 1.31, 0.4, 0.58, 0.76, 0.94, 1.12];
+            const pills = serviceTypes.slice(0, 8).map((s, i) => ({
+              key: s,
+              label: SERVICE_DISPLAY[s] || s,
+              fill: FILL[s] || (s.startsWith('mindfulness') ? '#C7CBFB' : '#A9F0CC'),
+              tilt: TILT[i % TILT.length],
+              delay: DELAY[i % DELAY.length],
+            }));
+            const half = Math.ceil(pills.length / 2);
+            const rows = pills.length > 3 ? [pills.slice(0, half), pills.slice(half)] : [pills];
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, paddingBottom: 2 }}>
+                {rows.map((row, r) => (
+                  <div key={r} style={{ display: 'flex', gap: 8 }}>
+                    {row.map((p) => (
+                      <a
+                        key={p.key}
+                        href="#pv-services"
+                        className="pv-hero-pill"
+                        style={{ ['--tilt' as any]: `${p.tilt}deg`, ['--dx' as any]: '0px', background: p.fill, animationDelay: `${p.delay}s` }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          {p.label}
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flex: 'none' }} aria-hidden>
+                            <path d="M5 12h13M12.5 6l6 6-6 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Hero subtitle removed — it duplicated the "Toggle, repeat, or
@@ -2444,7 +2511,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </span>
             </div>
             {/* "Your services" section label (design refresh). */}
-            <p className="pv-sec-label">Your services</p>
+            <p className="pv-sec-label" id="pv-services">Your services</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {Object.entries(displayData.services || {}).map(
                 ([loc, byDate]: [string, any]) => {

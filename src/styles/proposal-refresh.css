@@ -91,6 +91,33 @@
   .pv-icon-btn:hover { background: rgba(0,55,86,.06); }
   .pv-icon-btn svg { width: 18px; height: 18px; }
 
+  /* ── Hero motion (ported from getshortcut.co web-home.css) ──
+     Headline words rise into place; the service pills drop in from the top
+     of the band and settle with a tilt. */
+  @keyframes pv-h1-word { from { opacity: 0; transform: translateY(26px) } to { opacity: 1; transform: translateY(0) } }
+  .pv-root .pv-h1-w { display: inline-block; opacity: 0; animation: pv-h1-word .82s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes pv-pill-drop {
+    0%   { opacity: 0; transform: translate3d(var(--dx), -560px, 0) rotate(0deg) }
+    6%   { opacity: 1 }
+    18%  { transform: translate3d(var(--dx), -500px, 0) rotate(0deg) }
+    32%  { transform: translate3d(var(--dx), -360px, 0) rotate(calc(var(--tilt) * .4)) }
+    46%  { transform: translate3d(var(--dx), -150px, 0) rotate(calc(var(--tilt) * .8)) }
+    56%  { transform: translate3d(var(--dx), 0, 0) rotate(var(--tilt)) scaleY(1) }
+    60%  { transform: translate3d(var(--dx), 3px, 0) rotate(var(--tilt)) scaleY(.94) }
+    68%  { transform: translate3d(var(--dx), -18px, 0) rotate(var(--tilt)) scaleY(1.01) }
+    77%  { transform: translate3d(var(--dx), 0, 0) rotate(var(--tilt)) scaleY(.99) }
+    83%  { transform: translate3d(var(--dx), -5px, 0) rotate(var(--tilt)) }
+    90%  { transform: translate3d(var(--dx), 0, 0) rotate(var(--tilt)) }
+    100% { opacity: 1; transform: translate3d(var(--dx), 0, 0) rotate(var(--tilt)) }
+  }
+  .pv-root .pv-hero-pill { position: relative; opacity: 0; transform-origin: 50% 100%; animation: pv-pill-drop 2.1s linear both; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 9999px; font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; text-decoration: none; color: var(--sc-navy); box-shadow: 0 6px 16px rgba(3,34,50,.18); transition: translate .45s cubic-bezier(.34,1.56,.64,1), box-shadow .35s ease, filter .35s ease; }
+  .pv-root .pv-hero-pill:hover { translate: 0 -6px; box-shadow: 0 16px 30px rgba(3,34,50,.28); filter: brightness(1.05); z-index: 2; color: var(--sc-navy); }
+  .pv-root .pv-hero-pill svg { transition: transform .5s cubic-bezier(.34,1.56,.64,1); }
+  .pv-root .pv-hero-pill:hover svg { transform: translate(1px,-1px) rotate(-45deg); }
+  @media (prefers-reduced-motion: reduce) {
+    .pv-root .pv-h1-w, .pv-root .pv-hero-pill { animation: none !important; opacity: 1 !important; transform: none !important; }
+  }
+
   /* ── Hero ── */
   .pv-hero { display: flex; align-items: flex-start; gap: 18px; margin-top: 36px; }
   .pv-hero .lt-h1 { font-size: 56px; margin-top: 2px; }
