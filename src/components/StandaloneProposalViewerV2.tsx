@@ -2051,7 +2051,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
           // Website hero: full-bleed navy band; the photo mosaic below laps
           // up over its foot like the design's photo card.
           background: T.navy,
-          padding: isCompact ? '28px 16px 200px' : '150px 24px 344px',
+          // Bottom pad sets the pills-to-gallery gap: the gallery is anchored to
+          // the white band below and pulled up, so the gap is padBottom - 246.
+          // 310 lands it on 64px, matching the 64px that already sits under the
+          // gallery, instead of the 98px this used to run at.
+          padding: isCompact ? '28px 16px 200px' : '150px 24px 310px',
         }}
       >
         <div
@@ -3162,7 +3166,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               Replaces the sidebar WhatsNextCard; post-event-survey step dropped. */}
           <div className="pv-getstarted">
             <p className="pv-sec-label">Getting started</p>
-            <h2 className="lt-h2">You approve. We handle the rest.</h2>
+            <h2 className="lt-h2">You approve. <span className="lt-accent">We handle the rest.</span></h2>
             <div className="pv-steps-grid">
               <div className="pv-step-card">
                 <div className="num">1</div>
