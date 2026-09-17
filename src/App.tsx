@@ -66,6 +66,7 @@ const DraftKingsLVReport = lazy(() => import('./components/DraftKingsLVReport'))
 const DraftKingsSpendReport = lazy(() => import('./components/DraftKingsSpendReport'));
 const BisnowReport = lazy(() => import('./components/BisnowReport'));
 const KeplerReport = lazy(() => import('./components/KeplerReport'));
+const YW3OnePager = lazy(() => import('./components/YW3OnePager'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
@@ -1156,6 +1157,18 @@ function App() {
                     </div>
                   }>
                     <KeplerReport />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/yw3"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <YW3OnePager />
                   </Suspense>
                 }
               />
