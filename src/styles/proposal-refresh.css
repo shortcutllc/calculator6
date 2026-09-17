@@ -437,3 +437,135 @@
   .pv-final-eyebrow { color: var(--sc-aqua); }
   .pv-final-lead { font-size: 17px; font-weight: 500; line-height: 1.5; color: rgba(255,255,255,.86); margin-top: 10px; max-width: 560px; }
   .pv-ask { text-decoration: none; }
+
+  /* ============================================================
+     WHY SHORTCUT — the "What sets Shortcut apart" bento.
+     Ported from getshortcut.co (shortcut/frontend/components/HomeDeliver.vue
+     plus the wd- and mv- art styles in frontend/assets/web-home.css), refitted
+     to the proposal's 860px content column.
+
+     Homepage cards are 608/397 wide; ours are 860 (wide card) and 273 (the
+     three-across row), so the copy scale steps down with the card. The art
+     itself keeps the homepage's own pixel sizes and is scaled from the centre
+     of a clipped well, exactly as the homepage does it.
+     ============================================================ */
+  .pv-bento { margin: 80px 0 0; }
+  /* 48 under a centred two-line heading: the design model's number for the same
+     shape. Getting started's 24 is for a left-aligned single line. */
+  .pv-bento-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 48px; }
+  .pv-bento-head .pv-sec-label { margin: 0; justify-content: center; }
+  .pv-bento-head .lt-h2 { font-size: 44px; line-height: 1.04; margin: 0; }
+
+  .pv-bento-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+
+  /* 340 keeps the homepage card's 397x480 proportion at our 273px width; 400
+     left the map card with a band of dead navy above the artwork. */
+  .pv-bcard { position: relative; border-radius: 28px; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; height: 340px; padding: 26px 26px 0; }
+  .pv-bcard--wide { height: 600px; padding: 40px 40px 0; }
+  .pv-bcard-copy { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+  .pv-bcard-copy h3 { font-family: var(--font-display); margin: 0; font-size: 20px; line-height: 1.15; font-weight: 600; letter-spacing: -0.022em; text-wrap: balance; }
+  .pv-bcard-copy p { font-family: var(--font-display); margin: 0; max-width: 38ch; font-size: 13.5px; line-height: 1.45; font-weight: 500; text-wrap: pretty; }
+  .pv-bcard--wide .pv-bcard-copy { gap: 12px; }
+  .pv-bcard--wide .pv-bcard-copy h3 { font-size: 26px; }
+  .pv-bcard--wide .pv-bcard-copy p { font-size: 16px; line-height: 1.5; }
+  /* Art bleeds to the card edges; the card's overflow clips whatever runs over. */
+  .pv-bcard-art { position: relative; flex: 1; min-height: 0; margin: 0 -26px; }
+  /* Wide card: the art hangs from a fixed offset and runs off the bottom edge,
+     which is what the homepage does (its dashboard clips by ~19px). Centring it
+     in the leftover well instead pushes it up into the copy. */
+  .pv-bcard--wide .pv-bcard-art { position: absolute; inset: 0; margin: 0; flex: none; }
+
+  .pv-bcard--yellow { background: var(--sc-yellow); }
+  .pv-bcard--yellow h3 { color: var(--sc-navy); } .pv-bcard--yellow p { color: var(--sw-ink-soft); }
+  .pv-bcard--aqua { background: var(--sc-aqua); }
+  .pv-bcard--aqua h3 { color: var(--sc-navy); } .pv-bcard--aqua p { color: var(--sw-ink-soft); }
+  .pv-bcard--navy { background: var(--sc-navy); }
+  .pv-bcard--navy h3 { color: #fff; } .pv-bcard--navy p { color: rgba(255,255,255,.78); }
+  .pv-bcard--coral { background: var(--sc-coral); }
+  .pv-bcard--coral h3 { color: #fff; } .pv-bcard--coral p { color: #fff; }
+
+  /* ── Manager view (mv-*) ── */
+  .pv-bento .mv-card { position: absolute; left: 50%; top: 200px; transform: translateX(-50%) scale(.9); transform-origin: 50% 0; width: 372px; box-sizing: border-box; background: #fff; border-radius: 26px; padding: 24px 26px 26px; box-shadow: 0 20px 48px rgba(3,34,50,.26), 0 3px 10px rgba(3,34,50,.12); }
+  .pv-bento .mv-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+  .pv-bento .mv-hd-t { display: block; font-size: 16px; font-weight: 800; letter-spacing: -0.018em; color: var(--sc-navy); }
+  .pv-bento .mv-hd-s { display: block; margin-top: 3px; font-size: 13px; font-weight: 600; color: var(--sw-ink-meta); }
+  .pv-bento .mv-live { height: 26px; display: inline-flex; align-items: center; padding: 0 11px; border-radius: 9999px; background: #E7F7EE; font-size: 11.5px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; color: #08694A; white-space: nowrap; }
+  .pv-bento .mv-stat { margin-top: 20px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .pv-bento .mv-stat-n { font-size: 30px; line-height: 1; font-weight: 800; letter-spacing: -0.032em; color: var(--sc-navy); }
+  .pv-bento .mv-stat-l { font-size: 16px; font-weight: 700; color: var(--sw-ink-meta); }
+  .pv-bento .mv-stat-p { font-size: 13px; font-weight: 700; color: #0098AD; }
+  .pv-bento .mv-bar { position: relative; height: 7px; border-radius: 9999px; background: var(--sc-gray-200); overflow: hidden; margin-top: 12px; }
+  .pv-bento .mv-bar i { position: absolute; inset: 0; border-radius: 9999px; background: #0098AD; transform-origin: left center; transform: scaleX(0); animation: pv-mv-fill 6s cubic-bezier(.22,1,.36,1) infinite; }
+  .pv-bento .mv-rows { margin-top: 18px; display: flex; flex-direction: column; }
+  .pv-bento .mv-row { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid rgba(0,55,86,.09); }
+  .pv-bento .mv-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .pv-bento .mv-av { width: 28px; height: 28px; flex: none; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; letter-spacing: -0.01em; color: var(--sc-navy); }
+  .pv-bento .mv-name { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: var(--sc-navy); }
+  .pv-bento .mv-slot { font-size: 13px; font-weight: 600; color: var(--sw-ink-meta); }
+  .pv-bento .mv-tick { width: 19px; height: 19px; flex: none; border-radius: 9999px; background: var(--sc-navy); display: flex; align-items: center; justify-content: center; opacity: 0; animation: pv-mv-tick 6s cubic-bezier(.34,1.56,.64,1) infinite; }
+  .pv-bento .mv-tick svg { display: block; width: 11px; height: 11px; }
+  .pv-bento .mv-foot { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(0,55,86,.12); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .pv-bento .mv-foot-l { font-size: 13px; font-weight: 600; color: var(--sw-ink-meta); }
+  .pv-bento .mv-foot-b { height: 34px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 9999px; background: var(--sc-navy); color: #fff; font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+  @keyframes pv-mv-fill { 0%,6% { transform: scaleX(.12) } 58%,90% { transform: scaleX(.7) } 97%,100% { transform: scaleX(.12) } }
+  @keyframes pv-mv-tick { 0%,4% { opacity: 0; transform: scale(.3) } 11%,90% { opacity: 1; transform: scale(1) } 97%,100% { opacity: 0; transform: scale(.3) } }
+
+  /* ── Pro cutout ── */
+  .pv-bento .wd-photo { position: absolute; inset: 0; display: block; background-image: url('/proposal-refresh/bento/pros-cutout.webp'); background-size: auto 98%; background-position: center bottom; background-repeat: no-repeat; }
+
+  /* ── Coverage map ── */
+  .pv-bento .wd-map { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 100%; aspect-ratio: 960/593; }
+  .pv-bento .wd-map img { width: 100%; height: 100%; display: block; }
+  .pv-bento .wd-pin { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 9999px; background: var(--sc-coral); opacity: 0; animation: pv-pin-in .55s cubic-bezier(.34,1.56,.64,1) both, pv-pin-pulse 2.8s ease-in-out infinite; }
+  .pv-bento .wd-pin::after { content: ''; position: absolute; inset: -3.5px; border-radius: 9999px; background: var(--sc-coral); opacity: .28; animation: pv-pin-halo 2.8s ease-in-out infinite; }
+  @keyframes pv-pin-in { from { opacity: 0; transform: scale(.2) } to { opacity: 1; transform: scale(1) } }
+  @keyframes pv-pin-pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.18) } }
+  @keyframes pv-pin-halo { 0%,100% { transform: scale(.85); opacity: .30 } 50% { transform: scale(1.35); opacity: .05 } }
+
+  /* ── Setup checklist. The card is 352px by design; the well is 273, so it is
+       scaled from the centre rather than re-typeset at a smaller size. ── */
+  .pv-bento .wd-mf { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(.72); width: 352px; box-sizing: border-box; background: #fff; border-radius: 26px; padding: 24px 26px 26px; box-shadow: 0 20px 48px rgba(3,34,50,.26), 0 3px 10px rgba(3,34,50,.12); }
+  .pv-bento .wd-mf-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .pv-bento .wd-mf-t { font-size: 15px; font-weight: 800; letter-spacing: -0.015em; color: var(--sc-navy); }
+  .pv-bento .wd-mf-c { font-size: 12.5px; font-weight: 700; color: var(--sw-ink-soft); }
+  .pv-bento .wd-mf-bar { position: relative; height: 5px; border-radius: 9999px; background: var(--sc-gray-200); overflow: hidden; margin: 12px 0 6px; }
+  .pv-bento .wd-mf-bar i { position: absolute; inset: 0; border-radius: 9999px; background: #0098AD; transform-origin: left center; transform: scaleX(0); animation: pv-mf-bar 6s cubic-bezier(.22,1,.36,1) infinite; }
+  .pv-bento .wd-mf-row { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid rgba(0,55,86,.09); }
+  .pv-bento .wd-mf-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .pv-bento .wd-mf-tick { width: 21px; height: 21px; flex: none; border-radius: 9999px; background: var(--sc-navy); display: flex; align-items: center; justify-content: center; opacity: 0; animation: pv-mf-tick 6s cubic-bezier(.34,1.56,.64,1) infinite; }
+  .pv-bento .wd-mf-tick svg { display: block; width: 12px; height: 12px; }
+  .pv-bento .wd-mf-l { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--sc-navy); }
+  @keyframes pv-mf-tick { 0%,6% { opacity: 0; transform: scale(.35) } 13%,90% { opacity: 1; transform: scale(1) } 97%,100% { opacity: 0; transform: scale(.35) } }
+  @keyframes pv-mf-bar { 0%,6% { transform: scaleX(0) } 55%,90% { transform: scaleX(1) } 97%,100% { transform: scaleX(0) } }
+
+  /* Nothing loops until the band is on screen, so no one lands mid-cycle. */
+  .pv-bento:not(.is-in) .mv-bar i,
+  .pv-bento:not(.is-in) .mv-tick,
+  .pv-bento:not(.is-in) .wd-mf-bar i,
+  .pv-bento:not(.is-in) .wd-mf-tick,
+  .pv-bento:not(.is-in) .wd-pin,
+  .pv-bento:not(.is-in) .wd-pin::after { animation-play-state: paused !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pv-bento .mv-bar i, .pv-bento .mv-tick,
+    .pv-bento .wd-mf-bar i, .pv-bento .wd-mf-tick,
+    .pv-bento .wd-pin, .pv-bento .wd-pin::after { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .pv-bento .wd-mf { transform: translate(-50%,-50%) scale(.72) !important; }
+    .pv-bento .wd-map { transform: translate(-50%,-50%) !important; }
+  }
+
+  @media (max-width: 980px) {
+    .pv-bento-row { grid-template-columns: 1fr; }
+    .pv-bcard, .pv-bcard--wide { height: auto; padding: 28px 24px 0; }
+    .pv-bcard-art { height: 300px; flex: none; margin: 0 -24px; }
+    /* The wide card's art is absolute on desktop so it can hang off the bottom
+       edge. Stacked, that leaves the card with no height at all, so it goes
+       back into flow with a well of its own. */
+    .pv-bcard--wide .pv-bcard-art { position: relative; inset: auto; height: 420px; margin: 0 -24px; }
+    .pv-bento .mv-card { top: 50%; transform: translate(-50%,-50%) scale(.8); transform-origin: 50% 50%; }
+    .pv-bcard-copy h3, .pv-bcard--wide .pv-bcard-copy h3 { font-size: 22px; }
+    .pv-bcard-copy p, .pv-bcard--wide .pv-bcard-copy p { font-size: 15px; }
+    .pv-bento .wd-mf { transform: translate(-50%,-50%) scale(.82); }
+    /* Full-bleed width would make the map 526px tall in a 300px well. */
+    .pv-bento .wd-map { width: auto; height: 88%; }
+  }

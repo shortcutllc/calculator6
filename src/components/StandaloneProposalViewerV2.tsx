@@ -59,7 +59,7 @@ import {
   SERVICE_CONTENT as SERVICE_CONTENT_MAP,
   FACILITATOR_KIRSTEN,
 } from './proposal/sections/serviceContent';
-import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
+import WhyShortcutBento from './proposal/sections/WhyShortcutBento';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 
 
@@ -3186,12 +3186,11 @@ const StandaloneProposalViewerV2: React.FC = () => {
             </div>
           </div>
 
-          {/* Why Shortcut — variant resolves from serviceTypes (single service,
-              multi-service unified, or CLE). Sits after Getting started, before
-              the final CTA (design order). */}
-          {serviceTypes.length > 0 && (
-            <WhyShortcutSection serviceTypes={serviceTypes} />
-          )}
+          {/* Why Shortcut — the homepage's "What sets Shortcut apart" bento.
+              Brand-level, so it no longer varies by serviceTypes the way the
+              old bullet card did. Sits after Getting started, before the final
+              CTA (design order). */}
+          <WhyShortcutBento />
 
           {/* Approve CTA — pre-approval is the call-to-action; post-approval
               the same card flips to a success state with the option to fill
