@@ -156,9 +156,12 @@ export const StatusPill: React.FC<StatusPillProps> = ({ status, size = 'md' }) =
         letterSpacing: '.02em',
       }}
     >
-      <span
-        style={{ width: 7, height: 7, borderRadius: '50%', background: t.dot }}
-      />
+      {/* The 44px bar pill is text only, like the design; the compact pill keeps its dot. */}
+      {size !== 'lg' && (
+        <span
+          style={{ width: 7, height: 7, borderRadius: '50%', background: t.dot }}
+        />
+      )}
       {t.label}
     </span>
   );

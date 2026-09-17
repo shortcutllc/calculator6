@@ -28,7 +28,7 @@
 .lt-btn-secondary { background: transparent; color: var(--sc-navy); border: 1px solid rgba(0,55,86,.22); }
 .lt-btn-secondary:hover { background: rgba(0,55,86,.06); }
 .lt-btn-sm { height: 44px; padding: 0 22px; font-size: 14.5px; }
-.lt-btn-ghost.lt-btn-sm, .lt-btn-ghost-w.lt-btn-sm { padding: 0 18px; font-size: 14px; }
+.lt-btn-ghost.lt-btn-sm, .lt-btn-ghost-w.lt-btn-sm { padding: 0 18px; font-size: 14px; gap: 8px; }
 .lt-btn-block { width: 100%; }
 .lt-card { background: #fff; border-radius: 28px; padding: 32px; border: 1px solid var(--sw-rule); box-shadow: var(--shadow-card-soft); }
 .lt-eyebrow { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sw-ink-meta); margin: 0 0 10px; }
@@ -82,9 +82,9 @@
   .pv-header-inner { max-width: 1200px; margin: 0 auto; padding: 13px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   .pv-brand { display: flex; align-items: center; gap: 14px; }
   .pv-partner { height: 26px; display: block; }
-  .pv-brand-divider { width: 1px; height: 24px; background: rgba(0,0,0,0.1); }
-  .pv-powered { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--sw-ink-meta); }
-  .pv-powered img { height: 16px; display: block; }
+  .pv-brand-divider { width: 1px; height: 18px; background: rgba(0,55,86,0.18); }
+  .pv-powered { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--sw-ink-meta); }
+  .pv-powered img { height: 18px; display: block; }
   .pv-header-actions { display: flex; align-items: center; gap: 12px; }
   .pv-pill-pending { display: inline-flex; align-items: center; gap: 8px; height: 44px; font-family: var(--font-display); font-weight: 800; font-size: 14.5px; letter-spacing: 0.02em; background: var(--sc-yellow); color: var(--sc-navy); border-radius: 9999px; padding: 0 20px; }
   .pv-pill-pending .dot { width: 7px; height: 7px; border-radius: 9999px; background: var(--sc-navy); }

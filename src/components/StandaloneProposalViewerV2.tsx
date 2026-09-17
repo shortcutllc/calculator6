@@ -1854,14 +1854,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 className="pv-partner"
                 src={clientLogoUrl}
                 alt={clientName || 'Client'}
-                style={{ height: 22, width: 'auto', display: 'block', flexShrink: 0 }}
+                style={{ height: 24, width: 'auto', display: 'block', flexShrink: 0 }}
               />
             ) : (
               <span
                 style={{
                   fontFamily: T.fontD,
                   fontWeight: 800,
-                  fontSize: 16,
+                  fontSize: 17,
                   letterSpacing: '-0.02em',
                   color: T.navy,
                   whiteSpace: 'nowrap',
