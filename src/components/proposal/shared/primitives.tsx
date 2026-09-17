@@ -53,23 +53,12 @@ export const Eyebrow: React.FC<EyebrowProps> = ({ children, color, style }) => (
       fontFamily: T.fontD,
       fontWeight: 800,
       fontSize: 12,
-      color: color || T.navy,
+      color: color || T.fgMuted,
       textTransform: 'uppercase',
       letterSpacing: '0.09em',
       ...style,
     }}
   >
-    {/* Website kicker: coral dot before the label (aqua when the label is on navy). */}
-    <span
-      aria-hidden
-      style={{
-        width: 7,
-        height: 7,
-        flex: 'none',
-        borderRadius: 9999,
-        background: color === '#fff' || color === T.aqua ? T.aqua : T.coral,
-      }}
-    />
     {children}
   </div>
 );
@@ -523,15 +512,16 @@ export const CollapseHead: React.FC<CollapseHeadProps> = ({ open, onClick, left,
       onClick={onClick}
       style={{
         width: '100%',
-        padding: isCompact ? '14px 16px' : '18px 22px',
+        padding: isCompact ? '0 0 14px' : '0 0 18px',
         background: 'transparent',
-        border: '1px solid rgba(0,0,0,0.08)',
-        borderRadius: 16,
+        border: 'none',
+        borderBottom: '1px solid rgba(0,55,86,0.14)',
+        borderRadius: 0,
         display: 'flex',
         // Phones: stack the right-rail stats below the title so a multi-
         // stat right cluster doesn't shove the title off-screen.
         flexDirection: isCompact ? 'column' : 'row',
-        alignItems: isCompact ? 'stretch' : 'center',
+        alignItems: isCompact ? 'stretch' : 'flex-end',
         justifyContent: 'space-between',
         cursor: 'pointer',
         textAlign: 'left',
@@ -543,8 +533,10 @@ export const CollapseHead: React.FC<CollapseHeadProps> = ({ open, onClick, left,
           style={{
             width: 28,
             height: 28,
-            borderRadius: 8,
+            borderRadius: 9999,
             background: open ? T.aqua : T.lightGray,
+            alignSelf: 'flex-start',
+            marginTop: 2,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

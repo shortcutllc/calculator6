@@ -2359,25 +2359,6 @@ const StandaloneProposalViewerV2: React.FC = () => {
             {/* Savings callout (design refresh) — recurring-volume framing.
                 Uses the repeat icon + "make it recurring" copy to match the
                 reference + the mobile viewer. */}
-            <div className="pv-savings" style={{ marginBottom: 0 }}>
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#1E9E6A"
-                strokeWidth={2.2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="m17 2 4 4-4 4" />
-                <path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4" />
-                <path d="M21 13v1a4 4 0 0 1-4 4H3" />
-              </svg>
-              <span className="txt">
-                Sign up for more, save more. Commit to 4 events a year and{' '}
-                <strong>save 10%</strong>, or go with 9 and <strong>save 15%</strong>.
-              </span>
-            </div>
             {/* Intro meta-row (reference `.pv-meta-row`): date · location · appts. */}
             <div className="pv-meta-row">
               {proposalDateLabel && (
@@ -2404,6 +2385,25 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   appointments
                 </span>
               )}
+            </div>
+            <div className="pv-savings" style={{ marginBottom: 0 }}>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#1E9E6A"
+                strokeWidth={2.2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="m17 2 4 4-4 4" />
+                <path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4" />
+                <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+              </svg>
+              <span className="txt">
+                Sign up for more, save more. Commit to 4 events a year and{' '}
+                <strong>save 10%</strong>, or go with 9 and <strong>save 15%</strong>.
+              </span>
             </div>
             {/* "Your services" section label (design refresh). */}
             <p className="pv-sec-label">Your services</p>
@@ -2457,18 +2457,18 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                 marginBottom: 2,
                               }}
                             >
-                              <MapPin size={14} color={T.fgMuted} />
                               <Eyebrow>Location</Eyebrow>
                             </div>
-                            <CardHeading size="item">{loc}</CardHeading>
+                            <CardHeading size="item" style={{ fontSize: 30, letterSpacing: '-0.03em', lineHeight: 1.1, marginTop: 8 }}>{loc}</CardHeading>
                             {officeAddress && (
                               <div
                                 style={{
                                   fontFamily: T.fontD,
-                                  fontSize: 13,
+                                  fontSize: 15,
+                                  fontWeight: 500,
                                   color: T.fgMuted,
-                                  marginTop: 4,
-                                  lineHeight: 1.4,
+                                  marginTop: 8,
+                                  lineHeight: 1.5,
                                 }}
                               >
                                 {officeAddress}
@@ -2480,29 +2480,22 @@ const StandaloneProposalViewerV2: React.FC = () => {
                           <>
                             <span
                               style={{
-                                fontFamily: T.fontUi,
-                                fontSize: 12,
-                                color: T.fgMuted,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                height: 36,
+                                padding: '0 15px',
+                                borderRadius: 9999,
+                                background: T.yellow,
+                                color: T.navy,
+                                fontFamily: T.fontD,
+                                fontWeight: 800,
+                                fontSize: 14,
+                                letterSpacing: '-0.01em',
+                                whiteSpace: 'nowrap',
                               }}
                             >
-                              {dateCount} date{dateCount === 1 ? '' : 's'}
-                            </span>
-                            <span
-                              style={{
-                                width: 4,
-                                height: 4,
-                                borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.2)',
-                              }}
-                            />
-                            <span
-                              style={{
-                                fontFamily: T.fontUi,
-                                fontSize: 12,
-                                color: T.fgMuted,
-                              }}
-                            >
-                              {locUnlimited ? '∞' : locAppts.toLocaleString('en-US')} appts
+                              {dateCount} date{dateCount === 1 ? '' : 's'} · {locUnlimited ? '∞' : locAppts.toLocaleString('en-US')} appts
                             </span>
                             {/* Per-location subtotal only when there's more
                                 than one location — for a single-location

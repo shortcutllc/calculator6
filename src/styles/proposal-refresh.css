@@ -30,8 +30,7 @@
 .lt-btn-sm { height: 44px; padding: 0 22px; font-size: 14.5px; }
 .lt-btn-block { width: 100%; }
 .lt-card { background: #fff; border-radius: 28px; padding: 32px; border: 1px solid var(--sw-rule); box-shadow: var(--shadow-card-soft); }
-.lt-eyebrow { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sc-navy); margin: 0 0 10px; }
-.lt-eyebrow::before { content: ''; width: 7px; height: 7px; flex: none; border-radius: 9999px; background: var(--sc-coral); }
+.lt-eyebrow { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sw-ink-meta); margin: 0 0 10px; }
 .lt-h1 { font-family: var(--font-display); font-weight: 600; font-size: 56px; line-height: 1.06; letter-spacing: -0.03em; color: var(--sc-navy); margin: 0; }
 .lt-h2 { font-family: var(--font-display); font-weight: 700; font-size: 44px; line-height: 1.05; letter-spacing: -0.035em; color: var(--sc-navy); margin: 0; text-wrap: balance; }
 .lt-h3 { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.1; letter-spacing: -0.025em; color: var(--sc-navy); margin: 0; }
@@ -119,15 +118,17 @@
   .pv-savings svg { width: 18px; height: 18px; stroke: var(--status-success); fill: none; flex-shrink: 0; }
   .pv-savings .txt { font-family: var(--font-display); font-size: 15px; font-weight: 500; line-height: 1.4; color: var(--sc-navy); }
   .pv-savings .txt strong { font-weight: 700; color: var(--status-success); }
-  .pv-meta-row { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--sw-rule); }
+  .pv-meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .pv-meta-row .lt-meta { height: 40px; padding: 0 20px; border-radius: 9999px; background: var(--sc-light-gray); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--sc-navy); }
+  .pv-meta-row .lt-meta svg { display: none; }
+  .pv-meta-row + .pv-savings { margin-top: 20px; }
 
   /* ── Two-col ── */
   .pv-cols { display: grid; grid-template-columns: 1fr 372px; gap: 32px; align-items: flex-start; margin-top: 40px; }
   /* Renamed from .pv-section-label to avoid colliding with the app's existing
      .pv-section-label (proposal-viewer.css — a space-between eyebrow/heading row). */
-  .pv-sec-label { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sc-navy); display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin: 80px 0 20px; }
+  .pv-sec-label { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sw-ink-meta); display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin: 80px 0 20px; }
   .pv-sec-label:first-child { margin-top: 0; }
-  .pv-sec-label::before { content: ""; width: 7px; height: 7px; border-radius: 9999px; background: var(--sc-coral); flex-shrink: 0; }
 
   /* location header */
   .pv-loc { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid var(--sw-rule); border-radius: 28px; padding: 20px 24px; box-shadow: var(--shadow-card-soft); margin-bottom: 24px; }
@@ -141,7 +142,7 @@
 
   .pv-day { margin-bottom: 32px; }
   .pv-day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-  .pv-day-head h3 { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; margin: 0; }
+  .pv-day-head h3 { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -0.02em; margin: 0; }
   .pv-day-head .sub { font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--sw-ink-meta); }
 
   /* service card */
@@ -184,8 +185,7 @@
   /* pricing options — integrated "configure" band at the foot of the card */
   .pv-pricing { background: #F8FBFA; border-top: 1px solid rgba(0,55,86,0.1); padding: 22px 30px 28px; }
   .pv-pricing-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .pv-pricing-head .lbl { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sc-navy); }
-  .pv-pricing-head .lbl::before { content: ""; width: 7px; height: 7px; border-radius: 9999px; background: var(--sc-coral); }
+  .pv-pricing-head .lbl { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sw-ink-meta); }
   .pv-pricing-head .hint { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--sw-ink-meta); }
   .pv-popt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .pv-popt { position: relative; background: #fff; text-align: left; border: 2px solid var(--sw-rule); border-radius: 16px; padding: 18px 20px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; transition: border-color .18s, box-shadow .18s, transform .18s; }
@@ -247,7 +247,6 @@
   .pv-final { border: none; border-radius: 28px; padding: 48px 52px; margin-top: 80px; background: var(--sc-navy); color: #fff; box-shadow: var(--shadow-navy); }
   .pv-final .lt-h2 { font-size: 44px; color: #fff; margin-top: 10px; }
   .pv-final .lt-eyebrow { color: var(--sc-aqua); }
-  .pv-final .lt-eyebrow::before { background: var(--sc-aqua); }
   .pv-final-actions { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
 
   /* ── Sidebar ── */
