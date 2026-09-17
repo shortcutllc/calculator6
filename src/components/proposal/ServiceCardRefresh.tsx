@@ -17,6 +17,7 @@ import {
   SERVICE_IMAGE_PATH,
   SERVICE_GALLERY,
   formatCurrency,
+  formatProsHours,
 } from './data';
 
 // ServiceCardRefresh — the "Proposal V2 Refresh" service card (design handoff:
@@ -53,6 +54,7 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
     autoRecurringDiscount,
     onSelectPricingOption,
     editing,
+    showHours = false,
   } = props;
 
   const [descExpanded, setDescExpanded] = useState(false);
@@ -227,6 +229,14 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
                   ? `Appointments · ${service.appTime} min each`
                   : 'Appointments'}
               </div>
+              {showHours && !isFlatClass && (
+                <div className="pv-metric-sub">
+                  {formatProsHours(
+                    service.pricingOptions?.[service.selectedOption || 0]?.numPros ?? service.numPros,
+                    service.pricingOptions?.[service.selectedOption || 0]?.totalHours ?? service.totalHours
+                  )}
+                </div>
+              )}
             </div>
             <div className="pv-cost">
               {service.originalServiceCost &&
@@ -306,6 +316,9 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
                   )}
                   {(opt.appTime ?? service.appTime) != null && (
                     <div className="pv-popt-len">{opt.appTime ?? service.appTime} min each</div>
+                  )}
+                  {showHours && formatProsHours(opt.numPros, opt.totalHours) && (
+                    <div className="pv-popt-len">{formatProsHours(opt.numPros, opt.totalHours)}</div>
                   )}
                   <div className="pv-popt-price">
                     <span className="v">{formatCurrency(finalPrice)}</span>

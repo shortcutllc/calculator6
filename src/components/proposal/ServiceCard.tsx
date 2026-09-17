@@ -22,6 +22,7 @@ import {
   SERVICE_CHIP_COLORS,
   SERVICE_GALLERY,
   formatCurrency,
+  formatProsHours,
 } from './data';
 import { SERVICE_CONTENT } from './sections/serviceContent';
 import { ServiceDayDetails } from './sections/ServiceDetailsSection';
@@ -87,6 +88,8 @@ export interface ServiceCardProps {
   service: ServiceCardService;
   /** Inline-edit mode for staff/admin */
   editing?: boolean;
+  /** Show Pros and hours on the card face and every option tile (staff toggle). */
+  showHours?: boolean;
   /** Field change handler used by Editable inputs */
   onFieldChange?: (field: keyof ServiceCardService, value: any) => void;
   /** Pricing-options selection handler */
@@ -143,6 +146,7 @@ const formatLabel = (format?: string): string => {
 const ServiceCard: React.FC<ServiceCardProps> = ({
   service,
   editing = false,
+  showHours = false,
   onFieldChange,
   onSelectPricingOption,
   onEditPricingOption,
@@ -803,6 +807,18 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 ? `appointments · ${service.appTime} min each`
                 : 'appointments'}
             </span>
+            {showHours && !isFlatClass && formatProsHours(displayPros, displayHours) && (
+              <span
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: T.fgMuted,
+                }}
+              >
+                {formatProsHours(displayPros, displayHours)}
+              </span>
+            )}
           </div>
 
           {/* Admin edit grid — staff-only. Shown only in edit mode so staff
@@ -1043,6 +1059,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             autoRecurringDiscount={autoRecurringDiscount}
             appTime={service.appTime}
             flatPrice={isFlatClass}
+            showHours={showHours}
           />
         </div>
       ) : null}

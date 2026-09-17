@@ -1380,7 +1380,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
                           onChangeMassageType={(type) =>
                             handleChangeMassageType(loc, date, idx, type)
                           }
-                          galleryImages={toStripImages(galleryByService[service.serviceType])}
+                          showHours={displayData?.showHours === true}
+                                        galleryImages={toStripImages(galleryByService[service.serviceType])}
                           autoRecurringDiscount={displayData?.autoRecurringDiscount}
                           onSelectPricingOption={(optIdx) =>
                             handleSelectPricingOption(loc, date, idx, optIdx)
@@ -2693,6 +2694,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                         onChangeMassageType={(type) =>
                                           handleChangeMassageType(loc, date, idx, type)
                                         }
+                                        showHours={displayData?.showHours === true}
                                         galleryImages={toStripImages(galleryByService[service.serviceType])}
                                         autoRecurringDiscount={displayData?.autoRecurringDiscount}
                                         internalView={false}

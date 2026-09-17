@@ -821,6 +821,17 @@ const ProposalViewerV2: React.FC = () => {
     setDisplayData({ ...updated });
   };
 
+  // Toggle "Show hours to the client": Pros and hours appear on every
+  // client-facing service card and option tile next to the appointment
+  // count. Stored on the proposal data so the client viewer can read it.
+  const handleSetShowHours = (next: boolean) => {
+    if (!editedData || !isEditing) return;
+    const updated: any = { ...editedData };
+    updated.showHours = next ? true : undefined;
+    setEditedData({ ...updated });
+    setDisplayData({ ...updated });
+  };
+
   const handleSetOptionsSelectedDefault = (
     loc: string,
     date: string,
@@ -3280,6 +3291,101 @@ const ProposalViewerV2: React.FC = () => {
                 }}
               >
                 Every service starts <strong>unselected</strong> on the client view so the price is $0 until they opt services in. Use this when you're sending a menu, not a fixed bundle.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* "Show hours to the client" toggle. */}
+        {isEditing && (
+          <div
+            style={{
+              marginTop: 20,
+              padding: '14px 16px',
+              background: '#fff',
+              border: '1.5px dashed rgba(0,0,0,0.12)',
+              borderRadius: 12,
+              maxWidth: 720,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 14,
+            }}
+          >
+            <label
+              htmlFor="show-hours-toggle"
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                width: 38,
+                height: 22,
+                flexShrink: 0,
+                marginTop: 2,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                id="show-hours-toggle"
+                type="checkbox"
+                checked={editedData?.showHours === true}
+                onChange={(e) =>
+                  handleSetShowHours(e.target.checked)
+                }
+                style={{
+                  opacity: 0,
+                  width: 0,
+                  height: 0,
+                  position: 'absolute',
+                }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background:
+                    editedData?.showHours === true
+                      ? T.success
+                      : 'rgba(0,0,0,0.2)',
+                  borderRadius: 22,
+                  transition: 'background .15s',
+                }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: editedData?.showHours === true ? 18 : 2,
+                  width: 18,
+                  height: 18,
+                  background: '#fff',
+                  borderRadius: '50%',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  transition: 'left .15s',
+                }}
+              />
+            </label>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: T.fgMuted,
+                  marginBottom: 4,
+                }}
+              >
+                Show hours to the client
+              </div>
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 13,
+                  color: T.navy,
+                  lineHeight: 1.45,
+                }}
+              >
+                Each service card and every pricing option shows <strong>Pros and hours</strong> on the client view, next to the appointment count. Off by default so clients compare appointments and price.
               </div>
             </div>
           </div>

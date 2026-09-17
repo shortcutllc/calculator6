@@ -271,6 +271,20 @@ export const FREQ_OPTIONS: Array<{ value: number; label: string }> = [
   { value: 12, label: 'Monthly' },
 ];
 
+/** "4.17 hrs" / "1 hr": hours rounded to two decimals, trailing zeros dropped. */
+export const formatHours = (h: number): string => {
+  const r = Math.round(h * 100) / 100;
+  return `${r} ${r === 1 ? 'hr' : 'hrs'}`;
+};
+
+/** "2 Pros · 4.17 hrs" for the client-facing cards when staff turn hours on. */
+export const formatProsHours = (pros?: number, hours?: number): string => {
+  const parts: string[] = [];
+  if (typeof pros === 'number' && pros > 0) parts.push(`${pros} ${pros === 1 ? 'Pro' : 'Pros'}`);
+  if (typeof hours === 'number' && hours > 0) parts.push(formatHours(hours));
+  return parts.join(' · ');
+};
+
 export const formatCurrency = (n: number): string =>
   '$' +
   (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });

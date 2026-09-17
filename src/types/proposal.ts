@@ -168,6 +168,8 @@ export interface ProposalData {
   summary: ProposalSummary;
   // New field for pricing options support
   hasPricingOptions?: boolean;
+  /** Staff toggle: show Pros and hours on the client-facing service cards and option tiles. */
+  showHours?: boolean;
   // Auto-recurring: automatically applied when 4+ unique dates exist
   isAutoRecurring?: boolean;
   autoRecurringDiscount?: number; // 10% for 4-8 dates, 15% for 9+ dates
@@ -261,6 +263,8 @@ export interface Proposal {
   pricingOptions?: { [key: string]: any };
   selectedOptions?: { [key: string]: any };
   hasPricingOptions?: boolean;
+  /** Staff toggle: show Pros and hours on the client-facing service cards and option tiles. */
+  showHours?: boolean;
   // New fields for proposal groups/options
   proposalGroupId?: string | null;
   optionName?: string | null;

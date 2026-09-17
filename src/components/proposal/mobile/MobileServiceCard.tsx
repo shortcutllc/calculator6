@@ -13,6 +13,7 @@ import {
   SERVICE_IMAGE_PATH,
   SERVICE_GALLERY,
   formatCurrency,
+  formatProsHours,
 } from '../data';
 
 // MobileServiceCard — the stacked (photo-on-top) mobile rendering of a service,
@@ -200,6 +201,14 @@ const MobileServiceCard: React.FC<MobileServiceCardProps> = (props) => {
                 ? `Appts · ${service.appTime} min each`
                 : 'Appointments'}
             </div>
+            {props.showHours && !isFlatClass && (
+              <div className="pvm-metric-sub">
+                {formatProsHours(
+                  opts[service.selectedOption || 0]?.numPros ?? service.numPros,
+                  opts[service.selectedOption || 0]?.totalHours ?? service.totalHours
+                )}
+              </div>
+            )}
           </div>
           <div className="pvm-cost">
             {service.originalServiceCost &&
@@ -285,6 +294,9 @@ const MobileServiceCard: React.FC<MobileServiceCardProps> = (props) => {
                     {opt.totalAppointments != null ? `${opt.totalAppointments} appts` : ''}
                     {(opt.appTime ?? service.appTime) != null
                       ? ` · ${opt.appTime ?? service.appTime} min each`
+                      : ''}
+                    {props.showHours && formatProsHours(opt.numPros, opt.totalHours)
+                      ? ` · ${formatProsHours(opt.numPros, opt.totalHours)}`
                       : ''}
                   </div>
                 </div>

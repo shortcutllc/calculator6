@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, Plus, Trash2 } from 'lucide-react';
 import { Eyebrow, T } from './shared/primitives';
-import { formatCurrency } from './data';
+import { formatCurrency, formatProsHours } from './data';
 
 // Pricing options selector — renders the in-service variant tiles (e.g.
 // Half day / Full day / Full day + extra therapist). Selected tile gets a
@@ -54,6 +54,8 @@ interface PricingOptionsSelectorProps {
    *  These cost a fixed price per session rather than hours × rate × pros, so
    *  the editor swaps the Hours/Pros/$-per-hour inputs for Price + Length. */
   flatPrice?: boolean;
+  /** Show Pros and hours under each tile's appointment count (staff toggle). */
+  showHours?: boolean;
 }
 
 const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
@@ -70,6 +72,7 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
   autoRecurringDiscount,
   appTime,
   flatPrice = false,
+  showHours = false,
 }) => {
   // Clamp to a sane range; treat 0/undefined/negative as "no recurring".
   const recurringPct = Math.max(0, Math.min(99, Number(autoRecurringDiscount) || 0));
@@ -486,6 +489,18 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                         }}
                       >
                         {appTime} min each
+                      </div>
+                    )}
+                    {showHours && !flatPrice && formatProsHours(opt.numPros, opt.totalHours) && (
+                      <div
+                        style={{
+                          fontFamily: T.fontD,
+                          fontSize: 12,
+                          color: T.fgMuted,
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {formatProsHours(opt.numPros, opt.totalHours)}
                       </div>
                     )}
                   </div>
