@@ -806,19 +806,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 : service.appTime
                 ? `appointments · ${service.appTime} min each`
                 : 'appointments'}
+              {showHours && !isFlatClass && formatProsHours(displayPros, displayHours)
+                ? ` · ${formatProsHours(displayPros, displayHours)}`
+                : ''}
             </span>
-            {showHours && !isFlatClass && formatProsHours(displayPros, displayHours) && (
-              <span
-                style={{
-                  fontFamily: T.fontD,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: T.fgMuted,
-                }}
-              >
-                {formatProsHours(displayPros, displayHours)}
-              </span>
-            )}
           </div>
 
           {/* Admin edit grid — staff-only. Shown only in edit mode so staff

@@ -489,18 +489,9 @@ const PricingOptionsSelector: React.FC<PricingOptionsSelectorProps> = ({
                         }}
                       >
                         {appTime} min each
-                      </div>
-                    )}
-                    {showHours && !flatPrice && formatProsHours(opt.numPros, opt.totalHours) && (
-                      <div
-                        style={{
-                          fontFamily: T.fontD,
-                          fontSize: 12,
-                          color: T.fgMuted,
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {formatProsHours(opt.numPros, opt.totalHours)}
+                        {showHours && !flatPrice && formatProsHours(opt.numPros, opt.totalHours)
+                          ? ` · ${formatProsHours(opt.numPros, opt.totalHours)}`
+                          : ''}
                       </div>
                     )}
                   </div>

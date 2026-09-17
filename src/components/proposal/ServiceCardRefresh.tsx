@@ -228,15 +228,13 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
                   : service.appTime
                   ? `Appointments · ${service.appTime} min each`
                   : 'Appointments'}
+                {showHours && !isFlatClass
+                  ? ` · ${formatProsHours(
+                      service.pricingOptions?.[service.selectedOption || 0]?.numPros ?? service.numPros,
+                      service.pricingOptions?.[service.selectedOption || 0]?.totalHours ?? service.totalHours
+                    )}`
+                  : ''}
               </div>
-              {showHours && !isFlatClass && (
-                <div className="pv-metric-sub">
-                  {formatProsHours(
-                    service.pricingOptions?.[service.selectedOption || 0]?.numPros ?? service.numPros,
-                    service.pricingOptions?.[service.selectedOption || 0]?.totalHours ?? service.totalHours
-                  )}
-                </div>
-              )}
             </div>
             <div className="pv-cost">
               {service.originalServiceCost &&
@@ -315,10 +313,12 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
                     </div>
                   )}
                   {(opt.appTime ?? service.appTime) != null && (
-                    <div className="pv-popt-len">{opt.appTime ?? service.appTime} min each</div>
-                  )}
-                  {showHours && formatProsHours(opt.numPros, opt.totalHours) && (
-                    <div className="pv-popt-len">{formatProsHours(opt.numPros, opt.totalHours)}</div>
+                    <div className="pv-popt-len">
+                      {opt.appTime ?? service.appTime} min each
+                      {showHours && formatProsHours(opt.numPros, opt.totalHours)
+                        ? ` · ${formatProsHours(opt.numPros, opt.totalHours)}`
+                        : ''}
+                    </div>
                   )}
                   <div className="pv-popt-price">
                     <span className="v">{formatCurrency(finalPrice)}</span>

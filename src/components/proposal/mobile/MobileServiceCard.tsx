@@ -200,15 +200,13 @@ const MobileServiceCard: React.FC<MobileServiceCardProps> = (props) => {
                 : service.appTime
                 ? `Appts · ${service.appTime} min each`
                 : 'Appointments'}
+              {props.showHours && !isFlatClass
+                ? ` · ${formatProsHours(
+                    opts[service.selectedOption || 0]?.numPros ?? service.numPros,
+                    opts[service.selectedOption || 0]?.totalHours ?? service.totalHours
+                  )}`
+                : ''}
             </div>
-            {props.showHours && !isFlatClass && (
-              <div className="pvm-metric-sub">
-                {formatProsHours(
-                  opts[service.selectedOption || 0]?.numPros ?? service.numPros,
-                  opts[service.selectedOption || 0]?.totalHours ?? service.totalHours
-                )}
-              </div>
-            )}
           </div>
           <div className="pvm-cost">
             {service.originalServiceCost &&
