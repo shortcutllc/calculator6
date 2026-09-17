@@ -84,7 +84,9 @@
   .pv-partner { height: 26px; display: block; }
   .pv-brand-divider { width: 1px; height: 18px; background: rgba(0,55,86,0.18); }
   .pv-powered { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--sw-ink-meta); }
-  .pv-powered img { height: 18px; display: block; }
+  /* Our wordmark SVG carries more vertical padding than the design's (300x60 vs
+     300x50), so 22px here renders the same 108px-wide mark as its 18px. */
+  .pv-powered img { height: 22px; display: block; }
   .pv-header-actions { display: flex; align-items: center; gap: 12px; }
   .pv-pill-pending { display: inline-flex; align-items: center; gap: 8px; height: 44px; font-family: var(--font-display); font-weight: 800; font-size: 14.5px; letter-spacing: 0.02em; background: var(--sc-yellow); color: var(--sc-navy); border-radius: 9999px; padding: 0 20px; }
   .pv-pill-pending .dot { width: 7px; height: 7px; border-radius: 9999px; background: var(--sc-navy); }

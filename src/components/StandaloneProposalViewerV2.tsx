@@ -1821,7 +1821,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
       >
         <div
           style={{
-            maxWidth: 1280,
+            // Same 1232px column as the hero copy and the sheet below, so the
+            // brand pill's left edge lines up with the page content.
+            maxWidth: 1232,
             margin: '0 auto',
             display: 'flex',
             // Phones: stack logo/name row on top, buttons row below.
