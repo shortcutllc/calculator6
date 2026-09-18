@@ -133,7 +133,7 @@ const STATIONS = [
 const RECOMMENDED = [
   'Massage and headshots at 100 appointments per office. They are the most requested, and the shortest appointments, so they carry the most volume.',
   'Hair and nails at 50 appointments per office.',
-  'Sign-ups are tracked live, so a station filling fast gets throttled up before the day, not after.',
+  'Sign-up links go out before the event and are tracked live, so a station filling fast gets throttled up if needed.',
   'Pros, equipment, setup and cleanup are included at every station.',
   'Both sample proposals also carry a sound bath and a mindfulness session, priced separately.',
 ];
