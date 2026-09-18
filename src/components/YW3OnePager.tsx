@@ -603,7 +603,7 @@ export default function YW3OnePager() {
           <SectionHead
             kicker="Act one"
             title="What happens in the office"
-            sub="Four stations, open all day, each themed to one of your four pitch pillars. Nobody is told which."
+            sub="Four stations, open all day, each themed to one of your four pitch pillars."
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -695,8 +695,7 @@ export default function YW3OnePager() {
             <div className="mt-14 md:mt-16">
               <SizzleReel />
               <p className={`mx-auto mt-6 max-w-[62ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
-                A day we ran for TradeStation. The same team, kit and staging arrives for
-                Netflix Ads.
+                A day we ran for TradeStation.
               </p>
             </div>
           </div>
