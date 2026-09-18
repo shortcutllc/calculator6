@@ -131,8 +131,8 @@ const STATIONS = [
 /* Replaces the grey "we would run massage and headshots at full volume" block.
    Same content, read as a list instead of a paragraph. */
 const RECOMMENDED = [
-  'Massage and headshots at full volume. They move the most people, so they reach the most planners.',
-  'Hair and nails at half that, or swapped for facials, yoga or another service.',
+  'Massage and headshots at 100 appointments per office. They are the most requested, and the shortest appointments, so they carry the most volume.',
+  'Hair and nails at 50 appointments per office.',
   'Sign-ups are tracked live, so a station filling fast gets throttled up before the day, not after.',
   'Pros, equipment, setup and cleanup are included at every station.',
   'Both sample proposals also carry a sound bath and a mindfulness session, priced separately.',
@@ -651,7 +651,7 @@ export default function YW3OnePager() {
           </div>
 
           <div className="mt-16 md:mt-20">
-            <SubHead note="How we would size the four stations for a 50 to 100 person floor.">
+            <SubHead note="How we would size the four stations in each office.">
               Recommended direction
             </SubHead>
             <ul className="m-0 p-0 list-none flex flex-col max-w-[92ch]">
