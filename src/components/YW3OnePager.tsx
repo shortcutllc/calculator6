@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Calendar, MapPin, Users, Camera,
   ShieldCheck, FileCheck, Eye, EyeOff, ArrowUpRight, Image,
-  Shirt, Gift, PanelsTopLeft, MonitorSmartphone, ListPlus, Database, Clock,
+  Shirt, Gift, PanelsTopLeft, MonitorSmartphone, ListPlus, Database, Clock, Play,
 } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
@@ -147,7 +147,7 @@ const BRANDING = [
   },
   {
     icon: Shirt, title: 'Staff apparel, customized with you',
-    body: 'We help design and produce the apparel the team works in, matched to each station: Netflix Ads pro tops for the massage therapists, aprons for the beauty Pros, and whatever else the floor calls for. Not Shortcut black.',
+    body: 'We help design and produce the apparel the team works in, matched to each station: Netflix Ads pro tops for the massage therapists, aprons for the beauty Pros, and whatever else the floor calls for.',
   },
   {
     icon: PanelsTopLeft, title: 'Signage, designed and advised per station',
@@ -178,7 +178,7 @@ const SIGNUP_ANSWERS = [
   },
   {
     icon: Image, title: 'Photo delivery, handled by the same system',
-    body: 'Everyone who sits for a headshot gets a private gallery link to their own shots. They pick the one they want, we retouch it, and it lands in their inbox branded to Netflix Ads within five to seven business days. No memory card handed to anyone.',
+    body: 'Everyone who sits for a headshot gets a private gallery link to their own shots. They pick the one they want, we retouch it, and it lands in their inbox branded to Netflix Ads within five to seven business days.',
   },
   {
     icon: Camera, title: 'You watch the galleries fill',
@@ -203,10 +203,11 @@ const HERO_PILLS = [
 ];
 
 /* One image on the right, as on getshortcut.co/services/*: a white 28px card
-   with 16px padding holding a single 520px cover frame. */
+   with 16px padding around it. The source is 3:2, and the frame is set to the
+   same ratio so the whole shot shows with nothing cropped away. */
 const HERO_PHOTO = {
-  src: '/proposal-refresh/massage-office.png',
-  alt: 'Massage running in an office',
+  src: '/proposal-refresh/yw3-hero.jpg',
+  alt: 'A Shortcut massage therapist working in Netflix Ads branded apparel',
 };
 
 const LOGISTICS = [
@@ -319,6 +320,52 @@ function SubHead({ children, note }: { children: React.ReactNode; note?: string 
 
 const CARD = `${CARD_SHELL} p-7 md:p-8`;
 
+/** A real event reel in the hero image's frame: white 28px card, 16px padding,
+ *  the deep shadow, 20px inner radius. Poster and label sit over the video
+ *  until it plays, then native controls take over. */
+function SizzleReel() {
+  const [playing, setPlaying] = useState(false);
+  const ref = useRef<HTMLVideoElement>(null);
+
+  const start = () => {
+    setPlaying(true);
+    ref.current?.play();
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-[900px] rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
+      <div className="relative aspect-video overflow-hidden rounded-[20px] bg-shortcut-blue">
+        <video
+          ref={ref}
+          src="/yw3/tradestation-sizzle.mp4"
+          poster="/yw3/tradestation-poster.jpg"
+          controls={playing}
+          playsInline
+          preload="metadata"
+          className="h-full w-full object-cover"
+          onPlay={() => setPlaying(true)}
+          onPause={() => { if (ref.current && ref.current.ended) setPlaying(false); }}
+        />
+        {!playing && (
+          <button
+            type="button"
+            onClick={start}
+            aria-label="Play the Shortcut and TradeStation reel"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-shortcut-blue/45 transition-colors hover:bg-shortcut-blue/35"
+          >
+            <span className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-shortcut-coral shadow-[0_10px_30px_rgba(255,80,80,.45)] transition-transform duration-500 group-hover:scale-105">
+              <Play size={30} className="ml-1 text-white" fill="currentColor" strokeWidth={0} />
+            </span>
+            <span className="rounded-full bg-white/[.94] px-5 py-2.5 text-[15px] font-extrabold tracking-[-.012em] text-shortcut-blue">
+              Shortcut x TradeStation
+            </span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FeatureCard({ icon: Icon, title, body, tint = 'bg-shortcut-teal' }: {
   icon: LucideIcon; title: string; body: string; tint?: string;
 }) {
@@ -342,7 +389,7 @@ export default function YW3OnePager() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'YW3SC2027') {
+    if (password === 'YW3SHORTCUT') {
       sessionStorage.setItem('yw3-auth', 'true');
       setAuthenticated(true);
       setError(false);
@@ -459,7 +506,7 @@ export default function YW3OnePager() {
               <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_clamp(440px,38vw,760px)] gap-10 lg:gap-16 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,640px)_1fr] gap-10 lg:gap-16 items-start lg:items-center">
               {/* ── Left: copy, CTA, pills ── */}
               <div className="min-w-0">
                 <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
@@ -535,10 +582,8 @@ export default function YW3OnePager() {
 
               {/* ── Right: one image ── */}
               <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
-                <div className="relative h-[340px] md:h-[460px] lg:h-[560px] xl:h-[620px] overflow-hidden rounded-[20px] bg-shortcut-teal">
-                  {/* Portrait source: bias the crop up so the therapist stays in
-                      frame as the card widens, rather than centring on a torso. */}
-                  <img src={HERO_PHOTO.src} alt={HERO_PHOTO.alt} className="h-full w-full object-cover object-[center_38%]" />
+                <div className="relative aspect-[3/2] overflow-hidden rounded-[20px] bg-shortcut-teal">
+                  <img src={HERO_PHOTO.src} alt={HERO_PHOTO.alt} className="h-full w-full object-cover" />
                   <span className="absolute left-[18px] bottom-[18px] h-10 inline-flex items-center gap-2.5 rounded-full bg-white/[.94] pl-1.5 pr-4">
                     <span className="w-7 h-7 flex-none rounded-full bg-shortcut-coral flex items-center justify-center">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -633,6 +678,28 @@ export default function YW3OnePager() {
               {BRANDING.map((b) => (
                 <FeatureCard key={b.title} icon={b.icon} title={b.title} body={b.body} tint="bg-accent-yellow" />
               ))}
+            </div>
+
+            {/* Proof for the signage card: our own screens, same build. */}
+            <div className="mt-12 md:mt-14 overflow-hidden rounded-[28px] border border-[#E2E9E8] bg-neutral-light-gray">
+              <img
+                src="/yw3/privacy-screens.png"
+                alt="Six Shortcut branded privacy screens standing in a row"
+                className="w-full h-auto"
+              />
+            </div>
+            <p className={`mx-auto mt-5 max-w-[68ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
+              Our own screens, in our colors and copy. Yours carry Netflix Ads artwork instead, and
+              they are what stands behind every photo taken on the floor that day.
+            </p>
+
+            {/* What a branded day actually looks like, from a real one. */}
+            <div className="mt-14 md:mt-16">
+              <SizzleReel />
+              <p className={`mx-auto mt-6 max-w-[62ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
+                A day we ran for TradeStation, start to finish. The same team, kit and staging
+                arrives for Netflix Ads, branded to the campaign rather than to us.
+              </p>
             </div>
           </div>
         </Panel>
