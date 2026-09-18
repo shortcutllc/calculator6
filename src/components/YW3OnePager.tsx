@@ -193,6 +193,22 @@ const CUSTOMISABLE = [
   'Confirmation texts', 'Calendar invite copy', 'Logo and colors', 'Service names',
 ];
 
+/* Pill fills come from the V2 viewer's hero FILL map so a station reads the
+   same colour here and inside the proposal. */
+const HERO_PILLS = [
+  { label: 'Massage', fill: '#9EFAFF' },
+  { label: 'Headshots', fill: '#FFCBA6' },
+  { label: 'Hair', fill: '#FEDC64' },
+  { label: 'Nails', fill: '#F7BBFF' },
+];
+
+/* Real event photography, the same files the V2 viewer uses. */
+const HERO_PHOTOS = [
+  { src: '/proposal-refresh/massage-office.png', alt: 'Chair massage in an office', tag: 'Massage on the floor' },
+  { src: '/proposal-refresh/barber-office.png', alt: 'Barber cutting hair in an office', tag: 'Hair at the chair' },
+  { src: '/proposal-refresh/nails-office.png', alt: 'Manicure at an office table', tag: 'Nails at the table' },
+];
+
 const LOGISTICS = [
   {
     icon: ShieldCheck, title: 'Certificates of insurance',
@@ -430,47 +446,110 @@ export default function YW3OnePager() {
       <main className="pt-14">
 
         {/* ══════════ HERO ══════════ */}
-        <section className="relative overflow-hidden pb-[110px]" style={{ backgroundColor: '#F0F0FF' }}>
-          <div className={`${GUT} ${COL} relative z-10 pt-14 md:pt-24`}>
-            <div className="flex items-center gap-5 md:gap-7 mb-10 pb-7 border-b border-shortcut-blue/[.1]">
-              <div className="text-[22px] md:text-[28px] font-extrabold tracking-tight text-shortcut-blue">YW3</div>
-              <div className="h-7 md:h-10 w-px bg-shortcut-blue/15" aria-hidden="true" />
-              <img src="/shortcut-logo-blue.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
+        {/* The website hero, as the V2 viewer ports it: full-bleed navy band,
+            56px white headline with an aqua trailing phrase, coral CTA beside
+            the service pills, and a white photo card lapping up over the band's
+            foot. Motion comes from the word-rise / pill-drop keyframes added to
+            tailwind.config.js rather than importing the .pv-root sheet. */}
+        <section className="relative bg-shortcut-blue pt-14 md:pt-24 pb-[240px] md:pb-[300px]">
+          <div className={`${GUT} ${COL} relative z-10`}>
+            <div className="flex items-center gap-5 md:gap-7 mb-10 pb-7 border-b border-white/15">
+              <div className="text-[22px] md:text-[28px] font-extrabold tracking-tight text-white">YW3</div>
+              <div className="h-7 md:h-10 w-px bg-white/25" aria-hidden="true" />
+              <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
 
-            <p className="m-0 flex items-center gap-2.5 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-blue mb-5">
-              <span className="w-[7px] h-[7px] flex-none rounded-full bg-shortcut-coral" />
+            <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-5">
               Vendor response · Netflix Ads
             </p>
 
-            <h1 className="m-0 text-[36px] md:text-[56px] lg:text-[64px] font-bold leading-[1.04] tracking-[-.038em] text-shortcut-blue max-w-[18ch]">
-              Break In Case of Planning Emergency.
-              <span className="block text-shortcut-teal-blue">Four stations on their floor, the day the box lands.</span>
+            <h1 className="m-0 text-[34px] md:text-[52px] lg:text-[60px] font-semibold leading-[1.06] tracking-[-.03em] text-white max-w-[20ch]">
+              {['Break', 'In', 'Case', 'of', 'Planning', 'Emergency.'].map((w, i) => (
+                <span
+                  key={w}
+                  className="inline-block animate-word-rise"
+                  style={{ animationDelay: `${0.15 + i * 0.055}s` }}
+                >
+                  {w}&nbsp;
+                </span>
+              ))}
+              <span className="block text-shortcut-teal">
+                {['Four', 'stations', 'on', 'their', 'floor,', 'the', 'day', 'the', 'box', 'lands.'].map((w, i) => (
+                  <span
+                    key={w + i}
+                    className="inline-block animate-word-rise"
+                    style={{ animationDelay: `${0.5 + i * 0.045}s` }}
+                  >
+                    {w}&nbsp;
+                  </span>
+                ))}
+              </span>
             </h1>
 
-            <p className="m-0 mt-6 text-[17px] md:text-[19px] font-medium leading-[1.55] text-[#2A5468] max-w-[62ch]">
+            <p className="m-0 mt-6 text-[17px] md:text-[19px] font-medium leading-[1.55] text-white/75 max-w-[64ch]">
               Netflix Ads drops the kit on media planners&rsquo; desks. The same day, four Netflix
               Ads stations open on their own floor and they book a fifteen minute slot. We bring
               the Pros, the equipment and a lead who runs each day. You get the list of everyone
               who came.
             </p>
 
-            <div className="flex flex-wrap gap-3 mt-9">
+            {/* Homepage lead row: coral CTA on the left, the station pills
+                dropping in beside it, all on the same 44px baseline. */}
+            <div className="flex flex-wrap items-center gap-3 mt-9">
+              <a
+                href="#day"
+                className="h-11 inline-flex items-center px-6 rounded-full bg-shortcut-coral text-white text-[15px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
+              >
+                See the four stations
+              </a>
+              {HERO_PILLS.map((p, i) => (
+                <a
+                  key={p.label}
+                  href="#day"
+                  className="h-11 inline-flex items-center gap-2 px-5 rounded-full text-shortcut-blue text-[15px] font-bold tracking-[-.01em] shadow-[0_6px_16px_rgba(3,34,50,.18)] animate-pill-drop transition-[translate] duration-500 hover:-translate-y-[6px]"
+                  style={{ background: p.fill, animationDelay: `${0.95 + i * 0.18}s` }}
+                >
+                  {p.label}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden className="flex-none">
+                    <path d="M5 12h13M12.5 6l6 6-6 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-3 mt-8">
               {[
                 { icon: Calendar, label: 'Week of Jan 11, 2027' },
                 { icon: MapPin, label: 'Five offices, one holding company' },
                 { icon: Users, label: 'Mid level media planners' },
               ].map(({ icon: Icon, label }) => (
-                <div key={label} className="inline-flex items-center gap-2 bg-white/85 backdrop-blur-sm rounded-full px-4 py-2.5 shadow-sm border border-white/60">
-                  <Icon size={14} className="text-shortcut-blue" strokeWidth={2.5} />
-                  <span className="text-[13.5px] font-bold text-shortcut-blue">{label}</span>
+                <div key={label} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5">
+                  <Icon size={14} className="text-shortcut-teal" strokeWidth={2.5} />
+                  <span className="text-[13.5px] font-bold text-white">{label}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-shortcut-teal/40 to-transparent rounded-full -translate-y-1/3 translate-x-1/3" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-accent-pink/30 to-transparent rounded-full translate-y-1/3 -translate-x-1/3" />
         </section>
+
+        {/* Photo card lapping up over the navy band, like the website hero. */}
+        <div className={`${GUT} ${COL} relative z-20 -mt-[200px] md:-mt-[250px]`}>
+          <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
+            <div className="grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr] grid-rows-2 gap-3 h-[320px] md:h-[420px]">
+              {HERO_PHOTOS.map((ph, i) => (
+                <div
+                  key={ph.src}
+                  className={`relative overflow-hidden rounded-[20px] bg-neutral-light-gray ${i === 0 ? 'row-span-2' : ''}`}
+                >
+                  <img src={ph.src} alt={ph.alt} className="h-full w-full object-cover" />
+                  <span className="absolute left-3.5 bottom-3.5 z-[2] rounded-full bg-white px-3.5 py-1.5 text-[12px] font-bold text-shortcut-blue shadow-[0_2px_8px_rgba(9,54,79,.18)]">
+                    {ph.tag}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* ══════════ ACT 1 · THE DAY ══════════ */}
         <Panel id="day">
@@ -643,7 +722,7 @@ export default function YW3OnePager() {
           <SectionHead
             kicker="Act three"
             title="What it costs"
-            sub="You pay per station, per office-day, by how many appointments you want. Here is the rate card. Two sample days are live and you can change the numbers yourself."
+            sub="You pay per station, per office-day, by how many appointments you want. Here is the rate card. The same rates apply in New York and Los Angeles."
           />
 
           {/* The rate card. Straight answer, no session required. */}
@@ -699,9 +778,8 @@ export default function YW3OnePager() {
                   Open the proposal and change the numbers yourself.
                 </h3>
                 <p className="m-0 mt-3.5 text-[16px] font-medium leading-[1.5] text-white/75 max-w-[56ch]">
-                  Two sample office-days sit inside it: New York at $13,917 for 250 appointments and
-                  Los Angeles at $5,396 for 91. Switch between them, change any station&rsquo;s
-                  appointment count, and the total moves with you.
+                  Set how many appointments you want at each station and the total updates as you
+                  go. New York and Los Angeles are priced the same.
                 </p>
               </div>
               <span className="flex-none w-16 h-16 rounded-full bg-shortcut-coral flex items-center justify-center shadow-[0_6px_20px_rgba(255,80,80,.4)] transition-transform duration-500 group-hover:scale-110">

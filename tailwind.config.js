@@ -51,9 +51,29 @@ export default {
           '0%': { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(-50%)' },
         },
+        // Website hero motion, ported from .pv-h1-w / .pv-pill-drop in
+        // src/styles/proposal-refresh.css so pages outside the viewer can
+        // reuse it without importing that (heavily .pv-root-scoped) sheet.
+        'word-rise': {
+          from: { opacity: '0', transform: 'translateY(26px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'pill-drop': {
+          '0%': { opacity: '0', transform: 'translate3d(0,-560px,0)' },
+          '6%': { opacity: '1' },
+          '46%': { transform: 'translate3d(0,-150px,0)' },
+          '56%': { transform: 'translate3d(0,0,0) scaleY(1)' },
+          '60%': { transform: 'translate3d(0,3px,0) scaleY(.94)' },
+          '68%': { transform: 'translate3d(0,-18px,0) scaleY(1.01)' },
+          '77%': { transform: 'translate3d(0,0,0) scaleY(.99)' },
+          '83%': { transform: 'translate3d(0,-5px,0)' },
+          '100%': { opacity: '1', transform: 'translate3d(0,0,0)' },
+        },
       },
       animation: {
         'logo-marquee': 'logo-marquee 40s linear infinite',
+        'word-rise': 'word-rise .82s cubic-bezier(.22,1,.36,1) both',
+        'pill-drop': 'pill-drop 2.1s linear both',
       },
       fontWeight: {
         thin: 100,
