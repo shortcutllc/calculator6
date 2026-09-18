@@ -230,6 +230,17 @@ const LOGISTICS = [
   },
 ];
 
+/* The build Will recommends: full volume on the two that move the most
+   people, half on the other two, run in two offices. Prices index into
+   LADDER so this block cannot drift from the rate card above it. */
+const SUGGESTED = [
+  { service: 'Headshots', appts: 100, tier: 3 },
+  { service: 'Chair massage', appts: 100, tier: 3 },
+  { service: 'Hair', appts: 50, tier: 1 },
+  { service: 'Nails', appts: 50, tier: 2 },
+];
+const SUGGESTED_LOCATIONS = 2;
+
 /* Read from the live proposals. Identical in both cities: there is no
    separate LA rate card, and nails sizes at 16/33/50/66, not 25/50/75/100. */
 const LADDER = [
@@ -238,6 +249,21 @@ const LADDER = [
   { service: 'Hair', sizes: ['25', '50', '75', '100'], prices: ['$1,250', '$2,500', '$3,750', '$5,000'] },
   { service: 'Nails', sizes: ['16', '33', '50', '66'], prices: ['$1,250', '$2,500', '$3,750', '$5,000'] },
 ];
+
+const money = (n: number) =>
+  `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+
+/** Suggested build, priced off LADDER. */
+function suggestedTotals() {
+  const rows = SUGGESTED.map((r) => {
+    const row = LADDER.find((l) => l.service === r.service)!;
+    const price = Number(row.prices[r.tier].replace(/[$,]/g, ''));
+    return { ...r, price, label: row.sizes[r.tier] };
+  });
+  const perDay = rows.reduce((t, r) => t + r.price, 0);
+  return { rows, perDay, total: perDay * SUGGESTED_LOCATIONS,
+    apptsPerDay: rows.reduce((t, r) => t + r.appts, 0) };
+}
 
 function useFadeIn() {
   const ref = useRef<HTMLDivElement>(null);
@@ -863,6 +889,64 @@ export default function YW3OnePager() {
               </p>
             </div>
           </div>
+
+          {/* The number to hold on to: what the recommended build costs. */}
+          {(() => {
+            const { rows, perDay, total, apptsPerDay } = suggestedTotals();
+            return (
+              <div className={`${CARD_SHELL} mt-5 overflow-hidden p-0`}>
+                <div className="p-7 md:p-9">
+                  <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${INK_META}`}>
+                    Suggested build
+                  </p>
+                  <h4 className="m-0 mt-2.5 text-[22px] md:text-[24px] font-bold leading-[1.1] tracking-[-.025em] text-shortcut-blue">
+                    Full volume on massage and headshots, half on hair and nails,
+                    run in {SUGGESTED_LOCATIONS} offices
+                  </h4>
+
+                  <ul className="m-0 mt-7 p-0 list-none flex flex-col">
+                    {rows.map((r) => (
+                      <li
+                        key={r.service}
+                        className="flex items-baseline justify-between gap-4 py-3.5 border-b border-[#E2E9E8]"
+                      >
+                        <span className={`text-[16px] font-medium ${INK}`}>
+                          <span className="font-bold text-shortcut-blue">{r.service}</span>
+                          {' · '}{r.appts} appointments
+                        </span>
+                        <span className="text-[17px] font-extrabold tabular-nums tracking-[-.02em] text-shortcut-blue whitespace-nowrap">
+                          {money(r.price)}
+                        </span>
+                      </li>
+                    ))}
+                    <li className="flex items-baseline justify-between gap-4 py-4">
+                      <span className={`text-[16px] font-bold ${INK}`}>
+                        One office-day · {apptsPerDay} appointments
+                      </span>
+                      <span className="text-[20px] font-extrabold tabular-nums tracking-[-.025em] text-shortcut-blue whitespace-nowrap">
+                        {money(perDay)}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-shortcut-blue px-7 py-7 md:px-9 md:py-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                  <div>
+                    <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal">
+                      {SUGGESTED_LOCATIONS} locations
+                    </p>
+                    <p className="m-0 mt-2 text-[16px] font-medium leading-[1.5] text-white/75">
+                      {apptsPerDay * SUGGESTED_LOCATIONS} appointments across the two days, at the
+                      same rates in New York and Los Angeles.
+                    </p>
+                  </div>
+                  <div className="text-[38px] md:text-[44px] font-extrabold leading-none tracking-[-.03em] text-white tabular-nums whitespace-nowrap">
+                    {money(total)}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <a
             href={PROPOSAL_NY}
