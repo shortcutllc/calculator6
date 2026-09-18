@@ -390,7 +390,7 @@ export default function YW3OnePager() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'YW3SHORTCUT') {
+    if (password === 'YW3xSHORTCUT2027!') {
       sessionStorage.setItem('yw3-auth', 'true');
       setAuthenticated(true);
       setError(false);
