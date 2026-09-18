@@ -202,12 +202,12 @@ const HERO_PILLS = [
   { label: 'Nails', fill: '#F7BBFF' },
 ];
 
-/* Real event photography, the same files the V2 viewer uses. */
-const HERO_PHOTOS = [
-  { src: '/proposal-refresh/massage-office.png', alt: 'Chair massage in an office', tag: 'Massage on the floor' },
-  { src: '/proposal-refresh/barber-office.png', alt: 'Barber cutting hair in an office', tag: 'Hair at the chair' },
-  { src: '/proposal-refresh/nails-office.png', alt: 'Manicure at an office table', tag: 'Nails at the table' },
-];
+/* One image on the right, as on getshortcut.co/services/*: a white 28px card
+   with 16px padding holding a single 520px cover frame. */
+const HERO_PHOTO = {
+  src: '/proposal-refresh/massage-office.png',
+  alt: 'Massage running in an office',
+};
 
 const LOGISTICS = [
   {
@@ -446,110 +446,112 @@ export default function YW3OnePager() {
       <main className="pt-14">
 
         {/* ══════════ HERO ══════════ */}
-        {/* The website hero, as the V2 viewer ports it: full-bleed navy band,
-            56px white headline with an aqua trailing phrase, coral CTA beside
-            the service pills, and a white photo card lapping up over the band's
-            foot. Motion comes from the word-rise / pill-drop keyframes added to
-            tailwind.config.js rather than importing the .pv-root sheet. */}
-        <section className="relative bg-shortcut-blue pt-14 md:pt-24 pb-[240px] md:pb-[300px]">
+        {/* getshortcut.co/services/* hero: navy band, a 1fr / 520px grid with
+            copy and pills on the left and one image card on the right. The
+            site's own numbers: 56px h1 with an aqua trailing phrase, 19px lead,
+            coral button beside a plain text link, 40px drop pills, and a white
+            28px media card holding a 520px cover frame with a booked badge. */}
+        <section className="relative bg-shortcut-blue pt-14 md:pt-24 pb-20 md:pb-36">
           <div className={`${GUT} ${COL} relative z-10`}>
-            <div className="flex items-center gap-5 md:gap-7 mb-10 pb-7 border-b border-white/15">
+            <div className="flex items-center gap-5 md:gap-7 mb-10 md:mb-14 pb-7 border-b border-white/15">
               <div className="text-[22px] md:text-[28px] font-extrabold tracking-tight text-white">YW3</div>
               <div className="h-7 md:h-10 w-px bg-white/25" aria-hidden="true" />
               <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
 
-            <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-5">
-              Vendor response · Netflix Ads
-            </p>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-10 lg:gap-16 items-start">
+              {/* ── Left: copy, CTA, pills ── */}
+              <div className="min-w-0">
+                <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
+                  Vendor response · Netflix Ads
+                </p>
 
-            <h1 className="m-0 text-[34px] md:text-[52px] lg:text-[60px] font-semibold leading-[1.06] tracking-[-.03em] text-white max-w-[20ch]">
-              {['Break', 'In', 'Case', 'of', 'Planning', 'Emergency.'].map((w, i) => (
-                <span
-                  key={w}
-                  className="inline-block animate-word-rise"
-                  style={{ animationDelay: `${0.15 + i * 0.055}s` }}
-                >
-                  {w}&nbsp;
-                </span>
-              ))}
-              <span className="block text-shortcut-teal">
-                {['Four', 'stations', 'on', 'their', 'floor,', 'the', 'day', 'the', 'box', 'lands.'].map((w, i) => (
-                  <span
-                    key={w + i}
-                    className="inline-block animate-word-rise"
-                    style={{ animationDelay: `${0.5 + i * 0.045}s` }}
-                  >
-                    {w}&nbsp;
+                <h1 className="m-0 text-[34px] md:text-[48px] lg:text-[56px] font-semibold leading-[1.08] tracking-[-.03em] text-white max-w-[18ch] text-balance">
+                  {['Break', 'In', 'Case', 'of', 'Planning', 'Emergency.'].map((w, i) => (
+                    <span
+                      key={w}
+                      className="inline-block animate-word-rise"
+                      style={{ animationDelay: `${0.05 + i * 0.055}s` }}
+                    >
+                      {w}&nbsp;
+                    </span>
+                  ))}
+                  <span className="block text-shortcut-teal">
+                    {['Four', 'stations', 'on', 'their', 'floor.'].map((w, i) => (
+                      <span
+                        key={w + i}
+                        className="inline-block animate-word-rise"
+                        style={{ animationDelay: `${0.4 + i * 0.05}s` }}
+                      >
+                        {w}&nbsp;
+                      </span>
+                    ))}
                   </span>
-                ))}
-              </span>
-            </h1>
+                </h1>
 
-            <p className="m-0 mt-6 text-[17px] md:text-[19px] font-medium leading-[1.55] text-white/75 max-w-[64ch]">
-              Netflix Ads drops the kit on media planners&rsquo; desks. The same day, four Netflix
-              Ads stations open on their own floor and they book a fifteen minute slot. We bring
-              the Pros, the equipment and a lead who runs each day. You get the list of everyone
-              who came.
-            </p>
+                <p className="m-0 mt-[22px] text-[17px] md:text-[19px] font-medium leading-[1.5] text-white/[.86] max-w-[44ch]">
+                  Netflix Ads drops the kit on media planners&rsquo; desks. The same day, four
+                  Netflix Ads stations open on their own floor and they book a fifteen minute slot.
+                  We bring the Pros, the equipment and a lead who runs each day.
+                </p>
 
-            {/* Homepage lead row: coral CTA on the left, the station pills
-                dropping in beside it, all on the same 44px baseline. */}
-            <div className="flex flex-wrap items-center gap-3 mt-9">
-              <a
-                href="#day"
-                className="h-11 inline-flex items-center px-6 rounded-full bg-shortcut-coral text-white text-[15px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
-              >
-                See the four stations
-              </a>
-              {HERO_PILLS.map((p, i) => (
-                <a
-                  key={p.label}
-                  href="#day"
-                  className="h-11 inline-flex items-center gap-2 px-5 rounded-full text-shortcut-blue text-[15px] font-bold tracking-[-.01em] shadow-[0_6px_16px_rgba(3,34,50,.18)] animate-pill-drop transition-[translate] duration-500 hover:-translate-y-[6px]"
-                  style={{ background: p.fill, animationDelay: `${0.95 + i * 0.18}s` }}
-                >
-                  {p.label}
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden className="flex-none">
-                    <path d="M5 12h13M12.5 6l6 6-6 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </a>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-3 mt-8">
-              {[
-                { icon: Calendar, label: 'Week of Jan 11, 2027' },
-                { icon: MapPin, label: 'Five offices, one holding company' },
-                { icon: Users, label: 'Mid level media planners' },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5">
-                  <Icon size={14} className="text-shortcut-teal" strokeWidth={2.5} />
-                  <span className="text-[13.5px] font-bold text-white">{label}</span>
+                <div className="flex flex-wrap items-center gap-6 mt-8">
+                  <a
+                    href="#day"
+                    className="h-[52px] inline-flex items-center px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
+                  >
+                    See the four stations
+                  </a>
+                  <a href="#pricing" className="text-[15px] font-bold tracking-[-.012em] text-white hover:text-shortcut-teal transition-colors">
+                    How pricing works &rarr;
+                  </a>
                 </div>
-              ))}
+
+                <div className="flex flex-wrap gap-2 mt-7 max-w-[520px]">
+                  {HERO_PILLS.map((p, i) => (
+                    <span
+                      key={p.label}
+                      className="h-10 inline-flex items-center px-4 rounded-full text-shortcut-blue text-[14.5px] font-extrabold tracking-[-.01em] whitespace-nowrap animate-pill-drop"
+                      style={{ background: p.fill, animationDelay: `${0.3 + i * 0.07}s` }}
+                    >
+                      {p.label}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap gap-3 mt-9">
+                  {[
+                    { icon: Calendar, label: 'Week of Jan 11, 2027' },
+                    { icon: MapPin, label: 'Five offices, one holding company' },
+                    { icon: Users, label: 'Mid level media planners' },
+                  ].map(({ icon: Icon, label }) => (
+                    <div key={label} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5">
+                      <Icon size={14} className="text-shortcut-teal" strokeWidth={2.5} />
+                      <span className="text-[13.5px] font-bold text-white">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Right: one image ── */}
+              <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
+                <div className="relative h-[360px] lg:h-[520px] overflow-hidden rounded-[20px] bg-shortcut-teal">
+                  <img src={HERO_PHOTO.src} alt={HERO_PHOTO.alt} className="h-full w-full object-cover" />
+                  <span className="absolute left-[18px] bottom-[18px] h-10 inline-flex items-center gap-2.5 rounded-full bg-white/[.94] pl-1.5 pr-4">
+                    <span className="w-7 h-7 flex-none rounded-full bg-shortcut-coral flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <span className="text-[14px] font-extrabold tracking-[-.012em] text-shortcut-blue">
+                      You&rsquo;re booked · Massage · 15 min
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
-
-        {/* Photo card lapping up over the navy band, like the website hero. */}
-        <div className={`${GUT} ${COL} relative z-20 -mt-[200px] md:-mt-[250px]`}>
-          <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
-            <div className="grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr] grid-rows-2 gap-3 h-[320px] md:h-[420px]">
-              {HERO_PHOTOS.map((ph, i) => (
-                <div
-                  key={ph.src}
-                  className={`relative overflow-hidden rounded-[20px] bg-neutral-light-gray ${i === 0 ? 'row-span-2' : ''}`}
-                >
-                  <img src={ph.src} alt={ph.alt} className="h-full w-full object-cover" />
-                  <span className="absolute left-3.5 bottom-3.5 z-[2] rounded-full bg-white px-3.5 py-1.5 text-[12px] font-bold text-shortcut-blue shadow-[0_2px_8px_rgba(9,54,79,.18)]">
-                    {ph.tag}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* ══════════ ACT 1 · THE DAY ══════════ */}
         <Panel id="day">
