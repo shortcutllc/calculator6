@@ -58,9 +58,10 @@ const PROPOSAL_NY = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep
    PROPOSAL_NY opens on option A and the viewer switches between them. */
 // const PROPOSAL_LA = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-6';
 
-/* Full bleed: gutters only, no content cap. */
-const GUT = 'px-6 md:px-10 lg:px-16 2xl:px-24';
-const COL = 'w-full';
+/* The site's own wrap, measured off getshortcut.co/services/massage:
+   max-width 1720 with 100px gutters. */
+const GUT = 'px-6 md:px-10 lg:px-[100px]';
+const COL = 'w-full max-w-[1720px] mx-auto';
 
 /* Type + surface tokens lifted from the V2 proposal viewer
    (src/styles/proposal-refresh.css). Named the same as the .lt-* classes so
@@ -498,7 +499,7 @@ export default function YW3OnePager() {
             site's own numbers: 56px h1 with an aqua trailing phrase, 19px lead,
             coral button beside a plain text link, 40px drop pills, and a white
             28px media card holding a 520px cover frame with a booked badge. */}
-        <section className="relative bg-shortcut-blue pt-14 md:pt-24 pb-20 md:pb-36">
+        <section className="relative bg-shortcut-blue pt-14 md:pt-24 lg:pt-[120px] pb-20 md:pb-28 lg:pb-[146px]">
           <div className={`${GUT} ${COL} relative z-10`}>
             <div className="flex items-center gap-5 md:gap-7 mb-10 md:mb-14 pb-7 border-b border-white/15">
               <div className="text-[22px] md:text-[28px] font-extrabold tracking-tight text-white">YW3</div>
@@ -506,14 +507,14 @@ export default function YW3OnePager() {
               <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,640px)_1fr] gap-10 lg:gap-16 items-start lg:items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-10 lg:gap-16 items-start">
               {/* ── Left: copy, CTA, pills ── */}
               <div className="min-w-0">
                 <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
                   Vendor response · Netflix Ads
                 </p>
 
-                <h1 className="m-0 text-[34px] md:text-[48px] lg:text-[56px] font-semibold leading-[1.08] tracking-[-.03em] text-white max-w-[18ch] text-balance">
+                <h1 className="m-0 text-[34px] md:text-[48px] lg:text-[56px] font-semibold leading-[1.08] tracking-[-.03em] text-white max-w-[14ch] text-balance">
                   {['Break', 'In', 'Case', 'of', 'Planning', 'Emergency.'].map((w, i) => (
                     <span
                       key={w}
@@ -536,7 +537,7 @@ export default function YW3OnePager() {
                   </span>
                 </h1>
 
-                <p className="m-0 mt-[22px] text-[17px] md:text-[19px] font-medium leading-[1.5] text-white/[.86] max-w-[44ch]">
+                <p className="m-0 mt-[22px] text-[17px] md:text-[19px] font-medium leading-[1.5] text-white/[.86] max-w-[34ch]">
                   Netflix Ads drops the kit on media planners&rsquo; desks. The same day, four
                   Netflix Ads stations open on their own floor and they book a fifteen minute slot.
                   We bring the Pros, the equipment and a lead who runs each day.
@@ -582,7 +583,7 @@ export default function YW3OnePager() {
 
               {/* ── Right: one image ── */}
               <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
-                <div className="relative aspect-[3/2] overflow-hidden rounded-[20px] bg-shortcut-teal">
+                <div className="relative h-[300px] sm:h-[400px] lg:h-[520px] overflow-hidden rounded-[20px] bg-shortcut-teal">
                   <img src={HERO_PHOTO.src} alt={HERO_PHOTO.alt} className="h-full w-full object-cover" />
                   <span className="absolute left-[18px] bottom-[18px] h-10 inline-flex items-center gap-2.5 rounded-full bg-white/[.94] pl-1.5 pr-4">
                     <span className="w-7 h-7 flex-none rounded-full bg-shortcut-coral flex items-center justify-center">
@@ -689,8 +690,8 @@ export default function YW3OnePager() {
               />
             </div>
             <p className={`mx-auto mt-5 max-w-[68ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
-              Our own screens, in our colors and copy. Yours carry Netflix Ads artwork instead, and
-              they are what stands behind every photo taken on the floor that day.
+              Example of our Massage privacy screens. Yours carry Netflix Ads artwork instead. Adds
+              pop to the event day and to imagery of the services in action.
             </p>
 
             {/* What a branded day actually looks like, from a real one. */}
@@ -739,12 +740,26 @@ export default function YW3OnePager() {
             </div>
           </div>
 
+          {/* What the answers above actually look like, captured from the very
+              page the button below opens. */}
+          <div className="mx-auto mt-14 md:mt-16 w-full max-w-[1100px] rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
+            <img
+              src="/yw3/booking-page.jpg"
+              alt="The Netflix Ads branded Shortcut booking page, showing a station, its open times and the event details"
+              className="w-full h-auto rounded-[20px]"
+            />
+          </div>
+          <p className={`mx-auto mt-5 mb-14 md:mb-16 max-w-[68ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
+            The live page, branded end to end: the campaign banner, the four stations with your
+            station names and copy, and how many spots are left at each.
+          </p>
+
           {/* The single loudest call to action on the page. */}
           <a
             href={SIGNUP_DEMO}
             target="_blank"
             rel="noopener noreferrer"
-            className="group mt-5 block rounded-[28px] bg-shortcut-blue p-8 md:p-12 shadow-[0_20px_50px_rgba(3,34,50,.22)] transition-transform duration-500 hover:-translate-y-1"
+            className="group block rounded-[28px] bg-shortcut-blue p-8 md:p-12 shadow-[0_20px_50px_rgba(3,34,50,.22)] transition-transform duration-500 hover:-translate-y-1"
           >
             <div className="flex flex-col md:flex-row md:items-center gap-7 md:gap-10">
               <div className="flex-1">
@@ -755,7 +770,7 @@ export default function YW3OnePager() {
                   Open the live booking page and book yourself a slot.
                 </h3>
                 <p className="m-0 mt-3.5 text-[16px] font-medium leading-[1.5] text-white/75 max-w-[52ch]">
-                  Working right now. Pick a service, pick a time, see what a planner sees.
+                  Working right now. Pick a service, pick a time, see what an employee sees.
                 </p>
               </div>
               <span className="flex-none w-16 h-16 rounded-full bg-shortcut-coral flex items-center justify-center shadow-[0_6px_20px_rgba(255,80,80,.4)] transition-transform duration-500 group-hover:scale-110">
@@ -831,6 +846,21 @@ export default function YW3OnePager() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="border-t border-[#E2E9E8] px-7 py-6">
+              <div className={`text-[12px] font-extrabold uppercase tracking-[.09em] ${INK_META}`}>
+                Optional add ons, not included above
+              </div>
+              <div className="flex flex-wrap gap-2.5 mt-3.5">
+                {['Branded apparel', 'Signage and privacy screens', 'Classic barber chairs'].map((a) => (
+                  <span key={a} className="inline-flex items-center rounded-full bg-neutral-light-gray px-4 py-2 text-[14px] font-bold tracking-[-.01em] text-shortcut-blue">
+                    {a}
+                  </span>
+                ))}
+              </div>
+              <p className={`m-0 mt-4 text-[15px] font-medium leading-[1.55] ${INK} max-w-[70ch]`}>
+                Quoted once you tell us how many offices and what you want produced.
+              </p>
             </div>
           </div>
 
