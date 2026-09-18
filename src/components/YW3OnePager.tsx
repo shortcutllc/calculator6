@@ -52,6 +52,16 @@ import {
    CONFIDENTIAL under the MNDA signed 2026-09-16.
    ───────────────────────────────────────────── */
 
+/* The sizzle is served from Supabase storage, not from the repo. Video files
+   must not be committed: a 25MB batch in March 2026 failed to push and hung
+   every later git operation that touched the blobs. `.gitignore` alone is not
+   the fix here, because Netlify builds from the repo and a gitignored file is
+   simply missing from the build. Re-upload a new cut with
+   `node scripts/upload-site-media.mjs <file> yw3/tradestation-sizzle.mp4`;
+   it upserts, so this URL keeps working. */
+const SIZZLE_VIDEO =
+  'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v1/object/public/site-media/yw3/tradestation-sizzle.mp4';
+
 const SIGNUP_DEMO = 'https://admin.shortcutpros.com/#/signup/gHTKOcwIzE';
 const PROPOSAL_NY = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-5';
 /* The same proposal opening on option B (Los Angeles). One link is enough:
@@ -335,7 +345,7 @@ function SizzleReel() {
       <div className="relative aspect-video overflow-hidden rounded-[20px] bg-shortcut-blue">
         <video
           ref={ref}
-          src="/yw3/tradestation-sizzle.mp4"
+          src={SIZZLE_VIDEO}
           poster="/yw3/tradestation-poster.jpg"
           controls={playing}
           playsInline

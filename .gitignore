@@ -31,4 +31,15 @@ dist-ssr
 
 # Large media files (served by Netlify from public/, not needed in git)
 public/workhuman-tv/*.mp4
+
+# Video never goes in git. A 25MB batch committed 2026-03-26 failed to push and
+# then hung every git operation that touched those blobs. Upload to the public
+# Supabase `site-media` bucket instead and reference the CDN URL from the
+# component:  node scripts/upload-site-media.mjs <file> <remote/path.mp4>
+# (Videos already tracked before this rule stay tracked; gitignore does not
+# untrack them. Migrate them the same way when they next need a change.)
+*.mp4
+*.mov
+*.webm
+*.m4v
 apollo_org_cache.json
