@@ -459,7 +459,7 @@ export default function YW3OnePager() {
               <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-10 lg:gap-16 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_clamp(440px,38vw,760px)] gap-10 lg:gap-16 items-start">
               {/* ── Left: copy, CTA, pills ── */}
               <div className="min-w-0">
                 <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
@@ -535,8 +535,10 @@ export default function YW3OnePager() {
 
               {/* ── Right: one image ── */}
               <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
-                <div className="relative h-[360px] lg:h-[520px] overflow-hidden rounded-[20px] bg-shortcut-teal">
-                  <img src={HERO_PHOTO.src} alt={HERO_PHOTO.alt} className="h-full w-full object-cover" />
+                <div className="relative h-[340px] md:h-[460px] lg:h-[560px] xl:h-[620px] overflow-hidden rounded-[20px] bg-shortcut-teal">
+                  {/* Portrait source: bias the crop up so the therapist stays in
+                      frame as the card widens, rather than centring on a torso. */}
+                  <img src={HERO_PHOTO.src} alt={HERO_PHOTO.alt} className="h-full w-full object-cover object-[center_38%]" />
                   <span className="absolute left-[18px] bottom-[18px] h-10 inline-flex items-center gap-2.5 rounded-full bg-white/[.94] pl-1.5 pr-4">
                     <span className="w-7 h-7 flex-none rounded-full bg-shortcut-coral flex items-center justify-center">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
