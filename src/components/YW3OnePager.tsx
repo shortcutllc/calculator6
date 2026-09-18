@@ -80,22 +80,19 @@ const STATIONS = [
     service: 'Massage', station: 'NO FRICTION', pillar: 'Removing friction',
     image: '/conference/services/massage.png', volume: 'Full volume',
     meta: 'Chair or table · 15 to 20 min',
-    body: 'A conference room becomes a spa, run by licensed therapists.',
+    body: 'A conference room becomes a spa for the day.',
     menu: [
-      'Chair or table setups',
       'Optional privacy screens',
       'Music, aromatherapy and lighting',
       'Therapist gender preference',
-      'Fully insured professionals',
     ],
   },
   {
     service: 'Headshots', station: 'GET SEEN', pillar: 'Audience reach',
     image: '/conference/services/headshot.png', volume: 'Full volume',
-    meta: '5 to 8 min · retouching included',
-    body: 'Corporate photographer, lights, backdrop and posing guidance. Everyone leaves with a retouched shot.',
+    meta: 'Sessions · 5 to 8 min',
+    body: 'A corporate photographer and a full lighting setup on your floor.',
     menu: [
-      '5 to 8 minute sessions',
       'Hair and makeup touch ups',
       'Multiple backdrop options',
       'Expert posing guidance',
@@ -120,13 +117,13 @@ const STATIONS = [
     service: 'Nails', station: 'NAILED IT', pillar: 'Results',
     image: '/conference/services/nails.png', volume: 'Half volume',
     meta: 'Manicures · 30 min',
-    body: 'Licensed technicians at a table, with sanitized tools between every guest.',
+    body: 'Express manicures at a table on the floor.',
     menu: [
       'Classic manicure',
       'Gel manicure',
       'Hand treatment and massage',
       'Twenty plus polish colors',
-      'Single use kits',
+      'Single use kits, sanitized tools',
     ],
   },
 ];
@@ -135,7 +132,7 @@ const STATIONS = [
    Same content, read as a list instead of a paragraph. */
 const RECOMMENDED = [
   'Massage and headshots at full volume. They move the most people, so they reach the most planners.',
-  'Hair and nails at half that, or swapped for facials, mindfulness, a sound bath or yoga.',
+  'Hair and nails at half that, or swapped for facials, yoga or another service.',
   'Sign-ups are tracked live, so a station filling fast gets throttled up before the day, not after.',
   'Pros, equipment, setup and cleanup are included at every station.',
   'Both sample proposals also carry a sound bath and a mindfulness session, priced separately.',
@@ -144,7 +141,7 @@ const RECOMMENDED = [
 const BRANDING = [
   {
     icon: MonitorSmartphone, title: 'Branded booking tech',
-    body: 'The sign-up page, confirmation emails, texts and calendar invites all carry Netflix Ads.',
+    body: 'Every digital touchpoint carries Netflix Ads rather than Shortcut.',
   },
   {
     icon: Shirt, title: 'Custom staff apparel',
@@ -163,7 +160,7 @@ const BRANDING = [
 const SIGNUP_ANSWERS = [
   {
     icon: MonitorSmartphone, title: 'Any device',
-    body: 'Phone, laptop or tablet. They book from the hallway or the desk.',
+    body: 'Phone, laptop or tablet, booked from the hallway or the desk.',
   },
   {
     icon: Users, title: 'The fields you asked for',
@@ -606,7 +603,7 @@ export default function YW3OnePager() {
           <SectionHead
             kicker="Act one"
             title="What happens in the office"
-            sub="Four stations, open all day, each themed to one of your four pitch pillars. Nobody is told which. They book a slot and sit down."
+            sub="Four stations, open all day, each themed to one of your four pitch pillars. Nobody is told which."
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -698,8 +695,8 @@ export default function YW3OnePager() {
             <div className="mt-14 md:mt-16">
               <SizzleReel />
               <p className={`mx-auto mt-6 max-w-[62ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
-                A day we ran for TradeStation. The same team, kit and staging arrives for Netflix
-                Ads, branded to the campaign rather than to us.
+                A day we ran for TradeStation. The same team, kit and staging arrives for
+                Netflix Ads.
               </p>
             </div>
           </div>
@@ -750,8 +747,8 @@ export default function YW3OnePager() {
             />
           </div>
           <p className={`mx-auto mt-5 mb-14 md:mb-16 max-w-[68ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
-            The live page, branded end to end: campaign banner, your four station names and copy,
-            and how many spots are left at each.
+            Branded end to end: campaign banner, your station names and copy, and the spots left
+            at each.
           </p>
 
           {/* The single loudest call to action on the page. */}
@@ -794,7 +791,7 @@ export default function YW3OnePager() {
                   A Salesforce ready list, per office
                 </h4>
                 <p className={`m-0 mt-3 text-[16px] md:text-[17px] font-medium leading-[1.55] ${INK} max-w-[70ch]`}>
-                  Name, title, company, work email and whether they showed up, office by office,
+                  Every booking plus whether they actually showed up, handed back office by office,
                   ready to load into Salesforce and attribute Q1 pipeline against.
                 </p>
               </div>
@@ -878,8 +875,7 @@ export default function YW3OnePager() {
                   Open the proposal and change the numbers yourself.
                 </h3>
                 <p className="m-0 mt-3.5 text-[16px] font-medium leading-[1.5] text-white/75 max-w-[56ch]">
-                  Set the appointments you want at each station and the total updates as you go.
-                  New York and Los Angeles are priced the same.
+                  Change any station&rsquo;s count and the total updates as you go.
                 </p>
               </div>
               <span className="flex-none w-16 h-16 rounded-full bg-shortcut-coral flex items-center justify-center shadow-[0_6px_20px_rgba(255,80,80,.4)] transition-transform duration-500 group-hover:scale-110">
@@ -896,13 +892,9 @@ export default function YW3OnePager() {
             title="The boring part, handled"
             sub="Four things a producer usually has to chase. Not here."
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-10 gap-y-9">
-            {LOGISTICS.map(({ icon: Icon, title, body }) => (
-              <div key={title} className="pt-6 border-t-2 border-[#E2E9E8]">
-                <Icon size={20} className="text-shortcut-blue mb-3.5" strokeWidth={2.5} />
-                <h4 className="m-0 text-[16.5px] font-bold leading-tight tracking-[-.02em] text-shortcut-blue">{title}</h4>
-                <p className="m-0 mt-2 text-[15.5px] font-medium leading-[1.55] text-[#2A5468]">{body}</p>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+            {LOGISTICS.map((l) => (
+              <FeatureCard key={l.title} icon={l.icon} title={l.title} body={l.body} tint="bg-shortcut-teal" />
             ))}
           </div>
         </Panel>
