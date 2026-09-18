@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Calendar, MapPin, Users, Camera, Scissors, Sparkles, Heart,
   ShieldCheck, FileCheck, Eye, EyeOff, ArrowUpRight, Image,
-  Shirt, Gift, PanelsTopLeft, Smartphone, ListPlus, Database, Clock,
+  Shirt, Gift, PanelsTopLeft, MonitorSmartphone, ListPlus, Database, Clock,
 } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
@@ -62,59 +62,70 @@ const COL = 'max-w-[1280px] mx-auto';
 
 const STATIONS = [
   {
-    service: 'Headshots', station: 'GET SEEN', pillar: 'Audience reach',
-    icon: Camera, bg: '#9EFAFF',
-    body: 'A photographer, lights and a backdrop. Everyone who sits down gets their own shot retouched and emailed afterwards.',
+    service: 'Chair massage', station: 'NO FRICTION', pillar: 'Removing friction',
+    icon: Heart, bg: '#A9F0CC', volume: 'Full volume',
+    body: 'A conference room becomes a spa. Fifteen minutes in the chair, fully clothed.',
   },
   {
-    service: 'Chair massage', station: 'NO FRICTION', pillar: 'Removing friction',
-    icon: Heart, bg: '#A9F0CC',
-    body: 'We turn a conference room into a spa. Massage therapists, chairs, privacy screens. Fifteen minutes in the chair, fully clothed.',
+    service: 'Headshots', station: 'GET SEEN', pillar: 'Audience reach',
+    icon: Camera, bg: '#9EFAFF', volume: 'Full volume',
+    body: 'Photographer, lights, backdrop, and hair and makeup touch ups included. Everyone leaves with a retouched shot.',
   },
   {
     service: 'Hair', station: 'THE FIT', pillar: 'Creative fit',
-    icon: Scissors, bg: '#FEDC64',
-    body: 'Barbers and stylists at a chair on the floor. Cuts, trims, beard work and styling.',
+    icon: Scissors, bg: '#FEDC64', volume: 'Half volume',
+    body: 'Barbers and stylists on the floor. Cuts, trims, beard work, styling.',
   },
   {
     service: 'Nails', station: 'NAILED IT', pillar: 'Results',
-    icon: Sparkles, bg: '#F7BBFF',
-    body: 'Manicurists at a table. Express manicures, about fifteen minutes each.',
+    icon: Sparkles, bg: '#F7BBFF', volume: 'Half volume',
+    body: 'Manicurists at a table. Express manicures, fifteen minutes each.',
   },
 ];
 
 const BRANDING = [
   {
+    icon: MonitorSmartphone, title: 'The booking tech, branded to you',
+    body: 'The sign-up page, confirmation emails, texts and calendar invites all carry Netflix Ads. It is the first thing a planner sees and the last thing they get.',
+  },
+  {
     icon: Shirt, title: 'Our staff wear your apparel',
-    body: 'The team works the floor in Netflix Ads apparel you supply, not Shortcut black. You send it to us and we get it to every Pro before the first day.',
+    body: 'The team works the floor in Netflix Ads apparel you supply, not Shortcut black.',
   },
   {
     icon: PanelsTopLeft, title: 'Your artwork on the privacy screens',
-    body: 'The screens that turn a conference room into a treatment space carry your artwork. They are the backdrop in every photo anyone takes that day.',
+    body: 'The screens that turn a conference room into a treatment space carry your artwork, so they are the backdrop in every photo taken that day.',
   },
   {
     icon: Gift, title: 'A gift at each station',
-    body: 'One takeaway per station, matched to the service. What a planner leaves holding lines up with what they just sat down for.',
+    body: 'One takeaway per station, matched to the service a planner just sat down for.',
   },
 ];
 
 const SIGNUP_ANSWERS = [
   {
-    icon: Smartphone, title: 'It works on a phone',
-    body: 'Planners book from the hallway. The page is built for a phone first, not a desktop form shrunk down.',
+    icon: MonitorSmartphone, title: 'Works on any device',
+    body: 'Phone, laptop or tablet. Planners book from the hallway or from their desk.',
   },
   {
     icon: Users, title: 'Name, title, company, work email',
-    body: 'The four fields you asked for, set as required custom fields. Captured at booking, not guessed at the door.',
+    body: 'The four fields you asked for, required at booking rather than guessed at the door.',
   },
   {
     icon: ListPlus, title: 'A waitlist when a station fills',
-    body: 'Once a station is full the page takes names instead of turning people away, and promotes them automatically when a slot opens.',
+    body: 'A full station takes names instead of turning people away, and promotes them when a slot opens.',
   },
   {
     icon: FileCheck, title: 'Your opt-in language on the form',
-    body: 'You write the consent line and we put it on the form. Every address on the list agreed to hear from Netflix Ads.',
+    body: 'You write the consent line. Every address on the list agreed to hear from Netflix Ads.',
   },
+];
+
+/* Everything a planner touches is editable. Listed as chips because the
+   point is the length of the list, not any one item on it. */
+const CUSTOMISABLE = [
+  'Imagery', 'Headlines and copy', 'Form fields', 'Confirmation emails',
+  'Confirmation texts', 'Calendar invite copy', 'Logo and colors', 'Service names',
 ];
 
 const LOGISTICS = [
@@ -124,15 +135,15 @@ const LOGISTICS = [
   },
   {
     icon: FileCheck, title: 'Licensed Pros in every state',
-    body: 'Licensure on file for every Pro who works the floor, in whichever states the five offices land in.',
+    body: 'Licensure on file for every Pro, in whichever states the five offices land in.',
   },
   {
     icon: Clock, title: 'A conference room or open floor',
-    body: 'Every station is built to set up in either, so a room change on the morning of day three is not a problem.',
+    body: 'Every station sets up in either, so a room change on the morning of day three is fine.',
   },
   {
     icon: Calendar, title: 'Reschedules are free',
-    body: 'Floor access pulled, snow in New York. Tell us and we move that day rather than charge for it.',
+    body: 'Floor access pulled, snow in New York. Tell us and we move the day rather than charge for it.',
   },
 ];
 
@@ -374,10 +385,9 @@ export default function YW3OnePager() {
             </h1>
 
             <p className="m-0 mt-6 text-[17px] md:text-[19px] font-medium leading-[1.55] text-[#45596A] max-w-[58ch]">
-              We set up four wellness stations inside each agency office: headshots, chair massage,
-              hair and nails. Media planners book a fifteen minute slot on a Netflix Ads branded
-              page and walk down the hall. We bring the Pros, the equipment, the booking page and a
-              lead who runs the day. You get a list of everyone who came.
+              Four wellness stations set up inside each agency office. Planners book a fifteen
+              minute slot on a Netflix Ads branded page and walk down the hall. We bring the Pros,
+              the equipment and a lead who runs the day. You get the list of everyone who came.
             </p>
 
             <div className="flex flex-wrap gap-3 mt-9">
@@ -402,17 +412,22 @@ export default function YW3OnePager() {
           <SectionHead
             kicker="Act one"
             title="What happens in the office"
-            sub="Four stations, open all day, in a conference room or on the open floor. Each one is themed to one of the four Netflix Ads pitch pillars. Nobody is told which pillar they are in. They just book a slot and sit down."
+            sub="Four stations, open all day, in a conference room or on the open floor. Each is themed to one of your four pitch pillars. Nobody is told which. They book a slot and sit down."
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {STATIONS.map((s) => {
               const Icon = s.icon;
               return (
                 <div key={s.service} className={`${CARD} flex flex-col`}>
-                  <span className="w-11 h-11 rounded-full flex items-center justify-center mb-5" style={{ background: s.bg }}>
-                    <Icon size={19} className="text-shortcut-blue" strokeWidth={2.5} />
-                  </span>
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <span className="w-11 h-11 flex-none rounded-full flex items-center justify-center" style={{ background: s.bg }}>
+                      <Icon size={19} className="text-shortcut-blue" strokeWidth={2.5} />
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[.08em] ${s.volume === 'Full volume' ? 'bg-shortcut-blue text-white' : 'bg-neutral-light-gray text-shortcut-blue'}`}>
+                      {s.volume}
+                    </span>
+                  </div>
                   <h4 className="m-0 text-[20px] font-bold leading-tight tracking-[-.025em] text-shortcut-blue">{s.service}</h4>
                   <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A] flex-1">{s.body}</p>
                   <div className="mt-6 pt-5 border-t border-shortcut-blue/[.12]">
@@ -427,18 +442,28 @@ export default function YW3OnePager() {
             })}
           </div>
 
-          <p className="text-[15px] font-medium leading-[1.55] text-[#45596A] max-w-[70ch] mx-auto text-center mt-8">
-            Pros, equipment, setup and cleanup are included at every station. Happy to swap hair or
-            nails for facials, mindfulness, a sound bath or yoga. Both sample days carry a sound bath
-            and a mindfulness session as optional extras, priced separately from the four stations.
-          </p>
+          <div className="mt-8 rounded-[28px] bg-neutral-light-gray p-7 md:p-9 max-w-[76ch] mx-auto">
+            <h4 className="m-0 text-[17px] font-bold tracking-[-.02em] text-shortcut-blue">
+              We would run massage and headshots at full volume
+            </h4>
+            <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">
+              They move the most people through the day, so they see the most planners. Hair and
+              nails can run at half that. Sign-ups are tracked live, so if a station is filling fast
+              we throttle it up before the day rather than after it.
+            </p>
+            <p className="m-0 mt-3.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">
+              Pros, equipment, setup and cleanup are included at every station. Happy to swap hair or
+              nails for facials, mindfulness, a sound bath or yoga. Both sample proposals also carry
+              a sound bath and a mindfulness session, priced separately from the four stations.
+            </p>
+          </div>
 
           {/* Branding sits inside the day, because it is what the day looks like. */}
           <div className="mt-20 md:mt-24">
-            <SubHead note="Everything a planner sees on the floor carries the campaign, not our logo.">
+            <SubHead note="Everything a planner sees carries the campaign, not our logo.">
               Branded to Netflix Ads, not to us
             </SubHead>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
               {BRANDING.map((b) => (
                 <FeatureCard key={b.title} icon={b.icon} title={b.title} body={b.body} tint="bg-accent-yellow" />
               ))}
@@ -452,13 +477,33 @@ export default function YW3OnePager() {
             kicker="Act two"
             title="The booking page,"
             accent="and the list you keep after."
-            sub="This is the part of the brief with the most asks in it, so here is a straight answer to each one and a working page you can book yourself a slot on."
+            sub="The part of the brief with the most asks in it. A straight answer to each, and a working page you can book on."
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {SIGNUP_ANSWERS.map((a) => (
               <FeatureCard key={a.title} icon={a.icon} title={a.title} body={a.body} />
             ))}
+          </div>
+
+          {/* The biggest capability claim in this act, so it gets a full row. */}
+          <div className={`${CARD} mt-5`}>
+            <h4 className="m-0 text-[20px] font-bold leading-tight tracking-[-.025em] text-shortcut-blue">
+              Every part of the sign-up experience is customizable
+            </h4>
+            <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A] max-w-[62ch]">
+              If a planner sees it, you can change it. Tell us the wording and we build it.
+            </p>
+            <div className="flex flex-wrap gap-2.5 mt-6">
+              {CUSTOMISABLE.map((c) => (
+                <span key={c} className="inline-flex items-center rounded-full bg-neutral-light-gray px-4 py-2 text-[13.5px] font-bold tracking-[-.01em] text-shortcut-blue">
+                  {c}
+                </span>
+              ))}
+              <span className="inline-flex items-center rounded-full bg-shortcut-blue px-4 py-2 text-[13.5px] font-bold tracking-[-.01em] text-white">
+                and more
+              </span>
+            </div>
           </div>
 
           {/* The single loudest call to action on the page. */}
@@ -477,8 +522,7 @@ export default function YW3OnePager() {
                   Open the live booking page and book yourself a slot.
                 </h3>
                 <p className="m-0 mt-3.5 text-[16px] font-medium leading-[1.5] text-white/75 max-w-[52ch]">
-                  A real Shortcut booking page, working right now. Pick a service, pick a time, and
-                  see exactly what a planner sees on the day.
+                  Working right now. Pick a service, pick a time, see what a planner sees.
                 </p>
               </div>
               <span className="flex-none w-16 h-16 rounded-full bg-shortcut-coral flex items-center justify-center shadow-[0_6px_20px_rgba(255,80,80,.4)] transition-transform duration-500 group-hover:scale-110">
@@ -501,10 +545,9 @@ export default function YW3OnePager() {
                   A retouched portrait, in their inbox
                 </h4>
                 <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">
-                  Everyone who sits for a headshot gets a private link to their own shots. They pick
-                  the one they want, we retouch it, and we email it to them branded to Netflix Ads.
-                  Nobody browses anybody else&rsquo;s photos, and nobody is stuck with the frame the
-                  photographer liked. It is the piece that keeps working on LinkedIn months later.
+                  Everyone gets a private link to their own shots, picks the one they want, and we
+                  email it back retouched and branded to Netflix Ads. It keeps working on LinkedIn
+                  months after the box is off the desk.
                 </p>
               </div>
               <div className={`${CARD}`}>
@@ -515,10 +558,9 @@ export default function YW3OnePager() {
                   A Salesforce ready list, per office
                 </h4>
                 <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">
-                  Name, title, company, work email and whether they actually showed up, handed back
-                  office by office in a shape you can load straight into Salesforce and attribute Q1
-                  pipeline against. A manager view shows you every guest and where each portrait
-                  stands while the week is still running.
+                  Name, title, company, work email and whether they showed up, office by office,
+                  ready to load into Salesforce and attribute Q1 pipeline against. A manager view
+                  shows you where every portrait stands while the week is still running.
                 </p>
               </div>
             </div>
@@ -530,7 +572,7 @@ export default function YW3OnePager() {
           <SectionHead
             kicker="Act three"
             title="What it costs"
-            sub="You pay per station, per office-day, based on how many appointments you want at that station. Below is the actual rate card. Two sample days are live in one proposal, and you can change the numbers yourself."
+            sub="You pay per station, per office-day, by how many appointments you want. Here is the rate card. Two sample days are live and you can change the numbers yourself."
           />
 
           {/* The rate card. Straight answer, no session required. */}
@@ -570,10 +612,9 @@ export default function YW3OnePager() {
               </table>
             </div>
             <p className="m-0 px-7 py-5 text-[14px] font-medium leading-[1.55] text-[#45596A] border-t border-shortcut-blue/[.1]">
-              Nails runs in a different size ladder because a manicure takes longer than a massage.
-              The same rate card applies in New York and Los Angeles. Volume pricing applies across
-              the week once you pass five office-days, and again past nine in a year, so the five day
-              week comes in under the sum of five separate days.
+              Nails runs on a different ladder because a manicure takes longer. The same rate card
+              applies in New York and Los Angeles. Volume pricing kicks in past five office-days and
+              again past nine in a year, so the week comes in under five separate days.
             </p>
           </div>
 
@@ -612,8 +653,7 @@ export default function YW3OnePager() {
                   <p className="m-0 mt-3 text-[15px] font-medium leading-[1.55] text-[#45596A]">{d.detail}</p>
                 </div>
                 <p className="m-0 mt-5 text-[14px] font-semibold text-shortcut-blue">
-                  Opens on this day. Switch between the two and change any
-                  appointment count. The total moves with you.
+                  Opens on this day. Switch between the two and change any count.
                 </p>
               </a>
             ))}
@@ -625,9 +665,9 @@ export default function YW3OnePager() {
           <SectionHead
             kicker="Act four"
             title="The boring part, handled"
-            sub="Four things a producer has to chase with most vendors. You do not have to chase them here."
+            sub="Four things a producer usually has to chase. Not here."
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-9">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-10 gap-y-9">
             {LOGISTICS.map(({ icon: Icon, title, body }) => (
               <div key={title} className="pt-6 border-t-2 border-shortcut-blue/15">
                 <Icon size={20} className="text-shortcut-blue mb-3.5" strokeWidth={2.5} />
@@ -645,9 +685,8 @@ export default function YW3OnePager() {
               Five office-days, one team, one invoice.
             </h2>
             <p className="m-0 mt-4 text-[16px] md:text-[17px] font-medium leading-[1.5] text-white/70 max-w-[52ch] mx-auto">
-              Ninety percent or more of slots get booked on a typical office day, and eighty seven
-              percent of companies book us again after the first one. Tell us which five offices and
-              we will build the running order.
+              Ninety percent or more of slots get booked on a typical day, and eighty seven percent
+              of companies book us again. Tell us the five offices and we will build the running order.
             </p>
             <div className="mt-12 pt-8 border-t border-white/15">
               <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/40">
