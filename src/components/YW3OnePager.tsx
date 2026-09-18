@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Calendar, MapPin, Users,
+  Calendar, MapPin, Users, Camera,
   ShieldCheck, FileCheck, Eye, EyeOff, ArrowUpRight, Image,
   Shirt, Gift, PanelsTopLeft, MonitorSmartphone, ListPlus, Database, Clock,
 } from 'lucide-react';
@@ -54,32 +54,54 @@ import {
 
 const SIGNUP_DEMO = 'https://admin.shortcutpros.com/#/signup/gHTKOcwIzE';
 const PROPOSAL_NY = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-5';
-const PROPOSAL_LA = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-6';
+/* The same proposal opening on option B (Los Angeles). One link is enough:
+   PROPOSAL_NY opens on option A and the viewer switches between them. */
+// const PROPOSAL_LA = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-6';
 
 /* Full bleed: gutters only, no content cap. */
 const GUT = 'px-6 md:px-10 lg:px-16 2xl:px-24';
 const COL = 'w-full';
 
+/* Type + surface tokens lifted from the V2 proposal viewer
+   (src/styles/proposal-refresh.css). Named the same as the .lt-* classes so
+   the two surfaces stay legible together.
+     ink-soft #2A5468  body copy      (was wrongly on ink-meta, too light)
+     ink-meta #45596A  eyebrows, captions only
+     rule     #E2E9E8  card borders
+     h2 44/700/-.035em · h3 24/700/-.025em · accent = coral, not teal   */
+const INK = 'text-[#2A5468]';
+const INK_META = 'text-[#45596A]';
+const CARD_SHELL =
+  'rounded-[28px] bg-white border border-[#E2E9E8] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]';
+
 const STATIONS = [
   {
-    service: 'Chair massage', station: 'NO FRICTION', pillar: 'Removing friction',
+    service: 'Massage', station: 'NO FRICTION', pillar: 'Removing friction',
     image: '/conference/services/massage.png', volume: 'Full volume',
-    body: 'A conference room becomes a spa. Fifteen minutes in the chair, fully clothed.',
+    meta: 'Chair or table · 15 to 20 min',
+    body: 'A conference room becomes a spa. Therapists, chairs, privacy screens, music and aromatherapy.',
+    menu: ['Chair massage', 'Table massage', 'Sports and deep tissue', 'Compression', 'Reiki reset'],
   },
   {
     service: 'Headshots', station: 'GET SEEN', pillar: 'Audience reach',
     image: '/conference/services/headshot.png', volume: 'Full volume',
-    body: 'Photographer, lights and backdrop, with hair and makeup touch ups included. Everyone leaves with a retouched shot.',
+    meta: '8 to 12 min · retouching included',
+    body: 'Corporate photographer, lights, backdrop and posing guidance. Everyone leaves with a retouched shot.',
+    menu: ['8 to 12 minute sessions', 'Hair and makeup touch ups', 'Multiple backdrop options', 'Retouching included'],
   },
   {
     service: 'Hair', station: 'THE FIT', pillar: 'Creative fit',
     image: '/conference/services/hair-v3.png', volume: 'Half volume',
-    body: 'Barbers and stylists on the floor. Cuts, trims, beard work, styling.',
+    meta: 'Cuts and styling · 20 to 30 min',
+    body: 'Barbers and stylists on the floor, experienced with every hair type and texture.',
+    menu: ['Barber cut', 'Beard trim and shaping', 'Salon cut and style', 'Blowout', 'Optional classic barber chairs'],
   },
   {
     service: 'Nails', station: 'NAILED IT', pillar: 'Results',
     image: '/conference/services/nails.png', volume: 'Half volume',
-    body: 'Manicurists at a table. Express manicures, fifteen minutes each.',
+    meta: 'Mani and pedi · 20 to 30 min',
+    body: 'Licensed technicians at a table. Single use kits, sanitized tools, twenty plus polish colors.',
+    menu: ['Classic manicure', 'Gel manicure', 'Dry pedicure, waterless', 'Hand treatment and massage'],
   },
 ];
 
@@ -128,6 +150,14 @@ const SIGNUP_ANSWERS = [
   {
     icon: FileCheck, title: 'Your opt-in language on the form',
     body: 'You write the consent line. Every address on the list agreed to hear from Netflix Ads.',
+  },
+  {
+    icon: Image, title: 'Photo delivery, handled by the same system',
+    body: 'Everyone who sits for a headshot gets a private gallery link to their own shots. They pick the one they want, we retouch it, and it lands in their inbox branded to Netflix Ads within five to seven business days. No memory card handed to anyone.',
+  },
+  {
+    icon: Camera, title: 'You watch the galleries fill',
+    body: 'A manager view shows every guest, whether they have picked yet and where each portrait stands, per office, while the week is still running.',
   },
 ];
 
@@ -210,23 +240,22 @@ function Panel({ id, children, tone = 'white' }: {
   );
 }
 
-/** Centred section head: coral-dot eyebrow, 40px title, 17px sub at 52ch.
- *  56px to whatever follows. */
+/** Centred section head on the V2 scale: .lt-eyebrow (no dot), .lt-h2 at
+ *  44px with a coral trailing phrase, .lt-body sub. 56px to what follows. */
 function SectionHead({ kicker, title, accent, sub }: {
   kicker: string; title: string; accent?: string; sub?: string;
 }) {
   return (
     <div className="flex flex-col items-center text-center gap-3.5 mb-12 md:mb-14">
-      <p className="m-0 flex items-center gap-2.5 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-blue">
-        <span className="w-[7px] h-[7px] flex-none rounded-full bg-shortcut-coral" />
+      <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${INK_META}`}>
         {kicker}
       </p>
-      <h2 className="m-0 text-[28px] md:text-[40px] font-bold leading-[1.1] tracking-[-.03em] text-shortcut-blue max-w-[20ch]">
+      <h2 className="m-0 text-[30px] md:text-[44px] font-bold leading-[1.05] tracking-[-.035em] text-shortcut-blue max-w-[22ch] text-balance">
         {title}
-        {accent && <span className="block text-shortcut-teal-blue">{accent}</span>}
+        {accent && <span className="block text-shortcut-coral">{accent}</span>}
       </h2>
       {sub && (
-        <p className="m-0 text-[16px] md:text-[17px] font-medium leading-[1.5] text-[#45596A] max-w-[52ch]">
+        <p className={`m-0 text-[16px] md:text-[17px] font-medium leading-[1.55] ${INK} max-w-[56ch]`}>
           {sub}
         </p>
       )}
@@ -238,16 +267,16 @@ function SectionHead({ kicker, title, accent, sub }: {
  *  rather than as more peer sections. */
 function SubHead({ children, note }: { children: React.ReactNode; note?: string }) {
   return (
-    <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 pb-5 mb-8 border-b border-shortcut-blue/[.12]">
-      <h3 className="m-0 text-[20px] md:text-[24px] font-bold leading-tight tracking-[-.025em] text-shortcut-blue">
+    <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 pb-5 mb-8 border-b border-[#E2E9E8]">
+      <h3 className="m-0 text-[22px] md:text-[24px] font-bold leading-[1.1] tracking-[-.025em] text-shortcut-blue">
         {children}
       </h3>
-      {note && <p className="m-0 text-[15px] font-medium text-[#45596A] md:text-right md:max-w-[42ch]">{note}</p>}
+      {note && <p className={`m-0 text-[16px] font-medium leading-[1.55] ${INK} md:text-right md:max-w-[44ch]`}>{note}</p>}
     </div>
   );
 }
 
-const CARD = 'rounded-[28px] bg-white border border-black/[.06] shadow-[0_6px_20px_rgba(0,0,0,0.10)] p-[26px] md:p-[30px]';
+const CARD = `${CARD_SHELL} p-7 md:p-8`;
 
 function FeatureCard({ icon: Icon, title, body, tint = 'bg-shortcut-teal' }: {
   icon: LucideIcon; title: string; body: string; tint?: string;
@@ -257,8 +286,8 @@ function FeatureCard({ icon: Icon, title, body, tint = 'bg-shortcut-teal' }: {
       <span className={`w-11 h-11 rounded-full ${tint} flex items-center justify-center mb-5`}>
         <Icon size={19} className="text-shortcut-blue" strokeWidth={2.5} />
       </span>
-      <h4 className="m-0 text-[18px] font-bold leading-tight tracking-[-.02em] text-shortcut-blue">{title}</h4>
-      <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">{body}</p>
+      <h4 className="m-0 text-[19px] font-bold leading-[1.15] tracking-[-.02em] text-shortcut-blue">{title}</h4>
+      <p className={`m-0 mt-2.5 text-[16px] font-medium leading-[1.55] ${INK}`}>{body}</p>
     </div>
   );
 }
@@ -394,7 +423,7 @@ export default function YW3OnePager() {
               <span className="block text-shortcut-teal-blue">Four stations on their floor, the day the box lands.</span>
             </h1>
 
-            <p className="m-0 mt-6 text-[17px] md:text-[19px] font-medium leading-[1.55] text-[#45596A] max-w-[62ch]">
+            <p className="m-0 mt-6 text-[17px] md:text-[19px] font-medium leading-[1.55] text-[#2A5468] max-w-[62ch]">
               Netflix Ads drops the kit on media planners&rsquo; desks. The same day, four Netflix
               Ads stations open on their own floor and they book a fifteen minute slot. We bring
               the Pros, the equipment and a lead who runs each day. You get the list of everyone
@@ -429,23 +458,41 @@ export default function YW3OnePager() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {STATIONS.map((s) => {
               return (
-                <div key={s.service} className={`${CARD} flex flex-col`}>
-                  {/* Same service art and 1.1 crop as the service menu: the PNGs
-                      carry a baked white margin the card has to crop off. */}
-                  <div className="relative mb-6 h-[190px] overflow-hidden rounded-[20px] bg-[#EAF7F9]">
+                <div key={s.service} className={`${CARD_SHELL} flex flex-col overflow-hidden`}>
+                  {/* Art bleeds to the card's top, left and right edges. Same
+                      1.1 crop the service menu uses: the PNGs carry a baked
+                      white margin that has to be cropped off. */}
+                  <div className="relative h-[210px] bg-[#EAF7F9]">
                     <img src={s.image} alt={s.service} className="absolute inset-0 h-full w-full scale-110 object-cover" />
-                    <span className={`absolute top-3.5 right-3.5 inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[.08em] shadow-sm ${s.volume === 'Full volume' ? 'bg-shortcut-blue text-white' : 'bg-white text-shortcut-blue'}`}>
+                    <span className={`absolute top-4 right-4 inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[.08em] shadow-sm ${s.volume === 'Full volume' ? 'bg-shortcut-blue text-white' : 'bg-white text-shortcut-blue'}`}>
                       {s.volume}
                     </span>
                   </div>
-                  <h4 className="m-0 text-[20px] font-bold leading-tight tracking-[-.025em] text-shortcut-blue">{s.service}</h4>
-                  <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A] flex-1">{s.body}</p>
-                  <div className="mt-6 pt-5 border-t border-shortcut-blue/[.12]">
-                    <div className="text-[11px] font-extrabold uppercase tracking-[.1em] text-shortcut-blue/45">
-                      Station name
+
+                  <div className="flex flex-1 flex-col p-7 md:p-8">
+                    <h4 className="m-0 text-[22px] font-bold leading-[1.1] tracking-[-.025em] text-shortcut-blue">{s.service}</h4>
+                    <div className={`mt-1.5 text-[13px] font-bold uppercase tracking-[.06em] ${INK_META}`}>{s.meta}</div>
+                    <p className={`m-0 mt-3 text-[16px] font-medium leading-[1.55] ${INK}`}>{s.body}</p>
+
+                    {/* 6. What is actually on the menu at this station. */}
+                    <ul className="m-0 mt-5 p-0 list-none flex flex-col gap-1.5">
+                      {s.menu.map((m) => (
+                        <li key={m} className={`flex gap-2.5 text-[15px] font-medium leading-[1.45] ${INK}`}>
+                          <span className="mt-[8px] w-[5px] h-[5px] flex-none rounded-full bg-shortcut-teal-blue" />
+                          <span>{m}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-auto pt-6">
+                      <div className="pt-5 border-t border-[#E2E9E8]">
+                        <div className={`text-[11px] font-extrabold uppercase tracking-[.1em] ${INK_META}`}>
+                          Station name
+                        </div>
+                        <div className="text-[16px] font-extrabold tracking-[-.015em] text-shortcut-blue mt-1">{s.station}</div>
+                        <div className={`text-[14px] font-semibold ${INK} mt-2`}>Pillar: {s.pillar}</div>
+                      </div>
                     </div>
-                    <div className="text-[15px] font-extrabold tracking-[-.015em] text-shortcut-blue mt-1">{s.station}</div>
-                    <div className="text-[13.5px] font-semibold text-[#45596A] mt-2">Pillar: {s.pillar}</div>
                   </div>
                 </div>
               );
@@ -458,7 +505,7 @@ export default function YW3OnePager() {
             </SubHead>
             <ul className="m-0 p-0 list-none grid grid-cols-1 lg:grid-cols-2 gap-x-14 gap-y-4">
               {RECOMMENDED.map((r) => (
-                <li key={r} className="flex gap-3.5 text-[15.5px] font-medium leading-[1.55] text-[#45596A]">
+                <li key={r} className="flex gap-3.5 text-[16px] font-medium leading-[1.55] text-[#2A5468]">
                   <span className="mt-[9px] w-[7px] h-[7px] flex-none rounded-full bg-shortcut-coral" />
                   <span>{r}</span>
                 </li>
@@ -488,7 +535,7 @@ export default function YW3OnePager() {
             sub="The part of the brief with the most asks in it. A straight answer to each, and a working page you can book on."
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {SIGNUP_ANSWERS.map((a) => (
               <FeatureCard key={a.title} icon={a.icon} title={a.title} body={a.body} />
             ))}
@@ -499,7 +546,7 @@ export default function YW3OnePager() {
             <h4 className="m-0 text-[20px] font-bold leading-tight tracking-[-.025em] text-shortcut-blue">
               Every part of the sign-up experience is customizable
             </h4>
-            <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A] max-w-[62ch]">
+            <p className="m-0 mt-2.5 text-[16px] font-medium leading-[1.55] text-[#2A5468] max-w-[62ch]">
               If a planner sees it, you can change it. Tell us the wording and we build it.
             </p>
             <div className="flex flex-wrap gap-2.5 mt-6">
@@ -519,7 +566,7 @@ export default function YW3OnePager() {
             href={SIGNUP_DEMO}
             target="_blank"
             rel="noopener noreferrer"
-            className="group mt-5 block rounded-[28px] bg-shortcut-blue p-8 md:p-12 shadow-[0_6px_20px_rgba(0,0,0,0.10)] transition-transform duration-500 hover:-translate-y-1"
+            className="group mt-5 block rounded-[28px] bg-shortcut-blue p-8 md:p-12 shadow-[0_20px_50px_rgba(3,34,50,.22)] transition-transform duration-500 hover:-translate-y-1"
           >
             <div className="flex flex-col md:flex-row md:items-center gap-7 md:gap-10">
               <div className="flex-1">
@@ -539,36 +586,24 @@ export default function YW3OnePager() {
             </div>
           </a>
 
-          {/* What you get back. The deliverable, not another feature grid. */}
+          {/* What you get back: the list. Photo delivery lives with the tech
+              above, because it is the same system doing it. */}
           <div className="mt-20 md:mt-24">
-            <SubHead note="Two things outlast the week: the portraits and the list.">
+            <SubHead note="The one thing that outlasts the week.">
               What you get back
             </SubHead>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className={`${CARD}`}>
-                <span className="w-11 h-11 rounded-full bg-accent-yellow flex items-center justify-center mb-5">
-                  <Image size={19} className="text-shortcut-blue" strokeWidth={2.5} />
-                </span>
-                <h4 className="m-0 text-[20px] font-bold leading-tight tracking-[-.025em] text-shortcut-blue">
-                  A retouched portrait, in their inbox
-                </h4>
-                <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">
-                  Everyone gets a private link to their own shots, picks the one they want, and we
-                  email it back retouched and branded to Netflix Ads. It keeps working on LinkedIn
-                  months after the box is off the desk.
-                </p>
-              </div>
-              <div className={`${CARD}`}>
-                <span className="w-11 h-11 rounded-full bg-shortcut-teal flex items-center justify-center mb-5">
-                  <Database size={19} className="text-shortcut-blue" strokeWidth={2.5} />
-                </span>
-                <h4 className="m-0 text-[20px] font-bold leading-tight tracking-[-.025em] text-shortcut-blue">
+            <div className={`${CARD} flex flex-col md:flex-row md:items-start gap-7 md:gap-10`}>
+              <span className="flex-none w-14 h-14 rounded-full bg-shortcut-teal flex items-center justify-center">
+                <Database size={24} className="text-shortcut-blue" strokeWidth={2.5} />
+              </span>
+              <div className="flex-1">
+                <h4 className="m-0 text-[22px] md:text-[24px] font-bold leading-[1.1] tracking-[-.025em] text-shortcut-blue">
                   A Salesforce ready list, per office
                 </h4>
-                <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">
-                  Name, title, company, work email and whether they showed up, office by office,
-                  ready to load into Salesforce and attribute Q1 pipeline against. A manager view
-                  shows you where every portrait stands while the week is still running.
+                <p className={`m-0 mt-3 text-[16px] md:text-[17px] font-medium leading-[1.55] ${INK} max-w-[70ch]`}>
+                  Name, title, company, work email and whether they actually showed up, handed back
+                  office by office in a shape you can load straight into Salesforce and attribute Q1
+                  pipeline against.
                 </p>
               </div>
             </div>
@@ -619,53 +654,38 @@ export default function YW3OnePager() {
                 </tbody>
               </table>
             </div>
-            <p className="m-0 px-7 py-5 text-[14px] font-medium leading-[1.55] text-[#45596A] border-t border-shortcut-blue/[.1]">
+            <p className="m-0 px-7 py-5 text-[14px] font-medium leading-[1.55] text-[#2A5468] border-t border-[#E2E9E8]">
               Nails runs on a different ladder because a manicure takes longer. The same rate card
               applies in New York and Los Angeles. Volume pricing kicks in past five office-days and
               again past nine in a year, so the week comes in under five separate days.
             </p>
           </div>
 
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-            {[
-              {
-                href: PROPOSAL_NY, city: 'New York', total: '$13,917', appts: '250 appointments',
-                detail: 'A full day. Headshots at 50, chair massage at 100, hair at 50 and nails at 50.',
-              },
-              {
-                href: PROPOSAL_LA, city: 'Los Angeles', total: '$5,396', appts: '91 appointments',
-                detail: 'A lighter day. Headshots, chair massage and hair at 25 each, nails at 16.',
-              },
-            ].map((d) => (
-              <a
-                key={d.city}
-                href={d.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${CARD} group flex flex-col transition-transform duration-500 hover:-translate-y-1`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-blue/45">
-                      Sample office-day
-                    </div>
-                    <div className="text-[22px] font-bold tracking-[-.025em] text-shortcut-blue mt-1.5">{d.city}</div>
-                  </div>
-                  <span className="flex-none w-11 h-11 rounded-full bg-shortcut-blue/[.06] group-hover:bg-shortcut-coral flex items-center justify-center transition-colors">
-                    <ArrowUpRight size={19} className="text-shortcut-blue group-hover:text-white transition-colors" strokeWidth={2.5} />
-                  </span>
-                </div>
-                <div className="mt-6 pt-5 border-t border-shortcut-blue/[.12]">
-                  <div className="text-[34px] font-extrabold tracking-[-.03em] text-shortcut-blue tabular-nums leading-none">{d.total}</div>
-                  <div className="text-[13.5px] font-bold text-[#45596A] mt-2">{d.appts}</div>
-                  <p className="m-0 mt-3 text-[15px] font-medium leading-[1.55] text-[#45596A]">{d.detail}</p>
-                </div>
-                <p className="m-0 mt-5 text-[14px] font-semibold text-shortcut-blue">
-                  Opens on this day. Switch between the two and change any count.
+          <a
+            href={PROPOSAL_NY}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group mt-5 block rounded-[28px] bg-shortcut-blue p-8 md:p-12 shadow-[0_20px_50px_rgba(3,34,50,.22)] transition-transform duration-500 hover:-translate-y-1"
+          >
+            <div className="flex flex-col md:flex-row md:items-center gap-7 md:gap-10">
+              <div className="flex-1">
+                <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-3">
+                  Priced live, not in a deck
                 </p>
-              </a>
-            ))}
-          </div>
+                <h3 className="m-0 text-[26px] md:text-[34px] font-bold leading-[1.08] tracking-[-.03em] text-white">
+                  Open the proposal and change the numbers yourself.
+                </h3>
+                <p className="m-0 mt-3.5 text-[16px] font-medium leading-[1.5] text-white/75 max-w-[56ch]">
+                  Two sample office-days sit inside it: New York at $13,917 for 250 appointments and
+                  Los Angeles at $5,396 for 91. Switch between them, change any station&rsquo;s
+                  appointment count, and the total moves with you.
+                </p>
+              </div>
+              <span className="flex-none w-16 h-16 rounded-full bg-shortcut-coral flex items-center justify-center shadow-[0_6px_20px_rgba(255,80,80,.4)] transition-transform duration-500 group-hover:scale-110">
+                <ArrowUpRight size={26} className="text-white" strokeWidth={2.5} />
+              </span>
+            </div>
+          </a>
         </Panel>
 
         {/* ══════════ ACT 4 · LOGISTICS ══════════ */}
@@ -677,10 +697,10 @@ export default function YW3OnePager() {
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-10 gap-y-9">
             {LOGISTICS.map(({ icon: Icon, title, body }) => (
-              <div key={title} className="pt-6 border-t-2 border-shortcut-blue/15">
+              <div key={title} className="pt-6 border-t-2 border-[#E2E9E8]">
                 <Icon size={20} className="text-shortcut-blue mb-3.5" strokeWidth={2.5} />
                 <h4 className="m-0 text-[16.5px] font-bold leading-tight tracking-[-.02em] text-shortcut-blue">{title}</h4>
-                <p className="m-0 mt-2 text-[14.5px] font-medium leading-[1.55] text-[#45596A]">{body}</p>
+                <p className="m-0 mt-2 text-[15.5px] font-medium leading-[1.55] text-[#2A5468]">{body}</p>
               </div>
             ))}
           </div>
