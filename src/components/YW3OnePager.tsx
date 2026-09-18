@@ -79,29 +79,54 @@ const STATIONS = [
     service: 'Massage', station: 'NO FRICTION', pillar: 'Removing friction',
     image: '/conference/services/massage.png', volume: 'Full volume',
     meta: 'Chair or table · 15 to 20 min',
-    body: 'A conference room becomes a spa. Therapists, chairs, privacy screens, music and aromatherapy.',
-    menu: ['Chair massage', 'Table massage', 'Sports and deep tissue', 'Compression', 'Reiki reset'],
+    body: 'A conference room becomes a spa, run by licensed therapists.',
+    menu: [
+      'Chair or table setups',
+      'Optional privacy screens',
+      'Music, aromatherapy and lighting',
+      'Therapist gender preference',
+      'Fully insured professionals',
+    ],
   },
   {
     service: 'Headshots', station: 'GET SEEN', pillar: 'Audience reach',
     image: '/conference/services/headshot.png', volume: 'Full volume',
-    meta: '8 to 12 min · retouching included',
+    meta: '5 to 8 min · retouching included',
     body: 'Corporate photographer, lights, backdrop and posing guidance. Everyone leaves with a retouched shot.',
-    menu: ['8 to 12 minute sessions', 'Hair and makeup touch ups', 'Multiple backdrop options', 'Retouching included'],
+    menu: [
+      '5 to 8 minute sessions',
+      'Hair and makeup touch ups',
+      'Multiple backdrop options',
+      'Expert posing guidance',
+      'Retouching included',
+    ],
   },
   {
     service: 'Hair', station: 'THE FIT', pillar: 'Creative fit',
     image: '/conference/services/hair-v3.png', volume: 'Half volume',
-    meta: 'Cuts and styling · 20 to 30 min',
+    meta: 'Cuts and styling · 30 min',
     body: 'Barbers and stylists on the floor, experienced with every hair type and texture.',
-    menu: ['Barber cut', 'Beard trim and shaping', 'Salon cut and style', 'Blowout', 'Optional classic barber chairs'],
+    menu: [
+      'Barber cut',
+      'Beard trim and shaping',
+      'Hot towel shaves',
+      'Salon cut and style',
+      'Blowout',
+      'Optional classic barber chairs',
+    ],
   },
   {
     service: 'Nails', station: 'NAILED IT', pillar: 'Results',
     image: '/conference/services/nails.png', volume: 'Half volume',
-    meta: 'Mani and pedi · 20 to 30 min',
-    body: 'Licensed technicians at a table. Single use kits, sanitized tools, twenty plus polish colors.',
-    menu: ['Classic manicure', 'Gel manicure', 'Dry pedicure, waterless', 'Hand treatment and massage'],
+    meta: 'Manicures · 30 min',
+    body: 'Licensed technicians at a table, with sanitized tools between every guest.',
+    menu: [
+      'Classic manicure',
+      'Gel manicure',
+      'Hand treatment and massage',
+      'Twenty plus polish colors',
+      'Single use kits',
+    ],
   },
 ];
 
@@ -121,12 +146,12 @@ const BRANDING = [
     body: 'The sign-up page, confirmation emails, texts and calendar invites all carry Netflix Ads. It is the first thing a planner sees and the last thing they get.',
   },
   {
-    icon: Shirt, title: 'Our staff wear your apparel',
-    body: 'The team works the floor in Netflix Ads apparel you supply, not Shortcut black.',
+    icon: Shirt, title: 'Staff apparel, customized with you',
+    body: 'We help design and produce the apparel the team works in, matched to each station: Netflix Ads pro tops for the massage therapists, aprons for the beauty Pros, and whatever else the floor calls for. Not Shortcut black.',
   },
   {
-    icon: PanelsTopLeft, title: 'Your artwork on the privacy screens',
-    body: 'The screens that turn a conference room into a treatment space carry your artwork, so they are the backdrop in every photo taken that day.',
+    icon: PanelsTopLeft, title: 'Signage, designed and advised per station',
+    body: 'We help customize the signage and tell you what each station actually needs: branded privacy screens at massage, backdrops at headshots, directional signage through the space, printed menus at every chair.',
   },
   {
     icon: Gift, title: 'A gift at each station',
@@ -503,10 +528,13 @@ export default function YW3OnePager() {
             <SubHead note="How we would size the four stations for a 50 to 100 person floor.">
               Recommended direction
             </SubHead>
-            <ul className="m-0 p-0 list-none grid grid-cols-1 lg:grid-cols-2 gap-x-14 gap-y-4">
+            <ul className="m-0 p-0 list-none flex flex-col max-w-[92ch]">
               {RECOMMENDED.map((r) => (
-                <li key={r} className="flex gap-3.5 text-[16px] font-medium leading-[1.55] text-[#2A5468]">
-                  <span className="mt-[9px] w-[7px] h-[7px] flex-none rounded-full bg-shortcut-coral" />
+                <li
+                  key={r}
+                  className={`flex gap-4 py-4 border-b border-[#E2E9E8] last:border-b-0 text-[17px] md:text-[18px] font-medium leading-[1.6] ${INK}`}
+                >
+                  <span className="mt-[11px] w-[8px] h-[8px] flex-none rounded-full bg-shortcut-coral" />
                   <span>{r}</span>
                 </li>
               ))}
@@ -654,11 +682,6 @@ export default function YW3OnePager() {
                 </tbody>
               </table>
             </div>
-            <p className="m-0 px-7 py-5 text-[14px] font-medium leading-[1.55] text-[#2A5468] border-t border-[#E2E9E8]">
-              Nails runs on a different ladder because a manicure takes longer. The same rate card
-              applies in New York and Los Angeles. Volume pricing kicks in past five office-days and
-              again past nine in a year, so the week comes in under five separate days.
-            </p>
           </div>
 
           <a
