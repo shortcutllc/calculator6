@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Calendar, MapPin, Users, Camera, Scissors, Sparkles, Heart,
+  Calendar, MapPin, Users,
   ShieldCheck, FileCheck, Eye, EyeOff, ArrowUpRight, Image,
   Shirt, Gift, PanelsTopLeft, MonitorSmartphone, ListPlus, Database, Clock,
 } from 'lucide-react';
@@ -56,31 +56,41 @@ const SIGNUP_DEMO = 'https://admin.shortcutpros.com/#/signup/gHTKOcwIzE';
 const PROPOSAL_NY = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-5';
 const PROPOSAL_LA = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-6';
 
-/* Gutter + column, matching the homepage's --hp-gut ladder. */
-const GUT = 'px-6 md:px-12 lg:px-[100px]';
-const COL = 'max-w-[1280px] mx-auto';
+/* Full bleed: gutters only, no content cap. */
+const GUT = 'px-6 md:px-10 lg:px-16 2xl:px-24';
+const COL = 'w-full';
 
 const STATIONS = [
   {
     service: 'Chair massage', station: 'NO FRICTION', pillar: 'Removing friction',
-    icon: Heart, bg: '#A9F0CC', volume: 'Full volume',
+    image: '/conference/services/massage.png', volume: 'Full volume',
     body: 'A conference room becomes a spa. Fifteen minutes in the chair, fully clothed.',
   },
   {
     service: 'Headshots', station: 'GET SEEN', pillar: 'Audience reach',
-    icon: Camera, bg: '#9EFAFF', volume: 'Full volume',
-    body: 'Photographer, lights, backdrop, and hair and makeup touch ups included. Everyone leaves with a retouched shot.',
+    image: '/conference/services/headshot.png', volume: 'Full volume',
+    body: 'Photographer, lights and backdrop, with hair and makeup touch ups included. Everyone leaves with a retouched shot.',
   },
   {
     service: 'Hair', station: 'THE FIT', pillar: 'Creative fit',
-    icon: Scissors, bg: '#FEDC64', volume: 'Half volume',
+    image: '/conference/services/hair-v3.png', volume: 'Half volume',
     body: 'Barbers and stylists on the floor. Cuts, trims, beard work, styling.',
   },
   {
     service: 'Nails', station: 'NAILED IT', pillar: 'Results',
-    icon: Sparkles, bg: '#F7BBFF', volume: 'Half volume',
+    image: '/conference/services/nails.png', volume: 'Half volume',
     body: 'Manicurists at a table. Express manicures, fifteen minutes each.',
   },
+];
+
+/* Replaces the grey "we would run massage and headshots at full volume" block.
+   Same content, read as a list instead of a paragraph. */
+const RECOMMENDED = [
+  'Massage and headshots at full volume. They move the most people, so they reach the most planners.',
+  'Hair and nails at half that, and either can be swapped for facials, mindfulness, a sound bath or yoga.',
+  'Sign-ups are tracked live, so a station that is filling fast gets throttled up before the day, not after.',
+  'Pros, equipment, setup and cleanup are included at every station.',
+  'Both sample proposals also carry a sound bath and a mindfulness session, priced separately.',
 ];
 
 const BRANDING = [
@@ -379,15 +389,16 @@ export default function YW3OnePager() {
               Vendor response · Netflix Ads
             </p>
 
-            <h1 className="m-0 text-[36px] md:text-[56px] font-bold leading-[1.04] tracking-[-.038em] text-shortcut-blue max-w-[16ch]">
-              Four stations in your office.
-              <span className="block text-shortcut-teal-blue">Five offices in one week.</span>
+            <h1 className="m-0 text-[36px] md:text-[56px] lg:text-[64px] font-bold leading-[1.04] tracking-[-.038em] text-shortcut-blue max-w-[18ch]">
+              Break In Case of Planning Emergency.
+              <span className="block text-shortcut-teal-blue">Four stations on their floor, the day the box lands.</span>
             </h1>
 
-            <p className="m-0 mt-6 text-[17px] md:text-[19px] font-medium leading-[1.55] text-[#45596A] max-w-[58ch]">
-              Four wellness stations set up inside each agency office. Planners book a fifteen
-              minute slot on a Netflix Ads branded page and walk down the hall. We bring the Pros,
-              the equipment and a lead who runs the day. You get the list of everyone who came.
+            <p className="m-0 mt-6 text-[17px] md:text-[19px] font-medium leading-[1.55] text-[#45596A] max-w-[62ch]">
+              Netflix Ads drops the kit on media planners&rsquo; desks. The same day, four Netflix
+              Ads stations open on their own floor and they book a fifteen minute slot. We bring
+              the Pros, the equipment and a lead who runs each day. You get the list of everyone
+              who came.
             </p>
 
             <div className="flex flex-wrap gap-3 mt-9">
@@ -417,14 +428,13 @@ export default function YW3OnePager() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {STATIONS.map((s) => {
-              const Icon = s.icon;
               return (
                 <div key={s.service} className={`${CARD} flex flex-col`}>
-                  <div className="flex items-center justify-between gap-3 mb-5">
-                    <span className="w-11 h-11 flex-none rounded-full flex items-center justify-center" style={{ background: s.bg }}>
-                      <Icon size={19} className="text-shortcut-blue" strokeWidth={2.5} />
-                    </span>
-                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[.08em] ${s.volume === 'Full volume' ? 'bg-shortcut-blue text-white' : 'bg-neutral-light-gray text-shortcut-blue'}`}>
+                  {/* Same service art and 1.1 crop as the service menu: the PNGs
+                      carry a baked white margin the card has to crop off. */}
+                  <div className="relative mb-6 h-[190px] overflow-hidden rounded-[20px] bg-[#EAF7F9]">
+                    <img src={s.image} alt={s.service} className="absolute inset-0 h-full w-full scale-110 object-cover" />
+                    <span className={`absolute top-3.5 right-3.5 inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[.08em] shadow-sm ${s.volume === 'Full volume' ? 'bg-shortcut-blue text-white' : 'bg-white text-shortcut-blue'}`}>
                       {s.volume}
                     </span>
                   </div>
@@ -442,20 +452,18 @@ export default function YW3OnePager() {
             })}
           </div>
 
-          <div className="mt-8 rounded-[28px] bg-neutral-light-gray p-7 md:p-9 max-w-[76ch] mx-auto">
-            <h4 className="m-0 text-[17px] font-bold tracking-[-.02em] text-shortcut-blue">
-              We would run massage and headshots at full volume
-            </h4>
-            <p className="m-0 mt-2.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">
-              They move the most people through the day, so they see the most planners. Hair and
-              nails can run at half that. Sign-ups are tracked live, so if a station is filling fast
-              we throttle it up before the day rather than after it.
-            </p>
-            <p className="m-0 mt-3.5 text-[15px] font-medium leading-[1.55] text-[#45596A]">
-              Pros, equipment, setup and cleanup are included at every station. Happy to swap hair or
-              nails for facials, mindfulness, a sound bath or yoga. Both sample proposals also carry
-              a sound bath and a mindfulness session, priced separately from the four stations.
-            </p>
+          <div className="mt-16 md:mt-20">
+            <SubHead note="How we would size the four stations for a 50 to 100 person floor.">
+              Recommended direction
+            </SubHead>
+            <ul className="m-0 p-0 list-none grid grid-cols-1 lg:grid-cols-2 gap-x-14 gap-y-4">
+              {RECOMMENDED.map((r) => (
+                <li key={r} className="flex gap-3.5 text-[15.5px] font-medium leading-[1.55] text-[#45596A]">
+                  <span className="mt-[9px] w-[7px] h-[7px] flex-none rounded-full bg-shortcut-coral" />
+                  <span>{r}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Branding sits inside the day, because it is what the day looks like. */}

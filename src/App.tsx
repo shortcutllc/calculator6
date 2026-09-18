@@ -119,6 +119,7 @@ function App() {
     location.pathname.startsWith('/cle/') ||
     location.pathname === '/195-nassau' ||
     location.pathname === '/lower-pyne' ||
+    location.pathname === '/yw3' ||
     location.pathname === '/draftkings' ||
     location.pathname === '/draftkings-report' ||
     location.pathname === '/draftkings-lv' ||
