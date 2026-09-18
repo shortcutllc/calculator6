@@ -53,8 +53,8 @@ import {
    ───────────────────────────────────────────── */
 
 const SIGNUP_DEMO = 'https://admin.shortcutpros.com/#/signup/gHTKOcwIzE';
-const PROPOSAL_NY = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-6';
-const PROPOSAL_LA = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-5';
+const PROPOSAL_NY = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-5';
+const PROPOSAL_LA = 'https://proposals.getshortcut.co/p/yw3-brand-experience-sep-2026-6';
 
 /* Gutter + column, matching the homepage's --hp-gut ladder. */
 const GUT = 'px-6 md:px-12 lg:px-[100px]';
@@ -429,8 +429,8 @@ export default function YW3OnePager() {
 
           <p className="text-[15px] font-medium leading-[1.55] text-[#45596A] max-w-[70ch] mx-auto text-center mt-8">
             Pros, equipment, setup and cleanup are included at every station. Happy to swap hair or
-            nails for facials, mindfulness, a sound bath or yoga. Both live sample days also carry a
-            sound bath and a mindfulness session you can switch on or off.
+            nails for facials, mindfulness, a sound bath or yoga. Both sample days carry a sound bath
+            and a mindfulness session as optional extras, priced separately from the four stations.
           </p>
 
           {/* Branding sits inside the day, because it is what the day looks like. */}
@@ -530,7 +530,7 @@ export default function YW3OnePager() {
           <SectionHead
             kicker="Act three"
             title="What it costs"
-            sub="You pay per station, per office-day, based on how many appointments you want at that station. Below is the actual rate card. Both sample days are live and you can change the numbers yourself."
+            sub="You pay per station, per office-day, based on how many appointments you want at that station. Below is the actual rate card. Two sample days are live in one proposal, and you can change the numbers yourself."
           />
 
           {/* The rate card. Straight answer, no session required. */}
@@ -580,12 +580,12 @@ export default function YW3OnePager() {
           <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
             {[
               {
-                href: PROPOSAL_NY, city: 'New York', total: '$16,917', appts: '250 appointments',
-                detail: 'Headshots at 50, massage at 100, hair at 50, nails at 50.',
+                href: PROPOSAL_NY, city: 'New York', total: '$13,917', appts: '250 appointments',
+                detail: 'A full day. Headshots at 50, chair massage at 100, hair at 50 and nails at 50.',
               },
               {
-                href: PROPOSAL_LA, city: 'Los Angeles', total: '$8,146', appts: '91 appointments',
-                detail: 'A lighter day. Headshots, massage and hair at 25 each, nails at 16.',
+                href: PROPOSAL_LA, city: 'Los Angeles', total: '$5,396', appts: '91 appointments',
+                detail: 'A lighter day. Headshots, chair massage and hair at 25 each, nails at 16.',
               },
             ].map((d) => (
               <a
@@ -612,7 +612,8 @@ export default function YW3OnePager() {
                   <p className="m-0 mt-3 text-[15px] font-medium leading-[1.55] text-[#45596A]">{d.detail}</p>
                 </div>
                 <p className="m-0 mt-5 text-[14px] font-semibold text-shortcut-blue">
-                  Open it and change the appointment counts. The total moves with you.
+                  Opens on this day. Switch between the two and change any
+                  appointment count. The total moves with you.
                 </p>
               </a>
             ))}
