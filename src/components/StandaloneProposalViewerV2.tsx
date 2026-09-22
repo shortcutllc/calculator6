@@ -29,6 +29,7 @@ import {
   ServiceSelection,
   resolveVolumeDiscount,
 } from './proposal/useServiceSelections';
+import { useAddOnSelections } from './proposal/useAddOnSelections';
 import { useProposalGallery, type GalleryItem } from './proposal/useProposalGallery';
 import ProposalGallery, { type GalleryPhoto } from './proposal/ProposalGallery';
 import { formatCurrency, SERVICE_DISPLAY } from './proposal/data';
@@ -445,6 +446,38 @@ const StandaloneProposalViewerV2: React.FC = () => {
     [id, displayData, isApproved]
   );
 
+  // ---- Optional add-on state ----------------------------------------------
+  // Same persistence shape as optionsState but under its own key, so an
+  // add-on id can never collide with a `location|date|index` service key.
+  const persistAddOnsState = useCallback(
+    async (state: Record<string, boolean>) => {
+      if (!id || !displayData || isApproved) return;
+      const nextData = { ...displayData, addOnsState: state };
+      try {
+        const { error } = await supabase
+          .from('proposals')
+          .update({ data: nextData } as any)
+          .eq('id', id);
+        if (error) console.error('Failed to persist addOnsState:', error);
+      } catch (err) {
+        console.error('Failed to persist addOnsState:', err);
+      }
+    },
+    [id, displayData, isApproved]
+  );
+
+  const {
+    isSelected: isAddOnSelected,
+    setSelected: setAddOnSelected,
+    summary: addOnSummary,
+    hasAddOns,
+  } = useAddOnSelections({
+    addOns: (displayData as any)?.addOns,
+    initialState: (displayData as any)?.addOnsState,
+    onChange: persistAddOnsState,
+    readOnly: isApproved,
+  });
+
   // ---- Selection state ----------------------------------------------------
   const { get, setIncluded, setFrequency, summary, state: selectionState } = useServiceSelections({
     servicesByLocation: displayData?.services || {},
@@ -620,7 +653,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
     return { type, value, amount };
   }, [displayData?.gratuityType, displayData?.gratuityValue, gratuityBase]);
 
-  const grandTotal = summary.total + customItemsTotal + (gratuity?.amount || 0);
+  const grandTotal =
+    summary.total + customItemsTotal + addOnSummary.total + (gratuity?.amount || 0);
   // Per-event total for the sidebar — frequency never moves this; only the
   // bottom Pricing summary annualizes. No volume discount (it's annual).
   const perEventGrandTotal =
@@ -1613,6 +1647,39 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </div>
             ))}
           <div className="pvm-pl-div" />
+          {hasAddOns && (
+            <>
+              <div className="pvm-pl-div" />
+              {addOnSummary.rows.map((a) => {
+                const on = isAddOnSelected(a.id);
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    disabled={isApproved}
+                    onClick={() => setAddOnSelected(a.id, !on)}
+                    className="pvm-pl pvm-addon"
+                    aria-pressed={on}
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: 0,
+                      textAlign: 'left',
+                      cursor: isApproved ? 'default' : 'pointer',
+                      opacity: on ? 1 : 0.55,
+                    }}
+                  >
+                    <span className="k">
+                      {on ? '\u2713 ' : '\u002B '}
+                      {a.name}
+                    </span>
+                    <span className="v">{formatCurrency(Number(a.amount) || 0)}</span>
+                  </button>
+                );
+              })}
+              <div className="pvm-pl-div" />
+            </>
+          )}
           <div className="pvm-pl">
             <span className="k">Subtotal</span>
             <span className="v">
@@ -3036,6 +3103,24 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   {formatCurrency(summary.originalSubtotal + customItemsTotal)}
                 </span>
               </div>
+              {addOnSummary.total > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontFamily: T.fontD,
+                    fontSize: 14,
+                    color: 'rgba(255,255,255,0.75)',
+                  }}
+                >
+                  <span>
+                    Add-ons · {addOnSummary.selectedCount} selected
+                  </span>
+                  <span style={{ color: '#fff' }}>
+                    {formatCurrency(addOnSummary.total)}
+                  </span>
+                </div>
+              )}
               {summary.serviceDiscountAmount > 0 && (
                 <div
                   style={{
@@ -3154,6 +3239,164 @@ const StandaloneProposalViewerV2: React.FC = () => {
               Cancellation: 72+ hrs notice = no charge. See the service agreement below for full terms.
             </p>
           </div>
+          )}
+
+          {/* Optional add-ons — the desktop pricing summary above is disabled
+              (`{false && ...}`, design refresh), so these get their own card
+              rather than living inside a block that never renders. They are
+              added to grandTotal AFTER the volume discount: that tier is
+              earned on event count, not on uniforms and signage. */}
+          {hasAddOns && (
+            <div
+              style={{
+                background: '#fff',
+                border: '1px solid #E2E9E8',
+                borderRadius: 28,
+                padding: 32,
+                boxShadow: '0 1px 2px rgba(3,34,50,.05), 0 10px 30px rgba(3,34,50,.06)',
+                marginBottom: 24,
+              }}
+            >
+              <Eyebrow>Optional add-ons</Eyebrow>
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontWeight: 700,
+                  fontSize: 24,
+                  letterSpacing: '-0.025em',
+                  color: T.navy,
+                  margin: '6px 0 4px',
+                }}
+              >
+                Branding extras
+              </div>
+              <p
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 16,
+                  lineHeight: 1.55,
+                  color: '#2A5468',
+                  margin: '0 0 20px',
+                }}
+              >
+                Tap any add-on to include it. These sit on top of the service
+                pricing above.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {addOnSummary.rows.map((a) => {
+                  const on = isAddOnSelected(a.id);
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      disabled={isApproved}
+                      onClick={() => setAddOnSelected(a.id, !on)}
+                      aria-pressed={on}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 16,
+                        width: '100%',
+                        padding: '14px 0',
+                        borderTop: 0,
+                        borderLeft: 0,
+                        borderRight: 0,
+                        borderBottom: '1px solid #E2E9E8',
+                        background: 'transparent',
+                        textAlign: 'left',
+                        cursor: isApproved ? 'default' : 'pointer',
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 20,
+                            height: 20,
+                            flex: 'none',
+                            borderRadius: 6,
+                            border: on ? `1px solid ${T.navy}` : '1px solid #E2E9E8',
+                            background: on ? T.navy : '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {on && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                              <path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </span>
+                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                          <span
+                            style={{
+                              fontFamily: T.fontD,
+                              fontWeight: 700,
+                              fontSize: 17,
+                              letterSpacing: '-0.02em',
+                              color: on ? T.navy : T.fgMuted,
+                            }}
+                          >
+                            {a.name}
+                          </span>
+                          {a.description && (
+                            <span style={{ fontFamily: T.fontD, fontSize: 14, color: '#2A5468' }}>
+                              {a.description}
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: T.fontD,
+                          fontWeight: 800,
+                          fontSize: 19,
+                          whiteSpace: 'nowrap',
+                          color: on ? T.navy : T.fgMuted,
+                        }}
+                      >
+                        {formatCurrency(Number(a.amount) || 0)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  paddingTop: 18,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: T.fontD,
+                    fontWeight: 800,
+                    fontSize: 17,
+                    color: T.navy,
+                  }}
+                >
+                  {addOnSummary.selectedCount} selected
+                </span>
+                <span
+                  style={{
+                    fontFamily: T.fontD,
+                    fontWeight: 800,
+                    fontSize: 28,
+                    letterSpacing: '-0.03em',
+                    color: T.navy,
+                  }}
+                >
+                  {formatCurrency(addOnSummary.total)}
+                </span>
+              </div>
+            </div>
           )}
 
           {/* Day-by-day breakdown */}
