@@ -67,6 +67,7 @@ const DraftKingsSpendReport = lazy(() => import('./components/DraftKingsSpendRep
 const BisnowReport = lazy(() => import('./components/BisnowReport'));
 const KeplerReport = lazy(() => import('./components/KeplerReport'));
 const YW3OnePager = lazy(() => import('./components/YW3OnePager'));
+const AACSBOnePager = lazy(() => import('./components/AACSBOnePager'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
@@ -1170,6 +1171,18 @@ function App() {
                     </div>
                   }>
                     <YW3OnePager />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/aacsb"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <AACSBOnePager />
                   </Suspense>
                 }
               />
