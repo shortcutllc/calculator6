@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Calendar, MapPin, Users, Armchair,
+  Calendar, MapPin, Users, Armchair, TrendingUp, Heart, MessageSquare,
   ShieldCheck, FileCheck, Eye, EyeOff, ArrowUpRight,
   Shirt, Gift, PanelsTopLeft, MonitorSmartphone, ListPlus, Database, Clock, Play,
   Sparkles, Timer,
@@ -29,11 +29,13 @@ import {
      "exclusively for deans and heads of higher education business units"
      theme "Leading Across Boundaries"
    Scope and pricing (Supabase `proposals` f6c806c6, slug aacsb-jul-2026):
-     Orlando, chair massage only, 4 therapists, 15 min appointments
-     Oct 19 → option 3, 96 appts, 6 hrs, $3,600
-     Oct 20 → option 1, 64 appts, 4 hrs, $2,400
-     ladder per conference-day 64/$2,400 · 80/$3,000 · 96/$3,600
-     stored total 160 appointments, $6,000
+     Orlando, chair massage only, 4 Massage Pros, 15 min appointments
+     $165 per hour per Pro, so a day is numPros x hours x 165
+     ladder per conference-day 64/$2,640 · 80/$3,300 · 96/$3,960
+     Oct 19 → option 3, 96 appts, 6 hrs, $3,960
+     Oct 20 → option 1, 64 appts, 4 hrs, $2,640
+     The proposal was repriced from $150 to $165 on 2026-09-22; the page
+     and the proposal must always agree, so change both together.
    Nothing on this page is invented; anything not in those two sources
    is left off rather than guessed.
 
@@ -49,7 +51,9 @@ import {
 const SIZZLE_VIDEO =
   'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v1/object/public/site-media/yw3/tradestation-sizzle.mp4';
 
-const SIGNUP_DEMO = 'https://admin.shortcutpros.com/#/signup/gHTKOcwIzE';
+/* The real AACSB sign-up link, not the generic demo. */
+const SIGNUP_DEMO = 'https://admin.shortcutpros.com/#/selectEvent/AACSB';
+const PROPOSAL = 'https://proposals.getshortcut.co/p/aacsb-jul-2026';
 
 /* The site's own wrap, measured off getshortcut.co/services/massage:
    max-width 1720 with 100px gutters. */
@@ -62,74 +66,95 @@ const INK_META = 'text-[#45596A]';
 const CARD_SHELL =
   'rounded-[28px] bg-white border border-[#E2E9E8] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]';
 
-/* The canonical massage inclusions, from src/utils/menuServices.ts. */
+/* What the sponsor is actually buying, in the order they care about it:
+   traffic, goodwill, leads. The massage is the mechanism, not the pitch. */
+const WHY = [
+  {
+    icon: TrendingUp, title: 'A line all day',
+    body: 'A chair massage lounge is the busiest thing on a conference floor. Slots book out before the doors open and keep filling from the waitlist.',
+  },
+  {
+    icon: Heart, title: 'Attendees actually want it',
+    body: 'Nobody queues for a swag table. People remember the sponsor who gave them fifteen minutes off their feet in the middle of a long day.',
+  },
+  {
+    icon: MessageSquare, title: 'Real time with every attendee',
+    body: 'Your team gets meaningful time with people before and after their appointment, while they wait and while they come round. That is a conversation, not a badge scan.',
+  },
+  {
+    icon: Database, title: 'A list before and after',
+    body: 'Attendees book in advance, so you have their name, title, institution and email before the conference starts and a warm list to follow up with once it ends.',
+  },
+];
+
+/* Plain nouns, plain verbs. Say what we bring and what it does. */
 const LOUNGE = [
   {
-    icon: Users, title: 'Four therapists',
-    body: 'Licensed massage therapists working the lounge at once, so the queue keeps moving between sessions.',
+    icon: Users, title: 'Four Massage Pros on site',
+    body: 'Four licensed Massage Pros work the lounge at the same time, so the line keeps moving between sessions.',
   },
   {
-    icon: Armchair, title: 'Chairs and screens',
-    body: 'Chair setups with optional privacy screens, so a meeting room or an open foyer becomes a lounge.',
+    icon: Armchair, title: 'Chairs and privacy screens',
+    body: 'We bring the massage chairs and optional privacy screens. The lounge sets up in a meeting room or an open foyer.',
   },
   {
-    icon: Sparkles, title: 'Spa ambiance',
-    body: 'Music, aromatherapy and lighting, plus therapist gender preference at booking.',
+    icon: Sparkles, title: 'Full spa setup',
+    body: 'Music, aromatherapy and lighting. Attendees can request a male or female Pro when they book.',
   },
   {
-    icon: Timer, title: 'Fifteen minute resets',
-    body: 'Neck, shoulders, back and arms, fully clothed. About three an hour per therapist.',
+    icon: Timer, title: 'Fifteen minute appointments',
+    body: 'Chair massage for the neck, shoulders, back and arms. Attendees stay fully clothed. Each Pro sees about three people an hour.',
   },
 ];
 
 const RECOMMENDED = [
-  'Anywhere from 64 to 96 appointments a day, so 128 to 192 across the two days against roughly 700 attendees on site.',
-  'Four therapists at fifteen minutes each. The count sets the hours, from four up to six a day.',
-  'Sign-up links go out before the conference and are tracked live, so the lounge gets throttled up if it fills.',
-  'Therapists, chairs, screens, setup and cleanup are included.',
+  'The lounge runs 64 to 96 appointments a day, so 128 to 192 across the two days.',
+  'Four Massage Pros work every option. The more appointments you pick, the longer the lounge stays open: four, five or six hours a day.',
+  'We send the sign-up link out before the conference and watch the bookings come in. If it fills fast we can add hours.',
+  'Massage Pros, chairs, screens, setup and cleanup are all included in the price.',
 ];
 
 const BRANDING = [
   {
-    icon: MonitorSmartphone, title: 'Branded booking tech',
-    body: 'Every digital touchpoint carries Lindner rather than Shortcut.',
+    icon: MonitorSmartphone, title: 'Branded booking page and emails',
+    body: 'We brand the booking page, confirmation emails, text reminders and calendar invites with University of Cincinnati branding and messaging.',
   },
   {
-    icon: Shirt, title: 'Custom staff apparel',
-    body: 'We design and produce what the therapists work in, so the team an attendee meets reads as Lindner.',
+    icon: Shirt, title: 'Custom uniforms for the Pros',
+    body: 'We help design and produce custom uniforms for the Massage Pros on site to carry University of Cincinnati branding and messaging.',
   },
   {
-    icon: PanelsTopLeft, title: 'Lounge signage',
-    body: 'We design it and advise what the lounge needs: privacy screens, directional signs, printed menus.',
+    icon: PanelsTopLeft, title: 'Custom lounge signage',
+    body: 'We help design and produce the signage for the lounge: privacy screens, directional signs and printed service menus, all in your branding.',
   },
   {
-    icon: Gift, title: 'A gift at the chair',
-    body: 'One takeaway per guest, handed over at the end of the fifteen minutes.',
+    icon: Gift, title: 'A branded gift',
+    body: 'We can source and brand a gift for every attendee, handed out at the end of their appointment.',
   },
 ];
 
 const SIGNUP_ANSWERS = [
   {
-    icon: MonitorSmartphone, title: 'Any device',
-    body: 'Phone, laptop or tablet, booked from the hallway between sessions.',
+    icon: MonitorSmartphone, title: 'Works on any device',
+    body: 'The booking page works on phones, laptops and tablets.',
   },
   {
-    icon: Users, title: 'The fields you want',
-    body: 'Name, title, institution and work email, required at booking rather than guessed at the chair.',
+    icon: Users, title: 'The information you need',
+    body: 'We collect name, title, institution and work email when someone books.',
   },
   {
-    icon: ListPlus, title: 'Waitlists',
-    body: 'A full slot takes names instead of turning an attendee away, and promotes them when one opens.',
+    icon: ListPlus, title: 'Automatic waitlist',
+    body: 'When the lounge is full, the page collects names on a waitlist and books them automatically when a slot opens.',
   },
   {
-    icon: FileCheck, title: 'Your consent language',
-    body: 'You write the line. Every address on the list agreed to hear from Lindner.',
+    icon: FileCheck, title: 'Your opt-in language',
+    body: 'You write the opt-in language on the booking form, so everyone on the list has agreed to hear from you.',
   },
 ];
 
 const CUSTOMISABLE = [
   'Imagery', 'Headlines and copy', 'Form fields', 'Confirmation emails',
-  'Confirmation texts', 'Calendar invite copy', 'Logo and colors', 'Lounge name',
+  'Text reminders', 'Calendar invites', 'Logo and colors', 'Lounge name',
 ];
 
 /* Conference facts, all from the AACSB event page. */
@@ -142,41 +167,45 @@ const HERO_PILLS = [
 
 const HERO_PHOTO = {
   src: '/aacsb/lounge-hero.jpg',
-  alt: 'A Shortcut massage therapist working a chair massage at an event',
+  alt: 'A Shortcut Massage Pro giving a chair massage in a University of Cincinnati branded shirt',
 };
 
 const LOGISTICS = [
   {
     icon: ShieldCheck, title: 'Certificates of insurance',
-    body: 'Naming the Signia by Hilton and Lindner as additional insured, sent ahead of the conference.',
+    body: 'We send certificates of insurance naming the Signia by Hilton and the University of Cincinnati as additional insured before the conference.',
   },
   {
-    icon: FileCheck, title: 'Licensed therapists',
-    body: 'Florida licensure on file for every therapist who works the lounge.',
+    icon: FileCheck, title: 'Florida licensed Pros',
+    body: 'Every Massage Pro is licensed in Florida and we keep the paperwork on file.',
   },
   {
-    icon: Clock, title: 'Any space',
-    body: 'The lounge sets up in a meeting room or an open foyer, so a room change on the morning is fine.',
+    icon: Clock, title: 'Works in any space',
+    body: 'The lounge sets up in a meeting room or an open foyer, so a last minute room change is not a problem.',
   },
   {
     icon: Calendar, title: 'Free reschedules',
-    body: 'If the programme moves, tell us and we move with it rather than charge for it.',
+    body: 'If the conference schedule moves, tell us and we move with it at no charge.',
   },
 ];
 
-/* Read from the live proposal. One service, one ladder, per conference-day. */
-const LADDER = {
-  service: 'Chair massage',
-  tiers: [
-    { appts: '64', hours: '4 hours', price: '$2,400' },
-    { appts: '80', hours: '5 hours', price: '$3,000' },
-    { appts: '96', hours: '6 hours', price: '$3,600' },
-  ],
-};
-
-const BUILD = [
-  { day: 'Monday, Oct 19', appts: '96 appointments', hours: '6 hours', price: '$3,600' },
-  { day: 'Tuesday, Oct 20', appts: '64 appointments', hours: '4 hours', price: '$2,400' },
+/* Options for the two days, priced off the live proposal's own ladder
+   (64/$2,400 · 80/$3,000 · 96/$3,600 per conference-day). Levels rather
+   than a single quote, because this is still an options conversation. */
+const OPTIONS = [
+  {
+    name: 'Option 1', perDay: '64', hours: '4 hours',
+    dayPrice: '$2,640', total: '$5,280', appts: '128 appointments',
+  },
+  {
+    name: 'Option 2', perDay: '80', hours: '5 hours',
+    dayPrice: '$3,300', total: '$6,600', appts: '160 appointments',
+    recommended: true,
+  },
+  {
+    name: 'Option 3', perDay: '96', hours: '6 hours',
+    dayPrice: '$3,960', total: '$7,920', appts: '192 appointments',
+  },
 ];
 
 function useFadeIn() {
@@ -433,21 +462,22 @@ export default function AACSBOnePager() {
               <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,560px)_1fr] gap-10 lg:gap-16 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,520px)_minmax(380px,1fr)] gap-10 xl:gap-16 items-start">
               <div className="min-w-0">
                 <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
                   Sponsor activation · The Deans Conference 2026
                 </p>
 
                 <h1 className="m-0 text-[34px] md:text-[48px] lg:text-[56px] font-semibold leading-[1.08] tracking-[-.03em] text-white max-w-[18ch] text-balance">
-                  A branded wellness lounge at The Deans Conference.
-                  <span className="block text-shortcut-teal">64 to 96 appointments a day.</span>
+                  The busiest, best loved booth at The Deans Conference.
+                  <span className="block text-shortcut-teal">Every attendee who sits down is a lead.</span>
                 </h1>
 
                 <p className="m-0 mt-[22px] text-[17px] md:text-[19px] font-medium leading-[1.5] text-white/[.86] max-w-[44ch]">
-                  The University of Cincinnati Carl H. Lindner College of Business sponsors the lounge.
-                  Four therapists run chair massage on the conference floor across both days, every
-                  surface carries your name, and you get the list of every attendee who booked.
+                  The University of Cincinnati Carl H. Lindner College of Business sponsors a chair
+                  massage lounge on the conference floor. Four Massage Pros work both days, the
+                  lounge carries your branding throughout, and every attendee books through your
+                  page first. You get their name, title, institution and email.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-6 mt-8">
@@ -511,14 +541,38 @@ export default function AACSBOnePager() {
         <Panel id="lounge">
           <SectionHead
             kicker="Act one"
-            title="What happens in the lounge"
-            sub="One station, open both days. An attendee sits down between sessions for fifteen minutes, fully clothed, and gets the neck, shoulders, back and arms."
+            title="Why sponsors want this booth"
+            sub="Four Massage Pros, chair massage, both days of the conference. Here is why it works as a sponsorship."
           />
 
+          <div className="mb-14 md:mb-16 overflow-hidden rounded-[28px] border border-[#E2E9E8] bg-neutral-light-gray shadow-[0_20px_50px_rgba(3,34,50,.14)]">
+            <img
+              src="/aacsb/lounge-rendering.jpg"
+              alt="Rendering of the University of Cincinnati wellness lounge with a branded welcome desk, privacy screens, station signage and massage chairs"
+              className="w-full h-auto"
+            />
+          </div>
+          <p className={`mx-auto mb-14 md:mb-16 max-w-[70ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
+            The lounge laid out in your space at the Signia by Hilton, with the welcome desk,
+            privacy screens, station signage and chairs all carrying University of Cincinnati
+            branding.
+          </p>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {LOUNGE.map((l) => (
-              <FeatureCard key={l.title} icon={l.icon} title={l.title} body={l.body} />
+            {WHY.map((w) => (
+              <FeatureCard key={w.title} icon={w.icon} title={w.title} body={w.body} tint="bg-accent-pink" />
             ))}
+          </div>
+
+          <div className="mt-20 md:mt-24">
+            <SubHead note="Everything arrives with us. You provide the room.">
+              What we bring
+            </SubHead>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+              {LOUNGE.map((l) => (
+                <FeatureCard key={l.title} icon={l.icon} title={l.title} body={l.body} />
+              ))}
+            </div>
           </div>
 
           <div className="mt-20 md:mt-24">
@@ -536,7 +590,7 @@ export default function AACSBOnePager() {
           </div>
 
           <div className="mt-20 md:mt-24">
-            <SubHead note="Everything an attendee sees carries the sponsor, not our logo.">
+            <SubHead note="Everything in the lounge carries your branding, not ours.">
               Branded to the Lindner College of Business, not to us
             </SubHead>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -547,7 +601,22 @@ export default function AACSBOnePager() {
           </div>
 
           <div className="mt-20 md:mt-24">
-            <SubHead note="The same team, kit and staging arrives for the lounge.">
+            {/* Proof for the signage card: our own screens, same build. */}
+            <div className="overflow-hidden rounded-[28px] border border-[#E2E9E8] bg-neutral-light-gray">
+              <img
+                src="/aacsb/privacy-screens.png"
+                alt="Shortcut branded privacy screens standing in a row"
+                className="w-full h-auto"
+              />
+            </div>
+            <p className={`mx-auto mt-5 max-w-[68ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
+              Example of our Massage privacy screens. Yours carry University of Cincinnati artwork
+              instead. Adds pop to the event day and to imagery of the services in action.
+            </p>
+          </div>
+
+          <div className="mt-20 md:mt-24">
+            <SubHead note="Footage from a recent Shortcut event day.">
               What a day looks like
             </SubHead>
             <SizzleReel />
@@ -558,9 +627,9 @@ export default function AACSBOnePager() {
         <Panel id="booking" tone="tint">
           <SectionHead
             kicker="Act two"
-            title="The booking page,"
-            accent="and the list you keep after."
-            sub="The lounge is the reason an attendee stops. The booking page is how you know who they were."
+            title="How attendees book,"
+            accent="and what you get back."
+            sub="Attendees book online before and during the conference. Here is how the page works and what you get from it."
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -574,7 +643,7 @@ export default function AACSBOnePager() {
               Every part of the sign-up experience is customizable
             </h4>
             <p className={`m-0 mt-2.5 text-[16px] font-medium leading-[1.55] ${INK} max-w-[62ch]`}>
-              If an attendee sees it, you can change it. Tell us the wording and we build it.
+              Tell us what you want it to say and we build it.
             </p>
             <div className="flex flex-wrap gap-2.5 mt-6">
               {CUSTOMISABLE.map((c) => (
@@ -597,13 +666,13 @@ export default function AACSBOnePager() {
             <div className="flex flex-col md:flex-row md:items-center gap-7 md:gap-10">
               <div className="flex-1">
                 <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-3">
-                  Rather than describe it
+                  Try it yourself
                 </p>
                 <h3 className="m-0 text-[26px] md:text-[34px] font-bold leading-[1.08] tracking-[-.03em] text-white">
                   Open the live booking page and book yourself a slot.
                 </h3>
                 <p className="m-0 mt-3.5 text-[16px] font-medium leading-[1.5] text-white/75 max-w-[52ch]">
-                  Working right now. Pick a time, see what an attendee sees.
+                  This is a working booking page. Pick a time and see what an attendee sees.
                 </p>
               </div>
               <span className="flex-none w-16 h-16 rounded-full bg-shortcut-coral flex items-center justify-center shadow-[0_6px_20px_rgba(255,80,80,.4)] transition-transform duration-500 group-hover:scale-110">
@@ -613,7 +682,7 @@ export default function AACSBOnePager() {
           </a>
 
           <div className="mt-20 md:mt-24">
-            <SubHead note="The one thing that outlasts the conference.">
+            <SubHead note="Live as bookings come in, and a spreadsheet at the end.">
               What you get back
             </SubHead>
             <div className={`${CARD} flex flex-col md:flex-row md:items-start gap-7 md:gap-10`}>
@@ -622,12 +691,12 @@ export default function AACSBOnePager() {
               </span>
               <div className="flex-1">
                 <h4 className="m-0 text-[22px] md:text-[24px] font-bold leading-[1.1] tracking-[-.025em] text-shortcut-blue">
-                  Every attendee who booked, with their institution
+                  The list, before and after the conference
                 </h4>
                 <p className={`m-0 mt-3 text-[16px] md:text-[17px] font-medium leading-[1.55] ${INK} max-w-[70ch]`}>
-                  Name, title, institution, work email and whether they actually showed up, handed
-                  back after the conference in a shape your advancement team can load straight into
-                  a CRM and work.
+                  Sign-ups come in ahead of the conference, so you can see who is booked and reach
+                  out before you get there. Afterwards we send the full spreadsheet: name, title,
+                  institution, work email and whether they showed up.
                 </p>
               </div>
             </div>
@@ -639,54 +708,91 @@ export default function AACSBOnePager() {
           <SectionHead
             kicker="Act three"
             title="What it costs"
-            sub="You pay per conference-day, by how many appointments you want the lounge to run. Four therapists at every size; the count sets the hours."
+            sub="Three levels for the two days. Four Massage Pros work every option. The more appointments you pick, the longer the lounge stays open."
           />
 
-          <div className={`${CARD} p-0 md:p-0 overflow-hidden`}>
-            <div className="bg-shortcut-blue px-7 py-5">
-              <div className="text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal">
-                {LADDER.service}, per conference-day
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#E2E9E8]">
-              {LADDER.tiers.map((t) => (
-                <div key={t.appts} className="px-7 py-7">
-                  <div className={`text-[13px] font-bold uppercase tracking-[.06em] ${INK_META}`}>
-                    {t.appts} appointments
-                  </div>
-                  <div className="text-[34px] font-extrabold tracking-[-.03em] text-shortcut-blue tabular-nums leading-none mt-2">
-                    {t.price}
-                  </div>
-                  <div className={`text-[15px] font-medium ${INK} mt-2.5`}>
-                    Four therapists · {t.hours}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {OPTIONS.map((o) => (
+              <div
+                key={o.name}
+                className={`${CARD_SHELL} flex flex-col overflow-hidden ${o.recommended ? 'ring-2 ring-shortcut-coral' : ''}`}
+              >
+                <div className={`px-7 py-4 ${o.recommended ? 'bg-shortcut-coral' : 'bg-shortcut-blue'}`}>
+                  <div className="text-[12px] font-extrabold uppercase tracking-[.09em] text-white">
+                    {o.name}{o.recommended && ' · Recommended'}
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="flex flex-1 flex-col p-7 md:p-8">
+                  <div className={`text-[13px] font-bold uppercase tracking-[.06em] ${INK_META}`}>
+                    Both days
+                  </div>
+                  <div className="text-[40px] font-extrabold tracking-[-.03em] text-shortcut-blue tabular-nums leading-none mt-2">
+                    {o.total}
+                  </div>
+                  <div className={`text-[16px] font-bold ${INK} mt-2.5`}>{o.appts}</div>
+
+                  <div className="mt-6 pt-6 border-t border-[#E2E9E8] flex flex-col gap-2.5">
+                    <div className={`flex justify-between gap-3 text-[15px] font-medium ${INK}`}>
+                      <span>Appointments a day</span>
+                      <span className="font-bold text-shortcut-blue tabular-nums">{o.perDay}</span>
+                    </div>
+                    <div className={`flex justify-between gap-3 text-[15px] font-medium ${INK}`}>
+                      <span>Hours a day</span>
+                      <span className="font-bold text-shortcut-blue">{o.hours}</span>
+                    </div>
+                    <div className={`flex justify-between gap-3 text-[15px] font-medium ${INK}`}>
+                      <span>Per day</span>
+                      <span className="font-bold text-shortcut-blue tabular-nums">{o.dayPrice}</span>
+                    </div>
+                    <div className={`flex justify-between gap-3 text-[15px] font-medium ${INK}`}>
+                      <span>Massage Pros</span>
+                      <span className="font-bold text-shortcut-blue">Four</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div className={`${CARD} mt-5`}>
-            <SubHead note="One way to size it. Any tier above works on either day.">
-              A sample two-day build
-            </SubHead>
-            <div className="flex flex-col gap-4">
-              {BUILD.map((b) => (
-                <div key={b.day} className="flex flex-wrap items-baseline justify-between gap-3 pb-4 border-b border-[#E2E9E8]">
-                  <div>
-                    <div className="text-[17px] font-bold tracking-[-.02em] text-shortcut-blue">{b.day}</div>
-                    <div className={`text-[15px] font-medium ${INK} mt-1`}>{b.appts} · {b.hours}</div>
-                  </div>
-                  <div className="text-[22px] font-extrabold tracking-[-.025em] text-shortcut-blue tabular-nums">{b.price}</div>
-                </div>
-              ))}
-              <div className="flex flex-wrap items-baseline justify-between gap-3 pt-2">
-                <div>
-                  <div className="text-[17px] font-extrabold tracking-[-.02em] text-shortcut-blue">Two days</div>
-                  <div className={`text-[15px] font-medium ${INK} mt-1`}>160 appointments</div>
-                </div>
-                <div className="text-[34px] font-extrabold tracking-[-.03em] text-shortcut-blue tabular-nums leading-none">$6,000</div>
+          <p className={`mt-6 text-center text-[16px] font-medium leading-[1.55] ${INK} mx-auto max-w-[70ch]`}>
+            Every option covers both days, Monday Oct 19 and Tuesday Oct 20, with four Massage Pros
+            on site. The days do not have to match: you can run one level on day one and another on
+            day two. Massage Pros, chairs, screens, setup and cleanup are included in all three.
+          </p>
+
+          <a
+            href={PROPOSAL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group mt-5 block rounded-[28px] bg-shortcut-blue p-8 md:p-12 shadow-[0_20px_50px_rgba(3,34,50,.22)] transition-transform duration-500 hover:-translate-y-1"
+          >
+            <div className="flex flex-col md:flex-row md:items-center gap-7 md:gap-10">
+              <div className="flex-1">
+                <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-3">
+                  The full proposal
+                </p>
+                <h3 className="m-0 text-[26px] md:text-[34px] font-bold leading-[1.08] tracking-[-.03em] text-white">
+                  Open the proposal and switch between the options.
+                </h3>
+                <p className="m-0 mt-3.5 text-[16px] font-medium leading-[1.5] text-white/75 max-w-[56ch]">
+                  Both days are in there. Pick a level on either one and the total updates as you go.
+                </p>
               </div>
+              <span className="flex-none w-16 h-16 rounded-full bg-shortcut-coral flex items-center justify-center shadow-[0_6px_20px_rgba(255,80,80,.4)] transition-transform duration-500 group-hover:scale-110">
+                <ArrowUpRight size={26} className="text-white" strokeWidth={2.5} />
+              </span>
             </div>
+          </a>
+
+          <div className={`${CARD} mt-5`}>
+            <h4 className="m-0 text-[19px] font-bold leading-[1.15] tracking-[-.02em] text-shortcut-blue">
+              Branding is quoted separately
+            </h4>
+            <p className={`m-0 mt-2.5 text-[16px] font-medium leading-[1.55] ${INK} max-w-[72ch]`}>
+              Custom uniforms, signage, branded privacy screens and gifts are not included in the
+              prices above. Tell us what you want produced and we will quote it alongside.
+            </p>
           </div>
         </Panel>
 
@@ -694,8 +800,8 @@ export default function AACSBOnePager() {
         <Panel id="logistics" tone="tint">
           <SectionHead
             kicker="Act four"
-            title="The boring part, handled"
-            sub="Four things a conference organiser usually has to chase. Not here."
+            title="Logistics and insurance"
+            sub="What we take care of before the conference."
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {LOGISTICS.map((l) => (
@@ -708,12 +814,11 @@ export default function AACSBOnePager() {
         <section className="relative -mt-[50px] rounded-t-[50px] bg-shortcut-blue py-16 md:py-24">
           <div className={`${GUT} ${COL} text-center`}>
             <h2 className="m-0 text-[26px] md:text-[38px] font-bold leading-[1.08] tracking-[-.035em] text-white max-w-[20ch] mx-auto">
-              One lounge, both days of the conference.
+              Sponsor the lounge at The Deans Conference.
             </h2>
             <p className="m-0 mt-4 text-[16px] md:text-[17px] font-medium leading-[1.5] text-white/70 max-w-[52ch] mx-auto">
-              Ninety percent or more of slots get booked on a typical day, and eighty seven percent
-              of companies book us again. Tell us the volume you want and we will build the running
-              order.
+              On a typical event day, ninety percent or more of the slots get booked. Tell us how
+              many appointments you want and we will put together the schedule.
             </p>
             <div className="mt-12 pt-8 border-t border-white/15">
               <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/40">
