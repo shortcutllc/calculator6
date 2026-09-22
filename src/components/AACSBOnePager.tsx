@@ -71,19 +71,19 @@ const CARD_SHELL =
 const WHY = [
   {
     icon: TrendingUp, title: 'A line all day',
-    body: 'A chair massage lounge is the busiest thing on a conference floor. Slots book out before the doors open and keep filling from the waitlist.',
+    body: 'Chair massage is the busiest stop on a conference floor. Slots book out ahead of the doors opening and keep filling from the waitlist.',
   },
   {
-    icon: Heart, title: 'Attendees actually want it',
-    body: 'Nobody queues for a swag table. People remember the sponsor who gave them fifteen minutes off their feet in the middle of a long day.',
+    icon: Heart, title: 'An experience they want',
+    body: 'Fifteen minutes off their feet in the middle of a long day is the thing people remember, and they remember the sponsor who gave it to them.',
   },
   {
-    icon: MessageSquare, title: 'Real time with every attendee',
-    body: 'Your team gets meaningful time with people before and after their appointment, while they wait and while they come round. That is a conversation, not a badge scan.',
+    icon: MessageSquare, title: 'Time with every attendee',
+    body: 'Your team has time with people while they wait for their appointment and again once they are finished. Long enough for a real conversation.',
   },
   {
     icon: Database, title: 'A list before and after',
-    body: 'Attendees book in advance, so you have their name, title, institution and email before the conference starts and a warm list to follow up with once it ends.',
+    body: 'Attendees book in advance, so you have their name, title, institution and email before the conference opens and a warm list to work once it closes.',
   },
 ];
 
