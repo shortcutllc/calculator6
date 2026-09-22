@@ -192,17 +192,26 @@ const LOGISTICS = [
 /* Options for the two days, priced off the live proposal's own ladder
    (64/$2,400 · 80/$3,000 · 96/$3,600 per conference-day). Levels rather
    than a single quote, because this is still an options conversation. */
-/* Kiosk range from market rental pricing, 2026-09-22: a backlit reception
-   counter rents at roughly $1,467 hardware plus $358 graphics (Classic
-   Exhibits RE-1584), so ~$1,800 with the graphic before freight. An
-   unlit printed counter is $400 to $700 if the lightbox is dropped. */
+/* Add-on estimates, priced 2026-09-22 against real supplier listings rather
+   than guessed:
+     counter   non-illuminated reception desks with the graphic included run
+               $304.95 at 5ft and $409.95 at 7ft (Signwin), so it is bought,
+               not rented. The illuminated version in the rendering is the
+               expensive one: ~$1,467 hardware + $358 graphic (Classic
+               Exhibits RE-1584), hence the upgrade note.
+     greenery  artificial boxwood WITH a planter box rents at about $120 each
+               (All Out Event Rental); hedge panels start around $130.
+     screens   33.5 x 80 retractable banners, Will's figure of $150 each.   */
 const ADD_ONS = [
-  { item: 'Branded welcome kiosk', basis: 'Illuminated counter with your graphic, as rendered', cost: '$1,500 to $2,000' },
+  { item: 'Branded welcome counter', basis: 'Printed counter with your graphic', cost: '$400 to $600' },
   { item: 'Branded privacy screens', basis: 'Four screens at $150 each', cost: '$600' },
   { item: 'Station signage', basis: 'Signs for all four stations', cost: '$400 to $500' },
   { item: 'Custom apparel', basis: 'Eight shirts at $150 each, two per Pro', cost: '$1,200' },
+  { item: 'Greenery', basis: 'Six boxwood planters, as rendered', cost: '$800 to $1,100' },
 ];
-const ADD_ONS_TOTAL = '$3,700 to $4,300';
+const ADD_ONS_TOTAL = '$3,400 to $4,000';
+const ADD_ONS_NOTE =
+  'Swapping the counter for the illuminated version in the rendering is $1,500 to $2,000 instead of $400 to $600.';
 
 const OPTIONS = [
   {
@@ -831,6 +840,9 @@ export default function AACSBOnePager() {
             </div>
 
             <p className={`m-0 mt-6 text-[15px] font-medium leading-[1.55] ${INK} max-w-[72ch]`}>
+              {ADD_ONS_NOTE}
+            </p>
+            <p className={`m-0 mt-3 text-[15px] font-medium leading-[1.55] ${INK} max-w-[72ch]`}>
               Estimates, not a quote. We price it exactly once you confirm the artwork and
               quantities. Anything else you want produced, gifts included, we quote on request.
             </p>
