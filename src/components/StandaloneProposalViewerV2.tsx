@@ -1669,13 +1669,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
                       padding: '10px 0',
                     }}
                   >
+                    {/* This sheet is the navy pricing panel, so these follow
+                        .pvm-pl's white text. Navy-on-navy was invisible. */}
                     <div style={{ minWidth: 0 }}>
                       <div
                         style={{
                           fontFamily: T.fontD,
                           fontWeight: 700,
                           fontSize: 15,
-                          color: T.navy,
+                          color: 'rgba(255,255,255,0.92)',
                         }}
                       >
                         {a.name}
@@ -1685,7 +1687,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                           fontFamily: T.fontD,
                           fontWeight: 800,
                           fontSize: 14,
-                          color: '#2A5468',
+                          color: '#fff',
                           marginTop: 1,
                         }}
                       >
