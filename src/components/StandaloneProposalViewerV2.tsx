@@ -1603,7 +1603,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
               {mSheetOpen ? <ChevronDown /> : <ChevronDown style={{ transform: 'rotate(180deg)' }} />}
             </span>
             <span className="k">
-              {mServiceCount} service{mServiceCount === 1 ? '' : 's'} · view breakdown
+              {/* Add-ons are in grandTotal, so a bar reading "$1,550 · 0
+                  services" would be telling the client the wrong story. */}
+              {mServiceCount} service{mServiceCount === 1 ? '' : 's'}
+              {addOnSummary.selectedCount > 0
+                ? ` · ${addOnSummary.selectedCount} add-on${addOnSummary.selectedCount === 1 ? '' : 's'}`
+                : ''}{' '}
+              · view breakdown
             </span>
           </button>
           {isApproved ? (
@@ -1686,6 +1692,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         {formatCurrency(Number(a.amount) || 0)}
                       </div>
                     </div>
+                    <span
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        minWidth: 113,
+                        flex: 'none',
+                      }}
+                    >
                     {on ? (
                       <button
                         type="button"
@@ -1716,6 +1730,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         + Add
                       </button>
                     )}
+                    </span>
                   </div>
                 );
               })}
@@ -3383,10 +3398,23 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             fontSize: 19,
                             whiteSpace: 'nowrap',
                             color: T.navy,
+                            minWidth: 92,
+                            textAlign: 'right',
                           }}
                         >
                           {formatCurrency(Number(a.amount) || 0)}
                         </span>
+                        {/* Fixed column: the coral pill is 158px and the
+                            Included switch 113px, so without this the price
+                            shifts sideways as rows are toggled. */}
+                        <span
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            minWidth: 158,
+                            flex: 'none',
+                          }}
+                        >
                         {/* Same two states the service cards use, so adding an
                             extra feels identical to adding a service. */}
                         {on ? (
@@ -3418,6 +3446,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             + Add to proposal
                           </button>
                         )}
+                        </span>
                       </div>
                     </div>
                   );
