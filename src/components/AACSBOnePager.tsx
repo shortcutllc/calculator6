@@ -201,15 +201,16 @@ const LOGISTICS = [
                Exhibits RE-1584), hence the upgrade note.
      greenery  artificial boxwood WITH a planter box rents at about $120 each
                (All Out Event Rental); hedge panels start around $130.
-     screens   33.5 x 80 retractable banners, Will's figure of $150 each.   */
+     screens   33.5 x 80 retractable banners, Will's figure of $150 each.
+     apparel   $150 to $200 for the whole run of eight, Will 2026-09-22.   */
 const ADD_ONS = [
   { item: 'Branded welcome counter', basis: 'Printed counter with your graphic', cost: '$400 to $600' },
   { item: 'Branded privacy screens', basis: 'Four screens at $150 each', cost: '$600' },
   { item: 'Station signage', basis: 'Signs for all four stations', cost: '$400 to $500' },
-  { item: 'Custom apparel', basis: 'Eight shirts at $150 each, two per Pro', cost: '$1,200' },
+  { item: 'Custom apparel', basis: 'Eight shirts, two per Pro across the two days', cost: '$150 to $200' },
   { item: 'Greenery', basis: 'Six boxwood planters, as rendered', cost: '$800 to $1,100' },
 ];
-const ADD_ONS_TOTAL = '$3,400 to $4,000';
+const ADD_ONS_TOTAL = '$2,350 to $3,000';
 const ADD_ONS_NOTE =
   'Swapping the counter for the illuminated version in the rendering is $1,500 to $2,000 instead of $400 to $600.';
 
