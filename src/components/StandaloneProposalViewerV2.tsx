@@ -1653,28 +1653,70 @@ const StandaloneProposalViewerV2: React.FC = () => {
               {addOnSummary.rows.map((a) => {
                 const on = isAddOnSelected(a.id);
                 return (
-                  <button
+                  <div
                     key={a.id}
-                    type="button"
-                    disabled={isApproved}
-                    onClick={() => setAddOnSelected(a.id, !on)}
-                    className="pvm-pl pvm-addon"
-                    aria-pressed={on}
                     style={{
-                      width: '100%',
-                      background: 'transparent',
-                      border: 0,
-                      textAlign: 'left',
-                      cursor: isApproved ? 'default' : 'pointer',
-                      opacity: on ? 1 : 0.55,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      padding: '10px 0',
                     }}
                   >
-                    <span className="k">
-                      {on ? '\u2713 ' : '\u002B '}
-                      {a.name}
-                    </span>
-                    <span className="v">{formatCurrency(Number(a.amount) || 0)}</span>
-                  </button>
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontFamily: T.fontD,
+                          fontWeight: 700,
+                          fontSize: 15,
+                          color: T.navy,
+                        }}
+                      >
+                        {a.name}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: T.fontD,
+                          fontWeight: 800,
+                          fontSize: 14,
+                          color: '#2A5468',
+                          marginTop: 1,
+                        }}
+                      >
+                        {formatCurrency(Number(a.amount) || 0)}
+                      </div>
+                    </div>
+                    {on ? (
+                      <button
+                        type="button"
+                        className="pv-toggle"
+                        disabled={isApproved}
+                        onClick={() => setAddOnSelected(a.id, false)}
+                        aria-pressed={true}
+                        title="Included — click to remove"
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          padding: 0,
+                          flex: 'none',
+                          cursor: isApproved ? 'default' : 'pointer',
+                        }}
+                      >
+                        <span className="lbl">Included</span>
+                        <span className="pv-switch" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="lt-btn lt-btn-coral lt-btn-sm"
+                        disabled={isApproved}
+                        onClick={() => setAddOnSelected(a.id, true)}
+                        style={{ flex: 'none', cursor: isApproved ? 'default' : 'pointer' }}
+                      >
+                        + Add
+                      </button>
+                    )}
+                  </div>
                 );
               })}
               <div className="pvm-pl-div" />
@@ -3279,88 +3321,105 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   margin: '0 0 20px',
                 }}
               >
-                Tap any add-on to include it. These sit on top of the service
-                pricing above.
+                Add any of these to your proposal. They sit on top of the
+                service pricing above.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {addOnSummary.rows.map((a) => {
                   const on = isAddOnSelected(a.id);
                   return (
-                    <button
+                    <div
                       key={a.id}
-                      type="button"
-                      disabled={isApproved}
-                      onClick={() => setAddOnSelected(a.id, !on)}
-                      aria-pressed={on}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: 16,
-                        width: '100%',
-                        padding: '14px 0',
-                        borderTop: 0,
-                        borderLeft: 0,
-                        borderRight: 0,
+                        flexWrap: 'wrap',
+                        padding: '16px 0',
                         borderBottom: '1px solid #E2E9E8',
-                        background: 'transparent',
-                        textAlign: 'left',
-                        cursor: isApproved ? 'default' : 'pointer',
                       }}
                     >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                        <span
-                          aria-hidden="true"
+                      <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+                        <div
                           style={{
-                            width: 20,
-                            height: 20,
-                            flex: 'none',
-                            borderRadius: 6,
-                            border: on ? `1px solid ${T.navy}` : '1px solid #E2E9E8',
-                            background: on ? T.navy : '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            fontFamily: T.fontD,
+                            fontWeight: 700,
+                            fontSize: 19,
+                            letterSpacing: '-0.02em',
+                            color: T.navy,
                           }}
                         >
-                          {on && (
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                              <path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
-                        </span>
-                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                          <span
+                          {a.name}
+                        </div>
+                        {a.description && (
+                          <div
                             style={{
                               fontFamily: T.fontD,
-                              fontWeight: 700,
-                              fontSize: 17,
-                              letterSpacing: '-0.02em',
-                              color: on ? T.navy : T.fgMuted,
+                              fontSize: 14,
+                              lineHeight: 1.5,
+                              color: '#2A5468',
+                              marginTop: 2,
                             }}
                           >
-                            {a.name}
-                          </span>
-                          {a.description && (
-                            <span style={{ fontFamily: T.fontD, fontSize: 14, color: '#2A5468' }}>
-                              {a.description}
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                      <span
+                            {a.description}
+                          </div>
+                        )}
+                      </div>
+
+                      <div
                         style={{
-                          fontFamily: T.fontD,
-                          fontWeight: 800,
-                          fontSize: 19,
-                          whiteSpace: 'nowrap',
-                          color: on ? T.navy : T.fgMuted,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 18,
+                          flex: 'none',
                         }}
                       >
-                        {formatCurrency(Number(a.amount) || 0)}
-                      </span>
-                    </button>
+                        <span
+                          style={{
+                            fontFamily: T.fontD,
+                            fontWeight: 800,
+                            fontSize: 19,
+                            whiteSpace: 'nowrap',
+                            color: T.navy,
+                          }}
+                        >
+                          {formatCurrency(Number(a.amount) || 0)}
+                        </span>
+                        {/* Same two states the service cards use, so adding an
+                            extra feels identical to adding a service. */}
+                        {on ? (
+                          <button
+                            type="button"
+                            className="pv-toggle"
+                            disabled={isApproved}
+                            onClick={() => setAddOnSelected(a.id, false)}
+                            aria-pressed={true}
+                            title="Included — click to remove"
+                            style={{
+                              border: 'none',
+                              background: 'transparent',
+                              padding: 0,
+                              cursor: isApproved ? 'default' : 'pointer',
+                            }}
+                          >
+                            <span className="lbl">Included</span>
+                            <span className="pv-switch" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="lt-btn lt-btn-coral lt-btn-sm"
+                            disabled={isApproved}
+                            onClick={() => setAddOnSelected(a.id, true)}
+                            style={{ cursor: isApproved ? 'default' : 'pointer' }}
+                          >
+                            + Add to proposal
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
