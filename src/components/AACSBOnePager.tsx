@@ -192,6 +192,18 @@ const LOGISTICS = [
 /* Options for the two days, priced off the live proposal's own ladder
    (64/$2,400 · 80/$3,000 · 96/$3,600 per conference-day). Levels rather
    than a single quote, because this is still an options conversation. */
+/* Kiosk range from market rental pricing, 2026-09-22: a backlit reception
+   counter rents at roughly $1,467 hardware plus $358 graphics (Classic
+   Exhibits RE-1584), so ~$1,800 with the graphic before freight. An
+   unlit printed counter is $400 to $700 if the lightbox is dropped. */
+const ADD_ONS = [
+  { item: 'Branded welcome kiosk', basis: 'Illuminated counter with your graphic, as rendered', cost: '$1,500 to $2,000' },
+  { item: 'Branded privacy screens', basis: 'Four screens at $150 each', cost: '$600' },
+  { item: 'Station signage', basis: 'Signs for all four stations', cost: '$400 to $500' },
+  { item: 'Custom apparel', basis: 'Eight shirts at $150 each, two per Pro', cost: '$1,200' },
+];
+const ADD_ONS_TOTAL = '$3,700 to $4,300';
+
 const OPTIONS = [
   {
     name: 'Option 1', perDay: '64', hours: '4 hours',
@@ -786,12 +798,41 @@ export default function AACSBOnePager() {
           </a>
 
           <div className={`${CARD} mt-5`}>
-            <h4 className="m-0 text-[19px] font-bold leading-[1.15] tracking-[-.02em] text-shortcut-blue">
-              Branding is quoted separately
+            <h4 className="m-0 text-[20px] font-bold leading-[1.15] tracking-[-.025em] text-shortcut-blue">
+              Branding add-ons, estimated
             </h4>
             <p className={`m-0 mt-2.5 text-[16px] font-medium leading-[1.55] ${INK} max-w-[72ch]`}>
-              Custom uniforms, signage, branded privacy screens and gifts are not included in the
-              prices above. Tell us what you want produced and we will quote it alongside.
+              These sit on top of the option prices above.
+            </p>
+
+            <div className="mt-7 flex flex-col">
+              {ADD_ONS.map((a) => (
+                <div
+                  key={a.item}
+                  className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-4 border-b border-[#E2E9E8]"
+                >
+                  <div>
+                    <div className="text-[17px] font-bold tracking-[-.02em] text-shortcut-blue">{a.item}</div>
+                    <div className={`text-[15px] font-medium ${INK} mt-1`}>{a.basis}</div>
+                  </div>
+                  <div className="text-[20px] font-extrabold tracking-[-.025em] text-shortcut-blue tabular-nums whitespace-nowrap">
+                    {a.cost}
+                  </div>
+                </div>
+              ))}
+              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 pt-5">
+                <div className="text-[17px] font-extrabold tracking-[-.02em] text-shortcut-blue">
+                  Estimated total
+                </div>
+                <div className="text-[28px] font-extrabold tracking-[-.03em] text-shortcut-blue tabular-nums whitespace-nowrap">
+                  {ADD_ONS_TOTAL}
+                </div>
+              </div>
+            </div>
+
+            <p className={`m-0 mt-6 text-[15px] font-medium leading-[1.55] ${INK} max-w-[72ch]`}>
+              Estimates, not a quote. We price it exactly once you confirm the artwork and
+              quantities. Anything else you want produced, gifts included, we quote on request.
             </p>
           </div>
         </Panel>
