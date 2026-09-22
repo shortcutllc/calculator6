@@ -83,8 +83,8 @@ const LOUNGE = [
 ];
 
 const RECOMMENDED = [
-  'Day one at 96 appointments, day two at 64. That is 160 of the roughly 700 deans on site.',
-  'Four therapists at fifteen minutes each, six hours on day one and four on day two.',
+  'Anywhere from 64 to 96 appointments a day, so 128 to 192 across the two days against roughly 700 attendees on site.',
+  'Four therapists at fifteen minutes each. The count sets the hours, from four up to six a day.',
   'Sign-up links go out before the conference and are tracked live, so the lounge gets throttled up if it fills.',
   'Therapists, chairs, screens, setup and cleanup are included.',
 ];
@@ -96,7 +96,7 @@ const BRANDING = [
   },
   {
     icon: Shirt, title: 'Custom staff apparel',
-    body: 'We design and produce what the therapists work in, so the team a dean meets reads as Lindner.',
+    body: 'We design and produce what the therapists work in, so the team an attendee meets reads as Lindner.',
   },
   {
     icon: PanelsTopLeft, title: 'Lounge signage',
@@ -119,7 +119,7 @@ const SIGNUP_ANSWERS = [
   },
   {
     icon: ListPlus, title: 'Waitlists',
-    body: 'A full slot takes names instead of turning a dean away, and promotes them when one opens.',
+    body: 'A full slot takes names instead of turning an attendee away, and promotes them when one opens.',
   },
   {
     icon: FileCheck, title: 'Your consent language',
@@ -134,7 +134,7 @@ const CUSTOMISABLE = [
 
 /* Conference facts, all from the AACSB event page. */
 const HERO_PILLS = [
-  { label: '700 deans', fill: '#9EFAFF' },
+  { label: '700 attendees', fill: '#9EFAFF' },
   { label: '60+ countries', fill: '#FFCBA6' },
   { label: 'Two days', fill: '#FEDC64' },
   { label: 'Orlando', fill: '#F7BBFF' },
@@ -440,14 +440,14 @@ export default function AACSBOnePager() {
                 </p>
 
                 <h1 className="m-0 text-[34px] md:text-[48px] lg:text-[56px] font-semibold leading-[1.08] tracking-[-.03em] text-white max-w-[18ch] text-balance">
-                  Fifteen minutes with a dean.
-                  <span className="block text-shortcut-teal">160 times over two days.</span>
+                  A branded wellness lounge at The Deans Conference.
+                  <span className="block text-shortcut-teal">64 to 96 appointments a day.</span>
                 </h1>
 
                 <p className="m-0 mt-[22px] text-[17px] md:text-[19px] font-medium leading-[1.5] text-white/[.86] max-w-[44ch]">
-                  Lindner sponsors the wellness lounge at The Deans Conference. Four therapists run
-                  chair massage on the floor for two days, every surface carries your name, and you
-                  get the list of every dean who booked.
+                  The University of Cincinnati Carl H. Lindner College of Business sponsors the lounge.
+                  Four therapists run chair massage on the conference floor across both days, every
+                  surface carries your name, and you get the list of every attendee who booked.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-6 mt-8">
@@ -478,7 +478,7 @@ export default function AACSBOnePager() {
                   {[
                     { icon: Calendar, label: 'Oct 19 to 20, 2026' },
                     { icon: MapPin, label: 'Signia by Hilton Orlando Bonnet Creek' },
-                    { icon: Users, label: 'Deans and heads of business units' },
+                    { icon: Users, label: 'Business school leaders' },
                   ].map(({ icon: Icon, label }) => (
                     <div key={label} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5">
                       <Icon size={14} className="text-shortcut-teal" strokeWidth={2.5} />
@@ -512,7 +512,7 @@ export default function AACSBOnePager() {
           <SectionHead
             kicker="Act one"
             title="What happens in the lounge"
-            sub="One station, open both days. A dean sits down between sessions for fifteen minutes, fully clothed, and gets the neck, shoulders, back and arms."
+            sub="One station, open both days. An attendee sits down between sessions for fifteen minutes, fully clothed, and gets the neck, shoulders, back and arms."
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -536,8 +536,8 @@ export default function AACSBOnePager() {
           </div>
 
           <div className="mt-20 md:mt-24">
-            <SubHead note="Everything a dean sees carries the sponsor, not our logo.">
-              Branded to Lindner, not to us
+            <SubHead note="Everything an attendee sees carries the sponsor, not our logo.">
+              Branded to the Lindner College of Business, not to us
             </SubHead>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
               {BRANDING.map((b) => (
@@ -560,7 +560,7 @@ export default function AACSBOnePager() {
             kicker="Act two"
             title="The booking page,"
             accent="and the list you keep after."
-            sub="The lounge is the reason a dean stops. The booking page is how you know who they were."
+            sub="The lounge is the reason an attendee stops. The booking page is how you know who they were."
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -574,7 +574,7 @@ export default function AACSBOnePager() {
               Every part of the sign-up experience is customizable
             </h4>
             <p className={`m-0 mt-2.5 text-[16px] font-medium leading-[1.55] ${INK} max-w-[62ch]`}>
-              If a dean sees it, you can change it. Tell us the wording and we build it.
+              If an attendee sees it, you can change it. Tell us the wording and we build it.
             </p>
             <div className="flex flex-wrap gap-2.5 mt-6">
               {CUSTOMISABLE.map((c) => (
@@ -603,7 +603,7 @@ export default function AACSBOnePager() {
                   Open the live booking page and book yourself a slot.
                 </h3>
                 <p className="m-0 mt-3.5 text-[16px] font-medium leading-[1.5] text-white/75 max-w-[52ch]">
-                  Working right now. Pick a time, see what a dean sees.
+                  Working right now. Pick a time, see what an attendee sees.
                 </p>
               </div>
               <span className="flex-none w-16 h-16 rounded-full bg-shortcut-coral flex items-center justify-center shadow-[0_6px_20px_rgba(255,80,80,.4)] transition-transform duration-500 group-hover:scale-110">
@@ -622,7 +622,7 @@ export default function AACSBOnePager() {
               </span>
               <div className="flex-1">
                 <h4 className="m-0 text-[22px] md:text-[24px] font-bold leading-[1.1] tracking-[-.025em] text-shortcut-blue">
-                  Every dean who booked, with their institution
+                  Every attendee who booked, with their institution
                 </h4>
                 <p className={`m-0 mt-3 text-[16px] md:text-[17px] font-medium leading-[1.55] ${INK} max-w-[70ch]`}>
                   Name, title, institution, work email and whether they actually showed up, handed
@@ -639,7 +639,7 @@ export default function AACSBOnePager() {
           <SectionHead
             kicker="Act three"
             title="What it costs"
-            sub="You pay per conference-day, by how many appointments you want the lounge to run. Four therapists either way; the hours change with the count."
+            sub="You pay per conference-day, by how many appointments you want the lounge to run. Four therapists at every size; the count sets the hours."
           />
 
           <div className={`${CARD} p-0 md:p-0 overflow-hidden`}>
@@ -666,8 +666,8 @@ export default function AACSBOnePager() {
           </div>
 
           <div className={`${CARD} mt-5`}>
-            <SubHead note="The build in the proposal, day by day.">
-              Two days as quoted
+            <SubHead note="One way to size it. Any tier above works on either day.">
+              A sample two-day build
             </SubHead>
             <div className="flex flex-col gap-4">
               {BUILD.map((b) => (
@@ -708,15 +708,16 @@ export default function AACSBOnePager() {
         <section className="relative -mt-[50px] rounded-t-[50px] bg-shortcut-blue py-16 md:py-24">
           <div className={`${GUT} ${COL} text-center`}>
             <h2 className="m-0 text-[26px] md:text-[38px] font-bold leading-[1.08] tracking-[-.035em] text-white max-w-[20ch] mx-auto">
-              One lounge, two days, 160 deans.
+              One lounge, both days of the conference.
             </h2>
             <p className="m-0 mt-4 text-[16px] md:text-[17px] font-medium leading-[1.5] text-white/70 max-w-[52ch] mx-auto">
               Ninety percent or more of slots get booked on a typical day, and eighty seven percent
-              of companies book us again. Say the word and we will build the running order.
+              of companies book us again. Tell us the volume you want and we will build the running
+              order.
             </p>
             <div className="mt-12 pt-8 border-t border-white/15">
               <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/40">
-                Confidential · prepared for the Carl H. Lindner College of Business
+                Confidential · prepared for the University of Cincinnati Carl H. Lindner College of Business
               </div>
             </div>
           </div>
