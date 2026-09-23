@@ -1,3 +1,12 @@
+> **SUPERSEDED on the ranking question, 2026-09-22.** Will decided the proposals
+> site must not rank at all; every path is now `noindex`. The prerender/SSR plan
+> in §3 and the "nothing else matters until this is done" sequencing are
+> withdrawn. The per-state keyword data, titles, FAQs and relevance research
+> below still stand, and now feed `www.getshortcut.co/solutions/law-firms`,
+> which targets the same query, is server-rendered, and was indexed when this
+> was written. When checked, `/cle`, `/cle/pa` and `/cle/fl` were "URL is
+> unknown to Google": never crawled, no sitemap entry, no inbound links.
+
 # Proposal Landing Pages — SEO & Positioning Research
 
 **Compiled 2026-09-05 · covers `/cle` + `/cle/pa` + `/cle/fl` (CLE) and the two Solution pages (Brokers, Health Plans)**

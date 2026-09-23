@@ -1,6 +1,24 @@
-/holiday-page/*
-  X-Robots-Tag: index, follow
-  
+# The proposals site must not rank at all (Will, 2026-09-22). Organic search
+# belongs to www.getshortcut.co; CLE ranks from /solutions/law-firms there.
+#
+# One rule for every path, including the SPA shell served at every route and
+# the static files (images, PDFs, markdown) Netlify serves directly. Headers in
+# this file match the REQUEST path, so the /* -> /index.html rewrite in
+# netlify.toml does not strip it (verified 2026-09-22 against the old
+# /holiday-page/* rule, which showed on a path that only exists as a rewrite).
+#
+# noindex, not a robots.txt Disallow: Google has to be able to crawl a page to
+# see this header, and a Disallowed URL can stay in the index as "Indexed,
+# though blocked by robots.txt". robots.txt therefore stays Allow: /.
+#
+# Plain noindex, not nofollow: links from here to www should still count.
+#
+# This replaced a /holiday-page/* "index, follow" rule, which would have been
+# merged with this one into contradictory directives. Do not add per-path
+# "index" rules below; there is no page on this site that should rank.
+/*
+  X-Robots-Tag: noindex
+
 # Cache control for static assets
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
