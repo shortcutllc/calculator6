@@ -3662,6 +3662,32 @@ const ProposalViewerV2: React.FC = () => {
             </div>
           )}
 
+          {/* Volume discount banner toggle (client viewer honors it on desktop + mobile) */}
+          {isEditing && (
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                cursor: 'pointer',
+                fontFamily: T.fontD,
+                fontSize: 14,
+                fontWeight: 600,
+                color: T.navy,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!editedData?.customization?.hideVolumeDiscountBanner}
+                onChange={(e) =>
+                  setCustomizationField('hideVolumeDiscountBanner', !e.target.checked)
+                }
+                style={{ width: 16, height: 16, accentColor: T.navy }}
+              />
+              Show the volume discount banner ("Sign up for more, save more")
+            </label>
+          )}
+
           {/* Services per location/date */}
           <div>
             <SectionLabel
