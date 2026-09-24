@@ -89,6 +89,30 @@ Prerequisites that bite if forgotten:
 - Push needs `PATH="/opt/homebrew/bin:$PATH"` so git-lfs resolves.
 - If a build silently dies with zero stdout, it's almost always corrupted `node_modules` — `rm -rf node_modules && npm install`.
 
+## Local testing: `public/env-config.js` beats build-time env vars
+
+`src/config/index.ts` reads `window.__ENV__` FIRST and only falls back to
+`import.meta.env`. `index.html` loads `/env-config.js` (from `public/`) before
+the app, and that file carries the real production Supabase URL and anon key.
+So **`VITE_SUPABASE_URL=... npm run build` does NOT redirect a build**: the
+override is silently ignored and the app talks to production.
+
+This cost a real proposal on 2026-09-24. A local build meant to read through a
+write-blocking proxy wrote client selections straight to production
+(f6c806c6…, restored by hand the same hour). The safety check had grepped
+`dist/assets/*.js` for the production host and found none; the host was in
+`dist/env-config.js`. And every write to `proposals.data` fires the
+`proposals_track_changes` trigger, which sets `has_changes` and
+`pending_review` and bumps `updated_at`. A restore puts the selections back but
+cannot clear those flags.
+
+To point a local build somewhere else, edit **`dist/env-config.js`** after the
+build, then prove it: watch the browser's network requests, or a proxy's own
+log, see a request arrive, BEFORE clicking anything that saves. A grep of the
+bundles is not proof. In the shared viewer (`?shared=true`), EVERY toggle
+saves: service selections to `data.optionsState`, add-ons to
+`data.addOnsState`.
+
 ---
 
 ## Application Overview

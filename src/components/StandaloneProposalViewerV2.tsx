@@ -3824,6 +3824,16 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   ? summary.perEventSubtotal * (summary.discountPercent / 100)
                   : 0;
               const perEventTotalNet = perEventGrandTotal - perEventVolumeDiscount;
+              // Optional add-ons are charged once, not per event (see
+              // proposal/useAddOnSelections). On a single-event proposal this
+              // card's figure IS the total, so switched-on add-ons belong in
+              // it; until 2026-09-24 they were left out and the card read
+              // lower than the price the client was agreeing to. On a
+              // recurring proposal the figure is per event, so they show as
+              // a one-time line under it instead of being folded in.
+              const addOnsInSidebarTotal = hasRepeats ? 0 : addOnSummary.total;
+              const sidebarTotal = perEventTotalNet + addOnsInSidebarTotal;
+              const addOnsLabel = `Add-ons · ${addOnSummary.selectedCount} selected`;
               // Per-event auto-recurring discount: the gap between the pre-
               // discount subtotal and the post-discount line items that ISN'T
               // the per-service discount. Itemizing it keeps the sidebar math
@@ -3998,14 +4008,26 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             <span style={{ color: '#fff' }}>{formatCurrency(gratuity.amount)}</span>
                           </div>
                         )}
+                        {!hasRepeats && addOnSummary.selectedCount > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+                            <span>{addOnsLabel}</span>
+                            <span style={{ color: '#fff' }}>{formatCurrency(addOnSummary.total)}</span>
+                          </div>
+                        )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
                           <span style={{ fontFamily: T.fontD, fontWeight: 700, fontSize: 15, color: '#fff' }}>
                             {hasRepeats ? 'Per event' : 'Total'}
                           </span>
                           <span style={{ fontFamily: T.fontD, fontWeight: 800, fontSize: 30, lineHeight: 1, color: T.aqua, letterSpacing: '-0.02em' }}>
-                            {formatCurrency(perEventTotalNet)}
+                            {formatCurrency(sidebarTotal)}
                           </span>
                         </div>
+                        {hasRepeats && addOnSummary.selectedCount > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 6 }}>
+                            <span>{addOnsLabel}, one-time</span>
+                            <span style={{ color: '#fff' }}>+{formatCurrency(addOnSummary.total)}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Annual savings banner. The discount line above is per

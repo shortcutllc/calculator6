@@ -1454,6 +1454,58 @@ const ProposalViewerV2: React.FC = () => {
   };
 
   // -----------------------------------------------------------------------
+  // Optional add-ons (data.addOns: Array<{id, name, description?, amount,
+  // selectedByDefault?}>). The client switches them on and off in the shared
+  // viewer (StandaloneProposalViewerV2 + proposal/useAddOnSelections), which
+  // persists their picks under data.addOnsState. Until 2026-09-24 there was no
+  // way for staff to create or change them here: they shipped viewer-only and
+  // were written straight into the saved data. Unlike customLineItems they are
+  // NOT added to the quoted total unless switched on, and they sit after the
+  // volume discount (see useAddOnSelections).
+  // -----------------------------------------------------------------------
+  const newAddOnId = () =>
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? `addon-${crypto.randomUUID()}`
+      : `addon-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  const handleAddAddOn = () => {
+    if (!editedData || !isEditing) return;
+    const updated: any = { ...editedData };
+    const items: any[] = Array.isArray(updated.addOns) ? [...updated.addOns] : [];
+    items.push({ id: newAddOnId(), name: '', description: '', amount: 0, selectedByDefault: false });
+    updated.addOns = items;
+    setEditedData({ ...updated });
+    setDisplayData({ ...updated });
+  };
+
+  const handleEditAddOn = (idx: number, field: string, value: any) => {
+    if (!editedData || !isEditing) return;
+    const updated: any = { ...editedData };
+    const items: any[] = Array.isArray(updated.addOns) ? [...updated.addOns] : [];
+    if (!items[idx]) return;
+    items[idx] = { ...items[idx], [field]: value };
+    updated.addOns = items;
+    setEditedData({ ...updated });
+    setDisplayData({ ...updated });
+  };
+
+  const handleRemoveAddOn = (idx: number) => {
+    if (!editedData || !isEditing) return;
+    const updated: any = { ...editedData };
+    const items: any[] = Array.isArray(updated.addOns) ? [...updated.addOns] : [];
+    const [removed] = items.splice(idx, 1);
+    updated.addOns = items;
+    /* Drop the client's saved pick for it too, so a removed add-on cannot
+       linger in addOnsState. */
+    if (removed?.id && updated.addOnsState && typeof updated.addOnsState === 'object') {
+      const { [removed.id]: _drop, ...rest } = updated.addOnsState;
+      updated.addOnsState = rest;
+    }
+    setEditedData({ ...updated });
+    setDisplayData({ ...updated });
+  };
+
+  // -----------------------------------------------------------------------
   // Gratuity
   // -----------------------------------------------------------------------
   const handleGratuityTypeChange = (type: '' | 'percentage' | 'dollar') => {
@@ -4376,6 +4428,10 @@ const ProposalViewerV2: React.FC = () => {
               onAddItem={handleAddCustomLineItem}
               onEditItem={handleEditCustomLineItem}
               onRemoveItem={handleRemoveCustomLineItem}
+              addOns={Array.isArray((displayData as any)?.addOns) ? (displayData as any).addOns : []}
+              onAddAddOn={handleAddAddOn}
+              onEditAddOn={handleEditAddOn}
+              onRemoveAddOn={handleRemoveAddOn}
               gratuityType={
                 (displayData?.gratuityType as 'percentage' | 'dollar' | null) || null
               }
@@ -7194,6 +7250,10 @@ interface PricingExtrasEditorProps {
   onAddItem: () => void;
   onEditItem: (idx: number, field: string, value: any) => void;
   onRemoveItem: (idx: number) => void;
+  addOns: any[];
+  onAddAddOn: () => void;
+  onEditAddOn: (idx: number, field: string, value: any) => void;
+  onRemoveAddOn: (idx: number) => void;
   gratuityType: 'percentage' | 'dollar' | null;
   gratuityValue: number | null;
   onChangeGratuityType: (t: '' | 'percentage' | 'dollar') => void;
@@ -7210,6 +7270,10 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
   onAddItem,
   onEditItem,
   onRemoveItem,
+  addOns,
+  onAddAddOn,
+  onEditAddOn,
+  onRemoveAddOn,
   gratuityType,
   gratuityValue,
   onChangeGratuityType,
@@ -7233,7 +7297,7 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
   >
     <SectionLabel
       eyebrow="Pricing extras"
-      title="Custom line items & gratuity"
+      title="Line items, add-ons & gratuity"
       size="card"
       mb={0}
     />
@@ -7366,6 +7430,173 @@ const PricingExtrasEditor: React.FC<PricingExtrasEditorProps> = ({
               <button
                 type="button"
                 onClick={() => onRemoveItem(idx)}
+                title="Remove"
+                style={{
+                  padding: 8,
+                  background: 'transparent',
+                  border: '1.5px solid rgba(255,80,80,0.25)',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  color: T.coral,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {/* Optional add-ons — the client can switch each one on or off in the
+        shared proposal. Charged once, after any volume discount. */}
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+        }}
+      >
+        <Eyebrow>Optional add-ons</Eyebrow>
+        <button
+          type="button"
+          onClick={onAddAddOn}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            background: '#fff',
+            border: '1.5px solid rgba(0,0,0,0.12)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontFamily: T.fontUi,
+            fontWeight: 700,
+            fontSize: 12,
+            color: T.navy,
+          }}
+        >
+          <Plus size={12} />
+          Add add-on
+        </button>
+      </div>
+      {addOns.length === 0 ? (
+        <div
+          style={{
+            fontFamily: T.fontD,
+            fontSize: 13,
+            color: T.fgMuted,
+            padding: '12px 14px',
+            background: T.beige,
+            borderRadius: 10,
+          }}
+        >
+          Optional extras the client can switch on, like branded uniforms or rented planters.
+          Charged once, after any volume discount, and only if switched on.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {addOns.map((it: any, idx: number) => (
+            <div
+              key={it.id || idx}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr auto',
+                gap: 10,
+                alignItems: 'start',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <input
+                  type="text"
+                  value={it.name || ''}
+                  placeholder="Add-on name (e.g. Branded uniforms)"
+                  onChange={(e) => onEditAddOn(idx, 'name', e.target.value)}
+                  style={{
+                    padding: '8px 10px',
+                    fontFamily: T.fontD,
+                    fontWeight: 600,
+                    fontSize: 14,
+                    color: T.navy,
+                    border: '1.5px solid rgba(0,0,0,0.1)',
+                    borderRadius: 8,
+                    background: '#fff',
+                    outline: 'none',
+                  }}
+                />
+                <input
+                  type="text"
+                  value={it.description || ''}
+                  placeholder="Description (optional)"
+                  onChange={(e) => onEditAddOn(idx, 'description', e.target.value)}
+                  style={{
+                    padding: '6px 10px',
+                    fontFamily: T.fontD,
+                    fontSize: 12,
+                    color: T.fgMuted,
+                    border: '1.5px solid rgba(0,0,0,0.08)',
+                    borderRadius: 8,
+                    background: '#fff',
+                    outline: 'none',
+                  }}
+                />
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontFamily: T.fontD,
+                    fontSize: 12,
+                    color: T.fgMuted,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={it.selectedByDefault === true}
+                    onChange={(e) => onEditAddOn(idx, 'selectedByDefault', e.target.checked)}
+                  />
+                  Switched on by default
+                </label>
+              </div>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '0 10px',
+                  background: '#fff',
+                  border: '1.5px solid rgba(0,0,0,0.1)',
+                  borderRadius: 8,
+                }}
+              >
+                <span style={{ color: T.fgMuted, fontFamily: T.fontD, fontSize: 14 }}>$</span>
+                <input
+                  type="number"
+                  value={it.amount ?? 0}
+                  onChange={(e) => onEditAddOn(idx, 'amount', parseFloat(e.target.value) || 0)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 0',
+                    fontFamily: T.fontD,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    color: T.navy,
+                    border: 'none',
+                    background: 'transparent',
+                    outline: 'none',
+                    textAlign: 'right',
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemoveAddOn(idx)}
                 title="Remove"
                 style={{
                   padding: 8,
