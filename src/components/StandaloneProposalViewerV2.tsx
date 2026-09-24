@@ -3824,6 +3824,19 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   ? summary.perEventSubtotal * (summary.discountPercent / 100)
                   : 0;
               const perEventTotalNet = perEventGrandTotal - perEventVolumeDiscount;
+              // Optional add-ons are charged once, not per event (see
+              // proposal/useAddOnSelections). On a single-event proposal this
+              // card's figure IS the total, so switched-on add-ons belong in
+              // it; until 2026-09-24 they were left out and the card read
+              // lower than the price the client was agreeing to. On a
+              // recurring proposal the figure is per event, so they show as
+              // a one-time line under it instead of being folded in.
+              const addOnsInSidebarTotal = hasRepeats ? 0 : addOnSummary.total;
+              const sidebarTotal = perEventTotalNet + addOnsInSidebarTotal;
+              // Each switched-on add-on by name (Will, 2026-09-24), not a
+              // count: the client should see what they are paying for.
+              const selectedAddOns = addOnSummary.rows.filter((r) => r.selected);
+              const addOnLine = { display: 'flex', justifyContent: 'space-between', gap: 12, fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)' } as const;
               // Per-event auto-recurring discount: the gap between the pre-
               // discount subtotal and the post-discount line items that ISN'T
               // the per-service discount. Itemizing it keeps the sidebar math
@@ -3998,14 +4011,34 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             <span style={{ color: '#fff' }}>{formatCurrency(gratuity.amount)}</span>
                           </div>
                         )}
+                        {!hasRepeats &&
+                          selectedAddOns.map((a) => (
+                            <div key={a.id} style={addOnLine}>
+                              <span style={{ minWidth: 0 }}>{a.name || 'Add-on'}</span>
+                              <span style={{ color: '#fff', whiteSpace: 'nowrap' }}>{formatCurrency(a.amount)}</span>
+                            </div>
+                          ))}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
                           <span style={{ fontFamily: T.fontD, fontWeight: 700, fontSize: 15, color: '#fff' }}>
                             {hasRepeats ? 'Per event' : 'Total'}
                           </span>
                           <span style={{ fontFamily: T.fontD, fontWeight: 800, fontSize: 30, lineHeight: 1, color: T.aqua, letterSpacing: '-0.02em' }}>
-                            {formatCurrency(perEventTotalNet)}
+                            {formatCurrency(sidebarTotal)}
                           </span>
                         </div>
+                        {hasRepeats && selectedAddOns.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
+                            <span style={{ fontFamily: T.fontD, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}>
+                              One-time add-ons
+                            </span>
+                            {selectedAddOns.map((a) => (
+                              <div key={a.id} style={addOnLine}>
+                                <span style={{ minWidth: 0 }}>{a.name || 'Add-on'}</span>
+                                <span style={{ color: '#fff', whiteSpace: 'nowrap' }}>+{formatCurrency(a.amount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Annual savings banner. The discount line above is per
