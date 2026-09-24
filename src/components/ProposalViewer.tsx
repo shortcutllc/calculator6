@@ -2885,6 +2885,28 @@ The Shortcut Team`);
                     )}
                   </div>
                 )}
+
+                {isEditing && !isSharedView && (
+                  <label className="mt-4 flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!editedData?.customization?.hideVolumeDiscountBanner}
+                      onChange={(e) => {
+                        setEditedData({
+                          ...editedData,
+                          customization: {
+                            ...(editedData?.customization || {}),
+                            hideVolumeDiscountBanner: !e.target.checked,
+                          },
+                        });
+                      }}
+                      className="w-4 h-4 accent-shortcut-blue"
+                    />
+                    <span className="text-sm font-bold text-shortcut-blue">
+                      Show the volume discount banner ("Sign up for more, save more")
+                    </span>
+                  </label>
+                )}
               </div>
 
               {/* Key Metrics Grid */}

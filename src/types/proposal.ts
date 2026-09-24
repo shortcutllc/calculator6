@@ -236,6 +236,8 @@ export interface ProposalCustomization {
   contactLastName?: string;
   customNote?: string;
   programIntroCopy?: string;
+  // Hides the "Sign up for more, save more" volume discount banner in the V2 client viewer.
+  hideVolumeDiscountBanner?: boolean;
   includeSummary: boolean;
   includeCalculations: boolean;
   includeCalculator: boolean;

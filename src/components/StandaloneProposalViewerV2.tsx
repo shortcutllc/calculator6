@@ -1286,6 +1286,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </span>
             )}
           </div>
+          {!displayData?.customization?.hideVolumeDiscountBanner && (
           <div className="pvm-savings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
               <path d="m17 2 4 4-4 4" />
@@ -1297,6 +1298,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               <strong>save 10%</strong>, or go with 9 and <strong>save 15%</strong>.
             </span>
           </div>
+          )}
 
           {/* Linked-proposal options — the comparison picker also needs to
               render on mobile (desktop shows it above the service list). */}
@@ -2651,6 +2653,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 </span>
               )}
             </div>
+            {!displayData?.customization?.hideVolumeDiscountBanner && (
             <div className="pv-savings" style={{ marginBottom: 0 }}>
               <svg
                 viewBox="0 0 24 24"
@@ -2670,6 +2673,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 <strong>save 10%</strong>, or go with 9 and <strong>save 15%</strong>.
               </span>
             </div>
+            )}
             {/* "Your services" section label (design refresh). */}
             <p className="pv-sec-label" id="pv-services">Your services</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
