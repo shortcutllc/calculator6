@@ -181,6 +181,7 @@ const History: React.FC = () => {
   const navigate = useNavigate();
   const { proposals, deleteProposal, duplicateProposal } = useProposal();
   const [sortBy, setSortBy] = useState('date-desc');
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterOptions>({
     startDate: '',
     endDate: '',
@@ -497,6 +498,20 @@ const History: React.FC = () => {
       if (filters.location && !proposalLocations.includes(filters.location)) return false;
       if (filters.status && proposal.status !== filters.status) return false;
 
+      const query = searchQuery.trim().toLowerCase();
+      if (query) {
+        const haystack = [
+          proposal.data.clientName,
+          proposal.optionName,
+          proposal.slug,
+          ...proposalLocations,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+
       return true;
     }).sort((a, b) => {
       switch (sortBy) {
@@ -595,6 +610,31 @@ const History: React.FC = () => {
         </div>
 
         <div className="card-medium mb-8">
+          <div className="relative mb-6">
+            <Search
+              size={20}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dark-60 pointer-events-none"
+            />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by client, location, or option"
+              aria-label="Search proposals"
+              className="w-full pl-12 pr-12 py-3 text-base border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal [&::-webkit-search-cancel-button]:hidden"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-text-dark-60 hover:text-shortcut-blue hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+
           <div className="mb-6 pb-6 border-b border-gray-200">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
