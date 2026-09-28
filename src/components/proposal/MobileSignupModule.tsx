@@ -10,6 +10,8 @@ import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
 import { ExternalLink, Link as LinkIcon, Check } from 'lucide-react';
 import {
   MobileSignupDemoCore,
+  MdCopyContext,
+  type MdCopy,
   useMdTimeline,
   usePrefersReducedMotion,
   type MdState,
@@ -115,6 +117,10 @@ interface MobileSignupModuleProps {
   /** CTA copy. Defaults match the brand voice (mirrors the old SignupLinkCard). */
   title?: string;
   description?: string;
+  /** Card eyebrow. Defaults to the employee framing the viewer uses. */
+  eyebrow?: string;
+  /** Overrides the demo's BCG event copy. See MdCopyContext. */
+  copy?: Partial<MdCopy>;
 }
 
 const MobileSignupModule: React.FC<MobileSignupModuleProps> = ({
@@ -123,10 +129,13 @@ const MobileSignupModule: React.FC<MobileSignupModuleProps> = ({
   size = 340,
   url,
   title = "Pick a time. That's the whole thing.",
+  eyebrow = 'The employee sign-up',
+  copy,
   description = 'No app to download. No account to make. Book a sample appointment and see how little your team has to do. You do even less.',
 }) => {
   const reduced = usePrefersReducedMotion();
   const state = useMdTimeline(speed, reduced);
+  const baseCopy = React.useContext(MdCopyContext);
   // The phone stage keeps the design's ~square proportion; the CTA footer (if
   // any) grows the card below it.
   const areaH = Math.round(size * 0.87);
@@ -198,13 +207,15 @@ const MobileSignupModule: React.FC<MobileSignupModuleProps> = ({
   return (
     <div className="bm-card msd-host" style={{ width: size }}>
       <div className="bm-card-head">
-        <div className="bm-eyebrow">The employee sign-up</div>
+        <div className="bm-eyebrow">{eyebrow}</div>
         <div className="bm-live-pill">Demo</div>
       </div>
       <div ref={areaRef} className="bm-area" style={{ height: areaH }}>
         <div ref={phoneRef} style={{ position: 'absolute', top: 0, left: 0, ...style }}>
           <IOSDevice width={402} height={874}>
-            <MobileSignupDemoCore state={state} />
+            <MdCopyContext.Provider value={{ ...baseCopy, ...copy }}>
+              <MobileSignupDemoCore state={state} />
+            </MdCopyContext.Provider>
           </IOSDevice>
         </div>
       </div>

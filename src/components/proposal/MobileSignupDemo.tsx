@@ -18,7 +18,27 @@ import React, {
 } from 'react';
 import './mobile-signup-demo.css';
 
-// Content is the BCG "Massage Day" sample from the design.
+// Content is the BCG "Massage Day" sample from the design. The event copy can
+// be overridden through MdCopyContext (the conference partner page shows an
+// attendee booking a sponsor's lounge instead); every existing caller passes
+// nothing and keeps the BCG sample.
+export interface MdCopy {
+  eventTitle: string;
+  eventLine: string;
+  location: string;
+  barSub: string;
+  /** Replaces the BCG logo in the brand pill with a text mark, and drops the
+   *  "with Shortcut" half so the page reads white labeled. */
+  brandText?: string;
+}
+const MD_COPY_DEFAULT: MdCopy = {
+  eventTitle: 'Massage Day at BCG',
+  eventLine: 'Seated massage with a licensed therapist. Free for employees.',
+  location: '11th floor lounge',
+  barSub: 'Free for BCG employees',
+};
+export const MdCopyContext = React.createContext<MdCopy>(MD_COPY_DEFAULT);
+
 const MD_NAME = 'Jordan Patel';
 const MD_EMAIL = 'jordan@bcg.com';
 
@@ -173,6 +193,7 @@ function MdField({ label, value, placeholder, focused }: {
 type RegFn = (k: string, el: HTMLElement | null) => void;
 
 function MdPage({ state, reg }: { state: MdState; reg: RegFn }) {
+  const copy = React.useContext(MdCopyContext);
   return (
     <div>
       {/* Hero */}
@@ -180,24 +201,30 @@ function MdPage({ state, reg }: { state: MdState; reg: RegFn }) {
         <img src="/signup-demo/massage.png" alt="Massage day" />
         <div className="lt-m-hero-chrome" style={{ top: 62 }}>
           <span className="lt-m-circle"><MdIcon name="back" size={18} stroke="#032232" sw={2} /></span>
-          <span className="lt-m-brand-pill">
-            <img src="/signup-demo/bcg-logo.webp" alt="BCG" style={{ height: 16, width: 'auto' }} />
-            <span style={{ color: 'rgba(3,34,50,0.4)' }}>with</span>
-            <img src="/signup-demo/shortcut-logo-rgb.svg" alt="Shortcut" />
-          </span>
+          {copy.brandText ? (
+            <span className="lt-m-brand-pill" style={{ fontWeight: 800, letterSpacing: '0.04em', fontSize: 12 }}>
+              {copy.brandText}
+            </span>
+          ) : (
+            <span className="lt-m-brand-pill">
+              <img src="/signup-demo/bcg-logo.webp" alt="BCG" style={{ height: 16, width: 'auto' }} />
+              <span style={{ color: 'rgba(3,34,50,0.4)' }}>with</span>
+              <img src="/signup-demo/shortcut-logo-rgb.svg" alt="Shortcut" />
+            </span>
+          )}
         </div>
       </div>
 
       {/* Sheet */}
       <div className="lt-m-sheet" style={{ paddingBottom: 150 }}>
         <p className="lt-eyebrow" style={{ marginBottom: 8 }}>You're invited</p>
-        <h1 className="lt-m-h1">Massage Day at BCG</h1>
+        <h1 className="lt-m-h1">{copy.eventTitle}</h1>
         <p className="lt-body" style={{ fontSize: 15, marginTop: 8 }}>
-          Seated massage with a licensed therapist. Free for employees.
+          {copy.eventLine}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
           <span className="lt-meta"><MdIcon name="calendar" stroke="var(--sc-teal)" />Thursday, June 18 · 11:00 am to 4:00 pm</span>
-          <span className="lt-meta"><MdIcon name="pin" stroke="var(--sc-teal)" />11th floor lounge</span>
+          <span className="lt-meta"><MdIcon name="pin" stroke="var(--sc-teal)" />{copy.location}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
           <div className="lt-bar" style={{ flex: 1 }}><span style={{ width: '70%' }}></span></div>
@@ -306,6 +333,7 @@ function MdConfirmed() {
 }
 
 export function MobileSignupDemoCore({ state }: { state: MdState }) {
+  const copy = React.useContext(MdCopyContext);
   const targets = useRef<Record<string, HTMLElement | null>>({});
   const viewRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -350,8 +378,8 @@ export function MobileSignupDemoCore({ state }: { state: MdState }) {
           </div>
           <div className="lt-m-cta-bar" style={{ paddingBottom: 30 }}>
             <div>
-              <div className="lt-m-slot-note">{state.slot ? 'Thu, Jun 18 · 12:40 pm' : 'Massage Day at BCG'}</div>
-              <div className="lt-m-slot-sub">{state.slot ? 'Chair massage · Free' : 'Free for BCG employees'}</div>
+              <div className="lt-m-slot-note">{state.slot ? 'Thu, Jun 18 · 12:40 pm' : copy.eventTitle}</div>
+              <div className="lt-m-slot-sub">{state.slot ? 'Chair massage · Free' : copy.barSub}</div>
             </div>
             <span ref={(el) => { if (el) reg('cta', el); }}
                   data-cap="cta"

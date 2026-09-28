@@ -70,7 +70,38 @@ const Tick: React.FC<{ stroke?: string; width?: number }> = ({
   </svg>
 );
 
-const WhyShortcutBento: React.FC = () => {
+export interface WhyShortcutBentoProps {
+  /** Section kicker. */
+  label?: string;
+  /** Heading, navy clause then coral clause. */
+  headA?: React.ReactNode;
+  headB?: React.ReactNode;
+  /** Wide manager card: heading, body, and the event it shows. */
+  wideTitle?: string;
+  wideBody?: string;
+  eventName?: string;
+  eventWhen?: string;
+  /** Coverage card copy — a conference floor is not "the city". */
+  cityTitle?: React.ReactNode;
+  cityBody?: string;
+  /** Rendered in its own row under the three-across. The viewer leaves this
+   *  empty because its sidebar already runs a live sign-up demo; a page with
+   *  no sidebar passes the phone card here. */
+  extraRow?: React.ReactNode;
+}
+
+const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
+  label = 'What sets Shortcut apart',
+  headA = 'Loved by employees.',
+  headB = 'Effortless for employers.',
+  wideTitle = 'Built for you.',
+  wideBody = 'No spreadsheets. No scheduling headaches. Watch appointments fill, track participation, and read employee feedback, all live, in one place.',
+  eventName = 'Massage Day',
+  eventWhen = 'Thu, June 18 \u00b7 11:00 am to 4:00 pm',
+  cityTitle,
+  cityBody = 'One team, one contact, one invoice.',
+  extraRow,
+}) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [inView, setInView] = useState(false);
 
@@ -97,30 +128,26 @@ const WhyShortcutBento: React.FC = () => {
   return (
     <div ref={ref} className={`pv-bento${inView ? ' is-in' : ''}`}>
       <div className="pv-bento-head">
-        <p className="pv-sec-label">What sets Shortcut apart</p>
+        <p className="pv-sec-label">{label}</p>
         <h2 className="lt-h2">
-          Loved by employees.
+          {headA}
           <br />
-          <span className="lt-accent">Effortless for employers.</span>
+          <span className="lt-accent">{headB}</span>
         </h2>
       </div>
 
       {/* Wide card — the manager view. */}
       <article className="pv-bcard pv-bcard--wide pv-bcard--yellow">
         <div className="pv-bcard-copy">
-          <h3>Built for you.</h3>
-          <p>
-            No spreadsheets. No scheduling headaches. Watch appointments fill,
-            track participation, and read employee feedback, all live, in one
-            place.
-          </p>
+          <h3>{wideTitle}</h3>
+          <p>{wideBody}</p>
         </div>
         <div className="pv-bcard-art">
           <div className="mv-card">
             <div className="mv-hd">
               <span>
-                <span className="mv-hd-t">Massage Day</span>
-                <span className="mv-hd-s">Thu, June 18 · 11:00 am to 4:00 pm</span>
+                <span className="mv-hd-t">{eventName}</span>
+                <span className="mv-hd-s">{eventWhen}</span>
               </span>
               <span className="mv-live">Live</span>
             </div>
@@ -174,11 +201,15 @@ const WhyShortcutBento: React.FC = () => {
         <article className="pv-bcard pv-bcard--navy">
           <div className="pv-bcard-copy">
             <h3>
-              You choose the city.
-              <br />
-              We bring the wellness.
+              {cityTitle ?? (
+                <>
+                  You choose the city.
+                  <br />
+                  We bring the wellness.
+                </>
+              )}
             </h3>
-            <p>One team, one contact, one invoice.</p>
+            <p>{cityBody}</p>
           </div>
           <div className="pv-bcard-art">
             <div className="wd-map">
@@ -233,6 +264,8 @@ const WhyShortcutBento: React.FC = () => {
           </div>
         </article>
       </div>
+
+      {extraRow}
     </div>
   );
 };
