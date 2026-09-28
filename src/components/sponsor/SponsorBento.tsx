@@ -80,7 +80,7 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
                 <div className="pv-bcard-copy">
                   <h3>What the sponsor takes home.</h3>
                 </div>
-                <div className="pv-bcard-art max-[980px]:!h-auto flex flex-col gap-2.5" style={{ margin: 0, paddingTop: 20 }}>
+                <div className="pv-bcard-art max-[980px]:!h-auto flex flex-col gap-2.5 min-[981px]:[&>div]:flex min-[981px]:[&>div]:flex-1 min-[981px]:[&>div]:flex-col min-[981px]:[&>div]:justify-center" style={{ margin: 0, paddingTop: 20 }}>
                   {PAYLOAD.map((r) => (
                     <div key={r.t} className="rounded-2xl bg-white/[.08] px-4 py-3.5">
                       <p className="m-0 text-[14.5px] font-bold leading-tight tracking-[-.015em] text-white">{r.t}</p>

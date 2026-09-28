@@ -72,13 +72,13 @@ const PILL_FILLS = ['#9EFAFF', '#FFCBA6', '#FEDC64', '#F7BBFF'];
 const TWO_SIDES = [
   {
     who: 'Your sponsors and exhibitors',
-    today: 'They pay for a booth, then stand in it and wait. Attendees have to wander over, show interest and hand over a badge to scan. Most of them walk past.',
-    fix: 'Attendees come to them, at a time they picked, for a massage, a headshot or a manicure they love. The sponsor has the busiest spot on the floor, and people remember who gave it to them.',
+    today: 'They pay for a booth, then stand in it and wait. Most attendees walk past.',
+    fix: 'Attendees book a time and come for a massage or a headshot. They remember who gave it to them.',
   },
   {
     who: 'You',
-    today: 'Your revenue grows when sponsors spend more and renew. That is a hard sell when what you have to offer is another booth, a logo or a lanyard.',
-    fix: 'A premium tier for your sponsorship lineup, priced above a booth, with a line of attendees to show for it. That is what gets a sponsor to spend more and come back.',
+    today: 'Revenue grows when sponsors spend more and renew. Another booth or logo won’t get them there.',
+    fix: 'A premium tier priced above a booth, with a line to show for it. Sponsors who see a line renew.',
   },
 ];
 
@@ -106,16 +106,48 @@ const PATH = [
     body: 'With a headshot studio in the lounge, every retouched photo arrives in the sponsor’s brand. It is the photo people put on LinkedIn.' },
 ];
 
-/* The website's conference gallery (conferences-data.js, CONF_GALLERY), on
-   its 12 column grid. */
-const GALLERY = [
-  { col: 'lg:col-span-7', cap: 'Workhuman Live 2026 \u00b7 The Gratitude Garden', img: '/ds-assets/conference/zone-signage.jpeg', tint: '#9EFAFF' },
-  { col: 'lg:col-span-5', cap: 'TradeStation \u00b7 glam station', img: '/ds-assets/conference/glam-station.jpg', tint: '#FEDC64' },
-  { col: 'lg:col-span-4', cap: 'Chair massage on the floor', img: '/ds-assets/conference/welcome-desk.jpeg', tint: '#C7CBFB' },
-  { col: 'lg:col-span-4', cap: 'TradeStation \u00b7 hair station', img: '/ds-assets/conference/massage-floor.jpg', tint: '#A9F0CC' },
-  { col: 'lg:col-span-4', cap: 'The Zen Zone', img: '/ds-assets/conference/zen-zone.jpeg', tint: '#FFCBA6' },
+/* Workhuman Live 2026, from the website's conference gallery
+   (conferences-data.js, CONF_GALLERY). Only this event's photos sit under
+   the Workhuman headline. */
+const PROOF_GALLERY = [
+  { cap: 'Workhuman Live \u00b7 The Gratitude Garden', img: '/ds-assets/conference/zone-signage.jpeg', tint: '#9EFAFF' },
+  { cap: 'Chair massage on the floor', img: '/ds-assets/conference/welcome-desk.jpeg', tint: '#C7CBFB' },
+  { cap: 'The Zen Zone', img: '/ds-assets/conference/zen-zone.jpeg', tint: '#FFCBA6' },
 ];
 
+/* What a sponsor's brand looks like on the booking page and on the floor.
+   NOTE: YW3 x Netflix Ads is under an MNDA (2026-09-16); clear it before
+   this ships. */
+const BRAND_SHOTS = {
+  booking: { cap: 'The booking page · Netflix Ads', img: '/yw3/booking-page.jpg',
+    alt: 'A Shortcut booking page branded end to end for Netflix Ads' },
+  side: [
+    { cap: 'The signage · TradeStation', img: '/ds-assets/conference/glam-station.jpg',
+      alt: 'A TradeStation banner reading Get a fresh look at TradeStation' },
+    { cap: 'The uniforms · TradeStation', img: '/ds-assets/conference/massage-floor.jpg',
+      alt: 'A stylist in a TradeStation apron styling an attendee’s hair' },
+  ],
+};
+
+/** Photo tile with the caption pill every gallery on the page uses. */
+function Shot({ cap, img, alt, className = '', pos = 'center', inset = false }: {
+  cap: string; img: string; alt?: string; className?: string; pos?: string; inset?: boolean;
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded-[20px] ${inset ? 'bg-shortcut-teal/40' : 'bg-neutral-light-gray'} ${className}`}>
+      {inset ? (
+        <img src={img} alt={alt ?? cap} loading="lazy" className="absolute left-6 right-6 top-6 md:left-10 md:right-10 md:top-10 w-[calc(100%-48px)] md:w-[calc(100%-80px)] rounded-t-[14px] shadow-[0_12px_36px_rgba(3,34,50,.18)]" />
+      ) : (
+        <img src={img} alt={alt ?? cap} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: pos }} />
+      )}
+      <span className="absolute bottom-3 left-3 max-w-[calc(100%-24px)] inline-flex min-h-[30px] items-center rounded-full bg-white/[.92] px-3 py-1 text-[12px] md:text-[12.5px] font-extrabold leading-tight text-shortcut-blue">
+        {cap}
+      </span>
+    </div>
+  );
+}
+
+const FRAME = 'rounded-[28px] bg-white p-3 md:p-4';
 
 /* Who does what. The point of the section is how short the first two
    lists are next to the third. Tasks only: on-site operations are in the
@@ -151,7 +183,7 @@ const ROLES = [
 /* The headline carries the 400 and the 200; these are the numbers it
    doesn't. */
 const PROOF_STATS = [
-  { fig: '100', label: 'hours of attendee time at Workhuman Live, spent in one space' },
+  { fig: '100', label: 'hours of attendee time at Workhuman Live, in one space' },
   { fig: '90%+', label: 'of appointment slots booked, across every event we run' },
   { fig: '500+', label: 'companies we bring wellness to across the US' },
 ];
@@ -228,7 +260,7 @@ function SizzleReel() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[900px] rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
+    <div className="mx-auto w-full max-w-[900px] rounded-[28px] bg-white p-3 md:p-4 shadow-[0_30px_70px_rgba(0,0,0,.25)]">
       <div className="relative aspect-video overflow-hidden rounded-[20px] bg-shortcut-blue">
         <video
           ref={ref}
@@ -245,18 +277,34 @@ function SizzleReel() {
           <button
             type="button"
             onClick={start}
-            aria-label="Play a Shortcut event reel"
-            className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-shortcut-blue/45 transition-colors hover:bg-shortcut-blue/35"
+            aria-label="Play the TradeStation event reel"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 md:gap-5 bg-shortcut-blue/45 transition-colors hover:bg-shortcut-blue/35"
           >
-            <span className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-shortcut-coral shadow-[0_10px_30px_rgba(255,80,80,.45)]">
+            <span className="flex h-[56px] w-[56px] md:h-[76px] md:w-[76px] items-center justify-center rounded-full bg-shortcut-coral shadow-[0_10px_30px_rgba(255,80,80,.45)]">
               <Play size={30} className="ml-1 text-white" fill="currentColor" strokeWidth={0} />
             </span>
-            <span className="rounded-full bg-white/[.94] px-5 py-2.5 text-[15px] font-extrabold tracking-[-.012em] text-shortcut-blue">
-              A Shortcut event day
+            <span className="max-w-[calc(100%-32px)] rounded-full bg-white/[.94] px-4 md:px-5 py-2 md:py-2.5 text-[13px] md:text-[15px] font-extrabold leading-tight tracking-[-.012em] text-shortcut-blue">
+              A Shortcut event day for TradeStation
             </span>
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function RoleCard({ r, us = false }: { r: { who: string; items: string[] }; us?: boolean }) {
+  return (
+    <div className={`${us ? CARD_NAVY : CARD_ON_WHITE} ${CARD_PAD} ${us ? 'lg:h-full' : ''}`}>
+      <h3 className={`${CARD_TITLE} ${us ? 'text-white' : 'text-shortcut-blue'}`}>{r.who}</h3>
+      <ul className="m-0 mt-5 p-0 list-none flex flex-col gap-3.5">
+        {r.items.map((it) => (
+          <li key={it} className={`flex gap-3 ${CARD_BODY} ${us ? 'text-white' : INK}`}>
+            <span className={`mt-[9px] w-[6px] h-[6px] flex-none rounded-full ${us ? 'bg-shortcut-teal' : 'bg-shortcut-coral'}`} />
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -283,14 +331,14 @@ function StationCard({ s, onOpen }: { s: SponsorServiceDef; onOpen: () => void }
           loading="lazy"
           className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 ${s.cropArt ? 'scale-110 group-hover:scale-[1.14]' : 'group-hover:scale-[1.04]'}`}
         />
-        <span className="absolute right-3.5 top-3.5 z-[2] grid h-9 w-9 place-items-center rounded-full bg-white text-[24px] font-medium leading-none text-shortcut-blue shadow-[0_2px_10px_rgba(3,34,50,.18)] transition-transform duration-300 group-hover:scale-110">
+        <span className="absolute right-2.5 top-2.5 sm:right-3.5 sm:top-3.5 z-[2] grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-full bg-white text-[24px] font-medium leading-none text-shortcut-blue shadow-[0_2px_10px_rgba(3,34,50,.18)] transition-transform duration-300 group-hover:scale-110">
           +
         </span>
       </span>
-      <span className="flex flex-col gap-1.5 px-0.5 pt-[18px]">
-        <span className="text-[20px] font-semibold leading-[1.2] tracking-[-.015em] text-shortcut-blue">{s.name}</span>
-        <span className={`text-[14px] font-semibold leading-[1.4] ${INK_META}`}>{s.meta}</span>
-        <span className={`mt-1 text-[15.5px] font-medium leading-[1.55] ${INK}`}>{s.body}</span>
+      <span className="flex flex-col gap-1.5 px-0.5 pt-3.5 sm:pt-[18px]">
+        <span className="text-[17px] sm:text-[20px] font-semibold leading-[1.2] tracking-[-.015em] text-shortcut-blue">{s.name}</span>
+        <span className={`text-[13px] sm:text-[14px] font-semibold leading-[1.4] ${INK_META}`}>{s.meta}</span>
+        <span className={`mt-1 hidden sm:block text-[15.5px] font-medium leading-[1.55] ${INK}`}>{s.body}</span>
       </span>
     </button>
   );
@@ -449,7 +497,7 @@ export default function SponsorOnePager() {
               <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,560px)_minmax(380px,1fr)] gap-10 xl:gap-16 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,560px)_minmax(380px,1fr)] gap-10 xl:gap-16 items-center">
               <div className="min-w-0">
                 <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
                   A premium sponsorship for {conf.name}
@@ -524,15 +572,15 @@ export default function SponsorOnePager() {
             title="Exhibitors pay for a booth, then wait."
             accent="We give them a line."
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-[auto_1fr] gap-x-5 gap-y-5 lg:gap-y-0">
             {TWO_SIDES.map((side) => (
-              <div key={side.who} className={`${CARD_ON_TINT} overflow-hidden flex flex-col`}>
+              <div key={side.who} className={`${CARD_ON_TINT} overflow-hidden grid lg:row-span-2 lg:grid-rows-subgrid`}>
                 <div className={CARD_PAD}>
                   <h3 className={`${CARD_TITLE} text-shortcut-blue`}>{side.who}</h3>
                   <p className={`${CARD_KICKER} mt-6 ${INK_META}`}>Today</p>
                   <p className={`${CARD_BODY} mt-2 ${INK}`}>{side.today}</p>
                 </div>
-                <div className={`flex-1 bg-shortcut-blue ${CARD_PAD}`}>
+                <div className={`bg-shortcut-blue ${CARD_PAD}`}>
                   <p className={`${CARD_KICKER} text-shortcut-teal`}>With the lounge</p>
                   <p className={`${CARD_BODY} mt-2 text-white`}>{side.fix}</p>
                 </div>
@@ -573,20 +621,16 @@ export default function SponsorOnePager() {
             ))}
           </ol>
 
-          {/* The booking page, branded end to end. NOTE: YW3 x Netflix Ads is
-              under an MNDA (2026-09-16); clear it before this ships. */}
-          <figure className="m-0 mt-14 md:mt-16">
-            <div className="mx-auto w-full max-w-[1100px] rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.18)]">
-              <img
-                src="/yw3/booking-page.jpg"
-                alt="A Shortcut booking page branded end to end for Netflix Ads, showing the stations, open times and event details"
-                className="w-full h-auto rounded-[20px]"
-              />
+          <div className={`${FRAME} mt-5 shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]`}>
+            <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
+              <Shot {...BRAND_SHOTS.booking} inset className="h-[300px] md:h-[440px] lg:h-full lg:min-h-[480px]" />
+              <div className="grid grid-cols-1 gap-3 md:gap-4">
+                {BRAND_SHOTS.side.map((sh) => (
+                  <Shot key={sh.cap} {...sh} className="h-[220px] md:h-[232px]" />
+                ))}
+              </div>
             </div>
-            <figcaption className={`mt-5 text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
-              A booking page we built for Netflix Ads.
-            </figcaption>
-          </figure>
+          </div>
         </Panel>
 
         {/* ══════════ WHO DOES WHAT ══════════ */}
@@ -596,23 +640,11 @@ export default function SponsorOnePager() {
             title="Your part is short."
             accent="Ours is everything else."
           />
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1.4fr] gap-5">
-            {ROLES.map((r) => {
-              const us = r.who === 'Shortcut';
-              return (
-                <div key={r.who} className={`${us ? CARD_NAVY : CARD_ON_WHITE} ${CARD_PAD}`}>
-                  <h3 className={`${CARD_TITLE} ${us ? 'text-white' : 'text-shortcut-blue'}`}>{r.who}</h3>
-                  <ul className="m-0 mt-5 p-0 list-none flex flex-col gap-3.5">
-                    {r.items.map((it) => (
-                      <li key={it} className={`flex gap-3 ${CARD_BODY} ${us ? 'text-white' : INK}`}>
-                        <span className={`mt-[9px] w-[6px] h-[6px] flex-none rounded-full ${us ? 'bg-shortcut-teal' : 'bg-shortcut-coral'}`} />
-                        <span>{it}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="flex flex-col gap-5">
+              {ROLES.filter((r) => r.who !== 'Shortcut').map((r) => <RoleCard key={r.who} r={r} />)}
+            </div>
+            {ROLES.filter((r) => r.who === 'Shortcut').map((r) => <RoleCard key={r.who} r={r} us />)}
           </div>
         </Panel>
 
@@ -620,29 +652,12 @@ export default function SponsorOnePager() {
         <Panel id="proof" tone="navy">
           <SectionHead
             dark
-            kicker="Proof · Workhuman Live 2026"
+            kicker="Proof"
             title="400 massages in three days."
             accent="A waitlist that never dropped below 200."
-            sub="We ran the wellness zone with five chairs, open to close."
+            sub="At Workhuman Live 2026 we ran the wellness zone with five chairs, open to close."
           />
-          <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(0,0,0,.25)]">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:grid-rows-[300px_220px]">
-              {GALLERY.map((g) => (
-                <div
-                  key={g.cap}
-                  role="img"
-                  aria-label={g.cap}
-                  className={`relative min-h-[220px] overflow-hidden rounded-[20px] bg-cover bg-[center_30%] ${g.col}`}
-                  style={{ backgroundColor: g.tint, backgroundImage: `url('${g.img}')` }}
-                >
-                  <span className="absolute bottom-3.5 left-3.5 inline-flex h-[30px] items-center rounded-full bg-white/[.92] px-3 text-[12.5px] font-extrabold text-shortcut-blue">
-                    {g.cap}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {PROOF_STATS.map((st) => (
               <div key={st.label} className="border-t border-white/15 pt-6">
                 <div className="text-[52px] md:text-[64px] font-bold leading-none tracking-[-.04em] text-shortcut-teal tabular-nums">
@@ -652,7 +667,14 @@ export default function SponsorOnePager() {
               </div>
             ))}
           </div>
-          <div className="mt-16 md:mt-20">
+          <div className={`${FRAME} mt-12 md:mt-14 shadow-[0_30px_70px_rgba(0,0,0,.25)]`}>
+            <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-[1.25fr_1fr_1fr]">
+              {PROOF_GALLERY.map((g, i) => (
+                <Shot key={g.cap} cap={g.cap} img={g.img} pos="center 30%" className={`${i === 0 ? 'col-span-2 md:col-span-1 h-[260px]' : 'h-[240px]'} md:h-[440px]`} />
+              ))}
+            </div>
+          </div>
+          <div className="mt-12 md:mt-14">
             <SizzleReel />
           </div>
         </Panel>
@@ -664,7 +686,7 @@ export default function SponsorOnePager() {
             title="Sell the whole lounge to one sponsor, or each station separately."
             sub="Every station can carry the sponsor's name and a line from their campaign. Tap any station for the detail."
           />
-          <div className="grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-10 xl:grid-cols-4">
             {services.map((s, i) => <StationCard key={s.id} s={s} onOpen={() => setOpenIdx(i)} />)}
           </div>
         </Panel>
