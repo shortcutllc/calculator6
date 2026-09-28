@@ -84,6 +84,10 @@ export interface WhyShortcutBentoProps {
   /** Coverage card copy — a conference floor is not "the city". */
   cityTitle?: React.ReactNode;
   cityBody?: string;
+  /** Coral "handled" card: heading, body and checklist rows. */
+  handledTitle?: string;
+  handledBody?: string;
+  checklist?: string[];
   /** Rendered in its own row under the three-across. The viewer leaves this
    *  empty because its sidebar already runs a live sign-up demo; a page with
    *  no sidebar passes the phone card here. */
@@ -100,6 +104,9 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
   eventWhen = 'Thu, June 18 \u00b7 11:00 am to 4:00 pm',
   cityTitle,
   cityBody = 'One team, one contact, one invoice.',
+  handledTitle = 'Handled, start to finish.',
+  handledBody = 'COI, signage, setup, cleanup.',
+  checklist = CHECKLIST,
   extraRow,
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -237,8 +244,8 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
 
         <article className="pv-bcard pv-bcard--coral">
           <div className="pv-bcard-copy">
-            <h3>Handled, start to finish.</h3>
-            <p>COI, signage, setup, cleanup.</p>
+            <h3>{handledTitle}</h3>
+            <p>{handledBody}</p>
           </div>
           <div className="pv-bcard-art">
             <div className="wd-mf">
@@ -249,7 +256,7 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
               <div className="wd-mf-bar">
                 <i />
               </div>
-              {CHECKLIST.map((label, i) => (
+              {checklist.map((label, i) => (
                 <div className="wd-mf-row" key={label}>
                   <span
                     className="wd-mf-tick"

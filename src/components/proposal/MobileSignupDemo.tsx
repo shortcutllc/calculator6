@@ -30,12 +30,20 @@ export interface MdCopy {
   /** Replaces the BCG logo in the brand pill with a text mark, and drops the
    *  "with Shortcut" half so the page reads white labeled. */
   brandText?: string;
+  /** The event's date line, the booked slot on the confirm screen, and the
+   *  same slot in the sticky bar. */
+  whenLine?: string;
+  slotLine?: string;
+  slotShort?: string;
 }
 const MD_COPY_DEFAULT: MdCopy = {
   eventTitle: 'Massage Day at BCG',
   eventLine: 'Seated massage with a licensed therapist. Free for employees.',
   location: '11th floor lounge',
   barSub: 'Free for BCG employees',
+  whenLine: 'Thursday, June 18 · 11:00 am to 4:00 pm',
+  slotLine: 'Thu, June 18 · 12:40 pm EST',
+  slotShort: 'Thu, Jun 18 · 12:40 pm',
 };
 export const MdCopyContext = React.createContext<MdCopy>(MD_COPY_DEFAULT);
 
@@ -223,7 +231,7 @@ function MdPage({ state, reg }: { state: MdState; reg: RegFn }) {
           {copy.eventLine}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
-          <span className="lt-meta"><MdIcon name="calendar" stroke="var(--sc-teal)" />Thursday, June 18 · 11:00 am to 4:00 pm</span>
+          <span className="lt-meta"><MdIcon name="calendar" stroke="var(--sc-teal)" />{copy.whenLine ?? MD_COPY_DEFAULT.whenLine}</span>
           <span className="lt-meta"><MdIcon name="pin" stroke="var(--sc-teal)" />{copy.location}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
@@ -305,6 +313,7 @@ function MdPage({ state, reg }: { state: MdState; reg: RegFn }) {
 }
 
 function MdConfirmed() {
+  const copy = React.useContext(MdCopyContext);
   return (
     <div className="md-screen" style={{
       height: '100%', display: 'flex', flexDirection: 'column',
@@ -318,7 +327,7 @@ function MdConfirmed() {
       </p>
       <div style={{ background: 'var(--sc-light-gray)', borderRadius: 16, padding: '18px 20px', marginTop: 22, textAlign: 'left', alignSelf: 'stretch' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span className="lt-meta" style={{ fontSize: 13.5 }}><MdIcon name="calendar" stroke="var(--sc-teal)" />Thu, June 18 · 12:40 pm EST</span>
+          <span className="lt-meta" style={{ fontSize: 13.5 }}><MdIcon name="calendar" stroke="var(--sc-teal)" />{copy.slotLine ?? MD_COPY_DEFAULT.slotLine}</span>
           <span className="lt-meta" style={{ fontSize: 13.5 }}><MdIcon name="user" stroke="var(--sc-teal)" />Chair massage with Maya Rivera</span>
           <span className="lt-meta" style={{ fontSize: 13.5 }}><MdIcon name="pin" stroke="var(--sc-teal)" />350 5th Ave, 11th floor lounge</span>
         </div>
@@ -378,7 +387,7 @@ export function MobileSignupDemoCore({ state }: { state: MdState }) {
           </div>
           <div className="lt-m-cta-bar" style={{ paddingBottom: 30 }}>
             <div>
-              <div className="lt-m-slot-note">{state.slot ? 'Thu, Jun 18 · 12:40 pm' : copy.eventTitle}</div>
+              <div className="lt-m-slot-note">{state.slot ? (copy.slotShort ?? MD_COPY_DEFAULT.slotShort) : copy.eventTitle}</div>
               <div className="lt-m-slot-sub">{state.slot ? 'Chair massage · Free' : copy.barSub}</div>
             </div>
             <span ref={(el) => { if (el) reg('cta', el); }}

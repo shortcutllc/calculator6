@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { LucideIcon } from 'lucide-react';
-import {
-  Calendar, MapPin, Users, Eye, EyeOff, Play, Clock, Megaphone,
-  ArrowUpRight, Camera, Radio,
-} from 'lucide-react';
+import { Calendar, MapPin, Users, Eye, EyeOff, Play, ArrowUpRight } from 'lucide-react';
 import { SPONSOR_PAGES, type SponsorPageConfig } from './sponsorPages';
 import StationModal, { useGalleryByKey } from './StationModal';
 import SponsorBento from './SponsorBento';
@@ -14,15 +10,17 @@ import { SPONSOR_SERVICES, serviceById, type SponsorServiceDef } from '../../uti
    Conference partner page: the pitch to a CONFERENCE ORGANIZER.
 
    The organizer buys the lounge from us and sells it to one of their
-   sponsors as a premium sponsorship. So the argument runs:
-     1. Your sponsors want three things from your audience: time with them,
-        their contact details, and to be remembered.
-     2. The lounge gives a sponsor all three, with their name on every step
-        from the invite to the follow up.
-     3. You sell it. We run every part of it.
-     4. Proof it draws: Workhuman Live 2026.
-     5. What can go in the lounge.
-     6. Next step.
+   sponsors as a premium sponsorship. One section per job, and each fact
+   said once, in the section that owns it:
+     Hero           the offer, "You sell it. We run it.", the price is theirs
+     The problem    booth vs lounge, for the sponsor and for the organizer
+     How it works   the bento: booking is the lead capture (owns the lead facts)
+     What sponsors  six moments with attendees, before, at and after the
+       get          show (owns the brand touchpoints)
+     Who does what  the organizer's short list next to ours
+     Proof          Workhuman Live 2026, and the numbers across every event
+     Stations       what can go in the lounge
+     Next step
 
    No prices. The organizer sets the sponsor's price and we quote our cost
    privately (Will, 2026-09-28). See sponsorPages.ts for who reads this.
@@ -54,9 +52,17 @@ const COL = 'w-full max-w-[1720px] mx-auto';
 
 const INK = 'text-[#2A5468]';
 const INK_META = 'text-[#45596A]';
-const CARD_SHELL =
-  'rounded-[28px] bg-white border border-[#E2E9E8] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]';
-const CARD = `${CARD_SHELL} p-7 md:p-8`;
+/* One card system. Radius 28, padding 7/8, one title size. A card on a tint
+   panel is white; a card on a white panel is tint. Navy marks the one card
+   in a set that is ours or is the answer. */
+const CARD_R = 'rounded-[28px]';
+const CARD_PAD = 'p-7 md:p-8';
+const CARD_ON_TINT = `${CARD_R} bg-white border border-[#E2E9E8] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]`;
+const CARD_ON_WHITE = `${CARD_R} bg-neutral-light-gray`;
+const CARD_NAVY = `${CARD_R} bg-shortcut-blue`;
+const CARD_TITLE = 'm-0 text-[22px] md:text-[24px] font-bold leading-[1.15] tracking-[-.025em]';
+const CARD_KICKER = 'm-0 text-[12px] font-extrabold uppercase tracking-[.09em]';
+const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
 
 const PILL_FILLS = ['#9EFAFF', '#FFCBA6', '#FEDC64', '#F7BBFF'];
 
@@ -65,55 +71,39 @@ const PILL_FILLS = ['#9EFAFF', '#FFCBA6', '#FEDC64', '#F7BBFF'];
    clients, and a booth delivers neither well. */
 const TWO_SIDES = [
   {
-    who: 'For your sponsors and exhibitors',
+    who: 'Your sponsors and exhibitors',
     today: 'They pay for a booth, then stand in it and wait. Attendees have to wander over, show interest and hand over a badge to scan. Most of them walk past.',
-    fix: 'Attendees book time with them before the show. They get a massage, a headshot or a manicure they love, they remember who gave it to them, and they hand over their name, title, company and email to book it. The busiest spot on the floor, and a lead gen machine.',
+    fix: 'Attendees come to them, at a time they picked, for a massage, a headshot or a manicure they love. The sponsor has the busiest spot on the floor, and people remember who gave it to them.',
   },
   {
-    who: 'For you',
-    today: 'Your revenue grows when sponsors spend more and come back. That is a hard sell when what you have to offer is another booth, a logo or a lanyard.',
-    fix: 'A premium sponsorship with a result behind it: a line, a list and a report. You sell it at your price, sponsors renew because it worked, and your team runs none of it.',
+    who: 'You',
+    today: 'Your revenue grows when sponsors spend more and renew. That is a hard sell when what you have to offer is another booth, a logo or a lanyard.',
+    fix: 'A premium tier for your sponsorship lineup, priced above a booth, with a line of attendees to show for it. That is what gets a sponsor to spend more and come back.',
   },
 ];
 
-/* What a sponsor pays for, in their terms. Durations are the stations'
-   own, from a headshot to a sound bath; never one number for all of them. */
-const SPONSOR_WANTS = [
-  {
-    icon: Clock, title: 'Time with your attendees',
-    body: 'Attendees stay in the sponsor’s space for the whole appointment or session, from an eight minute headshot to an hour long sound bath. The sponsor’s team is there before and after to talk.',
-  },
-  {
-    icon: Megaphone, title: 'Recognition before the show',
-    body: 'The invitation to book goes to every attendee on your list ahead of the conference, presenting the sponsor. Everyone on the list gets it, whether they book or not.',
-  },
-  {
-    icon: Camera, title: 'Recognition after the show',
-    body: 'When the lounge includes a headshot studio, the retouched photos arrive in each attendee’s inbox in the sponsor’s brand. They are the photos people put on LinkedIn.',
-  },
-  {
-    icon: Radio, title: 'Reach beyond the appointment book',
-    body: 'Add a group session, like a sound bath or a mindfulness break, and there is no cap. One session can seat a full ballroom under the sponsor’s name.',
-  },
-];
+/* What the sponsor gets: the attendee's path, as the sponsor experiences
+   it. Each step is one moment the sponsor is in front of your audience.
+   Rendered as the website's numbered step cards (shortcut/frontend/pages/
+   solutions/conferences.vue, .sw-step): a tinted card with the numeral bled
+   off the corner. The detail shows in the card rather than behind a `+`,
+   because here the detail is the sale.
 
-/* The attendee's path, as the sponsor experiences it. Rendered as the
-   website's numbered step cards (shortcut/frontend/pages/solutions/
-   conferences.vue, .sw-step): a tinted card, the numeral bled off the corner,
-   and the detail behind a `+`. */
+   Durations are the stations' own, from a headshot to a sound bath; never
+   one number for all of them. */
 const PATH = [
   { k: 'Before the show', title: 'The invitation', fill: '#9EFAFF', ink: '#003756',
-    body: 'Goes to your attendees from you, presenting the sponsor’s lounge.' },
+    body: 'Goes to every attendee, presenting the sponsor. Everyone sees the name, whether they book or not.' },
   { k: 'Before the show', title: 'The booking page', fill: '#FEDC64', ink: '#003756',
-    body: 'In the sponsor’s brand, with their form fields and their opt-in language.' },
+    body: 'The sponsor’s brand and nobody else’s. Attendees pick a service and a time.' },
   { k: 'Before the show', title: 'The reminder', fill: '#F7BBFF', ink: '#003756',
     body: 'A text on the day, with the sponsor’s name on it.' },
   { k: 'At the show', title: 'The lounge', fill: '#FF5050', ink: '#ffffff',
-    body: 'Their appointment or session, in a space built in the sponsor’s brand: welcome counter, screens and uniforms. A branded gift on the way out, if the sponsor wants one.' },
+    body: 'The whole appointment happens in the sponsor’s space, from an eight minute headshot to an hour long sound bath. A branded gift on the way out, if they want one.' },
   { k: 'At the show', title: 'The conversation', fill: '#C7CBFB', ink: '#003756',
-    body: 'The sponsor’s team greets people on the way in and on the way out.' },
-  { k: 'After the show', title: 'The follow up', fill: '#003756', ink: '#ffffff',
-    body: 'Every booking, and who actually showed up, goes to the sponsor after the show.' },
+    body: 'The sponsor’s team greets people on the way in and on the way out. Every one of them chose to be there.' },
+  { k: 'After the show', title: 'The photos', fill: '#003756', ink: '#ffffff',
+    body: 'With a headshot studio in the lounge, every retouched photo arrives in the sponsor’s brand. It is the photo people put on LinkedIn.' },
 ];
 
 /* The website's conference gallery (conferences-data.js, CONF_GALLERY), on
@@ -121,48 +111,49 @@ const PATH = [
 const GALLERY = [
   { col: 'lg:col-span-7', cap: 'Workhuman Live 2026 \u00b7 The Gratitude Garden', img: '/ds-assets/conference/zone-signage.jpeg', tint: '#9EFAFF' },
   { col: 'lg:col-span-5', cap: 'TradeStation \u00b7 glam station', img: '/ds-assets/conference/glam-station.jpg', tint: '#FEDC64' },
-  { col: 'lg:col-span-4', cap: 'Welcoming an attendee', img: '/ds-assets/conference/welcome-desk.jpeg', tint: '#C7CBFB' },
-  { col: 'lg:col-span-4', cap: 'TradeStation \u00b7 massage floor', img: '/ds-assets/conference/massage-floor.jpg', tint: '#A9F0CC' },
-  { col: 'lg:col-span-4', cap: 'A sponsored Zen Zone', img: '/ds-assets/conference/zen-zone.jpeg', tint: '#FFCBA6' },
+  { col: 'lg:col-span-4', cap: 'Chair massage on the floor', img: '/ds-assets/conference/welcome-desk.jpeg', tint: '#C7CBFB' },
+  { col: 'lg:col-span-4', cap: 'TradeStation \u00b7 hair station', img: '/ds-assets/conference/massage-floor.jpg', tint: '#A9F0CC' },
+  { col: 'lg:col-span-4', cap: 'The Zen Zone', img: '/ds-assets/conference/zen-zone.jpeg', tint: '#FFCBA6' },
 ];
 
 
 /* Who does what. The point of the section is how short the first two
-   lists are next to the third. */
+   lists are next to the third. Tasks only: on-site operations are in the
+   bento's checklist and the list handover is in its payload card, so
+   neither is repeated here. */
 const ROLES = [
   {
     who: 'You',
     items: [
-      'Add the lounge to your sponsorship lineup and set the price',
+      'Add the lounge to your sponsorship lineup',
       'Introduce us to the sponsor who buys it',
-      'Give us a space on the floor, and send the booking invitation to your attendee list',
+      'Give us space on the floor, and send our invitation to your attendee list',
     ],
   },
   {
     who: 'The sponsor',
     items: [
-      'Sends their logo, colors and opt-in language',
-      'Puts their team at the lounge entrance, if they want the conversations',
-      'Takes the list home',
+      'Sends their logo, colors and opt-in wording',
     ],
   },
   {
     who: 'Shortcut',
     items: [
-      'The branded booking page, confirmations, text reminders and calendar invites',
-      'Lounge design, signage, screens and uniforms produced in the sponsor’s brand',
-      'Licensed Pros, chairs, music, setup and cleanup',
-      'Waitlist management and live booking updates',
-      'Certificates of insurance naming your venue and the sponsor',
-      'The attendee list and a results report after the show',
+      'The booking page, confirmations and calendar invites',
+      'Lounge design, screens and uniforms',
+      'The Pros, scheduled and briefed',
+      'Waitlist management',
+      'A results report for you and the sponsor after the show',
     ],
   },
 ];
 
+/* The headline carries the 400 and the 200; these are the numbers it
+   doesn't. */
 const PROOF_STATS = [
-  { fig: '400', label: 'fifteen minute chair massages over three days' },
-  { fig: '200+', label: 'on the waitlist, all three days' },
+  { fig: '100', label: 'hours of attendee time at Workhuman Live, spent in one space' },
   { fig: '90%+', label: 'of appointment slots booked, across every event we run' },
+  { fig: '500+', label: 'companies we bring wellness to across the US' },
 ];
 
 function useFadeIn() {
@@ -266,20 +257,6 @@ function SizzleReel() {
           </button>
         )}
       </div>
-    </div>
-  );
-}
-
-function FeatureCard({ icon: Icon, title, body, tint = 'bg-shortcut-teal' }: {
-  icon: LucideIcon; title: string; body: string; tint?: string;
-}) {
-  return (
-    <div className={`${CARD} flex flex-col`}>
-      <span className={`w-11 h-11 rounded-full ${tint} flex items-center justify-center mb-5`}>
-        <Icon size={19} className="text-shortcut-blue" strokeWidth={2.5} />
-      </span>
-      <h4 className="m-0 text-[19px] font-bold leading-[1.15] tracking-[-.02em] text-shortcut-blue">{title}</h4>
-      <p className={`m-0 mt-2.5 text-[16px] font-medium leading-[1.55] ${INK}`}>{body}</p>
     </div>
   );
 }
@@ -388,7 +365,6 @@ export default function SponsorOnePager() {
   );
   const [activeSection, setActiveSection] = useState('');
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  const [openStep, setOpenStep] = useState<Record<number, boolean>>({});
   const gallery = useGalleryByKey();
 
   const services = useMemo(
@@ -424,10 +400,8 @@ export default function SponsorOnePager() {
   const mailto = `mailto:${contact.email}?subject=${encodeURIComponent(`Wellness lounge sponsorship at ${conf.name}`)}`;
 
   const tocItems = [
-    { id: 'problem', label: 'The problem' },
     { id: 'how', label: 'How it works' },
-    { id: 'why', label: 'Why sponsors buy it' },
-    { id: 'path', label: 'The attendee path' },
+    { id: 'gets', label: 'What sponsors get' },
     { id: 'work', label: 'Who does what' },
     { id: 'proof', label: 'Proof' },
     { id: 'stations', label: 'Stations' },
@@ -478,19 +452,17 @@ export default function SponsorOnePager() {
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,560px)_minmax(380px,1fr)] gap-10 xl:gap-16 items-start">
               <div className="min-w-0">
                 <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
-                  For {conf.name} · A new sponsorship to sell
+                  A premium sponsorship for {conf.name}
                 </p>
 
                 <h1 className="m-0 text-[34px] md:text-[48px] lg:text-[56px] font-semibold leading-[1.08] tracking-[-.03em] text-white max-w-[18ch] text-balance">
-                  Sell your sponsors a branded wellness lounge.
+                  A wellness lounge in your sponsor&rsquo;s brand.
                   <span className="block text-shortcut-teal">You sell it. We run it.</span>
                 </h1>
 
                 <p className="m-0 mt-[22px] text-[17px] md:text-[19px] font-medium leading-[1.5] text-white/[.86] max-w-[46ch]">
-                  We build a wellness lounge on your conference floor in your sponsor&rsquo;s brand:
-                  massage, headshots, manicures and more. Attendees book ahead on the
-                  sponsor&rsquo;s booking page, and the sponsor leaves with every name, title,
-                  company and email. You set the price.
+                  Massage, headshots, manicures and more, on your conference floor. You set
+                  the sponsor&rsquo;s price and keep the margin.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-6 mt-8">
@@ -498,10 +470,10 @@ export default function SponsorOnePager() {
                     href="#problem"
                     className="h-[52px] inline-flex items-center px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
                   >
-                    See the problem we solve
+                    Why sponsors buy it
                   </a>
                   <a href="#work" className="text-[15px] font-bold tracking-[-.012em] text-white hover:text-shortcut-teal transition-colors">
-                    What you need to do &rarr;
+                    What your team does &rarr;
                   </a>
                 </div>
 
@@ -536,7 +508,7 @@ export default function SponsorOnePager() {
                   <img src={hero.src} alt={hero.alt} className="h-full w-full object-cover" />
                   <span className="absolute left-[18px] bottom-[18px] h-10 inline-flex items-center rounded-full bg-white/[.94] px-4">
                     <span className="text-[14px] font-extrabold tracking-[-.012em] text-shortcut-blue">
-                      A lounge built in one sponsor&rsquo;s brand
+                      Our rendering for a conference lounge
                     </span>
                   </span>
                 </div>
@@ -545,27 +517,7 @@ export default function SponsorOnePager() {
           </div>
         </section>
 
-        {/* ══════════ ABOUT ══════════ */}
-        <Panel id="about">
-          <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4 lg:gap-12 items-baseline">
-            <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${INK_META}`}>
-              About Shortcut
-            </p>
-            <div className="max-w-[62ch]">
-              <p className="m-0 text-[24px] md:text-[32px] font-semibold leading-[1.3] tracking-[-.025em] text-shortcut-blue">
-                Shortcut is one team that brings massage, headshots, beauty and group wellness
-                sessions to more than 500 companies across the US.
-              </p>
-              <p className={`m-0 mt-5 text-[18px] md:text-[20px] font-medium leading-[1.5] ${INK}`}>
-                For conferences, we turn that into a sponsorship: a wellness lounge built in your
-                sponsor&rsquo;s brand, booked by your attendees and run entirely by us. You sell it
-                at your price. We deliver it.
-              </p>
-            </div>
-          </div>
-        </Panel>
-
-        {/* ══════════ THE PROBLEM WE SOLVE ══════════ */}
+        {/* ══════════ THE PROBLEM ══════════ */}
         <Panel id="problem" tone="tint">
           <SectionHead
             kicker="The problem we solve"
@@ -574,122 +526,85 @@ export default function SponsorOnePager() {
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {TWO_SIDES.map((side) => (
-              <div key={side.who} className={`${CARD_SHELL} overflow-hidden flex flex-col`}>
-                <div className="px-7 md:px-9 pt-7 md:pt-9">
-                  <h3 className="m-0 text-[24px] md:text-[28px] font-bold leading-[1.1] tracking-[-.025em] text-shortcut-blue">
-                    {side.who}
-                  </h3>
-                  <p className={`m-0 mt-6 text-[12px] font-extrabold uppercase tracking-[.09em] ${INK_META}`}>Today</p>
-                  <p className={`m-0 mt-2 text-[17px] font-medium leading-[1.55] ${INK}`}>{side.today}</p>
+              <div key={side.who} className={`${CARD_ON_TINT} overflow-hidden flex flex-col`}>
+                <div className={CARD_PAD}>
+                  <h3 className={`${CARD_TITLE} text-shortcut-blue`}>{side.who}</h3>
+                  <p className={`${CARD_KICKER} mt-6 ${INK_META}`}>Today</p>
+                  <p className={`${CARD_BODY} mt-2 ${INK}`}>{side.today}</p>
                 </div>
-                <div className="mt-7 flex-1 bg-shortcut-blue px-7 md:px-9 py-7 md:py-8">
-                  <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal">With the lounge</p>
-                  <p className="m-0 mt-2 text-[17px] font-medium leading-[1.55] text-white">{side.fix}</p>
+                <div className={`flex-1 bg-shortcut-blue ${CARD_PAD}`}>
+                  <p className={`${CARD_KICKER} text-shortcut-teal`}>With the lounge</p>
+                  <p className={`${CARD_BODY} mt-2 text-white`}>{side.fix}</p>
                 </div>
               </div>
             ))}
           </div>
         </Panel>
 
-        {/* ══════════ WHAT SETS SHORTCUT APART (the website's bento) ══════════ */}
+        {/* ══════════ HOW IT WORKS (the website's bento) ══════════ */}
         <Panel id="how">
           <SponsorBento conferenceName={conf.name} dateLabel={conf.dateLabel} />
         </Panel>
 
-        {/* ══════════ WHY SPONSORS BUY IT ══════════ */}
-        <Panel id="why" tone="tint">
+        {/* ══════════ WHAT SPONSORS GET (the attendee path) ══════════ */}
+        <Panel id="gets" tone="tint">
           <SectionHead
-            kicker="Why sponsors buy it"
-            title="What your sponsors get."
-            accent="Face time, leads and recognition."
-            sub="Beyond the list, the lounge keeps the sponsor in front of your audience before, during and after the show."
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {SPONSOR_WANTS.map((w) => (
-              <FeatureCard key={w.title} icon={w.icon} title={w.title} body={w.body} tint="bg-accent-pink" />
-            ))}
-          </div>
-        </Panel>
-
-        {/* ══════════ THE ATTENDEE PATH ══════════ */}
-        <Panel id="path">
-          <SectionHead
-            kicker="The attendee path"
-            title="The sponsor's brand is on every step."
-            sub="From the invitation to the list. Half of it happens before the doors open."
+            kicker="What sponsors get"
+            title="Six moments with your attendees."
+            accent="Half before the doors open."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {PATH.map((p, i) => {
-              const open = !!openStep[i];
-              return (
-                <li
-                  key={p.title}
-                  className="relative flex min-h-[280px] flex-col overflow-hidden rounded-[28px] px-7 pb-20 pt-9"
-                  style={{ background: p.fill, color: p.ink }}
+            {PATH.map((p, i) => (
+              <li
+                key={p.title}
+                className={`relative flex min-h-[240px] flex-col overflow-hidden ${CARD_R} px-7 md:px-8 pt-7 md:pt-8 pb-[104px]`}
+                style={{ background: p.fill, color: p.ink }}
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -bottom-[46px] -right-1 text-[132px] font-extrabold leading-none tracking-[-.06em] opacity-[.14]"
                 >
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -bottom-[46px] -right-1 text-[132px] font-extrabold leading-none tracking-[-.06em] opacity-[.14]"
-                  >
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <p className="relative m-0 text-[11px] font-extrabold uppercase tracking-[.09em] opacity-70">{p.k}</p>
-                  <h4 className="relative m-0 mt-3 text-[24px] font-extrabold leading-[1.15] tracking-[-.028em] [color:inherit]">{p.title}</h4>
-                  {open && (
-                    <p className="relative m-0 mt-3 text-[15.5px] font-medium leading-[1.5] opacity-90">{p.body}</p>
-                  )}
-                  <button
-                    type="button"
-                    aria-label={open ? 'Hide details' : 'Show details'}
-                    aria-expanded={open}
-                    onClick={() => setOpenStep((o) => ({ ...o, [i]: !o[i] }))}
-                    className="absolute bottom-6 left-7 grid h-10 w-10 place-items-center rounded-full bg-white text-[22px] font-semibold leading-none text-shortcut-blue shadow-[0_2px_10px_rgba(3,34,50,.18)]"
-                  >
-                    {open ? '\u2212' : '+'}
-                  </button>
-                </li>
-              );
-            })}
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <p className={`${CARD_KICKER} relative opacity-70`}>{p.k}</p>
+                <h3 className={`${CARD_TITLE} relative mt-3 [color:inherit]`}>{p.title}</h3>
+                <p className={`${CARD_BODY} relative mt-3 opacity-90`}>{p.body}</p>
+              </li>
+            ))}
           </ol>
 
           {/* The booking page, branded end to end. NOTE: YW3 x Netflix Ads is
               under an MNDA (2026-09-16); clear it before this ships. */}
-          <div className="mx-auto mt-14 md:mt-16 w-full max-w-[1100px] rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
-            <img
-              src="/yw3/booking-page.jpg"
-              alt="A Shortcut booking page branded end to end for Netflix Ads, showing the stations, open times and event details"
-              className="w-full h-auto rounded-[20px]"
-            />
-          </div>
-          <p className={`mx-auto mt-5 max-w-[68ch] text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
-            A booking page we built for Netflix Ads. The sponsor&rsquo;s brand is the only one on it.
-          </p>
+          <figure className="m-0 mt-14 md:mt-16">
+            <div className="mx-auto w-full max-w-[1100px] rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.18)]">
+              <img
+                src="/yw3/booking-page.jpg"
+                alt="A Shortcut booking page branded end to end for Netflix Ads, showing the stations, open times and event details"
+                className="w-full h-auto rounded-[20px]"
+              />
+            </div>
+            <figcaption className={`mt-5 text-center text-[16px] font-medium leading-[1.55] ${INK}`}>
+              A booking page we built for Netflix Ads.
+            </figcaption>
+          </figure>
         </Panel>
 
         {/* ══════════ WHO DOES WHAT ══════════ */}
-        <Panel id="work" tone="tint">
+        <Panel id="work">
           <SectionHead
             kicker="Who does what"
-            title="You sell it."
-            accent="We do everything else."
-            sub="Your team puts it in the lineup and makes the introduction. From there, we run it."
+            title="Your part is short."
+            accent="Ours is everything else."
           />
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1.4fr] gap-5">
             {ROLES.map((r) => {
               const us = r.who === 'Shortcut';
               return (
-                <div
-                  key={r.who}
-                  className={us
-                    ? 'rounded-[28px] bg-shortcut-blue p-7 md:p-8 shadow-[0_20px_50px_rgba(3,34,50,.22)]'
-                    : `${CARD}`}
-                >
-                  <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${us ? 'text-shortcut-teal' : INK_META}`}>
-                    {r.who}
-                  </p>
+                <div key={r.who} className={`${us ? CARD_NAVY : CARD_ON_WHITE} ${CARD_PAD}`}>
+                  <h3 className={`${CARD_TITLE} ${us ? 'text-white' : 'text-shortcut-blue'}`}>{r.who}</h3>
                   <ul className="m-0 mt-5 p-0 list-none flex flex-col gap-3.5">
                     {r.items.map((it) => (
-                      <li key={it} className={`flex gap-3 text-[16px] font-medium leading-[1.5] ${us ? 'text-white' : INK}`}>
+                      <li key={it} className={`flex gap-3 ${CARD_BODY} ${us ? 'text-white' : INK}`}>
                         <span className={`mt-[9px] w-[6px] h-[6px] flex-none rounded-full ${us ? 'bg-shortcut-teal' : 'bg-shortcut-coral'}`} />
                         <span>{it}</span>
                       </li>
@@ -705,10 +620,10 @@ export default function SponsorOnePager() {
         <Panel id="proof" tone="navy">
           <SectionHead
             dark
-            kicker="Workhuman Live 2026"
+            kicker="Proof · Workhuman Live 2026"
             title="400 massages in three days."
             accent="A waitlist that never dropped below 200."
-            sub="We ran the wellness zone: five chairs, open to close. One hundred hours of attendee time, spent in one space."
+            sub="We ran the wellness zone with five chairs, open to close."
           />
           <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(0,0,0,.25)]">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:grid-rows-[300px_220px]">
@@ -754,30 +669,29 @@ export default function SponsorOnePager() {
           </div>
         </Panel>
 
-        {/* ══════════ CLOSE ══════════ */}
-        <section className="relative -mt-[50px] rounded-t-[50px] bg-shortcut-blue py-16 md:py-24">
-          <div className={`${GUT} ${COL} text-center`}>
-            <h2 className="m-0 text-[28px] md:text-[42px] font-bold leading-[1.08] tracking-[-.035em] text-white max-w-[22ch] mx-auto">
-              Add the wellness lounge to your {conf.name} sponsorship packages.
-            </h2>
-            <p className="m-0 mt-4 text-[16px] md:text-[17px] font-medium leading-[1.5] text-white/75 max-w-[56ch] mx-auto">
-              Send us your dates and expected attendance. We come back with our cost, and a
-              sponsor-ready page in your brand that your team can send to buyers.
-            </p>
+        {/* ══════════ NEXT STEP ══════════ */}
+        <Panel tone="navy">
+          <div className="flex flex-col items-center text-center">
+            <SectionHead
+              dark
+              kicker="Next step"
+              title={`Add the lounge to your ${conf.name} sponsorship packages.`}
+              sub="Send us your dates and expected attendance. We come back with our cost, and a page in your brand that your team can send to sponsors."
+            />
             <a
               href={mailto}
-              className="mt-9 h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
+              className="-mt-2 h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
             >
               Email {contact.name}
               <ArrowUpRight size={19} strokeWidth={2.5} />
             </a>
-            <div className="mt-12 pt-8 border-t border-white/15">
+            <div className="mt-12 pt-8 w-full border-t border-white/15">
               <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/40">
                 Prepared for {organizer.name}
               </div>
             </div>
           </div>
-        </section>
+        </Panel>
 
       </main>
 
