@@ -504,7 +504,7 @@ export default function SponsorOnePager() {
                 </p>
 
                 <h1 className="m-0 text-[34px] md:text-[48px] lg:text-[56px] font-semibold leading-[1.08] tracking-[-.03em] text-white max-w-[18ch] text-balance">
-                  A wellness lounge in your sponsor&rsquo;s brand.
+                  A wellness lounge in your sponsor&rsquo;s name.
                   <span className="block text-shortcut-teal">You sell it. We run it.</span>
                 </h1>
 
