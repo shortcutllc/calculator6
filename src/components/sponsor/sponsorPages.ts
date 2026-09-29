@@ -35,15 +35,8 @@ export interface SponsorPageConfig {
   conference: {
     /** As it reads mid-sentence: 'The Deans Conference'. */
     name: string;
-    /** Hero chip: 'Oct 19 to 21, 2026'. */
+    /** Shown on the booking card: 'Oct 19 to 21, 2026'. */
     dateLabel: string;
-    /** Hero chip: 'Signia by Hilton Orlando Bonnet Creek'. */
-    venue: string;
-    /** Hero chip describing who attends: 'Business school leaders'. */
-    audienceLabel: string;
-    /** Up to four short facts from the conference's own page:
-     *  '700 attendees', '60+ countries', 'Three days', 'Orlando'. */
-    facts: string[];
   };
 
   /** Who the organizer replies to. */
@@ -65,9 +58,6 @@ export const SPONSOR_PAGES: Record<string, SponsorPageConfig> = {
     conference: {
       name: '[Conference name]',
       dateLabel: '[Dates]',
-      venue: '[Venue]',
-      audienceLabel: '[Who attends]',
-      facts: ['[Attendees]', '[Fact]', '[Days]', '[City]'],
     },
     contact: { name: '[Contact name]', email: '[contact email]' },
   },
@@ -79,9 +69,6 @@ export const SPONSOR_PAGES: Record<string, SponsorPageConfig> = {
     conference: {
       name: 'Acme Conference',
       dateLabel: 'Nov 9 to 10, 2026',
-      venue: 'Javits Center',
-      audienceLabel: 'HR and People leaders',
-      facts: ['5,000 attendees', '300 exhibitors', 'Two days', 'New York'],
     },
     contact: { name: 'Will Newton', email: 'will@getshortcut.co' },
   },

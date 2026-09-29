@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Calendar, MapPin, Users, Eye, EyeOff, Play, ArrowUpRight } from 'lucide-react';
+import { Eye, EyeOff, Play, ArrowUpRight } from 'lucide-react';
 import { SPONSOR_PAGES, type SponsorPageConfig } from './sponsorPages';
 import StationModal, { useGalleryByKey } from './StationModal';
 import SponsorBento from './SponsorBento';
@@ -59,7 +59,17 @@ const CARD_TITLE = 'm-0 text-[22px] md:text-[24px] font-bold leading-[1.15] trac
 const CARD_KICKER = 'm-0 text-[12px] font-extrabold uppercase tracking-[.09em]';
 const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
 
-const PILL_FILLS = ['#9EFAFF', '#FFCBA6', '#FEDC64', '#F7BBFF'];
+/* The website hero's falling service pills (.pv-hero-pill in
+   proposal-refresh.css, from getshortcut.co). The same set on every
+   conference page; each pill jumps to the services. */
+const HERO_PILLS = [
+  { label: 'Massage', fill: '#9EFAFF', tilt: -4, delay: 0.95 },
+  { label: 'Headshots', fill: '#FEDC64', tilt: 3, delay: 1.13 },
+  { label: 'Hair and makeup', fill: '#F7BBFF', tilt: -2, delay: 1.31 },
+  { label: 'Nails', fill: '#FFCBA6', tilt: 5, delay: 0.4 },
+  { label: 'Mindfulness', fill: '#C7CBFB', tilt: -3, delay: 0.58 },
+  { label: 'Sound baths', fill: '#A9F0CC', tilt: 2, delay: 0.76 },
+];
 
 /* Why it sells: who we are (the website's client logo scroll), then what
    the white label lounge does for each side of the sale. */
@@ -513,28 +523,16 @@ export default function SponsorOnePager() {
                   </a>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mt-9 max-w-[560px]">
-                  {conf.facts.slice(0, 4).map((label, i) => (
-                    <span
-                      key={label}
-                      className="h-10 inline-flex items-center px-4 rounded-full text-shortcut-blue text-[14.5px] font-extrabold tracking-[-.01em] whitespace-nowrap"
-                      style={{ background: PILL_FILLS[i % PILL_FILLS.length] }}
+                <div className="pv-root !bg-transparent mt-9 flex max-w-[620px] flex-wrap gap-2.5">
+                  {HERO_PILLS.map((p) => (
+                    <a
+                      key={p.label}
+                      href="#stations"
+                      className="pv-hero-pill"
+                      style={{ ['--tilt' as string]: `${p.tilt}deg`, ['--dx' as string]: '0px', background: p.fill, animationDelay: `${p.delay}s` } as React.CSSProperties}
                     >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap gap-3 mt-4">
-                  {[
-                    { icon: Calendar, label: conf.dateLabel },
-                    { icon: MapPin, label: conf.venue },
-                    { icon: Users, label: conf.audienceLabel },
-                  ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5">
-                      <Icon size={14} className="text-shortcut-teal" strokeWidth={2.5} />
-                      <span className="text-[13.5px] font-bold text-white">{label}</span>
-                    </div>
+                      {p.label}
+                    </a>
                   ))}
                 </div>
               </div>
