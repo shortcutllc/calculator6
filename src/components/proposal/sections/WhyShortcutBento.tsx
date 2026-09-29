@@ -84,6 +84,9 @@ export interface WhyShortcutBentoProps {
   /** Coverage card copy — a conference floor is not "the city". */
   cityTitle?: React.ReactNode;
   cityBody?: string;
+  /** Pros card copy. */
+  prosTitle?: string;
+  prosBody?: string;
   /** Coral "handled" card: heading, body and checklist rows. */
   handledTitle?: string;
   handledBody?: string;
@@ -104,6 +107,8 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
   eventWhen = 'Thu, June 18 \u00b7 11:00 am to 4:00 pm',
   cityTitle,
   cityBody = 'One team, one contact, one invoice.',
+  prosTitle = 'Pros you\u2019d book yourself.',
+  prosBody = 'Licensed, insured, handpicked.',
   handledTitle = 'Handled, start to finish.',
   handledBody = 'COI, signage, setup, cleanup.',
   checklist = CHECKLIST,
@@ -193,8 +198,8 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
       <div className="pv-bento-row">
         <article className="pv-bcard pv-bcard--aqua">
           <div className="pv-bcard-copy">
-            <h3>Pros you&rsquo;d book yourself.</h3>
-            <p>Licensed, insured, handpicked.</p>
+            <h3>{prosTitle}</h3>
+            <p>{prosBody}</p>
           </div>
           <div className="pv-bcard-art">
             <span

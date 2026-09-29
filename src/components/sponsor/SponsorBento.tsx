@@ -3,28 +3,24 @@ import MobileSignupModule from '../proposal/MobileSignupModule';
 import '../../styles/proposal-refresh.css';
 
 /* ─────────────────────────────────────────────
-   How it works: the website's "What sets Shortcut apart" bento, told for a
-   sponsor.
+   How it works: the website's "What sets Shortcut apart" bento, told as
+   the white-label story. The sponsor presents a complete experience as
+   their own: a booking platform in their name that runs the day, the
+   lounge, signage, screens and Pros in their uniform. Shortcut stays
+   behind it.
 
-   The same module the homepage and the proposal viewer run
-   (WhyShortcutBento, ported from shortcut/frontend/components/HomeDeliver.vue):
-   the live roster, the Pros cutout, the coverage map and the setup
-   checklist. Here the roster is the sponsor's list filling in, and the extra
-   row adds the animated phone sign-up, because on this page booking IS the
-   lead capture.
-
-   This section owns the lead facts: what a booking captures, the opt-in and
-   the show list. The checklist names only on-site operations; the rest of
-   Shortcut's work is listed once, under Who does what.
+   Same module the homepage and the proposal viewer run (WhyShortcutBento,
+   ported from shortcut/frontend/components/HomeDeliver.vue), plus a row
+   with the attendee's booking phone and what the sponsor takes home.
 
    `.pv-root` supplies the design tokens the bento's styles read.
    ───────────────────────────────────────────── */
 
 const CHECKLIST = [
-  'Promotional signage',
+  'Branded booking page',
+  'Signage and screens',
+  'Pro uniforms',
   'COI to the venue',
-  'Shortcut lead on site',
-  'Equipment',
   'Setup and cleanup',
 ];
 
@@ -42,22 +38,23 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
       <div>
         <WhyShortcutBento
           label="How it works"
-          headA="Attendees love it."
-          headB="Sponsors get a lead gen machine."
-          wideTitle="The sponsor watches the list fill, live."
-          wideBody="One view of every booking, open to the sponsor's team before and during the show."
+          headA="Their name on everything."
+          headB="Our team behind all of it."
+          wideTitle="A booking platform that runs the day."
+          wideBody="Bookings, reminders, the waitlist and last minute changes, all in the sponsor's name. Their team just shows up."
           eventName={`Wellness Lounge · ${conferenceName}`}
           eventWhen={dateLabel}
           cityTitle={<>One vendor.<br />Every venue.</>}
           cityBody="Hotels, convention centers and offsites, coast to coast."
-          handledBody="Signage, setup, cleanup and the venue's paperwork."
+          handledTitle="Built in their brand."
+          handledBody="The lounge, the signage, the screens and the uniforms."
           checklist={CHECKLIST}
           extraRow={
             <div className="pv-bento-row min-[981px]:!grid-cols-[1.15fr_1fr]">
               <article className="pv-bcard pv-bcard--aqua" style={{ height: 'auto', paddingBottom: 26 }}>
                 <div className="pv-bcard-copy">
-                  <h3>Booking is the door.</h3>
-                  <p>Nobody sits down without booking first, so nobody leaves off the list.</p>
+                  <h3>Their booking page.</h3>
+                  <p>Attendees pick a Pro, a service and a time on a page with the sponsor&rsquo;s logo on it.</p>
                 </div>
                 <div className="pv-bcard-art max-[980px]:!h-auto" style={{ display: 'grid', placeItems: 'center', paddingTop: 18 }}>
                   <MobileSignupModule

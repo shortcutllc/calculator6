@@ -66,19 +66,19 @@ const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
 
 const PILL_FILLS = ['#9EFAFF', '#FFCBA6', '#FEDC64', '#F7BBFF'];
 
-/* The problem and the fix, from both sides of the sale. This is the core
-   of the page: organizers need more sponsor dollars, sponsors need more
-   clients, and a booth delivers neither well. */
+/* Why it sells, from both sides of the sale. Warm, not a complaint about
+   booths: the lounge is the thing attendees remember, and now they remember
+   the sponsor with it. */
 const TWO_SIDES = [
   {
-    who: 'Your sponsors and exhibitors',
-    today: 'They pay for a booth, then stand in it and wait. Most attendees walk past.',
-    fix: 'Attendees book a time and come for a massage or a headshot. They remember who gave it to them.',
+    who: 'For your sponsor',
+    title: 'The best spot at the show, with their name on it.',
+    body: 'Attendees book ahead, show up happy and spend real time in the sponsor’s space. It’s the easiest conversation starter on the floor.',
   },
   {
-    who: 'You',
-    today: 'Revenue grows when sponsors spend more and renew. Another booth or logo won’t get them there.',
-    fix: 'A premium tier priced above a booth, with a line to show for it. Sponsors who see a line renew.',
+    who: 'For you',
+    title: 'A sponsorship worth more than a booth.',
+    body: 'Something new at the top of your package. Sponsors are proud to put their name on it, and glad to buy it again next year.',
   },
 ];
 
@@ -568,22 +568,16 @@ export default function SponsorOnePager() {
         {/* ══════════ THE PROBLEM ══════════ */}
         <Panel id="problem" tone="tint">
           <SectionHead
-            kicker="The problem we solve"
-            title="Exhibitors pay for a booth, then wait."
-            accent="We give them a line."
+            kicker="Why it sells"
+            title="Everyone remembers the massage."
+            accent="Now they’ll remember who gave it."
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-[auto_1fr] gap-x-5 gap-y-5 lg:gap-y-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {TWO_SIDES.map((side) => (
-              <div key={side.who} className={`${CARD_ON_TINT} overflow-hidden grid lg:row-span-2 lg:grid-rows-subgrid`}>
-                <div className={CARD_PAD}>
-                  <h3 className={`${CARD_TITLE} text-shortcut-blue`}>{side.who}</h3>
-                  <p className={`${CARD_KICKER} mt-6 ${INK_META}`}>Today</p>
-                  <p className={`${CARD_BODY} mt-2 ${INK}`}>{side.today}</p>
-                </div>
-                <div className={`bg-shortcut-blue ${CARD_PAD}`}>
-                  <p className={`${CARD_KICKER} text-shortcut-teal`}>With the lounge</p>
-                  <p className={`${CARD_BODY} mt-2 text-white`}>{side.fix}</p>
-                </div>
+              <div key={side.who} className={`${CARD_ON_TINT} ${CARD_PAD}`}>
+                <p className={`${CARD_KICKER} ${INK_META}`}>{side.who}</p>
+                <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>{side.title}</h3>
+                <p className={`${CARD_BODY} mt-3 ${INK}`}>{side.body}</p>
               </div>
             ))}
           </div>
