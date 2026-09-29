@@ -1,4 +1,6 @@
-import type { SponsorServiceId } from '../../utils/sponsorPackages';
+import type { SponsorPageConfig } from '../../types/sponsorPage';
+
+export type { SponsorPageConfig };
 
 /* ─────────────────────────────────────────────
    Conference partner pages: one config per conference ORGANIZER.
@@ -14,40 +16,11 @@ import type { SponsorServiceId } from '../../utils/sponsorPackages';
    privately. The sponsor-facing page (the /aacsb kind, white labeled) comes
    later, once the organizer has a buyer.
 
-   To make a new page:
-     1. Copy the `template` entry. Its key is the URL: /sponsor/<key>.
-     2. Fill every field from the conference's own event page. Leave an
-        optional field out rather than guess it.
-     3. Open /sponsor/<key> and read every sentence aloud.
+   Pages are now created at /sponsor-pages (staff admin), stored in the
+   `sponsor_pages` table. The entries below are only a fallback that the
+   page uses until that table's migration has been applied. Once it has,
+   this file can be deleted.
    ───────────────────────────────────────────── */
-
-export interface SponsorPageConfig {
-  /** Optional gate, same pattern as /aacsb. Leave out for an open page. */
-  password?: string;
-
-  organizer: {
-    /** Short wordmark beside the Shortcut logo: 'AACSB'. */
-    mark: string;
-    /** As it reads in a sentence: 'AACSB'. */
-    name: string;
-  };
-
-  conference: {
-    /** As it reads mid-sentence: 'The Deans Conference'. */
-    name: string;
-    /** Shown on the booking card: 'Oct 19 to 21, 2026'. */
-    dateLabel: string;
-  };
-
-  /** Who the organizer replies to. */
-  contact: { name: string; email: string };
-
-  /** Stations on offer, in order. Omit for all of them. */
-  services?: SponsorServiceId[];
-
-  /** Right-hand hero image. Defaults to the AACSB lounge rendering. */
-  heroPhoto?: { src: string; alt: string };
-}
 
 export const SPONSOR_PAGES: Record<string, SponsorPageConfig> = {
   /* The blank. Every bracketed value is a gap to fill. Viewable at

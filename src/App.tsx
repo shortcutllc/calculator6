@@ -43,6 +43,7 @@ const HolidayProposal = lazy(() => import('./components/HolidayProposal'));
 const HolidayPageManager = lazy(() => import('./components/HolidayPageManager'));
 const SocialMediaProposal = lazy(() => import('./components/SocialMediaProposal'));
 const SocialMediaPageManager = lazy(() => import('./components/SocialMediaPageManager'));
+const SponsorPagesManager = lazy(() => import('./components/SponsorPagesManager'));
 const QRCodeSignManager = lazy(() => import('./components/QRCodeSignManager'));
 const SignUpLinkManager = lazy(() => import('./components/SignUpLinkManager'));
 const QRCodeSignDisplay = lazy(() => import('./components/QRCodeSignDisplay'));
@@ -411,6 +412,20 @@ function App() {
                 }
               />
               {/* Social Media Admin Manager */}
+              <Route
+                path="/sponsor-pages"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SponsorPagesManager />
+                    </Suspense>
+                  </PrivateRoute>
+                }
+              />
               <Route 
                 path="/social-media-pages"
                 element={

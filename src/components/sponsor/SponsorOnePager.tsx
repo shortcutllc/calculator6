@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Eye, EyeOff, Play, ArrowUpRight } from 'lucide-react';
-import { SPONSOR_PAGES, type SponsorPageConfig } from './sponsorPages';
+import { fetchPublicSponsorPage } from '../../services/sponsorPageService';
+import type { SponsorPageConfig } from '../../types/sponsorPage';
 import StationModal, { useGalleryByKey } from './StationModal';
 import SponsorBento from './SponsorBento';
 import { SPONSOR_SERVICES, serviceById, type SponsorServiceDef } from '../../utils/sponsorPackages';
@@ -343,19 +344,20 @@ function StationCard({ s, onOpen }: { s: SponsorServiceDef; onOpen: () => void }
   );
 }
 
-function Gate({ cfg, storageKey, onPass }: {
-  cfg: SponsorPageConfig; storageKey: string; onPass: () => void;
+function Gate({ mark, onSubmit }: {
+  mark: string; onSubmit: (password: string) => Promise<boolean>;
 }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === cfg.password) {
-      sessionStorage.setItem(storageKey, 'true');
-      onPass();
-    } else {
+    setChecking(true);
+    const ok = await onSubmit(password);
+    setChecking(false);
+    if (!ok) {
       setError(true);
       setPassword('');
     }
@@ -366,7 +368,7 @@ function Gate({ cfg, storageKey, onPass }: {
       <div className="w-full max-w-sm mx-auto px-6">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-4 mb-4">
-            <div className="text-[22px] font-extrabold tracking-tight text-shortcut-blue">{cfg.organizer.mark}</div>
+            <div className="text-[22px] font-extrabold tracking-tight text-shortcut-blue">{mark}</div>
             <div className="h-6 w-px bg-shortcut-blue/15" aria-hidden="true" />
             <img src="/shortcut-logo-blue.svg" alt="Shortcut" className="h-5 w-auto" />
           </div>
@@ -393,8 +395,8 @@ function Gate({ cfg, storageKey, onPass }: {
             </button>
           </div>
           {error && <p className="text-[13px] text-shortcut-coral font-medium">Incorrect password.</p>}
-          <button type="submit" className="w-full py-3 rounded-full bg-shortcut-blue text-white text-[15px] font-bold hover:bg-shortcut-blue/90 transition-colors">
-            View
+          <button type="submit" disabled={checking} className="w-full py-3 rounded-full bg-shortcut-blue text-white text-[15px] font-bold hover:bg-shortcut-blue/90 transition-colors disabled:opacity-60">
+            {checking ? 'Checking…' : 'View'}
           </button>
         </form>
       </div>
@@ -404,12 +406,33 @@ function Gate({ cfg, storageKey, onPass }: {
 
 export default function SponsorOnePager() {
   const { slug = '' } = useParams<{ slug: string }>();
-  const cfg = SPONSOR_PAGES[slug];
-  const storageKey = `sponsor-auth-${slug}`;
+  const storageKey = `sponsor-pw-${slug}`;
 
-  const [authenticated, setAuthenticated] = useState(
-    () => !cfg?.password || sessionStorage.getItem(storageKey) === 'true'
-  );
+  /* The page loads from sponsor_pages through a server check of the
+     password, remembered for the tab so a refresh stays unlocked. */
+  const [state, setState] = useState<
+    { kind: 'loading' } | { kind: 'missing' } | { kind: 'locked'; mark: string } | { kind: 'page'; cfg: SponsorPageConfig }
+  >({ kind: 'loading' });
+
+  useEffect(() => {
+    let live = true;
+    setState({ kind: 'loading' });
+    let saved: string | undefined;
+    try { saved = sessionStorage.getItem(storageKey) || undefined; } catch { saved = undefined; }
+    fetchPublicSponsorPage(slug, saved).then((res) => { if (live) setState(res); });
+    return () => { live = false; };
+  }, [slug, storageKey]);
+
+  const unlock = async (password: string) => {
+    const res = await fetchPublicSponsorPage(slug, password);
+    if (res.kind !== 'page') return false;
+    try { sessionStorage.setItem(storageKey, password); } catch { /* private window */ }
+    setState(res);
+    return true;
+  };
+
+  const cfg = state.kind === 'page' ? state.cfg : null;
+  const authenticated = !!cfg;
   const [activeSection, setActiveSection] = useState('');
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const gallery = useGalleryByKey();
@@ -430,16 +453,20 @@ export default function SponsorOnePager() {
     return () => obs.disconnect();
   }, [authenticated]);
 
+  if (state.kind === 'loading') {
+    return <div className="min-h-screen bg-shortcut-blue" aria-busy="true" />;
+  }
+
+  if (state.kind === 'locked') {
+    return <Gate mark={state.mark} onSubmit={unlock} />;
+  }
+
   if (!cfg) {
     return (
       <div className="min-h-screen bg-neutral-light-gray font-['Outfit',system-ui,sans-serif] flex items-center justify-center">
         <p className={`text-[16px] font-medium ${INK}`}>This page does not exist.</p>
       </div>
     );
-  }
-
-  if (!authenticated) {
-    return <Gate cfg={cfg} storageKey={storageKey} onPass={() => setAuthenticated(true)} />;
   }
 
   const { organizer, conference: conf, contact } = cfg;
