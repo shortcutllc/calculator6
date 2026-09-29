@@ -65,16 +65,50 @@ const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
 
 const PILL_FILLS = ['#9EFAFF', '#FFCBA6', '#FEDC64', '#F7BBFF'];
 
-/* Why it sells: who we are, then what the lounge does for each side of
-   the sale. The first two photos are the same Pro in a Shortcut shirt and
-   in a sponsor's shirt, which is the white label idea in one glance. */
+/* Why it sells: who we are (the website's client logo scroll), then what
+   the white label lounge does for each side of the sale. */
+
+/* The website's client logos, as ConferenceOnePager's marquee runs them. */
+const CLIENT_LOGOS = [
+  { src: '/conference/onepager/logos/draftkings.svg', alt: 'DraftKings' },
+  { src: '/conference/onepager/logos/nfl.svg', alt: 'NFL', tall: true },
+  { src: '/conference/onepager/logos/bcg.svg', alt: 'BCG' },
+  { src: '/conference/onepager/logos/wix.svg', alt: 'Wix' },
+  { src: '/conference/onepager/logos/tripadvisor.svg', alt: 'Tripadvisor' },
+  { src: '/conference/onepager/logos/pwc.svg', alt: 'PwC' },
+  { src: '/conference/onepager/logos/paramount.svg', alt: 'Paramount' },
+  { src: '/conference/onepager/logos/warner-bros.svg', alt: 'Warner Bros.', tall: true },
+  { src: '/conference/onepager/logos/white-case.svg', alt: 'White & Case' },
+  { src: '/conference/onepager/logos/mtv.svg', alt: 'MTV' },
+];
+
+function LogoRow({ logos, reverse = false }: { logos: typeof CLIENT_LOGOS; reverse?: boolean }) {
+  return (
+    <div className="overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
+      <div className={`flex w-max animate-logo-marquee will-change-transform motion-reduce:animate-none ${reverse ? '[animation-direction:reverse]' : ''}`}>
+        {[false, true].map((dup) => (
+          <div key={String(dup)} className="flex items-center gap-10 pr-10" aria-hidden={dup}>
+            {logos.map((logo) => (
+              <img
+                key={`${logo.src}${dup}`}
+                src={logo.src}
+                alt={dup ? '' : logo.alt}
+                className={`${logo.tall ? 'h-[38px]' : 'h-[28px]'} w-auto flex-none [filter:grayscale(1)_sepia(1)_saturate(4)_hue-rotate(165deg)_brightness(.85)]`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 const TWO_SIDES = [
   {
     who: 'Shortcut',
-    title: 'One team for wellness at work.',
-    body: 'Massage, headshots, beauty and group wellness for more than 500 companies across the US. We bring the Pros, the setup and the tech.',
-    img: '/massage-guy-shortcut.jpg',
-    alt: 'A Shortcut Pro giving a chair massage, in a Shortcut shirt',
+    title: 'Trusted by 500+ companies.',
+    body: 'One team for massage, headshots, beauty and group wellness across the US. We bring the Pros, the setup and the tech.',
+    img: '',
+    alt: '',
   },
   {
     who: 'For your sponsor',
@@ -588,15 +622,22 @@ export default function SponsorOnePager() {
         <Panel id="problem" tone="tint">
           <SectionHead
             kicker="Why it sells"
-            title="Everyone remembers the massage."
-            accent="Now they’ll remember who gave it."
+            title="Fully white labeled."
+            accent="Your sponsor gets the credit. We do the work."
           />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {TWO_SIDES.map((side) => (
               <div key={side.who} className={`${CARD_ON_TINT} overflow-hidden flex flex-col`}>
-                <div className="relative aspect-[4/3] bg-neutral-light-gray">
-                  <img src={side.img} alt={side.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
-                </div>
+                {side.img ? (
+                  <div className="relative aspect-[4/3] bg-neutral-light-gray">
+                    <img src={side.img} alt={side.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="aspect-[4/3] flex flex-col justify-center gap-7 bg-[#EAF7F8]">
+                    <LogoRow logos={CLIENT_LOGOS.slice(0, 5)} />
+                    <LogoRow logos={CLIENT_LOGOS.slice(5)} reverse />
+                  </div>
+                )}
                 <div className={CARD_PAD}>
                   <p className={`${CARD_KICKER} ${INK_META}`}>{side.who}</p>
                   <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>{side.title}</h3>
