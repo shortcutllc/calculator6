@@ -188,9 +188,9 @@ const FRAME = 'rounded-[28px] bg-white p-3 md:p-4';
 /* The headline carries the 400 and the 200; these are the numbers it
    doesn't. */
 const PROOF_STATS = [
-  { fig: '100', label: 'hours of attendee time at Workhuman Live, in one space' },
-  { fig: '90%+', label: 'of appointment slots booked, across every event we run' },
-  { fig: '87%', label: 'of companies book us again' },
+  { fig: '400', label: 'fifteen minute massages' },
+  { fig: '100%', label: 'of slots booked' },
+  { fig: '200+', label: 'on the waitlist, all three days' },
 ];
 
 function useFadeIn() {
@@ -255,7 +255,7 @@ function SectionHead({ kicker, title, accent, sub, dark = false }: {
   );
 }
 
-function SizzleReel() {
+function SizzleReel({ bare = false, className = '' }: { bare?: boolean; className?: string }) {
   const [playing, setPlaying] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -265,8 +265,8 @@ function SizzleReel() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[900px] rounded-[28px] bg-white p-3 md:p-4 shadow-[0_30px_70px_rgba(0,0,0,.25)]">
-      <div className="relative aspect-video overflow-hidden rounded-[20px] bg-shortcut-blue">
+    <div className={bare ? className : `mx-auto w-full max-w-[900px] rounded-[28px] bg-white p-3 md:p-4 shadow-[0_30px_70px_rgba(0,0,0,.25)] ${className}`}>
+      <div className={`relative overflow-hidden rounded-[20px] bg-shortcut-blue ${bare ? 'h-full min-h-[220px]' : 'aspect-video'}`}>
         <video
           ref={ref}
           src={SIZZLE_VIDEO}
@@ -434,7 +434,7 @@ export default function SponsorOnePager() {
 
   const { organizer, conference: conf, contact } = cfg;
   const hero = cfg.heroPhoto ?? DEFAULT_HERO;
-  const mailto = `mailto:${contact.email}?subject=${encodeURIComponent(`Wellness lounge sponsorship at ${conf.name}`)}`;
+  const mailto = `mailto:${contact.email}?subject=${encodeURIComponent(`A call about the wellness lounge at ${conf.name}`)}`;
 
   const tocItems = [
     { id: 'stations', label: 'Services' },
@@ -485,7 +485,7 @@ export default function SponsorOnePager() {
               <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,560px)_minmax(380px,1fr)] gap-10 xl:gap-16 items-center">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,620px)_minmax(380px,1fr)] gap-10 xl:gap-16 items-center">
               <div className="min-w-0">
                 <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
                   A premium sponsorship for {conf.name}
@@ -544,7 +544,7 @@ export default function SponsorOnePager() {
                   <img src={hero.src} alt={hero.alt} className="h-full w-full object-cover" />
                   <span className="absolute left-[18px] bottom-[18px] h-10 inline-flex items-center rounded-full bg-white/[.94] px-4">
                     <span className="text-[14px] font-extrabold tracking-[-.012em] text-shortcut-blue">
-                      Our rendering for a conference lounge
+                      University of Cincinnati @ AACSB 2026
                     </span>
                   </span>
                 </div>
@@ -651,50 +651,47 @@ export default function SponsorOnePager() {
           <SectionHead
             dark
             kicker="Proof"
-            title="400 massages in three days."
-            accent="A waitlist that never dropped below 200."
-            sub="At Workhuman Live 2026 we ran the wellness zone with five chairs, open to close."
+            title="Workhuman Live 2026."
+            accent="Every slot booked, all three days."
+            sub="We ran the wellness zone with five chairs, open to close."
           />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-3 gap-3 md:gap-5">
             {PROOF_STATS.map((st) => (
-              <div key={st.label} className="border-t border-white/15 pt-6">
-                <div className="text-[52px] md:text-[64px] font-bold leading-none tracking-[-.04em] text-shortcut-teal tabular-nums">
+              <div key={st.label} className="rounded-[20px] md:rounded-[28px] bg-white/[.06] border border-white/10 px-2 py-5 md:p-8 text-center">
+                <div className="text-[30px] sm:text-[44px] md:text-[64px] font-bold leading-none tracking-[-.04em] text-shortcut-teal tabular-nums">
                   {st.fig}
                 </div>
-                <div className="mt-2 text-[17px] font-medium leading-[1.45] text-white/85">{st.label}</div>
+                <div className="mt-2 md:mt-3 text-[13px] md:text-[17px] font-medium leading-[1.35] md:leading-[1.45] text-white/85">{st.label}</div>
               </div>
             ))}
           </div>
-          <div className={`${FRAME} mt-12 md:mt-14 shadow-[0_30px_70px_rgba(0,0,0,.25)]`}>
-            <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-[1.25fr_1fr_1fr]">
-              {PROOF_GALLERY.map((g, i) => (
-                <Shot key={g.cap} cap={g.cap} img={g.img} pos="center 30%" className={`${i === 0 ? 'col-span-2 md:col-span-1 h-[260px]' : 'h-[240px]'} md:h-[440px]`} />
+          <div className={`${FRAME} mt-5 shadow-[0_30px_70px_rgba(0,0,0,.25)]`}>
+            <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 lg:grid-rows-[260px_260px]">
+              <SizzleReel bare className="col-span-2 aspect-video lg:aspect-auto lg:row-span-2" />
+              {PROOF_GALLERY.slice(0, 2).map((g) => (
+                <Shot key={g.cap} cap={g.cap} img={g.img} pos="center 30%" className="h-[200px] md:h-[260px]" />
               ))}
             </div>
-          </div>
-          <div className="mt-12 md:mt-14">
-            <SizzleReel />
           </div>
         </Panel>
 
         {/* ══════════ NEXT STEP ══════════ */}
-        <Panel tone="navy">
+        <Panel>
           <div className="flex flex-col items-center text-center">
             <SectionHead
-              dark
               kicker="Next step"
-              title={`Add the lounge to your ${conf.name} sponsorship packages.`}
-              sub="Send us your dates and expected attendance. We come back with our cost, and a page in your brand that your team can send to sponsors."
+              title="Let’s talk through the details."
+              sub={`A short call about ${conf.name}: your dates, your sponsors and what you want to offer them. We come back with a proposal your team can sell.`}
             />
             <a
               href={mailto}
               className="-mt-2 h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
             >
-              Email {contact.name}
+              Set up a call with {contact.name.split(' ')[0]}
               <ArrowUpRight size={19} strokeWidth={2.5} />
             </a>
-            <div className="mt-12 pt-8 w-full border-t border-white/15">
-              <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/40">
+            <div className="mt-12 pt-8 w-full border-t border-[#E2E9E8]">
+              <div className={`text-[11px] font-bold uppercase tracking-[.12em] ${INK_META}`}>
                 Prepared for {organizer.name}
               </div>
             </div>
