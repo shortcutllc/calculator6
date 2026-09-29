@@ -89,17 +89,17 @@ const TWO_SIDES = [
    solutions/conferences.vue, .sw-step). */
 const PATH = [
   { k: 'Before the show', title: 'The invite', fill: '#9EFAFF', ink: '#003756',
-    body: 'Your attendees get an invitation from the sponsor: a free massage, blowout or headshot at the show.' },
+    body: 'Before the show, your attendees get an invite from the sponsor for a free massage, blowout or headshot.' },
   { k: 'Before the show', title: 'The booking', fill: '#FEDC64', ink: '#003756',
-    body: 'They pick a time on the sponsor’s booking page. Now the sponsor knows who is coming.' },
+    body: 'They pick a time that works for them on the sponsor’s booking page.' },
   { k: 'Before the show', title: 'The reminder', fill: '#F7BBFF', ink: '#003756',
-    body: 'On the day, a text from the sponsor tells them where to go and when.' },
+    body: 'On the day, they get a text with their time and where to find the lounge.' },
   { k: 'At the show', title: 'The welcome', fill: '#FF5050', ink: '#ffffff',
-    body: 'The sponsor’s team greets them at a lounge built in the sponsor’s colors.' },
+    body: 'They walk into a lounge in the sponsor’s colors, and the sponsor’s team is there to say hello.' },
   { k: 'At the show', title: 'The treatment', fill: '#C7CBFB', ink: '#003756',
-    body: 'The massage, the blowout or the new headshot. The part they tell their colleagues about.' },
+    body: 'They get their massage, blowout or headshot, and head back to the conference feeling great.' },
   { k: 'After the show', title: 'The follow up', fill: '#003756', ink: '#ffffff',
-    body: 'The sponsor leaves with a list of everyone who came, and a reason to call them next week.' },
+    body: 'After the show, the sponsor gets a list of everyone who came, so they can follow up.' },
 ];
 
 /* Workhuman Live 2026, from the website's conference gallery
@@ -589,7 +589,7 @@ export default function SponsorOnePager() {
           <SectionHead
             kicker="What sponsors get"
             title="The sponsor hosts the whole visit."
-            accent="Start to finish."
+            accent="Here’s how it goes."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {PATH.map((p, i) => (
