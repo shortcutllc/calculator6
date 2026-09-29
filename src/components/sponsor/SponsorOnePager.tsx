@@ -549,8 +549,8 @@ export default function SponsorOnePager() {
                 </h1>
 
                 <p className="m-0 mt-[22px] text-[17px] md:text-[19px] font-medium leading-[1.5] text-white/[.86] max-w-[46ch]">
-                  Massage, headshots, manicures and more, on your conference floor. You set
-                  the sponsor&rsquo;s price and keep the margin.
+                  Offer massage, headshots, manicures and more on the conference floor. You set
+                  the price, and we handle the rest.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-6 mt-8">
@@ -648,8 +648,8 @@ export default function SponsorOnePager() {
         <Panel id="gets" tone="tint">
           <SectionHead
             kicker="Step by step"
-            title="How it runs, start to finish."
-            accent="Your team does three things. We do the rest."
+            title="How it works, start to finish."
+            accent="You tell us what you need. We handle the rest."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {PATH.map((p, i) => (
@@ -692,8 +692,8 @@ export default function SponsorOnePager() {
             dark
             kicker="Proof"
             title="Workhuman Live 2026."
-            accent="Every slot booked, all three days."
-            sub="We ran the wellness zone with five chairs, open to close."
+            accent="A three-day HR conference."
+            sub="We ran the wellness zone with five massage chairs, fully booked all three days."
           />
           <div className="grid grid-cols-3 gap-3 md:gap-5">
             {PROOF_STATS.map((st) => (
