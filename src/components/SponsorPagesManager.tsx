@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Copy, ExternalLink, Lock, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Copy, ExternalLink, Lock, Pencil, Trash2, X, Check, ImagePlus } from 'lucide-react';
 import { Button } from './Button';
 import {
   listSponsorPages, createSponsorPage, updateSponsorPage, deleteSponsorPage,
-  slugify, SLUG_PATTERN, SponsorPageError,
+  linkFor, uploadSponsorLogo, SponsorPageError,
 } from '../services/sponsorPageService';
 import { SPONSOR_SERVICES, type SponsorServiceId } from '../utils/sponsorPackages';
 import type { SponsorPageInput, SponsorPageRecord } from '../types/sponsorPage';
@@ -12,7 +12,9 @@ import type { SponsorPageInput, SponsorPageRecord } from '../types/sponsorPage';
    Staff screen for conference partner pages (/sponsor/:slug).
 
    Each row is one conference organizer. Saving creates the page straight
-   away: no code change, no deploy. Everything on the page except these
+   away: no code change, no deploy. The link is made from the conference
+   name when the page is created and never changes, so a sent link keeps
+   working. Everything on the page except these
    fields is shared across all conferences (SponsorOnePager.tsx).
    ───────────────────────────────────────────── */
 
@@ -33,14 +35,13 @@ type Draft = Omit<SponsorPageInput, 'services' | 'newPassword'> & {
 
 function toDraft(p?: SponsorPageRecord): Draft {
   return {
-    slug: p?.slug ?? '',
-    organizerMark: p?.organizerMark ?? '',
     organizerName: p?.organizerName ?? '',
     conferenceName: p?.conferenceName ?? '',
     dateLabel: p?.dateLabel ?? '',
     contactName: p?.contactName ?? 'Will Newton',
     contactEmail: p?.contactEmail ?? 'will@getshortcut.co',
     services: p?.services ?? [...ALL_IDS],
+    logoUrl: p?.logoUrl ?? null,
     password: '',
     removePassword: false,
   };
@@ -52,16 +53,11 @@ function PageForm({ editing, onClose, onSaved }: {
   onSaved: (p: SponsorPageRecord) => void;
 }) {
   const [d, setD] = useState<Draft>(() => toDraft(editing ?? undefined));
-  const [slugTouched, setSlugTouched] = useState(!!editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((prev) => ({ ...prev, [k]: v }));
 
-  // Until someone edits the link, it follows the organizer's short name.
-  const onMark = (v: string) => {
-    setD((prev) => ({ ...prev, organizerMark: v, slug: slugTouched ? prev.slug : slugify(v) }));
-  };
 
   const toggleService = (id: SponsorServiceId) => {
     setD((prev) => {
@@ -72,27 +68,40 @@ function PageForm({ editing, onClose, onSaved }: {
     });
   };
 
+  const [uploading, setUploading] = useState(false);
+  const onLogo = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return setError('The logo has to be an image file.');
+    setError('');
+    setUploading(true);
+    try {
+      set('logoUrl', await uploadSponsorLogo(file));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload the logo.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     const required: [keyof Draft, string][] = [
-      ['organizerMark', 'short name'], ['organizerName', 'organizer name'], ['conferenceName', 'conference name'],
+      ['conferenceName', 'conference name'], ['organizerName', 'organizer name'],
       ['contactName', 'contact name'], ['contactEmail', 'contact email'],
     ];
     const missing = required.filter(([k]) => !String(d[k]).trim()).map(([, label]) => label);
     if (missing.length) return setError(`Fill in the ${missing.join(', ')}.`);
-    if (!SLUG_PATTERN.test(d.slug)) return setError('The link can only use lowercase letters, numbers and single dashes.');
     if (!d.services.length) return setError('Pick at least one service.');
 
     const input: SponsorPageInput = {
-      slug: d.slug,
-      organizerMark: d.organizerMark,
       organizerName: d.organizerName,
       conferenceName: d.conferenceName,
       dateLabel: d.dateLabel,
       contactName: d.contactName,
       contactEmail: d.contactEmail,
       services: d.services.length === ALL_IDS.length ? null : d.services,
+      logoUrl: d.logoUrl,
     };
     if (d.removePassword) input.newPassword = '';
     else if (d.password.trim()) input.newPassword = d.password.trim();
@@ -120,18 +129,30 @@ function PageForm({ editing, onClose, onSaved }: {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
-            <label className={LABEL} htmlFor="sp-mark">Organizer short name</label>
-            <input id="sp-mark" className={INPUT} value={d.organizerMark} onChange={(e) => onMark(e.target.value)} placeholder="AACSB" />
-            <p className={HINT}>Shown next to the Shortcut logo.</p>
+            <label className={LABEL} htmlFor="sp-conf">Conference name</label>
+            <input id="sp-conf" className={INPUT} value={d.conferenceName} onChange={(e) => set('conferenceName', e.target.value)} placeholder="The Deans Conference" />
           </div>
           <div>
             <label className={LABEL} htmlFor="sp-org">Organizer name</label>
-            <input id="sp-org" className={INPUT} value={d.organizerName} onChange={(e) => set('organizerName', e.target.value)} placeholder="AACSB International" />
-            <p className={HINT}>As it reads in a sentence.</p>
+            <input id="sp-org" className={INPUT} value={d.organizerName} onChange={(e) => set('organizerName', e.target.value)} placeholder="AACSB" />
           </div>
-          <div>
-            <label className={LABEL} htmlFor="sp-conf">Conference name</label>
-            <input id="sp-conf" className={INPUT} value={d.conferenceName} onChange={(e) => set('conferenceName', e.target.value)} placeholder="The Deans Conference" />
+          <div className="sm:col-span-2">
+            <span className={LABEL}>Partner logo <span className="font-medium text-text-dark-60">(optional)</span></span>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="grid h-14 w-40 place-items-center rounded-lg border border-dashed border-gray-300 bg-white px-3">
+                {d.logoUrl
+                  ? <img src={d.logoUrl} alt="Partner logo" className="max-h-10 max-w-full object-contain" />
+                  : <span className="text-xs text-text-dark-60">No logo</span>}
+              </div>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-shortcut-teal/20 px-3 py-2 text-sm font-bold text-shortcut-blue hover:bg-shortcut-teal/30">
+                <ImagePlus size={15} /> {uploading ? 'Uploading…' : d.logoUrl ? 'Replace' : 'Upload'}
+                <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => { onLogo(e.target.files?.[0]); e.target.value = ''; }} />
+              </label>
+              {d.logoUrl && (
+                <button type="button" onClick={() => set('logoUrl', null)} className="text-sm font-bold text-red-600 hover:underline">Remove</button>
+              )}
+            </div>
+            <p className={HINT}>Shown in the page’s nav bar next to Shortcut. Without one, the organizer name is shown.</p>
           </div>
           <div>
             <label className={LABEL} htmlFor="sp-dates">Dates</label>
@@ -149,21 +170,10 @@ function PageForm({ editing, onClose, onSaved }: {
           </div>
         </div>
 
-        <div className="mt-5">
-          <label className={LABEL} htmlFor="sp-slug">Link</label>
-          <div className="flex items-center rounded-lg border border-gray-300 focus-within:ring-2 focus-within:ring-shortcut-teal/60">
-            <span className="whitespace-nowrap pl-3 text-[15px] text-text-dark-60">{window.location.host}/sponsor/</span>
-            <input
-              id="sp-slug"
-              className="w-full rounded-r-lg py-2.5 pr-3 text-[15px] text-shortcut-blue focus:outline-none"
-              value={d.slug}
-              onChange={(e) => { setSlugTouched(true); set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); }}
-              placeholder="aacsb"
-            />
-          </div>
-          {editing && d.slug !== editing.slug && (
-            <p className="mt-1 text-xs font-semibold text-shortcut-coral">Changing the link breaks any link you’ve already sent.</p>
-          )}
+        <div className="mt-5 rounded-lg bg-shortcut-teal/10 px-3 py-2.5 text-sm text-shortcut-blue">
+          <span className="font-bold">Link: </span>
+          {window.location.host}/sponsor/{editing ? editing.slug : linkFor(d.conferenceName)}
+          {!editing && <span className="text-text-dark-60"> (set from the conference name when you create the page)</span>}
         </div>
 
         <div className="mt-5">
@@ -201,7 +211,7 @@ function PageForm({ editing, onClose, onSaved }: {
 
         <div className="mt-7 flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={saving}>{editing ? 'Save changes' : 'Create page'}</Button>
+          <Button type="submit" loading={saving} disabled={uploading}>{editing ? 'Save changes' : 'Create page'}</Button>
         </div>
       </form>
     </div>

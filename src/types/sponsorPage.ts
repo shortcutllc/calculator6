@@ -8,10 +8,12 @@ export interface SponsorPageConfig {
   password?: string;
 
   organizer: {
-    /** Short wordmark beside the Shortcut logo: 'AACSB'. */
+    /** Shown beside the Shortcut logo when there is no logo: 'AACSB'. */
     mark: string;
     /** As it reads in a sentence: 'AACSB'. */
     name: string;
+    /** Partner logo, shown in place of `mark` in the nav, hero and gate. */
+    logoUrl?: string;
   };
 
   conference: {
@@ -36,29 +38,30 @@ export interface SponsorPageConfig {
 export interface SponsorPageRecord {
   id: string;
   slug: string;
-  organizerMark: string;
   organizerName: string;
   conferenceName: string;
   dateLabel: string;
   contactName: string;
   contactEmail: string;
   services: SponsorServiceId[] | null;
+  logoUrl: string | null;
   hasPassword: boolean;
   status: 'draft' | 'published';
   createdAt: string;
   updatedAt: string;
 }
 
-/** What the staff form saves. `newPassword`: undefined keeps the current
- *  password, '' removes it, anything else replaces it. */
+/** What the staff form saves. The link (slug) is not part of it: it is
+ *  made from the conference name when the page is created and never
+ *  changes. `newPassword`: undefined keeps the current password, '' removes
+ *  it, anything else replaces it. */
 export interface SponsorPageInput {
-  slug: string;
-  organizerMark: string;
   organizerName: string;
   conferenceName: string;
   dateLabel: string;
   contactName: string;
   contactEmail: string;
   services: SponsorServiceId[] | null;
+  logoUrl: string | null;
   newPassword?: string;
 }
