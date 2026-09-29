@@ -88,18 +88,18 @@ const TWO_SIDES = [
    Rendered as the website's numbered step cards (shortcut/frontend/pages/
    solutions/conferences.vue, .sw-step). */
 const PATH = [
-  { k: 'Before the show', title: 'The invite', fill: '#9EFAFF', ink: '#003756',
-    body: 'Before the show, your attendees get an invite from the sponsor for a free massage, blowout or headshot.' },
-  { k: 'Before the show', title: 'The booking', fill: '#FEDC64', ink: '#003756',
-    body: 'They pick a time that works for them on the sponsor’s booking page.' },
-  { k: 'Before the show', title: 'The reminder', fill: '#F7BBFF', ink: '#003756',
-    body: 'On the day, they get a text with their time and where to find the lounge.' },
-  { k: 'At the show', title: 'The welcome', fill: '#FF5050', ink: '#ffffff',
-    body: 'They walk into a lounge in the sponsor’s colors, and the sponsor’s team is there to say hello.' },
-  { k: 'At the show', title: 'The treatment', fill: '#C7CBFB', ink: '#003756',
-    body: 'They get their massage, blowout or headshot, and head back to the conference feeling great.' },
-  { k: 'After the show', title: 'The follow up', fill: '#003756', ink: '#ffffff',
-    body: 'After the show, the sponsor gets a list of everyone who came, so they can follow up.' },
+  { k: 'Before the show', title: 'In every invite.', fill: '#9EFAFF', ink: '#003756',
+    body: 'The booking link goes right into your conference emails and app.' },
+  { k: 'Before the show', title: 'Booked ahead.', fill: '#FEDC64', ink: '#003756',
+    body: 'Attendees pick their slot before they arrive. Sponsors know who’s coming and can prepare.' },
+  { k: 'Before the show', title: 'Reminded.', fill: '#F7BBFF', ink: '#003756',
+    body: 'Every confirmed appointment gets a custom reminder in the sponsor’s name.' },
+  { k: 'At the show', title: 'Welcomed.', fill: '#FF5050', ink: '#ffffff',
+    body: 'A lounge in the sponsor’s colors, with their team at the door.' },
+  { k: 'At the show', title: 'Taken care of.', fill: '#C7CBFB', ink: '#003756',
+    body: 'A massage, a blowout or a fresh headshot. They leave feeling better than they came in.' },
+  { k: 'After the show', title: 'Followed up.', fill: '#003756', ink: '#ffffff',
+    body: 'The sponsor gets every name, ready for the next conversation.' },
 ];
 
 /* Workhuman Live 2026, from the website's conference gallery
