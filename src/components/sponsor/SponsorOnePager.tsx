@@ -63,12 +63,12 @@ const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
    proposal-refresh.css, from getshortcut.co). The same set on every
    conference page; each pill jumps to the services. */
 const HERO_PILLS = [
-  { label: 'Massage', fill: '#9EFAFF', tilt: -4, delay: 0.95 },
-  { label: 'Headshots', fill: '#FEDC64', tilt: 3, delay: 1.13 },
-  { label: 'Hair and makeup', fill: '#F7BBFF', tilt: -2, delay: 1.31 },
-  { label: 'Nails', fill: '#FFCBA6', tilt: 5, delay: 0.4 },
-  { label: 'Mindfulness', fill: '#C7CBFB', tilt: -3, delay: 0.58 },
-  { label: 'Sound baths', fill: '#A9F0CC', tilt: 2, delay: 0.76 },
+  { label: 'Massage', fill: '#9EFAFF', tilt: 0, delay: 0.95 },
+  { label: 'Headshots', fill: '#FEDC64', tilt: 0, delay: 1.13 },
+  { label: 'Hair and makeup', fill: '#F7BBFF', tilt: 0, delay: 1.31 },
+  { label: 'Nails', fill: '#FFCBA6', tilt: 0, delay: 0.4 },
+  { label: 'Mindfulness', fill: '#C7CBFB', tilt: 0, delay: 0.58 },
+  { label: 'Sound baths', fill: '#A9F0CC', tilt: 0, delay: 0.76 },
 ];
 
 /* Why it sells: who we are (the website's client logo scroll), then what
