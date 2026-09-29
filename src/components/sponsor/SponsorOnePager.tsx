@@ -289,7 +289,7 @@ function SizzleReel({ bare = false, className = '' }: { bare?: boolean; classNam
               <Play size={30} className="ml-1 text-white" fill="currentColor" strokeWidth={0} />
             </span>
             <span className="max-w-[calc(100%-32px)] rounded-full bg-white/[.94] px-4 md:px-5 py-2 md:py-2.5 text-[13px] md:text-[15px] font-extrabold leading-tight tracking-[-.012em] text-shortcut-blue">
-              A Shortcut event day for TradeStation
+              {bare ? 'Watch the day' : 'A Shortcut event day for TradeStation'}
             </span>
           </button>
         )}
@@ -672,8 +672,15 @@ export default function SponsorOnePager() {
               ))}
             </div>
           </div>
-          <div className="mt-12 md:mt-14">
-            <SizzleReel />
+          <div className={`mt-5 ${CARD_R} bg-[#FEDC64] p-3 md:p-4`}>
+            <div className="grid grid-cols-1 items-center gap-4 lg:grid-cols-[1fr_1.7fr] lg:gap-8">
+              <div className="px-4 pt-4 pb-1 md:px-6 lg:py-6">
+                <p className={`${CARD_KICKER} text-shortcut-blue/70`}>TradeStation</p>
+                <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>A branded event day, start to finish.</h3>
+                <p className={`${CARD_BODY} mt-3 text-shortcut-blue/80`}>Haircuts and styling under TradeStation&rsquo;s own signage, run by our team.</p>
+              </div>
+              <SizzleReel bare className="aspect-video" />
+            </div>
           </div>
         </Panel>
 
