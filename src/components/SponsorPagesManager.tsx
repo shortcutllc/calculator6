@@ -69,12 +69,25 @@ function PageForm({ editing, onClose, onSaved }: {
   };
 
   const [uploading, setUploading] = useState(false);
+  const [logoLink, setLogoLink] = useState('');
+  const [logoBroken, setLogoBroken] = useState(false);
+
+  // A pasted image link is used as is; only web addresses are accepted.
+  const applyLogoLink = () => {
+    const url = logoLink.trim();
+    if (!/^https?:\/\/\S+$/i.test(url)) return setError('Paste a full image link that starts with https://');
+    setError('');
+    setLogoBroken(false);
+    set('logoUrl', url);
+    setLogoLink('');
+  };
   const onLogo = async (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return setError('The logo has to be an image file.');
     setError('');
     setUploading(true);
     try {
+      setLogoBroken(false);
       set('logoUrl', await uploadSponsorLogo(file));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not upload the logo.');
@@ -93,6 +106,7 @@ function PageForm({ editing, onClose, onSaved }: {
     const missing = required.filter(([k]) => !String(d[k]).trim()).map(([, label]) => label);
     if (missing.length) return setError(`Fill in the ${missing.join(', ')}.`);
     if (!d.services.length) return setError('Pick at least one service.');
+    if (d.logoUrl && logoBroken) return setError('The logo image didn’t load. Fix or remove it before saving.');
 
     const input: SponsorPageInput = {
       organizerName: d.organizerName,
@@ -141,7 +155,7 @@ function PageForm({ editing, onClose, onSaved }: {
             <div className="flex flex-wrap items-center gap-3">
               <div className="grid h-14 w-40 place-items-center rounded-lg border border-dashed border-gray-300 bg-white px-3">
                 {d.logoUrl
-                  ? <img src={d.logoUrl} alt="Partner logo" className="max-h-10 max-w-full object-contain" />
+                  ? <img src={d.logoUrl} alt="Partner logo" onError={() => setLogoBroken(true)} onLoad={() => setLogoBroken(false)} className="max-h-10 max-w-full object-contain" />
                   : <span className="text-xs text-text-dark-60">No logo</span>}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-shortcut-teal/20 px-3 py-2 text-sm font-bold text-shortcut-blue hover:bg-shortcut-teal/30">
@@ -149,9 +163,25 @@ function PageForm({ editing, onClose, onSaved }: {
                 <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => { onLogo(e.target.files?.[0]); e.target.value = ''; }} />
               </label>
               {d.logoUrl && (
-                <button type="button" onClick={() => set('logoUrl', null)} className="text-sm font-bold text-red-600 hover:underline">Remove</button>
+                <button type="button" onClick={() => { set('logoUrl', null); setLogoBroken(false); }} className="text-sm font-bold text-red-600 hover:underline">Remove</button>
               )}
             </div>
+            <div className="mt-2.5 flex gap-2">
+              <input
+                className={INPUT}
+                value={logoLink}
+                onChange={(e) => setLogoLink(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyLogoLink(); } }}
+                placeholder="Or paste an image link: https://…/logo.png"
+                aria-label="Logo image link"
+              />
+              <button type="button" onClick={applyLogoLink} disabled={!logoLink.trim()} className="whitespace-nowrap rounded-md bg-shortcut-teal/20 px-3 text-sm font-bold text-shortcut-blue hover:bg-shortcut-teal/30 disabled:opacity-50">
+                Use link
+              </button>
+            </div>
+            {logoBroken && d.logoUrl && (
+              <p className="mt-1 text-xs font-semibold text-red-600">That image didn’t load. Check the link, or upload the file instead.</p>
+            )}
             <p className={HINT}>Shown in the page’s nav bar next to Shortcut. Without one, the organizer name is shown.</p>
           </div>
           <div>
