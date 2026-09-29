@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, ChevronLeft, ChevronRight,
-  Clock, Plus, Users, Handshake, Gift, Smartphone,
+  Clock, Plus, Users, Handshake, Gift, Smartphone, Presentation,
   Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench, GitMerge, Image as ImageIcon, HeartPulse
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,6 +55,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Marketing',
     items: [
       { label: 'Landing Pages', path: '/generic-landing-pages', icon: <Handshake size={18} /> },
+      { label: 'Sponsor Pages', path: '/sponsor-pages', icon: <Presentation size={18} /> },
       { label: 'Holiday Pages', path: '/holiday-pages', icon: <Gift size={18} /> },
       { label: 'Social Media', path: '/social-media-pages', icon: <Smartphone size={18} /> },
       { label: 'Wellness Funds', path: '/wellness-funds', icon: <HeartPulse size={18} /> },
