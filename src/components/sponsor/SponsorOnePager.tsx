@@ -666,12 +666,14 @@ export default function SponsorOnePager() {
             ))}
           </div>
           <div className={`${FRAME} mt-5 shadow-[0_30px_70px_rgba(0,0,0,.25)]`}>
-            <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 lg:grid-rows-[260px_260px]">
-              <SizzleReel bare className="col-span-2 aspect-video lg:aspect-auto lg:row-span-2" />
-              {PROOF_GALLERY.slice(0, 2).map((g) => (
-                <Shot key={g.cap} cap={g.cap} img={g.img} pos="center 30%" className="h-[200px] md:h-[260px]" />
+            <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-[1.25fr_1fr_1fr]">
+              {PROOF_GALLERY.map((g, i) => (
+                <Shot key={g.cap} cap={g.cap} img={g.img} pos="center 30%" className={`${i === 0 ? 'col-span-2 md:col-span-1 h-[260px]' : 'h-[240px]'} md:h-[440px]`} />
               ))}
             </div>
+          </div>
+          <div className="mt-12 md:mt-14">
+            <SizzleReel />
           </div>
         </Panel>
 
