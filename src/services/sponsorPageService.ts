@@ -46,13 +46,13 @@ function cleanServices(v: unknown): SponsorServiceId[] | null {
 
 export type PublicSponsorPage =
   | { kind: 'page'; cfg: SponsorPageConfig }
-  | { kind: 'locked'; mark: string }
+  | { kind: 'locked'; mark: string; logoUrl?: string }
   | { kind: 'missing' };
 
 function fromCode(slug: string, password?: string): PublicSponsorPage {
   const cfg = SPONSOR_PAGES[slug];
   if (!cfg) return { kind: 'missing' };
-  if (cfg.password && password !== cfg.password) return { kind: 'locked', mark: cfg.organizer.mark };
+  if (cfg.password && password !== cfg.password) return { kind: 'locked', mark: cfg.organizer.mark, logoUrl: cfg.organizer.logoUrl };
   return { kind: 'page', cfg };
 }
 
@@ -67,11 +67,12 @@ export async function fetchPublicSponsorPage(slug: string, password?: string): P
   }
   if (!data) return { kind: 'missing' };
   const d = data as Record<string, unknown>;
-  if (d.locked) return { kind: 'locked', mark: String(d.organizer_mark || '') };
+  const logoUrl = typeof d.logo_url === 'string' && d.logo_url ? d.logo_url : undefined;
+  if (d.locked) return { kind: 'locked', mark: String(d.organizer_mark || ''), logoUrl };
   return {
     kind: 'page',
     cfg: {
-      organizer: { mark: String(d.organizer_mark), name: String(d.organizer_name) },
+      organizer: { mark: String(d.organizer_mark || d.organizer_name), name: String(d.organizer_name), logoUrl },
       conference: { name: String(d.conference_name), dateLabel: String(d.date_label || '') },
       contact: { name: String(d.contact_name), email: String(d.contact_email) },
       services: cleanServices(d.services) ?? undefined,
@@ -85,13 +86,13 @@ function toRecord(r: Record<string, unknown>): SponsorPageRecord {
   return {
     id: String(r.id),
     slug: String(r.slug),
-    organizerMark: String(r.organizer_mark),
     organizerName: String(r.organizer_name),
     conferenceName: String(r.conference_name),
     dateLabel: String(r.date_label || ''),
     contactName: String(r.contact_name),
     contactEmail: String(r.contact_email),
     services: cleanServices(r.services),
+    logoUrl: typeof r.logo_url === 'string' && r.logo_url ? r.logo_url : null,
     hasPassword: !!r.password_hash,
     status: r.status === 'draft' ? 'draft' : 'published',
     createdAt: String(r.created_at),
@@ -101,13 +102,15 @@ function toRecord(r: Record<string, unknown>): SponsorPageRecord {
 
 function toRow(input: SponsorPageInput) {
   const row: Record<string, unknown> = {
-    organizer_mark: input.organizerMark.trim(),
+    // The page shows the logo, or else this, beside the Shortcut logo.
+    organizer_mark: input.organizerName.trim(),
     organizer_name: input.organizerName.trim(),
     conference_name: input.conferenceName.trim(),
     date_label: input.dateLabel.trim(),
     contact_name: input.contactName.trim(),
     contact_email: input.contactEmail.trim(),
     services: input.services,
+    logo_url: input.logoUrl,
   };
   if (input.newPassword !== undefined) row.new_password = input.newPassword;
   return row;
@@ -173,6 +176,17 @@ export async function updateSponsorPage(id: string, input: SponsorPageInput): Pr
     .single();
   if (error) fail(error);
   return toRecord(data as Record<string, unknown>);
+}
+
+/** Uploads a partner logo to the same public bucket the landing pages use
+ *  and returns its URL. */
+export async function uploadSponsorLogo(file: File): Promise<string> {
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const path = `sponsor-logos/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const bucket = 'generic-landing-page-assets';
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type || undefined });
+  if (error) throw new SponsorPageError(`Could not upload the logo: ${error.message}`);
+  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }
 
 export async function deleteSponsorPage(id: string): Promise<void> {

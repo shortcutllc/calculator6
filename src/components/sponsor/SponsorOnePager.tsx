@@ -344,8 +344,23 @@ function StationCard({ s, onOpen }: { s: SponsorServiceDef; onOpen: () => void }
   );
 }
 
-function Gate({ mark, onSubmit }: {
-  mark: string; onSubmit: (password: string) => Promise<boolean>;
+/** The organizer beside the Shortcut logo: their logo when there is one,
+ *  otherwise their name. On the navy hero the logo sits on a white chip so
+ *  a dark logo still reads. */
+function PartnerMark({ mark, logoUrl, size, onDark = false }: {
+  mark: string; logoUrl?: string; size: 'nav' | 'hero' | 'gate'; onDark?: boolean;
+}) {
+  if (logoUrl) {
+    const h = size === 'hero' ? 'h-8 md:h-10 max-w-[200px]' : size === 'gate' ? 'h-8 max-w-[180px]' : 'h-7 max-w-[150px]';
+    const img = <img src={logoUrl} alt={mark} className={`${h} w-auto object-contain`} />;
+    return onDark ? <span className="inline-flex items-center rounded-xl bg-white px-3 py-2">{img}</span> : img;
+  }
+  const text = size === 'hero' ? 'text-[22px] md:text-[28px]' : size === 'gate' ? 'text-[22px]' : 'text-[16px]';
+  return <div className={`${text} font-extrabold tracking-tight ${onDark ? 'text-white' : 'text-shortcut-blue'}`}>{mark}</div>;
+}
+
+function Gate({ mark, logoUrl, onSubmit }: {
+  mark: string; logoUrl?: string; onSubmit: (password: string) => Promise<boolean>;
 }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
@@ -368,7 +383,7 @@ function Gate({ mark, onSubmit }: {
       <div className="w-full max-w-sm mx-auto px-6">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-4 mb-4">
-            <div className="text-[22px] font-extrabold tracking-tight text-shortcut-blue">{mark}</div>
+            <PartnerMark mark={mark} logoUrl={logoUrl} size="gate" />
             <div className="h-6 w-px bg-shortcut-blue/15" aria-hidden="true" />
             <img src="/shortcut-logo-blue.svg" alt="Shortcut" className="h-5 w-auto" />
           </div>
@@ -411,7 +426,7 @@ export default function SponsorOnePager() {
   /* The page loads from sponsor_pages through a server check of the
      password, remembered for the tab so a refresh stays unlocked. */
   const [state, setState] = useState<
-    { kind: 'loading' } | { kind: 'missing' } | { kind: 'locked'; mark: string } | { kind: 'page'; cfg: SponsorPageConfig }
+    { kind: 'loading' } | { kind: 'missing' } | { kind: 'locked'; mark: string; logoUrl?: string } | { kind: 'page'; cfg: SponsorPageConfig }
   >({ kind: 'loading' });
 
   useEffect(() => {
@@ -458,7 +473,7 @@ export default function SponsorOnePager() {
   }
 
   if (state.kind === 'locked') {
-    return <Gate mark={state.mark} onSubmit={unlock} />;
+    return <Gate mark={state.mark} logoUrl={state.logoUrl} onSubmit={unlock} />;
   }
 
   if (!cfg) {
@@ -487,7 +502,7 @@ export default function SponsorOnePager() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-shortcut-blue/[.06]">
         <div className={`${GUT} ${COL} h-14 flex items-center justify-between`}>
           <div className="flex items-center gap-3 md:gap-4">
-            <div className="text-[16px] font-extrabold tracking-tight text-shortcut-blue">{organizer.mark}</div>
+            <PartnerMark mark={organizer.mark} logoUrl={organizer.logoUrl} size="nav" />
             <div className="h-4 w-px bg-shortcut-blue/15" aria-hidden="true" />
             <img src="/shortcut-logo-blue.svg" alt="Shortcut" className="h-4 w-auto" />
           </div>
@@ -517,7 +532,7 @@ export default function SponsorOnePager() {
         <section className="relative bg-shortcut-blue pt-14 md:pt-24 lg:pt-[120px] pb-20 md:pb-28 lg:pb-[146px]">
           <div className={`${GUT} ${COL} relative z-10`}>
             <div className="flex items-center gap-5 md:gap-7 mb-10 md:mb-14 pb-7 border-b border-white/15">
-              <div className="text-[22px] md:text-[28px] font-extrabold tracking-tight text-white">{organizer.mark}</div>
+              <PartnerMark mark={organizer.mark} logoUrl={organizer.logoUrl} size="hero" onDark />
               <div className="h-7 md:h-10 w-px bg-white/25" aria-hidden="true" />
               <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
             </div>
