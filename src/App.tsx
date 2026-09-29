@@ -68,6 +68,7 @@ const BisnowReport = lazy(() => import('./components/BisnowReport'));
 const KeplerReport = lazy(() => import('./components/KeplerReport'));
 const YW3OnePager = lazy(() => import('./components/YW3OnePager'));
 const AACSBOnePager = lazy(() => import('./components/AACSBOnePager'));
+const SponsorOnePager = lazy(() => import('./components/sponsor/SponsorOnePager'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
@@ -121,6 +122,7 @@ function App() {
     location.pathname === '/195-nassau' ||
     location.pathname === '/lower-pyne' ||
     location.pathname === '/yw3' ||
+    location.pathname.startsWith('/sponsor/') ||
     location.pathname === '/draftkings' ||
     location.pathname === '/draftkings-report' ||
     location.pathname === '/draftkings-lv' ||
@@ -1183,6 +1185,18 @@ function App() {
                     </div>
                   }>
                     <AACSBOnePager />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/sponsor/:slug"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <SponsorOnePager />
                   </Suspense>
                 }
               />
