@@ -112,15 +112,15 @@ const TWO_SIDES = [
   },
   {
     who: 'For your sponsor',
-    title: 'The best spot at the show, with their name on it.',
-    body: 'Attendees book ahead, show up happy and spend real time in the sponsor’s space.',
+    title: 'Guaranteed traffic. Guaranteed leads.',
+    body: 'Attendees book before the show. The sponsor walks in with a full schedule and a contact list to engage before, during and after.',
     img: '/proposal-refresh/yw3-hero.jpg',
     alt: 'The same Pro giving a chair massage in a sponsor’s branded shirt',
   },
   {
     who: 'For you',
-    title: 'A sponsorship worth more than a booth.',
-    body: 'Something new at the top of your package, and one sponsors will want to buy again next year.',
+    title: 'The easiest upsell in your prospectus.',
+    body: 'A premium package your team can sell right away. Attendees love it, sponsors see results, and we run every part of it.',
     img: '/conference/tradestation/ts-event-26.jpg',
     alt: 'A branded wellness activation on a busy event floor',
   },
@@ -622,8 +622,8 @@ export default function SponsorOnePager() {
         <Panel id="problem" tone="tint">
           <SectionHead
             kicker="Why it sells"
-            title="Fully white labeled."
-            accent="Your sponsor gets the credit. We do the work."
+            title="The booth attendees book."
+            accent="Leads for your sponsor. Revenue for you."
           />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {TWO_SIDES.map((side) => (
