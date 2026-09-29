@@ -24,10 +24,13 @@ const CHECKLIST = [
   'Setup and cleanup',
 ];
 
-const PAYLOAD = [
-  { t: 'Name, title, company, work email', b: 'Captured on every booking.' },
-  { t: 'Opted in, in the sponsor’s words', b: 'Every address on the list agreed to hear from them.' },
-  { t: 'Who booked, and who showed', b: 'Handed over after the show, ready for their CRM.' },
+/* The sponsor's lead list, drawn as the export they get: the same people
+   as the roster above, now with title and company, opted in. */
+const LEADS = [
+  { ini: 'MR', av: 'bg-[#9EFAFF]', name: 'Maya Rivera', role: 'VP People · Northwind', showed: true },
+  { ini: 'DK', av: 'bg-[#FEDC64]', name: 'Devon Kim', role: 'Head of HR · Brightline', showed: true },
+  { ini: 'PS', av: 'bg-[#F7BBFF]', name: 'Priya Shah', role: 'Chief of Staff · Lumen', showed: true },
+  { ini: 'TB', av: 'bg-[#C7CBFB]', name: 'Tom Baker', role: 'Talent Director · Harbor', showed: false },
 ];
 
 export default function SponsorBento({ conferenceName, dateLabel }: {
@@ -76,14 +79,33 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
               <article className="pv-bcard pv-bcard--navy" style={{ height: 'auto', paddingBottom: 26 }}>
                 <div className="pv-bcard-copy">
                   <h3>What the sponsor takes home.</h3>
+                  <p>Every name, title, company and email, opted in and ready for their CRM.</p>
                 </div>
-                <div className="pv-bcard-art max-[980px]:!h-auto flex flex-col gap-2.5 min-[981px]:[&>div]:flex min-[981px]:[&>div]:flex-1 min-[981px]:[&>div]:flex-col min-[981px]:[&>div]:justify-center" style={{ margin: 0, paddingTop: 20 }}>
-                  {PAYLOAD.map((r) => (
-                    <div key={r.t} className="rounded-2xl bg-white/[.08] px-4 py-3.5">
-                      <p className="m-0 text-[14.5px] font-bold leading-tight tracking-[-.015em] text-white">{r.t}</p>
-                      <p className="m-0 mt-1.5 text-[13px] font-medium leading-[1.45] text-white/70">{r.b}</p>
+                <div className="pv-bcard-art max-[980px]:!h-auto flex items-center justify-center !m-0 pt-6">
+                  <div className="w-full max-w-[400px] rounded-[22px] bg-white p-5 text-left shadow-[0_20px_48px_rgba(0,0,0,.28)]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="m-0 text-[15px] font-extrabold tracking-[-.018em] !text-shortcut-blue">Sponsor leads</p>
+                        <p className="m-0 mt-0.5 text-[12.5px] font-semibold !text-[#45596A]">{conferenceName} · 28 contacts</p>
+                      </div>
+                      <span className="inline-flex h-[30px] items-center rounded-full bg-shortcut-blue px-3.5 text-[12.5px] font-bold text-white">Export</span>
                     </div>
-                  ))}
+                    <div className="mt-4 flex flex-col">
+                      {LEADS.map((l) => (
+                        <div key={l.ini} className="flex items-center gap-3 border-t border-[#003756]/[.09] py-2.5">
+                          <span className={`grid h-8 w-8 flex-none place-items-center rounded-full text-[11px] font-extrabold text-shortcut-blue ${l.av}`}>{l.ini}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13.5px] font-bold tracking-[-.01em] text-shortcut-blue">{l.name}</span>
+                            <span className="block truncate text-[12px] font-semibold text-[#45596A]">{l.role}</span>
+                          </span>
+                          <span className={`inline-flex h-6 flex-none items-center rounded-full px-2.5 text-[11px] font-extrabold uppercase tracking-[.03em] ${l.showed ? 'bg-[#E7F7EE] text-[#08694A]' : 'bg-[#EEF2F4] text-[#45596A]'}`}>
+                            {l.showed ? 'Showed' : 'Booked'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="m-0 mt-2 border-t border-[#003756]/[.09] pt-3 text-[12px] font-semibold !text-[#45596A]">All opted in to hear from the sponsor</p>
+                  </div>
                 </div>
               </article>
             </div>

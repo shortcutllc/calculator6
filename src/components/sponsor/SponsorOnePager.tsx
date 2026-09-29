@@ -10,16 +10,15 @@ import { SPONSOR_SERVICES, serviceById, type SponsorServiceDef } from '../../uti
    Conference partner page: the pitch to a CONFERENCE ORGANIZER.
 
    The organizer buys the lounge from us and sells it to one of their
-   sponsors as a premium sponsorship. One section per job, and each fact
-   said once, in the section that owns it:
-     Hero           the offer, "You sell it. We run it.", the price is theirs
-     The problem    booth vs lounge, for the sponsor and for the organizer
-     How it works   the bento: booking is the lead capture (owns the lead facts)
-     What sponsors  six moments with attendees, before, at and after the
-       get          show (owns the brand touchpoints)
+   sponsors as a white label sponsorship. The page runs:
+     Hero           a wellness lounge in your sponsor's name
+     Services       what goes in the lounge, and that every booking is a lead
+     Why it sells   who we are, and what it does for the sponsor and for you
+     How it works   their name on everything, our team behind all of it
+     What sponsors  one attendee's visit, invite to follow up
+       get
      Who does what  the organizer's short list next to ours
-     Proof          Workhuman Live 2026, and the numbers across every event
-     Stations       what can go in the lounge
+     Proof          Workhuman Live 2026
      Next step
 
    No prices. The organizer sets the sponsor's price and we quote our cost
@@ -66,19 +65,30 @@ const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
 
 const PILL_FILLS = ['#9EFAFF', '#FFCBA6', '#FEDC64', '#F7BBFF'];
 
-/* Why it sells, from both sides of the sale. Warm, not a complaint about
-   booths: the lounge is the thing attendees remember, and now they remember
-   the sponsor with it. */
+/* Why it sells: who we are, then what the lounge does for each side of
+   the sale. The first two photos are the same Pro in a Shortcut shirt and
+   in a sponsor's shirt, which is the white label idea in one glance. */
 const TWO_SIDES = [
+  {
+    who: 'Shortcut',
+    title: 'One team for wellness at work.',
+    body: 'Massage, headshots, beauty and group wellness for more than 500 companies across the US. We bring the Pros, the setup and the tech.',
+    img: '/massage-guy-shortcut.jpg',
+    alt: 'A Shortcut Pro giving a chair massage, in a Shortcut shirt',
+  },
   {
     who: 'For your sponsor',
     title: 'The best spot at the show, with their name on it.',
-    body: 'Attendees book ahead, show up happy and spend real time in the sponsor’s space. It’s the easiest conversation starter on the floor.',
+    body: 'Attendees book ahead, show up happy and spend real time in the sponsor’s space.',
+    img: '/proposal-refresh/yw3-hero.jpg',
+    alt: 'The same Pro giving a chair massage in a sponsor’s branded shirt',
   },
   {
     who: 'For you',
     title: 'A sponsorship worth more than a booth.',
-    body: 'Something new at the top of your package. Sponsors are proud to put their name on it, and glad to buy it again next year.',
+    body: 'Something new at the top of your package, and one sponsors will want to buy again next year.',
+    img: '/conference/tradestation/ts-event-26.jpg',
+    alt: 'A branded wellness activation on a busy event floor',
   },
 ];
 
@@ -181,7 +191,7 @@ const ROLES = [
 const PROOF_STATS = [
   { fig: '100', label: 'hours of attendee time at Workhuman Live, in one space' },
   { fig: '90%+', label: 'of appointment slots booked, across every event we run' },
-  { fig: '500+', label: 'companies we bring wellness to across the US' },
+  { fig: '87%', label: 'of companies book us again' },
 ];
 
 function useFadeIn() {
@@ -444,11 +454,11 @@ export default function SponsorOnePager() {
   const mailto = `mailto:${contact.email}?subject=${encodeURIComponent(`Wellness lounge sponsorship at ${conf.name}`)}`;
 
   const tocItems = [
+    { id: 'stations', label: 'Services' },
     { id: 'how', label: 'How it works' },
     { id: 'gets', label: 'What sponsors get' },
     { id: 'work', label: 'Who does what' },
     { id: 'proof', label: 'Proof' },
-    { id: 'stations', label: 'Stations' },
   ];
 
   return (
@@ -511,10 +521,10 @@ export default function SponsorOnePager() {
 
                 <div className="flex flex-wrap items-center gap-6 mt-8">
                   <a
-                    href="#problem"
+                    href="#stations"
                     className="h-[52px] inline-flex items-center px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
                   >
-                    Why sponsors buy it
+                    See the services
                   </a>
                   <a href="#work" className="text-[15px] font-bold tracking-[-.012em] text-white hover:text-shortcut-teal transition-colors">
                     What your team does &rarr;
@@ -561,6 +571,19 @@ export default function SponsorOnePager() {
           </div>
         </section>
 
+        {/* ══════════ STATIONS ══════════ */}
+        <Panel id="stations">
+          <SectionHead
+            kicker="What goes in the lounge"
+            title="The services attendees line up for."
+            accent="Every booking is a lead."
+            sub="Put the whole lounge under one sponsor, or give each service its own. Tap any one for the details."
+          />
+          <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-10 xl:grid-cols-4">
+            {services.map((s, i) => <StationCard key={s.id} s={s} onOpen={() => setOpenIdx(i)} />)}
+          </div>
+        </Panel>
+
         {/* ══════════ THE PROBLEM ══════════ */}
         <Panel id="problem" tone="tint">
           <SectionHead
@@ -568,12 +591,17 @@ export default function SponsorOnePager() {
             title="Everyone remembers the massage."
             accent="Now they’ll remember who gave it."
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {TWO_SIDES.map((side) => (
-              <div key={side.who} className={`${CARD_ON_TINT} ${CARD_PAD}`}>
-                <p className={`${CARD_KICKER} ${INK_META}`}>{side.who}</p>
-                <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>{side.title}</h3>
-                <p className={`${CARD_BODY} mt-3 ${INK}`}>{side.body}</p>
+              <div key={side.who} className={`${CARD_ON_TINT} overflow-hidden flex flex-col`}>
+                <div className="relative aspect-[4/3] bg-neutral-light-gray">
+                  <img src={side.img} alt={side.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                </div>
+                <div className={CARD_PAD}>
+                  <p className={`${CARD_KICKER} ${INK_META}`}>{side.who}</p>
+                  <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>{side.title}</h3>
+                  <p className={`${CARD_BODY} mt-3 ${INK}`}>{side.body}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -666,18 +694,6 @@ export default function SponsorOnePager() {
           </div>
           <div className="mt-12 md:mt-14">
             <SizzleReel />
-          </div>
-        </Panel>
-
-        {/* ══════════ STATIONS ══════════ */}
-        <Panel id="stations">
-          <SectionHead
-            kicker="What goes in the lounge"
-            title="Sell the whole lounge to one sponsor, or each station separately."
-            sub="Every station can carry the sponsor's name and a line from their campaign. Tap any station for the detail."
-          />
-          <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-10 xl:grid-cols-4">
-            {services.map((s, i) => <StationCard key={s.id} s={s} onOpen={() => setOpenIdx(i)} />)}
           </div>
         </Panel>
 
