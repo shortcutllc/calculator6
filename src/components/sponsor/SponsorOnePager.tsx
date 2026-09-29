@@ -82,28 +82,24 @@ const TWO_SIDES = [
   },
 ];
 
-/* What the sponsor gets: the attendee's path, as the sponsor experiences
-   it. Each step is one moment the sponsor is in front of your audience.
+/* What the sponsor gets: one attendee's visit, told in order, with the
+   sponsor as the host at every step and the list as the payoff. Each card
+   is the next beat of the same story; nothing goes in that isn't a beat.
    Rendered as the website's numbered step cards (shortcut/frontend/pages/
-   solutions/conferences.vue, .sw-step): a tinted card with the numeral bled
-   off the corner. The detail shows in the card rather than behind a `+`,
-   because here the detail is the sale.
-
-   Durations are the stations' own, from a headshot to a sound bath; never
-   one number for all of them. */
+   solutions/conferences.vue, .sw-step). */
 const PATH = [
-  { k: 'Before the show', title: 'The invitation', fill: '#9EFAFF', ink: '#003756',
-    body: 'Goes to every attendee, presenting the sponsor. Everyone sees the name, whether they book or not.' },
-  { k: 'Before the show', title: 'The booking page', fill: '#FEDC64', ink: '#003756',
-    body: 'The sponsor’s brand and nobody else’s. Attendees pick a service and a time.' },
+  { k: 'Before the show', title: 'The invite', fill: '#9EFAFF', ink: '#003756',
+    body: 'Your attendees get an invitation from the sponsor: a free massage, blowout or headshot at the show.' },
+  { k: 'Before the show', title: 'The booking', fill: '#FEDC64', ink: '#003756',
+    body: 'They pick a time on the sponsor’s booking page. Now the sponsor knows who is coming.' },
   { k: 'Before the show', title: 'The reminder', fill: '#F7BBFF', ink: '#003756',
-    body: 'A text on the day, with the sponsor’s name on it.' },
-  { k: 'At the show', title: 'The lounge', fill: '#FF5050', ink: '#ffffff',
-    body: 'The whole appointment happens in the sponsor’s space, from an eight minute headshot to an hour long sound bath. A branded gift on the way out, if they want one.' },
-  { k: 'At the show', title: 'The conversation', fill: '#C7CBFB', ink: '#003756',
-    body: 'The sponsor’s team greets people on the way in and on the way out. Every one of them chose to be there.' },
-  { k: 'After the show', title: 'The photos', fill: '#003756', ink: '#ffffff',
-    body: 'With a headshot studio in the lounge, every retouched photo arrives in the sponsor’s brand. It is the photo people put on LinkedIn.' },
+    body: 'On the day, a text from the sponsor tells them where to go and when.' },
+  { k: 'At the show', title: 'The welcome', fill: '#FF5050', ink: '#ffffff',
+    body: 'The sponsor’s team greets them at a lounge built in the sponsor’s colors.' },
+  { k: 'At the show', title: 'The treatment', fill: '#C7CBFB', ink: '#003756',
+    body: 'The massage, the blowout or the new headshot. The part they tell their colleagues about.' },
+  { k: 'After the show', title: 'The follow up', fill: '#003756', ink: '#ffffff',
+    body: 'The sponsor leaves with a list of everyone who came, and a reason to call them next week.' },
 ];
 
 /* Workhuman Live 2026, from the website's conference gallery
@@ -592,8 +588,8 @@ export default function SponsorOnePager() {
         <Panel id="gets" tone="tint">
           <SectionHead
             kicker="What sponsors get"
-            title="Six moments with your attendees."
-            accent="Half before the doors open."
+            title="The sponsor hosts the whole visit."
+            accent="Start to finish."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {PATH.map((p, i) => (
