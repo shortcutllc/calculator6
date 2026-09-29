@@ -12,12 +12,11 @@ import { SPONSOR_SERVICES, serviceById, type SponsorServiceDef } from '../../uti
    The organizer buys the lounge from us and sells it to one of their
    sponsors as a white label sponsorship. The page runs:
      Hero           a wellness lounge in your sponsor's name
-     Services       what goes in the lounge, and that every booking is a lead
+     Services       what goes in the lounge
      Why it sells   who we are, and what it does for the sponsor and for you
      How it works   their name on everything, our team behind all of it
-     What sponsors  one attendee's visit, invite to follow up
-       get
-     Who does what  the organizer's short list next to ours
+     Step by step   from the custom proposal to the follow up, and who
+                    does each step
      Proof          Workhuman Live 2026
      Next step
 
@@ -51,14 +50,11 @@ const COL = 'w-full max-w-[1720px] mx-auto';
 
 const INK = 'text-[#2A5468]';
 const INK_META = 'text-[#45596A]';
-/* One card system. Radius 28, padding 7/8, one title size. A card on a tint
-   panel is white; a card on a white panel is tint. Navy marks the one card
-   in a set that is ours or is the answer. */
+/* One card system. Radius 28, padding 7/8, one title size. Cards on a tint
+   panel are white. */
 const CARD_R = 'rounded-[28px]';
 const CARD_PAD = 'p-7 md:p-8';
 const CARD_ON_TINT = `${CARD_R} bg-white border border-[#E2E9E8] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]`;
-const CARD_ON_WHITE = `${CARD_R} bg-neutral-light-gray`;
-const CARD_NAVY = `${CARD_R} bg-shortcut-blue`;
 const CARD_TITLE = 'm-0 text-[22px] md:text-[24px] font-bold leading-[1.15] tracking-[-.025em]';
 const CARD_KICKER = 'm-0 text-[12px] font-extrabold uppercase tracking-[.09em]';
 const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
@@ -132,18 +128,18 @@ const TWO_SIDES = [
    Rendered as the website's numbered step cards (shortcut/frontend/pages/
    solutions/conferences.vue, .sw-step). */
 const PATH = [
-  { k: 'Before the show', title: 'In every invite.', fill: '#9EFAFF', ink: '#003756',
-    body: 'The booking link goes right into your conference emails and app.' },
-  { k: 'Before the show', title: 'Booked ahead.', fill: '#FEDC64', ink: '#003756',
-    body: 'Attendees pick their slot before they arrive. Sponsors know who’s coming and can prepare.' },
-  { k: 'Before the show', title: 'Reminded.', fill: '#F7BBFF', ink: '#003756',
-    body: 'Every confirmed appointment gets a custom reminder in the sponsor’s name.' },
-  { k: 'At the show', title: 'Welcomed.', fill: '#FF5050', ink: '#ffffff',
-    body: 'A lounge in the sponsor’s colors, with their team at the door.' },
-  { k: 'At the show', title: 'Taken care of.', fill: '#C7CBFB', ink: '#003756',
-    body: 'A massage, a blowout or a fresh headshot. They leave feeling better than they came in.' },
-  { k: 'After the show', title: 'Followed up.', fill: '#003756', ink: '#ffffff',
-    body: 'The sponsor gets every name, ready for the next conversation.' },
+  { k: 'Before the show', who: 'You and Shortcut', title: 'A custom proposal.', fill: '#9EFAFF', ink: '#003756',
+    body: 'We work with your sales team to design a package for your sponsors.' },
+  { k: 'Before the show', who: 'You', title: 'Sold at your price.', fill: '#FEDC64', ink: '#003756',
+    body: 'Your team offers it to sponsors. The sponsor sends us their logo and colors.' },
+  { k: 'Before the show', who: 'You', title: 'In every invite.', fill: '#F7BBFF', ink: '#003756',
+    body: 'The booking link goes into your conference emails and app.' },
+  { k: 'Before the show', who: 'Shortcut', title: 'Booked and reminded.', fill: '#C7CBFB', ink: '#003756',
+    body: 'Attendees pick their slot, and every confirmed appointment gets a custom reminder.' },
+  { k: 'At the show', who: 'Shortcut and the sponsor', title: 'Welcomed.', fill: '#FF5050', ink: '#ffffff',
+    body: 'A lounge in the sponsor’s colors, their team at the door, and a massage, blowout or headshot.' },
+  { k: 'After the show', who: 'Shortcut', title: 'Followed up.', fill: '#003756', ink: '#ffffff',
+    body: 'The sponsor gets every name. You get a results report.' },
 ];
 
 /* Workhuman Live 2026, from the website's conference gallery
@@ -188,37 +184,6 @@ function Shot({ cap, img, alt, className = '', pos = 'center', inset = false }: 
 }
 
 const FRAME = 'rounded-[28px] bg-white p-3 md:p-4';
-
-/* Who does what. The point of the section is how short the first two
-   lists are next to the third. Tasks only: on-site operations are in the
-   bento's checklist and the list handover is in its payload card, so
-   neither is repeated here. */
-const ROLES = [
-  {
-    who: 'You',
-    items: [
-      'Add the lounge to your sponsorship lineup',
-      'Introduce us to the sponsor who buys it',
-      'Give us space on the floor, and send our invitation to your attendee list',
-    ],
-  },
-  {
-    who: 'The sponsor',
-    items: [
-      'Sends their logo, colors and opt-in wording',
-    ],
-  },
-  {
-    who: 'Shortcut',
-    items: [
-      'The booking page, confirmations and calendar invites',
-      'Lounge design, screens and uniforms',
-      'The Pros, scheduled and briefed',
-      'Waitlist management',
-      'A results report for you and the sponsor after the show',
-    ],
-  },
-];
 
 /* The headline carries the 400 and the 200; these are the numbers it
    doesn't. */
@@ -329,22 +294,6 @@ function SizzleReel() {
           </button>
         )}
       </div>
-    </div>
-  );
-}
-
-function RoleCard({ r, us = false }: { r: { who: string; items: string[] }; us?: boolean }) {
-  return (
-    <div className={`${us ? CARD_NAVY : CARD_ON_WHITE} ${CARD_PAD} ${us ? 'lg:h-full' : ''}`}>
-      <h3 className={`${CARD_TITLE} ${us ? 'text-white' : 'text-shortcut-blue'}`}>{r.who}</h3>
-      <ul className="m-0 mt-5 p-0 list-none flex flex-col gap-3.5">
-        {r.items.map((it) => (
-          <li key={it} className={`flex gap-3 ${CARD_BODY} ${us ? 'text-white' : INK}`}>
-            <span className={`mt-[9px] w-[6px] h-[6px] flex-none rounded-full ${us ? 'bg-shortcut-teal' : 'bg-shortcut-coral'}`} />
-            <span>{it}</span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -490,8 +439,7 @@ export default function SponsorOnePager() {
   const tocItems = [
     { id: 'stations', label: 'Services' },
     { id: 'how', label: 'How it works' },
-    { id: 'gets', label: 'What sponsors get' },
-    { id: 'work', label: 'Who does what' },
+    { id: 'gets', label: 'Step by step' },
     { id: 'proof', label: 'Proof' },
   ];
 
@@ -560,8 +508,8 @@ export default function SponsorOnePager() {
                   >
                     See the services
                   </a>
-                  <a href="#work" className="text-[15px] font-bold tracking-[-.012em] text-white hover:text-shortcut-teal transition-colors">
-                    What your team does &rarr;
+                  <a href="#gets" className="text-[15px] font-bold tracking-[-.012em] text-white hover:text-shortcut-teal transition-colors">
+                    How it runs &rarr;
                   </a>
                 </div>
 
@@ -609,9 +557,8 @@ export default function SponsorOnePager() {
         <Panel id="stations">
           <SectionHead
             kicker="What goes in the lounge"
-            title="The services attendees line up for."
-            accent="Every booking is a lead."
-            sub="Put the whole lounge under one sponsor, or give each service its own. Tap any one for the details."
+            title="Services attendees line up for."
+            sub="Sponsors can pick one or multiple services."
           />
           <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-10 xl:grid-cols-4">
             {services.map((s, i) => <StationCard key={s.id} s={s} onOpen={() => setOpenIdx(i)} />)}
@@ -622,8 +569,7 @@ export default function SponsorOnePager() {
         <Panel id="problem" tone="tint">
           <SectionHead
             kicker="Why it sells"
-            title="The booth attendees book."
-            accent="Leads for your sponsor. Revenue for you."
+            title="Your sponsors win. So do you."
           />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {TWO_SIDES.map((side) => (
@@ -650,15 +596,20 @@ export default function SponsorOnePager() {
 
         {/* ══════════ HOW IT WORKS (the website's bento) ══════════ */}
         <Panel id="how">
+          <SectionHead
+            kicker="How it works"
+            title="Their name on everything."
+            accent="Our team behind all of it."
+          />
           <SponsorBento conferenceName={conf.name} dateLabel={conf.dateLabel} />
         </Panel>
 
-        {/* ══════════ WHAT SPONSORS GET (the attendee path) ══════════ */}
+        {/* ══════════ STEP BY STEP (with who does each step) ══════════ */}
         <Panel id="gets" tone="tint">
           <SectionHead
-            kicker="What sponsors get"
-            title="The sponsor hosts the whole visit."
-            accent="Here’s how it goes."
+            kicker="Step by step"
+            title="How it runs, start to finish."
+            accent="Your team does three things. We do the rest."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {PATH.map((p, i) => (
@@ -676,6 +627,9 @@ export default function SponsorOnePager() {
                 <p className={`${CARD_KICKER} relative opacity-70`}>{p.k}</p>
                 <h3 className={`${CARD_TITLE} relative mt-3 [color:inherit]`}>{p.title}</h3>
                 <p className={`${CARD_BODY} relative mt-3 opacity-90`}>{p.body}</p>
+                <span className="absolute bottom-7 left-7 md:left-8 inline-flex h-7 items-center rounded-full bg-white/90 px-3 text-[12px] font-extrabold text-shortcut-blue">
+                  {p.who}
+                </span>
               </li>
             ))}
           </ol>
@@ -689,21 +643,6 @@ export default function SponsorOnePager() {
                 ))}
               </div>
             </div>
-          </div>
-        </Panel>
-
-        {/* ══════════ WHO DOES WHAT ══════════ */}
-        <Panel id="work">
-          <SectionHead
-            kicker="Who does what"
-            title="Your part is short."
-            accent="Ours is everything else."
-          />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-5">
-              {ROLES.filter((r) => r.who !== 'Shortcut').map((r) => <RoleCard key={r.who} r={r} />)}
-            </div>
-            {ROLES.filter((r) => r.who === 'Shortcut').map((r) => <RoleCard key={r.who} r={r} us />)}
           </div>
         </Panel>
 

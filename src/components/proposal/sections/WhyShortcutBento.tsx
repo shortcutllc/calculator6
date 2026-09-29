@@ -33,7 +33,7 @@ const CHECKLIST = [
 ];
 
 /** Coverage pins, as percentages of the map artwork. Copied from HomeDeliver.vue. */
-const PINS: { left: string; top: string; title: string }[] = [
+export const PINS: { left: string; top: string; title: string }[] = [
   { left: '15.646%', top: '13.086%', title: 'Seattle' },
   { left: '14.031%', top: '19.342%', title: 'Portland' },
   { left: '10.094%', top: '43.794%', title: 'San Francisco' },
@@ -55,7 +55,7 @@ const PINS: { left: string; top: string; title: string }[] = [
   { left: '87.125%', top: '30.320%', title: 'Boston' },
 ];
 
-const Tick: React.FC<{ stroke?: string; width?: number }> = ({
+export const Tick: React.FC<{ stroke?: string; width?: number }> = ({
   stroke = '#fff',
   width = 3.2,
 }) => (
