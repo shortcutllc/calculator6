@@ -3,7 +3,7 @@ import { Copy, ExternalLink, Lock, Pencil, Trash2, X, Check } from 'lucide-react
 import { Button } from './Button';
 import {
   listSponsorPages, createSponsorPage, updateSponsorPage, deleteSponsorPage,
-  slugify, SLUG_PATTERN, SponsorPageError,
+  linkFor, SponsorPageError,
 } from '../services/sponsorPageService';
 import { SPONSOR_SERVICES, type SponsorServiceId } from '../utils/sponsorPackages';
 import type { SponsorPageInput, SponsorPageRecord } from '../types/sponsorPage';
@@ -12,7 +12,9 @@ import type { SponsorPageInput, SponsorPageRecord } from '../types/sponsorPage';
    Staff screen for conference partner pages (/sponsor/:slug).
 
    Each row is one conference organizer. Saving creates the page straight
-   away: no code change, no deploy. Everything on the page except these
+   away: no code change, no deploy. The link is made from the conference
+   name when the page is created and never changes, so a sent link keeps
+   working. Everything on the page except these
    fields is shared across all conferences (SponsorOnePager.tsx).
    ───────────────────────────────────────────── */
 
@@ -33,7 +35,6 @@ type Draft = Omit<SponsorPageInput, 'services' | 'newPassword'> & {
 
 function toDraft(p?: SponsorPageRecord): Draft {
   return {
-    slug: p?.slug ?? '',
     organizerMark: p?.organizerMark ?? '',
     organizerName: p?.organizerName ?? '',
     conferenceName: p?.conferenceName ?? '',
@@ -52,16 +53,11 @@ function PageForm({ editing, onClose, onSaved }: {
   onSaved: (p: SponsorPageRecord) => void;
 }) {
   const [d, setD] = useState<Draft>(() => toDraft(editing ?? undefined));
-  const [slugTouched, setSlugTouched] = useState(!!editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((prev) => ({ ...prev, [k]: v }));
 
-  // Until someone edits the link, it follows the organizer's short name.
-  const onMark = (v: string) => {
-    setD((prev) => ({ ...prev, organizerMark: v, slug: slugTouched ? prev.slug : slugify(v) }));
-  };
 
   const toggleService = (id: SponsorServiceId) => {
     setD((prev) => {
@@ -81,11 +77,9 @@ function PageForm({ editing, onClose, onSaved }: {
     ];
     const missing = required.filter(([k]) => !String(d[k]).trim()).map(([, label]) => label);
     if (missing.length) return setError(`Fill in the ${missing.join(', ')}.`);
-    if (!SLUG_PATTERN.test(d.slug)) return setError('The link can only use lowercase letters, numbers and single dashes.');
     if (!d.services.length) return setError('Pick at least one service.');
 
     const input: SponsorPageInput = {
-      slug: d.slug,
       organizerMark: d.organizerMark,
       organizerName: d.organizerName,
       conferenceName: d.conferenceName,
@@ -121,7 +115,7 @@ function PageForm({ editing, onClose, onSaved }: {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
             <label className={LABEL} htmlFor="sp-mark">Organizer short name</label>
-            <input id="sp-mark" className={INPUT} value={d.organizerMark} onChange={(e) => onMark(e.target.value)} placeholder="AACSB" />
+            <input id="sp-mark" className={INPUT} value={d.organizerMark} onChange={(e) => set('organizerMark', e.target.value)} placeholder="AACSB" />
             <p className={HINT}>Shown next to the Shortcut logo.</p>
           </div>
           <div>
@@ -149,21 +143,10 @@ function PageForm({ editing, onClose, onSaved }: {
           </div>
         </div>
 
-        <div className="mt-5">
-          <label className={LABEL} htmlFor="sp-slug">Link</label>
-          <div className="flex items-center rounded-lg border border-gray-300 focus-within:ring-2 focus-within:ring-shortcut-teal/60">
-            <span className="whitespace-nowrap pl-3 text-[15px] text-text-dark-60">{window.location.host}/sponsor/</span>
-            <input
-              id="sp-slug"
-              className="w-full rounded-r-lg py-2.5 pr-3 text-[15px] text-shortcut-blue focus:outline-none"
-              value={d.slug}
-              onChange={(e) => { setSlugTouched(true); set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); }}
-              placeholder="aacsb"
-            />
-          </div>
-          {editing && d.slug !== editing.slug && (
-            <p className="mt-1 text-xs font-semibold text-shortcut-coral">Changing the link breaks any link you’ve already sent.</p>
-          )}
+        <div className="mt-5 rounded-lg bg-shortcut-teal/10 px-3 py-2.5 text-sm text-shortcut-blue">
+          <span className="font-bold">Link: </span>
+          {window.location.host}/sponsor/{editing ? editing.slug : linkFor(d.conferenceName)}
+          {!editing && <span className="text-text-dark-60"> (set from the conference name when you create the page)</span>}
         </div>
 
         <div className="mt-5">

@@ -101,7 +101,6 @@ function toRecord(r: Record<string, unknown>): SponsorPageRecord {
 
 function toRow(input: SponsorPageInput) {
   const row: Record<string, unknown> = {
-    slug: input.slug,
     organizer_mark: input.organizerMark.trim(),
     organizer_name: input.organizerName.trim(),
     conference_name: input.conferenceName.trim(),
@@ -127,9 +126,6 @@ function fail(error: PgError): never {
       true
     );
   }
-  if (error?.code === '23505') {
-    throw new SponsorPageError('That link is already taken. Pick a different one.');
-  }
   throw new SponsorPageError(error?.message || 'Something went wrong. Try again.');
 }
 
@@ -142,15 +138,30 @@ export async function listSponsorPages(): Promise<SponsorPageRecord[]> {
   return (data || []).map((r) => toRecord(r as Record<string, unknown>));
 }
 
+/** The link a new page gets: the conference name, lowercased and dashed.
+ *  'The Deans Conference' -> 'the-deans-conference'. */
+export function linkFor(conferenceName: string): string {
+  return slugify(conferenceName) || 'conference';
+}
+
+/** Creates the page under linkFor(conferenceName), adding -2, -3... when
+ *  that link is taken. The link is fixed from then on. */
 export async function createSponsorPage(input: SponsorPageInput): Promise<SponsorPageRecord> {
   const { data: auth } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from('sponsor_pages')
-    .insert({ ...toRow(input), created_by: auth.user?.id ?? null })
-    .select('*')
-    .single();
-  if (error) fail(error);
-  return toRecord(data as Record<string, unknown>);
+  const base = linkFor(input.conferenceName);
+  let lastError: PgError = null;
+  for (let n = 1; n <= 20; n++) {
+    const slug = n === 1 ? base : `${base}-${n}`;
+    const { data, error } = await supabase
+      .from('sponsor_pages')
+      .insert({ ...toRow(input), slug, created_by: auth.user?.id ?? null })
+      .select('*')
+      .single();
+    if (!error) return toRecord(data as Record<string, unknown>);
+    if (error.code !== '23505') fail(error);
+    lastError = error;
+  }
+  fail(lastError);
 }
 
 export async function updateSponsorPage(id: string, input: SponsorPageInput): Promise<SponsorPageRecord> {
@@ -181,5 +192,3 @@ export function slugify(text: string): string {
     .slice(0, 60)
     .replace(/-+$/g, '');
 }
-
-export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;

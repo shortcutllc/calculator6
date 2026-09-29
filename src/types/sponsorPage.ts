@@ -49,10 +49,11 @@ export interface SponsorPageRecord {
   updatedAt: string;
 }
 
-/** What the staff form saves. `newPassword`: undefined keeps the current
- *  password, '' removes it, anything else replaces it. */
+/** What the staff form saves. The link (slug) is not part of it: it is
+ *  made from the conference name when the page is created and never
+ *  changes. `newPassword`: undefined keeps the current password, '' removes
+ *  it, anything else replaces it. */
 export interface SponsorPageInput {
-  slug: string;
   organizerMark: string;
   organizerName: string;
   conferenceName: string;
