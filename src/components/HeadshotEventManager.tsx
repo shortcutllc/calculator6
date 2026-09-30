@@ -19,6 +19,7 @@ import { NotificationService } from '../services/NotificationService';
 import { HeadshotEvent, HeadshotEventStats, CSVEmployeeData } from '../types/headshot';
 import { HeadshotEventModal } from './HeadshotEventModal';
 import { CSVUploader } from './CSVUploader';
+import { CoordinatorSignupImporter } from './CoordinatorSignupImporter';
 import { PhotoUploader } from './PhotoUploader';
 import { EmployeeLinksModal } from './EmployeeLinksModal';
 import { EmployeeManager } from './EmployeeManager';
@@ -33,6 +34,7 @@ export const HeadshotEventManager: React.FC = () => {
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<HeadshotEvent | null>(null);
   const [showCSVUploader, setShowCSVUploader] = useState(false);
+  const [showCoordinatorImport, setShowCoordinatorImport] = useState(false);
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
   const [showEmployeeLinks, setShowEmployeeLinks] = useState(false);
   const [showPhotographerAssignments, setShowPhotographerAssignments] = useState(false);
@@ -132,6 +134,16 @@ export const HeadshotEventManager: React.FC = () => {
       console.error('Error uploading CSV:', error);
       alert('Failed to upload CSV. Please try again.');
     }
+  };
+
+  // Throws on failure so the importer can show the error in place.
+  const handleCoordinatorImport = async (employees: CSVEmployeeData[]) => {
+    if (!selectedEvent) return;
+    await HeadshotService.createEmployeeGalleries(selectedEvent.id, employees);
+    await fetchEventStats(selectedEvent.id);
+    setEmployeeRefreshKey(k => k + 1);
+    setShowCoordinatorImport(false);
+    alert(`Imported ${employees.length} ${employees.length === 1 ? 'person' : 'people'} from the coordinator.`);
   };
 
   const handleSendNotifications = async () => {
@@ -344,6 +356,11 @@ export const HeadshotEventManager: React.FC = () => {
                     Import from CSV
                   </OutlineButton>
 
+                  <OutlineButton onClick={() => setShowCoordinatorImport(true)}>
+                    <Users className="h-4 w-4" />
+                    Import from coordinator
+                  </OutlineButton>
+
                   <CoralButton
                     onClick={handleSendNotifications}
                     disabled={sendingNotifications || !eventStats?.photos_uploaded}
@@ -445,6 +462,14 @@ export const HeadshotEventManager: React.FC = () => {
         <CSVUploader
           onClose={() => setShowCSVUploader(false)}
           onUpload={handleCSVUpload}
+        />
+      )}
+
+      {showCoordinatorImport && selectedEvent && (
+        <CoordinatorSignupImporter
+          eventId={selectedEvent.id}
+          onClose={() => setShowCoordinatorImport(false)}
+          onUpload={handleCoordinatorImport}
         />
       )}
 
