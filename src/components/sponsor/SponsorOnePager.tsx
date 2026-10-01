@@ -42,7 +42,7 @@ const SIZZLE_VIDEO =
    product in a single picture. It carries the University of Cincinnati's
    branding, so confirm that is fine to show other organizers. */
 const DEFAULT_HERO = {
-  src: '/aacsb/lounge-rendering.jpg',
+  src: '/aacsb/lounge-rendering-uc.jpg',
   alt: 'Rendering of a conference wellness lounge built in one sponsor’s brand, with a branded welcome desk, privacy screens and massage chairs',
 };
 
