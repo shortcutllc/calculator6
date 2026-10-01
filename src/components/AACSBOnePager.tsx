@@ -568,7 +568,7 @@ export default function AACSBOnePager() {
 
           <div className="mb-14 md:mb-16 overflow-hidden rounded-[28px] border border-[#E2E9E8] bg-neutral-light-gray shadow-[0_20px_50px_rgba(3,34,50,.14)]">
             <img
-              src="/aacsb/lounge-rendering.jpg"
+              src="/aacsb/lounge-rendering-uc.jpg"
               alt="Rendering of the University of Cincinnati wellness lounge with a branded welcome desk, privacy screens, station signage and massage chairs"
               className="w-full h-auto"
             />
