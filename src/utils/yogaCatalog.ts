@@ -43,6 +43,14 @@ export const YOGA_CATALOG: YogaCatalogEntry[] = [
       'Long-hold, prop-supported postures for stress relief and recovery. A slow, grounding hour that pairs well as the wind-down on event days that include massage or headshots. We bring blocks and bolsters.',
   },
   {
+    id: 'restorative-30',
+    name: 'Restorative Yoga (30 min)',
+    classLength: 30,
+    fixedPrice: 650,
+    description:
+      'Half an hour of lying down on purpose. Bolsters and blocks hold every posture for several minutes, and nobody has to push, stretch hard, or keep up. Fits in a lunch break, and open to people who have never done yoga. Employees bring mats. We bring the blocks and bolsters.',
+  },
+  {
     id: 'restorative-60',
     name: 'Restorative Yoga (60 min)',
     classLength: 60,
