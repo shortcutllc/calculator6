@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import type { SponsorServiceDef } from '../../utils/sponsorPackages';
+import type { StationDetail } from '../../utils/sponsorPackages';
+
+/** What the pop-out reads. A SponsorServiceDef is one; other pages (the
+ *  SterlingRisk partner page) map their own services into this shape. */
+export interface ModalStation {
+  name: string;
+  image: string;
+  cropArt: boolean;
+  tint: string;
+  /** object-position for photographic card art. */
+  imagePos?: string;
+  detail: Omit<StationDetail, 'group'> & { group: string };
+}
 
 /* ─────────────────────────────────────────────
    The station pop-out, opened by a card's `+`.
@@ -45,7 +57,7 @@ export function useGalleryByKey(): Record<string, string[]> {
 }
 
 export default function StationModal({ stations, index, gallery, onClose, onGo }: {
-  stations: SponsorServiceDef[];
+  stations: ModalStation[];
   index: number;
   gallery: Record<string, string[]>;
   onClose: () => void;
@@ -122,6 +134,7 @@ export default function StationModal({ stations, index, gallery, onClose, onGo }
               alt={i === shot ? s.name : ''}
               aria-hidden={i !== shot}
               className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${i === shot ? 'opacity-100' : 'opacity-0'} ${src === s.image && s.cropArt ? 'scale-110' : ''}`}
+              style={src === s.image && s.imagePos ? { objectPosition: s.imagePos } : undefined}
             />
           ))}
           {images.length > 1 && (
@@ -179,7 +192,7 @@ export default function StationModal({ stations, index, gallery, onClose, onGo }
               <button
                 type="button"
                 onClick={() => step(-1)}
-                aria-label="Previous station"
+                aria-label="Previous service"
                 className="grid h-[38px] w-[38px] place-items-center rounded-full border border-[#E2E9E8] bg-white text-[15px] text-shortcut-blue"
               >
                 ←
@@ -187,7 +200,7 @@ export default function StationModal({ stations, index, gallery, onClose, onGo }
               <button
                 type="button"
                 onClick={() => step(1)}
-                aria-label="Next station"
+                aria-label="Next service"
                 className="grid h-[38px] w-[38px] place-items-center rounded-full border border-[#E2E9E8] bg-white text-[15px] text-shortcut-blue"
               >
                 →
