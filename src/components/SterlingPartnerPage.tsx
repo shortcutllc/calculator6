@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Clock } from 'lucide-react';
 import { MENU_SERVICES, MENU_GALLERY_KEYS, MenuService } from '../utils/menuServices';
 import StationModal, { useGalleryByKey, type ModalStation } from './sponsor/StationModal';
+import SterlingBento from './SterlingBento';
 import '../styles/proposal-refresh.css';
 
 /**
@@ -30,17 +31,10 @@ const CARD = `${CARD_R} bg-white border border-[#E2E9E8] ${SHADOW}`;
 const CARD_TITLE = 'm-0 text-[22px] md:text-[24px] font-bold leading-[1.15] tracking-[-.025em]';
 const CARD_KICKER = 'm-0 text-[12px] font-extrabold uppercase tracking-[.09em]';
 const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
+const FRAME = 'rounded-[28px] bg-white p-3 md:p-4';
 const CTA_BTN = 'h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]';
 
 const MAILTO = 'mailto:caren@getshortcut.co';
-
-// 19 coverage-map city dots, viewBox 960×593 (from the design spec).
-const MAP_DOTS: [number, number][] = [
-  [150.2, 77.6], [134.7, 114.7], [96.9, 259.7], [141, 345.7], [151.9, 374.7],
-  [234.5, 376.7], [357.6, 270.2], [476.1, 411.1], [460.1, 459.3], [499.4, 469.3],
-  [525.9, 174.6], [607.5, 229.7], [670.9, 213.8], [630.3, 338.9], [672.4, 381.2],
-  [763.7, 522.9], [767.6, 264.6], [803.4, 221], [836.4, 179.8],
-];
 
 const A = '/wellness-funds';
 // Gallery = real event media (Will 2026-07-11): Cencora massage photo (from the proposal
@@ -122,62 +116,58 @@ const STAGE_SLIDES: { src: string; tag: string; fit?: boolean; pos?: string }[] 
 // src/components/proposal/data.ts). Regular corporate services, not
 // conference or express services. Capacity figures confirmed by Will
 // (2026-07-22, see conferencePackages.ts).
-const BAR: Record<string, string> = {
-  navy: 'bg-shortcut-blue text-[#9EFAFF]', cyan: 'bg-[#9EFAFF] text-shortcut-blue',
-  pink: 'bg-[#F7BBFF] text-shortcut-blue', sun: 'bg-[#FEDC64] text-shortcut-blue',
-};
 const STERLING_PACKAGES = [
   {
-    id: 'reset-zone', name: 'The Reset Zone', bar: 'cyan',
+    id: 'reset-zone', name: 'The Reset Zone', tint: '#9EFAFF',
     image: `${GAL}/massage/1778730995486-9l9d6z.jpeg`,
     meta: 'Chair or table massage · 15–20 min/appointment',
     desc: 'We turn a conference room into a spa for the day. Expert therapists, soothing scents, and the break their people line up for.',
     bullets: ['Licensed therapists, insured for any building', 'Two chairs or twenty, up to 150 appointments a day', 'Chairs, tables, screens, scents and setup, all ours'],
   },
   {
-    id: 'glow-lounge', name: 'The Glow Lounge', bar: 'pink',
+    id: 'glow-lounge', name: 'The Glow Lounge', tint: '#F7BBFF',
     image: `${GAL}/hair/1784325543659-edz1yh.jpg`,
     meta: 'Hair, makeup or facials · 20–30 min/appointment',
     desc: 'Blowouts, makeup or express facials right at the office. People step out of a meeting and walk back in polished and camera ready.',
     bullets: ['Licensed stylists and estheticians', 'One station or six, up to 100 appointments a day', 'Pick the service that fits the day'],
   },
   {
-    id: 'polish-bar', name: 'The Polish Bar', bar: 'sun',
+    id: 'polish-bar', name: 'The Polish Bar', tint: '#FEDC64',
     image: `${GAL}/nails/1784325589704-cw5v3l.jpg`,
     meta: 'Manicures · 20–30 min/appointment',
     desc: 'Manicures without the salon trip. Twenty quiet minutes away from the desk, then back to work looking sharp.',
     bullets: ['Licensed nail technicians, single-use kits', 'An intimate setup or 100 appointments a day', 'Dry service. No plumbing, no fumes, no cleanup for the office'],
   },
   {
-    id: 'mindful-reset', name: 'The Mindful Reset', bar: 'navy',
+    id: 'mindful-reset', name: 'The Mindful Reset', tint: '#C7CBFB',
     image: '/conference/services/mindfulness.png',
     meta: 'Facilitated sessions · 30–60 min',
     desc: 'Guided meditation and practical tools for stress and focus, dropped into the workday right where the team needs a breath.',
     bullets: ['Ten people or the whole floor, no cap', 'Morning drop-ins, midday resets, end-of-week wind-downs', 'In a conference room or over Zoom for the people at home'],
   },
   {
-    id: 'studio', name: 'The Studio', bar: 'navy',
+    id: 'studio', name: 'The Studio', tint: '#C7CBFB',
     image: '/conference/services/headshot.png',
     meta: 'Headshots · 8–12 min/session',
     desc: 'A pop-up studio at the office with real lighting and a photographer who directs the shot. A consistent, professional look across the whole team.',
     bullets: ['Pro photographer, lighting rig and posing direction', 'Retouched gallery back in five to seven days', 'Add hair and makeup touch-ups before the shot'],
   },
   {
-    id: 'stretch-lab', name: 'The Stretch Lab', bar: 'cyan',
+    id: 'stretch-lab', name: 'The Stretch Lab', tint: '#9EFAFF',
     image: `${C}/svc/stretch-mobility.webp`,
     meta: 'Assisted stretch · 10–20 min/appointment',
     desc: 'A specialist walks each person through a targeted stretch, one on one. Relief for the necks, shoulders and backs a desk produces.',
     bullets: ['Certified specialists, one on one, fully clothed', 'From a single table to 150 appointments a day', 'We bring the tables. Nothing needed from the office'],
   },
   {
-    id: 'movement-studio', name: 'The Movement Studio', bar: 'pink',
+    id: 'movement-studio', name: 'The Movement Studio', tint: '#F7BBFF',
     image: `${C}/gallery/dance-cardio-gallery.jpg`,
     meta: 'Group classes · 30–60 min',
     desc: 'Yoga, dance cardio, strength or mobility. A gentle morning reset or a real workout, whichever the team needs.',
     bullets: ['Certified instructors who read the room', 'A dozen people or the whole office, no cap', 'Mats, music and setup included. Any conference room, or over video'],
   },
   {
-    id: 'sound-sanctuary', name: 'The Sound Sanctuary', bar: 'sun',
+    id: 'sound-sanctuary', name: 'The Sound Sanctuary', tint: '#FEDC64',
     image: `${C}/svc/crystal-sound-bath-rooftop.webp`,
     meta: 'Crystal sound baths · 30–60 min',
     desc: 'Crystal singing bowls, eyes closed, screens off. The quietest thirty minutes of the workweek, and the one people ask about after.',
@@ -188,25 +178,33 @@ const STERLING_PACKAGES = [
 const PKG_PNG = (src: string) => src.endsWith('.png');
 
 const PKG_GROUPS = [
-  { key: 'fund', chip: 'Fund eligible', chipClass: 'bg-[#9EFAFF] text-shortcut-blue', line: 'Paid through your client’s carrier wellness fund.', pkgs: STERLING_PACKAGES.filter(p => FUND_ELIGIBLE_PKGS.has(p.id)) },
-  { key: 'rate', chip: 'Partner rate · 10% off', chipClass: 'bg-shortcut-coral text-white', line: 'Beauty and headshots, at the SterlingRisk partner rate.', pkgs: STERLING_PACKAGES.filter(p => !FUND_ELIGIBLE_PKGS.has(p.id)) },
+  { key: 'fund', chip: 'Fund eligible', tag: 'Fund eligible', dot: 'bg-[#0098AD]', chipClass: 'bg-[#9EFAFF] text-shortcut-blue', line: 'Paid through your client’s carrier wellness fund.', pkgs: STERLING_PACKAGES.filter(p => FUND_ELIGIBLE_PKGS.has(p.id)) },
+  { key: 'rate', chip: 'Partner rate · 10% off', tag: '10% partner rate', dot: 'bg-shortcut-coral', chipClass: 'bg-shortcut-coral text-white', line: 'Beauty and headshots, at the SterlingRisk partner rate.', pkgs: STERLING_PACKAGES.filter(p => !FUND_ELIGIBLE_PKGS.has(p.id)) },
 ];
 
 const BENEFITS = [
-  { title: 'Fund deployment, done.', body: 'Pre-approval language, carrier-ready invoices, W-9, participation summaries. Your team never touches the paperwork, and neither does your client.' },
-  { title: '10% off the rest of the menu.', body: 'Carrier funds do not cover beauty services or headshots. SterlingRisk clients get 10% off hair, nails, facials and headshots.', badge: 'Partner rate' },
-  { title: 'A renewal story.', body: 'Value found inside a plan your client already pays for. A concrete win to bring to the negotiation, with the participation numbers to back it up.' },
-  { title: 'The whole team, wherever they work.', body: 'Mindfulness, sound baths, yoga and nutrition coaching run in person or over Zoom, so remote employees are covered too. One vendor across your book, nationwide.' },
-  { title: 'CLE for your law firm clients.', body: 'Pause, Breathe, Lead is a New York accredited 1.0 Law Practice Management CLE. We manage the accreditation, attendance tracking and credit reporting.' },
-  { title: 'Programming built around each client.', body: 'Self-funded, 100 plus lives, a brutal busy season. We shape the program to the client, not the other way around.' },
+  { who: 'For you and your clients', title: 'Fund deployment, done.', body: 'Pre-approval language, carrier-ready invoices, W-9, participation summaries. Your team never touches the paperwork, and neither does your client.' },
+  { who: 'For your clients', title: '10% off the rest of the menu.', body: 'Carrier funds do not cover beauty services or headshots. SterlingRisk clients get 10% off hair, nails, facials and headshots.', badge: 'Partner rate' },
+  { who: 'For you', title: 'A renewal story.', body: 'Value found inside a plan your client already pays for. A concrete win to bring to the negotiation, with the participation numbers to back it up.' },
+  { who: 'For your clients', title: 'The whole team, wherever they work.', body: 'Mindfulness, sound baths, yoga and nutrition coaching run in person or over Zoom, so remote employees are covered too. One vendor across your book, nationwide.' },
+  { who: 'For your law firm clients', title: 'CLE for your law firm clients.', body: 'Pause, Breathe, Lead is a New York accredited 1.0 Law Practice Management CLE. We manage the accreditation, attendance tracking and credit reporting.' },
+  { who: 'For your clients', title: 'Programming built around each client.', body: 'Self-funded, 100 plus lives, a brutal busy season. We shape the program to the client, not the other way around.' },
 ];
 
 // How it works: the conference page's numbered step cards.
 const STEPS = [
-  { k: 'Step one', title: 'Pre-approval.', body: 'We send your client’s carrier consultant the event details before the day, in the language they approve.', fill: '#9EFAFF', ink: '#003756' },
-  { k: 'Step two', title: 'The day.', body: 'We run it onsite, open to their whole team. Your client approves a date and does nothing else.', fill: '#FEDC64', ink: '#003756' },
-  { k: 'Step three', title: 'Documentation.', body: 'We format the invoice and the participation summary exactly the way the carrier needs.', fill: '#F7BBFF', ink: '#003756' },
-  { k: 'Step four', title: 'Reimbursed.', body: 'The fund pays. With Aetna, it often pays us directly, so your client never fronts the cash.', fill: '#003756', ink: '#ffffff' },
+  { k: 'Step one', who: 'Shortcut', title: 'Pre-approval.', body: 'We send your client’s carrier consultant the event details before the day, in the language they approve.', fill: '#9EFAFF', ink: '#003756' },
+  { k: 'Step two', who: 'Shortcut and your client', title: 'The day.', body: 'We run it onsite, open to their whole team. Your client approves a date and does nothing else.', fill: '#FEDC64', ink: '#003756' },
+  { k: 'Step three', who: 'Shortcut', title: 'Documentation.', body: 'We format the invoice and the participation summary exactly the way the carrier needs.', fill: '#F7BBFF', ink: '#003756' },
+  { k: 'Step four', who: 'The carrier', title: 'Reimbursed.', body: 'The fund pays. With Aetna, it often pays us directly, so your client never fronts the cash.', fill: '#003756', ink: '#ffffff' },
+];
+
+/* Real event photos for the proof frame, captioned like the conference
+   page's gallery. The Wix shot is portrait, so it letterboxes. */
+const PROOF_GALLERY = [
+  { cap: 'Massage @ BCG', img: `${GAL}/massage/1784325356154-vhti6y.jpg` },
+  { cap: 'Manicures @ DraftKings', img: `${GAL}/nails/1784325589704-cw5v3l.jpg` },
+  { cap: 'Massage @ Wix.com', img: '/wellness-funds/gallery/wix.png', fit: true },
 ];
 
 const CLIENT_LOGOS = [
@@ -268,15 +266,17 @@ function Panel({ id, children, tone = 'white' }: {
   );
 }
 
-function SectionHead({ kicker, title, accent, sub, dark = false }: {
+function SectionHead({ kicker, title, accent, sub, dark = false, wide = false }: {
   kicker: string; title: string; accent?: string; sub?: React.ReactNode; dark?: boolean;
+  /** Let the title run past 22ch, for a title meant to sit on one line. */
+  wide?: boolean;
 }) {
   return (
     <div className="flex flex-col items-center text-center gap-3.5 mb-12 md:mb-14">
       <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${dark ? 'text-shortcut-teal' : INK_META}`}>
         {kicker}
       </p>
-      <h2 className={`m-0 text-[30px] md:text-[44px] font-bold leading-[1.05] tracking-[-.035em] max-w-[22ch] text-balance ${dark ? 'text-white' : 'text-shortcut-blue'}`}>
+      <h2 className={`m-0 text-[30px] md:text-[44px] font-bold leading-[1.05] tracking-[-.035em] ${wide ? 'max-w-none' : 'max-w-[22ch]'} text-balance ${dark ? 'text-white' : 'text-shortcut-blue'}`}>
         {title}
         {accent && <span className="block text-shortcut-coral">{accent}</span>}
       </h2>
@@ -285,6 +285,19 @@ function SectionHead({ kicker, title, accent, sub, dark = false }: {
           {sub}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Photo tile with the caption pill (the conference page's Shot). */
+function Shot({ cap, img, fit = false, className = '' }: { cap: string; img: string; fit?: boolean; className?: string }) {
+  return (
+    <div className={`relative overflow-hidden rounded-[20px] bg-neutral-light-gray ${className}`}>
+      {fit && <img src={img} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full scale-[1.12] object-cover blur-[18px] brightness-[.92]" />}
+      <img src={img} alt={cap} loading="lazy" className={`absolute inset-0 h-full w-full ${fit ? 'object-contain' : 'object-cover object-[center_30%]'}`} />
+      <span className="absolute bottom-3 left-3 max-w-[calc(100%-24px)] inline-flex min-h-[30px] items-center rounded-full bg-white/[.92] px-3 py-1 text-[12px] md:text-[12.5px] font-extrabold leading-tight text-shortcut-blue">
+        {cap}
+      </span>
     </div>
   );
 }
@@ -396,74 +409,6 @@ function NutritionCard({ total }: { total: number }) {
         <span className="text-[17px] sm:text-[20px] font-semibold leading-[1.2] tracking-[-.015em] text-shortcut-blue">Nutrition coaching</span>
         <span className={`text-[13px] sm:text-[14px] font-semibold leading-[1.4] ${INK_META}`}>In person or virtual</span>
       </span>
-    </div>
-  );
-}
-
-/** "Booking in three taps": the three booking screens, cycling. */
-function MiniPhone() {
-  const [screen, setScreen] = useState(0);
-  useEffect(() => {
-    if (prefersReducedMotion()) return;
-    const t = window.setInterval(() => setScreen(i => (i + 1) % 3), 2400);
-    return () => window.clearInterval(t);
-  }, []);
-  const show = (i: number) => `absolute inset-0 transition-opacity duration-500 ${screen === i ? 'opacity-100' : 'opacity-0 pointer-events-none'}`;
-  const opt = 'flex items-center justify-between rounded-[9px] border-[1.5px] px-2.5 py-[7px] mb-1.5 text-[11px] font-semibold text-[#032232]';
-  return (
-    <div className="w-[200px] rounded-t-[18px] bg-white px-3 pt-3 pb-3.5 shadow-[0_-6px_24px_rgba(3,34,50,.18)]">
-      <div className="mb-2 flex items-center gap-1.5 border-b border-[#eef2f4] pb-2 text-[10.5px] font-bold text-[#032232]">
-        <span className="grid h-4 w-4 place-items-center rounded-full bg-shortcut-coral text-[9px] font-bold text-white">A</span>
-        Wellness Day
-        <span className="ml-auto font-semibold text-[#9ab1ba]">{screen + 1}/3</span>
-      </div>
-      <div className="relative h-[114px]">
-        <div className={show(0)}>
-          <p className="m-0 mb-1.5 text-[9.5px] font-bold uppercase tracking-[.08em] text-[#9ab1ba]">Pick your service</p>
-          <div className={`${opt} border-shortcut-coral bg-shortcut-coral/[.06]`}>Chair massage<i className="h-3 w-3 rounded-full border-[1.5px] border-shortcut-coral bg-shortcut-coral shadow-[inset_0_0_0_2.5px_#fff]" /></div>
-          <div className={`${opt} border-[#E2E9E8]`}>Table massage<i className="h-3 w-3 rounded-full border-[1.5px] border-[#cfd9d8]" /></div>
-          <div className="rounded-[9px] bg-shortcut-coral py-2 text-center text-[11px] font-bold text-white">Next</div>
-        </div>
-        <div className={show(1)}>
-          <p className="m-0 mb-1.5 text-[9.5px] font-bold uppercase tracking-[.08em] text-[#9ab1ba]">Pick your time</p>
-          <div className="mb-1.5 grid grid-cols-2 gap-[5px] text-center text-[10.5px] font-bold text-[#032232]">
-            <span className="rounded-lg border-[1.5px] border-[#E2E9E8] py-1.5">11:00</span>
-            <span className="rounded-lg border-[1.5px] border-[#E2E9E8] py-1.5 line-through opacity-35">11:20</span>
-            <span className="rounded-lg border-[1.5px] border-shortcut-coral bg-shortcut-coral py-1.5 text-white">11:40</span>
-            <span className="rounded-lg border-[1.5px] border-[#E2E9E8] py-1.5">12:00</span>
-          </div>
-          <div className="rounded-[9px] bg-shortcut-coral py-2 text-center text-[11px] font-bold text-white">Book my slot</div>
-        </div>
-        <div className={show(2)}>
-          <div className="mx-auto mb-2 mt-2.5 grid h-[30px] w-[30px] place-items-center rounded-full bg-[#55BA90]">
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-white [stroke-width:3]"><path d="M20 6 9 17l-5-5" /></svg>
-          </div>
-          <div className="text-center text-[13px] font-extrabold text-[#032232]">You&rsquo;re booked!</div>
-          <div className="mt-[3px] text-center text-[10px] text-[#7d939e]">Chair massage · 11:40 AM</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** "One vendor. Every office.": the coverage map, dots popping in on view. */
-function CoverageMap() {
-  const { ref, inView } = useInView<HTMLDivElement>(0.3);
-  return (
-    <div ref={ref} className="relative mt-auto pt-3">
-      <img className="block h-auto w-full" src={`${A}/onepager/us-map.svg`} alt="Shortcut coverage across the US" />
-      <svg className="absolute inset-x-0 bottom-0 top-3 h-[calc(100%-12px)] w-full overflow-visible" viewBox="0 0 960 593" aria-hidden="true">
-        {MAP_DOTS.map(([cx, cy], idx) => (
-          <g
-            key={idx}
-            className={`transition-transform duration-[550ms] ease-[cubic-bezier(.22,1.5,.5,1)] ${inView ? 'scale-100' : 'scale-0'}`}
-            style={{ transformOrigin: `${cx}px ${cy}px`, transitionDelay: `${(0.4 + idx * 0.06).toFixed(2)}s` }}
-          >
-            <circle cx={cx} cy={cy} r="16" fill="#FF5050" opacity=".25" />
-            <circle cx={cx} cy={cy} r="7" fill="#FF5050" />
-          </g>
-        ))}
-      </svg>
     </div>
   );
 }
@@ -621,6 +566,7 @@ export default function SterlingPartnerPage() {
         <Panel id="funds">
           <SectionHead
             kicker="The funds"
+            wide
             title="Three carriers, three wellness funds."
             accent="We know how to put them to work."
           />
@@ -692,28 +638,34 @@ export default function SterlingPartnerPage() {
             ))}
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {PKG_GROUPS.flatMap(group => group.pkgs.map(pkg => (
-              <div key={pkg.id} className={`${CARD} row-span-5 grid grid-rows-subgrid gap-0 overflow-hidden`}>
-                <div className="relative aspect-[16/10] overflow-hidden bg-neutral-light-gray">
-                  <img src={pkg.image} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${PKG_PNG(pkg.image) ? 'scale-110' : ''}`} />
-                  <span className={`absolute right-3 top-3 inline-flex h-7 items-center rounded-full border-2 border-white px-2.5 text-[10.5px] font-extrabold uppercase tracking-[.06em] shadow-[0_2px_10px_rgba(3,34,50,.25)] ${group.chipClass}`}>
-                    {group.key === 'fund' ? 'Fund eligible' : '10% off'}
-                  </span>
-                </div>
-                <div className={`px-6 py-3 text-[17px] font-bold tracking-[-.015em] ${BAR[pkg.bar]}`}>{pkg.name}</div>
-                <p className={`m-0 px-6 pt-5 text-[13.5px] font-semibold leading-[1.4] ${INK_META}`}>{pkg.meta}</p>
-                <p className={`m-0 px-6 pt-2.5 text-[15px] font-medium leading-[1.55] ${INK}`}>{pkg.desc}</p>
-                <div className="px-6 pb-7 pt-5">
-                  <ul className="m-0 grid list-none gap-2.5 border-t border-[#E2E9E8] p-0 pt-5">
+            {PKG_GROUPS.flatMap(group => group.pkgs.map(pkg => {
+              const [kind, length] = pkg.meta.split(' · ');
+              return (
+                <div key={pkg.id} className={`${CARD} row-span-6 grid grid-rows-subgrid gap-0 overflow-hidden`}>
+                  <div className="relative aspect-[4/3] overflow-hidden" style={{ background: pkg.tint }}>
+                    <img src={pkg.image} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${PKG_PNG(pkg.image) ? 'scale-110' : ''}`} />
+                    <span className="absolute bottom-3 left-3 inline-flex min-h-[30px] items-center gap-2 rounded-full bg-white/[.94] px-3 py-1 text-[12.5px] font-extrabold leading-tight text-shortcut-blue">
+                      <i className={`h-2 w-2 flex-none rounded-full ${group.dot}`} />
+                      {group.tag}
+                    </span>
+                  </div>
+                  <p className={`${CARD_KICKER} ${INK_META} px-7 pt-7`}>{kind}</p>
+                  <h3 className={`${CARD_TITLE} px-7 pt-3 text-shortcut-blue`}>{pkg.name}</h3>
+                  <p className={`${CARD_BODY} px-7 pt-3 ${INK}`}>{pkg.desc}</p>
+                  <ul className="m-0 mx-7 mt-6 grid list-none content-start gap-2.5 border-t border-[#E2E9E8] p-0 pt-5">
                     {pkg.bullets.map(b => (
-                      <li key={b} className="flex gap-2.5 text-[14px] font-medium leading-[1.45] text-shortcut-blue">
-                        <span className="mt-[1px] grid h-[18px] w-[18px] flex-none place-items-center rounded-full bg-[#9EFAFF] text-[10px] font-extrabold text-shortcut-blue">✓</span>{b}
+                      <li key={b} className={`flex gap-2.5 text-[14.5px] font-medium leading-[1.45] ${INK}`}>
+                        <span className="mt-[8px] h-1.5 w-1.5 flex-none rounded-full bg-shortcut-teal" />{b}
                       </li>
                     ))}
                   </ul>
+                  <p className={`m-0 mx-7 mb-7 mt-6 flex items-center gap-2 border-t border-[#E2E9E8] pt-4 text-[13.5px] font-semibold ${INK_META}`}>
+                    <Clock size={15} strokeWidth={2.4} className="flex-none text-shortcut-blue" />
+                    {length}
+                  </p>
                 </div>
-              </div>
-            )))}
+              );
+            }))}
           </div>
           <p className={`m-0 mx-auto mt-12 max-w-[62ch] text-center text-[16px] md:text-[17px] font-medium leading-[1.55] ${INK}`}>
             Every package includes <b className="font-bold text-shortcut-blue">pros, gear, setup, self-serve booking, digital invites and onsite signage</b>. Fund eligible packages can be paid through your client&rsquo;s carrier wellness fund. Everything else carries the 10% partner rate.
@@ -735,7 +687,8 @@ export default function SterlingPartnerPage() {
                     {b.badge}
                   </span>
                 )}
-                <h3 className={`${CARD_TITLE} text-shortcut-blue`}>{b.title}</h3>
+                <p className={`${CARD_KICKER} ${INK_META}`}>{b.who}</p>
+                <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>{b.title}</h3>
                 <p className={`${CARD_BODY} mt-3 ${INK}`}>{b.body}</p>
               </div>
             ))}
@@ -749,41 +702,7 @@ export default function SterlingPartnerPage() {
             title="Wellness their people show up for."
             accent="Loved by their teams. All handled for you."
           />
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <div className={`${CARD_R} flex md:min-h-[400px] flex-col overflow-hidden bg-[#9EFBFF] px-7 md:px-8 pt-7 md:pt-8 ${SHADOW}`}>
-              <p className={`${CARD_KICKER} text-[#018EA2]`}>The Shortcut pros</p>
-              <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>Pros you&rsquo;d book yourself.</h3>
-              <p className={`${CARD_BODY} mt-3 text-[#032232]/75`}>Licensed, vetted and insured, professional, personal, reliable.</p>
-              {/* The PNG carries a hairline about 1% from its top edge; the clip hides it. */}
-              <img className="mx-auto mt-auto block h-[240px] md:h-[290px] w-auto [clip-path:inset(1.6%_0_0_0)]" src={`${A}/onepager/pros-guy-flush.png`} alt="A Shortcut pro" />
-            </div>
-            <div className={`${CARD_R} flex md:min-h-[400px] flex-col overflow-hidden bg-[linear-gradient(160deg,#FF6A5A,#FF5050)] px-7 md:px-8 pt-7 md:pt-8 ${SHADOW}`}>
-              <p className={`${CARD_KICKER} text-white/85`}>Seamless tech</p>
-              <h3 className={`${CARD_TITLE} mt-3 text-white`}>Booking in three taps.</h3>
-              <p className={`${CARD_BODY} mt-3 text-white/90`}>Employees pick their own slot, no spreadsheets, no chasing.</p>
-              <div className="mt-auto flex justify-center pt-8 md:pt-16"><div className="origin-bottom md:scale-[1.3]"><MiniPhone /></div></div>
-            </div>
-            <div className={`${CARD_R} flex md:min-h-[400px] flex-col overflow-hidden bg-[linear-gradient(160deg,#0A3E5C,#06293D)] px-7 md:px-8 pt-7 md:pt-8 pb-6 ${SHADOW}`}>
-              <p className={`${CARD_KICKER} text-shortcut-teal`}>Nationwide coverage</p>
-              <h3 className={`${CARD_TITLE} mt-3 text-white`}>One vendor. <span className="text-shortcut-teal">Every office.</span></h3>
-              <p className={`${CARD_BODY} mt-3 text-white/75`}>One vetted network across all 50 states, one team to call.</p>
-              <CoverageMap />
-            </div>
-            <div className={`${CARD_R} flex md:min-h-[400px] flex-col overflow-hidden bg-[linear-gradient(160deg,#9EFAFF,#6FE9F0)] px-7 md:px-8 pt-7 md:pt-8 pb-7 ${SHADOW}`}>
-              <p className={`${CARD_KICKER} text-[#018EA2]`}>We fill every slot</p>
-              <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>Turnout. Solved.</h3>
-              <p className={`${CARD_BODY} mt-3 text-[#032232]/75`}>Digital invites and onsite signage fill the calendar for you.</p>
-              <div className="mt-auto pt-6">
-                <div className="text-[52px] font-bold leading-none tracking-[-.04em] text-shortcut-blue">92%</div>
-                <div className="mt-1.5 text-[14px] font-semibold text-[#175071]">of booked slots get used</div>
-                <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#032232]/[.14]"><i className="block h-full w-[92%] rounded-full bg-shortcut-coral" /></div>
-                <div className="mt-4 flex gap-2.5">
-                  <div className="flex-1 rounded-xl bg-white/60 px-3 py-2.5"><b className="block text-[20px] font-bold text-shortcut-blue">87%</b><span className="text-[12px] font-semibold text-[#175071]">of companies rebook</span></div>
-                  <div className="flex-1 rounded-xl bg-white/60 px-3 py-2.5"><b className="block text-[20px] font-bold text-shortcut-blue">0</b><span className="text-[12px] font-semibold text-[#175071]">admin work for you</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SterlingBento />
         </Panel>
 
         {/* ══════════ HOW IT WORKS ══════════ */}
@@ -797,7 +716,7 @@ export default function SterlingPartnerPage() {
             {STEPS.map((p, i) => (
               <li
                 key={p.title}
-                className={`relative flex min-h-[260px] flex-col overflow-hidden ${CARD_R} px-7 md:px-8 pt-7 md:pt-8 pb-[92px]`}
+                className={`relative flex min-h-[280px] flex-col overflow-hidden ${CARD_R} px-7 md:px-8 pt-7 md:pt-8 pb-[104px]`}
                 style={{ background: p.fill, color: p.ink }}
               >
                 <span aria-hidden="true" className="pointer-events-none absolute -bottom-[46px] -right-1 text-[132px] font-extrabold leading-none tracking-[-.06em] opacity-[.14]">
@@ -806,6 +725,9 @@ export default function SterlingPartnerPage() {
                 <p className={`${CARD_KICKER} relative opacity-70`}>{p.k}</p>
                 <h3 className={`${CARD_TITLE} relative mt-3 [color:inherit]`}>{p.title}</h3>
                 <p className={`${CARD_BODY} relative mt-3 opacity-90`}>{p.body}</p>
+                <span className="absolute bottom-7 left-7 md:left-8 inline-flex h-7 items-center rounded-full bg-white/90 px-3 text-[12px] font-extrabold text-shortcut-blue">
+                  {p.who}
+                </span>
               </li>
             ))}
           </ol>
@@ -828,6 +750,14 @@ export default function SterlingPartnerPage() {
                 <div className="mt-2 md:mt-3 text-[13px] md:text-[17px] font-medium leading-[1.35] md:leading-[1.45] text-white/85">{st.label}</div>
               </div>
             ))}
+          </div>
+
+          <div className={`${FRAME} mt-5 shadow-[0_30px_70px_rgba(0,0,0,.25)]`}>
+            <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-[1.25fr_1fr_1fr]">
+              {PROOF_GALLERY.map((g, i) => (
+                <Shot key={g.cap} cap={g.cap} img={g.img} fit={g.fit} className={`${i === 0 ? 'col-span-2 md:col-span-1 h-[260px]' : 'h-[240px]'} md:h-[440px]`} />
+              ))}
+            </div>
           </div>
 
           <div className={`mt-5 flex flex-col gap-7 ${CARD_R} bg-white py-9`} aria-label="Clients including DraftKings, the NFL, BCG, Wix, Tripadvisor, PwC, Paramount, Warner Bros., White & Case and MTV">
