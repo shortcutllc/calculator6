@@ -36,7 +36,6 @@ const CTA_BTN = 'h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-
 
 const MAILTO = 'mailto:caren@getshortcut.co';
 
-const A = '/wellness-funds';
 // Gallery = real event media (Will 2026-07-11): Cencora massage photo (from the proposal
 // gallery, Supabase storage), plus the DraftKings/BCG/Wix event tiles. All tagged
 // "Service @ Company".
@@ -56,6 +55,17 @@ const FUND_SERVICES: MenuService[] = FUND_SERVICE_IDS
   .filter((s): s is MenuService => !!s);
 // Sound-bath card art is photographic; keep the menu page's framing.
 const ART_POS: Record<string, string> = { 'sound-bath': 'center 42%' };
+// One line per card, as the conference page's station cards carry.
+const CARD_LINE: Record<string, string> = {
+  massage: 'We turn a conference room into a spa for the day. Chairs, tables, screens and scents, all ours.',
+  'assisted-stretch': 'A specialist walks each person through a targeted stretch, one on one, fully clothed.',
+  mindfulness: 'Guided meditation and practical tools for stress and focus, in the office or over Zoom.',
+  'sound-bath': 'Crystal singing bowls, eyes closed, screens off. The quietest thirty minutes of the workweek.',
+  yoga: 'A gentle morning reset or a midday stretch, on a mat or right at the desk.',
+  'strength-sculpt': 'A real workout with a certified instructor, in any conference room or over video.',
+  'dance-cardio': 'Easy to follow and high energy. No experience needed, just a free half hour.',
+  'somatic-movement': 'Slow, guided movement paired with sound bowls to release a week of tension.',
+};
 // Card tints: the conference page's station palette.
 const TINT: Record<string, string> = {
   massage: '#9EFAFF', 'assisted-stretch': '#A9F0CC', mindfulness: '#C7CBFB', 'sound-bath': '#FFCBA6',
@@ -349,18 +359,20 @@ const STATS = [
   { end: 87, suffix: '%', label: 'of companies rebook' },
 ];
 
-/** The menu card: the conference page's station card (tinted art, `+` corner,
- *  name and meta under it). */
-function ServiceCard({ s, onOpen }: { s: MenuService; onOpen?: () => void }) {
-  const Tag = onOpen ? 'button' : 'div';
+/** The conference page's station card: tinted art tile with a `+` in the
+ *  corner, then name, meta and a short line. The whole card opens the
+ *  pop-out. PNG art carries a baked white margin, hence the 1.1 crop. */
+function ServiceCard({ s, onOpen }: { s: MenuService; onOpen: () => void }) {
   return (
-    <Tag
-      {...(onOpen ? { type: 'button' as const, onClick: onOpen, 'aria-label': `More about ${s.name.toLowerCase()}` } : {})}
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`More about ${s.name.toLowerCase()}`}
       className="group flex flex-col text-left"
     >
       <span
         className={`relative block aspect-[4/3] w-full overflow-hidden rounded-[22px] ${SHADOW}`}
-        style={{ background: TINT[s.id] || '#55BA90' }}
+        style={{ background: TINT[s.id] || '#EAF7F8' }}
       >
         <img
           src={s.image}
@@ -369,61 +381,26 @@ function ServiceCard({ s, onOpen }: { s: MenuService; onOpen?: () => void }) {
           className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 ${s.cropArt ? 'scale-110 group-hover:scale-[1.14]' : 'group-hover:scale-[1.04]'}`}
           style={ART_POS[s.id] || s.imagePos ? { objectPosition: ART_POS[s.id] || s.imagePos } : undefined}
         />
-        {onOpen && (
-          <span className="absolute right-2.5 top-2.5 sm:right-3.5 sm:top-3.5 z-[2] grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-full bg-white text-[24px] font-medium leading-none text-shortcut-blue shadow-[0_2px_10px_rgba(3,34,50,.18)] transition-transform duration-300 group-hover:scale-110">
-            +
-          </span>
-        )}
+        <span className="absolute right-2.5 top-2.5 sm:right-3.5 sm:top-3.5 z-[2] grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-full bg-white text-[24px] font-medium leading-none text-shortcut-blue shadow-[0_2px_10px_rgba(3,34,50,.18)] transition-transform duration-300 group-hover:scale-110">
+          +
+        </span>
       </span>
       <span className="flex flex-col gap-1.5 px-0.5 pt-3.5 sm:pt-[18px]">
         <span className="text-[17px] sm:text-[20px] font-semibold leading-[1.2] tracking-[-.015em] text-shortcut-blue">{s.name}</span>
         <span className={`text-[13px] sm:text-[14px] font-semibold leading-[1.4] ${INK_META}`}>{s.meta}</span>
+        <span className={`mt-1 hidden sm:block text-[15.5px] font-medium leading-[1.55] ${INK}`}>{CARD_LINE[s.id]}</span>
       </span>
-    </Tag>
-  );
-}
-
-/* Nutrition closes the menu grid. It widens to fill whatever the last row
-   leaves open, so the grid never ends on a lone card: across both columns
-   on phones when the count is odd, and across two or three columns on
-   desktop. Spelled out in full so Tailwind keeps the classes. */
-const NUTRI_SPAN: Record<string, string> = {
-  'odd-0': 'col-span-2 xl:col-span-1', 'odd-1': 'col-span-2 xl:col-span-3', 'odd-2': 'col-span-2 xl:col-span-2',
-  'even-0': 'col-span-1 xl:col-span-1', 'even-1': 'col-span-1 xl:col-span-3', 'even-2': 'col-span-1 xl:col-span-2',
-};
-const NUTRI_ART: Record<string, string> = {
-  'odd-0': 'aspect-[8/3] xl:aspect-[4/3]', 'odd-1': 'aspect-[8/3] xl:aspect-[4/1]', 'odd-2': 'aspect-[8/3] xl:aspect-[8/3]',
-  'even-0': 'aspect-[4/3]', 'even-1': 'aspect-[4/3] xl:aspect-[4/1]', 'even-2': 'aspect-[4/3] xl:aspect-[8/3]',
-};
-
-/** Nutrition coaching runs remote too, but has no pop-out of its own.
- *  `total` is the number of cards in the grid, this one included. */
-function NutritionCard({ total }: { total: number }) {
-  const key = `${total % 2 ? 'odd' : 'even'}-${total % 3}`;
-  return (
-    <div className={`flex flex-col text-left ${NUTRI_SPAN[key]}`}>
-      <span className={`relative block w-full overflow-hidden rounded-[22px] bg-[#55BA90] ${NUTRI_ART[key]} ${SHADOW}`}>
-        <img src={`${A}/onepager/nutrition-avocado.png`} alt="" loading="lazy" className="absolute inset-0 m-auto h-[76%] w-auto max-w-[60%] object-contain" />
-      </span>
-      <span className="flex flex-col gap-1.5 px-0.5 pt-3.5 sm:pt-[18px]">
-        <span className="text-[17px] sm:text-[20px] font-semibold leading-[1.2] tracking-[-.015em] text-shortcut-blue">Nutrition coaching</span>
-        <span className={`text-[13px] sm:text-[14px] font-semibold leading-[1.4] ${INK_META}`}>In person or virtual</span>
-      </span>
-    </div>
+    </button>
   );
 }
 
 export default function SterlingPartnerPage() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  const [mode, setMode] = useState<'all' | 'remote'>('all');
   const [stageIdx, setStageIdx] = useState(0);
   const [activeSection, setActiveSection] = useState('');
   const gallery = useGalleryByKey();
 
-  // "On-site or remote" filters like /menu: remote-capable services only.
-  const visibleServices = mode === 'remote' ? FUND_SERVICES.filter(s => s.remote) : FUND_SERVICES;
-  const visibleCount = visibleServices.length + 1; // + nutrition, which runs remote too
-  const stations = useMemo(() => visibleServices.map(toStation), [visibleServices]);
+  const stations = useMemo(() => FUND_SERVICES.map(toStation), []);
 
   useEffect(() => {
     document.title = 'Shortcut × SterlingRisk';
@@ -448,7 +425,7 @@ export default function SterlingPartnerPage() {
 
   const tocItems = [
     { id: 'funds', label: 'The funds' },
-    { id: 'menu', label: 'The menu' },
+    { id: 'menu', label: 'Services' },
     { id: 'packages', label: 'Packages' },
     { id: 'benefits', label: 'Partner benefits' },
     { id: 'how', label: 'How it works' },
@@ -581,7 +558,7 @@ export default function SterlingPartnerPage() {
               </div>
             ))}
           </div>
-          <p className={`m-0 mx-auto mt-10 max-w-[60ch] text-center text-[17px] md:text-[19px] font-medium leading-[1.55] ${INK}`}>
+          <p className={`m-0 mx-auto mt-12 max-w-[60ch] text-center text-[17px] md:text-[19px] font-medium leading-[1.55] ${INK}`}>
             Your clients are sitting on unused wellness funds, either because they do not know the funds exist or because they cannot find a reliable partner to deploy them with. <b className="font-bold text-shortcut-blue">We are that partner.</b> Pre-approval language, carrier paperwork, the day itself, all handled. You bring the win to renewal.
           </p>
         </Panel>
@@ -589,37 +566,13 @@ export default function SterlingPartnerPage() {
         {/* ══════════ THE MENU ══════════ */}
         <Panel id="menu" tone="tint">
           <SectionHead
-            kicker="The menu"
-            title="What the fund covers."
-            accent="Massage to mindfulness, all fund eligible."
+            kicker="What the fund covers"
+            title="Services their teams line up for."
+            sub="Your clients can pick one or multiple services. Every one is fund eligible."
           />
-          <div className="mb-8 flex flex-wrap items-center justify-center gap-4">
-            <div className="flex gap-1 rounded-full bg-white p-1 shadow-[0_1px_2px_rgba(3,34,50,.05)]" role="radiogroup" aria-label="Where">
-              {([
-                { v: 'all' as const, l: 'All services' },
-                { v: 'remote' as const, l: 'On-site or remote' },
-              ]).map(opt => (
-                <button
-                  key={opt.v}
-                  type="button"
-                  role="radio"
-                  aria-checked={mode === opt.v}
-                  onClick={() => { setMode(opt.v); setOpenIdx(null); }}
-                  className={`rounded-full px-4 py-2 text-[13.5px] font-bold transition-colors ${mode === opt.v ? 'bg-shortcut-blue text-white' : `${INK_META} hover:text-shortcut-blue`}`}
-                >
-                  {opt.l}
-                </button>
-              ))}
-            </div>
-            <span className={`text-[13.5px] font-semibold ${INK_META}`}>{visibleCount} service{visibleCount === 1 ? '' : 's'}</span>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-10 xl:grid-cols-4">
+            {FUND_SERVICES.map((s, i) => <ServiceCard key={s.id} s={s} onOpen={() => setOpenIdx(i)} />)}
           </div>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-10 xl:grid-cols-3">
-            {visibleServices.map((s, i) => <ServiceCard key={s.id} s={s} onOpen={() => setOpenIdx(i)} />)}
-            <NutritionCard total={visibleCount} />
-          </div>
-          <p className={`m-0 mx-auto mt-12 max-w-[58ch] text-center text-[16px] md:text-[17px] font-medium leading-[1.55] ${INK}`}>
-            Delivered onsite by <b className="font-bold text-shortcut-blue">licensed, vetted pros</b>, one team running the whole day, and your clients&rsquo; remote employees are covered too.
-          </p>
         </Panel>
 
         {/* ══════════ PACKAGES ══════════ */}
@@ -681,7 +634,7 @@ export default function SterlingPartnerPage() {
           />
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {BENEFITS.map(b => (
-              <div key={b.title} className={`${CARD} ${CARD_PAD} relative ${b.badge ? '!border-2 !border-shortcut-coral' : ''}`}>
+              <div key={b.title} className={`${CARD} ${CARD_PAD} relative row-span-3 grid grid-rows-subgrid content-start gap-0 ${b.badge ? '!border-shortcut-coral ring-1 ring-shortcut-coral' : ''}`}>
                 {b.badge && (
                   <span className="absolute -top-3 right-6 inline-flex h-6 items-center rounded-full bg-shortcut-coral px-3 text-[11px] font-extrabold uppercase tracking-[.08em] text-white">
                     {b.badge}
@@ -699,6 +652,7 @@ export default function SterlingPartnerPage() {
         <Panel id="apart">
           <SectionHead
             kicker="What sets us apart"
+            wide
             title="Wellness their people show up for."
             accent="Loved by their teams. All handled for you."
           />
