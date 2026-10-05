@@ -641,15 +641,12 @@ const EmployeeGallery: React.FC = () => {
                           </svg>
                         </button>
                       </div>
-                      <div className="flex items-center justify-between px-4 py-3.5">
-                        <p className="text-[13.5px] font-bold text-[#003756]">
-                          {photo.photo_name || 'Final headshot'}
-                        </p>
+                      <div className="p-4">
                         <button
                           onClick={() => handleDownload(photo.photo_url, photo.photo_name || 'final-headshot.jpg')}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-[#FF5050] px-4 py-2 text-[12.5px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.03]"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#FF5050] px-4 py-3 text-[14px] font-bold text-white shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform hover:scale-[1.02]"
                         >
-                          <Download className="h-3.5 w-3.5" />
+                          <Download className="h-4 w-4" />
                           Download
                         </button>
                       </div>
@@ -839,7 +836,7 @@ const EmployeeGallery: React.FC = () => {
             <img
               src={expandedPhoto.photo_url}
               alt={expandedPhoto.photo_name || 'Headshot'}
-              className="max-h-full max-w-full select-none rounded-[18px] object-contain"
+              className="max-h-[calc(100dvh-2rem)] max-w-full select-none rounded-[18px] object-contain"
               onContextMenu={(e) => e.preventDefault()}
               onDragStart={(e) => e.preventDefault()}
               draggable={false}
