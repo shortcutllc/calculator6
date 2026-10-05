@@ -384,7 +384,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
       await HeadshotService.updateEmployeeGallery(editingEmployee.id, {
         employee_name: formData.name,
         email: formData.email,
-        phone: formData.phone || undefined
+        phone: formData.phone.trim() || null
       });
       
       setEditingEmployee(null);
@@ -416,6 +416,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
   };
 
   const startEdit = (employee: EmployeeGallery) => {
+    setShowAddForm(false);
     setEditingEmployee(employee);
     setFormData({
       name: employee.employee_name,
@@ -436,6 +437,67 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
     setFormData({ name: '', email: '', phone: '' });
     setErrors({});
   };
+
+  // One form for add and edit. Edit renders it in the person's own card so it
+  // opens where the click happened, not at the top of a long list.
+  const renderForm = () => (
+    <Card tone="mist" className="p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <h4 className="text-[15px] font-extrabold text-[#003756]">
+          {editingEmployee ? 'Edit their details' : 'Add someone'}
+        </h4>
+        <button
+          onClick={editingEmployee ? cancelEdit : cancelAdd}
+          className={`${SOFT} transition-colors hover:text-[#003756]`}
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {([
+          { key: 'name', label: 'Name', type: 'text', placeholder: 'Jane Smith' },
+          { key: 'email', label: 'Email', type: 'email', placeholder: 'jane@company.com' },
+          { key: 'phone', label: 'Phone', type: 'tel', placeholder: 'For text reminders' },
+        ] as const).map(f => (
+          <Field key={f.key} label={f.label}>
+            <input
+              type={f.type}
+              value={formData[f.key]}
+              onChange={(e) => setFormData(prev => ({ ...prev, [f.key]: e.target.value }))}
+              className={`${inputClass} ${errors[f.key] ? 'border-[#FF5050]' : ''}`}
+              placeholder={f.placeholder}
+            />
+            {errors[f.key] && (
+              <p className="mt-1.5 text-[13px] font-bold text-[#FF5050]">{errors[f.key]}</p>
+            )}
+          </Field>
+        ))}
+      </div>
+
+      <div className="mt-5 flex gap-3">
+        <CoralButton
+          onClick={editingEmployee ? handleEditEmployee : handleAddEmployee}
+          disabled={saving}
+          className="px-5 py-2.5 text-[13.5px]"
+        >
+          {saving ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {saving ? 'Saving...' : editingEmployee ? 'Save changes' : 'Add person'}
+        </CoralButton>
+        <OutlineButton
+          onClick={editingEmployee ? cancelEdit : cancelAdd}
+          className="px-5 py-2.5 text-[13.5px]"
+        >
+          Cancel
+        </OutlineButton>
+      </div>
+    </Card>
+  );
 
   if (loading) {
     return (
@@ -484,65 +546,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
         </select>
       </div>
 
-      {/* Add or edit, one form for both */}
-      {(showAddForm || editingEmployee) && (
-        <Card tone="mist" className="p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h4 className="text-[15px] font-extrabold text-[#003756]">
-              {editingEmployee ? 'Edit their details' : 'Add someone'}
-            </h4>
-            <button
-              onClick={editingEmployee ? cancelEdit : cancelAdd}
-              className={`${SOFT} transition-colors hover:text-[#003756]`}
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {([
-              { key: 'name', label: 'Name', type: 'text', placeholder: 'Jane Smith' },
-              { key: 'email', label: 'Email', type: 'email', placeholder: 'jane@company.com' },
-              { key: 'phone', label: 'Phone', type: 'tel', placeholder: 'For text reminders' },
-            ] as const).map(f => (
-              <Field key={f.key} label={f.label}>
-                <input
-                  type={f.type}
-                  value={formData[f.key]}
-                  onChange={(e) => setFormData(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  className={`${inputClass} ${errors[f.key] ? 'border-[#FF5050]' : ''}`}
-                  placeholder={f.placeholder}
-                />
-                {errors[f.key] && (
-                  <p className="mt-1.5 text-[13px] font-bold text-[#FF5050]">{errors[f.key]}</p>
-                )}
-              </Field>
-            ))}
-          </div>
-
-          <div className="mt-5 flex gap-3">
-            <CoralButton
-              onClick={editingEmployee ? handleEditEmployee : handleAddEmployee}
-              disabled={saving}
-              className="px-5 py-2.5 text-[13.5px]"
-            >
-              {saving ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {saving ? 'Saving...' : editingEmployee ? 'Save changes' : 'Add person'}
-            </CoralButton>
-            <OutlineButton
-              onClick={editingEmployee ? cancelEdit : cancelAdd}
-              className="px-5 py-2.5 text-[13.5px]"
-            >
-              Cancel
-            </OutlineButton>
-          </div>
-        </Card>
-      )}
+      {showAddForm && !editingEmployee && renderForm()}
 
       {/* People */}
       <div className="space-y-3">
@@ -564,6 +568,10 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({
             const hasPhotos = !!employee.photos && employee.photos.length > 0;
             const hasFinal = !!employee.photos?.some(p => p.is_final);
             const busy = sendingEmails.has(employee.id);
+
+            if (editingEmployee?.id === employee.id) {
+              return <div key={employee.id}>{renderForm()}</div>;
+            }
 
             return (
               <Card key={employee.id} className="p-5">

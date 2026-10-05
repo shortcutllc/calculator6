@@ -320,7 +320,7 @@ export class HeadshotService {
 
   static async updateEmployeeGallery(
     galleryId: string, 
-    updates: { employee_name?: string; email?: string; phone?: string }
+    updates: { employee_name?: string; email?: string; phone?: string | null }
   ): Promise<EmployeeGallery> {
     const { data, error } = await supabase
       .from('employee_galleries')
