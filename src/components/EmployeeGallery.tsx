@@ -64,6 +64,7 @@ const ActionRail: React.FC<{
   deadlineLabel, notes, setNotes, onSaveNotes, savingNotes,
 }) => {
   const picked = selectedPhotos.length;
+  const multiFinal = photos.filter(p => p.is_final).length > 1;
   const left = maxPicks - picked;
   const choosing = canChangeSelection && !hasFinalPhoto && !isDeadlinePassed;
   const byId = (id: string) => photos.find(p => p.id === id);
@@ -189,7 +190,9 @@ const ActionRail: React.FC<{
         <>
           <p className={`mt-1 text-[14px] leading-[1.5] ${SOFT}`}>
             {hasFinalPhoto
-              ? 'Your retouched photo is ready to download on the left.'
+              ? multiFinal
+                ? 'Your retouched photos are ready to download on the left.'
+                : 'Your retouched photo is ready to download on the left.'
               : isDeadlinePassed && !isSelectionMade
               ? 'The deadline has passed. Email us and we will see what we can do.'
               : 'We are retouching your pick now. We will email you when it is ready.'}
@@ -496,6 +499,7 @@ const EmployeeGallery: React.FC = () => {
   const maxPicks = HeadshotService.selectionsAllowed(eventData);
   const picksLeft = maxPicks - selectedPhotos.length;
   const hasFinalPhoto = photos.some(photo => photo.is_final);
+  const multiFinal = photos.filter(photo => photo.is_final).length > 1;
   const firstName = gallery.employee_name?.split(' ')[0] || gallery.employee_name;
 
   const deadlineLabel = eventData?.selection_deadline ? (() => {
@@ -506,7 +510,7 @@ const EmployeeGallery: React.FC = () => {
   })() : null;
 
   const statusPill = hasFinalPhoto ? (
-    <span className="flex-none rounded-full bg-[#003756] px-4 py-2 text-[12px] font-extrabold text-[#9EFAFF]">Final photo ready</span>
+    <span className="flex-none rounded-full bg-[#003756] px-4 py-2 text-[12px] font-extrabold text-[#9EFAFF]">{multiFinal ? 'Final photos ready' : 'Final photo ready'}</span>
   ) : isSelectionMade ? (
     <span className="flex-none rounded-full bg-[#9EFAFF] px-4 py-2 text-[12px] font-extrabold text-[#003756]">Selection confirmed</span>
   ) : (
@@ -526,7 +530,9 @@ const EmployeeGallery: React.FC = () => {
           </p>
           <h1 className="text-[clamp(28px,4vw,40px)] font-extrabold leading-[1.06] tracking-[-.03em] text-[#003756]">
             {hasFinalPhoto
-              ? 'Your headshot is ready.'
+              ? multiFinal
+                ? 'Your headshots are ready.'
+                : 'Your headshot is ready.'
               : isSelectionMade
               ? `Nice pick, ${firstName}.`
               : maxPicks > 1
@@ -535,7 +541,9 @@ const EmployeeGallery: React.FC = () => {
           </h1>
           <p className={`mt-3 max-w-[52ch] text-[16px] leading-[1.5] ${SOFT}`}>
             {hasFinalPhoto
-              ? 'Your retouched photo is below. Download it and put it everywhere.'
+              ? multiFinal
+                ? 'Your retouched photos are below. Download them and put them everywhere.'
+                : 'Your retouched photo is below. Download it and put it everywhere.'
               : isSelectionMade
               ? 'Your photos are with our retouchers. We will email you when the finals are ready.'
               : maxPicks > 1
@@ -589,9 +597,11 @@ const EmployeeGallery: React.FC = () => {
 
           {hasFinalPhoto && (
             <div className={`rounded-[18px] bg-[#003756] p-6 ${SHADOW}`}>
-              <h3 className="mb-1 text-[17px] font-extrabold text-[#9EFAFF]">Your final photo is ready.</h3>
+              <h3 className="mb-1 text-[17px] font-extrabold text-[#9EFAFF]">
+                {multiFinal ? 'Your final photos are ready.' : 'Your final photo is ready.'}
+              </h3>
               <p className="text-[14.5px] leading-[1.55] text-white/85">
-                Retouching is done. Download your headshot below.
+                {multiFinal ? 'Retouching is done. Download your headshots below.' : 'Retouching is done. Download your headshot below.'}
               </p>
             </div>
           )}
@@ -611,7 +621,9 @@ const EmployeeGallery: React.FC = () => {
             {/* Final photo */}
             {hasFinalPhoto && (
               <div>
-                <h2 className="mb-4 text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">Your final photo</h2>
+                <h2 className="mb-4 text-[22px] font-extrabold tracking-[-.02em] text-[#003756]">
+                  {multiFinal ? 'Your final photos' : 'Your final photo'}
+                </h2>
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
                   {photos.filter(photo => photo.is_final).map((photo) => (
                     <div
